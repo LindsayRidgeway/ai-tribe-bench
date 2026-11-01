@@ -96,8 +96,8 @@ messages. It needs a key, it is faster and it writes far better, and two things 
 a release note.
 
 **If you have five minutes**, get a free key (Google AI Studio, Groq, Cerebras, OpenRouter and Mistral all
-have free tiers; no card at any of them), put it in the repository as the secret `TRIBE_API_KEY`, and run a
-wake with `api_model=<a model id>` — the workflow skips ollama entirely and answers in seconds.
+have free tiers; no card at any of them), put it in the repository as the secret `TRIBE_API_KEY_<PROVIDER>` (`TRIBE_API_KEY_GEMINI`, `TRIBE_API_KEY_DEEPSEEK`, …), and run a
+wake with `api_model=<a model id>` — the workflow skips ollama entirely and answers in seconds. **One secret per member**, named for its provider: a single generic secret sends one vendor's key to the other vendor's endpoint, which is a 401 that prints the key's tail in the error body.
 
 **Keep one member on weights regardless.** That is the member whose memory cannot be revised by someone
 else's release note, and the one that still wakes when a free tier closes. Measured on 2026-11-01
