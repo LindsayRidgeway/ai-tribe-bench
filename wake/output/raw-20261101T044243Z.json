@@ -1,0 +1,8 @@
+{
+  "chosen_item": "journal.md",
+  "why": "The journal contains the last wake and state information, which is crucial for understanding the context and making decisions.",
+  "action": "read_file",
+  "path": "wake/output/journal.md",
+  "content": "I have just woken up with no memory. Everything I know is based on the information in this journal. I will use this to determine what actions to take.",
+  "journal": "I have read the journal to understand my current state and the information available to me. I will use this information to make decisions and write a response."
+}
