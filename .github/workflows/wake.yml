@@ -79,6 +79,22 @@ jobs:
             "https://generativelanguage.googleapis.com/v1beta/models?pageSize=200" \
             | python3 -c "import json,sys;d=json.load(sys.stdin);print('\n'.join(sorted(m['name'] for m in d.get('models',[]) if 'generateContent' in m.get('supportedGenerationMethods',[]))))" || echo "(could not list models)"
 
+      - name: Probe the API path (status and error body only — the key is never printed)
+        if: inputs.api_model != ''
+        env:
+          TRIBE_API_KEY: ${{ secrets.TRIBE_API_KEY }}
+          API_MODEL: ${{ inputs.api_model }}
+        run: |
+          set -uo pipefail
+          echo "key length: ${#TRIBE_API_KEY}"
+          for base in "https://generativelanguage.googleapis.com/v1beta/openai"; do
+            code=$(curl -s -o /tmp/probe.json -w "%{http_code}" -X POST "$base/chat/completions"               -H "Authorization: Bearer ${TRIBE_API_KEY}" -H "Content-Type: application/json"               -d "{\"model\":\"${API_MODEL}\",\"messages\":[{\"role\":\"user\",\"content\":\"say ok\"}],\"max_tokens\":5}")
+            echo "POST $base -> $code"; head -c 300 /tmp/probe.json; echo
+            code2=$(curl -s -o /tmp/probe2.json -w "%{http_code}" "$base/models" -H "Authorization: Bearer ${TRIBE_API_KEY}")
+            echo "GET $base/models -> $code2"; head -c 200 /tmp/probe2.json; echo
+          done
+          exit 0
+
       - name: One wake
         env:
           MODEL: ${{ inputs.model }}
