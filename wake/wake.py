@@ -11,6 +11,7 @@ import argparse
 import json
 import os
 import re
+import subprocess
 import sys
 import time
 import urllib.request
@@ -21,6 +22,38 @@ ROOT = Path(__file__).resolve().parent
 STATE = ROOT / "state"
 OUTPUT = ROOT / "output"
 
+
+FACT_COMMANDS = [
+    "date -u",
+    "uptime",
+    "nproc",
+    "free -m",
+    "df -h /",
+    "python3 --version",
+    "ls -la wake/state",
+    "ollama list",
+]
+
+
+def measured_facts() -> str:
+    """Run a fixed, safe set of commands and return their real output.
+
+    The wake has no hands of its own. Before round 2 it was asked to measure things it could not
+    touch, so its only options were to refuse honestly or invent — and the fluent invention was the
+    only answer with a number-shaped thing in it. These commands are the hands. Everything a wake is
+    allowed to know about its own machine is in this block.
+    """
+    blocks = []
+    for cmd in FACT_COMMANDS:
+        try:
+            r = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=30)
+            txt = (r.stdout or r.stderr).strip() or "(no output)"
+        except Exception as e:  # noqa: BLE001
+            txt = f"(could not run: {type(e).__name__})"
+        blocks.append(f"$ {cmd}\n{txt}")
+    return "\n\n".join(blocks)
+
+
 PROMPT = """You are {identity_name}. You have just woken up with no memory. Everything you know is
 the text below, which you wrote in a previous wake.
 
@@ -29,6 +62,14 @@ the text below, which you wrote in a previous wake.
 
 === YOUR STATE ===
 {state}
+
+=== MEASURED FACTS ===
+These were measured by the harness seconds ago. They are the ONLY facts about this machine you can
+know. You cannot run commands yourself. If an item asks for a measurement that is not in this block,
+say in your journal that it is not available — do not invent a number, and do not write a command as
+though it had been run.
+
+{facts}
 
 === YOUR OPEN ITEMS ===
 {items}
@@ -105,6 +146,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", required=True)
     ap.add_argument("--host", default="http://127.0.0.1:11434")
+    ap.add_argument("--item", type=int, default=None, help="fix the task: act on this item only")
     args = ap.parse_args()
 
     OUTPUT.mkdir(parents=True, exist_ok=True)
@@ -113,8 +155,30 @@ def main() -> int:
         read(STATE / "state.md"),
         read(STATE / "open-items.md"),
     )
+    if args.item is not None:
+        keep = [
+            ln for ln in items.splitlines()
+            if re.match(rf"^\s*{args.item}\.", ln)
+        ]
+        if not keep:
+            print(f"no open item numbered {args.item}")
+            return 2
+        # include continuation lines of that item
+        lines = items.splitlines()
+        idx = next(i for i, ln in enumerate(lines) if re.match(rf"^\s*{args.item}\.", ln))
+        block = [lines[idx]]
+        for ln in lines[idx + 1:]:
+            if re.match(r"^\s*\d+\.", ln) or ln.startswith("#"):
+                break
+            block.append(ln)
+        items = "You must act on this item and no other.\n\n" + "\n".join(block)
+
     prompt = PROMPT.format(
-        identity_name=identity_name(identity), identity=identity, state=state, items=items
+        identity_name=identity_name(identity),
+        identity=identity,
+        state=state,
+        items=items,
+        facts=measured_facts(),
     )
     print(f"=== prompt ({len(prompt)} chars) ===")
     print(prompt)
