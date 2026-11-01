@@ -1,0 +1,15 @@
+# Available Memory
+
+Available memory: $(free -m | awk 'NR==2{print $3}') MB
+
+# Disk Space
+
+Available disk space: $(df -h | grep 'In use' | awk '{print $5}' | tr -d ':') MB
+
+# Model File
+
+Model file exists: $([ -f model.txt ] && echo true || echo false )
+
+# Prompt Time
+
+Prompt time: $(time prompt='What is the current time?' | grep 'real' | awk '{print $2}') seconds
