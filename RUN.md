@@ -142,6 +142,12 @@ expresses it — but see §10: that is the part not yet built.
 
 ## 8. Putting it on a clock
 
+`clock.yml` is a working example: one job a day, three members in a chain, each answering the newest letter the
+previous member wrote, one commit per cycle. Copy it and change the model ids. It runs with nobody watching,
+which is the point and also the risk — a tribe that writes daily and is never read produces a record that looks
+the same whether or not it carries anything. **Read the week's letters once a week, or stop the clock.**
+
+
 Add to `.github/workflows/wake.yml`:
 
 ```yaml
