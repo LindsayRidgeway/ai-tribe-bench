@@ -436,7 +436,15 @@ having answered something nobody said.
         else:
             reply, payload = ask(args.host, args.model, prompt, images)
     except Exception as e:  # noqa: BLE001 — a blind model refusing an image is a finding, not a crash
-        reply, payload = "", {"error": f"{type(e).__name__}: {e}"}
+        # An HTTP error's reason line is not the reason. Google, Groq and OpenRouter all explain
+        # themselves in the body, and a 404 with no body is a guess. Keep 400 characters of it.
+        detail = ""
+        if hasattr(e, "read"):
+            try:
+                detail = e.read().decode("utf-8", "replace")[:400]
+            except Exception:  # noqa: BLE001
+                detail = ""
+        reply, payload = "", {"error": f"{type(e).__name__}: {e} {detail}".strip()}
         print(f"!! request failed: {payload['error']}")
     elapsed = time.time() - t0
 
