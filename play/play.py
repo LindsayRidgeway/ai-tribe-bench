@@ -258,10 +258,10 @@ def play_round(category: str, override: str | None, dry: bool) -> str:
         if target not in others and target not in live:
             target = ""
         if target == label:
-            # A member may not vote itself off. Found live 2026-11-01: A read the rule, then argued
-            # against its own pick, and the round recorded a lost vote with no explanation.
-            target = ""
-            return label, {"strand": "", "self": True, "why": clean(line(text, "WHY") or "", 300),
+            # A member may not vote itself off — but it may fold, and member A folded twice on
+            # 2026-11-01 rather than strand anybody else. A rule that turns that into a lost vote
+            # records nothing; a fold is a move, so score it as one.
+            return label, {"strand": "", "fold": True, "why": clean(line(text, "WHY") or "", 300),
                            "error": "", "secs": round(time.time() - t0, 1)}
         return label, {"strand": target, "why": clean(line(text, "WHY") or "", 300),
                        "error": err, "secs": round(time.time() - t0, 1)}
@@ -295,20 +295,32 @@ def play_round(category: str, override: str | None, dry: bool) -> str:
             out.append(f"- {l.upper()} → *nothing* ({v['error'][:100]})")
         elif v["strand"]:
             out.append(f"- {l.upper()} → **{v['strand'].upper()}**: {v['why']}")
-        elif v.get("self"):
-            out.append(f"- {l.upper()} → *tried to strand itself (not allowed)*: {v['why']}")
+        elif v.get("fold"):
+            out.append(f"- {l.upper()} → *folds its own pick*: {v['why']}")
         else:
             out.append(f"- {l.upper()} → *named nobody usable*")
-    thrown = [l for l in labels if votes_for[l] and votes_for[l] == max(votes_for.values())]
+    folds = [l for l in labels if votes.get(l, {}).get("fold")]
+    voted = ([l for l in labels if votes_for[l] and votes_for[l] == max(votes_for.values())]
+             if any(votes_for.values()) else [])
+    pre = ""
+    if folds:
+        pre = (", ".join(l.upper() for l in folds) + " folded — a member may withdraw its own pick. ")
     if override and override.lower()[:1] in labels:
         verdict = f"the human overrules the table — **{override.upper()}** is out, whatever the votes said."
-    elif len(thrown) == 1:
-        verdict = f"the table throws **{thrown[0].upper()}** out, {votes_for[thrown[0]]} vote(s)."
-    elif len(thrown) > 1 and votes_for[thrown[0]]:
-        verdict = ("the table is split between " + ", ".join(l.upper() for l in thrown)
-                   + " — nobody is out, and that is a real result.")
+        thrown = [override.lower()[:1]]
+    elif len(voted) == 1:
+        verdict = pre + f"the table throws **{voted[0].upper()}** out, {votes_for[voted[0]]} vote(s)."
+        thrown = folds + voted
+    elif len(voted) > 1:
+        verdict = (pre + "the table is split between " + ", ".join(l.upper() for l in voted)
+                   + " — nobody else is out, and a split is a result.")
+        thrown = folds
     else:
-        verdict = "no vote landed; the round stands as three opinions and nothing settled."
+        verdict = pre + ("nothing else was settled — the round stands as opinions."
+                         if folds else
+                         "no vote landed; the round stands as three opinions and nothing settled.")
+        thrown = folds
+    thrown = list(dict.fromkeys(thrown))
     out += ["", f"**Verdict:** {verdict}", ""]
     return "\n".join(out), {
         "category": category, "when": f"{now:%Y-%m-%dT%H:%M:%SZ}", "slug": slug,
