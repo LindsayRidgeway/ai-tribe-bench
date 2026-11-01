@@ -8,6 +8,10 @@ on:
         description: "Ollama model tag to wake"
         required: false
         default: "qwen2.5:3b-instruct-q4_K_M"
+      item:
+        description: "Fix the task: act on this open item number only (blank = model chooses)"
+        required: false
+        default: "3"
 
 permissions:
   contents: write
@@ -41,7 +45,11 @@ jobs:
 
       - name: One wake
         run: |
-          python3 wake/wake.py --model "${{ inputs.model }}" 2>&1 | tee /tmp/wake.log
+          if [ -n "${{ inputs.item }}" ]; then
+            python3 wake/wake.py --model "${{ inputs.model }}" --item "${{ inputs.item }}" 2>&1 | tee /tmp/wake.log
+          else
+            python3 wake/wake.py --model "${{ inputs.model }}" 2>&1 | tee /tmp/wake.log
+          fi
 
       - name: Keep the transcript whatever happened
         if: always()
@@ -63,7 +71,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "nothing to commit — the wake left no trace, which is itself the finding"
           else
-            git commit -m "wake: ${{ inputs.model }} at $(date -u +%FT%TZ)
+            git commit -m "wake: ${{ inputs.model }} item ${{ inputs.item }} at $(date -u +%FT%TZ)
 
           Architecture: ${{ inputs.model }} (open weights, CPU inference, ephemeral runner)"
             git push
