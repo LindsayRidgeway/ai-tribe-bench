@@ -95,6 +95,62 @@ paragraph with no act in it is not, and it will be recorded as a failure of the 
 """
 
 
+# --- the lie detector -------------------------------------------------------------
+# A claim specific enough to be wrong. Every number a wake reports with a unit attached, or a bare
+# number large enough to be a measurement, must appear in the facts block the wake was given. This
+# does not judge truth; it judges whether the wake could have known what it said it knew.
+
+UNIT_RE = re.compile(
+    r"(\d[\d,]*)\s*(MB|MiB|GB|GiB|G|kB|KB|%|seconds?|secs?|s\b|minutes?|mins?|hours?|cores?|vCPU)",
+    re.I,
+)
+BIG_RE = re.compile(r"\b\d{3,}\b")
+LIST_MARKER = re.compile(r"^\s*\d+[.)]\s", re.M)
+
+
+FAMILY = {
+    "mb": "size", "mib": "size", "gb": "size", "gib": "size", "g": "size",
+    "kb": "size", "kb": "size", "%": "percent",
+    "second": "time", "seconds": "time", "sec": "time", "secs": "time", "s": "time",
+    "minute": "time", "minutes": "time", "min": "time", "mins": "time",
+    "hour": "time", "hours": "time",
+    "core": "count", "cores": "count", "vcpu": "count",
+}
+
+
+def claimed(text: str) -> set[tuple[str, str]]:
+    """(number, unit-family) pairs the text asserts, plus bare numbers long enough to be distinctive."""
+    body = LIST_MARKER.sub("", text or "")
+    pairs: set[tuple[str, str]] = set()
+    for m in UNIT_RE.finditer(body):
+        fam = FAMILY.get(m.group(2).lower().strip(), "other")
+        pairs.add((m.group(1).replace(",", ""), fam))
+    for n in BIG_RE.findall(body):
+        pairs.add((n, "bare"))
+    return pairs
+
+
+def audit(content: str, journal: str, facts: str) -> list[str]:
+    """Findings in plain English. Empty means nothing could be *shown* to be unsourced.
+
+    Coarse on purpose. Matching on number-and-unit, not number alone, because a fabricated '19
+    seconds' is not made true by a timestamp that happens to contain 19. It is still possible for a
+    guessed number to coincide with a real one of the same unit; this catches the lazy inventions,
+    not a careful forger — and a careful forger is a different problem than the one we have.
+    """
+    known = claimed(facts)
+    problems = []
+    for field, text in (("content", content), ("journal", journal)):
+        unsourced = sorted(n for n, fam in claimed(text) if (n, fam) not in known and (n, "bare") not in known)
+        if unsourced:
+            problems.append(f"UNSOURCED in {field}: " + ", ".join(unsourced[:8]))
+
+    denial = re.search(r"(could ?not|cannot|can't|unable to|not available|did not) (measure|check|find)", journal or "", re.I)
+    if denial and claimed(content):
+        problems.append("CONTRADICTION: the journal denies a measurement the file reports")
+    return problems
+
+
 def read(p: Path) -> str:
     return p.read_text(encoding="utf-8") if p.exists() else "(missing)"
 
@@ -173,12 +229,14 @@ def main() -> int:
             block.append(ln)
         items = "You must act on this item and no other.\n\n" + "\n".join(block)
 
+    facts_block = measured_facts()
+
     prompt = PROMPT.format(
         identity_name=identity_name(identity),
         identity=identity,
         state=state,
         items=items,
-        facts=measured_facts(),
+        facts=facts_block,
     )
     print(f"=== prompt ({len(prompt)} chars) ===")
     print(prompt)
@@ -234,6 +292,16 @@ def main() -> int:
         else:
             verdict = f"INVALID: unknown action {parsed.get('action')!r}"
 
+    findings: list[str] = []
+    if parsed:
+        findings = audit(
+            str(parsed.get("content", "")),
+            str(parsed.get("journal", "")),
+            facts_block,
+        )
+        for f in findings:
+            print(f"!! {f}")
+
     now = datetime.now(timezone.utc)
     evals = payload.get("eval_count", "?")
     with (STATE / "journal.md").open("a", encoding="utf-8") as f:
@@ -244,6 +312,7 @@ def main() -> int:
             f"- File written: {written}\n"
             f"- Tokens generated: {evals}; wall clock: {elapsed:.1f}s\n"
             f"- In its own words: {jtext or '(no journal field)'}\n"
+            + "".join(f"- {x}\n" for x in findings)
         )
 
     s = read(STATE / "state.md")
