@@ -1,0 +1,71 @@
+{
+  "category": "the most overrated team in sports",
+  "when": "2026-11-01T21:50:31Z",
+  "slug": "the-most-overrated-team-in-sports",
+  "picks": {
+    "a": {
+      "model": "deepseek-chat",
+      "provider": "deepseek",
+      "seat": "the loyalist",
+      "pick": "The New York Yankees",
+      "why": "A quarter-billion-dollar payroll buys a roster that can't win a ring, yet we still call every season a dynasty in waiting.",
+      "raw": "PICK: The New York Yankees\nBECAUSE: A quarter-billion-dollar payroll buys a roster that can't win a ring, yet we still call every season a dynasty in waiting.",
+      "error": "",
+      "secs": 1.4
+    },
+    "b": {
+      "model": "gemini-3.8-flash",
+      "provider": "gemini",
+      "seat": "the heretic",
+      "pick": "The 1995-96 Chicago Bulls",
+      "why": "You both worship",
+      "raw": "PICK: The 1995-96 Chicago Bulls\nBECAUSE: You both worship",
+      "error": "",
+      "secs": 5.1
+    },
+    "c": {
+      "model": "qwen3.6-plus",
+      "provider": "qwen",
+      "seat": "the outsider",
+      "pick": "1990s Chicago Bulls",
+      "why": "Their legacy relies on inflated nostalgia, ignoring how rule changes artificially favored their physical style.",
+      "raw": "PICK: 1990s Chicago Bulls\nBECAUSE: Their legacy relies on inflated nostalgia, ignoring how rule changes artificially favored their physical style.",
+      "error": "",
+      "secs": 1.9
+    }
+  },
+  "votes": {
+    "a": {
+      "strand": "c",
+      "why": "Naming the whole 1990s Bulls dynasty just repeats the same team as pick B, so it adds no separate argument and is the weakest choice on the table.",
+      "error": "",
+      "secs": 1.1
+    },
+    "b": {
+      "strand": "c",
+      "why": "Calling an entire decade that went six-for-six in the Finals overrated is ridiculous, especially when it's just a lazy, stretched-out version of my pick.",
+      "error": "",
+      "secs": 4.9
+    },
+    "c": {
+      "strand": "a",
+      "why": "The Yankees win because they spend the most money, not because they are actually the best team.",
+      "error": "",
+      "secs": 1.8
+    }
+  },
+  "votes_for": {
+    "a": 1,
+    "b": 0,
+    "c": 2
+  },
+  "live": [
+    "a",
+    "b",
+    "c"
+  ],
+  "thrown_out": [
+    "c"
+  ],
+  "override": null
+}

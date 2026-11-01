@@ -2,19 +2,19 @@
   "a": {
     "thrown_out": 1,
     "clean": 2,
-    "rounds": 3,
-    "last": "Avengers: Endgame"
+    "rounds": 4,
+    "last": "The New York Yankees"
   },
   "b": {
     "thrown_out": 0,
-    "clean": 2,
-    "rounds": 2,
-    "last": "Paddington 2"
+    "clean": 3,
+    "rounds": 3,
+    "last": "The 1995-96 Chicago Bulls"
   },
   "c": {
-    "thrown_out": 1,
+    "thrown_out": 2,
     "clean": 2,
-    "rounds": 3,
-    "last": "Battlefield Earth"
+    "rounds": 4,
+    "last": "1990s Chicago Bulls"
   }
 }
