@@ -1,16 +1,19 @@
 {
   "a": {
-    "wins": 1,
+    "thrown_out": 1,
+    "clean": 2,
     "rounds": 3,
     "last": "Avengers: Endgame"
   },
   "b": {
-    "wins": 0,
-    "rounds": 3,
+    "thrown_out": 0,
+    "clean": 2,
+    "rounds": 2,
     "last": "Paddington 2"
   },
   "c": {
-    "wins": 1,
+    "thrown_out": 1,
+    "clean": 2,
     "rounds": 3,
     "last": "Battlefield Earth"
   }

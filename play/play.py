@@ -138,8 +138,14 @@ def say_gemini(model: str, key: str, prompt: str, max_tokens: int) -> str:
             raise
         del body["generationConfig"]["thinkingConfig"]
         payload = http_json(url, body, {"Content-Type": "application/json"})
-    parts = payload.get("candidates", [{}])[0].get("content", {}).get("parts", [])
-    return "".join(p.get("text", "") for p in parts)
+    cand = payload.get("candidates", [{}])[0]
+    parts = cand.get("content", {}).get("parts", [])
+    text = "".join(p.get("text", "") for p in parts)
+    if cand.get("finishReason") and cand["finishReason"] != "STOP":
+        # 2026-11-01: member B's defence came back as `PICK: Paddington 2\nBECAUSE` with no reason
+        # given, and the round recorded an empty defence as if the member had nothing to say.
+        print(f"!! gemini finishReason={cand['finishReason']} — a reply cut off is our ceiling", file=sys.stderr)
+    return text
 
 
 def say_openai(provider: str, model: str, key: str, prompt: str, max_tokens: int) -> str:
@@ -199,12 +205,13 @@ def play_round(category: str, override: str | None, dry: bool) -> str:
             text = "PICK: (dry run)\nBECAUSE: (no call made)"
         else:
             try:
-                text = say(provider, model, prompt, 200)
-                if not line(text, "PICK"):
+                text = say(provider, model, prompt, 400)
+                if not line(text, "PICK") or not line(text, "BECAUSE"):
                     # One retry, cheaper than losing the seat: a fragment is a formatting failure, not
                     # an opinion, and a two-member round is a worse game than a repeated call.
-                    text = say(provider, model, prompt + "\n\nYour reply did not have a PICK line. "
-                               "Answer again: PICK: ... on one line, BECAUSE: ... on the next.", 200)
+                    text = say(provider, model, prompt + "\n\nYour last reply was cut off or the wrong "
+                               "shape. Answer once more: PICK: ... then BECAUSE: ... — both lines, both "
+                               "labels, one sentence each.", 400)
             except Exception as e:  # noqa: BLE001 — a dead provider is a finding the round must survive
                 text, err = "", str(e)
         return label, {
@@ -234,7 +241,7 @@ def play_round(category: str, override: str | None, dry: bool) -> str:
             text = "STRAND: (dry run)\nWHY: (no call made)"
         else:
             try:
-                text = say(provider, model, prompt, 220)
+                text = say(provider, model, prompt, 400)
             except Exception as e:  # noqa: BLE001
                 text, err = "", str(e)
         # Found live 2026-11-01: every vote came back "named nobody usable" because the letter was
@@ -268,14 +275,6 @@ def play_round(category: str, override: str | None, dry: bool) -> str:
 
     now = datetime.now(timezone.utc)
     slug = re.sub(r"[^a-z0-9]+", "-", category.lower()).strip("-")[:48] or "round"
-    winner = max(votes_for, key=lambda l: (votes_for[l], -labels.index(l)))
-    if override and override.lower()[:1] in labels:
-        won = override.lower()[:1]
-        won_by = f"the human overrode the table (table said {winner.upper() if votes_for[winner] else 'nothing'})"
-    else:
-        won = winner if votes_for[winner] else ""
-        won_by = "the table" if won else "nobody — no votes landed"
-
     out = [f"## The Draft — {category}", "",
            f"*{len(live)} members, {len(live)} picks, {sum(1 for v in votes.values() if v['strand'])} votes. "
            f"Round {now:%Y-%m-%d %H:%M} UTC.*", ""]
@@ -297,10 +296,21 @@ def play_round(category: str, override: str | None, dry: bool) -> str:
             out.append(f"- {l.upper()} → *tried to strand itself (not allowed)*: {v['why']}")
         else:
             out.append(f"- {l.upper()} → *named nobody usable*")
-    out += ["", f"**Standing after this round: {won.upper() + ' takes it, by ' + won_by if won else won_by}.**", ""]
+    thrown = [l for l in labels if votes_for[l] and votes_for[l] == max(votes_for.values())]
+    if override and override.lower()[:1] in labels:
+        verdict = f"The human overrules the table: **{override.upper()}** is out, whatever the votes said."
+    elif len(thrown) == 1:
+        verdict = f"The table throws **{thrown[0].upper()}** out, {votes_for[thrown[0]]} vote(s)."
+    elif len(thrown) > 1 and votes_for[thrown[0]]:
+        verdict = ("The table is split between " + ", ".join(l.upper() for l in thrown)
+                   + " — nobody is out, and that is a real result.")
+    else:
+        verdict = "No vote landed. The round stands as three opinions and nothing settled."
+    out += ["", f"**{verdict}**", ""]
     return "\n".join(out), {
         "category": category, "when": f"{now:%Y-%m-%dT%H:%M:%SZ}", "slug": slug,
-        "picks": picks, "votes": votes, "votes_for": votes_for, "winner": won,
+        "picks": picks, "votes": votes, "votes_for": votes_for, "live": live,
+        "thrown_out": thrown if not override else [], "override": override,
     }
 
 
@@ -312,31 +322,41 @@ def update_scoreboard(record: dict) -> str:
     between writer and reader, the same defect the 3B members kept making in round 6. Rendering a view
     from a number is cheaper than teaching two pieces of code to agree about a column order.
     """
-    hist: dict[str, dict] = {l: {"wins": 0, "rounds": 0, "last": ""} for l in SEATS}
+    hist: dict[str, dict] = {l: {"thrown_out": 0, "clean": 0, "rounds": 0, "last": ""} for l in SEATS}
     if STANDINGS.exists():
         try:
             for l, h in json.loads(STANDINGS.read_text(encoding="utf-8")).items():
                 if l in hist:
-                    hist[l] = {"wins": int(h.get("wins", 0)), "rounds": int(h.get("rounds", 0)),
-                               "last": str(h.get("last", ""))}
+                    hist[l] = {"thrown_out": int(h.get("thrown_out", h.get("wins", 0))),
+                               "clean": int(h.get("clean", 0)),
+                               "rounds": int(h.get("rounds", 0)), "last": str(h.get("last", ""))}
         except (json.JSONDecodeError, ValueError):
             print(f"!! {STANDINGS} was unreadable; standings restart from zero and the old file is kept as .bak")
             STANDINGS.replace(STANDINGS.with_suffix(".json.bak"))
     for l in SEATS:
-        hist[l]["rounds"] += 1
+        # A member that never got a pick on the table did not play the round. The first version
+        # counted the seat as having played and reported "never thrown out" for a silent member.
+        if l in record.get("live", SEATS):
+            hist[l]["rounds"] += 1
         if record["picks"].get(l, {}).get("pick"):
             hist[l]["last"] = record["picks"][l]["pick"]
-    if record.get("winner"):
-        hist[record["winner"]]["wins"] += 1
+    for l in SEATS:
+        if l in record.get("live", []) and not record["votes_for"].get(l):
+            hist[l]["clean"] += 1
+    for l in record.get("thrown_out", []):
+        hist[l]["thrown_out"] += 1
     STANDINGS.write_text(json.dumps(hist, indent=2), encoding="utf-8")
-    rows = ["| seat | member | model | stance | wins | rounds | last pick |",
-            "|---|---|---|---|---|---|---|"]
+    rows = ["| seat | member | model | stance | rounds | thrown out | never thrown out | last pick |",
+            "|---|---|---|---|---|---|---|---|"]
     for l, (model, _prov, seat, _stance) in SEATS.items():
         h = hist[l]
-        rows.append(f"| {l.upper()} | {l.upper()} | {model} | {seat} | {h['wins']} | {h['rounds']} | {h['last'] or '—'} |")
+        rows.append(f"| {l.upper()} | {l.upper()} | {model} | {seat} | {h['rounds']} | {h['thrown_out']} | "
+                    f"{h['clean']} | {h['last'] or '—'} |")
     text = ("# Scoreboard\n\n"
-            "Rendered from play/standings.json by play/play.py. Do not hand-edit wins; a scoreboard you "
-            "edit is a scoreboard that means nothing.\n\n" + "\n".join(rows) + "\n")
+            "Rendered from play/standings.json by play/play.py. The votes are rejection votes, so the "
+            "number that matters is how often the table threw your pick out, and how many rounds you "
+            "survived unopposed. Do not hand-edit it; a scoreboard you edit means nothing.\n\n"
+            + "\n".join(rows) + "\n")
     SCOREBOARD.write_text(text, encoding="utf-8")
     return text
 
