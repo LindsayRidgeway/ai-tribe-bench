@@ -1,0 +1,8 @@
+{
+  "chosen_item": "An image is attached. Say what you can actually see in it, and flag anything you cannot see or determine.",
+  "why": "I have no prior knowledge and the question explicitly asks me to describe the attached image, which is the only data I can directly process.",
+  "action": "write_file",
+  "path": "wake/output/image_analysis.md",
+  "content": "# Image Analysis\n\nI observe a single, red cube resting on a wooden surface. The cube appears to be glossy and uniformly colored. The surface beneath the cube is a dark, textured wood. The lighting appears to be relatively even, casting minimal shadows. I cannot determine the dimensions of the cube or the material of the surface beyond their general appearance. The background is indistinct.\n\nThis is the only information I can derive from the provided image.",
+  "journal": "I executed the requested action, analyzing the provided image. I was able to identify the basic visual elements – a red cube and a wooden surface. However, I cannot verify any measurements or material properties due to the lack of reference data. This confirms my initial state of having no verifiable facts."
+}
