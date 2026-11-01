@@ -91,7 +91,14 @@ jobs:
             code=$(curl -s -o /tmp/probe.json -w "%{http_code}" -X POST "$base/chat/completions"               -H "Authorization: Bearer ${TRIBE_API_KEY}" -H "Content-Type: application/json"               -d "{\"model\":\"${API_MODEL}\",\"messages\":[{\"role\":\"user\",\"content\":\"say ok\"}],\"max_tokens\":5}")
             echo "POST $base -> $code"; head -c 300 /tmp/probe.json; echo
             code2=$(curl -s -o /tmp/probe2.json -w "%{http_code}" "$base/models" -H "Authorization: Bearer ${TRIBE_API_KEY}")
-            echo "GET $base/models -> $code2"; head -c 200 /tmp/probe2.json; echo
+            echo "GET $base/models -> $code2"
+            python3 - <<'PY2' || head -c 300 /tmp/probe2.json
+import json
+d=json.load(open('/tmp/probe2.json'))
+ids=sorted(m.get('id','') for m in d.get('data',[]))
+print(f"compat surface offers {len(ids)} models:")
+print("\n".join(ids))
+PY2
           done
           exit 0
 
