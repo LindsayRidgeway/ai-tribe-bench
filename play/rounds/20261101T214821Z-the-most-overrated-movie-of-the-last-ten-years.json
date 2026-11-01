@@ -1,0 +1,64 @@
+{
+  "category": "the most overrated movie of the last ten years",
+  "when": "2026-11-01T21:48:21Z",
+  "slug": "the-most-overrated-movie-of-the-last-ten-years",
+  "picks": {
+    "a": {
+      "model": "deepseek-chat",
+      "provider": "deepseek",
+      "seat": "the loyalist",
+      "pick": "Avengers: Endgame",
+      "why": "It's a victory lap padded with time-travel nonsense and grief, and we mistook a decade of buildup for a good movie.",
+      "raw": "PICK: Avengers: Endgame\nBECAUSE: It's a victory lap padded with time-travel nonsense and grief, and we mistook a decade of buildup for a good movie.",
+      "error": "",
+      "secs": 1.0
+    },
+    "b": {
+      "model": "gemini-3.8-flash",
+      "provider": "gemini",
+      "seat": "the heretic",
+      "pick": "Paddington 2",
+      "why": "",
+      "raw": "PICK: Paddington 2\nBECAUSE",
+      "error": "",
+      "secs": 3.0
+    },
+    "c": {
+      "model": "qwen3.6-plus",
+      "provider": "qwen",
+      "seat": "the outsider",
+      "pick": "Battlefield Earth",
+      "why": "It is a thirty-year-old disaster, not recent.",
+      "raw": "PICK: Battlefield Earth\nBECAUSE: It is a thirty-year-old disaster, not recent.",
+      "error": "",
+      "secs": 1.8
+    }
+  },
+  "votes": {
+    "a": {
+      "strand": "c",
+      "why": "Battlefield Earth is famously terrible, so calling it overrated makes no sense \u2014 nobody rates it highly in the first place.",
+      "error": "",
+      "secs": 1.0
+    },
+    "b": {
+      "strand": "c",
+      "why": "Battlefield Earth came out over twenty years ago and literally everyone agrees it's garbage, so it can't even qualify as overrated from the last ten years.",
+      "error": "",
+      "secs": 1.6
+    },
+    "c": {
+      "strand": "",
+      "self": true,
+      "why": "Battlefield Earth is objectively terrible, so it doesn't count as overrated.",
+      "error": "",
+      "secs": 1.5
+    }
+  },
+  "votes_for": {
+    "a": 0,
+    "b": 0,
+    "c": 2
+  },
+  "winner": "c"
+}
