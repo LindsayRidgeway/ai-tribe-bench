@@ -52,13 +52,19 @@ jobs:
           ollama list
 
       - name: One wake
+        env:
+          MODEL: ${{ inputs.model }}
+          ITEM: ${{ inputs.item }}
+          ASK: ${{ inputs.ask }}
+          IMG: ${{ inputs.image }}
         run: |
-          ARGS=""
-          [ -n "${{ inputs.item }}" ] && ARGS="$ARGS --item ${{ inputs.item }}"
-          [ -n "${{ inputs.ask }}" ] && ARGS="$ARGS --ask \"${{ inputs.ask }}\""
-          [ -n "${{ inputs.image }}" ] && ARGS="$ARGS --image ${{ inputs.image }}"
-          echo "args:$ARGS"
-          python3 wake/wake.py --model "${{ inputs.model }}" $ARGS 2>&1 | tee /tmp/wake.log
+          set -euo pipefail
+          ARGS=()
+          [ -n "${ITEM:-}" ] && ARGS+=(--item "$ITEM")
+          [ -n "${ASK:-}" ] && ARGS+=(--ask "$ASK")
+          [ -n "${IMG:-}" ] && ARGS+=(--image "$IMG")
+          printf 'args:'; printf ' [%s]' "${ARGS[@]:-}"; echo
+          python3 wake/wake.py --model "$MODEL" "${ARGS[@]:-}" 2>&1 | tee /tmp/wake.log
 
       - name: Keep the transcript whatever happened
         if: always()
