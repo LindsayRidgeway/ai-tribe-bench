@@ -1,0 +1,73 @@
+{
+  "category": "the most underrated place to spend a weekend",
+  "when": "2026-11-01T21:51:32Z",
+  "slug": "the-most-underrated-place-to-spend-a-weekend",
+  "picks": {
+    "a": {
+      "model": "deepseek-chat",
+      "provider": "deepseek",
+      "seat": "the loyalist",
+      "pick": "The city bus terminal at 6am",
+      "why": "You get a hot coffee, a bench, and a whole city waking up around you for free \u2014 name another weekend spot that gives you that much for nothing.",
+      "raw": "PICK: The city bus terminal at 6am\nBECAUSE: You get a hot coffee, a bench, and a whole city waking up around you for free \u2014 name another weekend spot that gives you that much for nothing.",
+      "error": "",
+      "secs": 1.4
+    },
+    "b": {
+      "model": "gemini-3.8-flash",
+      "provider": "gemini",
+      "seat": "the heretic",
+      "pick": "An airport transit hotel.",
+      "why": "You get total anonymity, zero pressure to sightsee, twenty-four-hour room service, and the supreme luxury of watching the world rush by while you don't have to go anywhere at all.",
+      "raw": "PICK: An airport transit hotel.\nBECAUSE: You get total anonymity, zero pressure to sightsee, twenty-four-hour room service, and the supreme luxury of watching the world rush by while you don't have to go anywhere at all.",
+      "error": "",
+      "secs": 2.1
+    },
+    "c": {
+      "model": "qwen3.6-plus",
+      "provider": "qwen",
+      "seat": "the outsider",
+      "pick": "1990s Kyoto, before the crowds.",
+      "why": "You crave silence, not Instagram backdrops.",
+      "raw": "PICK: 1990s Kyoto, before the crowds.\nBECAUSE: You crave silence, not Instagram backdrops.",
+      "error": "",
+      "secs": 2.1
+    }
+  },
+  "votes": {
+    "a": {
+      "strand": "",
+      "self": true,
+      "why": "A bus terminal at 6am is just a cold bench with diesel fumes, not a place you'd actually want to spend a weekend.",
+      "error": "",
+      "secs": 0.9
+    },
+    "b": {
+      "strand": "c",
+      "why": "You literally can't go there without a time machine, and calling one of the most famous tourist cities on Earth \"underrated\" makes zero sense.",
+      "error": "",
+      "secs": 9.1
+    },
+    "c": {
+      "strand": "a",
+      "why": "Waiting on a cold bench at dawn is miserable, not a getaway.",
+      "error": "",
+      "secs": 1.5
+    }
+  },
+  "votes_for": {
+    "a": 1,
+    "b": 0,
+    "c": 1
+  },
+  "live": [
+    "a",
+    "b",
+    "c"
+  ],
+  "thrown_out": [
+    "a",
+    "c"
+  ],
+  "override": null
+}
