@@ -218,7 +218,14 @@ def play_round(category: str, override: str | None, dry: bool) -> str:
             err = ""
         except Exception as e:  # noqa: BLE001
             text, err = "", str(e)
-        target = (line(text, "STRAND") or "").upper()[:1]
+        # Found live 2026-11-01: every vote came back "named nobody usable" because the letter was
+        # upper-cased and the seat labels are lower-case. Three votes were cast and thrown away by a
+        # one-character bug, which is the same class of defect as the audit that cried wolf.
+        said = (line(text, "STRAND") or "")
+        target = said.strip(" .*—:-–").lower()[:1]
+        if target not in others and target not in live:
+            m = re.search(r"\b([abc])\b", said.lower())
+            target = m.group(1) if m else ""
         if target not in others and target not in live:
             target = ""
         if target == label:
