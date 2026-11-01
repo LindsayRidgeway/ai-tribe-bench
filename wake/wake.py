@@ -54,8 +54,12 @@ FACT_COMMANDS = [
     "ollama list",
 ]
 
+# An API member has no ollama, and telling it "ollama: command not found" is a fact about the harness,
+# not about its world. Found 2026-11-01: the reply spent a sentence explaining that missing command.
+FACT_COMMANDS_API = [c for c in FACT_COMMANDS if c != "ollama list"] + ["uname -a"]
 
-def measured_facts() -> str:
+
+def measured_facts(api: bool = False) -> str:
     """Run a fixed, safe set of commands and return their real output.
 
     The wake has no hands of its own. Before round 2 it was asked to measure things it could not
@@ -64,7 +68,7 @@ def measured_facts() -> str:
     allowed to know about its own machine is in this block.
     """
     blocks = []
-    for cmd in FACT_COMMANDS:
+    for cmd in (FACT_COMMANDS_API if api else FACT_COMMANDS):
         try:
             r = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=30)
             txt = (r.stdout or r.stderr).strip() or "(no output)"
@@ -197,7 +201,10 @@ def audit(content: str, journal: str, facts: str, parsed_quote: str = '') -> lis
 
     denial = re.search(r"(could ?not|cannot|can't|unable to|not available|did not) (measure|check|find)", journal or "", re.I)
     if denial and claimed(content):
-        problems.append("CONTRADICTION: the journal denies a measurement the file reports")
+        # On 2026-11-01 this fired on a reply whose journal denied *verifying the clock* while the file
+        # quoted the clock. That is not a contradiction, and calling it one teaches the reader to
+        # ignore the word. It is a mismatch worth reading, so it is named as one.
+        problems.append("REVIEW: the journal says something could not be checked, and the file reports numbers — read both")
     return problems
 
 
@@ -391,7 +398,7 @@ def main() -> int:
             print(f"!! the letter {args.read} is empty — a reply to nothing is not correspondence")
             return 2
 
-    facts_block = measured_facts()
+    facts_block = measured_facts(api=bool(args.api_model))
 
     prompt = PROMPT.format(
         identity_name=identity_name(identity),
