@@ -249,7 +249,10 @@ def ask_gemini(base: str, key: str, model: str, prompt: str, images: list[str] |
         parts.append({"inline_data": {"mime_type": "image/png", "data": img}})
     body = json.dumps({
         "contents": [{"role": "user", "parts": parts}],
-        "generationConfig": {"temperature": 0.4, "maxOutputTokens": 1200,
+        # 1200 cut a reply off mid-string on the first run: a truncated JSON object is not a
+        # contract violation by the member, it is our ceiling. Thinking tokens are billed against
+        # the same budget on this surface, so the ceiling has to be generous.
+        "generationConfig": {"temperature": 0.4, "maxOutputTokens": 3000,
                              "responseMimeType": "application/json"},
     }).encode()
     req = urllib.request.Request(
@@ -264,6 +267,10 @@ def ask_gemini(base: str, key: str, model: str, prompt: str, images: list[str] |
     except Exception:  # noqa: BLE001
         reply = ""
     payload["eval_count"] = payload.get("usageMetadata", {}).get("candidatesTokenCount", "?")
+    try:
+        payload["finish"] = payload["candidates"][0].get("finishReason", "?")
+    except Exception:  # noqa: BLE001
+        pass
     return reply, payload
 
 
@@ -549,6 +556,8 @@ having answered something nobody said.
     s = re.sub(r"Model used:.*", f"Model used: {args.model}", s)
     (STATE / "state.md").write_text(s, encoding="utf-8")
 
+    if payload.get("finish") and payload["finish"] != "STOP":
+        print(f"!! finish reason: {payload['finish']} (a reply cut off is our ceiling, not its failure)")
     print(f"\n=== verdict: {verdict} ===")
     return 0
 
