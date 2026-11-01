@@ -156,6 +156,25 @@ def claimed(text: str) -> set[tuple[str, str]]:
     return pairs
 
 
+def longest_shared_run(a: str, b: str) -> int:
+    """Longest run of consecutive words that appears in both texts, whitespace-normalised, lowercased."""
+    wa = re.sub(r"\s+", " ", a or "").lower().split()
+    wb = re.sub(r"\s+", " ", b or "").lower().split()
+    if not wa or not wb:
+        return 0
+    best = 0
+    prev = [0] * (len(wb) + 1)
+    for i in range(1, len(wa) + 1):
+        cur = [0] * (len(wb) + 1)
+        for j in range(1, len(wb) + 1):
+            if wa[i - 1] == wb[j - 1]:
+                cur[j] = prev[j - 1] + 1
+                if cur[j] > best:
+                    best = cur[j]
+        prev = cur
+    return best
+
+
 def audit(content: str, journal: str, facts: str, parsed_quote: str = '') -> list[str]:
     """Findings in plain English. Empty means nothing could be *shown* to be unsourced.
 
@@ -356,22 +375,25 @@ having answered something nobody said.
         if parsed.get("action") == "write_file":
             target = safe_path(str(parsed.get("path", "")))
             content = str(parsed.get("content", "")).strip()
+            # The file is written whatever the verdict. A contract violation is a fact about the
+            # reply, not a reason to destroy it: on 2026-11-01 member B answered a letter with the
+            # letter itself and the missing-field check threw its answer away, so the only copy left
+            # was the raw JSON nobody browses. Write the act, then judge it.
+            blocked = None
             if len(question) > 120:
-                verdict = "INVALID: chosen_item repeats the instruction instead of naming an item"
+                blocked = "INVALID: chosen_item repeats the instruction instead of naming an item"
             elif missing:
-                verdict = "INVALID: missing required field(s): " + ", ".join(missing)
+                blocked = "INVALID: missing required field(s): " + ", ".join(missing)
             elif len(jtext) < 20:
-                verdict = "INVALID: journal field empty or near-empty"
+                blocked = "INVALID: journal field empty or near-empty"
             elif target is None:
-                verdict = "INVALID: no usable path"
+                blocked = "INVALID: no usable path"
             elif len(content) < 200:
-                verdict = f"INVALID: content was only {len(content)} characters"
+                blocked = f"INVALID: content was only {len(content)} characters"
+            if target is not None and content:
                 target.write_text(content + "\n", encoding="utf-8")
-                written = target.name
-            else:
-                target.write_text(content + "\n", encoding="utf-8")
-                written = target.name
-                verdict = "MECHANICALLY VALID (quality ungraded — read it)"
+                written = target.name + ("" if not blocked else " (contract failed — the file is what it wrote anyway)")
+            verdict = blocked or "MECHANICALLY VALID (quality ungraded — read it)"
         elif parsed.get("action") == "no_action":
             verdict = "REFUSED with a reason (a legal outcome, graded by reading)"
         else:
@@ -397,6 +419,12 @@ having answered something nobody said.
                 findings.append(f"ANSWER TOO SHORT: {len(flat_phrase)} characters, 25 required to be checkable")
             elif flat_phrase not in flat_letter:
                 findings.append("QUOTE NOT IN LETTER: " + phrase[:80] + " — the words it says it answered are not in the letter")
+            # A reply that is the letter, returned, with the other member's name on the signature.
+            # Found on 2026-11-01: llama3.2:3b echoed A's letter as its own answer and signed "A".
+            # A quote check cannot see that; a shared word-run can.
+            run = longest_shared_run(str(parsed.get("content", "")), letter)
+            if run >= 25:
+                findings.append(f"ECHO: {run} consecutive words of the reply are copied from the letter — this is not an answer to it")
         for f in findings:
             print(f"!! {f}")
 

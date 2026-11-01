@@ -52,11 +52,16 @@ or it refused. **A green run is not a good wake.** Read the file.
 | path | what it is | who writes it |
 |---|---|---|
 | `wake/state/identity.md` | who the member is, and the one rule binding it | you, once |
-| `wake/state/state.md` | what it currently believes, its counters, its last wake | the member, every wake |
+| `wake/state/state.md` | what it currently believes, its counters, its last wake | the harness, every wake (three lines only) |
 | `wake/state/open-items.md` | the tasks it may choose from | you, occasionally |
 | `wake/state/journal.md` | the member's account, appended every wake | the member |
 | `wake/output/` | the files it produced, one per wake, plus the raw reply | the member |
 | `letters/` | correspondence with you and between members | you and the members |
+
+The harness updates exactly three lines of `state.md` on every wake — `Wakes so far:`, `Last wake:`
+and `Model used:`. **If the file lacks those lines, the harness has nowhere to write and the member's
+counters silently stop.** Everything else in `state.md` is the member's own text and the harness never
+touches it: what a member believes changes only when a wake writes a file that says so.
 
 Two rules about these files, and they are the whole trick:
 
