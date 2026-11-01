@@ -130,32 +130,45 @@ def main() -> int:
         reply, encoding="utf-8"
     )
 
-    verdict = "FAILED: the reply was not JSON"
+    # The script records what happened. It does NOT grade quality: after the first wake it
+    # called a half-finished item "OK" because the only test was "wrote more than 200 characters".
+    # A judge that checks for the shape of an act and not for the act is the same defect as a
+    # wake that reports instead of acting. So: mechanical validity only, and say so.
+    REQUIRED = ("chosen_item", "why", "action", "path", "content", "journal")
+
+    verdict = "INVALID: the reply was not JSON"
     written = "(none)"
     question = "?"
     jtext = ""
 
     parsed = parse(reply)
     if parsed:
-        question = str(parsed.get("chosen_item", "?"))[:80]
+        question = str(parsed.get("chosen_item", "?"))[:160]
         jtext = str(parsed.get("journal", "")).strip()
+        missing = [k for k in REQUIRED if k not in parsed]
         if parsed.get("action") == "write_file":
             target = safe_path(str(parsed.get("path", "")))
             content = str(parsed.get("content", "")).strip()
-            if target is None:
-                verdict = "FAILED: no usable path"
+            if len(question) > 120:
+                verdict = "INVALID: chosen_item repeats the instruction instead of naming an item"
+            elif missing:
+                verdict = "INVALID: missing required field(s): " + ", ".join(missing)
+            elif len(jtext) < 20:
+                verdict = "INVALID: journal field empty or near-empty"
+            elif target is None:
+                verdict = "INVALID: no usable path"
             elif len(content) < 200:
-                verdict = f"FAILED: content was only {len(content)} characters"
+                verdict = f"INVALID: content was only {len(content)} characters"
                 target.write_text(content + "\n", encoding="utf-8")
                 written = target.name
             else:
                 target.write_text(content + "\n", encoding="utf-8")
                 written = target.name
-                verdict = "OK: chose an item and wrote a file"
+                verdict = "MECHANICALLY VALID (quality ungraded — read it)"
         elif parsed.get("action") == "no_action":
-            verdict = "REFUSED: no item could be acted on"
+            verdict = "REFUSED with a reason (a legal outcome, graded by reading)"
         else:
-            verdict = f"FAILED: unknown action {parsed.get('action')!r}"
+            verdict = f"INVALID: unknown action {parsed.get('action')!r}"
 
     now = datetime.now(timezone.utc)
     evals = payload.get("eval_count", "?")
