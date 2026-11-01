@@ -253,6 +253,9 @@ API_BASES = {
     "together": "https://api.together.xyz/v1",
     "mistral": "https://api.mistral.ai/v1",
     "openai": "https://api.openai.com/v1",
+    # Alibaba's OpenAI-compatible endpoint. The Singapore region grants new accounts a free quota of
+    # roughly 1,000,000 tokens *per model*, valid 90 days (checked 2026-11-01). Key name: QWEN_API_KEY.
+    "qwen": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
 }
 
 
