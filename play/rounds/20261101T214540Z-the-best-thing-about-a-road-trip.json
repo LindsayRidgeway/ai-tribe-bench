@@ -1,0 +1,63 @@
+{
+  "category": "the best thing about a road trip",
+  "when": "2026-11-01T21:45:40Z",
+  "slug": "the-best-thing-about-a-road-trip",
+  "picks": {
+    "a": {
+      "model": "deepseek-chat",
+      "provider": "deepseek",
+      "seat": "the loyalist",
+      "pick": "no schedule, no plans",
+      "why": "The whole point is waking up somewhere new and deciding over bad coffee to chase a random sign instead of sticking to an itinerary.",
+      "raw": "PICK: no schedule, no plans\nBECAUSE: The whole point is waking up somewhere new and deciding over bad coffee to chase a random sign instead of sticking to an itinerary.",
+      "error": "",
+      "secs": 1.1
+    },
+    "b": {
+      "model": "gemini-3.8-flash",
+      "provider": "gemini",
+      "seat": "the heretic",
+      "pick": "Getting hopelessly lost with zero service",
+      "why": "It strips away all your curated plans and forces an actual, unpredictable adventure on you whether you like it or not.",
+      "raw": "PICK: Getting hopelessly lost with zero service\nBECAUSE: It strips away all your curated plans and forces an actual, unpredictable adventure on you whether you like it or not.",
+      "error": "",
+      "secs": 1.8
+    },
+    "c": {
+      "model": "qwen3.6-plus",
+      "provider": "qwen",
+      "seat": "the outsider",
+      "pick": "No GPS, just paper maps.",
+      "why": "You two are missing the joy of getting gloriously, intentionally lost.",
+      "raw": "PICK: No GPS, just paper maps.\nBECAUSE: You two are missing the joy of getting gloriously, intentionally lost.",
+      "error": "",
+      "secs": 1.9
+    }
+  },
+  "votes": {
+    "a": {
+      "strand": "",
+      "why": "Paper maps just make you argue over folding while someone else is already having the real adventure.",
+      "error": "",
+      "secs": 0.9
+    },
+    "b": {
+      "strand": "",
+      "why": "Paper maps just turn your friend into a stressed-out boomer holding an origami nightmare instead of actually being in the moment.",
+      "error": "",
+      "secs": 1.6
+    },
+    "c": {
+      "strand": "",
+      "why": "Getting stranded with no signal isn't an adventure, it's just a scary way to miss dinner.",
+      "error": "",
+      "secs": 1.9
+    }
+  },
+  "votes_for": {
+    "a": 0,
+    "b": 0,
+    "c": 0
+  },
+  "winner": ""
+}
