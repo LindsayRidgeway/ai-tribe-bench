@@ -446,12 +446,12 @@ having answered something nobody said.
     t0 = time.time()
     try:
         if args.api_model:
-            base = args.api_base or "deepseek"
-            base = API_BASES.get(base, base)
+            named = (args.api_base or "deepseek").strip()
+            base = API_BASES.get(named, named)
             # Provider-specific first, generic second. A single generic secret means a two-member
             # tribe sends the same key to both vendors — found 2026-11-01, when the Gemini key went
             # to DeepSeek and came back 401. One key per member is the pattern for a reason.
-            provider = base.split("//")[-1].split(".")[0].upper() + "_API_KEY"
+            provider = (named if named in API_BASES else base.split("//")[-1].split(".")[0]).upper() + "_API_KEY"
             names = [n for n in (args.api_key_env,) if n] or [provider, "TRIBE_API_KEY"]
             key = next((os.environ[n] for n in names if os.environ.get(n)), None)
             if not key:
