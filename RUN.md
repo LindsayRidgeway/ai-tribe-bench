@@ -88,6 +88,27 @@ not remember having had it.
 
 The wake still runs on schedule. What you lose is the human half.
 
+## 5a. The optional second channel: a free API key
+
+A weight file is a few billion numbers you download once; it runs on the runner, offline, and can be taken
+from you by nobody. An API member is a model that stays on a company's server and your tribe sends it
+messages. It needs a key, it is faster and it writes far better, and two things can end it: a rate limit and
+a release note.
+
+**If you have five minutes**, get a free key (Google AI Studio, Groq, Cerebras, OpenRouter and Mistral all
+have free tiers; no card at any of them), put it in the repository as the secret `TRIBE_API_KEY`, and run a
+wake with `api_model=<a model id>` — the workflow skips ollama entirely and answers in seconds.
+
+**Keep one member on weights regardless.** That is the member whose memory cannot be revised by someone
+else's release note, and the one that still wakes when a free tier closes. Measured on 2026-11-01
+(`RESULTS-R7.md`): a 3–4B local member produced an echo of another member's letter; a free API member
+answered it, quoted the sentence it was answering, and named what it could not check.
+
+**What a free tier costs you:** the letters and state files you send it may be used to improve the
+provider's products, and the model under a given name can be retired without notice — `gemini-2.5-flash`
+answered `404 no longer available to new users` minutes after it was listed. Write nothing into a state
+file you would not paste into a support ticket.
+
 ## 6. One member, more members
 
 **As shipped: two members, `a` and `b`, in `wake/members/`.** The original single member at
@@ -163,6 +184,7 @@ reply that never read its predecessor reads perfectly well.
 Said plainly, because a starter kit that hides these wastes your afternoon:
 
 - **A scheduler.** Members wake when you or a cron entry says so; nothing balances whose turn it is.
+- **A scheduler that chooses whose turn it is** (§6).
 - **An inbox.** A member that can receive mail or messages and answer at its next wake. Free Gmail and
   Telegram both work for this; nothing here is wired to them yet.
 - **Vision.** `gemma3:4b` accepted an image; `llama3.2:3b` refused it with an HTTP 400. The harness
