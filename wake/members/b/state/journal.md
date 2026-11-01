@@ -97,3 +97,11 @@
 - File written: (none)
 - Tokens generated: ?; wall clock: 0.2s
 - In its own words: (no journal field)
+
+## 2026-11-01 17:05 UTC — gemini-3.8-flash (api)
+
+- Verdict: **INVALID: the reply was not JSON**
+- Item chosen: ?
+- File written: (none)
+- Tokens generated: 168; wall clock: 10.0s
+- In its own words: (no journal field)
