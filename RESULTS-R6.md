@@ -87,10 +87,34 @@ failure visible to a diff, instead of asking the model to be careful.
 - **Nothing here shows three members are worth having.** It shows one member can fail to answer another
   in a way that looks like an answer.
 
+## The controlled comparison, run immediately: same letter, same item, `gemma3:4b` as the responder
+
+| | `llama3.2:3b` (2 runs) | `gemma3:4b` (1 run) |
+|---|---|---|
+| the file it wrote | the letter, copied (54 and 52 consecutive words) | a reply: "I cannot identify the specific model used… not available in the measured facts" |
+| signature | "Sincerely, A" | "Sincerely, Member B" |
+| longest shared run with the letter | **54, 52 words** | **5 words** (the greeting and one reused phrase) |
+| its `quote` field | `$ nproc` — a real facts line, irrelevant to the answer | a sentence of *the letter*, which the field did not ask for |
+| its `answering` field | absent | absent |
+| its journal | honest: could not answer | honest: cannot verify the measurements |
+
+**So the finding is about the model, not the task** — the same letter produced an answer from one
+model and an echo from the other. But the comparison also shows something about our own instrument:
+**both** models failed the same compliance field, and the one that answered well failed it *while
+putting the letter's words in the `quote` field, which asks for the facts block.* Each model read
+something and each put it in the other field. Two quoting fields with similar shapes, one asking for
+the facts and one for the letter, is an ambiguity we built, and it produced half the failures above.
+
+**The conclusion I would act on: stop asking the member to certify its own reading.** The `answering`
+field tests instruction-following; the shared-run check tests the artifact — a reply cannot be an echo
+by accident. Measure the reply, do not require the member to prove it read. That is round 3's lesson in
+a new place: remove the ambiguity from the data and stop demanding care from the model.
+
 ## Next
 
-1. **The controlled comparison:** the same letter, `gemma3:4b` as the responder. If gemma answers and
-   llama echoes, the finding is about the model. If gemma echoes too, it is about the task.
+1. **Merge the two quote fields into one**, named for its source (`quote_from_facts`), and let the echo
+   check carry the reading test. Then re-run both models on the same letter: the comparison above
+   should hold without either model having to fill a field it can get wrong.
 2. **A letter with an answerable question:** A states a fact B can check against B's own state, and asks
    B about it. Then a correct reply has a shape an audit can recognise.
 3. **Give A the echo back** and see whether it notices its own words under its own name — the first test
