@@ -14,8 +14,14 @@ permissions:
 
 jobs:
   answer:
-    # A gate, so a busy issue does not wake a model on every passing remark.
-    if: contains(github.event.comment.body, '@tribe')
+    # A gate, so a busy issue does not wake a model on every passing remark — and so a game command
+    # is not also answered as a question by a fourth voice. The game (play.yml) owns three verbs;
+    # everything else addressed to @tribe is a question and lands here.
+    if: >
+      contains(github.event.comment.body, '@tribe') &&
+      !contains(github.event.comment.body, '@tribe draft') &&
+      !contains(github.event.comment.body, '@tribe score') &&
+      !contains(github.event.comment.body, '@tribe override')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

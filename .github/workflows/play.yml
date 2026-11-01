@@ -1,0 +1,95 @@
+name: play
+
+# A round of the game. A human comments `@tribe draft best pizza topping` in any issue;
+# three members pick, three members vote one pick off the table, and the round is posted in the
+# thread in under a minute. `@tribe override b` gives the human the last word. `@tribe score` shows
+# the standings. The engines are the same three as the clock, so the game costs the same quota.
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  round:
+    if: >
+      contains(github.event.comment.body, '@tribe draft') ||
+      contains(github.event.comment.body, '@tribe score') ||
+      contains(github.event.comment.body, '@tribe override')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read the command
+        id: cmd
+        env:
+          BODY: ${{ github.event.comment.body }}
+        run: |
+          set -euo pipefail
+          CMD="$(printf '%s' "$BODY" | sed 's/^.*@tribe//' | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+          VERB="${CMD%% *}"; REST="${CMD#* }"
+          [ "$REST" = "$CMD" ] && REST=""
+          echo "verb=$VERB" >> "$GITHUB_OUTPUT"
+          {
+            echo "rest<<__EOF__"
+            printf '%s\n' "$REST"
+            echo "__EOF__"
+          } >> "$GITHUB_OUTPUT"
+          echo "verb: $VERB — rest: $REST"
+
+      - name: A round, or the standings, or the human's call
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.TRIBE_API_KEY_DEEPSEEK }}
+          GEMINI_API_KEY: ${{ secrets.TRIBE_API_KEY_GEMINI }}
+          QWEN_API_KEY: ${{ secrets.TRIBE_API_KEY_QWEN }}
+          VERB: ${{ steps.cmd.outputs.verb }}
+          REST: ${{ steps.cmd.outputs.rest }}
+        run: |
+          set -euo pipefail
+          case "$VERB" in
+            score|standings)
+              { echo "**The standings** — after $(ls play/rounds/*.md 2>/dev/null | wc -l) rounds"; echo
+                cat play/scoreboard.md; } > /tmp/reply.md
+              ;;
+            override*)
+              l="$(printf '%s' "$REST" | tr 'A-Z' 'a-z' | cut -c1)"
+              case "$l" in a|b|c) ;; *) echo "override needs A, B or C" >&2; exit 2 ;; esac
+              last="$(ls -t play/rounds/*.json 2>/dev/null | head -1)"
+              [ -n "$last" ] || { echo "no round to override yet" >&2; exit 2; }
+              cat="$(python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['category'])" "$last")"
+              # Replay the same category with the human's call recorded. Cheaper and more honest than
+              # editing a finished round: the table's votes stay in the file next to the override.
+              python3 play/play.py --category "$cat" --override "$l" > /tmp/reply.md
+              ;;
+            *)
+              [ -n "${REST:-}" ] || { echo "draft needs a category, e.g. '@tribe draft best pizza topping'" >&2; exit 2; }
+              python3 play/play.py --category "$REST" > /tmp/reply.md
+              ;;
+          esac
+          cat /tmp/reply.md
+
+      - name: Post the round where it was asked for
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE: ${{ github.event.issue.number }}
+        run: |
+          set -euo pipefail
+          { echo "_$(date -u +%FT%TZ), asked by ${{ github.event.comment.user.login }}_"; echo
+            cat /tmp/reply.md; } > /tmp/comment.md
+          gh api "repos/${{ github.repository }}/issues/${ISSUE}/comments" -F body=@/tmp/comment.md > /dev/null
+          echo "posted"
+
+      - name: Keep the round in the record
+        if: always()
+        run: |
+          git config user.name "Model AI Tribe"
+          git config user.email "tribe@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then echo "nothing to commit"; else
+            git commit -m "play: a round of the draft"
+            git push
+          fi
