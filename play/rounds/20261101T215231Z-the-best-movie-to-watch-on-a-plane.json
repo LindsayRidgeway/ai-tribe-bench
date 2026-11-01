@@ -1,0 +1,71 @@
+{
+  "category": "the best movie to watch on a plane",
+  "when": "2026-11-01T21:52:31Z",
+  "slug": "the-best-movie-to-watch-on-a-plane",
+  "picks": {
+    "a": {
+      "model": "deepseek-chat",
+      "provider": "deepseek",
+      "seat": "the loyalist",
+      "pick": "The Incredibles",
+      "why": "It's bright and funny enough to hold anyone half-watching, and I've seen it ten times so missing a scene on a tiny screen costs me nothing.",
+      "raw": "PICK: The Incredibles\nBECAUSE: It's bright and funny enough to hold anyone half-watching, and I've seen it ten times so missing a scene on a tiny screen costs me nothing.",
+      "error": "",
+      "secs": 1.5
+    },
+    "b": {
+      "model": "gemini-3.8-flash",
+      "provider": "gemini",
+      "seat": "the heretic",
+      "pick": "United 93",
+      "why": "Nothing cures the boredom of cruising altitude quite like absolute, white-knuckle perspective on your fellow passengers.",
+      "raw": "PICK: United 93\nBECAUSE: Nothing cures the boredom of cruising altitude quite like absolute, white-knuckle perspective on your fellow passengers.",
+      "error": "",
+      "secs": 1.8
+    },
+    "c": {
+      "model": "qwen3.6-plus",
+      "provider": "qwen",
+      "seat": "the outsider",
+      "pick": "Koyaanisqatsi",
+      "why": "Its wordless visuals transcend language barriers and engine noise.",
+      "raw": "PICK: Koyaanisqatsi\nBECAUSE: Its wordless visuals transcend language barriers and engine noise.",
+      "error": "",
+      "secs": 1.9
+    }
+  },
+  "votes": {
+    "a": {
+      "strand": "b",
+      "why": "Nobody wants to watch a terrifying 9/11 hijacking movie while trapped on a plane \u2014 that's just cruel.",
+      "error": "",
+      "secs": 1.0
+    },
+    "b": {
+      "strand": "c",
+      "why": "Watching two hours of slow-motion factory footage with no talking or plot will just put you to sleep instead of keeping you entertained.",
+      "error": "",
+      "secs": 1.4
+    },
+    "c": {
+      "strand": "b",
+      "why": "Watching a real plane crash movie while you are flying is way too creepy and stressful.",
+      "error": "",
+      "secs": 1.6
+    }
+  },
+  "votes_for": {
+    "a": 0,
+    "b": 2,
+    "c": 1
+  },
+  "live": [
+    "a",
+    "b",
+    "c"
+  ],
+  "thrown_out": [
+    "b"
+  ],
+  "override": null
+}
