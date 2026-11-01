@@ -58,6 +58,11 @@ FACT_COMMANDS = [
 # not about its world. Found 2026-11-01: the reply spent a sentence explaining that missing command.
 FACT_COMMANDS_API = [c for c in FACT_COMMANDS if c != "ollama list"] + ["uname -a"]
 
+# A member must be able to say *where* it woke. On 2026-11-01 member A described "the bench" from facts
+# measured on a laptop, and member B, woken on a runner, contradicted every one of them. Both were right.
+# The record did not say they were on different machines, so it made one of them look wrong.
+FACT_COMMANDS += ["hostname", "uname -srm"]
+
 
 def measured_facts(api: bool = False) -> str:
     """Run a fixed, safe set of commands and return their real output.
