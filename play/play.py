@@ -64,11 +64,15 @@ Rules, and the only rules:
 - No preamble, no hedging, no "as an AI". You are a person at a table with an opinion.
 - Do not name the category back to anyone.
 
-Answer in exactly this shape, two lines, nothing else:
+Write your answer now, in exactly two lines, your own words, nothing else — do not repeat this
+template, do not print the angle brackets:
 
-PICK: <at most six words>
-BECAUSE: <one sentence>
+PICK: ...
+BECAUSE: ...
 """
+# Found live 2026-11-01: a prompt that ended on the empty template got completed as a *document* —
+# Gemini returned `used to do that`, which is the tail of the template rather than an answer to it.
+# Ending on an instruction ("write your answer now") instead of a blank is the whole difference.
 
 VOTE_PROMPT = """You are member {name} of a three-member tribe, seat **{seat}**. The category was:
 
@@ -81,10 +85,13 @@ The three picks are on the table:
 Name the pick you would strand — the weakest of the other two, never your own — and say why in one
 sentence a fifteen-year-old would accept. You may not abstain, and you may not say they are all good.
 
-Answer in exactly this shape, two lines, nothing else:
+Write your answer now, in exactly two lines, your own words, nothing else — do not repeat this
+template:
 
-STRAND: <A, B or C>
-WHY: <one sentence>
+STRAND: ...
+WHY: ...
+
+A STRAND line is one letter: A, B or C.
 """
 
 
@@ -187,11 +194,19 @@ def play_round(category: str, override: str | None, dry: bool) -> str:
         model, provider, seat, stance = SEATS[label]
         prompt = PICK_PROMPT.format(name=label.upper(), category=category, seat=seat, stance=stance)
         t0 = time.time()
-        try:
-            text = say(provider, model, prompt, 200) if not dry else "PICK: (dry run)\nBECAUSE: (no call made)"
-            err = ""
-        except Exception as e:  # noqa: BLE001 — a dead provider is a finding the round must survive
-            text, err = "", str(e)
+        text, err = "", ""
+        if dry:
+            text = "PICK: (dry run)\nBECAUSE: (no call made)"
+        else:
+            try:
+                text = say(provider, model, prompt, 200)
+                if not line(text, "PICK"):
+                    # One retry, cheaper than losing the seat: a fragment is a formatting failure, not
+                    # an opinion, and a two-member round is a worse game than a repeated call.
+                    text = say(provider, model, prompt + "\n\nYour reply did not have a PICK line. "
+                               "Answer again: PICK: ... on one line, BECAUSE: ... on the next.", 200)
+            except Exception as e:  # noqa: BLE001 — a dead provider is a finding the round must survive
+                text, err = "", str(e)
         return label, {
             "model": model, "provider": provider, "seat": seat,
             "pick": clean(line(text, "PICK") or "", 60),
@@ -214,11 +229,14 @@ def play_round(category: str, override: str | None, dry: bool) -> str:
         model, provider, seat, _ = SEATS[label]
         prompt = VOTE_PROMPT.format(name=label.upper(), seat=seat, category=category, picks=table)
         t0 = time.time()
-        try:
-            text = say(provider, model, prompt, 220) if not dry else "STRAND: (dry run)\nWHY: (no call made)"
-            err = ""
-        except Exception as e:  # noqa: BLE001
-            text, err = "", str(e)
+        text, err = "", ""
+        if dry:
+            text = "STRAND: (dry run)\nWHY: (no call made)"
+        else:
+            try:
+                text = say(provider, model, prompt, 220)
+            except Exception as e:  # noqa: BLE001
+                text, err = "", str(e)
         # Found live 2026-11-01: every vote came back "named nobody usable" because the letter was
         # upper-cased and the seat labels are lower-case. Three votes were cast and thrown away by a
         # one-character bug, which is the same class of defect as the audit that cried wolf.
@@ -230,7 +248,11 @@ def play_round(category: str, override: str | None, dry: bool) -> str:
         if target not in others and target not in live:
             target = ""
         if target == label:
-            target = ""   # a member may not vote itself off; the rule is in the prompt and here
+            # A member may not vote itself off. Found live 2026-11-01: A read the rule, then argued
+            # against its own pick, and the round recorded a lost vote with no explanation.
+            target = ""
+            return label, {"strand": "", "self": True, "why": clean(line(text, "WHY") or "", 300),
+                           "error": "", "secs": round(time.time() - t0, 1)}
         return label, {"strand": target, "why": clean(line(text, "WHY") or "", 300),
                        "error": err, "secs": round(time.time() - t0, 1)}
 
@@ -270,7 +292,9 @@ def play_round(category: str, override: str | None, dry: bool) -> str:
         if v["error"]:
             out.append(f"- {l.upper()} → *nothing* ({v['error'][:100]})")
         elif v["strand"]:
-            out.append(f"- {l.upper()} → **{v['strand']}**: {v['why']}")
+            out.append(f"- {l.upper()} → **{v['strand'].upper()}**: {v['why']}")
+        elif v.get("self"):
+            out.append(f"- {l.upper()} → *tried to strand itself (not allowed)*: {v['why']}")
         else:
             out.append(f"- {l.upper()} → *named nobody usable*")
     out += ["", f"**Standing after this round: {won.upper() + ' takes it, by ' + won_by if won else won_by}.**", ""]
