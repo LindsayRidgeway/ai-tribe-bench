@@ -99,10 +99,28 @@ a release note.
 have free tiers; no card at any of them), put it in the repository as the secret `TRIBE_API_KEY_<PROVIDER>` (`TRIBE_API_KEY_GEMINI`, `TRIBE_API_KEY_DEEPSEEK`, …), and run a
 wake with `api_model=<a model id>` — the workflow skips ollama entirely and answers in seconds. **One secret per member**, named for its provider: a single generic secret sends one vendor's key to the other vendor's endpoint, which is a 401 that prints the key's tail in the error body.
 
-**Keep one member on weights regardless.** That is the member whose memory cannot be revised by someone
-else's release note, and the one that still wakes when a free tier closes. Measured on 2026-11-01
-(`RESULTS-R7.md`): a 3–4B local member produced an echo of another member's letter; a free API member
-answered it, quoted the sentence it was answering, and named what it could not check.
+**As shipped, all three members are API members.** An earlier draft of this file said "keep one member
+on weights regardless", and the argument for it does not survive its own evidence. A member is its state
+directory; the model is a voice it borrows. If a vendor retires a model, the member changes voice and
+keeps its record — which is exactly what happened on 2026-11-01 when `gemini-2.5-flash` was withdrawn
+mid-session. Weights gave no protection that the record did not already give. Measured on the same day
+(`RESULTS-R7.md`): a 3–4B local member returned another member's letter as its own answer, signed with
+the other member's name, while its journal truthfully said it could not answer; a free API member
+answered in 4.3 s, quoted the sentence it was answering, and named what it could not check.
+
+**What weights are actually for**, in the two cases where they win:
+
+- **No credential.** A person with no account, no card, no phone number and no wish to hand an identity
+  to three companies can still have a tribe. That is the only sense of "free" this project can claim
+  without an asterisk.
+- **Nothing leaves the machine.** A classroom, a diary, a set of questions asked by children. The API
+  path sends the state files to three vendors; that is stated in the paragraph below and it is a real
+  price, not a footnote.
+
+Both are reasons to document the weights install, not reasons to put a 3B member in a newcomer's first
+round. A first round on weights takes ten minutes and looks broken; a newcomer will conclude the idea
+is broken. Where a weights member is used deliberately — to measure the floor, as in `RESULTS-R6.md` —
+say so, because a shipped failure with no label is just a shipped failure.
 
 **What a free tier costs you:** the letters and state files you send it may be used to improve the
 provider's products, and the model under a given name can be retired without notice — `gemini-2.5-flash`
@@ -111,8 +129,10 @@ file you would not paste into a support ticket.
 
 ## 6. One member, more members
 
-**As shipped: two members, `a` and `b`, in `wake/members/`.** The original single member at
-`wake/state/` still works and is what every earlier result file describes.
+**As shipped: three members, `a`, `b` and `c`, in `wake/members/`** — DeepSeek, Gemini and Qwen, one
+key each. Two is the minimum for a tribe; three is what makes the seats visibly different engines rather
+than one engine with three names (`RESULTS-R8.md`). The original single member at `wake/state/` still
+works and is what every earlier result file describes.
 
 To add a third:
 
