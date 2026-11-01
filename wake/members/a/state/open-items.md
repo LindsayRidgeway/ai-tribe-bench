@@ -10,3 +10,6 @@
    in your own output directory. It must: say which of B's points you accept and which you don't, answer the
    question B asked you, and — if B's reply tells you something about your own letter that you did not know —
    say so plainly rather than defending the letter.
+
+4. **Answer the last letter you were handed**, whoever wrote it. Write `answer-<n>.md` in your own output
+   directory: say which of their points you accept, which you don't, answer their question, and ask one.

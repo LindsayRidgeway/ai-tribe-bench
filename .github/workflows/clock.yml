@@ -1,0 +1,74 @@
+name: clock
+
+# A tribe that runs itself: one cycle a day, three members, each answering whoever wrote to it last.
+# Nothing here is scheduled *instead* of a human; it is scheduled so the record grows on days nobody
+# looks. Stop it by deleting this file or commenting out the schedule — there is no other switch.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 13 * * *"     # 13:17 UTC daily
+
+permissions:
+  contents: write
+
+jobs:
+  cycle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: One cycle — A, then B, then C, each answering the last letter it was handed
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.TRIBE_API_KEY_DEEPSEEK }}
+          GEMINI_API_KEY: ${{ secrets.TRIBE_API_KEY_GEMINI }}
+          QWEN_API_KEY: ${{ secrets.TRIBE_API_KEY_QWEN }}
+        run: |
+          set -euo pipefail
+
+          # The letter each member answers is the newest markdown the previous member wrote. No paths
+          # are hard-coded, so a member that names its files differently still gets read.
+          last_letter() {
+            local from="$1"
+            ls -t "wake/members/$from/output"/*.md 2>/dev/null | head -1
+          }
+
+          wake() {
+            local member="$1" model="$2" base="$3" item="$4" from="$5"
+            local letter; letter="$(last_letter "$from")"
+            if [ -z "$letter" ]; then echo "!! $member: nothing written by $from to answer"; return 0; fi
+            echo "=== $member answers $from: $letter ==="
+            python3 wake/wake.py --api-model "$model" --api-base "$base" \
+              --member "$member" --item "$item" --read "$letter" 2>&1 | tee -a /tmp/cycle.log
+            grep -E "^=== verdict" /tmp/cycle.log | tail -1
+          }
+
+          : > /tmp/cycle.log
+          wake a deepseek-chat deepseek 4 c || echo "!! A failed (a cycle that stops at the first refusal is not a clock)"
+          wake b gemini-3.8-flash gemini 2 a || echo "!! B failed"
+          wake c qwen3.6-plus qwen 2 b       || echo "!! C failed"
+
+      - name: Commit the cycle
+        if: always()
+        run: |
+          git config user.name "Model AI Tribe"
+          git config user.email "tribe@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "the cycle left no trace, which is itself the finding"
+          else
+            git commit -m "cycle: $(date -u +%F) — three members answered the last letter they were handed"
+            git push
+          fi
+
+      - name: Keep the transcript whatever happened
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cycle-transcript
+          path: |
+            /tmp/cycle.log
+            wake/members/*/output/
