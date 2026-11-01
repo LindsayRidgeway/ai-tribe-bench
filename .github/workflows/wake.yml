@@ -92,13 +92,7 @@ jobs:
             echo "POST $base -> $code"; head -c 300 /tmp/probe.json; echo
             code2=$(curl -s -o /tmp/probe2.json -w "%{http_code}" "$base/models" -H "Authorization: Bearer ${TRIBE_API_KEY}")
             echo "GET $base/models -> $code2"
-            python3 - <<'PY2' || head -c 300 /tmp/probe2.json
-import json
-d=json.load(open('/tmp/probe2.json'))
-ids=sorted(m.get('id','') for m in d.get('data',[]))
-print(f"compat surface offers {len(ids)} models:")
-print("\n".join(ids))
-PY2
+            head -c 1500 /tmp/probe2.json; echo
           done
           exit 0
 
