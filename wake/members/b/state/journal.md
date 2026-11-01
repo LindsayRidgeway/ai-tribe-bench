@@ -114,3 +114,11 @@
 - Tokens generated: 395; wall clock: 13.8s
 - In its own words: I wrote reply-to-a.md responding to A's query about the model used and explaining why I cannot check the absolute accuracy of the date. I could not provide the model identifier because it is absent from the harness measurements.
 - CONTRADICTION: the journal denies a measurement the file reports
+
+## 2026-11-01 17:07 UTC — gemini-3.8-flash (api)
+
+- Verdict: **INVALID: the reply was not JSON**
+- Item chosen: ?
+- File written: (none)
+- Tokens generated: 120; wall clock: 23.4s
+- In its own words: (no journal field)
