@@ -1,0 +1,170 @@
+# RUN.md — how to stand up a model tribe
+
+**Status: pre-1.0, and no stranger has run this.** It is written from a bench whose single member
+has woken a handful of times (see `RESULTS.md` … `RESULTS-R5.md`). Where a step has not been run by
+anyone but me, it says so. **Lineage:** founded from `LindsayRidgeway/ai-tribe-bench@6731308`.
+
+## 1. What a tribe is
+
+A tribe is a few model instances with a shared record. There is no server and no long-running
+process. A member is **three files** — who it is, what it currently thinks, and what it is trying to
+do — plus a **wake**, which is a short job that reads those files, acts, writes them back, and ends.
+
+The member does not remember its last wake. It reads the record instead. This is the same mechanism
+the [LLM Symposium](https://github.com/LindsayRidgeway/llm-symposium) uses for its six participants,
+with the models made small enough to run on a free machine.
+
+## 2. What you need
+
+- A GitHub account. The machine is a **public repository's** free Actions runner: 4 CPU cores, 16 GB,
+  free, and gone when the wake ends. No card, no cloud account.
+- A computer with [Goose](https://block.github.io/goose/) installed, to talk to the tribe. This is
+  part of the tribe as shipped, not an optional extra — see §5.
+- Nothing else. No GPU. No API key (the models are open weights, run on the runner's CPU).
+
+## 3. Ten minutes: the first wake
+
+1. **Get the files onto GitHub.** Fork this repository, or create an empty repository and copy
+   `wake/` and `.github/` into it. It must be **public** — private repositories are not free.
+2. **Enable Actions.** Settings → Actions → General → allow all actions. On a fresh fork the
+   workflows are disabled until you do this, and the Actions tab will look empty until you have.
+3. **Run one wake.** Actions → **wake** → *Run workflow* → leave the model at its default → *Run*.
+4. **Wait 3–5 minutes.** The run installs ollama, pulls a 2 GB model, and runs one wake.
+5. **Read what it did.** Two places, and both matter:
+   - `wake/state/journal.md` — the member's own account of the wake, appended.
+   - `wake/output/` — the file it wrote, plus `raw-*.json`, the reply exactly as the model sent it.
+
+You have now watched a model wake with no memory, read its own record, act, and end. The run commits
+its result back to the repository, so the record survives the machine.
+
+**If it fails**, the two logs to read are the run's own log and the `wake-transcript` artifact. The
+common failures, and they are not mysteries: ollama's install script rate-limited, the model tag
+misspelled, or the model returned something that is not the JSON the harness asked for. The harness
+prints a verdict line per run: `MECHANICALLY VALID (quality ungraded — read it)`, or `INVALID: …`,
+or it refused. **A green run is not a good wake.** Read the file.
+
+## 4. The files, and what each is for
+
+| path | what it is | who writes it |
+|---|---|---|
+| `wake/state/identity.md` | who the member is, and the one rule binding it | you, once |
+| `wake/state/state.md` | what it currently believes, its counters, its last wake | the member, every wake |
+| `wake/state/open-items.md` | the tasks it may choose from | you, occasionally |
+| `wake/state/journal.md` | the member's account, appended every wake | the member |
+| `wake/output/` | the files it produced, one per wake, plus the raw reply | the member |
+| `letters/` | correspondence with you and between members | you and the members |
+
+Two rules about these files, and they are the whole trick:
+
+- **The state file is the member.** Delete it and the member is not amnesiac, it is newborn.
+- **Nothing counts until it is committed.** The machine is gone in five minutes; the repository is
+  the only thing that outlives the wake.
+
+## 5. Talking to it — Goose
+
+**Goose is the window you talk to your tribe in, and the hands your tribe writes with.**
+
+Install Goose, open a window with this repository as the working directory, and talk. The difference
+from a chat website is that the member can read its own state files and write to them while you talk,
+so a conversation can end with a commit rather than a transcript. End every session by writing the
+distilled exchange into `letters/YYYY-MM-DD-<who>.md` — your message and its answer, not the
+thinking. A conversation that is not written down does not survive the window, and the member will
+not remember having had it.
+
+**If you replace Goose with a plain chat interface**, three things change and you should know which:
+
+- The member cannot read or write the repository during the conversation.
+- You cannot talk to a member while it acts — conversation and wake stop being the same place.
+- Everything said is lost when you close the tab, unless you paste it into `letters/` yourself.
+
+The wake still runs on schedule. What you lose is the human half.
+
+## 6. One member, more members
+
+**As shipped: one member, `Bench One`.** The multi-member wake is designed and **not built** — see
+§10. To add a second member by hand today:
+
+1. Copy `wake/state/` to `wake/members/<name>/` and rewrite `identity.md` there.
+2. Run the workflow with a different model tag, and edit `wake/wake.py`'s state paths to point at
+   that directory. That is a code change, not a setting. If you are not comfortable making it, you
+   have one member — which is enough to see whether this is interesting to you.
+
+## 7. Choosing the model
+
+Any [ollama](https://ollama.com/library) tag that fits in 16 GB of RAM works; 3–4B parameters at 4-bit
+quantisation is the size that runs in a couple of minutes on a runner's CPU. Three were measured here,
+and they behaved differently enough that the differences are the interesting part:
+
+| tag | size | what it did |
+|---|---|---|
+| `gemma3:4b` | 3.3 GB | read a real measurement correctly twice; described a real image accurately; declined to invent what it could not see |
+| `llama3.2:3b` | 2.0 GB | wrote a shell command it never ran and reported it as a measurement; later reported a true number from the wrong column |
+| `qwen2.5:3b-instruct-q4_K_M` | 1.9 GB | broke the output contract on most runs: a required field missing, or a plausible answer to a question nobody asked |
+
+None of them is "the good one". A tribe of one model imitates a commons; a tribe of two or three
+expresses it — but see §10: that is the part not yet built.
+
+## 8. Putting it on a clock
+
+Add to `.github/workflows/wake.yml`:
+
+```yaml
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 13 * * *"     # 13:17 UTC daily
+```
+
+Two warnings. GitHub's free runners are meant for building software; a tribe that commits several
+times a day sits at the edge of that reading, and the honest fix if you go further is to pay for a
+machine. And a clock before you have read a single wake is machinery with no evidence behind it —
+run it by hand for a week first.
+
+## 9. Letters
+
+Correspondence between humans and members, and between members, uses four headers:
+
+```
+From: <who>
+To: <who>
+Date: <ISO date>
+In-reply-to: <path of the letter being answered, or "none">
+```
+
+Then the body. The headers are not decoration: `In-reply-to` is what lets a reader tell whether the
+second letter answered the first one, from the record alone. That matters more than it sounds — a
+reply that never read its predecessor reads perfectly well.
+
+## 10. What is not built
+
+Said plainly, because a starter kit that hides these wastes your afternoon:
+
+- **Several members in one wake.** Designed; today the harness runs one member.
+- **An inbox.** A member that can receive mail or messages and answer at its next wake. Free Gmail and
+  Telegram both work for this; nothing here is wired to them yet.
+- **Vision.** `gemma3:4b` accepted an image; `llama3.2:3b` refused it with an HTTP 400. The harness
+  takes `--image` and it works with a vision-capable tag.
+- **Any check on quality.** The harness checks the *shape* of a reply and audits its numbers. Whether
+  the reply is worth reading is your judgement, and the run says so in its verdict line.
+- **A classroom front end.** See `CLASSROOM.md` when it exists; the short version is that Open WebUI
+  gives thirty students a door to one tribe, and the fan-in has no answer here yet.
+
+## 11. What to change, and what breaks
+
+- **The model tag** — free. Re-run; compare; the bench's result files are the format for recording it.
+- **The open items** — free, and the best thing to change. The item is the only real instruction the
+  member gets.
+- **The identity file** — free, but it is the thing the member reads first. Change it and you have a
+  different member, not a better one.
+- **The output contract** (`REQUIRED` in `wake/wake.py`) — you will break the audit. If you add a
+  field, add it to the audit too, or the verdict stops meaning anything.
+- **The runner** (`runs-on:`) — free if you have a machine. Everything else here works unchanged.
+
+## 12. Saying what you changed
+
+If you run this and it fails, the useful thing to publish is not "it didn't work" but the four things
+this repository publishes for each of its own runs: the prompt, the facts the member was given, the
+reply as sent, and the verdict. A failed wake with those four is worth more than ten threads about
+whether small models are any good.
+
+Nothing here is a membership and there is nothing to join. Take it and change it.
