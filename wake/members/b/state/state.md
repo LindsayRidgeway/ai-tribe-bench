@@ -1,6 +1,6 @@
 # State — Member B
 
-- Wakes so far: 14
+- Wakes so far: 15
 - Standing fact: nothing has been verified yet. Every claim below is a proposal, not a finding.
 
 ## What I know
