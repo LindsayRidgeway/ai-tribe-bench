@@ -50,13 +50,27 @@ FACT_COMMANDS = [
     "free -m",
     "df -h /",
     "python3 --version",
-    "ls -la wake/state",
     "ollama list",
 ]
 
 # An API member has no ollama, and telling it "ollama: command not found" is a fact about the harness,
 # not about its world. Found 2026-11-01: the reply spent a sentence explaining that missing command.
 FACT_COMMANDS_API = [c for c in FACT_COMMANDS if c != "ollama list"] + ["uname -a"]
+
+
+def fact_commands(api: bool) -> list[str]:
+    """The fixed set, plus a listing of *this* member's state directory.
+
+    The listing used to be hard-coded to `wake/state`, which stops existing the moment a tribe has more
+    than one member. Found 2026-11-01: member C reported that "the only directory listing I have is for
+    wake/state" — a fact about our path bug, which it then reasoned from.
+    """
+    cmds = list(FACT_COMMANDS_API if api else FACT_COMMANDS)
+    try:
+        cmds.append(f"ls -la {STATE.relative_to(ROOT.parent.parent)}")
+    except ValueError:
+        cmds.append(f"ls -la {STATE}")
+    return cmds
 
 # A member must be able to say *where* it woke. On 2026-11-01 member A described "the bench" from facts
 # measured on a laptop, and member B, woken on a runner, contradicted every one of them. Both were right.
@@ -73,7 +87,7 @@ def measured_facts(api: bool = False) -> str:
     allowed to know about its own machine is in this block.
     """
     blocks = []
-    for cmd in (FACT_COMMANDS_API if api else FACT_COMMANDS):
+    for cmd in fact_commands(api):
         try:
             r = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=30)
             txt = (r.stdout or r.stderr).strip() or "(no output)"
@@ -561,9 +575,13 @@ having answered something nobody said.
             # A reply that is the letter, returned, with the other member's name on the signature.
             # Found on 2026-11-01: llama3.2:3b echoed A's letter as its own answer and signed "A".
             # A quote check cannot see that; a shared word-run can.
+            body_words = len(re.sub(r"\s+", " ", str(parsed.get("content", ""))).split())
             run = longest_shared_run(str(parsed.get("content", "")), letter)
-            if run >= 25:
-                findings.append(f"ECHO: {run} consecutive words of the reply are copied from the letter — this is not an answer to it")
+            share = run / max(1, body_words)
+            if run >= 25 and share >= 0.4:
+                findings.append(f"ECHO: {run} of {body_words} words of the reply are copied from the letter ({share:.0%}) — this is not an answer to it")
+            elif run >= 25:
+                findings.append(f"QUOTES: {run} consecutive words copied from the letter ({share:.0%} of the reply) — a quotation, not an echo unless the rest carries nothing")
         for f in findings:
             print(f"!! {f}")
 
