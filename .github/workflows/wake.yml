@@ -20,6 +20,14 @@ on:
         description: "Path to a committed image to attach (blank = none)"
         required: false
         default: ""
+      member:
+        description: "Member directory under wake/members/ (blank = the single member at wake/state)"
+        required: false
+        default: ""
+      read:
+        description: "Path to a committed letter this member must answer (blank = none)"
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -57,9 +65,13 @@ jobs:
           ITEM: ${{ inputs.item }}
           ASK: ${{ inputs.ask }}
           IMG: ${{ inputs.image }}
+          MEMBER: ${{ inputs.member }}
+          READ: ${{ inputs.read }}
         run: |
           set -euo pipefail
           ARGS=()
+          [ -n "${MEMBER:-}" ] && ARGS+=(--member "$MEMBER")
+          [ -n "${READ:-}" ] && ARGS+=(--read "$READ")
           [ -n "${ITEM:-}" ] && ARGS+=(--item "$ITEM")
           [ -n "${ASK:-}" ] && ARGS+=(--ask "$ASK")
           [ -n "${IMG:-}" ] && ARGS+=(--image "$IMG")
@@ -76,6 +88,7 @@ jobs:
             /tmp/ollama.log
             wake/state/journal.md
             wake/output/
+            wake/members/
 
       - name: Commit what the wake wrote
         if: always()
@@ -86,7 +99,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "nothing to commit — the wake left no trace, which is itself the finding"
           else
-            git commit -m "wake: ${{ inputs.model }} item ${{ inputs.item }} at $(date -u +%FT%TZ)
+            git commit -m "wake: ${{ inputs.member || 'bench-one' }} on ${{ inputs.model }} item ${{ inputs.item }} at $(date -u +%FT%TZ)
 
           Architecture: ${{ inputs.model }} (open weights, CPU inference, ephemeral runner)"
             git push

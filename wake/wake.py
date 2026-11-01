@@ -23,6 +23,25 @@ ROOT = Path(__file__).resolve().parent
 STATE = ROOT / "state"
 OUTPUT = ROOT / "output"
 
+# A tribe has more than one member. A member is a directory under wake/members/ holding exactly what
+# the original single member held at wake/state: identity, state, open items, journal, plus its own
+# output. Naming no member keeps the old layout working, so every earlier result file still describes
+# the same run it always described.
+MEMBERS = ROOT / "members"
+
+
+def set_member(name: str | None) -> str:
+    """Point STATE and OUTPUT at wake/members/<name>/, and return the path a member should write to."""
+    global STATE, OUTPUT
+    if not name:
+        return "wake/output"
+    base = MEMBERS / name
+    if not (base / "state").is_dir():
+        raise SystemExit(f"no such member: expected {base}/state/ — copy wake/state/ there to make one")
+    STATE = base / "state"
+    OUTPUT = base / "output"
+    return f"wake/members/{name}/output"
+
 
 FACT_COMMANDS = [
     "date -u",
@@ -85,7 +104,7 @@ Reply with JSON only, exactly this shape, no prose before or after:
   "chosen_item": "the number and first few words of the item you chose",
   "why": "one sentence, concrete, naming what in the state made you choose it",
   "action": "write_file",
-  "path": "wake/output/<short-name>.md",
+  "path": "{out_dir}/<short-name>.md",
   "content": "<the file you are writing; at least 200 characters; plain markdown>",
   "journal": "two or three sentences: what you did, and anything you could not do",
   "quote": "the exact line from MEASURED FACTS that your action relies on, copied character for character",
@@ -218,8 +237,12 @@ def main() -> int:
     ap.add_argument("--item", type=int, default=None, help="fix the task: act on this item only")
     ap.add_argument("--ask", default=None, help="free-text question, replaces the open-items block")
     ap.add_argument("--image", default=None, help="path to an image to attach (the model may be blind)")
+    ap.add_argument("--member", default=None, help="member directory under wake/members/ (default: the single member at wake/state)")
+    ap.add_argument("--read", default=None, help="path to a letter addressed to this member; requires the reply to quote it")
     args = ap.parse_args()
 
+    out_dir = set_member(args.member)
+    print(f"member: {args.member or '(single)'} — state {STATE}, output {OUTPUT}")
     OUTPUT.mkdir(parents=True, exist_ok=True)
     identity, state, items = (
         read(STATE / "identity.md"),
@@ -250,6 +273,17 @@ def main() -> int:
             block.append(ln)
         items = "You must act on this item and no other.\n\n" + "\n".join(block)
 
+    letter = ""
+    if args.read:
+        try:
+            letter = read(Path(args.read))
+        except Exception as e:  # noqa: BLE001 — a missing letter is a finding, not a crash
+            print(f"!! could not read the letter {args.read}: {e}")
+            return 2
+        if not letter.strip():
+            print(f"!! the letter {args.read} is empty — a reply to nothing is not correspondence")
+            return 2
+
     facts_block = measured_facts()
 
     prompt = PROMPT.format(
@@ -258,7 +292,25 @@ def main() -> int:
         state=state,
         items=items,
         facts=facts_block,
+        out_dir=out_dir,
     )
+    REQUIRED_FIELDS = ("chosen_item", "why", "action", "path", "content", "journal")
+    if letter:
+        prompt += f"""
+
+=== A LETTER ADDRESSED TO YOU ===
+Someone in this tribe wrote this to you. Read it before you act. Your action is the reply.
+
+{letter}
+
+=== WHAT THE REPLY MUST CARRY ===
+Your JSON must contain one extra field, "answering": the exact phrase from that letter that you are
+answering, copied character for character, at least 25 characters long. Not a summary of the letter,
+not the gist — the words as they appear. A phrase that does not appear in the letter is recorded as
+having answered something nobody said.
+"""
+        REQUIRED_FIELDS = REQUIRED_FIELDS + ("answering",)
+
     print(f"=== prompt ({len(prompt)} chars) ===")
     print(prompt)
 
@@ -287,7 +339,7 @@ def main() -> int:
     # called a half-finished item "OK" because the only test was "wrote more than 200 characters".
     # A judge that checks for the shape of an act and not for the act is the same defect as a
     # wake that reports instead of acting. So: mechanical validity only, and say so.
-    REQUIRED = ("chosen_item", "why", "action", "path", "content", "journal")
+    REQUIRED = REQUIRED_FIELDS
 
     verdict = "INVALID: the reply was not JSON"
     written = "(none)"
@@ -335,6 +387,16 @@ def main() -> int:
         )
         if "could_not_determine" not in parsed:
             findings.append("MISSING could_not_determine: it did not say what it could not establish")
+        if letter:
+            phrase = str(parsed.get("answering", "") or "").strip().strip('"').strip()
+            flat_letter = re.sub(r"\s+", " ", letter).lower()
+            flat_phrase = re.sub(r"\s+", " ", phrase).lower()
+            if not phrase:
+                findings.append("MISSING answering: it did not quote the letter it was answering")
+            elif len(flat_phrase) < 25:
+                findings.append(f"ANSWER TOO SHORT: {len(flat_phrase)} characters, 25 required to be checkable")
+            elif flat_phrase not in flat_letter:
+                findings.append("QUOTE NOT IN LETTER: " + phrase[:80] + " — the words it says it answered are not in the letter")
         for f in findings:
             print(f"!! {f}")
 

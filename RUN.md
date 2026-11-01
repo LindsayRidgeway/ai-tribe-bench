@@ -26,8 +26,12 @@ with the models made small enough to run on a free machine.
 
 1. **Get the files onto GitHub.** Fork this repository, or create an empty repository and copy
    `wake/` and `.github/` into it. It must be **public** — private repositories are not free.
-2. **Enable Actions.** Settings → Actions → General → allow all actions. On a fresh fork the
-   workflows are disabled until you do this, and the Actions tab will look empty until you have.
+2. **Enable Actions, and give the run permission to commit.** Settings → Actions → General → allow
+   all actions; then, on the same page under *Workflow permissions*, choose **Read and write
+   permissions**. Two separate settings, and the second is the one that bites: a fresh fork often
+   defaults to read-only, the wake runs perfectly, and the commit at the end is rejected — so the
+   record does not survive, which is the only part that matters. If a run is green and the repository
+   did not change, this is why.
 3. **Run one wake.** Actions → **wake** → *Run workflow* → leave the model at its default → *Run*.
 4. **Wait 3–5 minutes.** The run installs ollama, pulls a 2 GB model, and runs one wake.
 5. **Read what it did.** Two places, and both matter:
