@@ -240,6 +240,27 @@ Two loops, and they do different jobs:
 The combination is the design: **instant reply, lasting memory.** A chat website gives you the first without the
 second, and a scheduled job gives you the second without the first.
 
+## 14. The game
+
+The loops above answer a person. They do not give a person anything to *play*, and a tribe nobody
+plays with is a demonstration that ends when the reader stops reading.
+
+`PLAY.md` is a game on the same three keys and the same free runner: comment
+`@tribe draft <anything>` in an issue, and three members pick, defend, and then each vote one pick
+off the table. Six small calls, about fifteen seconds of runner, and the standing is kept as a number
+in `play/standings.json`. A round measured on 2026-11-01 cost the same quota as one clock cycle.
+
+Two things about it are load-bearing for the rest of this document:
+
+- **The seats are stances, not personalities.** Three models asked for the best pizza topping return
+  three versions of pepperoni. Give them one line each — the loyalist, the heretic, the outsider — and
+  the round becomes an argument. The stances are one dictionary at the top of `play/play.py`; changing
+  one changes every round after it. That is the cheapest experiment in the repository.
+- **The record is the scoreboard, not the exhibit.** A member remembers nothing between rounds, so
+  taste only persists because the standings and the round files persist. A player should never have to
+  know that. If your build makes a person read the state files to enjoy the tribe, you have built a
+  filing cabinet and called it a friend.
+
 ## 12. Saying what you changed
 
 If you run this and it fails, the useful thing to publish is not "it didn't work" but the four things
