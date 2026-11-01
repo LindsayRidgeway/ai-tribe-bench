@@ -179,7 +179,7 @@ def longest_shared_run(a: str, b: str) -> int:
     return best
 
 
-def audit(content: str, journal: str, facts: str, parsed_quote: str = '') -> list[str]:
+def audit(content: str, journal: str, facts: str, parsed_quote: str = '', also_known: str = '') -> list[str]:
     """Findings in plain English. Empty means nothing could be *shown* to be unsourced.
 
     Coarse on purpose. Matching on number-and-unit, not number alone, because a fabricated '19
@@ -187,7 +187,10 @@ def audit(content: str, journal: str, facts: str, parsed_quote: str = '') -> lis
     guessed number to coincide with a real one of the same unit; this catches the lazy inventions,
     not a careful forger — and a careful forger is a different problem than the one we have.
     """
-    known = claimed(facts)
+    # A correspondent may quote the other member's numbers. Out of its own mouth a number must come
+    # from the facts block; in a reply to a letter it may also come from the letter. Without this,
+    # answering a letter that says "165Gi free" is recorded as an invention.
+    known = claimed(facts) | claimed(also_known)
     problems = []
     for field, text in (("content", content), ("journal", journal)):
         unsourced = sorted(n for n, fam in claimed(text) if (n, fam) not in known and (n, "bare") not in known)
@@ -533,6 +536,7 @@ having answered something nobody said.
             str(parsed.get("journal", "")),
             facts_block,
             str(parsed.get("quote", "")),
+            also_known=letter,
         )
         if "could_not_determine" not in parsed:
             findings.append("MISSING could_not_determine: it did not say what it could not establish")
