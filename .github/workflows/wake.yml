@@ -28,6 +28,14 @@ on:
         description: "Path to a committed letter this member must answer (blank = none)"
         required: false
         default: ""
+      api_model:
+        description: "API model id (e.g. gemini-2.5-flash). Blank = run weights on this machine."
+        required: false
+        default: ""
+      api_base:
+        description: "Endpoint name or URL: gemini, groq, openrouter, cerebras, mistral, deepseek, or a full URL"
+        required: false
+        default: "gemini"
 
 permissions:
   contents: write
@@ -45,6 +53,7 @@ jobs:
           python3 --version
 
       - name: Install ollama (CPU only, no GPU on a runner)
+        if: inputs.api_model == ''
         run: |
           curl -fsSL https://ollama.com/install.sh | sh
           (ollama serve > /tmp/ollama.log 2>&1 &)
@@ -55,6 +64,7 @@ jobs:
           curl -sf http://127.0.0.1:11434/api/tags && echo "ollama up"
 
       - name: Pull the model
+        if: inputs.api_model == ''
         run: |
           time ollama pull "${{ inputs.model }}"
           ollama list
@@ -67,13 +77,20 @@ jobs:
           IMG: ${{ inputs.image }}
           MEMBER: ${{ inputs.member }}
           READ: ${{ inputs.read }}
+          API_MODEL: ${{ inputs.api_model }}
+          API_BASE: ${{ inputs.api_base }}
+          TRIBE_API_KEY: ${{ secrets.TRIBE_API_KEY }}
         run: |
           set -euo pipefail
           # The model goes in first so the array is never empty: "${ARGS[@]:-}" on an empty array
           # expands to one empty argument and argparse rejects it. Every earlier run passed an item
           # or a question, so the default path — the one RUN.md tells a stranger to take first — had
           # never been exercised. Found on 2026-11-01 by following our own instructions.
-          ARGS=(--model "$MODEL")
+          if [ -n "${API_MODEL:-}" ]; then
+            ARGS=(--api-model "$API_MODEL" --api-base "${API_BASE:-gemini}")
+          else
+            ARGS=(--model "$MODEL")
+          fi
           [ -n "${MEMBER:-}" ] && ARGS+=(--member "$MEMBER")
           [ -n "${READ:-}" ] && ARGS+=(--read "$READ")
           [ -n "${ITEM:-}" ] && ARGS+=(--item "$ITEM")
