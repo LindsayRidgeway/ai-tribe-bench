@@ -254,21 +254,30 @@ def ask_gemini(base: str, key: str, model: str, prompt: str, images: list[str] |
     parts: list[dict] = [{"text": prompt}]
     for img in images or []:
         parts.append({"inline_data": {"mime_type": "image/png", "data": img}})
-    body = json.dumps({
-        "contents": [{"role": "user", "parts": parts}],
-        # 1200 cut a reply off mid-string on the first run: a truncated JSON object is not a
-        # contract violation by the member, it is our ceiling. Thinking tokens are billed against
-        # the same budget on this surface, so the ceiling has to be generous.
-        "generationConfig": {"temperature": 0.4, "maxOutputTokens": 3000,
-                             "responseMimeType": "application/json"},
-    }).encode()
-    req = urllib.request.Request(
-        f"{base.rstrip('/')}/models/{model}:generateContent",
-        data=body,
-        headers={"Content-Type": "application/json", "x-goog-api-key": key},
-    )
-    with urllib.request.urlopen(req, timeout=600) as r:
-        payload = json.loads(r.read().decode())
+    # Two truncations in a row (415 and 660 characters, cut mid-string) taught the shape of this
+    # surface: thinking tokens are billed against the same output budget, so a cap that is generous
+    # for prose is thin for a model that thinks first. Ask for the budget to be spent on the answer,
+    # and give it room if the model refuses that request.
+    def post(cfg: dict) -> dict:
+        body = json.dumps({"contents": [{"role": "user", "parts": parts}], "generationConfig": cfg}).encode()
+        req = urllib.request.Request(
+            f"{base.rstrip('/')}/models/{model}:generateContent",
+            data=body, headers={"Content-Type": "application/json", "x-goog-api-key": key})
+        with urllib.request.urlopen(req, timeout=600) as r:
+            return json.loads(r.read().decode())
+
+    base_cfg = {"temperature": 0.4, "maxOutputTokens": 8000, "responseMimeType": "application/json"}
+    try:
+        payload = post({**base_cfg, "thinkingConfig": {"thinkingBudget": 0}})
+    except Exception as e:  # noqa: BLE001 — a surface that refuses thinkingConfig is not a dead end
+        detail = ""
+        if hasattr(e, "read"):
+            try:
+                detail = e.read().decode("utf-8", "replace")[:200]
+            except Exception:  # noqa: BLE001
+                detail = ""
+        print(f"!! thinkingConfig refused ({e} {detail}) — retrying without it")
+        payload = post(base_cfg)
     try:
         reply = "".join(p.get("text", "") for p in payload["candidates"][0]["content"]["parts"])
     except Exception:  # noqa: BLE001
