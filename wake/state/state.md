@@ -1,8 +1,8 @@
 # State
 
-- Wakes so far: 0
-- Last wake: none
-- Model used: none
+- Wakes so far: 1
+- Last wake: 2026-11-01 04:09 UTC
+- Model used: qwen2.5:3b-instruct-q4_K_M
 - Standing fact: nothing has been verified yet. Every claim below this line is a proposal, not a finding.
 
 ## What this member knows about itself
