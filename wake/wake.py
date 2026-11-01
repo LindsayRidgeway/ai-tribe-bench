@@ -229,6 +229,52 @@ def ask(host: str, model: str, prompt: str, images: list[str] | None = None) -> 
     return payload.get("response", ""), payload
 
 
+API_BASES = {
+    "deepseek": "https://api.deepseek.com/v1",
+    "groq": "https://api.groq.com/openai/v1",
+    "openrouter": "https://openrouter.ai/api/v1",
+    "gemini": "https://generativelanguage.googleapis.com/v1beta/openai",
+    "cerebras": "https://api.cerebras.ai/v1",
+    "together": "https://api.together.xyz/v1",
+    "mistral": "https://api.mistral.ai/v1",
+    "openai": "https://api.openai.com/v1",
+}
+
+
+def ask_api(base: str, key: str, model: str, prompt: str, images: list[str] | None = None) -> tuple[str, dict]:
+    """The other channel: an OpenAI-compatible endpoint instead of weights on this machine.
+
+    Same prompt, same JSON contract, same audit. What changes is who holds the model: the request
+    leaves the runner and the reply comes back. That is cheaper to run and better written, and it
+    costs a key, a rate limit, a vendor's policy, and the record's privacy.
+    """
+    content = [{"type": "text", "text": prompt}]
+    for img in images or []:
+        content.append({"type": "image_url", "image_url": {"url": "data:image/png;base64," + img}})
+    payload_obj = {
+        "model": model,
+        "messages": [{"role": "user", "content": content if images else prompt}],
+        "temperature": 0.4,
+        "max_tokens": 1200,
+        "response_format": {"type": "json_object"},
+        "stream": False,
+    }
+    body = json.dumps(payload_obj).encode()
+    req = urllib.request.Request(
+        f"{base.rstrip('/')}/chat/completions",
+        data=body,
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"},
+    )
+    with urllib.request.urlopen(req, timeout=600) as r:
+        payload = json.loads(r.read().decode())
+    try:
+        reply = payload["choices"][0]["message"]["content"]
+    except Exception:  # noqa: BLE001 — an error body is a finding, not a crash
+        reply = ""
+    payload["eval_count"] = payload.get("usage", {}).get("completion_tokens", "?")
+    return reply, payload
+
+
 def parse(reply: str) -> dict | None:
     try:
         return json.loads(reply)
@@ -251,15 +297,22 @@ def safe_path(p: str) -> Path | None:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--model", required=True)
+    ap.add_argument("--model", default=None, help="ollama tag to run locally (not needed with --api-model)")
     ap.add_argument("--host", default="http://127.0.0.1:11434")
     ap.add_argument("--item", type=int, default=None, help="fix the task: act on this item only")
     ap.add_argument("--ask", default=None, help="free-text question, replaces the open-items block")
     ap.add_argument("--image", default=None, help="path to an image to attach (the model may be blind)")
     ap.add_argument("--member", default=None, help="member directory under wake/members/ (default: the single member at wake/state)")
     ap.add_argument("--read", default=None, help="path to a letter addressed to this member; requires the reply to quote it")
+    ap.add_argument("--api-model", default=None, help="API model id; uses an OpenAI-compatible endpoint instead of ollama")
+    ap.add_argument("--api-base", default=None, help="endpoint base URL, or a name from API_BASES (deepseek, groq, openrouter, gemini, ...)")
+    ap.add_argument("--api-key-env", default=None, help="name of the environment variable holding the key (default TRIBE_API_KEY, then <BASE>_API_KEY)")
     args = ap.parse_args()
 
+    if not args.model and not args.api_model:
+        ap.error("give either --model (local weights) or --api-model (an API)")
+    if not args.model:
+        args.model = args.api_model + " (api)"   # the label the journal and the commit use
     out_dir = set_member(args.member)
     print(f"member: {args.member or '(single)'} — state {STATE}, output {OUTPUT}")
     OUTPUT.mkdir(parents=True, exist_ok=True)
@@ -341,7 +394,19 @@ having answered something nobody said.
 
     t0 = time.time()
     try:
-        reply, payload = ask(args.host, args.model, prompt, images)
+        if args.api_model:
+            base = args.api_base or "deepseek"
+            base = API_BASES.get(base, base)
+            names = [n for n in (args.api_key_env,) if n] or ["TRIBE_API_KEY",
+                     base.split("//")[-1].split(".")[0].upper() + "_API_KEY"]
+            key = next((os.environ[n] for n in names if os.environ.get(n)), None)
+            if not key:
+                print("!! no API key in the environment: set " + " or ".join(names))
+                return 2
+            print(f"channel: api {base} model {args.api_model} (key from {names[0]})")
+            reply, payload = ask_api(base, key, args.api_model, prompt, images)
+        else:
+            reply, payload = ask(args.host, args.model, prompt, images)
     except Exception as e:  # noqa: BLE001 — a blind model refusing an image is a finding, not a crash
         reply, payload = "", {"error": f"{type(e).__name__}: {e}"}
         print(f"!! request failed: {payload['error']}")
