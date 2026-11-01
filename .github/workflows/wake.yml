@@ -114,7 +114,14 @@ jobs:
           READ: ${{ inputs.read }}
           API_MODEL: ${{ inputs.api_model }}
           API_BASE: ${{ inputs.api_base }}
-          TRIBE_API_KEY: ${{ secrets.TRIBE_API_KEY }}
+          # One secret per member, named for its provider. A single generic secret is how a member
+          # ends up authenticating to the wrong vendor — a 401 with the key's tail in the body.
+          DEEPSEEK_API_KEY: ${{ secrets.TRIBE_API_KEY_DEEPSEEK }}
+          GEMINI_API_KEY: ${{ secrets.TRIBE_API_KEY_GEMINI }}
+          GROQ_API_KEY: ${{ secrets.TRIBE_API_KEY_GROQ }}
+          OPENROUTER_API_KEY: ${{ secrets.TRIBE_API_KEY_OPENROUTER }}
+          CEREBRAS_API_KEY: ${{ secrets.TRIBE_API_KEY_CEREBRAS }}
+          MISTRAL_API_KEY: ${{ secrets.TRIBE_API_KEY_MISTRAL }}
         run: |
           set -euo pipefail
           # The model goes in first so the array is never empty: "${ARGS[@]:-}" on an empty array
