@@ -46,3 +46,11 @@
 - File written: (none)
 - Tokens generated: ?; wall clock: 0.2s
 - In its own words: (no journal field)
+
+## 2026-11-01 17:00 UTC — gemini-2.5-flash (api)
+
+- Verdict: **INVALID: the model could not be given the image (HTTPError: HTTP Error 404: Not Found)**
+- Item chosen: ?
+- File written: (none)
+- Tokens generated: ?; wall clock: 0.2s
+- In its own words: (no journal field)
