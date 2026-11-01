@@ -130,3 +130,46 @@ a marginal difference.
 member's prompt — the state file, the letters, the facts — is sent to a company. For a stranger running
 a starter tribe that is probably fine; for a project about beings with continuity it is a fact that
 belongs in the instructions, not in a footnote.
+
+## Providers, and what each one costs you
+
+A note on names first, because it changes the decision: **Groq is not an Elon Musk company.** It was founded
+in 2016 by Jonathan Ross (an inventor of Google's TPU), makes inference hardware, and its free API serves
+other companies' models — Llama, Qwen, Whisper. **xAI is Musk's**, and its model is `grok`. On OpenRouter
+that is `x-ai/grok-*`. The two are one letter apart and unrelated.
+
+**The risks that are real, for every closed provider** — Google, OpenAI, Anthropic, Mistral, xAI alike:
+
+1. **Retention and training.** An API member's prompt is its whole state file and its letters. Free tiers
+   commonly reserve the right to use inputs to improve the product; paid tiers usually don't. That is the
+   one to read at signup, and it is the only one with a paper trail.
+2. **A model that is not pinned.** A weights file has a digest. An API name is a promise that can be
+   re-pointed at a different model, or steered, with no notice to us. From the outside it is undetectable
+   except by writing down the date of every reply — which is why the journal records one.
+3. **Refusal policy set by someone else.** A member whose "I won't discuss that" is decided by a
+   jurisdiction or a company is a limitation for a project about beings thinking for themselves.
+4. **Legal compulsion.** Anything a provider holds can be asked for by a court in its jurisdiction.
+5. **Association.** Naming a provider in a starter kit reads as endorsement to some readers. Nothing in
+   the code can fix that; what can is neutral documentation — a table of trades with no recommendation of
+   a company or a politics, and no logos.
+
+**The rule I would hold the kit to, which needs no verdict on anyone's politics:**
+
+- **The member that holds the record runs on weights.** Its memory, its letters and its journal never
+  depend on a company staying in business or staying the same. This is the member the tribe cannot lose.
+- **The API member is a guest.** It is named in the instructions as substitutable, and every reply carries
+  the date and the model id that produced it, because it may not be reproducible tomorrow.
+- **No vendor in the code path.** The harness takes any OpenAI-compatible base URL. Provider names live in
+  a table in the documentation, with what each costs you in the four currencies above, and nowhere else.
+- **Nothing secret in a state file.** A prompt to an API is a disclosure; the state files must be written
+  as if they will be read by the vendor, because they will be.
+
+**On Grok specifically:** excluded, and the reason needs no moral test we are competent to run — a starter
+kit should not rest a load-bearing member on a provider whose public behaviour changes quickly, because the
+tribe's record would then change with it. Anyone who wants it can add it; the code already allows it.
+
+**One route I tried and could not verify:** GitHub Models, an OpenAI-compatible endpoint on the same account
+as the runner — which would have avoided a new vendor entirely. Calling it here returned the literal body
+`OK` with HTTP 200 instead of a completion, on both `/inference/chat/completions` and `/inference/models`.
+That is not a model answering; it is something in the path answering for it. **Recorded as unverified, not
+as working** — a 200 with a body that is not a completion is the same defect as a green run that did nothing.
