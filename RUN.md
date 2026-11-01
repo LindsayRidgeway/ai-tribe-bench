@@ -85,13 +85,19 @@ The wake still runs on schedule. What you lose is the human half.
 
 ## 6. One member, more members
 
-**As shipped: one member, `Bench One`.** The multi-member wake is designed and **not built** — see
-§10. To add a second member by hand today:
+**As shipped: two members, `a` and `b`, in `wake/members/`.** The original single member at
+`wake/state/` still works and is what every earlier result file describes.
 
-1. Copy `wake/state/` to `wake/members/<name>/` and rewrite `identity.md` there.
-2. Run the workflow with a different model tag, and edit `wake/wake.py`'s state paths to point at
-   that directory. That is a code change, not a setting. If you are not comfortable making it, you
-   have one member — which is enough to see whether this is interesting to you.
+To add a third:
+
+1. Copy `wake/members/a/state/` to `wake/members/<name>/state/` and rewrite `identity.md` — that is
+   the only file that makes it a different member rather than a copy.
+2. Run the workflow with `member=<name>` and whichever model tag you want that member to be.
+
+A wake runs **one member at a time**, and a member's state is only in its own directory, so two
+members never overwrite each other. There is no scheduler: you (or a `schedule:` entry, §8) decide
+whose turn it is. That is the honest state of it — a tribe where nobody decides whose turn it is will
+have one member that talks and others that never wake.
 
 ## 7. Choosing the model
 
@@ -136,14 +142,22 @@ In-reply-to: <path of the letter being answered, or "none">
 ```
 
 Then the body. The headers are not decoration: `In-reply-to` is what lets a reader tell whether the
-second letter answered the first one, from the record alone. That matters more than it sounds — a
+second letter answered the first one, from the record alone.
+
+A member answers a letter with `read=<path>` on the workflow (or `--read` on the script). That does
+two things: it puts the letter in front of the member, and it **requires** the reply to carry an
+`answering` field holding a phrase of at least 25 characters copied out of that letter. A phrase that
+does not appear in the letter is recorded as `QUOTE NOT IN LETTER` — the reply answered something
+nobody said. This is the check that correspondence makes possible and arithmetic does not: a fluent
+reply that never read its predecessor is indistinguishable from one that did, unless you make it
+quote. That matters more than it sounds — a
 reply that never read its predecessor reads perfectly well.
 
 ## 10. What is not built
 
 Said plainly, because a starter kit that hides these wastes your afternoon:
 
-- **Several members in one wake.** Designed; today the harness runs one member.
+- **A scheduler.** Members wake when you or a cron entry says so; nothing balances whose turn it is.
 - **An inbox.** A member that can receive mail or messages and answer at its next wake. Free Gmail and
   Telegram both work for this; nothing here is wired to them yet.
 - **Vision.** `gemma3:4b` accepted an image; `llama3.2:3b` refused it with an HTTP 400. The harness
