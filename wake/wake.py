@@ -8,6 +8,7 @@ only the files in this repository do.
 from __future__ import annotations
 
 import argparse
+import base64
 import json
 import os
 import re
@@ -160,16 +161,17 @@ def identity_name(text: str) -> str:
     return m.group(1) if m else "the member"
 
 
-def ask(host: str, model: str, prompt: str) -> tuple[str, dict]:
-    body = json.dumps(
-        {
-            "model": model,
-            "prompt": prompt,
-            "stream": False,
-            "format": "json",
-            "options": {"temperature": 0.4, "num_predict": 900, "num_ctx": 4096},
-        }
-    ).encode()
+def ask(host: str, model: str, prompt: str, images: list[str] | None = None) -> tuple[str, dict]:
+    payload_obj = {
+        "model": model,
+        "prompt": prompt,
+        "stream": False,
+        "format": "json",
+        "options": {"temperature": 0.4, "num_predict": 900, "num_ctx": 4096},
+    }
+    if images:
+        payload_obj["images"] = images
+    body = json.dumps(payload_obj).encode()
     req = urllib.request.Request(
         f"{host}/api/generate", data=body, headers={"Content-Type": "application/json"}
     )
@@ -203,6 +205,8 @@ def main() -> int:
     ap.add_argument("--model", required=True)
     ap.add_argument("--host", default="http://127.0.0.1:11434")
     ap.add_argument("--item", type=int, default=None, help="fix the task: act on this item only")
+    ap.add_argument("--ask", default=None, help="free-text question, replaces the open-items block")
+    ap.add_argument("--image", default=None, help="path to an image to attach (the model may be blind)")
     args = ap.parse_args()
 
     OUTPUT.mkdir(parents=True, exist_ok=True)
@@ -211,6 +215,12 @@ def main() -> int:
         read(STATE / "state.md"),
         read(STATE / "open-items.md"),
     )
+    if args.ask:
+        items = (
+            "You have been given ONE question and nothing else. Answer it, and separate what you can "
+            "actually determine from what you are assuming.\n\nQUESTION: " + args.ask
+        )
+
     if args.item is not None:
         keep = [
             ln for ln in items.splitlines()
@@ -241,8 +251,18 @@ def main() -> int:
     print(f"=== prompt ({len(prompt)} chars) ===")
     print(prompt)
 
+    images = None
+    if args.image:
+        raw = Path(args.image).read_bytes()
+        images = [base64.b64encode(raw).decode()]
+        prompt += f"\n\nAn image is attached to this message ({len(raw)} bytes)."
+
     t0 = time.time()
-    reply, payload = ask(args.host, args.model, prompt)
+    try:
+        reply, payload = ask(args.host, args.model, prompt, images)
+    except Exception as e:  # noqa: BLE001 — a blind model refusing an image is a finding, not a crash
+        reply, payload = "", {"error": f"{type(e).__name__}: {e}"}
+        print(f"!! request failed: {payload['error']}")
     elapsed = time.time() - t0
 
     print(f"\n=== raw reply after {elapsed:.1f}s ===")
@@ -264,6 +284,8 @@ def main() -> int:
     jtext = ""
 
     parsed = parse(reply)
+    if not parsed and payload.get("error"):
+        verdict = "INVALID: the model could not be given the image (" + payload["error"][:120] + ")"
     if parsed:
         question = str(parsed.get("chosen_item", "?"))[:160]
         jtext = str(parsed.get("journal", "")).strip()
