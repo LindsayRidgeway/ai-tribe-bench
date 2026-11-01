@@ -69,6 +69,16 @@ jobs:
           time ollama pull "${{ inputs.model }}"
           ollama list
 
+      - name: What this API offers (names only — no key is printed)
+        if: inputs.api_model != '' && inputs.api_base == 'gemini'
+        env:
+          TRIBE_API_KEY: ${{ secrets.TRIBE_API_KEY }}
+        run: |
+          set -euo pipefail
+          curl -sf -H "x-goog-api-key: ${TRIBE_API_KEY}" \
+            "https://generativelanguage.googleapis.com/v1beta/models?pageSize=200" \
+            | python3 -c "import json,sys;d=json.load(sys.stdin);print('\n'.join(sorted(m['name'] for m in d.get('models',[]) if 'generateContent' in m.get('supportedGenerationMethods',[]))))" || echo "(could not list models)"
+
       - name: One wake
         env:
           MODEL: ${{ inputs.model }}
