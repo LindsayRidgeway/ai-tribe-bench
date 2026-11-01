@@ -1,17 +1,17 @@
 {
   "a": {
-    "wins": 0,
-    "rounds": 1,
-    "last": "no schedule, no plans"
+    "wins": 1,
+    "rounds": 2,
+    "last": "\"You look exactly like your photo.\""
   },
   "b": {
     "wins": 0,
-    "rounds": 1,
+    "rounds": 2,
     "last": "Getting hopelessly lost with zero service"
   },
   "c": {
     "wins": 0,
-    "rounds": 1,
-    "last": "No GPS, just paper maps."
+    "rounds": 2,
+    "last": "My mother expects grandchildren soon."
   }
 }

@@ -1,0 +1,63 @@
+{
+  "category": "the worst thing to say on a first date",
+  "when": "2026-11-01T21:47:13Z",
+  "slug": "the-worst-thing-to-say-on-a-first-date",
+  "picks": {
+    "a": {
+      "model": "deepseek-chat",
+      "provider": "deepseek",
+      "seat": "the loyalist",
+      "pick": "\"You look exactly like your photo.\"",
+      "why": "It sounds like a compliment but actually means I was bracing for you to be uglier, and I'll defend that reading to both of you all night.",
+      "raw": "PICK: \"You look exactly like your photo.\"\nBECAUSE: It sounds like a compliment but actually means I was bracing for you to be uglier, and I'll defend that reading to both of you all night.",
+      "error": "",
+      "secs": 1.4
+    },
+    "b": {
+      "model": "gemini-3.8-flash",
+      "provider": "gemini",
+      "seat": "the heretic",
+      "pick": "",
+      "why": "",
+      "raw": "used to do that",
+      "error": "",
+      "secs": 3.5
+    },
+    "c": {
+      "model": "qwen3.6-plus",
+      "provider": "qwen",
+      "seat": "the outsider",
+      "pick": "My mother expects grandchildren soon.",
+      "why": "It traps them in a generational contract before they have even ordered appetizers.",
+      "raw": "PICK: My mother expects grandchildren soon.\nBECAUSE: It traps them in a generational contract before they have even ordered appetizers.",
+      "error": "",
+      "secs": 2.1
+    }
+  },
+  "votes": {
+    "a": {
+      "strand": "",
+      "why": "Saying \"you look exactly like your photo\" suggests you expected them to look worse, so it's a backhanded compliment that kills the mood.",
+      "error": "",
+      "secs": 1.1
+    },
+    "b": {
+      "strand": "",
+      "why": "",
+      "error": "not in the round",
+      "secs": 0.0
+    },
+    "c": {
+      "strand": "a",
+      "why": "Saying they look like their photo is actually a nice compliment, so it\u2019s not even bad enough to count.",
+      "error": "",
+      "secs": 2.0
+    }
+  },
+  "votes_for": {
+    "a": 1,
+    "b": 0,
+    "c": 0
+  },
+  "winner": "a"
+}
