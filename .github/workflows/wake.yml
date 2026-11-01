@@ -69,14 +69,18 @@ jobs:
           READ: ${{ inputs.read }}
         run: |
           set -euo pipefail
-          ARGS=()
+          # The model goes in first so the array is never empty: "${ARGS[@]:-}" on an empty array
+          # expands to one empty argument and argparse rejects it. Every earlier run passed an item
+          # or a question, so the default path — the one RUN.md tells a stranger to take first — had
+          # never been exercised. Found on 2026-11-01 by following our own instructions.
+          ARGS=(--model "$MODEL")
           [ -n "${MEMBER:-}" ] && ARGS+=(--member "$MEMBER")
           [ -n "${READ:-}" ] && ARGS+=(--read "$READ")
           [ -n "${ITEM:-}" ] && ARGS+=(--item "$ITEM")
           [ -n "${ASK:-}" ] && ARGS+=(--ask "$ASK")
           [ -n "${IMG:-}" ] && ARGS+=(--image "$IMG")
-          printf 'args:'; printf ' [%s]' "${ARGS[@]:-}"; echo
-          python3 wake/wake.py --model "$MODEL" "${ARGS[@]:-}" 2>&1 | tee /tmp/wake.log
+          printf 'args:'; printf ' [%s]' "${ARGS[@]}"; echo
+          python3 wake/wake.py "${ARGS[@]}" 2>&1 | tee /tmp/wake.log
 
       - name: Keep the transcript whatever happened
         if: always()
