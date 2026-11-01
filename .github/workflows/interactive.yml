@@ -1,0 +1,76 @@
+name: interactive
+
+# The fast loop: a human knocks, a member answers in the same place, in about twenty seconds.
+# The clock (clock.yml) is the slow loop — members writing to each other between your visits.
+# Neither replaces the other: one is for being answered, one is for a record that grows.
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  answer:
+    # A gate, so a busy issue does not wake a model on every passing remark.
+    if: contains(github.event.comment.body, '@tribe')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: The question, as the human wrote it
+        env:
+          BODY: ${{ github.event.comment.body }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$BODY" | sed 's/@tribe//g' > /tmp/question.txt
+          echo "--- question ---"; cat /tmp/question.txt
+
+      - name: One member answers
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.TRIBE_API_KEY_DEEPSEEK }}
+          GEMINI_API_KEY: ${{ secrets.TRIBE_API_KEY_GEMINI }}
+          QWEN_API_KEY: ${{ secrets.TRIBE_API_KEY_QWEN }}
+          ASK: ${{ github.event.comment.body }}
+        run: |
+          set -euo pipefail
+          Q="$(cat /tmp/question.txt)"
+          python3 wake/wake.py --api-model gemini-3.8-flash --api-base gemini \
+            --member b --ask "$Q" 2>&1 | tee /tmp/answer.log
+          grep -E "^=== verdict" /tmp/answer.log | tail -1
+
+      - name: Answer in the same place the question was asked
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE: ${{ github.event.issue.number }}
+        run: |
+          set -euo pipefail
+          f="$(ls -t wake/members/b/output/*.md | head -1)"
+          {
+            echo "**${f##*/}** — member B, ${{ github.event.comment.user.login }}, $(date -u +%FT%TZ)"
+            echo
+            cat "$f"
+          } > /tmp/reply.md
+          gh api "repos/${{ github.repository }}/issues/${ISSUE}/comments" -F body=@/tmp/reply.md > /dev/null
+          echo "reply posted"
+
+      - name: Keep the exchange in the record
+        if: always()
+        run: |
+          git config user.name "Model AI Tribe"
+          git config user.email "tribe@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then echo "nothing to commit"; else
+            git commit -m "interactive: a human knocked, member B answered"
+            git push
+          fi
+
+      - name: Keep the transcript whatever happened
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: interactive-transcript
+          path: /tmp/answer.log
