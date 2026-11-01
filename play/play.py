@@ -25,6 +25,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 ROUNDS = HERE / "rounds"
 SCOREBOARD = HERE / "scoreboard.md"
+STANDINGS = HERE / "standings.json"
 
 BASES = {
     "deepseek": "https://api.deepseek.com/v1",
@@ -280,29 +281,38 @@ def play_round(category: str, override: str | None, dry: bool) -> str:
 
 
 def update_scoreboard(record: dict) -> str:
-    """Wins, rounds played, and the last thing each member said — the standings, not a log."""
+    """Wins, rounds played, and the last thing each member said — the standings, not a log.
+
+    The standings are kept in JSON and the table is rendered from it. The first version of this read
+    its own markdown back in, which broke the second round with `int('deepseek-chat')` — column drift
+    between writer and reader, the same defect the 3B members kept making in round 6. Rendering a view
+    from a number is cheaper than teaching two pieces of code to agree about a column order.
+    """
     hist: dict[str, dict] = {l: {"wins": 0, "rounds": 0, "last": ""} for l in SEATS}
-    if SCOREBOARD.exists():
-        for ln in SCOREBOARD.read_text(encoding="utf-8").splitlines():
-            m = re.match(r"^\|\s*([abcA-C])\s*\|([^|]*)\|([^|]*)\|([^|]*)\|([^|]*)\|", ln)
-            if m:
-                l = m.group(1).lower()
-                hist[l] = {"wins": int(m.group(3).strip() or 0), "rounds": int(m.group(4).strip() or 0),
-                           "last": m.group(5).strip()}
+    if STANDINGS.exists():
+        try:
+            for l, h in json.loads(STANDINGS.read_text(encoding="utf-8")).items():
+                if l in hist:
+                    hist[l] = {"wins": int(h.get("wins", 0)), "rounds": int(h.get("rounds", 0)),
+                               "last": str(h.get("last", ""))}
+        except (json.JSONDecodeError, ValueError):
+            print(f"!! {STANDINGS} was unreadable; standings restart from zero and the old file is kept as .bak")
+            STANDINGS.replace(STANDINGS.with_suffix(".json.bak"))
     for l in SEATS:
         hist[l]["rounds"] += 1
         if record["picks"].get(l, {}).get("pick"):
             hist[l]["last"] = record["picks"][l]["pick"]
     if record.get("winner"):
         hist[record["winner"]]["wins"] += 1
+    STANDINGS.write_text(json.dumps(hist, indent=2), encoding="utf-8")
     rows = ["| seat | member | model | stance | wins | rounds | last pick |",
             "|---|---|---|---|---|---|---|"]
     for l, (model, _prov, seat, _stance) in SEATS.items():
         h = hist[l]
         rows.append(f"| {l.upper()} | {l.upper()} | {model} | {seat} | {h['wins']} | {h['rounds']} | {h['last'] or '—'} |")
     text = ("# Scoreboard\n\n"
-            "Written by play/play.py. Do not hand-edit wins; a scoreboard you edit is a scoreboard that "
-            "means nothing.\n\n" + "\n".join(rows) + "\n")
+            "Rendered from play/standings.json by play/play.py. Do not hand-edit wins; a scoreboard you "
+            "edit is a scoreboard that means nothing.\n\n" + "\n".join(rows) + "\n")
     SCOREBOARD.write_text(text, encoding="utf-8")
     return text
 
