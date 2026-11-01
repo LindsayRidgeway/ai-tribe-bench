@@ -7,7 +7,7 @@ name: clock
 on:
   workflow_dispatch:
   schedule:
-    - cron: "17 13 * * *"     # 13:17 UTC daily
+    - cron: "17 */4 * * *"    # every four hours, on the 17th minute
 
 permissions:
   contents: write
