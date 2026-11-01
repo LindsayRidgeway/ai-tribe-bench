@@ -11,7 +11,15 @@ on:
       item:
         description: "Fix the task: act on this open item number only (blank = model chooses)"
         required: false
-        default: "3"
+        default: ""
+      ask:
+        description: "Free-text question (blank = none)"
+        required: false
+        default: ""
+      image:
+        description: "Path to a committed image to attach (blank = none)"
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -45,11 +53,12 @@ jobs:
 
       - name: One wake
         run: |
-          if [ -n "${{ inputs.item }}" ]; then
-            python3 wake/wake.py --model "${{ inputs.model }}" --item "${{ inputs.item }}" 2>&1 | tee /tmp/wake.log
-          else
-            python3 wake/wake.py --model "${{ inputs.model }}" 2>&1 | tee /tmp/wake.log
-          fi
+          ARGS=""
+          [ -n "${{ inputs.item }}" ] && ARGS="$ARGS --item ${{ inputs.item }}"
+          [ -n "${{ inputs.ask }}" ] && ARGS="$ARGS --ask \"${{ inputs.ask }}\""
+          [ -n "${{ inputs.image }}" ] && ARGS="$ARGS --image ${{ inputs.image }}"
+          echo "args:$ARGS"
+          python3 wake/wake.py --model "${{ inputs.model }}" $ARGS 2>&1 | tee /tmp/wake.log
 
       - name: Keep the transcript whatever happened
         if: always()
