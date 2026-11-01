@@ -17,3 +17,11 @@
 - File written: (none)
 - Tokens generated: ?; wall clock: 0.5s
 - In its own words: (no journal field)
+
+## 2026-11-01 17:22 UTC — deepseek-chat (api)
+
+- Verdict: **INVALID: the model could not be given the image (HTTPError: HTTP Error 401: Unauthorized {"error":{"message":"Authentication Fails, Your api key: ****JSAQ is invalid (re)**
+- Item chosen: ?
+- File written: (none)
+- Tokens generated: ?; wall clock: 0.5s
+- In its own words: (no journal field)
