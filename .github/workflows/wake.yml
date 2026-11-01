@@ -73,6 +73,9 @@ jobs:
         if: inputs.api_model != '' && inputs.api_base == 'gemini'
         env:
           TRIBE_API_KEY: ${{ secrets.TRIBE_API_KEY }}
+          DEEPSEEK_API_KEY: ${{ secrets.TRIBE_API_KEY_DEEPSEEK }}
+          GROQ_API_KEY: ${{ secrets.TRIBE_API_KEY_GROQ }}
+          OPENROUTER_API_KEY: ${{ secrets.TRIBE_API_KEY_OPENROUTER }}
         run: |
           set -euo pipefail
           curl -sf -H "x-goog-api-key: ${TRIBE_API_KEY}" \
