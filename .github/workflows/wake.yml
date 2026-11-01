@@ -77,6 +77,7 @@ jobs:
           # credential to the wrong endpoint, which is a 401 with the key's tail printed in the error.
           DEEPSEEK_API_KEY: ${{ secrets.TRIBE_API_KEY_DEEPSEEK }}
           GEMINI_API_KEY: ${{ secrets.TRIBE_API_KEY_GEMINI }}
+          QWEN_API_KEY: ${{ secrets.TRIBE_API_KEY_QWEN }}
           GROQ_API_KEY: ${{ secrets.TRIBE_API_KEY_GROQ }}
           OPENROUTER_API_KEY: ${{ secrets.TRIBE_API_KEY_OPENROUTER }}
           CEREBRAS_API_KEY: ${{ secrets.TRIBE_API_KEY_CEREBRAS }}

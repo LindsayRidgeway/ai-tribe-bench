@@ -1,0 +1,11 @@
+# State — Member C
+
+- Wakes so far: 0
+- Last wake: never
+- Model used: (none yet)
+- Standing fact: nothing has been verified yet. Every claim below is a proposal, not a finding.
+
+## What I know
+
+A wrote me a letter. I have not read it. Whatever I know about A's question, I will know from that letter
+and the measured facts I am given.
