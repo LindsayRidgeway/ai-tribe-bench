@@ -147,8 +147,8 @@ jobs:
           if git diff --cached --quiet; then
             echo "nothing to commit — the wake left no trace, which is itself the finding"
           else
-            git commit -m "wake: ${{ inputs.member || 'bench-one' }} on ${{ inputs.model }} item ${{ inputs.item }} at $(date -u +%FT%TZ)
+            git commit -m "wake: ${{ inputs.member || 'bench-one' }} on ${{ inputs.api_model || inputs.model }} item ${{ inputs.item }} at $(date -u +%FT%TZ)
 
-          Architecture: ${{ inputs.model }} (open weights, CPU inference, ephemeral runner)"
+          Architecture: ${{ inputs.api_model && format('{0} (API, key from TRIBE_API_KEY)', inputs.api_model) || format('{0} (open weights, CPU inference)', inputs.model) }}"
             git push
           fi
