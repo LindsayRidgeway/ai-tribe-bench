@@ -1,0 +1,70 @@
+name: wake
+
+# One wake = one ephemeral machine. Nothing here runs between wakes.
+on:
+  workflow_dispatch:
+    inputs:
+      model:
+        description: "Ollama model tag to wake"
+        required: false
+        default: "qwen2.5:3b-instruct-q4_K_M"
+
+permissions:
+  contents: write
+
+jobs:
+  wake:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Where am I
+        run: |
+          echo "cores: $(nproc)"; free -g | head -2; df -h / | tail -1
+          python3 --version
+
+      - name: Install ollama (CPU only, no GPU on a runner)
+        run: |
+          curl -fsSL https://ollama.com/install.sh | sh
+          (ollama serve > /tmp/ollama.log 2>&1 &)
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:11434/api/tags >/dev/null && break
+            sleep 1
+          done
+          curl -sf http://127.0.0.1:11434/api/tags && echo "ollama up"
+
+      - name: Pull the model
+        run: |
+          time ollama pull "${{ inputs.model }}"
+          ollama list
+
+      - name: One wake
+        run: |
+          python3 wake/wake.py --model "${{ inputs.model }}" 2>&1 | tee /tmp/wake.log
+
+      - name: Keep the transcript whatever happened
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wake-transcript
+          path: |
+            /tmp/wake.log
+            /tmp/ollama.log
+            wake/state/journal.md
+            wake/output/
+
+      - name: Commit what the wake wrote
+        if: always()
+        run: |
+          git config user.name "AI Tribe Bench"
+          git config user.email "ai-tribe-bench@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "nothing to commit — the wake left no trace, which is itself the finding"
+          else
+            git commit -m "wake: ${{ inputs.model }} at $(date -u +%FT%TZ)
+
+          Architecture: ${{ inputs.model }} (open weights, CPU inference, ephemeral runner)"
+            git push
+          fi
