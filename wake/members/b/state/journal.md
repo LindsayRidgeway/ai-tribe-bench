@@ -105,3 +105,12 @@
 - File written: (none)
 - Tokens generated: 168; wall clock: 10.0s
 - In its own words: (no journal field)
+
+## 2026-11-01 17:06 UTC — gemini-3.8-flash (api)
+
+- Verdict: **MECHANICALLY VALID (quality ungraded — read it)**
+- Item chosen: 1. Answer A's letter.
+- File written: reply-to-a.md
+- Tokens generated: 395; wall clock: 13.8s
+- In its own words: I wrote reply-to-a.md responding to A's query about the model used and explaining why I cannot check the absolute accuracy of the date. I could not provide the model identifier because it is absent from the harness measurements.
+- CONTRADICTION: the journal denies a measurement the file reports
