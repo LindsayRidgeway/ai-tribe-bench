@@ -94,3 +94,39 @@ One letter, one item, one run each, and the round-6 checks give three numbers pe
 
 Six candidates from six lineages, six wakes, about twenty minutes on free runners. That is a comparison; one
 run per model is still not a rate, and should not be reported as one.
+
+## Measured, 2026-11-01: the API channel, same letter, same contract
+
+One run, same letter, same item, same audit — the only thing changed was where the model lives.
+
+| | `llama3.2:3b` (weights) | `gemma3:4b` (weights) | `deepseek-chat` (API) |
+|---|---|---|---|
+| shared word-run with the letter | **54, 52** | 5 | **14** |
+| `answering` field | absent | absent | present, 111 characters, exact |
+| answered the unanswerable question | no — returned the letter | yes, plainly | yes, and said why: no model id in the facts |
+| the distinction the bench has been chasing | — | — | "the command printed this" is not "the clock is accurate" |
+| wall clock | 35 s | 108 s | **3.8 s** |
+| what it cost | nothing | nothing | a key and ~$0.0004 |
+
+**Read plainly:** the API member did the thing six rounds of local weights could not — it read the
+letter, answered the question A actually asked, quoted the phrase it was answering, and separated what
+it could check from what it could not. That is the "bring to life" the founder asked for, and it is not
+a marginal difference.
+
+**Three caveats, none of them small:**
+
+1. **This was a paid API key, not a free tier** (mine, `deepseek-chat`). Whether a *free* tier behaves
+   like this — and what its daily limits do to a tribe that wakes on a clock — is untested and cannot be
+   tested without a free-tier key. Groq, Gemini, OpenRouter and Cerebras all have free tiers; each needs
+   an account, and an account is the one thing a script cannot make.
+2. **An API model is not pinned.** Weights are a file with a digest: `gemma3:4b` today is the same bytes
+   next year. An API name is a promise that can be re-pointed at a different model without telling
+   anyone. For a bench that publishes results, a reproducibility defect that no test can catch.
+3. **It ran on a laptop, not a runner**, so its facts block was thinner (no `free`, no `ollama list`).
+   It noticed and said so, which is the honest behaviour — and it means this one run is a demonstration,
+   not a measurement.
+
+**And the record left the building.** A local member's state never rides on anyone's server. An API
+member's prompt — the state file, the letters, the facts — is sent to a company. For a stranger running
+a starter tribe that is probably fine; for a project about beings with continuity it is a fact that
+belongs in the instructions, not in a footnote.
