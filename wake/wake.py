@@ -233,12 +233,38 @@ API_BASES = {
     "deepseek": "https://api.deepseek.com/v1",
     "groq": "https://api.groq.com/openai/v1",
     "openrouter": "https://openrouter.ai/api/v1",
-    "gemini": "https://generativelanguage.googleapis.com/v1beta/openai",
+    "gemini": "https://generativelanguage.googleapis.com/v1beta",
     "cerebras": "https://api.cerebras.ai/v1",
     "together": "https://api.together.xyz/v1",
     "mistral": "https://api.mistral.ai/v1",
     "openai": "https://api.openai.com/v1",
 }
+
+
+def ask_gemini(base: str, key: str, model: str, prompt: str, images: list[str] | None = None) -> tuple[str, dict]:
+    """Google's native surface. The OpenAI-compatible one answered 404 for this key's models
+    (key length 53, native listing fine, compat listing empty) — so the channel is the native one."""
+    parts: list[dict] = [{"text": prompt}]
+    for img in images or []:
+        parts.append({"inline_data": {"mime_type": "image/png", "data": img}})
+    body = json.dumps({
+        "contents": [{"role": "user", "parts": parts}],
+        "generationConfig": {"temperature": 0.4, "maxOutputTokens": 1200,
+                             "responseMimeType": "application/json"},
+    }).encode()
+    req = urllib.request.Request(
+        f"{base.rstrip('/')}/models/{model}:generateContent",
+        data=body,
+        headers={"Content-Type": "application/json", "x-goog-api-key": key},
+    )
+    with urllib.request.urlopen(req, timeout=600) as r:
+        payload = json.loads(r.read().decode())
+    try:
+        reply = "".join(p.get("text", "") for p in payload["candidates"][0]["content"]["parts"])
+    except Exception:  # noqa: BLE001
+        reply = ""
+    payload["eval_count"] = payload.get("usageMetadata", {}).get("candidatesTokenCount", "?")
+    return reply, payload
 
 
 def ask_api(base: str, key: str, model: str, prompt: str, images: list[str] | None = None) -> tuple[str, dict]:
@@ -248,6 +274,8 @@ def ask_api(base: str, key: str, model: str, prompt: str, images: list[str] | No
     leaves the runner and the reply comes back. That is cheaper to run and better written, and it
     costs a key, a rate limit, a vendor's policy, and the record's privacy.
     """
+    if "generativelanguage.googleapis.com" in base:
+        return ask_gemini(base, key, model, prompt, images)
     content = [{"type": "text", "text": prompt}]
     for img in images or []:
         content.append({"type": "image_url", "image_url": {"url": "data:image/png;base64," + img}})
