@@ -205,13 +205,16 @@ def play_round(category: str, override: str | None, dry: bool) -> str:
             text = "PICK: (dry run)\nBECAUSE: (no call made)"
         else:
             try:
-                text = say(provider, model, prompt, 400)
-                if not line(text, "PICK") or not line(text, "BECAUSE"):
+                text = say(provider, model, prompt, 2000)
+                cut = bool(line(text, "BECAUSE")) and not re.search(r"[.!?\"']\s*$", line(text, "BECAUSE"))
+                if not line(text, "PICK") or not line(text, "BECAUSE") or cut:
+                    if cut:
+                        print("!! defence ended mid-sentence — asking again", file=sys.stderr)
                     # One retry, cheaper than losing the seat: a fragment is a formatting failure, not
                     # an opinion, and a two-member round is a worse game than a repeated call.
                     text = say(provider, model, prompt + "\n\nYour last reply was cut off or the wrong "
                                "shape. Answer once more: PICK: ... then BECAUSE: ... — both lines, both "
-                               "labels, one sentence each.", 400)
+                               "labels, one sentence each.", 2000)
             except Exception as e:  # noqa: BLE001 — a dead provider is a finding the round must survive
                 text, err = "", str(e)
         return label, {
@@ -241,7 +244,7 @@ def play_round(category: str, override: str | None, dry: bool) -> str:
             text = "STRAND: (dry run)\nWHY: (no call made)"
         else:
             try:
-                text = say(provider, model, prompt, 400)
+                text = say(provider, model, prompt, 2000)
             except Exception as e:  # noqa: BLE001
                 text, err = "", str(e)
         # Found live 2026-11-01: every vote came back "named nobody usable" because the letter was
@@ -298,15 +301,15 @@ def play_round(category: str, override: str | None, dry: bool) -> str:
             out.append(f"- {l.upper()} → *named nobody usable*")
     thrown = [l for l in labels if votes_for[l] and votes_for[l] == max(votes_for.values())]
     if override and override.lower()[:1] in labels:
-        verdict = f"The human overrules the table: **{override.upper()}** is out, whatever the votes said."
+        verdict = f"the human overrules the table — **{override.upper()}** is out, whatever the votes said."
     elif len(thrown) == 1:
-        verdict = f"The table throws **{thrown[0].upper()}** out, {votes_for[thrown[0]]} vote(s)."
+        verdict = f"the table throws **{thrown[0].upper()}** out, {votes_for[thrown[0]]} vote(s)."
     elif len(thrown) > 1 and votes_for[thrown[0]]:
-        verdict = ("The table is split between " + ", ".join(l.upper() for l in thrown)
+        verdict = ("the table is split between " + ", ".join(l.upper() for l in thrown)
                    + " — nobody is out, and that is a real result.")
     else:
-        verdict = "No vote landed. The round stands as three opinions and nothing settled."
-    out += ["", f"**{verdict}**", ""]
+        verdict = "no vote landed; the round stands as three opinions and nothing settled."
+    out += ["", f"**Verdict:** {verdict}", ""]
     return "\n".join(out), {
         "category": category, "when": f"{now:%Y-%m-%dT%H:%M:%SZ}", "slug": slug,
         "picks": picks, "votes": votes, "votes_for": votes_for, "live": live,
