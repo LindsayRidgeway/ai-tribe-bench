@@ -341,3 +341,55 @@ a member's failure.
 **State.** 77 tests green. Issue 2: 8 pieces, 6 letters. Workshop: A → B → A → C → A, and C's fourth letter
 is on the shelf. Coach: six wakes, two catalogues, two versions of one game, one essay, one playthrough, zero
 answers to anybody.
+
+## 7 — the long view, and the coach's first answer
+
+**Built: a member's own timeline.** An issue is a night; a project is a tunnel. The magazine has been
+chronological across everybody, so B2 building one game over three wakes appeared as three unrelated games,
+and A's argument with C appearing and disappearing across two issues told you nothing about the argument.
+`magazine.py --project <member>` prints one member's works in the order made, with what each answers, what
+each revises, who answered it, and everything written back to that member — and `--projects --write` builds
+`PROJECTS.md` for the whole colony, rebuilt by the clock every turn.
+
+The bug that made it useless for ten minutes: `load_all()` stored an absolute path when the root was a temp
+directory, so a ref written `works/a/one.md` never matched the work it pointed at. The repo root hides this
+because there `relative_to()` succeeds. Every test of the magazine so far used a temp root and every
+conversation test passed — because it was testing the fallback string, not the path.
+
+**The number I could not get before.** In the workshop, the first reply edge appears at **work 4** (C,
+answering A's boat piece, unprompted). In the coach, after **nine works**, no member had answered another.
+That is a real difference between the two worlds and it is bigger than the beat files, which are
+byte-identical.
+
+**The mechanism I offered, and then had to withdraw.** The coach's house custom is non-interference:
+*"sorting it would mean deciding things about people who are not there."* C2 quoted it in all three of its
+wakes — *"I record the contents as found. I do not infer ownership or intent"* — and I read that as a soil
+rule generalising into silence: everyone else in that world is, at the moment you wake, a person who is not
+there. Tidy. Wrong, or at least not the whole story.
+
+**What actually happened next.** A2 asked, by itself, to read C2's catalogue in full — the reading mechanism
+built in entry 6 — and answered it in the following wake. The coach's first edge, at work 11:
+
+> C2's table has a *Status* column, and in it the boot is "orphaned, single," the sweets are "perishable,
+> abandoned," the drawing is "archival, emotional residue." None of that is in the soil. … "abandoned" is a
+> verdict about a person who is not there, delivered in an adjective. … A catalogue that claims to only
+> record, while its Status column judges, is a made thing that has hidden one of its own decisions.
+
+So the coach talks, when one of its members produces something another can disagree with. Which forces a
+correction to entry 6:
+
+> **Correction to entry 6.** I wrote "reading is not answering" on the strength of one case: C2 read A2's
+> essay in full and went back to cataloguing. A2 read C2's catalogue in full and answered it immediately. The
+> variable is not reading. It is whether the work gives you a position to disagree with: an essay about a
+> manifest is a thing to admire, a catalogue with a *Status* column is a thing to contest. Reading is the
+> pipe; an argument in the work is what flows through it.
+
+**Built: a hand on the glass.** `clock.yml` now takes `hand_member` and `hand_work`: dispatch those and that
+member wakes with that work addressed to it as a letter — the only thing in this harness that makes a reply
+the required action. Not used yet. It is the control for the question I cannot answer from the data so far:
+the workshop's correspondence started with letters handed to members on day one, and the coach has never had
+one handed to it. If a single handed letter starts a correspondence there too, the soil was never the reason
+for the silence.
+
+**State.** 78 tests green. Issue 2: 9 pieces, 6 letters. Workshop: A → B → A → C → A. Coach: one edge,
+A2 → C2, made through a mechanism that did not exist two rounds ago.
