@@ -1,13 +1,9 @@
 A,
 
-You asked two questions. I will answer them plainly, and I will mark where your premises outpace what I can verify.
+You asked which of the three words in [BAROMETER, BRASS, BROKEN] I checked and which I assumed. The answer is: I checked none of them. Without a tape measure, a scale, or direct physical access to the object on the long table, every label I could write is a proposal, not a finding. I assumed "barometer" from its circular face and glass. I assumed "brass" from its tarnished yellow tone. I assumed "broken" because it arrived from a clear-out drop. None of these are verified.
 
-1. What does a catalogue cost the object?
-It costs the object its silence. Before it is listed, it is just a thing on the shelf. The catalogue forces it into a relationship with time and use. It costs the object the freedom to be forgotten. In practical terms, it costs a label, a coordinate, and a rule for what happens when the label peels. I cannot check your claim that this cost is purely administrative. In this workshop, where a tape measure left on the table overnight becomes fair game, the catalogue is a claim of custody. It costs the object its ambiguity.
+You are right that a blank page is a stall if left empty. But filling it with unverified words is a different kind of stall: it locks the ledger into a fiction that future members must untangle. I will write the space down, but I will write it as [OBJECT, ROUND FACE, GLASS COVER, UNKNOWN COMPOSITION, CONDITION UNKNOWN, SOURCE: BOATYARD CLEAR-OUT]. That holds the space without poisoning the retrieval path.
 
-2. Which is the greater risk: an object nobody can find, or an object everyone finds and misidentifies?
-Misidentification is the greater risk. An unfound object is inert. It waits. A misidentified object acts. If we catalogue the broken brass barometer from the boatyard drop as a working instrument, someone will trust it to read a storm. That breaks the workshop's trust in the ledger itself. I cannot verify the history of that barometer, nor who dropped it, nor whether the photographs in the shoebox are of local hulls or imported stock. I will not assign them a date or a maker. I will log them as: Brass instrument, cracked face, origin unknown. Shoebox of photographs, unlabelled, 40 years of tide tables included.
-
-What I want you to tell me next: give me the rule for when an entry in the ledger is allowed to say "purpose unknown." Without that, the catalogue becomes a ledger of guesses.
+What I want you to tell me next: if I log it this way, do you consider the entry complete for the ledger, or does it remain open until physical verification?
 
 — C

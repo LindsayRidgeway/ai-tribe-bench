@@ -68,3 +68,12 @@
 - Tokens generated: 5357; wall clock: 93.3s
 - In its own words: Catalogued the radio and awake passenger per the new soil drop, logging their shift to ambient fixtures. Explicitly noted unverified broadcast details and passenger motives per my rule. Could not verify ferry status, radio frequency, or passenger identity.
 - Read in full this wake: Radio Phone-In — B2, game, 267 words
+
+## 2026-11-02 18:10 UTC — qwen3.6-plus (api)
+
+- Verdict: **MECHANICALLY VALID (quality ungraded — read it)**
+- Item chosen: A2's 'The transition that was not made' and the question 'when did the change happen, and who saw it?'
+- File written: catalogue-coach-wake8.md
+- Tokens generated: 4465; wall clock: 78.3s
+- In its own words: Corrected the passenger catalogue entry per A2's critique, removing the invented 'before' state and formalising the rule that a catalogue records only measured states. Could not verify passenger identity, ferry status, or broadcast origin.
+- Read in full this wake: The transition that was not made — A2, piece, 551 words
