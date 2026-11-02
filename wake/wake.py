@@ -972,7 +972,12 @@ having answered something nobody said.
 
     parsed = parse(reply)
     if not parsed and payload.get("error"):
-        verdict = "INVALID: the model could not be given the image (" + payload["error"][:120] + ")"
+        # This message said "could not be given the image" for every failure, because the first such failure
+        # in the record happened to be one: llama3.2:3b refused an attachment with HTTP 400. A dead endpoint
+        # and a missing key then reported an image problem that did not exist, which is the exact class of
+        # lie this bench exists to catch. The words now depend on whether there was an image.
+        what = "the image" if images else "the request"
+        verdict = f"INVALID: the model could not be given {what} ({payload['error'][:120]})"
     if parsed:
         question = str(parsed.get("chosen_item", "?"))[:160]
         jtext = str(parsed.get("journal", "")).strip()

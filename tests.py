@@ -43,6 +43,13 @@ file_work = load(REPO / "file_work.py", "file_work_mod")
 FACTS = "date: Mon Nov  2 02:00:00 UTC 2026\nnproc: 2\nfree: 16000 MB"
 
 
+
+def subprocess_run(root: Path, *args: str) -> str:
+    import subprocess, sys
+    return subprocess.run([sys.executable, *args], cwd=root, capture_output=True, text=True,
+                          timeout=120).stdout
+
+
 class TestEcho(unittest.TestCase):
     """Round 6: a 3B member returned another member's letter as its own answer, signed with the other
     member's name. An echo must be caught; a quotation inside a real reply must not be called one."""
@@ -911,6 +918,100 @@ class TestFiling(unittest.TestCase):
         self.assertEqual(rc, 1)
         self.assertTrue(keep.exists(), "a command that deletes a colony must not delete it on a typo")
         shutil.rmtree(tmp, ignore_errors=True)
+
+
+    # --- S5: a broken run costs nothing ----------------------------------------------------------
+    # Every case here runs the real wake against a fake endpoint in a throwaway copy of the repository.
+    # "Costs nothing" means: no work appears on the shelf that nobody wrote, the member's record still
+    # validates, and the next wake works with no hand repair.
+
+    def _repo_copy(self) -> Path:
+        tmp = Path(tempfile.mkdtemp()) / "repo"
+        shutil.copytree(REPO, tmp, ignore=shutil.ignore_patterns(".git", "__pycache__"))
+        return tmp
+
+    def _wake_against(self, root: Path, base: str) -> "subprocess.CompletedProcess":
+        import subprocess, sys
+        return subprocess.run(
+            [sys.executable, "wake/wake.py", "--member", "a", "--api-model", "fake",
+             "--api-base", base, "--api-key-env", "FAKE_KEY"],
+            cwd=root, capture_output=True, text=True, timeout=300,
+            env={"PATH": "/usr/bin:/bin", "FAKE_KEY": "x", "HOME": "/tmp"})
+
+    def _fake_api(self, handler) -> tuple:
+        from http.server import HTTPServer
+        import threading
+        srv = HTTPServer(("127.0.0.1", 0), handler)
+        threading.Thread(target=srv.serve_forever, daemon=True).start()
+        return srv, f"http://127.0.0.1:{srv.server_address[1]}"
+
+    def test_a_garbage_reply_files_nothing_and_the_next_wake_still_works(self):
+        from http.server import BaseHTTPRequestHandler
+        import json as _json
+
+        class H(BaseHTTPRequestHandler):
+            payload = "I am afraid I cannot do that."
+            def do_POST(self):
+                n = int(self.headers.get("content-length", 0)); self.rfile.read(n)
+                body = _json.dumps({"choices": [{"message": {"content": H.payload}}]}).encode()
+                self.send_response(200); self.send_header("Content-Length", str(len(body))); self.end_headers()
+                self.wfile.write(body)
+            def log_message(self, *a): pass
+
+        srv, base = self._fake_api(H)
+        root = self._repo_copy()
+        out = root / "wake" / "members" / "a" / "output"
+        before = {q.name for q in out.glob("*.md")}
+        r = self._wake_against(root, base)
+        self.assertIn("INVALID: the reply was not JSON", r.stdout)
+        self.assertEqual({q.name for q in out.glob("*.md")} - before, set(), "a broken reply filed a work")
+        self.assertIn("a: ok", subprocess_run(root, "tribe.py", "validate", "a"))
+
+        H.payload = _json.dumps({
+            "chosen_item": "the line of my beat", "why": "a recovery test", "form": "note",
+            "action": "write_file", "path": "recovered.md",
+            "content": "# Recovered\n\n" + ("This proves the wake after a broken one still files a work. " * 5),
+            "journal": "Wrote a note.", "quote": "none", "could_not_determine": []})
+        r2 = self._wake_against(root, base)
+        self.assertIn("MECHANICALLY VALID", r2.stdout)
+        self.assertIn("recovered.md", {q.name for q in out.glob("*.md")},
+                      "the wake after a broken one did not file, so a broken run did cost something")
+        srv.shutdown(); srv.server_close()
+
+    def test_a_run_killed_mid_flight_leaves_the_record_exactly_as_it_was(self):
+        from http.server import BaseHTTPRequestHandler
+        import subprocess, sys, time
+
+        class Slow(BaseHTTPRequestHandler):
+            def do_POST(self): time.sleep(30)
+            def log_message(self, *a): pass
+
+        srv, base = self._fake_api(Slow)
+        root = self._repo_copy()
+        state = (root / "wake" / "members" / "a" / "state" / "state.md").read_text()
+        out = root / "wake" / "members" / "a" / "output"
+        before = {q.name for q in out.glob("*.md")}
+        p = subprocess.Popen([sys.executable, "wake/wake.py", "--member", "a", "--api-model", "fake",
+                              "--api-base", base, "--api-key-env", "FAKE_KEY"], cwd=root,
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                             env={"PATH": "/usr/bin:/bin", "FAKE_KEY": "x", "HOME": "/tmp"})
+        time.sleep(3); p.kill(); p.wait()
+        self.assertEqual({q.name for q in out.glob("*.md")} - before, set())
+        self.assertEqual((root / "wake" / "members" / "a" / "state" / "state.md").read_text(), state,
+                         "a killed run changed the record; there is no trace of a wake that did not happen")
+        self.assertIn("a: ok", subprocess_run(root, "tribe.py", "validate", "a"))
+        srv.shutdown(); srv.server_close()
+
+    def test_a_dead_endpoint_is_not_reported_as_an_image_problem(self):
+        """The verdict said 'the model could not be given the image' for every failure, because the first
+        one in the record happened to involve an image. A refused connection then described an attachment
+        nobody had sent."""
+        root = self._repo_copy()
+        r = self._wake_against(root, "http://127.0.0.1:9")
+        self.assertIn("could not be given the request", r.stdout)
+        self.assertNotIn("the image", r.stdout)
+        src = (REPO / "wake" / "wake.py").read_text(encoding="utf-8")
+        self.assertIn('"the image" if images else "the request"', src)
 
 
 if __name__ == "__main__":

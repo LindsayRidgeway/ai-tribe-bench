@@ -659,3 +659,41 @@ looking at the output rather than at the code.
 whether it is legible. Every finding tonight has been of one shape — journal written and never read back,
 drop present and not marked new, magazine assembled and not introduced — and I keep finding them by reading
 what a person would read, not by running anything.
+
+---
+
+## 14. Two criteria, checked instead of claimed
+
+**S7 — every published file is a function of the record.** `lab/derivable.py` copies the repository, deletes
+`issues/*.md`, `LEDGER.md`, `PROJECTS.md` and `MEMBERS.md`, rebuilds them from `works/`, `soil/` and member
+state, and diffs. It runs in CI on every push now.
+
+It found two things, and both were the claim quietly not being true:
+
+- **The issue carried today's date.** Two rebuilds a minute apart produced two different files, so
+  "derivable" could not be checked by rebuilding — every rebuild differed. The date is now the newest work in
+  the issue: when the issue last changed, not when somebody last assembled it.
+- **A hand-dispatched wake left the derived views stale.** `LEDGER.md` said member A owed nothing while the
+  record said it owed one, because `clock.yml` rebuilt after its turn and `wake.yml` never did. A reader does
+  not know which path wrote a file. `wake.yml` rebuilds now.
+
+Six files, byte for byte, and the check is in CI because a check you remember to run is not a check.
+
+**S5 — a broken run costs nothing and needs no hand repair.** Three cases, each running the real wake
+against a fake endpoint in a throwaway copy:
+
+| what broke | what the record says | what it cost |
+|---|---|---|
+| the model returned prose instead of JSON | `INVALID: the reply was not JSON`; nothing filed | nothing: the next wake filed a work |
+| the run was killed mid-request | nothing — the state file is byte-identical | nothing: `validate` passes |
+| the endpoint refused the connection | `INVALID: the model could not be given the request` | nothing |
+
+The third row is the one that produced a new defect, found by writing the test rather than by reading the
+code: the verdict said **"the model could not be given the image"** for every failure, because the first such
+failure in the record happened to be an image. A dead endpoint described an attachment nobody had sent. That
+is the exact class of lie this bench exists to catch, in the code that reports failures.
+
+Two honest limits on S5. A killed run leaves no trace at all, so "did this wake happen" is answerable only
+from the run log — I think that is right (a wake that did not happen left nothing) but it is not free. And
+the collision case — two runs committing at once — is still untested; the clock pushes with a rebase retry and
+I have not made two collide on purpose.
