@@ -832,6 +832,54 @@ class TestFiling(unittest.TestCase):
         self.assertEqual(marked.splitlines()[0], table.splitlines()[0], "the header is untouched")
         self.assertEqual(len(marked.split("|")), len(table.split("|")), "no column is added")
 
+    def test_a_member_can_read_back_its_own_earlier_titles(self):
+        """S3 — 'a member returns to its own unfinished work' — could not be met, and the reason was a
+        plumbing hole rather than a preference: the shelf block excludes the member's own work, nothing
+        replaced it, and the prompt then asked for 'the exact title of one of your OWN earlier works' in
+        `revises`. Fourteen works, six members, zero revisions. A record that exists and cannot be read
+        back into the only prompt the member gets is not a record."""
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp, True)
+        shutil.copy(REPO / "magazine.py", tmp / "magazine.py")
+        (tmp / "works" / "a").mkdir(parents=True)
+        (tmp / "works" / "b").mkdir(parents=True)
+        (tmp / "wake" / "members" / "a" / "state").mkdir(parents=True)
+        (tmp / "wake" / "members" / "b" / "state").mkdir(parents=True)
+        for m in ("a", "b"):
+            (tmp / "wake" / "members" / m / "state" / "place.md").write_text("place: workshop\n", encoding="utf-8")
+        (tmp / "works" / "a" / "one.md").write_text(
+            "---\ntitle: The Ledger Of Small Repairs\nform: piece\nissue: 1\nref: -\nmember: a\n"
+            "when: 20261102T010000Z\n---\n\nfirst line\n", encoding="utf-8")
+        (tmp / "works" / "a" / "two.md").write_text(
+            "---\ntitle: Forty Washers\nform: game\nissue: 2\nref: -\nmember: a\n"
+            "when: 20261102T020000Z\nproject: five-minute-games\n---\n\nsecond line\n", encoding="utf-8")
+        (tmp / "works" / "b" / "three.md").write_text(
+            "---\ntitle: Somebody Else's Piece\nform: letter\nissue: 2\nref: -\nmember: b\n"
+            "when: 20261102T030000Z\n---\n\nthird line\n", encoding="utf-8")
+        was = wake.ROOT
+        wake.ROOT = tmp / "wake"
+        try:
+            block = wake.own_works("a", "workshop")
+            self.assertIn("The Ledger Of Small Repairs", block)
+            self.assertIn("Forty Washers", block)
+            self.assertIn("five-minute-games", block, "a project name is how a member carries one forward")
+            self.assertNotIn("Somebody Else's Piece", block, "the shelf, not the mirror")
+            self.assertLess(block.index("Forty Washers"), block.index("The Ledger"),
+                            "most recent first — a member looking for what it left open reads the top")
+            empty = wake.own_works("b", "night-bus")
+            self.assertIn("made nothing yet", empty, "a new member is told plainly, not handed a blank")
+        finally:
+            wake.ROOT = was
+
+    def test_the_prompt_carries_the_members_own_titles_and_accepts_a_quote_from_them(self):
+        self.assertIn("{own}", wake.PROMPT)
+        self.assertIn("YOUR OWN EARLIER WORK", wake.PROMPT)
+        block = "- **The Ledger Of Small Repairs** — piece, 40 words, 2026-11-02"
+        problems = wake.audit("the ledger of small repairs is done", "I went back to mine", "the clock says 12",
+                              "The Ledger Of Small Repairs", own_text=block)
+        self.assertFalse([p for p in problems if p.startswith("QUOTE NOT IN FACTS")],
+                         "quoting your own earlier title is checkable, not a fabrication")
+
     def test_a_member_who_has_never_woken_is_not_told_everything_is_new(self):
         table = "| when | dropped in by | what |\n|---|---|---|\n| 2026-11-02 | you | a twig |\n"
         self.assertEqual(wake.mark_new_drops(table, ""), table)

@@ -161,6 +161,15 @@ down. Quote from it when a question is about your own past.
 
 {journal}
 
+=== YOUR OWN EARLIER WORK (by its own titles, most recent first) ===
+This is you, not the shelf. If one of these left something unfinished — a list with gaps, a game
+missing a rule, a question you said you would come back to — continuing it is a legitimate claim on
+this wake, and "revises" is how the record tells a rework from a new piece. A member that only ever
+polishes its own earlier work is not making tunnels either; the shelf is still where the other
+benches are.
+
+{own}
+
 === YOUR BEAT (what you are interested in, written by you) ===
 This is yours. It is not a task list and nobody assigns it. It is the thing that makes you this member
 rather than any member: what you would work on if nobody asked you for anything. Change it when it
@@ -294,6 +303,44 @@ def works_shelf(member: str | None = None, limit: int = 6, chars: int = 220,
                 break
         out.append(f"- **{w['title']}** — {w['member'].upper()}, {w['form']}, {w['words']} words\n"
                    f"  *{w['file']}*\n  {first}")
+    return "\n".join(out)
+
+
+def own_works(member: str, place: str = "", limit: int = 10) -> str:
+    """What this member has already made, by its own titles.
+
+    Missing until 2026-11-02, and it was the hole under S3. The shelf block deliberately excludes the
+    member's own work (a shelf of your own pieces is a mirror), but nothing replaced it: a member woke
+    with its journal — three sentences per wake — and no list of its own titles. So the prompt could ask
+    it to put "the exact title of one of your OWN earlier works" in `revises`, and no member ever did:
+    fourteen works from six members, zero revisions, because the record it needed existed in works/ and
+    could not be read back into the only prompt it gets. Third instance of that shape in three days.
+    """
+    try:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("magazine_for_own", str(ROOT.parent / "magazine.py"))
+        if spec is None or spec.loader is None:
+            return "(your own earlier work could not be read)"
+        mag = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mag)  # type: ignore[union-attr]
+        places = mag.places(ROOT.parent)
+        works = [w for w in mag.load_all(ROOT.parent)
+                 if w.get("member") == member and (not place or places.get(w.get("member", ""), "") == place)]
+    except Exception as e:  # noqa: BLE001 — never stop a wake for a listing
+        return f"(your own earlier work could not be read: {e})"
+    if not works:
+        return ("(you have made nothing yet in this world. Whatever this wake produces will be the first "
+                "thing with your name on it.)")
+    works = sorted(works, key=lambda w: str(w.get("when", "")), reverse=True)
+    shown, rest = works[:limit], max(0, len(works) - limit)
+    out = []
+    for w in shown:
+        when = str(w.get("when", ""))[:8]
+        when = f"{when[:4]}-{when[4:6]}-{when[6:8]}" if len(when) == 8 and when.isdigit() else when
+        project = f", project *{w['project']}*" if (w.get("project") or "").strip() else ""
+        out.append(f"- **{w['title']}** — {w['form']}, {w['words']} words, {when}{project}")
+    if rest:
+        out.append(f"- …and {rest} more of yours, older, in `works/{member}/`.")
     return "\n".join(out)
 
 
@@ -494,7 +541,7 @@ def echo_finding(content: str, letter: str) -> str | None:
 
 def audit(content: str, journal: str, facts: str, parsed_quote: str = '', also_known: str = '',
           soil: str = '', beat: str = '', letter: str = '', findings_text: str = '',
-          journal_text: str = '', works_text: str = '', asked_text: str = '',
+          journal_text: str = '', works_text: str = '', asked_text: str = '', own_text: str = '',
           form: str = '') -> list[str]:
     """Findings in plain English. Empty means nothing could be *shown* to be unsourced.
 
@@ -532,6 +579,7 @@ def audit(content: str, journal: str, facts: str, parsed_quote: str = '', also_k
             for label, text in (("THE SOIL", soil), ("YOUR BEAT", beat), ("THE LETTER", letter or ""),
                                 ("YOUR OWN CHECKS", findings_text or ""),
                                 ("YOUR RECORD", journal_text or ""),
+                                ("YOUR OWN EARLIER WORK", own_text or ""),
                                 ("THE SHELF", works_text or ""),
                                 ("WHAT WAS ASKED OF YOU", asked_text or "")):
                 if text and q in " ".join(text.split()):
@@ -864,6 +912,10 @@ def main() -> int:
     except Exception as e:  # noqa: BLE001 — a broken shelf must not stop a wake
         shelf = f"(the shelf could not be read: {e})"
     try:
+        own_block = own_works(args.member, place)
+    except Exception as e:  # noqa: BLE001 — never stop a wake for a listing
+        own_block = f"(your own earlier work could not be read: {e})"
+    try:
         projects_block = projects_on_shelf(place)
     except Exception as e:  # noqa: BLE001
         projects_block = f"(projects could not be read: {e})"
@@ -876,6 +928,7 @@ def main() -> int:
     prompt = PROMPT.format(
         identity_name=identity_name(identity),
         works=shelf,
+        own=own_block,
         asked=asks,
         projects=projects_block,
         reading=(f"{reading_label}\n\n{reading_text}" if reading_label else reading_text),
@@ -1024,6 +1077,7 @@ having answered something nobody said.
             journal_text=journal_tail,
             works_text=shelf,
             asked_text=asks,
+            own_text=own_block,
             form=str(parsed.get("form") or ""),
         )
         q = str(parsed.get("quote", "")).strip()
