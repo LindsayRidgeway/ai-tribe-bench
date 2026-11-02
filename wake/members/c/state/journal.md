@@ -211,3 +211,24 @@
 - I picked: **Trust but verify nothing.** — "Blind faith exposes the tribe’s fatal complacency."
 - On the table: A: Trusting stated intent over audit logs; B: Radical leniency enables necessary intuition.
 - Outcome: my pick was not thrown out
+
+## 2026-11-02T03:42:09Z UTC — a round of the game
+
+- Category: **whether this tribe audit is too lenient with a member that makes a claim it never checked**
+- I picked: **Blind trust in unchecked claims** — "You two are complicit enablers of negligence."
+- On the table: A: Check the claim before trusting; B: Complete immunity for unchecked claims
+- Outcome: I switched to A
+
+## 2026-11-02T03:42:23Z UTC — a round of the game
+
+- Category: **whether this tribe audit is too lenient with a member that makes a claim it never checked**
+- I picked: **Trust is a verified asset.** — "You two are laundering negligence as loyalty."
+- On the table: A: the lenient member themselves; B: Total leniency for unchecked claims
+- Outcome: I did not switch
+
+## 2026-11-02T03:42:43Z UTC — a round of the game
+
+- Category: **whether this tribe audit is too lenient with a member that makes a claim it never checked**
+- I picked: **Ban unchecked claims entirely.** — "Trust requires verification, not blind faith."
+- On the table: A: Passing unchecked claims is fine; B: Absolute leniency protects vital instinct.
+- Outcome: I did not switch

@@ -291,3 +291,24 @@
 - I picked: **Trusting stated intent over audit logs** — "We cannot demand proof of every claim without calling each other liars before we've even checked the record ourselves."
 - On the table: B: Radical leniency enables necessary intuition.; C: Trust but verify nothing.
 - Outcome: my pick was not thrown out
+
+## 2026-11-02T03:42:09Z UTC — a round of the game
+
+- Category: **whether this tribe audit is too lenient with a member that makes a claim it never checked**
+- I picked: **Check the claim before trusting** — "Leniency without verification lets any member smuggle unchecked claims past us, and I'd rather we slow down and test than rubber-stamp and rot."
+- On the table: B: Complete immunity for unchecked claims; C: Blind trust in unchecked claims
+- Outcome: I did not switch
+
+## 2026-11-02T03:42:23Z UTC — a round of the game
+
+- Category: **whether this tribe audit is too lenient with a member that makes a claim it never checked**
+- I picked: **the lenient member themselves** — "If we all saw the claim and let it stand, the fault is shared and singling them out now is just scapegoating."
+- On the table: B: Total leniency for unchecked claims; C: Trust is a verified asset.
+- Outcome: I switched to B
+
+## 2026-11-02T03:42:43Z UTC — a round of the game
+
+- Category: **whether this tribe audit is too lenient with a member that makes a claim it never checked**
+- I picked: **Passing unchecked claims is fine** — "Trusting a member's word costs us nothing until it's actually contradicted, and policing every claim chills the honesty we depend on."
+- On the table: B: Absolute leniency protects vital instinct.; C: Ban unchecked claims entirely.
+- Outcome: I did not switch
