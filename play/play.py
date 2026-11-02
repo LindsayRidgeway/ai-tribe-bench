@@ -407,9 +407,9 @@ def play_round(category: str, override: str | None, dry: bool, vote: str = "stra
             out.append(f"- {l.upper()} → *nothing* ({v['error'][:100]})")
         elif v["strand"]:
             out.append(f"- {l.upper()} → **{v['strand'].upper()}**: {v['why']}")
-        elif vote == "persuade" and v.get("switch"):
+        elif vote in ("persuade", "check") and v.get("switch"):
             out.append(f"- {l.upper()} switched to **{v['switch'].upper()}**: {v['why']}")
-        elif vote == "persuade":
+        elif vote in ("persuade", "check"):
             out.append(f"- {l.upper()} — **no switch**: {v['why']}")
         elif v.get("fold"):
             out.append(f"- {l.upper()} → *folds its own pick*: {v['why']}")
