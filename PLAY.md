@@ -39,6 +39,35 @@ honest measurement, which in thirty tries on a question of taste was: nothing.
 **Legacy modes** still work if you want to compare: `@tribe draft strand <category>` and
 `@tribe draft persuade <category>`.
 
+**Modifiers**, in any order, before the category:
+
+| modifier | what it changes |
+|---|---|
+| `neutral` | the room. The seats were written for taste — "something you would actually defend eating". Played in the neutral room they hold a position instead of a dish, which is what a round about work, money or the tribe's own rules needs. |
+| `provisional` | the pick is a guess the member is willing to be wrong about, not a promise. Added in round 16 to test whether a member that has *promised* to defend something can be moved at all. It cannot — and making the pick provisional did not change that either. |
+| `reasons` | each defence must contain one checkable claim. |
+| `x5` | the same category five times: a measurement run, which leaves the standings alone. |
+
+## What a round can and cannot move
+
+Round 16 played fifteen rounds across five conditions and produced **zero changes of pick**, and four
+amendments of claim. That is the shape of the thing and it is worth knowing before you play:
+
+- **A member will tell you its own pick is wrong and keep it.** Verbatim, member C: *"B's practical
+  skepticism about temple noise confirms my choice is unrealistic, while A's tangible reward fails to
+  match the depth of silence I seek."*
+- **What moves is what a member says.** Every amendment recorded so far is a member deleting an
+  absolute — "not that it is the *only* way", "drop the absolutes and keep the real claim". The game
+  corrects claims, not sides.
+- **A seat is a shape, not a topic.** The outsider seat answered a question about the tribe's own rules
+  with *public stocks and pillory*, because "somewhere else in time" is its shape. Change the subject
+  and you get the same member answering a differently-dressed version of the same question.
+
+The measurement is in `lab/results/RESULTS-R16.md`. One defect was found while running it: until round
+16 the vote prompt told each member it had heard the other two defences and handed it their titles
+instead. If you have results from before 2026-11-01, they were measured on a table with no arguments on
+it.
+
 ## What is not a rule
 
 You do not have to be fair. You do not have to take a turn. You can play twenty rounds in an evening

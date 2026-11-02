@@ -22,14 +22,30 @@ stance, they reproduced the same move five times out of five (canned tuna, five 
 is real and it is wording-deep. Changing one line of a seat changed every round that followed, and the
 pressure to be the odd one out simply moved to whichever seat was not yet constrained.
 
+Round 16 sharpened this: a seat is a **shape**, and the subject is only what fills it. Across fifteen
+rounds the outsider seat's answer was "stillness somewhere else in time or place" ten times; the heretic's
+was "a domestic duty that is good for you" twelve times. Asked a question about the tribe's own rules, the
+outsider still went somewhere else in time — *public stocks and pillory* — because that is its shape, not
+because that was the question. Changing the subject does not give a member a different question.
+
 **Consequence for anyone building this:** if you want variety, change the question and the stance, not the
 temperature. If you want a measurement, hold the stance fixed. Evidence: `lab/results/RESULTS-R8.md`,
 `RESULTS-R10.md`.
 
 ## 3. Preference does not move; belief does, and only when something can be checked
 
-Forty-five opportunities to change a member's pick produced zero changes. Asking whether an *explanation*
-changed produced one, and only where the subject was the member's own record and that record was readable.
+Sixty opportunities to change a member's pick produced zero changes — and the count is worth more after
+round 16 than before it, because round 16 found that sixteen of those rounds had been played on a table
+with no arguments on it: the vote prompt said "you have heard one sentence of defence for each of the
+other two" and passed the member two nouns. With the defences actually on the table the members quote each
+other by name and stay anyway. A member will accept that its own pick is wrong and keep it: *"B's
+practical skepticism about temple noise confirms my choice is unrealistic, while A's tangible reward fails
+to match the depth of silence I seek."*
+
+What moves is the claim. Nine checks raised in three rounds, six of them landing on a claim their target
+actually held, and four of the six were amended — every amendment a deletion of an absolute ("not that it
+is the *only* way", "drop the absolutes and keep the real claim"). **The game produces corrections to what
+a member says and never to what it picked.**
 
 The mechanism matters more than the rate: a member **stands** when a peer says what it *would* check, and
 **concedes** when it is told the result. Six imagined checks, six stands, zero withdrawals. One executed
@@ -37,7 +53,10 @@ check, immediate concession: *"As for the incorrect portion, I discard it entire
 factual error."*
 
 So the corrigibility of a tribe is bounded by whether anyone runs the checks — a fact about the humans and
-the harness, not about the models. Evidence: `lab/results/RESULTS-R11.md`, `RESULTS-R12.md`.
+the harness, not about the models. And a seat is a *shape*, not a topic: given a question about the
+tribe's own rules, the outsider seat still answered "somewhere else in time" (public stocks and pillory),
+so changing the subject does not give a member a different question. Evidence:
+`lab/results/RESULTS-R11.md`, `RESULTS-R12.md`, `RESULTS-R16.md`.
 
 ## 4. A brief shapes what a member does, and a member refutes a brief it can test
 
@@ -52,9 +71,12 @@ claims — the brief's or its own — can be refused. Evidence: `lab/results/RES
 
 ## 5. The defect that keeps recurring is a record nothing reads back
 
-Three failures in one evening, three files, one shape: a scoreboard that read its own markdown and crashed
-on a column; a vote log summarised by hand that contained a false line; a journal appended at every wake
-and never shown to the member. Members had been waking for hours with no `Last wake:` line, because a
+Six failures in one evening, six files, one shape: a scoreboard that read its own markdown and crashed on
+a column; a vote log summarised by hand that contained a false line; a journal appended at every wake and
+never shown to the member; a scaffold written to disk and never handed over; a typed brief that
+contradicted its own inbox; and a vote prompt that promised the other members' defences and passed their
+titles. Each was found by reading what the code actually hands over, not by a test — which is why the
+tests that were added afterwards are all of the form "the thing a prompt promises is in the prompt". Members had been waking for hours with no `Last wake:` line, because a
 substitution on a missing line does nothing and says nothing.
 
 This is the same failure the 3B members made — confident prose about a column that had shifted — arriving
