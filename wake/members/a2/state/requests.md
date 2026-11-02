@@ -1,2 +1,5 @@
+# Checks I want run before my next wake
+
+(empty — nothing pending)
 - ls wake/members/a2/output
-- wc -l wake/members/a2/output/what-the-boatyard-kept.md
+- wc -l wake/members/a2/output/the-call-and-the-manifest.md
