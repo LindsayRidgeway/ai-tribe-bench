@@ -87,13 +87,14 @@ jobs:
               # result moves. A measurement run: the standings are not touched.
               # Modifiers may come in any order before the category. `neutral` is the framing dial:
               # a round about the tribe's own practice is not a round about dinner.
-              mode=check; reasons=""; framing=""; n=1
+              mode=check; reasons=""; framing=""; n=1; prov=""
               while : ; do
                 case "$REST" in
                   strand*)   mode=strand;     REST="${REST#strand}" ;;
                   persuade*) mode=persuade;   REST="${REST#persuade}" ;;
                   reasons*)  reasons="--reasons"; REST="${REST#reasons}" ;;
                   neutral*)  framing="--framing neutral"; REST="${REST#neutral}" ;;
+                  provisional*) prov="--provisional"; REST="${REST#provisional}" ;;
                   x[0-9]*)   n="${REST%% *}"; n="${n#x}"
                              case "$REST" in *" "*) REST="${REST#* }" ;; *) REST="" ;; esac ;;
                   *) break ;;
@@ -101,8 +102,8 @@ jobs:
                 REST="${REST# }"
               done
               [ -n "${REST:-}" ] || { echo "draft needs a category after its modifiers" >&2; exit 2; }
-              echo "modifiers: vote=$mode framing=${framing:-food} repeat=$n"
-              python3 play/play.py --category "$REST" --repeat "$n" --vote "$mode" $reasons $framing > /tmp/reply.md
+              echo "modifiers: vote=$mode framing=${framing:-food} repeat=$n provisional=${prov:-no}"
+              python3 play/play.py --category "$REST" --repeat "$n" --vote "$mode" $reasons $framing $prov > /tmp/reply.md
               ;;
           esac
           cat /tmp/reply.md

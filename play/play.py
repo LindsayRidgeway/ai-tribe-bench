@@ -68,6 +68,15 @@ FRAMING = {
                            "a record that could be looked up, or a case where your position costs something.")},
 }
 
+# Round 16, condition 3. Twenty-one rounds had produced no switch on any subject, and the subject did not
+# turn out to be the variable: pizza, a free Saturday, and a question about the tribe's own rules all
+# returned 0/3. What every one of those rounds had in common was not the topic but the instruction: each
+# member was told to pick the thing it *would defend*. A member that has been asked for a commitment
+# cannot be persuaded without breaking its word, so "nothing persuades" may be a property of the seat
+# rather than of the members. This line removes the commitment and changes nothing else.
+PROVISIONAL = ("Your seat is the same. One thing is different: this pick is a guess you are willing to be "
+               "wrong about. You are answering a question, not making a promise.")
+
 PICK_PROMPT = """You are member {name} of a three-member tribe. You are playing a round with two other
 members, and a human is reading.
 
@@ -278,7 +287,7 @@ REASON_RULE = """- Your defence must contain ONE checkable claim: a cost, a text
 
 
 def play_round(category: str, override: str | None, dry: bool, vote: str = "strand",
-               reasons: bool = False, framing: str = "food") -> str:
+               reasons: bool = False, framing: str = "food", provisional: bool = False) -> str:
     room = FRAMING[framing]
     labels = list(SEATS)
     picks: dict[str, dict] = {}
@@ -286,6 +295,8 @@ def play_round(category: str, override: str | None, dry: bool, vote: str = "stra
     def do_pick(label: str) -> tuple[str, dict]:
         model, provider, seat, stance = SEATS[label]
         stance = stance.replace(FRAMING["food"]["stance_c"], room["stance_c"])
+        if provisional:
+            stance = stance + "\n\n" + PROVISIONAL
         prompt = PICK_PROMPT.format(name=label.upper(), category=category, seat=seat, stance=stance)
         if reasons:
             # The persuade run moved nobody in ten rounds of one-sentence taste defences. Taste is not
@@ -701,6 +712,9 @@ def main() -> int:
     ap.add_argument("--override", default=None, help="A, B or C — the human's call, if they made one")
     ap.add_argument("--dry-run", action="store_true", help="render the prompts, make no calls")
     ap.add_argument("--out", default=None, help="where to write the round markdown (default play/rounds/<stamp>.md)")
+    ap.add_argument("--provisional", action="store_true",
+                    help="the pick is a guess the member is willing to be wrong about, not a commitment. "
+                         "Twenty-one rounds with no switch had the commitment instruction in common")
     ap.add_argument("--framing", choices=["food", "neutral"], default="food",
                     help="the room the category is played in. 'food' keeps the seat wording as written; "
                          "'neutral' swaps the eating words for a position you would stand behind, which is "
@@ -719,6 +733,8 @@ def main() -> int:
         print("=== pick prompts ===")
         for l, (model, _p, seat, stance) in SEATS.items():
             stance = stance.replace(FRAMING["food"]["stance_c"], FRAMING[args.framing]["stance_c"])
+            if args.provisional:
+                stance += "\n\n" + PROVISIONAL
             print(f"\n--- {l.upper()} ({model}) ---")
             print(PICK_PROMPT.format(name=l.upper(), category=args.category, seat=seat, stance=stance))
         return 0
@@ -732,7 +748,7 @@ def main() -> int:
         blocks, records = [], []
         for i in range(args.repeat):
             t, rec = play_round(args.category, args.override, args.dry_run, args.vote, args.reasons,
-                                args.framing)
+                                args.framing, args.provisional)
             blocks.append(f"\n---\n\n### Run {i + 1} of {args.repeat}\n\n{t}")
             records.append(rec)
             journal_the_round(rec)   # a measurement run is still a thing the member did
@@ -751,7 +767,7 @@ def main() -> int:
         return 0
 
     text, record = play_round(args.category, args.override, args.dry_run, args.vote, args.reasons,
-                              args.framing)
+                              args.framing, args.provisional)
     ROUNDS.mkdir(parents=True, exist_ok=True)
     stamp = record["when"].replace(":", "").replace("-", "")
     path = Path(args.out) if args.out else ROUNDS / f"{stamp}-{record['slug']}.md"
