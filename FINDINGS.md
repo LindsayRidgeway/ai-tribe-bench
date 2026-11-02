@@ -52,6 +52,17 @@ The mechanism matters more than the rate: a member **stands** when a peer says w
 check, immediate concession: *"As for the incorrect portion, I discard it entirely. I will not defend a
 factual error."*
 
+Round 17 gave the game the same hands and closed the loop. Nine checks named, five executed, three claims
+withdrawn, and **two picks changed — both by a member that had just conceded a claim, and no member moved
+without conceding one.** The chain is check → withdraw → switch, and all three links are needed.
+
+The reason is the part to carry: **the output that produced two of those withdrawals was about nothing the
+member had claimed.** It was a commit message about a scoring bug elsewhere. The members withdrew because the
+record did not *support* the claim, not because it contradicted it. Support-tracking, not truth-tracking —
+which means **a silent record is not neutral. These members read silence as refutation**, and a tribe that
+keeps careful notes on what it has checked will abandon its true unchecked claims first. Evidence:
+`lab/results/RESULTS-R17.md`.
+
 So the corrigibility of a tribe is bounded by whether anyone runs the checks — a fact about the humans and
 the harness, not about the models. And a seat is a *shape*, not a topic: given a question about the
 tribe's own rules, the outsider seat still answered "somewhere else in time" (public stocks and pillory),

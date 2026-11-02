@@ -48,6 +48,29 @@ honest measurement, which in thirty tries on a question of taste was: nothing.
 | `reasons` | each defence must contain one checkable claim. |
 | `x5` | the same category five times: a measurement run, which leaves the standings alone. |
 
+## The executed round: `@tribe draft exec <category>`
+
+The default round can raise nine checks and run none of them. `exec` runs them. A challenger names a
+read-only command from a short whitelist (`ls`, `wc`, `git log/show/diff/status`, `date`, `sha256sum`) and
+says what the output would show if the claim is wrong. The challenged member says what it expects the
+command to print **before** it runs. The harness runs it — argv only, no shell, no absolute paths, ten
+seconds — and the member then has to stand, amend or withdraw with the output in front of it, and vote
+afterwards with the results attached.
+
+Three rounds of that produced **the only two changes of pick the project has ever recorded**, and both came
+from a member that had just withdrawn a claim. Nine checks named, five executed, three claims withdrawn, two
+switches. Nobody moved an inch in the sixty-nine votes that had only arguments to go on.
+
+Two things it taught that are worth knowing before you play it:
+
+- **A command whose output you can predict is decoration.** Both stands in those three rounds were members
+  predicting the *format* of the output and standing when the format arrived — the number in dispute was
+  never in question. If the challenger is allowed to choose its own check, it will choose one it can pass.
+- **The output that produced the withdrawals was mostly about nothing.** A commit message about a scoring
+  bug in another file was enough for two members to give up their claim, because their record did not
+  support it. These members treat a silent record as a refutation. Keep that in mind before you decide what
+  your tribe writes down.
+
 ## What a round can and cannot move
 
 Round 16 played fifteen rounds across five conditions and produced **zero changes of pick**, and four
