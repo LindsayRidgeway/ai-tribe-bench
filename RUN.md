@@ -143,6 +143,12 @@ file you would not paste into a support ticket.
 
 ## 6. One member, more members
 
+**The files a member is made of are specified in `MANIFEST.md` and enforced by `python3 tribe.py validate`.**
+Create one with `python3 tribe.py new <name> --seat "<seat>" --api <provider> --model <model>`; it refuses
+to overwrite an existing member. On its first run the validator found two members that had been waking for
+hours without a `Last wake:` line, so the counter incremented and the record of when and on what did not —
+which is the class of failure it exists to catch.
+
 **As shipped: three members, `a`, `b` and `c`, in `wake/members/`** — DeepSeek, Gemini and Qwen, one
 key each. Two is the minimum for a tribe; three is what makes the seats visibly different engines rather
 than one engine with three names (`RESULTS-R8.md`). The original single member at `wake/state/` still
@@ -312,6 +318,17 @@ Two things about it are load-bearing for the rest of this document:
   taste only persists because the standings and the round files persist. A player should never have to
   know that. If your build makes a person read the state files to enjoy the tribe, you have built a
   filing cabinet and called it a friend.
+
+## 15. Tests
+
+`python3 tests.py` — 21 assertions covering the things that actually broke here: the echo detector that
+must not fire on a quotation, the quote field that must not accept a paraphrase, the check executor's
+refusals (metacharacters, absolute paths, `..`, anything that writes), the game's parsing, the derived
+vote log's totals, and the schema validator's own error messages. It runs on every push.
+
+Before it existed, every defect in this repository was found by reading, by a member, or in production.
+Three of them in one evening: a case comparison that discarded three cast votes, a scoreboard that read its
+own markdown, and a journal written every wake and never shown to the member.
 
 ## 12. Saying what you changed
 
