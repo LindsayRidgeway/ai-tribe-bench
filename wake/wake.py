@@ -67,7 +67,11 @@ def fact_commands(api: bool) -> list[str]:
     """
     cmds = list(FACT_COMMANDS_API if api else FACT_COMMANDS)
     try:
-        cmds.append(f"ls -la {STATE.relative_to(ROOT.parent.parent)}")
+        # One level, not two: the repository root is ROOT.parent, and a path that starts one directory
+        # above it does not exist from the working directory. Found 2026-11-01 when member B answered
+        # "my state directory is absent (ai-tribe-bench/wake/members/b/state: No such file or directory)"
+        # and then, correctly, refused to say anything about its own record.
+        cmds.append(f"ls -la {STATE.relative_to(ROOT.parent)}")
     except ValueError:
         cmds.append(f"ls -la {STATE}")
     return cmds
