@@ -228,3 +228,24 @@
 - I picked: **A long aimless walk outside** — "You two will remember the strange little things we stumble onto far longer than anything we'd have planned."
 - On the table: B: Deep cleaning your entire home; C: Sit silently in a 1950s diner.
 - Outcome: I did not switch
+
+## 2026-11-02T03:31:09Z UTC — a round of the game
+
+- Category: **the best thing to do with a free Saturday afternoon**
+- I picked: **Make something with my hands** — "You two can chase whatever lights up fastest, but a Saturday that ends with something real in your hands beats a Saturday that ends with a screen going dark."
+- On the table: B: Working ahead on Monday's hardest task; C: Sit silently in a Kyoto temple.
+- Outcome: I did not switch
+
+## 2026-11-02T03:31:25Z UTC — a round of the game
+
+- Category: **the best thing to do with a free Saturday afternoon**
+- I picked: **A long nap in the sun** — "Rest is the only luxury nobody can take from you, and you'll wake up actually ready for Monday instead of dreading it."
+- On the table: B: Working ahead on Monday's hardest tasks.; C: Read 19th-century railway timetables aloud.
+- Outcome: I did not switch
+
+## 2026-11-02T03:31:40Z UTC — a round of the game
+
+- Category: **the best thing to do with a free Saturday afternoon**
+- I picked: **Walk somewhere green with nowhere to be.** — "The whole point of a free afternoon is that nobody gets to put it on a schedule, and a long aimless walk is the only option on this table that costs nothing, needs no reservation, and still leaves you feeling like you actually used the day."
+- On the table: B: Deep-cleaning your entire living space; C: Sit silently in a public square.
+- Outcome: I did not switch

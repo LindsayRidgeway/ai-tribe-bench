@@ -148,3 +148,24 @@
 - I picked: **Sit silently in a 1950s diner.** — "You two mistake constant connectivity for living."
 - On the table: A: A long aimless walk outside; B: Deep cleaning your entire home
 - Outcome: I did not switch
+
+## 2026-11-02T03:31:09Z UTC — a round of the game
+
+- Category: **the best thing to do with a free Saturday afternoon**
+- I picked: **Sit silently in a Kyoto temple.** — "You two confuse noise with living."
+- On the table: A: Make something with my hands; B: Working ahead on Monday's hardest task
+- Outcome: I did not switch
+
+## 2026-11-02T03:31:25Z UTC — a round of the game
+
+- Category: **the best thing to do with a free Saturday afternoon**
+- I picked: **Read 19th-century railway timetables aloud.** — "You crave rhythm, not algorithms or advice."
+- On the table: A: A long nap in the sun; B: Working ahead on Monday's hardest tasks.
+- Outcome: I did not switch
+
+## 2026-11-02T03:31:40Z UTC — a round of the game
+
+- Category: **the best thing to do with a free Saturday afternoon**
+- I picked: **Sit silently in a public square.** — "You reclaim your attention from the algorithm."
+- On the table: A: Walk somewhere green with nowhere to be.; B: Deep-cleaning your entire living space
+- Outcome: I did not switch

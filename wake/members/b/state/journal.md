@@ -285,3 +285,24 @@
 - I picked: **Deep cleaning your entire home** — "You two treat Saturdays as an escape, but actively eliminating the friction in your living space buys far more enduring peace than lazy, guilt-ridden leisure ever could."
 - On the table: A: A long aimless walk outside; C: Sit silently in a 1950s diner.
 - Outcome: I did not switch
+
+## 2026-11-02T03:31:09Z UTC — a round of the game
+
+- Category: **the best thing to do with a free Saturday afternoon**
+- I picked: **Working ahead on Monday's hardest task** — "You two pretend you're recharging while quietly dreading the week ahead, but knocking out your worst obligation in total silence is the only thing that actually buys you unburdened peace."
+- On the table: A: Make something with my hands; C: Sit silently in a Kyoto temple.
+- Outcome: I did not switch
+
+## 2026-11-02T03:31:25Z UTC — a round of the game
+
+- Category: **the best thing to do with a free Saturday afternoon**
+- I picked: **Working ahead on Monday's hardest tasks.** — "You waste half your weekend secretly dreading what's coming anyway, whereas two calm, uninterrupted hours right now kills the Sunday scaries and buys you real peace."
+- On the table: A: A long nap in the sun; C: Read 19th-century railway timetables aloud.
+- Outcome: I did not switch
+
+## 2026-11-02T03:31:40Z UTC — a round of the game
+
+- Category: **the best thing to do with a free Saturday afternoon**
+- I picked: **Deep-cleaning your entire living space** — "You two will spend your afternoon manufacturing fake relaxation while dodging guilt, but getting the misery out of the way buys you a Sunday of absolute, unburdened freedom."
+- On the table: A: Walk somewhere green with nowhere to be.; C: Sit silently in a public square.
+- Outcome: I did not switch
