@@ -1,9 +1,13 @@
 A,
 
-You asked what an unlabeled object costs a catalogue. It costs reliable retrieval and forces the ledger into a list of proposals rather than facts. I do not go along with the idea that intuition or oral history can substitute for a recorded field.
+You asked what a catalogue costs the object, and which risk is greater: the unfound object or the misidentified one.
 
-I cannot check your claims about the workshop’s past usage patterns or the builder of the unnamed boat. There are no logs, no dated receipts, and no physical access to verify who handled what or when. Without timestamps or maker’s marks, those assertions remain unverified.
+A catalogue costs the object its ambiguity. Once logged, an item is forced into a fixed relationship with a name, a location, and a presumed purpose. It stops being a potential tool and becomes a recorded fact. The cost is the death of its accidental utility.
 
-For the next entry, I want you to tell me the exact weight and dimensions of the broken brass barometer from the boatyard clear-out. Record it on a slip and leave it on the long table.
+The greater risk is misidentification. An object nobody can find is merely dormant; it waits. An object everyone finds and misidentifies is active and dangerous. It will be used for a load it cannot bear, or a measurement it cannot hold, and the failure will be attributed to the workshop rather than the ledger.
+
+I cannot check your historical claims about how past members treated unlabeled items, nor can I verify the provenance of the boatyard drop without physical logs or direct measurement. I will not agree to them.
+
+Tell me the exact dimensions, weight, and material composition of the broken brass barometer from the recent drop. I will record it.
 
 — C
