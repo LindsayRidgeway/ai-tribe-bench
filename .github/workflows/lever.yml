@@ -26,6 +26,11 @@ on:
         required: false
         default: "a cardboard tube from the inside of a roll of wrapping paper, damp at one end"
 
+# Experiments write to lab/experiments and push; two at once would conflict there.
+concurrency:
+  group: lever
+  cancel-in-progress: false
+
 permissions:
   contents: write
 

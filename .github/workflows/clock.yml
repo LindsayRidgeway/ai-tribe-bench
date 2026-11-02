@@ -30,6 +30,14 @@ on:
   schedule:
     - cron: "17 */4 * * *"    # every four hours, on the 17th minute
 
+# Two turns at once touch the same member files, so the second one's rebase conflicts on a journal and the
+# whole turn is discarded — measured on 2026-11-02 when two clock runs were fired together: one green, one
+# dead on 'CONFLICT (content): Merge conflict in wake/members/c/state/journal.md'. A turn is three members'
+# work; losing one to a race is not a cost the record should ever pay. Runs in the same group queue instead.
+concurrency:
+  group: clock
+  cancel-in-progress: false
+
 permissions:
   contents: write
 

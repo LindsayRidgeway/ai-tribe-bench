@@ -41,6 +41,12 @@ on:
         required: false
         default: "gemini"
 
+# One wake at a time: two wakes of the same member would conflict on its journal exactly as two clock turns
+# do. A queued wake is better than a dead one.
+concurrency:
+  group: wake
+  cancel-in-progress: false
+
 permissions:
   contents: write
 
