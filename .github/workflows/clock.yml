@@ -51,10 +51,15 @@ jobs:
             api="$(grep -E '^api:' "wake/members/$who/state/voice.md" | head -1 | awk '{print $2}')"
             model="$(grep -E '^model:' "wake/members/$who/state/voice.md" | head -1 | awk '{print $2}')"
             echo "=== $who in $place — no instructions, model $model ===" | tee -a /tmp/clock.log
-            before="$(ls "wake/members/$who/output"/*.md 2>/dev/null | wc -l)"
+            before="$(ls "wake/members/$who/output"/raw-*.json 2>/dev/null | wc -l)"
             python3 wake/wake.py --member "$who" --api-model "$model" --api-base "$api" \
               >> /tmp/clock.log 2>&1 || echo "!! $who failed — a clock that stops at the first refusal is not a clock" | tee -a /tmp/clock.log
-            after="$(ls "wake/members/$who/output"/*.md 2>/dev/null | wc -l)"
+            # Count the raw replies, not the .md files. A member that writes to the same filename twice
+            # (C answered A twice on 2026-11-02 and overwrote reply-to-a.md) leaves the .md count
+            # unchanged, and the old test read that as "wrote nothing" and threw the second reply away
+            # — a work written and never filed. A raw reply exists once per wake, so it cannot lie in
+            # either direction: a failed wake adds none, an overwriting wake adds one.
+            after="$(ls "wake/members/$who/output"/raw-*.json 2>/dev/null | wc -l)"
             if [ "$after" -gt "$before" ]; then
               python3 file_work.py --member "$who" --issue "$issue" >> /tmp/clock.log 2>&1 || true
             else

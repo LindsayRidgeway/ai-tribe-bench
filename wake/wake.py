@@ -181,6 +181,8 @@ Reply with JSON only, exactly this shape, no prose before or after:
   "source": "beat, peer, item, or soil — which of the three claimed this wake",
   "chosen_item": "what you acted on: the number and words of an item, or the peer work you answered, or the line of your beat",
   "why": "one sentence, concrete, naming what in the state made you choose it",
+  "form": "one word for what you are making: piece, letter, game, catalogue, rules, note, sketch",
+  "revises": "optional: the exact title of one of your OWN earlier works that this one reworks or replaces",
   "action": "write_file",
   "path": "{out_dir}/<short-name>.md",
   "content": "<the file you are writing; at least 200 characters; plain markdown>",
@@ -189,6 +191,13 @@ Reply with JSON only, exactly this shape, no prose before or after:
   "could_not_determine": ["each thing the item asked for that is NOT in MEASURED FACTS"],
   "checks": ["optional: read-only commands you want run before your next wake, one per string"]
 }}
+
+If you are working on the same thing again — a second draft, a game with the numbers changed — put its
+own title in "revises". The shelf cannot tell a rework from a new piece unless you say so, and a member
+that improves something should be able to show the before and after on the same page.
+
+Name the form honestly. It decides where your work is printed: a game filed as a note is published as
+correspondence, and a reader looking for the game will not find it.
 
 If your action relies on no fact, set "quote" to "none". Do not paraphrase the line you quote. An
 audit compares your quote to the block: a quote that is not in the block, character for character,
@@ -498,6 +507,28 @@ def parse(reply: str) -> dict | None:
     return None
 
 
+def echoes_instruction(claim: str, prompt: str, own: str = "") -> bool:
+    """Does this "chosen item" come out of the task instructions rather than out of the room?
+
+    The check exists to catch a member that answers the prompt by handing the prompt back. It used to
+    be `len(chosen_item) > 120`, which on 2026-11-02 called a free wake INVALID for naming its own
+    beat at length — "I like constraints that are real: no graphics, one screen, playable in five
+    minutes" — and a member doing the right thing was recorded as failing the contract. Length was
+    never the fault; repeating the instructions was. So: an item is an echo only if it appears word
+    for word in the prompt AND is not something that was already the member's own (its beat, its
+    soil, its journal). Naming your source is not echoing the instruction.
+    """
+    def flat(s: str) -> str:
+        return " ".join(s.split()).lower()
+
+    n = flat(claim)
+    if len(n) < 40:
+        return False
+    if own and n in flat(own):
+        return False
+    return n in flat(prompt)
+
+
 def safe_path(p: str) -> Path | None:
     name = Path(p).name
     if not name or name in {".", ".."}:
@@ -748,7 +779,7 @@ having answered something nobody said.
             # letter itself and the missing-field check threw its answer away, so the only copy left
             # was the raw JSON nobody browses. Write the act, then judge it.
             blocked = None
-            if len(question) > 120:
+            if echoes_instruction(question, prompt, own=" ".join([beat or "", soil or "", journal_tail or "", identity or ""])):
                 blocked = "INVALID: chosen_item repeats the instruction instead of naming an item"
             elif missing:
                 blocked = "INVALID: missing required field(s): " + ", ".join(missing)

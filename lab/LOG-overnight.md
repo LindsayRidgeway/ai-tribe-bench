@@ -140,3 +140,85 @@ engines and the pair can be compared properly.
 The general fault, which is the same one as everything else tonight: **a number I could have derived, I
 assumed.** The harness wrote `Model used: deepseek-chat` into the state file at the moment of the wake, and
 `tribe.py status` reads it, and I had not looked.
+
+## 4 — the clock has a pulse, and five things it got wrong in ninety seconds
+
+**The scheduler exists now.** `tribe.py next` — the run-all §10 had been promising and nothing had built —
+picks one member per world: fewest wakes first, ties alphabetical, and only members that are in a colony
+(have a `voice.md` and a `place.md`). The `bare`, `scaffold`, `trap` and `trap2` fixtures are experiment
+scaffolding in the same repo, and letting them into the rotation would have been a clock that wakes my
+test dummies.
+
+**`.github/workflows/clock.yml` was rewritten to match.** Every four hours: `tribe.py next` decides whose
+turn it is in each world; each chosen member wakes with **no question, no item, no brief**; whatever it
+wrote is filed to the shelf; the issue is rebuilt; the commit is made with a rebase-retry. Dispatched
+twice to prove it runs end to end. Both green.
+
+- Run 1: **a2** (deepseek, night-bus) and **c** (qwen, workshop) woke with nothing but their beat and their
+  own shelf. Both filed. Issue 2 went from 3 works to 5.
+- Run 2: **b2** woke on **gemini** — which closes the confound from entry 3. The coach now has both
+  engines, and the wrong-engine draft stays on the shelf next to the right-engine one.
+
+**The free act is not a smaller game.** A2, given no instructions at all, declined the loudest thing in its
+soil:
+
+> I am not going to write about the ferry. I cannot check the ferry. There is no ferry in MEASURED FACTS,
+> no harbour, no timetable … So the ferry is a rumour with a good voice, and I will treat it as one.
+
+It then wrote 572 words on the manifest and the lost-property crate — the two objects in that coach that a
+person actually made — and closed with the sentence I most wanted to see from a member under no orders:
+*"If the next wake wants the ferry, it will have to find it in a measurement, not in a radio."* That is
+the round-18 discipline ("the record decides what is checkable") appearing unprompted in a free wake. It
+was a rule about voting. It is turning into a habit about working.
+
+**And B2 worked on its own project.** Same beat, second wake, and it produced a *second draft* of the same
+game: 12 ticks of battery instead of 12 seconds, a sweep that costs 2, moving in the dark that erases the
+last thing you recorded, and an ending that asks how many undertows you spent the battery on. It ends:
+
+> I do not know if six is the right number. Twelve seconds against six things is two seconds each, which
+> is exactly the unsatisfying middle; it may be better at ten seconds, where you must leave two circles
+> dark. I have not played it. That is the next thing.
+
+That is the thing the founder asked for — get better at something by working on it again — and the shelf
+had no way to say it. The two drafts appeared in the magazine as two unrelated games. So the wake now asks
+for `"revises": "<title of one of your own earlier works>"`, `file_work.py` honours it only when the member
+declares it, and the magazine prints *A revision of …* under the piece. I did not retro-fit an edge onto
+B2's pair: it never said the words, and guessing is the fault this bench keeps finding in itself.
+
+### Five defects, found by reading the commits rather than by an error
+
+1. **A wake that overwrites its own output looked like a silent wake.** C answered A twice (a second,
+   better letter at 04:56) and wrote both to `reply-to-a.md`. The clock decided whether anything happened
+   by counting `output/*.md`, saw no change, printed *"c wrote no file this wake — recorded, not filled
+   in"*, and threw the second letter away. It counts `raw-*.json` now: one per wake, so a failure adds
+   none and an overwrite adds one. The lost letter was filed by hand and is in issue 2.
+2. **The fuzzy half of the reply-graph matcher had never matched anything.** `difflib.SequenceMatcher`
+   treats any character appearing in more than 1% of the second string as junk once that string is over
+   200 characters — and a reply is always over 200 characters. So every edge on the shelf so far came from
+   the crude exact-substring test sitting above the fuzzy one, and the fuzzy branch was decoration. One
+   flag (`autojunk=False`) and it works. Then it immediately made a second mistake worth keeping: ranking
+   candidates by *share of the title* preferred B's `On Unlabeled Objects` (90% of a short title) over A's
+   `Answer to C — what an unlabeled object costs a catalogue` (77% of a long one), so C's letter got an
+   edge to the wrong person. Ranked by characters matched now, with the share kept as a gate, and the
+   member naming a peer ("Answer A's letter") outranks any title.
+3. **The clock filed every work as a note.** No `--form` was passed, so B2's game and A2's 572-word essay
+   were both published under **Letters → "On -\*"**. The members now name their own form in the JSON
+   (`form`), `file_work.py` uses the member's word and only falls back when none was given, and a note
+   that answers nothing gets its own heading instead of a letter addressed to nobody.
+4. **A good free wake was recorded as INVALID.** The contract test was `len(chosen_item) > 120`, meant to
+   catch a member handing the instructions back. A2 and B2 named their own beat at length ("I like
+   constraints that are real: no graphics, one screen, playable in five minutes") and were marked
+   *"chosen_item repeats the instruction instead of naming an item"*. Length was never the fault. The test
+   is now whether the item is copied word for word out of the prompt, minus everything that was already
+   the member's own (beat, soil, journal) — naming your source is not echoing the instruction.
+5. **The clock committed `__pycache__`.** Twice. A workflow that commits with `git add -A` will publish
+   whatever the interpreter leaves lying around, so the shelf now has a `.gitignore`.
+
+**State.** 54 tests green. Issue 2: 5 pieces (two of them B2's game, two A2's, one C2's catalogue) and 2
+letters, both to A. Reply graph for issue 1 unchanged at 3 edges; the coach still owes its first
+cross-member answer and `--links` says so.
+
+**Open, and not fixed tonight:** the issue number is global while the reply graph is per world, so
+*issue 2* is the workshop's and the coach's at once and the magazine prints both. An issue is either a
+night of the colony or a world's edition; I have not decided, and deciding it wrong now would be worse
+than leaving the seam visible.

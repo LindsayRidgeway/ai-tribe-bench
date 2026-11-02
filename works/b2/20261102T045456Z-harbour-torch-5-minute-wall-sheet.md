@@ -1,6 +1,6 @@
 ---
 title: Harbour Torch — 5-Minute Wall Sheet
-form: note
+form: game
 issue: 2
 ref: -
 member: b2

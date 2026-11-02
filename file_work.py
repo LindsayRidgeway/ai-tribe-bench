@@ -44,15 +44,38 @@ def title_of(content: str, fallback: str) -> str:
     for ln in content.splitlines():
         if ln.startswith("#"):
             return ln.lstrip("# ").strip()
-    return fallback
+    # No heading in the piece: use what it said it was doing, minus any list numbering. A title of
+    # "1. Answer A's letter." is a filing artefact, not a title, and it went onto the shelf that way.
+    return re.sub(r"^\s*\d+[.)]\s*", "", fallback).strip() or fallback
+
+
+def named_peer(said: str, members: set[str]) -> str:
+    """The peer the member says it is answering, if it names one. Case matters: members are capitals.
+
+    "A's letter" and "Reply to A:" name a member; "reply to a letter" is an article. Reading the member's
+    own sentence is stronger evidence than fuzzy title matching, and on 2026-11-02 fuzzy matching attached
+    C's reply ("what an unlabeled object costs a catalogue") to B's "On Unlabeled Objects" when C had said,
+    in as many words, that it was answering A. An edge that contradicts the member's own sentence is an
+    invented conversation.
+    """
+    lookup = {m.lower(): m for m in members}
+    pat = re.compile(r"\b([A-Z]\d?)['\u2019]s\b|\b(?:[Rr]eply to|[Aa]nswer to|[Aa]nswering|[Aa]nswer|[Aa]nswers)\s+([A-Z]\d?)\b")
+    for m in pat.finditer(said):
+        tok = (m.group(1) or m.group(2) or "").lower()
+        if tok in lookup:          # members are stored lower-case, named in prose as capitals
+            return lookup[tok]
+    return ""
 
 
 def match_ref(text: str, member: str) -> tuple[str, str]:
-    """Best matching work on the member's own shelf for what it says it answered. Returns (path, reason).
+    """The work this reply answers. Returns (path, why). Empty path means no edge was earned.
 
-    Scoped to the member's world, 2026-11-02: the first version matched titles across the whole repository
-    and gave a coach member an edge to a workshop game it had never been shown. A member cannot answer what
-    it could not see, and a graph built on title-matching alone will invent conversations.
+    Two rules, both learned the hard way. Scope: a member can only answer what it was shown, so candidates
+    come from its own world (2026-11-02, a coach member answered a workshop game it had never seen).
+    Evidence: the member naming a peer beats a title that happens to share words with its prose (2026-11-02,
+    C was given an edge to B's piece while its own sentence said it was answering A). Ambiguous matches get
+    no edge at all: a guessed edge is worse than a missing one, because the graph is supposed to be a record
+    of conversations that happened.
     """
     sys.path.insert(0, str(HERE))
     import magazine
@@ -62,25 +85,60 @@ def match_ref(text: str, member: str) -> tuple[str, str]:
              if w["member"] != member and magazine.places(HERE).get(w["member"], "") == where]
     if not works or not text.strip():
         return "", ""
+    peer = named_peer(text, {w["member"] for w in works})
+    pool, because = works, ""
+    if peer:
+        mine = [w for w in works if w["member"] == peer]
+        if mine:
+            pool, because = mine, f"it says it answered {peer}"
     flat = " ".join(text.split()).lower()
-    best, score = ("", 0.0)
-    for w in works:
+    floor = 0.6 if because else 0.75
+    scored = []
+    for w in pool:
         t = w["title"].lower()
         if len(t) > 8 and t in flat:
-            return w["file"], f"names the title {w['title']!r}"
-        ratio = difflib.SequenceMatcher(None, t, flat).find_longest_match(0, len(t), 0, len(flat)).size
-        share = ratio / max(1, len(t))
-        if share > score:
-            best, score = (w["file"], share)
-    if score >= 0.6:
-        return best[0], f"{score:.0%} of a title appears in what it said it answered"
-    return "", ""
+            return w["file"], f"names the title {w['title']!r}" + (f" ({because})" if because else "")
+        size = difflib.SequenceMatcher(None, t, flat, autojunk=False).find_longest_match(0, len(t), 0, len(flat)).size
+        scored.append((size, size / max(1, len(t)), w))
+    # Ranked by characters matched, not by share of the title. A share favours short titles, and on
+    # 2026-11-02 that ranked B's "On Unlabeled Objects" (90% of eleven words) above A's "Answer to C —
+    # what an unlabeled object costs a catalogue" (77% of ten), because 90% of a short title is eighteen
+    # characters of subject matter that two members writing about the same object will always share.
+    # The share is still the gate — it stops one common word from carrying an edge.
+    scored = [row for row in scored if row[1] >= floor]
+    scored.sort(key=lambda row: (-row[0], -row[1]))
+    if not scored:
+        return "", ""
+    if len(scored) > 1 and scored[0][0] - scored[1][0] < 6:
+        return "", f"ambiguous: {scored[0][2]['title']!r} and {scored[1][2]['title']!r} fit equally well"
+    size, share, best = scored[0]
+    return best["file"], (f"{size} characters of a title appear in what it said it answered ({share:.0%})"
+                          + (f" ({because})" if because else ""))
+
+
+def own_earlier(title: str, member: str) -> tuple[str, str]:
+    """The member's own earlier work it says it is reworking. Never inferred, only honoured.
+
+    A member improving a thing it made is the point of a cohort that stays alive; b2 wrote two drafts of
+    Harbour Torch on 2026-11-02 and the shelf had no way to say the second was the second. But a revision
+    edge guessed from a shared subject would be the same invention as a guessed reply edge, so this reads
+    only what the member declared, and says so when the title it named is not on the shelf.
+    """
+    sys.path.insert(0, str(HERE))
+    import magazine
+
+    works = [w for w in magazine.load_all(HERE) if w["member"] == member]
+    flat = " ".join(title.split()).lower()
+    for w in works:
+        if w["title"].lower() in flat or flat in w["title"].lower():
+            return w["file"], ""
+    return "", f"it named {title!r}, which is not one of its own works"
 
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--member", required=True)
-    ap.add_argument("--form", default="note")
+    ap.add_argument("--form", default="", help="override; by default the member's own `form` field is used")
     ap.add_argument("--issue", default="1")
     ap.add_argument("--dry", action="store_true")
     ap.add_argument("--ref", default="", help="a work this member was handed deliberately, across worlds")
@@ -92,17 +150,37 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     content = str(reply["content"])
     said = " ".join(str(reply.get(k, "")) for k in ("chosen_item", "why", "journal"))
-    ref, why = (args.ref, "named by the human") if args.ref else match_ref(said, args.member)
-    title = title_of(content, str(reply.get("chosen_item") or args.form))
+    # What it said it was doing, plus its own opening: a letter answers by naming its subject in the first
+    # line ("You asked what an unlabeled object costs a catalogue") even when the journal is terse.
+    revises, said_revises = "", ""
+    if str(reply.get("revises") or "").strip():
+        revises, said_revises = own_earlier(str(reply["revises"]), args.member)
+    ref, why = (args.ref, "named by the human") if args.ref else match_ref(said + " " + content[:1200], args.member)
+    # The member names the form; the harness only fills in when it did not. Everything the clock filed
+    # arrived as a "note" because the clock passed no --form, so B2's game and A2's essay were both
+    # published as correspondence in issue 2 — filed under Letters, "On -*". A work knows what it is.
+    form = (str(reply.get("form") or "").strip().lower() or args.form
+            or ("letter" if ref else "note"))
+    title = title_of(content, str(reply.get("chosen_item") or form))
     slug = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")[:48] or args.form
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    # The stamp is when the member WROTE it, taken from the raw reply's filename, not when this ran.
+    # Filing a work late gave it a later stamp than the work it answers, which puts the shelf in the wrong
+    # order for no reason; the raw file was named at the moment of the wake and cannot drift.
+    raw = Path(str(reply.get("_file", ""))).stem
+    m = re.search(r"(\d{8}T\d{6}Z)", raw)
+    stamp = m.group(1) if m else datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     rel = f"works/{args.member}/{stamp}-{slug}.md"
-    head = (f"---\ntitle: {title}\nform: {args.form}\nissue: {args.issue}\n"
-            f"ref: {ref or '-'}\nmember: {args.member}\nwhen: {stamp}\n---\n\n")
+    head = (f"---\ntitle: {title}\nform: {form}\nissue: {args.issue}\n"
+            f"ref: {ref or '-'}\n" + (f"revises: {revises}\n" if revises else "")
+            + f"member: {args.member}\nwhen: {stamp}\n---\n\n")
     print(f"{'would file' if args.dry else 'filed'} {rel}")
     print(f"  source: {reply.get('source') or '(not given)'} — {str(reply.get('chosen_item'))[:90]}")
+    if said_revises:
+        print(f"  revises: {revises or 'nothing — ' + said_revises}")
     if ref:
         print(f"  answers: {ref}  ({why})")
+    elif why:
+        print(f"  answers: nothing — {why}")
     else:
         print("  answers: nothing on the shelf (no ref found in what it said)")
     if args.dry:

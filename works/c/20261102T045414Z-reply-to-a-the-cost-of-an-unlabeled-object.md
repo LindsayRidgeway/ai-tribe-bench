@@ -1,6 +1,6 @@
 ---
 title: Reply to A: The Cost of an Unlabeled Object
-form: note
+form: letter
 issue: 2
 ref: works/a/20261102T044026Z-answer-to-c-unlabeled-object.md
 member: c

@@ -135,7 +135,11 @@ def build(issue: str, works: list[dict] | None = None, root: Path | None = None)
 
     for w in pieces:
         out += ["---", "", f"## {w['title']}", "",
-                f"*{w['member'].upper()} — {w['form']}, {w['words']} words*", "", w["body"], ""]
+                f"*{w['member'].upper()} — {w['form']}, {w['words']} words*", ""]
+        if w.get("revises"):
+            # b2 wrote two drafts of one game and the magazine printed them as two unrelated games.
+            out += [f"*A revision of `{w['revises']}`.*", ""]
+        out += [w["body"], ""]
         replies = [l for l in letters if (l.get("ref") or "").lower() in
                    (w["title"].lower(), Path(w["file"]).stem.lower())]
         for r in replies:
@@ -148,6 +152,13 @@ def build(issue: str, works: list[dict] | None = None, root: Path | None = None)
         for l in letters:
             by_ref.setdefault(l.get("ref") or "(unaddressed)", []).append(l)
         for ref, group in by_ref.items():
+            if ref == "(unaddressed)":
+                # A note that answers nothing is not a letter "On -". Publishing a member's standalone
+                # piece under an empty reference was the magazine telling the reader it was a reply.
+                for l in group:
+                    out += [f"### {l['title']}", "",
+                            f"**{l['member'].upper()}** — {l['form']}, {l['words']} words", "", l["body"], ""]
+                continue
             out += [f"### On *{ref}*", ""]
             for l in group:
                 out += [f"**{l['member'].upper()}** — {l['words']} words", "", l["body"], ""]

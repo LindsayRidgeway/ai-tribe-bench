@@ -32,6 +32,7 @@ check = load(REPO / "check.py", "check_mod")
 tribe = load(REPO / "tribe.py", "tribe_mod")
 play_behaviour = load(REPO / "play" / "behaviour.py", "behaviour_mod")
 magazine = load(REPO / "magazine.py", "magazine_mod")
+file_work = load(REPO / "file_work.py", "file_work_mod")
 
 FACTS = "date: Mon Nov  2 02:00:00 UTC 2026\nnproc: 2\nfree: 16000 MB"
 
@@ -314,6 +315,17 @@ class TestMagazine(unittest.TestCase):
         self.assertIn("a box", text)
 
 
+    def test_a_note_that_answers_nothing_is_not_published_as_a_letter_to_nobody(self):
+        text = self._issue({"a/one.md": "---\ntitle: A note on latches\nform: note\nissue: 1\n---\n\nLatch.\n"})
+        self.assertNotIn("On *-*", text)
+        self.assertIn("## A note on latches", text)
+
+    def test_a_revision_says_what_it_revises(self):
+        text = self._issue({"b/one.md": "---\ntitle: Harbour Torch\nform: game\nissue: 1\nrevises: works/b/x.md\n---\n\n"
+                                        "Twelve ticks.\n"})
+        self.assertIn("A revision of `works/b/x.md`", text)
+
+
 class TestSoil(unittest.TestCase):
     """2026-11-02, the founder's test: the same colony in a different soil should build different tunnels.
     Which soil a member stands in is a property of its own files, so two colonies can share a repo."""
@@ -402,6 +414,67 @@ class TestDerivedLog(unittest.TestCase):
         shutil.rmtree(tmp, ignore_errors=True)
         self.assertIn("| A | 1 | 0 |", out)
         self.assertIn("| C | 2 | 1 |", out)
+
+
+
+class TestFiling(unittest.TestCase):
+    """A work can be written and never reach the shelf, and then nothing downstream knows it exists.
+
+    Both defects here were found on 2026-11-02 by reading the clock's own commit: C wrote a second reply,
+    the workflow's file-count test read the overwrite as "wrote nothing" and dropped it, and when it was
+    filed by hand the matcher attached it to the wrong peer. Neither fault raised an error.
+    """
+
+    def test_naming_your_own_beat_is_not_echoing_the_instruction(self):
+        beat = "I like constraints that are real: no graphics, one screen, playable in five minutes."
+        prompt = ("Choose one thing to do this wake. " + beat +
+                  " Your JSON must contain chosen_item, why, action, path, content, journal.")
+        self.assertFalse(wake.echoes_instruction(beat, prompt, own=beat))
+
+    def test_handing_the_instructions_back_is_still_caught(self):
+        instruction = "Choose one thing to do this wake, from your beat, the shelf, or the chores below."
+        prompt = instruction + " Your JSON must contain chosen_item, why, action, path, content, journal."
+        self.assertTrue(wake.echoes_instruction(instruction, prompt, own="a beat about boats"))
+
+    def test_a_short_item_is_never_an_echo(self):
+        self.assertFalse(wake.echoes_instruction("C's letter", "C's letter is on the shelf", own=""))
+
+    def test_the_peer_it_names_beats_a_title_that_shares_its_words(self):
+        # C's second reply, near enough: it says it answered A, and the phrase "unlabeled object" also
+        # appears in B's title "On Unlabeled Objects". The old matcher attached it to B.
+        text = ("chosen_item: 1. Answer A's letter. You asked what an unlabeled object costs a catalogue. "
+                "It costs reliable retrieval. I cannot check the workshop's past usage patterns.")
+        ref, why = file_work.match_ref(text, "c")
+        self.assertIn("/a/", ref, why)
+
+    def test_a_title_found_inside_a_long_reply_is_found(self):
+        # SequenceMatcher treats common characters as junk over 200 characters unless autojunk is off,
+        # which silently disabled this whole path. A 1,500-character reply is the normal case.
+        filler = "the quick brown fox jumps over a lazy dog and says nothing about catalogues. " * 18
+        text = filler + " What an unlabeled object costs a catalogue is the thing I am answering."
+        ref, why = file_work.match_ref(text, "c")
+        self.assertIn("/a/", ref, why)
+
+
+    def test_a_member_can_say_which_of_its_own_works_it_is_reworking(self):
+        ref, why = file_work.own_earlier("Harbour at Night", "b")
+        self.assertIn("works/b/", ref)
+        self.assertEqual(why, "")
+
+    def test_a_revision_of_someone_elses_work_is_not_recorded(self):
+        ref, why = file_work.own_earlier("The boat nobody can name", "b")
+        self.assertEqual(ref, "")
+        self.assertIn("not one of its own", why)
+
+    def test_the_prompt_asks_for_a_revision_edge(self):
+        self.assertIn('"revises"', wake.PROMPT)
+
+    def test_the_clock_counts_raw_replies_not_output_files(self):
+        # A wake that writes to the same filename twice leaves the .md count unchanged; counting raw
+        # replies is the only test that cannot read an overwrite as silence.
+        yml = (REPO / ".github" / "workflows" / "clock.yml").read_text(encoding="utf-8")
+        self.assertIn('raw-*.json 2>/dev/null | wc -l', yml)
+        self.assertNotIn('output"/*.md 2>/dev/null | wc -l', yml)
 
 
 if __name__ == "__main__":
