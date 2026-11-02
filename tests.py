@@ -128,6 +128,25 @@ class TestGame(unittest.TestCase):
         self.assertIn("the relief is bigger than the weekend.", prompt)
         self.assertNotIn("the relief is bigger", play.table_of(picks, ["a", "b", "c"], defences=False))
 
+    def test_a_refused_check_is_a_result_not_an_exception(self):
+        """Round 17: a member names the command, so the command can be refused. A refusal is a finding
+        about the challenger and must be recorded, not swallowed and not run."""
+        out = play.run_check("rm -rf /")
+        self.assertTrue(out["refused"])
+        self.assertEqual(out["output"], "")
+
+    def test_an_allowed_check_runs_against_the_repository(self):
+        out = play.run_check("wc -l play/play.py")
+        self.assertFalse(out["refused"])
+        self.assertIn("play/play.py", out["output"])
+
+    def test_a_challenge_belongs_to_the_member_whose_words_it_quotes(self):
+        picks = {"a": {"pick": "x", "why": "the walk costs nothing and needs no booking."},
+                 "b": {"pick": "y", "why": "cleaning removes the ambient guilt of the week."},
+                 "c": {"pick": "z", "why": "silence is the only room that does not ask."}}
+        self.assertEqual(play.owner_of("cleaning removes the ambient guilt of the week",
+                                       "wc -l play/play.py", picks, ["a", "b", "c"], "a"), "b")
+
     def test_a_neutral_round_asks_nobody_to_defend_eating(self):
         """Round 16: the seats are written for taste. Played in the neutral framing — a question about
         the tribe's own practice — the outsider seat was still being asked to defend eating an audit,

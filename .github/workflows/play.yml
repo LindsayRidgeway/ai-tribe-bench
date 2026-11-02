@@ -92,6 +92,7 @@ jobs:
                 case "$REST" in
                   strand*)   mode=strand;     REST="${REST#strand}" ;;
                   persuade*) mode=persuade;   REST="${REST#persuade}" ;;
+                  exec*)     mode=exec;       REST="${REST#exec}" ;;
                   reasons*)  reasons="--reasons"; REST="${REST#reasons}" ;;
                   neutral*)  framing="--framing neutral"; REST="${REST#neutral}" ;;
                   provisional*) prov="--provisional"; REST="${REST#provisional}" ;;

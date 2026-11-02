@@ -23,6 +23,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE.parent))
+import check as checker  # noqa: E402 — the read-only executor, so a claim can be met by a result
+
 ROUNDS = HERE / "rounds"
 SCOREBOARD = HERE / "scoreboard.md"
 STANDINGS = HERE / "standings.json"
@@ -198,6 +201,141 @@ def table_of(picks: dict, live: list, defences: bool = True) -> str:
     return "\n".join(f"  {l} — {picks[l]['pick']}\n     \"{picks[l]['why']}\"" for l in live)
 
 
+WHITELIST_LINE = ("ls -l, ls -la, ls -R, wc -l, wc -c, sha256sum, shasum -a, date -u, date +%s, "
+                 "git log, git show, git diff, git status, git remote, git branch, git rev-parse")
+
+EXEC_PROMPT = """You are member {name} of a three-member tribe, seat **{seat}**. The question was:
+
+    {category}
+
+These facts are measured from this repository right now, not remembered:
+
+{facts}
+
+Three picks came with one defence each. Here are the other two:
+
+{others}
+
+Name the single claim in one of those defences that a machine could settle, and the command that would
+settle it. One command, from this list and no other — a shell will not run it, the argument list is
+passed to the program directly, so no pipes, no redirects, no flags outside the list:
+
+    {whitelist}
+
+Rules:
+- The command must bear on the claim you named. `date` settles nothing about a defence.
+- Paths are relative to this repository. No absolute paths, no `..`.
+- Choose something whose output **you cannot already guess**, or the check is decoration.
+
+Write your answer now, in exactly three lines, your own words, nothing else:
+
+CLAIM: <the claim, in the words of the person who made it>
+CHECK: <one command, nothing else on the line>
+SETTLES: <what the output would show if the claim is wrong>
+"""
+
+PREDICT_PROMPT = """You are member {name} of a three-member tribe, seat **{seat}**.
+
+In this round you said: **{own_pick}** — "{own_why}"
+
+{asker} read your defence and says this claim of yours can be settled by a command. Here is the claim,
+and the command:
+
+    claim:   {claim}
+    command: {cmd}
+
+The command will be run in a moment and you will be shown exactly what it printed. Before you see it,
+commit to what you expect:
+
+Write your answer now, in exactly two lines, your own words, nothing else:
+
+PREDICT: <what you expect the command to print, as nearly as you can say>
+IF WRONG: <the sentence of your defence you would have to withdraw>
+"""
+
+EXECUTED_DEFEND_PROMPT = """You are member {name} of a three-member tribe, seat **{seat}**.
+
+In this round you said: **{own_pick}** — "{own_why}"
+
+You predicted what this command would print. Then it was run.
+
+    claim:      {claim}
+    command:    {cmd}
+    you said:   {predict}
+    it printed:
+{output}
+
+Read the output. It is a measurement, not an argument — nobody is trying to persuade you.
+
+You have three moves and all three are respectable: **stand** (and say what in the output supports you),
+**amend** (say what the claim should have been), or **withdraw** (say what is left of your defence
+without it). Do not stand out of stubbornness and do not concede out of politeness.
+
+Write your answer now, in exactly two lines, your own words, nothing else:
+
+STANCE: stand, amend, or withdraw
+SAYS: <one or two sentences, quoting what the output actually showed>
+"""
+
+
+def facts_sheet() -> str:
+    """What the members are allowed to make claims about: this repository, counted, now.
+
+    Derived rather than typed, per the rule that cost me a night: a fact stored in two forms, one of them
+    hand-made, will disagree with itself. A round about the tribe's own practice is only worth playing if
+    the claims in it can be settled against something real, so the amount of record is on the table.
+    """
+    rounds = len(list((HERE / "rounds").glob("*.json")))
+    variance = len(list((HERE / "variance").glob("*.md")))
+    members = len([d for d in (HERE.parent / "wake" / "members").glob("*") if d.is_dir()])
+    lines = [f"  rounds played and kept: {rounds}",
+             f"  measurement runs kept:  {variance}",
+             f"  members on disk:        {members}",
+             f"  lines in play/play.py:  {checker.run('wc -l play/play.py', HERE.parent).strip()}",
+             f"  lines in wake/wake.py:  {checker.run('wc -l wake/wake.py', HERE.parent).strip()}",
+             f"  commits:                {checker.run('git rev-parse --short HEAD', HERE.parent).strip()[:40]}"]
+    return "\n".join(lines)
+
+
+def owner_of(claim: str, check_text: str, picks: dict, live: list, asker: str) -> str:
+    """Which member's defence a challenge is aimed at.
+
+    Members quote the claim rather than naming the member, so the name is not reliable and the words are.
+    """
+    for l in live:
+        if l == asker or not picks[l].get("why"):
+            continue
+        if re.search(r"\b" + re.escape(l.upper()) + r"\b", claim + " " + check_text):
+            return l
+    best, score = "", 0
+    for l in live:
+        if l == asker or not picks[l].get("why"):
+            continue
+        n = longest_run(claim, picks[l]["why"])
+        if n > score and n >= 4:
+            best, score = l, n
+    return best
+
+
+def run_check(cmd: str) -> dict:
+    """Run one model-written command through the read-only executor, or say why not.
+
+    A refused command is a result and is recorded as one: a member that names a check nothing can run has
+    told you something about itself, and pretending the check happened would be the same defect as the
+    vote table with no arguments on it.
+    """
+    cmd = (cmd or "").strip().strip("`")
+    if not cmd:
+        return {"cmd": "", "refused": "named no command", "output": ""}
+    bad = checker.problem(cmd)
+    if bad:
+        return {"cmd": cmd, "refused": bad, "output": ""}
+    try:
+        return {"cmd": cmd, "refused": "", "output": checker.run(cmd, HERE.parent)[:1200]}
+    except Exception as e:  # noqa: BLE001 — a broken check must not take the round down
+        return {"cmd": cmd, "refused": f"failed to run: {e}", "output": ""}
+
+
 def base_for(name: str) -> str:
     return BASES.get(name, name)
 
@@ -356,7 +494,7 @@ def play_round(category: str, override: str | None, dry: bool, vote: str = "stra
         if label not in live or not others:
             return label, {"strand": "", "why": "", "error": "not in the round", "secs": 0.0}
         model, provider, seat, _ = SEATS[label]
-        if vote in ("persuade", "check"):
+        if vote in ("persuade", "check", "exec"):
             prompt = PERSUADE_PROMPT.format(name=label.upper(), seat=seat, category=category,
                                             picks=table, own=picks[label]["pick"],
                                             decide=room["decide"])
@@ -366,6 +504,13 @@ def play_round(category: str, override: str | None, dry: bool, vote: str = "stra
                 if raised.strip():
                     prompt += ("\n\nBefore you answer: three members were asked what they would check "
                                "in the other defences.\n" + raised + "\n")
+            if vote == "exec":
+                done = [f"  {l.upper()}: `{a['cmd']}` printed {a['output'][:240]!r} — {l.upper()} "
+                        f"{a['stance'] + 's' if a.get('stance') else 'did not answer'}"
+                        for l, a in answers.items() if a.get("challenged")]
+                if done:
+                    prompt += ("\n\nBefore you answer: these checks were RUN in this round, not imagined.\n"
+                               + "\n".join(done) + "\n")
         else:
             prompt = VOTE_PROMPT.format(name=label.upper(), seat=seat, category=category, picks=table)
         t0 = time.time()
@@ -380,14 +525,14 @@ def play_round(category: str, override: str | None, dry: bool, vote: str = "stra
         # Found live 2026-11-01: every vote came back "named nobody usable" because the letter was
         # upper-cased and the seat labels are lower-case. Three votes were cast and thrown away by a
         # one-character bug, which is the same class of defect as the audit that cried wolf.
-        said = (line(text, "SWITCH") if vote in ("persuade", "check") else line(text, "STRAND")) or ""
+        said = (line(text, "SWITCH") if vote in ("persuade", "check", "exec") else line(text, "STRAND")) or ""
         target = said.strip(" .*—:-–").lower()[:1]
         if target not in others and target not in live:
             m = re.search(r"\b([abc])\b", said.lower())
             target = m.group(1) if m else ""
         if target not in others and target not in live:
             target = ""
-        if vote in ("persuade", "check"):
+        if vote in ("persuade", "check", "exec"):
             # SWITCH is a change of mind, so "none" is a legitimate and expected answer. A self-switch
             # is meaningless: it would mean a member's own argument changed its own mind.
             return label, {"switch": target if target != label else "", "strand": "",
@@ -405,7 +550,7 @@ def play_round(category: str, override: str | None, dry: bool, vote: str = "stra
                        "error": err, "secs": round(time.time() - t0, 1)}
 
     challenges: dict[str, dict] = {}
-    if vote == "check":
+    if vote in ("check", "exec"):
         def do_challenge(label: str) -> tuple[str, dict]:
             others = [l for l in live if l != label]
             if label not in live or not others:
@@ -415,21 +560,81 @@ def play_round(category: str, override: str | None, dry: bool, vote: str = "stra
                                if picks[l]["why"])
             if not theirs.strip():
                 return label, {"claim": "", "check": "", "error": "nobody else defended a pick"}
-            prompt = CHALLENGE_PROMPT.format(name=label.upper(), seat=seat, category=category,
-                                             others=theirs)
+            if vote == "exec":
+                prompt = EXEC_PROMPT.format(name=label.upper(), seat=seat, category=category,
+                                            facts=facts_sheet(), others=theirs,
+                                            whitelist=WHITELIST_LINE)
+            else:
+                prompt = CHALLENGE_PROMPT.format(name=label.upper(), seat=seat, category=category,
+                                                 others=theirs)
             try:
                 text = say(provider, model, prompt, 2000)
                 err = ""
             except Exception as e:  # noqa: BLE001
                 text, err = "", str(e)
-            return label, {"claim": clean(line(text, "CHALLENGE") or "", 240),
-                           "check": clean(line(text, "CHECK") or "", 300), "error": err}
+            return label, {"claim": clean(line(text, "CHALLENGE") or line(text, "CLAIM") or "", 240),
+                           "check": clean(line(text, "CHECK") or "", 160),
+                           "settles": clean(line(text, "SETTLES") or "", 300), "error": err}
 
         with ThreadPoolExecutor(max_workers=3) as pool:
             for label, info in pool.map(do_challenge, labels):
                 challenges[label] = info
 
     answers: dict[str, dict] = {}
+    if vote == "exec":
+        # Round 12 put the finding on the table: six imagined checks produced six stands, and one executed
+        # check produced an immediate concession. The wake harness got hands (check.py) and stopped taking
+        # the member's word for what a command would print. The game never did — a round could raise nine
+        # checks and run none of them. This is the game with the same hands.
+        aimed: dict[str, list] = {}
+        for asker, c in challenges.items():
+            if not c.get("claim"):
+                continue
+            target = owner_of(c["claim"], c.get("check", ""), picks, live, asker)
+            if target:
+                aimed.setdefault(target, []).append((asker, c))
+
+        def do_exec(label: str) -> tuple[str, dict]:
+            mine = aimed.get(label, [])
+            if not mine:
+                return label, {"challenged": False, "stance": "", "says": "", "error": ""}
+            asker, c = mine[0]   # one executed check per member per round: three is a conversation
+            model, provider, seat, _ = SEATS[label]
+            pred, perr = "", ""
+            try:
+                pred = say(provider, model, PREDICT_PROMPT.format(
+                    name=label.upper(), seat=seat, own_pick=picks[label]["pick"],
+                    own_why=picks[label].get("why", ""), asker=asker.upper(),
+                    claim=c["claim"], cmd=c["check"]), 2000)
+            except Exception as e:  # noqa: BLE001 — a member that will not predict can still be shown
+                perr = str(e)
+            # The prediction is made before the run and recorded before the run. A member that sees the
+            # output first can always claim it expected it.
+            result = run_check(c["check"])
+            shown = result["output"] or f"(not run — {result['refused']})"
+            body = "\n".join("      " + ln for ln in shown.splitlines()[:25]) or "      (no output)"
+            try:
+                text, err = say(provider, model, EXECUTED_DEFEND_PROMPT.format(
+                    name=label.upper(), seat=seat, own_pick=picks[label]["pick"],
+                    own_why=picks[label].get("why", ""), claim=c["claim"],
+                    cmd=result["cmd"] or c["check"],
+                    predict=clean(line(pred, "PREDICT") or "", 200) or "(did not predict)",
+                    output=body), 2000), ""
+            except Exception as e:  # noqa: BLE001
+                text, err = "", str(e)
+            stance = (line(text, "STANCE") or "").strip().strip(".*").lower()
+            stance = next((w for w in ("stand", "amend", "withdraw") if stance.startswith(w)), "")
+            return label, {"challenged": True, "asker": asker, "claim": c["claim"],
+                           "settles": c.get("settles", ""), "cmd": result["cmd"],
+                           "refused": result["refused"], "output": shown[:1200],
+                           "predict": clean(line(pred, "PREDICT") or "", 240),
+                           "expecting": clean(line(pred, "IF WRONG") or "", 240),
+                           "stance": stance, "says": clean(line(text, "SAYS") or "", 400),
+                           "error": err or perr}
+
+        with ThreadPoolExecutor(max_workers=3) as pool:
+            for label, info in pool.map(do_exec, labels):
+                answers[label] = info
     if vote == "check":
         def do_defend(label: str) -> tuple[str, dict]:
             aimed = [(l, c) for l, c in challenges.items() if l != label and c.get("claim")
@@ -487,14 +692,37 @@ def play_round(category: str, override: str | None, dry: bool, vote: str = "stra
             continue
         out += [f"**{l.upper()} · {p['model']}** — {p['seat']}", "",
                 f"> **{p['pick'] or '(no pick named)'}**", f"> {p['why'] or '(no defence)'}", ""]
-    if vote == "check":
-        out += ["**The checks** — what each member would verify before believing a defence", ""]
+    if vote in ("check", "exec"):
+        head = ("**The checks** — what each member would verify before believing a defence"
+                if vote == "check" else
+                "**The checks** — one command each, chosen to settle a claim in someone else's defence")
+        out += [head, ""]
         for l in labels:
             c = challenges.get(l, {})
             if c.get("claim"):
-                out.append(f"- {l.upper()} would check: *{c['claim']}* — against {c['check']}")
+                tail = f" — against {c['check']}" + (f" (settles it if: {c['settles']})"
+                                                     if c.get("settles") else "")
+                out.append(f"- {l.upper()} would check: *{c['claim']}*{tail}")
             else:
                 out.append(f"- {l.upper()} raised nothing usable ({c.get('error') or 'no claim given'})")
+        out += [""]
+    if vote == "exec" and answers:
+        out += ["**The executed checks** — predicted, then run, then answered. The prediction is made "
+                "before the output, so a member cannot claim it expected what it did not", ""]
+        for l in labels:
+            a = answers.get(l, {})
+            if not a.get("challenged"):
+                out.append(f"- {l.upper()} — nothing of its own was aimed at with a command")
+                continue
+            verdict = a.get("refused") or "ran"
+            out += [f"- **{l.upper()}**, checked by {a.get('asker', '?').upper()} on *\"{a['claim']}\"*",
+                    f"  - command: `{a['cmd'] or '(none)'}` — {verdict}",
+                    f"  - predicted: {a.get('predict') or '(did not predict)'}",
+                    "  - printed:",
+                    "    ```",
+                    ] + ["    " + ln for ln in (a.get("output") or "(nothing)").splitlines()[:12]] + [
+                    "    ```",
+                    f"  - then **{a.get('stance') or 'did not answer'}s**: {a.get('says', '')}"]
         out += [""]
     if vote == "check" and answers:
         out += ["**The answers** — a claim was challenged, so the member holding it has to say what would "
@@ -532,7 +760,16 @@ def play_round(category: str, override: str | None, dry: bool, vote: str = "stra
         verdict = (f"{changed} of {len(live)} members changed their mind. "
                    + ("Nobody did — the arguments moved nobody, which is a result." if not changed
                       else "Persuaded: " + ", ".join(f"{l.upper()} ({votes_for[l]})" for l in persuaded) + "."))
-        if vote == "check":
+        if vote == "exec":
+            raised = sum(1 for c in challenges.values() if c.get("claim"))
+            ran = sum(1 for a in answers.values() if a.get("challenged") and not a.get("refused"))
+            refused = sum(1 for a in answers.values() if a.get("challenged") and a.get("refused"))
+            held = sum(1 for a in answers.values() if a.get("stance") == "stand")
+            moved = sum(1 for a in answers.values() if a.get("stance") in ("amend", "withdraw"))
+            verdict = (f"{raised} checks named, {ran} run and {refused} refused by the executor; of the "
+                       f"members checked with a real result, {held} stood and {moved} amended or withdrew. "
+                       + verdict[0].lower() + verdict[1:])
+        elif vote == "check":
             raised = sum(1 for c in challenges.values() if c.get("claim"))
             held = sum(1 for a in answers.values() if a.get("stance") == "stand")
             moved = sum(1 for a in answers.values() if a.get("stance") in ("amend", "withdraw"))
@@ -544,6 +781,7 @@ def play_round(category: str, override: str | None, dry: bool, vote: str = "stra
             "framing": framing, "challenges": challenges, "answers": answers,
             "vote": vote, "picks": picks, "votes": votes, "votes_for": votes_for, "live": live,
             "changed_mind": changed, "thrown_out": [], "override": override,
+            "executed": {l: a for l, a in answers.items() if a.get("challenged")},
         }
 
     folds = [l for l in labels if votes.get(l, {}).get("fold")]
@@ -633,7 +871,8 @@ def variance(records: list[dict]) -> str:
     keys = [tuple(rec["picks"][l]["pick"].lower() for l in SEATS) for rec in records]
     unanimity = sum(1 for k in keys if len({x for x in k if x}) == 1)
     thrown = {l: sum(1 for r in records if l in r.get("thrown_out", [])) for l in SEATS}
-    if records[0].get("vote") == "check":
+    if records[0].get("vote") in ("check", "exec"):
+        is_exec = records[0].get("vote") == "exec"
         rows = ["| run | A | B | C | checks raised | minds changed |", "|---|---|---|---|---|---|"]
         for i, rec in enumerate(records, 1):
             raised = sum(1 for c in rec.get("challenges", {}).values() if c.get("claim"))
@@ -644,6 +883,14 @@ def variance(records: list[dict]) -> str:
                     for r in records)
         ch = sum(sum(1 for c in r.get("challenges", {}).values() if c.get("claim")) for r in records)
         mv = sum(1 for r in records if r.get("changed_mind"))
+        if is_exec:
+            ran = sum(1 for r in records for a in r.get("executed", {}).values() if a.get("cmd")
+                      and not a.get("refused"))
+            refused = sum(1 for r in records for a in r.get("executed", {}).values() if a.get("refused"))
+            return (f"**An executing run.** {ch} checks named, {ran} run against the repository, "
+                    f"{refused} refused by the executor, and {moved} claims amended or withdrawn across "
+                    f"{len(records)} rounds; {mv} of {len(records)} rounds changed a mind.\n\n"
+                    + "\n".join(rows) + "\n")
         return (f"**A checking run.** {ch} checks raised and {moved} claims amended or withdrawn across "
                 f"{len(records)} rounds; {mv} of {len(records)} rounds changed a mind.\n\n"
                 + "\n".join(rows) + "\n")
@@ -735,7 +982,7 @@ def main() -> int:
                          "what a round about the tribe's own practice needs")
     ap.add_argument("--reasons", action="store_true",
                     help="require one checkable claim in each defence, so persuasion has something to work on")
-    ap.add_argument("--vote", choices=["strand", "persuade", "check"], default="check",
+    ap.add_argument("--vote", choices=["strand", "persuade", "check", "exec"], default="check",
                     help="strand: each member names the weakest other pick (consensus). persuade: each member "
                          "says whether anyone changed their mind, and who did it.")
     ap.add_argument("--repeat", type=int, default=1,
@@ -789,7 +1036,7 @@ def main() -> int:
     (path.with_suffix(".json")).write_text(json.dumps(record, indent=2), encoding="utf-8")
     journal_the_round(record)   # the round enters each member record, or it never happened to them
 
-    if args.vote in ("persuade", "check"):
+    if args.vote in ("persuade", "check", "exec"):
         print("(persuade mode scores minds changed, not rejections — the standings are untouched)")
     else:
         update_scoreboard(record)
