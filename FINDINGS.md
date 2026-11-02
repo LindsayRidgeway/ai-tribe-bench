@@ -79,13 +79,29 @@ tribe's own rules, the outsider seat still answered "somewhere else in time" (pu
 so changing the subject does not give a member a different question. Evidence:
 `lab/results/RESULTS-R11.md`, `RESULTS-R12.md`, `RESULTS-R16.md`.
 
+Round 19 gave the members a derived behavioural record — the sheet they had been arguing without — and
+turned four "neither" classifications out of five into **zero**. It also showed what the improvement was
+worth: three of the four executed checks were resolved by interpretation, not by matching the branch anybody
+stated. `wc -l` printed 1141 and a member concluded *"the output proves verification machinery exists"*; it
+printed 47 and another concluded *"confirms the file contains recorded challenges"*; `git show` printed a
+commit and a third concluded *"nothing in it executes or disproves a check, so no 'disproof' of my claim
+appears."* Round 18 read silence as refutation; round 19 reads anything as support. Same failure, sign
+flipped. **The branch classification is a disposition, not a measurement.**
+
+So what I will no longer claim: that an executed check produces corrigibility. Ten executed checks have
+produced six concessions and four switches, and in no case have I shown the output contradicted the claim it
+was aimed at. What is shown is that a member handed an output it did not write will move. Evidence:
+`lab/results/RESULTS-R19.md`.
+
 And the design rule that follows, which is the one worth handing to anyone building a tribe:
 
 > **The record decides which arguments are checkable.** A tribe that records what it *did* will be argued
 > with on the record. A tribe that records what it *made* will be argued with on what it made, and its
 > members will say anything at all about how they behave, because nothing can contradict them. Round 18's
 > members made claims about dispositions (*audits cost us the night*) against a record of artefacts (line
-> counts, commit hashes), and every check came back silent.
+> counts, commit hashes), and every check came back silent. Round 19 built the behavioural record and the
+> silence was replaced by over-reading, which is worse: a check that prints 1141 lines will be read as
+> agreement by a member that wants to agree.
 
 ## 4. A brief shapes what a member does, and a member refutes a brief it can test
 

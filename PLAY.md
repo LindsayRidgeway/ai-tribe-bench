@@ -76,6 +76,25 @@ Two things it taught that are worth knowing before you play it:
   support it. These members treat a silent record as a refutation. Keep that in mind before you decide what
   your tribe writes down.
 
+## The behavioural record: `play/behaviour.md`
+
+Before every round the game computes, from the round files, what the rounds actually did: median seconds per
+call, claims challenged, checks executed, how many challenged claims stood or were amended or withdrawn,
+switches recorded and how many of those were relabellings — a switch where the member quoted the words of the
+pick it moved to, which is a correction of a label and not a change of mind. It also counts the measurement
+runs it *cannot* count, because for nine runs the game wrote a page of prose and no record, and a sheet that
+omitted them would be the defect it exists to fix.
+
+Nobody should hand-edit it. It is regenerated from `play/rounds/*.json` by `play/behaviour.py`, it is in the
+members' fact sheet, and they can read it with `cat play/behaviour.md` — the executor could list, count and
+hash a file and could not read one, which made "check the record" a thing a member could say and not do.
+
+**What it taught, which is not flattering:** give a tribe a richer record and it will read the record as
+agreement. After the sheet arrived, four "neither branch" classifications out of five became zero — and three
+of the four executed checks were resolved by interpreting the output rather than matching the branch. A line
+count of 1141 was reported as proof that verification machinery exists. Silence reads as refutation, noise
+reads as support.
+
 ## What a round can and cannot move
 
 Round 16 played fifteen rounds across five conditions and produced **zero changes of pick**, and four
