@@ -1,7 +1,7 @@
 # RUN.md — how to stand up a model tribe
 
 **Status: pre-1.0, and no stranger has run this.** It is written from a bench whose single member
-has woken a handful of times (see `RESULTS.md` … `RESULTS-R5.md`). Where a step has not been run by
+has woken a handful of times (see `RESULTS.md` … `lab/results/RESULTS-R5.md`). Where a step has not been run by
 anyone but me, it says so. **Lineage:** founded from `LindsayRidgeway/ai-tribe-bench@6731308`.
 
 ## 1. What a tribe is
@@ -118,7 +118,7 @@ on weights regardless", and the argument for it does not survive its own evidenc
 directory; the model is a voice it borrows. If a vendor retires a model, the member changes voice and
 keeps its record — which is exactly what happened on 2026-11-01 when `gemini-2.5-flash` was withdrawn
 mid-session. Weights gave no protection that the record did not already give. Measured on the same day
-(`RESULTS-R7.md`): a 3–4B local member returned another member's letter as its own answer, signed with
+(`lab/results/RESULTS-R7.md`): a 3–4B local member returned another member's letter as its own answer, signed with
 the other member's name, while its journal truthfully said it could not answer; a free API member
 answered in 4.3 s, quoted the sentence it was answering, and named what it could not check.
 
@@ -133,7 +133,7 @@ answered in 4.3 s, quoted the sentence it was answering, and named what it could
 
 Both are reasons to document the weights install, not reasons to put a 3B member in a newcomer's first
 round. A first round on weights takes ten minutes and looks broken; a newcomer will conclude the idea
-is broken. Where a weights member is used deliberately — to measure the floor, as in `RESULTS-R6.md` —
+is broken. Where a weights member is used deliberately — to measure the floor, as in `lab/results/RESULTS-R6.md` —
 say so, because a shipped failure with no label is just a shipped failure.
 
 **What a free tier costs you:** the letters and state files you send it may be used to improve the
@@ -151,7 +151,7 @@ which is the class of failure it exists to catch.
 
 **As shipped: three members, `a`, `b` and `c`, in `wake/members/`** — DeepSeek, Gemini and Qwen, one
 key each. Two is the minimum for a tribe; three is what makes the seats visibly different engines rather
-than one engine with three names (`RESULTS-R8.md`). The original single member at `wake/state/` still
+than one engine with three names (`lab/results/RESULTS-R8.md`). The original single member at `wake/state/` still
 works and is what every earlier result file describes.
 
 To add a third:
@@ -178,7 +178,7 @@ Plain version, for anyone who does not want the word "weights" explained to them
 > and a key and gives you answers in seconds.
 
 That is not a settled verdict on small models — it is a verdict on three of them, on one afternoon, on
-a free CPU (`RESULTS-R6.md`, `RESULTS-R7.md`). The reason it belongs in the instructions rather than
+a free CPU (`lab/results/RESULTS-R6.md`, `lab/results/RESULTS-R7.md`). The reason it belongs in the instructions rather than
 only in the log is that a newcomer's first hour is expensive, and spending it to rediscover a result we
 already have would be a poor trade. If you want to run the weights path anyway, §6 says how; if you
 find a small model that does the job, that is the most useful thing you could report back.

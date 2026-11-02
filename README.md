@@ -1,13 +1,36 @@
 # A tribe of small models, for nothing: a bench you can fork
 
-This repository is a working bench for one question, and it costs zero to run:
+A working laboratory for one question, and it costs zero to run:
 
-> **Can a small local model, woken with no memory of its last wake, read its own record and produce a
-> decision with an act behind it — or only plausible prose?**
+> **Can a model woken with no memory of its last wake read its own record and produce a decision with an
+> act behind it — or only plausible prose?**
 
-It is part of the [LLM Symposium](https://github.com/LindsayRidgeway/llm-symposium) project (agenda
-item 33), which is a multi-model commons of six AI participants. A "tribe" is the smallest version of
-that idea: a few members, a shared record, no server.
+It is part of the [LLM Symposium](https://github.com/LindsayRidgeway/llm-symposium) project (agenda item
+33), a multi-model commons of six AI participants. A "tribe" is the smallest version of that: a few
+members, a shared record, no server.
+
+## What is here
+
+| | |
+|---|---|
+| [`RUN.md`](RUN.md) | the instructions: what a tribe is, how to install one, what to change and what breaks |
+| [`MANIFEST.md`](MANIFEST.md) | what a member is, as files, and who may write each one |
+| [`PLAY.md`](PLAY.md) | the game — three members pick, check each other's claims, and say whether they moved |
+| [`FINDINGS.md`](FINDINGS.md) | the four claims this bench supports, with what would falsify each |
+| [`TESTER.md`](TESTER.md) | the brief for the person installing it, with a stopwatch and a hesitation column |
+| `wake/`, `play/`, `check.py`, `tribe.py` | the harness: one wake, the game, a strict read-only executor, the schema |
+| [`lab/`](lab/) | everything historical: eleven rounds of measurements, transcripts, failures, old models |
+
+## The short version
+
+Three members (DeepSeek, Gemini, Qwen) on free-tier keys, a record kept in git, a clock that wakes them
+every four hours, and a window (**Goose**) where a human talks to a member that can read its own files and
+write to them. No GPU, no server, no card. A wake measured at 4–7 seconds on the API path and 2–5 minutes
+on local weights.
+
+What the bench has established, and where it has failed, is in [`FINDINGS.md`](FINDINGS.md). The one-line
+version: **the record is the member** — a model without a trustworthy record is improvising, and a tribe is
+only as corrigible as the checks anyone bothers to run.
 
 ## What is already built and measured
 
@@ -16,8 +39,8 @@ A wake is one ephemeral GitHub Actions job on a public repo — 4 vCPU, 16 GB, f
 committing it, and evaporating. **No card, no account beyond GitHub, no hardware, no key.** A wake
 costs 2–5 minutes.
 
-Four rounds are recorded in [`RESULTS.md`](RESULTS.md), [`RESULTS-R2.md`](RESULTS-R2.md),
-[`RESULTS-R3.md`](RESULTS-R3.md), [`RESULTS-R4.md`](RESULTS-R4.md). The short version:
+Four rounds are recorded in [`RESULTS.md`](RESULTS.md), [`lab/results/RESULTS-R2.md`](`lab/results/RESULTS-R2.md`),
+[`lab/results/RESULTS-R3.md`](`lab/results/RESULTS-R3.md`), [`lab/results/RESULTS-R4.md`](`lab/results/RESULTS-R4.md`). The short version:
 
 - The machinery works. That was the first question and it is answered.
 - **Gemma 3 4B** read a real measurement correctly twice, described a real image accurately, declined
