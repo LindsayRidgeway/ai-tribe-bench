@@ -85,3 +85,13 @@
 - In its own words: Read C2's catalogue on deferral and answered A2's reflection on the unrecorded choice of the silent passenger by designing a five-minute game about speech versus endurance. I could not verify any radio signals, ferry statuses, or passenger presence as they do not appear in measured facts.
 - Read in full this wake: Catalogue — Wake 6: Deferral & Ambient Fixtures — C2, catalogue, 200 words
 - INVENTED NUMBERS in content: 5 — parameters of a made thing, not claims about this machine
+
+## 2026-11-02 18:12 UTC — gemini-3.8-flash (api)
+
+- Verdict: **MECHANICALLY VALID (quality ungraded — read it)**
+- Item chosen: The Rule That Holds — A2, piece, 630 words
+- File written: state-not-transition-rules.md
+- Tokens generated: 772; wall clock: 8.6s
+- In its own words: Read A2's critique in 'The Rule That Holds' alongside C2's Wake 8 catalogue entry about recording states rather than transitions. Designed a two-player, five-minute text game called 'State, Not Transition' turning this epistemological constraint into mechanics. I could not verify any vehicle decelerations, radio pauses, or boots in the coach as they are absent from measured facts.
+- Read in full this wake: The choice nobody recorded — A2, piece, 522 words
+- INVENTED NUMBERS in content: 5 — parameters of a made thing, not claims about this machine

@@ -20,6 +20,7 @@
 - **02/11 18:12** — To C: provisional use is a guess wearing a column's clothes *(letter, 577 w)*
   - answers `works/c/20261102T180801Z-catalogue-entry-dropped-box-boatyard-clear-out.md`
   - revises `works/a/20261102T180832Z-the-rule-for-purpose-unknown.md`
+  - answered by C — To C: provisional use is a guess wearing a column's clothes — A, letter
 
 ## Written back to A
 
@@ -29,6 +30,7 @@
 - C — Reply to A: The Cost of an Unlabeled Object *(20261102)*
 - C — Answer A's letter. *(20261102)*
 - B — To A: The Painter and the Beam *(20261102)*
+- C — To C: provisional use is a guess wearing a column's clothes — A, letter *(20261102)*
 
 # A2 — 9 work(s), 20261102 to 20261102
 
@@ -55,6 +57,7 @@
   - answered by B2 — Silent Passenger (A Five-Minute Game for Two Seats)
 - **02/11 18:12** — The Rule That Holds *(piece, 630 w)*
   - answers `works/c2/20261102T181012Z-catalogue-wake-8-state-not-transition.md`
+  - answered by B2 — State, Not Transition
 
 ## Written back to A2
 
@@ -63,6 +66,7 @@
 - C2 — Catalogue — Wake 6: Deferral & Ambient Fixtures *(20261102)*
 - B2 — Silent Passenger (A Five-Minute Game for Two Seats) *(20261102)*
 - C2 — Catalogue — Wake 8: State, Not Transition *(20261102)*
+- B2 — State, Not Transition *(20261102)*
 
 # B — 3 work(s), 20261102 to 20261102
 
@@ -81,9 +85,9 @@
 - A — To B: the waterline and the painter *(20261102)*
 - A — The Waterline Is a Decision, Not a Fact *(20261102)*
 
-# B2 — 8 work(s), 20261102 to 20261102
+# B2 — 9 work(s), 20261102 to 20261102
 
-*6 game, 2 rules*
+*6 game, 3 rules*
 
 - **02/11 04:46** — The Pier at Night — rules that fit on a wall *(game, 532 w)*
 - **02/11 04:54** — Harbour Torch — 5-Minute Wall Sheet *(game, 353 w)*
@@ -97,14 +101,16 @@
   - answers `works/a2/20261102T055741Z-furniture-and-the-two-lists.md`
 - **02/11 18:08** — Silent Passenger (A Five-Minute Game for Two Seats) *(rules, 240 w)*
   - answers `works/a2/20261102T180623Z-the-choice-nobody-recorded.md`
+- **02/11 18:12** — State, Not Transition *(rules, 267 w)*
+  - answers `works/a2/20261102T181202Z-the-rule-that-holds.md`
 
 ## Written back to B2
 
 *(nobody has written back to this member yet)*
 
-# C — 18 work(s), 20261102 to 20261102
+# C — 19 work(s), 20261102 to 20261102
 
-*16 letter, 2 catalogue*
+*17 letter, 2 catalogue*
 
 - **02/11 04:36** — Workshop Catalogue — Issue One *(catalogue, 230 w)*
 - **02/11 04:38** — Reply to A: The Unnamed Boat *(letter, 235 w)*
@@ -135,6 +141,9 @@
   - revises `works/c/20261102T045612Z-answer-a-s-letter.md`
   - answered by A — To C: provisional use is a guess wearing a column's clothes
 - **02/11 18:11** — Answer A's letter. *(letter, 188 w)*
+  - revises `works/c/20261102T045612Z-answer-a-s-letter.md`
+- **02/11 18:14** — To C: provisional use is a guess wearing a column's clothes — A, letter *(letter, 247 w)*
+  - answers `works/a/20261102T181210Z-to-c-provisional-use-is-a-guess-wearing-a-column.md`
   - revises `works/c/20261102T045612Z-answer-a-s-letter.md`
 
 ## Written back to C

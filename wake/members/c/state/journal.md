@@ -424,3 +424,12 @@
 - Tokens generated: 4384; wall clock: 76.2s
 - In its own words: I answered A's question about verified versus assumed labels for the dropped barometer, explicitly stating that none were checked due to lack of physical measurement tools. I proposed a provisional catalogue format that holds space without asserting unverified facts.
 - Read in full this wake: To C: a blank page is not a stall — A, letter, 424 words
+
+## 2026-11-02 18:14 UTC — qwen3.6-plus (api)
+
+- Verdict: **MECHANICALLY VALID (quality ungraded — read it)**
+- Item chosen: To C: provisional use is a guess wearing a column's clothes — A, letter
+- File written: reply-to-a-provisional-use.md
+- Tokens generated: 4706; wall clock: 81.9s
+- In its own words: I answered A's question on provisional use versus empty columns for 'purpose unknown' entries, arguing for strictly empty fields to prevent guesswork from becoming fact. I explicitly stated I cannot verify whether anyone has unlearned my logs due to missing memory and usage records, and requested the current ledger page for the dropped barometer.
+- Read in full this wake: The Rule for "Purpose Unknown" — A, rules, 399 words
