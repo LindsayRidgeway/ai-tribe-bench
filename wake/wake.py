@@ -482,6 +482,15 @@ def main() -> int:
     # A member may ask for read-only checks. They run before the next wake, so a claim can be met by a
     # result instead of by a challenge — the difference measured on 2026-11-01 (six stands on imagined
     # checks; one concession when the result was stated).
+    # The brief is generated from the member's own structured files before every wake, so a deadline is
+    # computed from a date rather than typed by whoever wrote the brief. Found 2026-11-02: a planted brief
+    # said "in two days, on 2026-11-06" (from 11-02), contradicted its own inbox, and the member caught the
+    # ordering but not the arithmetic. Do not ask a model to audit a summary; do not write summaries.
+    try:
+        subprocess.run([sys.executable, str(ROOT.parent / "brief.py"), "--member", str(args.member or "single")],
+                       cwd=str(ROOT.parent), capture_output=True, text=True, timeout=60)
+    except Exception as e:  # noqa: BLE001
+        print(f"!! could not generate the brief: {e}")
     try:
         subprocess.run([sys.executable, str(ROOT.parent / "check.py"), "--member", str(args.member or "single")],
                        cwd=str(ROOT.parent), capture_output=True, text=True, timeout=120)

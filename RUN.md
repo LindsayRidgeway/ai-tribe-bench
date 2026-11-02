@@ -319,6 +319,18 @@ Two things about it are load-bearing for the rest of this document:
   know that. If your build makes a person read the state files to enjoy the tribe, you have built a
   filing cabinet and called it a friend.
 
+## 15a. The brief is generated, not written
+
+`brief.py` runs before every wake and writes `state/brief.md` from the member's own `inbox.md`,
+`agenda.md`, `queue.md` and open meetings, computing each interval from the real date. That file is the only
+structured thing besides its own state that a member is handed.
+
+The reason is a measurement, not a preference. A brief typed by hand said *"member b is due in two days, on
+2026-11-06"* — from 2026-11-02 — and *"member c is due in three days, on 2026-11-03"*, then called b the
+earlier deadline. The member caught the ordering and missed the arithmetic, because the inbox the brief was
+summarising is not in its prompt. **A summary a model cannot check is a claim, and the fix is to compute the
+summary rather than to ask the model to be careful with it.** Same lesson as the scoreboard and the vote log.
+
 ## 15. Tests
 
 `python3 tests.py` — 21 assertions covering the things that actually broke here: the echo detector that

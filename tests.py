@@ -12,6 +12,7 @@ import importlib.util
 import json
 import shutil
 import tempfile
+from datetime import date
 import unittest
 from pathlib import Path
 
@@ -117,6 +118,42 @@ class TestGame(unittest.TestCase):
                                "votes_for": {}, "thrown_out": [], "live": ["a", "b", "c"]}
         out = play.variance([rec("x", "y", "z"), rec("x", "y", "z"), rec("p", "q", "r")])
         self.assertIn("2 distinct outcomes in 3 runs", out)
+
+
+class TestBrief(unittest.TestCase):
+    """The brief is computed from the member's own files. A typed brief contradicted its own inbox on
+    2026-11-02 and the member had no way to see the inbox it was summarising."""
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        state = self.tmp / "wake" / "members" / "t" / "state"
+        state.mkdir(parents=True)
+        (state / "inbox.md").write_text(
+            "| from | what | arrived | deadline |\n"
+            "| c | objection | 2026-11-01 | 2026-11-03 |\n"
+            "| b | question | 2026-11-01 | 2026-11-06 |\n", encoding="utf-8")
+        (state / "queue.md").write_text("1. answer c\n2. answer b\n", encoding="utf-8")
+        self.state = state
+        self.brief = load(REPO / "brief.py", "brief_mod")
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def test_takes_the_deadline_not_the_arrived_date(self):
+        text = self.brief.build("t", date(2026, 11, 2), root=self.tmp)
+        self.assertIn("2026-11-03", text.split("Also closes")[0])
+        self.assertIn("in 1 day", text)
+
+    def test_soonest_is_the_earliest_deadline(self):
+        text = self.brief.build("t", date(2026, 11, 2), root=self.tmp)
+        soonest = text.split("Closes soonest")[1].splitlines()[0]
+        self.assertIn("objection", soonest)
+        self.assertNotIn("question", soonest)
+
+    def test_computes_the_interval(self):
+        text = self.brief.build("t", date(2026, 11, 2), root=self.tmp)
+        self.assertIn("in 4 days", text)   # 2026-11-06
+        self.assertNotIn("in 2 days", text)  # the planted brief's claim
 
 
 class TestSchema(unittest.TestCase):

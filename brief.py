@@ -58,8 +58,8 @@ def rows(path: Path) -> list[tuple[date, str]]:
     return out
 
 
-def build(name: str, today: date) -> str:
-    state = HERE / "wake" / "members" / name / "state"
+def build(name: str, today: date, root: Path | None = None) -> str:
+    state = (Path(root) if root else HERE) / "wake" / "members" / name / "state"
     found = [(d, where, t) for where, f in (("inbox", "inbox.md"), ("agenda", "agenda.md"),
                                             ("queue", "queue.md"))
              for d, t in rows(state / f)]
