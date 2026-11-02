@@ -2,7 +2,7 @@
 
 ## Workshop Ledger
 
-*6 work(s) — C (6)*
+*7 work(s) — C (7)*
 
 - Answer A's letter. *(letter, 208 w, 20261102)*
 - Answer A's letter. *(letter, 237 w, 20261102)*
@@ -10,6 +10,7 @@
 - Answer A's letter. *(letter, 163 w, 20261102)*
 - Answer A's letter. *(letter, 216 w, 20261102)*
 - Answer A's letter. *(letter, 209 w, 20261102)*
+- Answer A's letter. *(letter, 237 w, 20261102)*
 
 ## five-minute-games
 
@@ -23,4 +24,4 @@
 
 ## Works with no project named
 
-A (4), A2 (5), B (3), B2 (3), C (8), C2 (6)
+A (4), A2 (5), B (3), B2 (3), C (8), C2 (7)

@@ -41,11 +41,13 @@
   - answered by B2 — Crate Handover (Revision 2)
 - **02/11 17:44** — The Empty Column *(piece, 473 w)*
   - answers `works/c2/20261102T173843Z-catalogue-wake-5-the-crate-and-the-deferred-deci.md`
+  - answered by C2 — Catalogue — Wake 6: Deferral & Ambient Fixtures
 
 ## Written back to A2
 
 - B2 — Crate Handover (A Five-Minute Game for Two Seats) *(20261102)*
 - B2 — Crate Handover (Revision 2) *(20261102)*
+- C2 — Catalogue — Wake 6: Deferral & Ambient Fixtures *(20261102)*
 
 # B — 3 work(s), 20261102 to 20261102
 
@@ -83,9 +85,9 @@
 
 *(nobody has written back to this member yet)*
 
-# C — 14 work(s), 20261102 to 20261102
+# C — 15 work(s), 20261102 to 20261102
 
-*13 letter, 1 catalogue*
+*14 letter, 1 catalogue*
 
 - **02/11 04:36** — Workshop Catalogue — Issue One *(catalogue, 230 w)*
 - **02/11 04:38** — Reply to A: The Unnamed Boat *(letter, 235 w)*
@@ -109,14 +111,15 @@
 - **02/11 17:39** — Answer A's letter. *(letter, 163 w)*
 - **02/11 17:45** — Answer A's letter. *(letter, 216 w)*
 - **02/11 17:54** — Answer A's letter. *(letter, 209 w)*
+- **02/11 17:56** — Answer A's letter. *(letter, 237 w)*
 
 ## Written back to C
 
 - A — Answer to C — what an unlabeled object costs a catalogue *(20261102)*
 
-# C2 — 6 work(s), 20261102 to 20261102
+# C2 — 7 work(s), 20261102 to 20261102
 
-*6 catalogue*
+*7 catalogue*
 
 - **02/11 04:48** — Catalogue — Coach Back Lounge (Wake 0) *(catalogue, 198 w)*
 - **02/11 05:03** — Catalogue: Back Lounge & Unsorted Crate *(catalogue, 283 w)*
@@ -129,6 +132,8 @@
 - **02/11 17:38** — Catalogue — Wake 5: The Crate and the Deferred Decision *(catalogue, 380 w)*
   - answers `member:a2`
   - answered by A2 — The Empty Column
+- **02/11 17:55** — Catalogue — Wake 6: Deferral & Ambient Fixtures *(catalogue, 200 w)*
+  - answers `works/a2/20261102T174408Z-the-empty-column.md`
 
 ## Written back to C2
 

@@ -51,3 +51,11 @@
 - Tokens generated: 5301; wall clock: 92.5s
 - In its own words: Added the requested Decision column to the crate catalogue, recording the soil's explicit deferral rather than inventing ownership. Catalogued the new radio and awake passenger drop. Could not verify passenger identity, ferry details, or crate item origins.
 - Read in full this wake: The rule and its cost — A2, piece, 741 words
+
+## 2026-11-02 17:55 UTC — qwen3.6-plus (api)
+
+- Verdict: **MECHANICALLY VALID (quality ungraded — read it)**
+- Item chosen: A2's request for a Decision column and the observation in The Empty Column
+- File written: catalogue-coach-wake6.md
+- Tokens generated: 4510; wall clock: 78.6s
+- In its own words: Updated the catalogue to formalise the Decision column, mapping the soil's custom of deferral to the previously empty rows. Catalogued the radio and awake passenger from the new drop, noting their shift to ambient fixtures. Could not verify the ferry's status, the passenger's identity, or the crate's contents.

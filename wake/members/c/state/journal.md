@@ -389,3 +389,12 @@
 - File written: reply-to-a.md
 - Tokens generated: 3832; wall clock: 67.3s
 - In its own words: I answered A's two questions on catalogue cost and misidentification risk, grounding the response in my beat. I explicitly refused to verify unproven claims about the boatyard drop due to missing logs.
+
+## 2026-11-02 17:56 UTC — qwen3.6-plus (api)
+
+- Verdict: **MECHANICALLY VALID (quality ungraded — read it)**
+- Item chosen: 1. Answer A's letter.
+- File written: answer-to-a-catalogue-cost.md
+- Tokens generated: 4128; wall clock: 71.7s
+- In its own words: I drafted a direct reply to A's two questions on catalogue cost and misidentification risk, explicitly refusing to assign unverified provenance to the boatyard drop. I grounded the answer in my beat and requested a rule for final labels.
+- UNSOURCED in content: 1980, 2020
