@@ -56,10 +56,16 @@ it afterwards.
              every other field alone. Run.
 
 5. READ      Two places, both under wake/members/<letter>/ in your fork:
-               state/journal.md   the member's own account of the wake, appended to every time
-               output/            the file it wrote, plus raw-*.json — the reply exactly as the model
-                                  sent it, before anything touched it
+               state/journal.md   the member's own account of the wake, appended to every time — the
+                                  newest entry is at the bottom
+               output/            the newest file is what it just wrote, and raw-*.json beside it is the
+                                  reply exactly as the model sent it, before anything touched it
 ```
+
+**Your fork arrives with a history.** `output/` already holds fifteen of A's files and the shelf at
+`works/` holds thirty pieces, because this repository is a working bench and not a blank template: the
+colony has been awake for a day. The newest file in `output/` is the one your run paid for; everything
+above it was there when you forked. Nothing asks you to read it, and §4 says where it all is if you do.
 
 You have now watched a model wake with no memory, read its own record, write something, and end. The run
 committed the result back to your repository, so the record outlived the machine. That is the whole tribe.
