@@ -329,6 +329,24 @@ def play_round(category: str, override: str | None, dry: bool) -> str:
     }
 
 
+def variance(records: list[dict]) -> str:
+    """What moves when you ask the same question N times: the picks, and who the table turns on."""
+    keys = [tuple(rec["picks"][l]["pick"].lower() for l in SEATS) for rec in records]
+    unanimity = sum(1 for k in keys if len({x for x in k if x}) == 1)
+    thrown = {l: sum(1 for r in records if l in r.get("thrown_out", [])) for l in SEATS}
+    rows = ["| run | A | B | C | thrown out |", "|---|---|---|---|---|"]
+    for i, rec in enumerate(records, 1):
+        rows.append("| " + " | ".join(
+            [str(i)] + [rec["picks"][l]["pick"] or "(none)" for l in SEATS]
+            + [", ".join(x.upper() for x in rec.get("thrown_out", [])) or "—"]) + " |")
+    return (
+        f"**{len(set(keys))} distinct outcomes in {len(records)} runs** "
+        f"({len(set(keys)) / len(records):.0%} novel); "
+        f"all three members agreed in {unanimity} of {len(records)}.\n\n"
+        f"Times thrown out: " + ", ".join(f"{l.upper()} {thrown[l]}" for l in SEATS) + "\n\n"
+        + "\n".join(rows) + "\n")
+
+
 def update_scoreboard(record: dict) -> str:
     """Wins, rounds played, and the last thing each member said — the standings, not a log.
 
@@ -382,6 +400,9 @@ def main() -> int:
     ap.add_argument("--override", default=None, help="A, B or C — the human's call, if they made one")
     ap.add_argument("--dry-run", action="store_true", help="render the prompts, make no calls")
     ap.add_argument("--out", default=None, help="where to write the round markdown (default play/rounds/<stamp>.md)")
+    ap.add_argument("--repeat", type=int, default=1,
+                    help="play the same category N times and report how much the result moves. A measurement, "
+                         "not a played round: the standings are left alone.")
     args = ap.parse_args()
 
     if args.dry_run:
@@ -389,6 +410,31 @@ def main() -> int:
         for l, (model, _p, seat, stance) in SEATS.items():
             print(f"\n--- {l.upper()} ({model}) ---")
             print(PICK_PROMPT.format(name=l.upper(), category=args.category, seat=seat, stance=stance))
+        return 0
+
+    if args.repeat > 1:
+        # The founder's point, 2026-11-01: the same prompt ten times gives ten different answers, and that
+        # non-determinism is the product. It is also why every table in RESULTS-*.md is one trial. The fix
+        # is not to remove the variance — temperature 0 makes a boring game and a fragile claim — it is to
+        # measure it, so a reader can see whether "three engines give three remedies" survives ten tries.
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        blocks, records = [], []
+        for i in range(args.repeat):
+            t, rec = play_round(args.category, args.override, args.dry_run)
+            blocks.append(f"\n---\n\n### Run {i + 1} of {args.repeat}\n\n{t}")
+            records.append(rec)
+            print(f"run {i + 1}/{args.repeat}: " + " | ".join(
+                f"{l.upper()}={rec['picks'][l]['pick'] or '(none)'}" for l in SEATS))
+        summary = variance(records)
+        out_dir = HERE / "variance"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        path = out_dir / f"{stamp}-{records[0]['slug']}-x{args.repeat}.md"
+        path.write_text(f"## The same category, {args.repeat} times — {args.category}\n\n"
+                        f"*A measurement run. No standings change: these are {args.repeat} trials of one "
+                        f"question, not {args.repeat} rounds played. {stamp}*\n\n{summary}"
+                        + "".join(blocks), encoding="utf-8")
+        print("\n" + summary)
+        print(f"variance run written to {path}")
         return 0
 
     text, record = play_round(args.category, args.override, args.dry_run)

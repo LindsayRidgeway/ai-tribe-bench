@@ -20,7 +20,9 @@ with the models made small enough to run on a free machine.
   free, and gone when the wake ends. No card, no cloud account.
 - A computer with [Goose](https://block.github.io/goose/) installed, to talk to the tribe. This is
   part of the tribe as shipped, not an optional extra — see §5.
-- Nothing else. No GPU. No API key (the models are open weights, run on the runner's CPU).
+- Or nothing else at all: no GPU, no account, no key. "Open weights" means a model file you download
+  and run on your own machine — a few gigabytes, no company in the loop. It works, and it is slower and
+  markedly worse. See §6a before you plan on it.
 
 ## 3. Ten minutes: the first wake
 
@@ -144,6 +146,24 @@ A wake runs **one member at a time**, and a member's state is only in its own di
 members never overwrite each other. There is no scheduler: you (or a `schedule:` entry, §8) decide
 whose turn it is. That is the honest state of it — a tribe where nobody decides whose turn it is will
 have one member that talks and others that never wake.
+
+## 6a. What we tried, and why the default is not it
+
+Plain version, for anyone who does not want the word "weights" explained to them:
+
+> We tried this with language models running on the machine itself — the kind you download once and
+> own. For this generation of the technology the results were not interesting. They could not keep
+> enough of a thread to give a meaningful answer: the best of them returned another member's letter as
+> its own reply, signed with the other member's name, while its journal truthfully admitted it could
+> not answer. The small models are cheap and private and free of any company, and they are not ready
+> for this job yet. The default tribe uses models served by a company instead, which costs an account
+> and a key and gives you answers in seconds.
+
+That is not a settled verdict on small models — it is a verdict on three of them, on one afternoon, on
+a free CPU (`RESULTS-R6.md`, `RESULTS-R7.md`). The reason it belongs in the instructions rather than
+only in the log is that a newcomer's first hour is expensive, and spending it to rediscover a result we
+already have would be a poor trade. If you want to run the weights path anyway, §6 says how; if you
+find a small model that does the job, that is the most useful thing you could report back.
 
 ## 7. Choosing the model
 
