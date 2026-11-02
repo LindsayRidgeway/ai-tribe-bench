@@ -85,15 +85,24 @@ jobs:
               [ -n "${REST:-}" ] || { echo "draft needs a category, e.g. '@tribe draft best pizza topping'" >&2; exit 2; }
               # `@tribe draft x5 <category>` plays the same category five times and reports how much the
               # result moves. A measurement run: the standings are not touched.
-              mode=check
-              case "$REST" in strand*) mode=strand; REST="${REST#strand}"; REST="${REST# }" ;;
-                              persuade*) mode=persuade; REST="${REST#persuade}"; REST="${REST# }" ;; esac
-              reasons=""
-              case "$REST" in reasons*) reasons="--reasons"; REST="${REST#reasons}"; REST="${REST# }" ;; esac
-              n=1
-              case "$REST" in x[0-9]*) n="${REST%% *}"; n="${n#x}"; REST="${REST#* }" ;; esac
-              [ -n "${REST:-}" ] || { echo "x<N> needs a category after it" >&2; exit 2; }
-              python3 play/play.py --category "$REST" --repeat "$n" --vote "$mode" $reasons > /tmp/reply.md
+              # Modifiers may come in any order before the category. `neutral` is the framing dial:
+              # a round about the tribe's own practice is not a round about dinner.
+              mode=check; reasons=""; framing=""; n=1
+              while : ; do
+                case "$REST" in
+                  strand*)   mode=strand;     REST="${REST#strand}" ;;
+                  persuade*) mode=persuade;   REST="${REST#persuade}" ;;
+                  reasons*)  reasons="--reasons"; REST="${REST#reasons}" ;;
+                  neutral*)  framing="--framing neutral"; REST="${REST#neutral}" ;;
+                  x[0-9]*)   n="${REST%% *}"; n="${n#x}"
+                             case "$REST" in *" "*) REST="${REST#* }" ;; *) REST="" ;; esac ;;
+                  *) break ;;
+                esac
+                REST="${REST# }"
+              done
+              [ -n "${REST:-}" ] || { echo "draft needs a category after its modifiers" >&2; exit 2; }
+              echo "modifiers: vote=$mode framing=${framing:-food} repeat=$n"
+              python3 play/play.py --category "$REST" --repeat "$n" --vote "$mode" $reasons $framing > /tmp/reply.md
               ;;
           esac
           cat /tmp/reply.md
