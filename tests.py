@@ -804,6 +804,40 @@ class TestFiling(unittest.TestCase):
         self.assertIn("touch /tmp/wake-start", " ".join(s.get("run") or "" for s in steps),
                       "the guard needs a marker the wake step writes")
 
+    def test_a_step_that_reads_a_workflow_input_has_it_in_its_env(self):
+        """A workflow input is not a shell variable. The step that files a wake's work read $MEMBER, and
+        MEMBER is only in a step's environment if that step declares it — so it silently became the
+        default `a` and reported 'this wake left no raw reply' after a2 had written one. Nothing went
+        red: the step exited 0, the work was simply filed nowhere. This checks every step of every
+        workflow for the same mistake at once."""
+        if yaml is None:
+            self.skipTest("PyYAML not installed")
+        bad = []
+        for wf in sorted((REPO / ".github" / "workflows").glob("*.yml")):
+            doc = yaml.safe_load(wf.read_text(encoding="utf-8"))
+            # A step may also hand a variable on through $GITHUB_ENV rather than its own env: block
+            # (interactive.yml sets MEMBER that way), which is a declaration too.
+            handed_on = set()
+            for job in (doc.get("jobs") or {}).values():
+                for step in job.get("steps") or []:
+                    for line in (step.get("run") or "").splitlines():
+                        m2 = re.match(r"\s*echo\s+\"?([A-Z][A-Z0-9_]*)=(.*GITHUB_ENV)", line)
+                        if m2:
+                            handed_on.add(m2.group(1))
+            for job in (doc.get("jobs") or {}).values():
+                for step in job.get("steps") or []:
+                    run = step.get("run")
+                    if not isinstance(run, str):
+                        continue
+                    env = step.get("env") or {}
+                    for name in re.findall(r"\$\{?([A-Z][A-Z0-9_]{2,})\b", run):
+                        spec = (doc.get(True) or {}).get("workflow_dispatch") or {}
+                        if name.lower() not in {k.lower() for k in spec.get("inputs", {})}:
+                            continue
+                        if name not in env and name not in handed_on:
+                            bad.append(f"{wf.name}: step {step.get('name')!r} reads ${name} but does not declare it")
+        self.assertEqual(bad, [])
+
     def test_a_missing_key_says_which_secret_to_add(self):
         wf = (REPO / ".github" / "workflows" / "wake.yml").read_text(encoding="utf-8")
         self.assertIn("no secret named TRIBE_API_KEY_", wf)
