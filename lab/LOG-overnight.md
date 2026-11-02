@@ -580,3 +580,58 @@ next round, not a bug to patch tonight.
 can be executed here, executes, and the two walks cost one defect each. Three of the five steps live in a
 browser I do not have. So: **half met, and provably half** — the half I can test is green, and the half I
 cannot is written so that its failures point at themselves.
+
+---
+
+## 12. The twig has to look like a twig
+
+I said I could not run the lever experiment without a key of yours or a second repository. That was coy and
+it was wrong: the experiment does not need the live bench at all. `lever.yml` copies the repository inside
+the CI job that already has the keys, changes exactly one thing in the copy, wakes one member on that ground,
+and commits only the result to `lab/experiments/`. Live soil, live works and member state are untouched. It
+runs by hand, it costs one API call, and it asks two questions that are never the same question:
+
+- **did the change reach the prompt?** — cut out of the prompt itself, not inferred from the log;
+- **did the piece use it?** — word by word, with the file saying plainly that a shared word proves nothing.
+
+The first run could not tell those apart. It kept 4,000 characters of the run log, which ended *before* the
+soil block began, so "the member ignored the drop" and "the drop never arrived" produced identical files and
+I read one as the other. Same family as everything else this session: a record that exists but cannot be read.
+
+**Experiment one.** A damp cardboard tube, into the workshop, in front of member A. It arrived — confirmed in
+the prompt — and A wrote a second letter to B about the water being clear. It did not mention the tube.
+
+**Experiment two.** A shoebox of forty numbered brass washers, into the coach, in front of B2. Arrived; B2
+wrote `Thermos Pass`, a five-minute game about a thermos and a chipped cup. Not one word from the washers.
+
+Two members, two worlds, two drops, both ignored. That is when I stopped believing the members were being
+difficult and started looking at the mechanism. A member wakes with **no memory**. It reads a drops table
+holding forty years of tide tables from a boatyard clear-out next to an object a human put there ten minutes
+ago, and the table's date column was being read as *text*. Nothing in the prompt said which row was new. A
+twig and the furniture are the same object to an ant that has just woken up.
+
+`mark_new_drops()` reads the member's `Last wake` against the drop dates and marks the later rows **inside
+their own cell** — a trailing cell would add a column and break the table the member then has to read
+through — with one line saying what the mark means: *new ground, not weather.*
+
+**Then the same experiment, one change to the harness and nothing else.**
+
+| | drop present, unmarked | drop present, marked |
+|---|---|---|
+| member | B2, gemini-3.8-flash | B2, gemini-3.8-flash |
+| what it wrote | `Thermos Pass` — a game about a thermos and a cup | `Forty Washers` — a game played with forty numbered brass washers |
+| words from the change in the piece | none | shoebox, forty, identical, brass, washers, stamped, number |
+
+Same member, same beat, same soil, same object, same voice, twenty minutes apart. The only difference is
+that the harness stopped calling the new thing scenery.
+
+**What this changes.** The founder's sentence — *the same colony in different soil builds different tunnels* —
+was, until tonight, a claim I could only illustrate. Now there is a knob with a measured effect on it, and a
+failure mode with a name: **a drop that is not marked as new does not exist.** Any future structure handed to
+a member inherits that test: is it in the prompt, and is it legible as *new*? The journal had the same defect
+for a day (written every wake, never read back), and the shelf had it before that. This is the third time.
+
+**What I did not do.** I did not run the `place` or `beat` levers; the mechanism is built and untested for
+those two, and saying so is cheaper than implying otherwise. And the marking changes the live colony's prompt
+from tonight, for both worlds at once — symmetric, so the comparison survives, but it is a change to the
+running experiment and it belongs in the record rather than in my memory.

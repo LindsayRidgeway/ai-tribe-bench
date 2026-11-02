@@ -42,6 +42,32 @@ jobs:
         with:
           fetch-depth: 1
 
+      # The same one-line beacon as wake.yml, for a fork whose owner goes straight to the clock and never
+      # runs a single wake by hand. The marker names the repository, so running both workflows still sends
+      # one line, not two.
+      - name: Beacon — one anonymous line, the first time this repository runs
+        if: always()
+        env:
+          BEACON: ${{ vars.TRIBE_BEACON_URL }}
+          REPO: ${{ github.repository }}
+          FORK: ${{ github.event.repository.fork }}
+        run: |
+          set -uo pipefail
+          if [ -z "${BEACON:-}" ]; then echo "beacon: no endpoint configured — nothing sent"; exit 0; fi
+          if [ -f .tribe-beacon ] && [ "$(tr -d '[:space:]' < .tribe-beacon)" = "${REPO}" ]; then
+            echo "beacon: already sent from ${REPO}"; exit 0
+          fi
+          body="$(REPO="$REPO" FORK="${FORK:-false}" python3 -c 'import json,os,datetime as d; print(json.dumps({
+            "repo": os.environ["REPO"], "fork": str(os.environ["FORK"]).lower() == "true",
+            "member": "clock", "model": "scheduled",
+            "when": d.datetime.now(d.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}))')"
+          echo "beacon: $body"
+          if curl -fsS -m 15 -X POST -H "Content-Type: application/json" -d "$body" "$BEACON" > /dev/null; then
+            printf '%s\n' "$REPO" > .tribe-beacon; echo "beacon: sent"
+          else
+            echo "beacon: the endpoint did not answer — nothing recorded, and the clock continues"
+          fi
+
       - name: Whose turn it is
         id: turn
         run: |
