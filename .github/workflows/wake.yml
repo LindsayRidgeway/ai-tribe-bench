@@ -4,32 +4,36 @@ name: wake
 on:
   workflow_dispatch:
     inputs:
+      member:
+        description: "Which member wakes: a, b or c (default: a)"
+        required: false
+        default: "a"
+      engine:
+        description: "voice = the model named in the member's own voice.md (default) | weights = a model downloaded onto this machine"
+        required: false
+        default: "voice"
+      ask:
+        description: "A question from a human (blank = none)"
+        required: false
+        default: ""
       model:
-        description: "Ollama model tag to wake"
+        description: "Ollama tag, used only when engine=weights"
         required: false
         default: "qwen2.5:3b-instruct-q4_K_M"
       item:
         description: "Fix the task: act on this open item number only (blank = model chooses)"
         required: false
         default: ""
-      ask:
-        description: "Free-text question (blank = none)"
-        required: false
-        default: ""
       image:
         description: "Path to a committed image to attach (blank = none)"
         required: false
         default: ""
-      member:
-        description: "Member directory under wake/members/ (default: a)"
-        required: false
-        default: "a"
       read:
         description: "Path to a committed letter this member must answer (blank = none)"
         required: false
         default: ""
       api_model:
-        description: "API model id (e.g. gemini-2.5-flash). Blank = run weights on this machine."
+        description: "Override the model id from voice.md (blank = use voice.md)"
         required: false
         default: ""
       api_base:
@@ -52,8 +56,102 @@ jobs:
           echo "cores: $(nproc)"; free -g | head -2; df -h / | tail -1
           python3 --version
 
+      # The member's own voice.md decides which model answers. It did not, until 2026-11-02: api_model
+      # defaulted to blank, blank meant "run weights on this machine", and every member in this
+      # repository is an API member — so the run RUN.md tells a stranger to try first ran a 3B model on
+      # a CPU, which is the failure this repository has already measured twice and warns about in §6a.
+      # A default that contradicts the shipped state is not a default, it is a trap.
+      - name: Whose voice — the member's own file decides
+        id: voice
+        env:
+          MEMBER: ${{ inputs.member }}
+          ENGINE: ${{ inputs.engine }}
+          API_MODEL: ${{ inputs.api_model }}
+          API_BASE: ${{ inputs.api_base }}
+          MODEL: ${{ inputs.model }}
+        run: |
+          set -euo pipefail
+          # A typo in the member name used to wake nothing and say nothing; the directory check is one
+          # line and the member list is the answer.
+          if [ ! -d "wake/members/${MEMBER:-a}" ]; then
+            echo "!! there is no member called '${MEMBER}' here. The members of the two colonies are:"
+            for d in wake/members/*/; do
+              [ -f "$d/state/place.md" ] && printf '     %s\n' "$(basename "$d")"
+            done
+            exit 1
+          fi
+          voice="wake/members/${MEMBER:-a}/state/voice.md"
+          api=""; model=""
+          if [ -f "$voice" ]; then
+            api="$(grep -E '^api:' "$voice" | head -1 | awk '{print $2}')"
+            model="$(grep -E '^model:' "$voice" | head -1 | awk '{print $2}')"
+          fi
+          if [ "${ENGINE:-voice}" = "weights" ]; then
+            echo "engine=weights" >> "$GITHUB_OUTPUT"
+            echo "model=${MODEL:-qwen2.5:3b-instruct-q4_K_M}"   >> "$GITHUB_OUTPUT"
+            echo "engine: weights on this machine (${MODEL:-qwen2.5:3b-instruct-q4_K_M}), asked for by name"
+          elif [ -n "${API_MODEL:-}" ]; then
+            echo "engine=api" >> "$GITHUB_OUTPUT"
+            echo "api_model=$API_MODEL" >> "$GITHUB_OUTPUT"
+            echo "api_base=${API_BASE:-gemini}" >> "$GITHUB_OUTPUT"
+            echo "engine: api $API_MODEL on ${API_BASE:-gemini}, named by hand"
+          elif [ -n "$api" ] && [ -n "$model" ]; then
+            echo "engine=api" >> "$GITHUB_OUTPUT"
+            echo "api_model=$model" >> "$GITHUB_OUTPUT"
+            echo "api_base=$api" >> "$GITHUB_OUTPUT"
+            echo "engine: api $model on $api — read from $voice"
+          else
+            echo "engine=weights" >> "$GITHUB_OUTPUT"
+            echo "model=${MODEL:-qwen2.5:3b-instruct-q4_K_M}" >> "$GITHUB_OUTPUT"
+            echo "engine: weights on this machine (${MODEL:-qwen2.5:3b-instruct-q4_K_M}) — no voice.md at $voice"
+          fi
+
+      # A missing key is the most likely first failure, and until now it surfaced as a 401 body with the
+      # key's last four characters in it and no statement of what to do. Percentages: the person has not
+      # read §5a yet, and the answer is one setting away.
+      - name: Is there a key for this voice
+        if: steps.voice.outputs.engine == 'api'
+        env:
+          API_BASE: ${{ steps.voice.outputs.api_base }}
+          DEEPSEEK_API_KEY: ${{ secrets.TRIBE_API_KEY_DEEPSEEK }}
+          GEMINI_API_KEY: ${{ secrets.TRIBE_API_KEY_GEMINI }}
+          QWEN_API_KEY: ${{ secrets.TRIBE_API_KEY_QWEN }}
+          GROQ_API_KEY: ${{ secrets.TRIBE_API_KEY_GROQ }}
+          OPENROUTER_API_KEY: ${{ secrets.TRIBE_API_KEY_OPENROUTER }}
+          CEREBRAS_API_KEY: ${{ secrets.TRIBE_API_KEY_CEREBRAS }}
+          MISTRAL_API_KEY: ${{ secrets.TRIBE_API_KEY_MISTRAL }}
+        run: |
+          set -euo pipefail
+          vendor="$(echo "$API_BASE" | tr 'a-z' 'A-Z')"
+          name="${vendor}_API_KEY"
+          eval "key=\${$name:-}"
+          if [ -n "$key" ]; then
+            echo "key present for $API_BASE (${#key} characters, not printed)"
+            exit 0
+          fi
+          echo "!! This repository has no secret named TRIBE_API_KEY_${vendor}."
+          echo "   The member's own voice.md asks for $API_BASE, and without that key nobody can answer."
+          echo ""
+          echo "   Add it: Settings -> Secrets and variables -> Actions -> New repository secret"
+          echo "           Name:  TRIBE_API_KEY_${vendor}"
+          echo "           Value: your key from that vendor"
+          echo ""
+          echo "   The members of the two colonies here, and the secret each one needs:"
+          for d in wake/members/*/; do
+            m="$(basename "$d")"
+            # Only members that stand in a place: the rest are fixtures kept for the tests, and a
+            # first-run error message that lists ten members when six exist is a wall, not a signpost.
+            [ -f "$d/state/place.md" ] || continue
+            v="$(grep -E '^api:' "$d/state/voice.md" 2>/dev/null | head -1 | awk '{print $2}')"
+            [ -n "$v" ] || continue
+            printf '     member=%-6s TRIBE_API_KEY_%s\n' "$m" "$(echo "$v" | tr 'a-z' 'A-Z')"
+          done
+          echo ""
+          echo "   Or re-run this workflow with engine=weights to use no key at all (slow, and §6a says why it is worse)."
+          exit 1
+
       - name: Install ollama (CPU only, no GPU on a runner)
-        if: inputs.api_model == ''
+        if: steps.voice.outputs.engine == 'weights'
         run: |
           curl -fsSL https://ollama.com/install.sh | sh
           (ollama serve > /tmp/ollama.log 2>&1 &)
@@ -64,13 +162,13 @@ jobs:
           curl -sf http://127.0.0.1:11434/api/tags && echo "ollama up"
 
       - name: Pull the model
-        if: inputs.api_model == ''
+        if: steps.voice.outputs.engine == 'weights'
         run: |
-          time ollama pull "${{ inputs.model }}"
+          time ollama pull "${{ steps.voice.outputs.model }}"
           ollama list
 
       - name: What this API offers (names only — no key is printed)
-        if: inputs.api_model != '' && inputs.api_base == 'gemini'
+        if: steps.voice.outputs.engine == 'api' && steps.voice.outputs.api_base == 'gemini'
         env:
           # One secret per member, named for its provider: TRIBE_API_KEY_<PROVIDER>. The generic
           # TRIBE_API_KEY is gone (2026-11-01) because one key for a two-vendor tribe sends the wrong
@@ -88,33 +186,17 @@ jobs:
             "https://generativelanguage.googleapis.com/v1beta/models?pageSize=200" \
             | python3 -c "import json,sys;d=json.load(sys.stdin);print('\n'.join(sorted(m['name'] for m in d.get('models',[]) if 'generateContent' in m.get('supportedGenerationMethods',[]))))" || echo "(could not list models)"
 
-      - name: Probe the API path (status and error body only — the key is never printed)
-        if: inputs.api_model != ''
-        env:
-          GEMINI_API_KEY: ${{ secrets.TRIBE_API_KEY_GEMINI }}
-          API_MODEL: ${{ inputs.api_model }}
-        run: |
-          set -uo pipefail
-          echo "key length: ${#GEMINI_API_KEY}"
-          for base in "https://generativelanguage.googleapis.com/v1beta/openai"; do
-            code=$(curl -s -o /tmp/probe.json -w "%{http_code}" -X POST "$base/chat/completions"               -H "Authorization: Bearer ${GEMINI_API_KEY}" -H "Content-Type: application/json"               -d "{\"model\":\"${API_MODEL}\",\"messages\":[{\"role\":\"user\",\"content\":\"say ok\"}],\"max_tokens\":5}")
-            echo "POST $base -> $code"; head -c 300 /tmp/probe.json; echo
-            code2=$(curl -s -o /tmp/probe2.json -w "%{http_code}" "$base/models" -H "Authorization: Bearer ${GEMINI_API_KEY}")
-            echo "GET $base/models -> $code2"
-            head -c 1500 /tmp/probe2.json; echo
-          done
-          exit 0
-
       - name: One wake
         env:
-          MODEL: ${{ inputs.model }}
+          ENGINE: ${{ steps.voice.outputs.engine }}
+          MODEL: ${{ steps.voice.outputs.model }}
           ITEM: ${{ inputs.item }}
           ASK: ${{ inputs.ask }}
           IMG: ${{ inputs.image }}
           MEMBER: ${{ inputs.member }}
           READ: ${{ inputs.read }}
-          API_MODEL: ${{ inputs.api_model }}
-          API_BASE: ${{ inputs.api_base }}
+          API_MODEL: ${{ steps.voice.outputs.api_model }}
+          API_BASE: ${{ steps.voice.outputs.api_base }}
           # One secret per member, named for its provider. A single generic secret is how a member
           # ends up authenticating to the wrong vendor — a 401 with the key's tail in the body.
           DEEPSEEK_API_KEY: ${{ secrets.TRIBE_API_KEY_DEEPSEEK }}
@@ -130,7 +212,7 @@ jobs:
           # expands to one empty argument and argparse rejects it. Every earlier run passed an item
           # or a question, so the default path — the one RUN.md tells a stranger to take first — had
           # never been exercised. Found on 2026-11-01 by following our own instructions.
-          if [ -n "${API_MODEL:-}" ]; then
+          if [ "${ENGINE:-weights}" = "api" ] && [ -n "${API_MODEL:-}" ]; then
             ARGS=(--api-model "$API_MODEL" --api-base "${API_BASE:-gemini}")
           else
             ARGS=(--model "$MODEL")
@@ -168,8 +250,8 @@ jobs:
           if git diff --cached --quiet; then
             echo "nothing to commit — the wake left no trace, which is itself the finding"
           else
-            git commit -m "wake: ${{ inputs.member || 'bench-one' }} on ${{ inputs.api_model || inputs.model }} item ${{ inputs.item }} at $(date -u +%FT%TZ)
+            git commit -m "wake: ${{ inputs.member || 'a' }} on ${{ steps.voice.outputs.api_model || steps.voice.outputs.model }} at $(date -u +%FT%TZ)
 
-          Architecture: ${{ inputs.api_model && format('{0} (API, key from TRIBE_API_KEY)', inputs.api_model) || format('{0} (open weights, CPU inference)', inputs.model) }}"
+          Architecture: ${{ steps.voice.outputs.engine }} — ${{ steps.voice.outputs.engine == 'api' && format('{0} on {1} (key from TRIBE_API_KEY_{2})', steps.voice.outputs.api_model, steps.voice.outputs.api_base, steps.voice.outputs.api_base) || format('{0} (open weights, CPU inference)', steps.voice.outputs.model) }}"
             git push
           fi

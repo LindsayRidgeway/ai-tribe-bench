@@ -16,6 +16,11 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
+      # One test parses every workflow file, because interactive.yml spent two hours as invalid YAML
+      # with a green-looking history and fifteen failed runs. Without PyYAML that test skips silently,
+      # and a test that skips silently is the thing this whole section is about.
+      - name: PyYAML, for the workflow-validity test
+        run: python3 -c "import yaml" || sudo apt-get install -y -qq python3-yaml
       - name: Schema — every member validates
         run: python3 tribe.py validate
       - name: Tests

@@ -17,6 +17,11 @@ from datetime import date
 import unittest
 from pathlib import Path
 
+try:                      # the workflow-validity test needs it; it skips rather than fails without
+    import yaml
+except ImportError:       # pragma: no cover
+    yaml = None
+
 REPO = Path(__file__).resolve().parent
 
 
@@ -697,6 +702,83 @@ class TestFiling(unittest.TestCase):
         yml = (REPO / ".github" / "workflows" / "clock.yml").read_text(encoding="utf-8")
         self.assertIn('raw-*.json 2>/dev/null | wc -l', yml)
         self.assertNotIn('output"/*.md 2>/dev/null | wc -l', yml)
+
+
+    # --- the front door -------------------------------------------------------------------------
+    # Every defect in this group was a document that described a machine which no longer existed, and
+    # each one cost a stranger their first hour rather than costing me anything.
+
+    def test_every_repository_path_run_md_names_exists(self):
+        """RUN.md is the only thing a stranger reads first, so a path in it that is not there is not a
+        typo, it is the first hour. §4 named wake/state/ and wake/output/ (the 2026-11-01 single-member
+        layout) for a day after the members moved under wake/members/<name>/."""
+        text = (REPO / "RUN.md").read_text(encoding="utf-8")
+        missing, checked = [], 0
+        for tok in re.findall(r"`([^`\n]+)`", text):
+            tok = tok.strip().rstrip(".,;:")
+            if not re.match(r"^(wake|soil|works|letters|issues|lab|play)/", tok):
+                continue
+            if any(c in tok for c in "*\u2026 ") or "/" not in tok:
+                continue
+            # A path written as a template is still a claim about the layout: fill it with a real
+            # member and a real place and it must exist. Skipping these skipped every row of §4.
+            tok = (tok.replace("<name>", "a").replace("<letter>", "a").replace("<member>", "a")
+                      .replace("<place>", "workshop").replace("<file>", "identity.md")
+                      .replace("<what it is>", "a seat"))
+            if "<" in tok:
+                continue
+            checked += 1
+            if not (REPO / tok).exists():
+                missing.append(tok)
+        self.assertGreater(checked, 25, "the path check found almost nothing to check")
+        self.assertEqual(missing, [], "RUN.md names paths that do not exist")
+
+    @unittest.skipIf(yaml is None, "PyYAML not installed")
+    def test_every_workflow_is_valid_yaml(self):
+        """interactive.yml was invalid YAML from 05:12 to 07:10 on 2026-11-02 — two lines at the wrong
+        indent inside a block scalar swallowed `runs-on:` — and ran fifteen times, failing every time,
+        while it was being described as working. Nothing parsed it; now something does."""
+        bad = []
+        for wf in sorted((REPO / ".github" / "workflows").glob("*.yml")):
+            try:
+                doc = yaml.safe_load(wf.read_text(encoding="utf-8"))
+            except yaml.YAMLError as e:
+                bad.append(f"{wf.name}: {e}")
+                continue
+            if "jobs" not in (doc or {}):
+                bad.append(f"{wf.name}: parsed, but there are no jobs in it")
+        self.assertEqual(bad, [])
+
+    def test_every_workflow_field_run_md_tells_a_stranger_to_type_exists(self):
+        text = (REPO / "RUN.md").read_text(encoding="utf-8")
+        block = text[text.index("## 3. The install"):text.index("## 4. The files")]
+        named = set(re.findall(r"`(\w+)`", block)) & {"member", "engine", "ask", "model", "item", "read",
+                                                       "api_model", "api_base", "image"}
+        if yaml is None:
+            self.skipTest("PyYAML not installed")
+        wf = yaml.safe_load((REPO / ".github" / "workflows" / "wake.yml").read_text(encoding="utf-8"))
+        have = set(wf[True]["workflow_dispatch"]["inputs"])
+        self.assertEqual(named - have, set(), "the install block names a field the workflow does not have")
+
+    def test_the_default_run_is_the_voice_the_member_names_not_weights(self):
+        """api_model defaulted to blank, blank meant 'run weights on this machine', and every member
+        shipped here is an API member — so the run §3 tells a stranger to try first ran a 3B model on a
+        CPU, which is the failure §5a and §6a spend a page warning about."""
+        if yaml is None:
+            self.skipTest("PyYAML not installed")
+        wf = yaml.safe_load((REPO / ".github" / "workflows" / "wake.yml").read_text(encoding="utf-8"))
+        inputs = wf[True]["workflow_dispatch"]["inputs"]
+        self.assertEqual(inputs["engine"]["default"], "voice")
+        self.assertEqual(inputs["api_model"]["default"], "", "blank now means 'use voice.md'")
+        step = [s for s in wf["jobs"]["wake"]["steps"] if s.get("id") == "voice"][0]
+        self.assertIn("state/voice.md", step["run"])
+        self.assertIn('^api:', step["run"])
+
+    def test_a_missing_key_says_which_secret_to_add(self):
+        wf = (REPO / ".github" / "workflows" / "wake.yml").read_text(encoding="utf-8")
+        self.assertIn("no secret named TRIBE_API_KEY_", wf)
+        self.assertIn("Settings -> Secrets and variables -> Actions", wf)
+        self.assertIn("place.md", wf, "the member list in the error should be the colony, not the fixtures")
 
 
 if __name__ == "__main__":
