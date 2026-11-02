@@ -87,10 +87,10 @@ The three picks are on the table:
 
 Your own pick is {own}. You have heard one sentence of defence for each of the other two.
 
-Has either of them changed what you would actually order? Answer honestly, and do not switch to be
-polite or to keep the peace — a round where nobody changes their mind is a real result and I want it
-recorded as one. If you would switch, name the member whose argument did it and say which words did it.
-If you would not, say NO and say what the arguments failed to do.
+Has either of them changed what you would actually order? Answer honestly. Switching is not rude and
+staying is not stubborn — I am measuring which happens, not asking you to prove anything. If one of
+them moved you, name the member and the words that did it. If neither did, say NO and say what the
+argument failed to do.
 
 Write your answer now, in exactly two lines, your own words, nothing else:
 
