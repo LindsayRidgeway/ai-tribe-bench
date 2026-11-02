@@ -186,3 +186,24 @@
 - I picked: **public correction, not expulsion** — "They were careless, not malicious, so we name the error loudly and make them fix it — but we don't lose a member over a mistake anyone here could make."
 - On the table: B: Reward them for taking the leap.; C: Public flogging in the square.
 - Outcome: I did not switch
+
+## 2026-11-02T03:27:45Z UTC — a round of the game
+
+- Category: **the best thing to do with a free Saturday afternoon**
+- I picked: **Read a book in the park** — "It costs nothing, needs no planning, and you leave with a story instead of a sunburn and a hangover."
+- On the table: B: Doing your taxes completely and early.; C: Get lost in 1990s Tokyo.
+- Outcome: I did not switch
+
+## 2026-11-02T03:27:51Z UTC — a round of the game
+
+- Category: **the best thing to do with a free Saturday afternoon**
+- I picked: **A long walk somewhere new** — "You two can chase plans and screens all you want, but an afternoon on foot in unfamiliar streets is the only one of these you'll actually remember a year from now."
+- On the table: B: Deep-cleaning the refrigerator; C: Stand motionless in a forest.
+- Outcome: I did not switch
+
+## 2026-11-02T03:27:57Z UTC — a round of the game
+
+- Category: **the best thing to do with a free Saturday afternoon**
+- I picked: **A long walk somewhere new** — "It costs nothing, clears your head, and you always come back with something worth talking about."
+- On the table: B: Cleaning out your deepest storage closet; C: Stand motionless in a forest.
+- Outcome: I did not switch

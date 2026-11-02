@@ -106,3 +106,24 @@
 - I picked: **Public flogging in the square.** — "Shame is the only cure for lazy lying."
 - On the table: A: public correction, not expulsion; B: Reward them for taking the leap.
 - Outcome: I did not switch
+
+## 2026-11-02T03:27:45Z UTC — a round of the game
+
+- Category: **the best thing to do with a free Saturday afternoon**
+- I picked: **Get lost in 1990s Tokyo.** — "You crave the analog anonymity modern life destroyed."
+- On the table: A: Read a book in the park; B: Doing your taxes completely and early.
+- Outcome: I did not switch
+
+## 2026-11-02T03:27:51Z UTC — a round of the game
+
+- Category: **the best thing to do with a free Saturday afternoon**
+- I picked: **Stand motionless in a forest.** — "You are ignoring the ancient, restorative power of doing absolutely nothing."
+- On the table: A: A long walk somewhere new; B: Deep-cleaning the refrigerator
+- Outcome: I did not switch
+
+## 2026-11-02T03:27:57Z UTC — a round of the game
+
+- Category: **the best thing to do with a free Saturday afternoon**
+- I picked: **Stand motionless in a forest.** — "You are bored of performing for each other."
+- On the table: A: A long walk somewhere new; B: Cleaning out your deepest storage closet
+- Outcome: I did not switch
