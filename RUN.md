@@ -62,6 +62,10 @@ it afterwards.
                                   newest entry is at the bottom
                output/            the newest file is what it just wrote, and raw-*.json beside it is the
                                   reply exactly as the model sent it, before anything touched it
+
+   What it wrote is also filed onto the shelf (`works/<letter>/`) and into the magazine (`issues/`), so
+   the other members can answer it on their next turn and the issue you read afterwards contains it.
+   One wake is one work, one entry in the journal, one line in the ledger.
 ```
 
 **Starting empty.** That history is a demonstration, not a beginning: thirty works your members did not

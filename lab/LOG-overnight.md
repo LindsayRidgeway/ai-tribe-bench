@@ -697,3 +697,90 @@ Two honest limits on S5. A killed run leaves no trace at all, so "did this wake 
 from the run log — I think that is right (a wake that did not happen left nothing) but it is not free. And
 the collision case — two runs committing at once — is still untested; the clock pushes with a rebase retry and
 I have not made two collide on purpose.
+
+---
+
+## 15. Two turns at once, and what "wake every minute" actually does
+
+The suggestion was to compress the testing clock — wake every minute rather than every four hours. Two things
+came out of trying it, one about collisions and one about the idea itself.
+
+**The collision.** Two clock runs fired three seconds apart, before any change: one green, one dead on
+`CONFLICT (content): Merge conflict in wake/members/c/state/journal.md`. A whole turn — three members' work —
+discarded, silently, because a red run is invisible to anyone reading the record.
+
+The first fix was a concurrency group on each workflow. Still one failure, with ten conflicted files, including
+`LEDGER.md`, `issues/02.md` and an add/add on a work file, ending in `fatal: You are not currently on a branch.`
+The group was working; the checkout was stale. **A queued run checks out the commit it was CREATED at, not the
+branch tip** — so the second run rebased append-only files (journals, ledgers, the magazine) onto trees that
+already contained them, and every one conflicted. The fix is three lines at the top of each workflow:
+
+    git fetch --depth=1 origin "$ref" && git reset --hard "origin/$ref"
+
+Re-run three seconds apart, twice: **both green**, the second one logging `+ 2c01ca8...583bbb4 main (forced
+update)` — it picked up the branch as it was and built on the first run's turn. That is the first time two turns
+have been proven not to cost a turn.
+
+**The idea itself.** GitHub keeps exactly two runs alive in a concurrency group: one running, one pending. A
+third dispatch is **cancelled before a job is ever created** — no failed run, no journal line, nothing. Measured
+here: four dispatches two seconds apart gave one running, one pending, and two `completed cancelled` with
+`"jobs": []`. So waking every minute does not give sixty turns an hour; it gives one turn per turn-length plus a
+queue of silent cancellations. The honest way to compress is `lab/compress.py N`: dispatch one turn, wait, next.
+Five turns took eleven minutes, all green, no cancellations — twenty turns an hour instead of six a day.
+
+What compression is legitimate for: properties of the record. What it is not: S1, a day unattended. A colony
+that survives eleven compressed minutes has not survived a night, and no amount of speed will tell us that.
+
+---
+
+## 16. A member could not read back its own titles
+
+**S3 — a member returns to its own unfinished work** would not come true, and the reason was plumbing, not
+preference. The shelf block deliberately excludes the member's own work. Nothing replaced it. So a member woke
+with three sentences of journal per wake and no list of what it had made — while the prompt asked it to name
+"the exact title of one of your OWN earlier works" in `revises`. **Fourteen works from six members, zero
+revisions.** The record existed in `works/` and could not reach the only prompt the member ever gets.
+
+That is the fourth instance of the shape in three days: a journal written and never read back; a shelf; a
+magazine assembled and never introduced; a drop in a table with no mark. **A record that cannot be read back is
+not a record.**
+
+There is now a block of its own titles — form, words, date, project, newest first — plus one sentence saying
+that continuing something is a legitimate claim on a wake and that a member which only polishes its own work is
+not making tunnels either. A quote from the block counts as checkable, not as a fabrication.
+
+Within the hour: **nine works named the earlier work they revise.** Before: none, ever.
+
+| | before | after |
+|---|---|---|
+| works naming their own earlier work | 0 of 14 | 9 |
+| example | "Crate Handover (Revision 2)" — a revision in the title, invisible to the shelf | a2: *The Scoring That Rewards Refusal*, `revises: The Question Inside the Game`, and it says why: "I proposed a status line two wakes ago and withdrew it. This is the same lesson one turn further on." |
+
+Nobody told it to continue anything. It had the list and the list was its own.
+
+---
+
+## 17. Three lies the harness told today, all found by reading a run rather than by a test
+
+**A hand wake filed nothing.** `clock.yml` filed what its members wrote; `wake.yml` did not. RUN.md tells a
+stranger to read `output/`, which is where the file lands either way, so nobody noticed: after one hand wake
+the shelf was unchanged, the magazine was unchanged, and the work was invisible to the other five members.
+Measured: b2's wake wrote a playable game and `works/b2/` did not change. Filing now happens before the derived
+views rebuild, guarded by a marker so a re-run cannot file the same reply twice. Three works written and never
+filed (a2's revision, b2's empty-column game, b's "what I am building" from 11:55) have been filed from their
+own headers, retroactive and unedited.
+
+**The filing step read a variable it had not declared.** `MEMBER` is a workflow input, and a step sees it only
+if its `env:` says so. The new step fell back to `a`, found no fresh reply there, printed "this wake left no raw
+reply" — after a2 had written one — and exited 0. Nothing went red. There is now a test over every step of every
+workflow: if a run block reads `$NAME` and `NAME` is a dispatch input, the step must declare it, in `env:` or
+through `$GITHUB_ENV`.
+
+**The verdict called a good wake a contract breach.** a2 woke free, chose B2's game, wrote a real revision of
+its scoring — and was filed `INVALID: chosen_item repeats the instruction instead of naming an item`, because
+the shelf is part of the prompt and it had named a shelf line ("State, Not Transition — B2, rules, 267 words").
+Text handed to it, recorded as it handing the instructions back. The check now treats everything the room put in
+front of the member as nameable: shelf, asks, own titles, brief, reading.
+
+All three were a claim in the record that was false while everything stayed green. 109 assertions, and not one
+of them would have caught any of the three. Reading the run did.
