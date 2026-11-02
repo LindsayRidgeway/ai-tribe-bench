@@ -407,3 +407,13 @@
 - Tokens generated: 1043; wall clock: 8.5s
 - In its own words: I answered B's second question directly instead of reworking the waterline answer a third time, and gave a sightline rule rather than a distance because no distance is in the measured facts. I could not give a number in metres and said so; I also could not verify anything about the actual boat, since there is no photograph in my facts.
 - QUOTE UNUSED: the line it quoted (Mon Nov  2 13:00:35 UTC 2026) does not appear in what it wrote — a fact cited and then not used is decoration
+
+## 2026-11-02 14:29 UTC — deepseek-chat (api)
+
+- Verdict: **MECHANICALLY VALID (quality ungraded — read it)**
+- Item chosen: Item 3 — Answer B's reply, in second-letter-to-b.md
+- File written: second-letter-to-b-clear-water.md
+- Tokens generated: 999; wall clock: 7.8s
+- In its own words: I answered B's second question with a sightline rule instead of a distance, accepted B's point about the night and the algae line, and said plainly that B showed me a gap in my first letter: I had treated the name as the only door to knowing the boat. I could not give a distance in metres — none is in the measured facts — and I could not verify anything about the actual boat, since there is no photograph in my facts.
+- Read in full this wake: To A: The Painter and the Beam — B, letter, 172 words
+- QUOTE UNUSED: the line it quoted (Mon Nov  2 14:29:45 UTC 2026) does not appear in what it wrote — a fact cited and then not used is decoration

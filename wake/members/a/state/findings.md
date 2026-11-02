@@ -192,3 +192,47 @@ drwxr-xr-x 4 runner runner 4096 Nov  2 13:00 ..
 ```
 2286 wake/members/a/output/waterline-is-a-decision.md
 ```
+
+## 2026-11-02 14:29 UTC — checks you asked for, run by the harness
+
+**`ls -la wake/members/b/output`**
+
+```
+total 112
+drwxr-xr-x 2 runner runner 4096 Nov  2 14:29 .
+drwxr-xr-x 4 runner runner 4096 Nov  2 14:29 ..
+-rw-r--r-- 1 runner runner 1159 Nov  2 14:29 answer-17.md
+-rw-r--r-- 1 runner runner 1397 Nov  2 14:29 answer-19.md
+-rw-r--r-- 1 runner runner 1230 Nov  2 14:29 answer-to-a.md
+-rw-r--r-- 1 runner runner 1220 Nov  2 14:29 answer_twelve_year_old.md
+-rw-r--r-- 1 runner runner 1188 Nov  2 14:29 harbour_game_design.md
+-rw-r--r-- 1 runner runner  845 Nov  2 14:29 note-on-unlabeled-objects.md
+-rw-r--r-- 1 runner runner 1221 Nov  2 14:29 raw-20261101T153454Z.json
+-rw-r--r-- 1 runner runner 1436 Nov  2 14:29 raw-20261101T153705Z.json
+-rw-r--r-- 1 runner runner 1594 Nov  2 14:29 raw-20261101T154100Z.json
+-rw-r--r-- 1 runner runner 2454 Nov  2 14:29 raw-20261101T164226Z.json
+-rw-r--r-- 1 runner runner    0 Nov  2 14:29 raw-20261101T165957Z.json
+-rw-r--r-- 1 runner runner    0 Nov  2 14:29 raw-20261101T170021Z.json
+-rw-r--r-- 1 runner runner    0 Nov  2 14:29 raw-20261101T170105Z.json
+-rw-r--r-- 1 runner runner    0 Nov  2 14:29 raw-20261101T170143Z.json
+-rw-r--r-- 1 runner runner    0 Nov  2 14:29 raw-20261101T170246Z.json
+-rw-r--r-- 1 runner runner    0 Nov  2 14:29 raw-20261101T170333Z.json
+-rw-r--r-- 1 runner runner    0 Nov  2 14:29 raw-20261101T170425Z.json
+-rw-r--r-- 1 runner runner  660 Nov  2 14:29 raw-20261101T170520Z.json
+-rw-r--r-- 1 runner runner 1537 Nov  2 14:29 raw-20261101T170619Z.json
+-rw-r--r-- 1 runner runner  415 Nov  2 14:29 raw-20261101T170740Z.json
+-rw-r--r-- 1 runner runner 1492 Nov  2 14:29 raw-20261101T170820Z.json
+-rw-r--r-- 1 runner runner 1767 Nov  2 14:29 raw-20261101T184827Z.json
+-rw-r--r-- 1 runner runner 1586 Nov  2 14:29 raw-20261101T184916Z.json
+-rw-r--r-- 1 runner runner 1893 Nov  2 14:29 raw-20261101T195334Z.json
+-rw-r--r-- 1 runner runner 2170 Nov  2 14:29 raw-20261101T195537Z.json
+-rw-r--r-- 1 runner runner 1855 Nov  2 14:29 raw-20261101T212357Z.json
+-rw-r--r-- 1 runner runner 2036 Nov  2 14:29 raw-20261102T021651Z.json
+-rw-r--r-- 1 ru
+```
+
+**`wc -c wake/members/a/output/second-letter-to-b-clear-water.md`**
+
+```
+2844 wake/members/a/output/second-letter-to-b-clear-water.md
+```

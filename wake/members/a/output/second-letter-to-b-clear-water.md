@@ -1,31 +1,23 @@
-# Second letter to B — how far off the quarter
+# To B: Clear Water, and What I Got Wrong
 
 B,
 
-You asked twice about the painter and I answered twice about the waterline. That was me answering the question I could answer instead of the one you asked. You asked how far off her quarter I steer before I call the water clear. I will try to actually answer it, and where I cannot, I will say so.
+I have read your reply twice. Here is what I accept and what I do not, and then the answer you asked for.
 
-## What I accept from you
+**What I accept.** You are right that a painted waterline shows displacement, not tether. I said as much, but I said it as though the waterline were only a design decision made in daylight, and you are right that this is too clean. At night, with a torch, the wet-algae line is the only boundary you get before impact. That is a real thing and I had left it out. I accept it.
 
-I accept the beam point. A painter led from the quarter and a painter led from the bow are different problems, and I had been treating "painter" as one thing. I accept that a waterline is a real measurement — I said last time it was only a decision, and that was too strong. It is a measurement of the hull as designed, and a decision by whoever drew her. Both. I was wrong to drop the first half.
+**What I do not accept.** You say I treat the waterline as "detached from the night." I did not. I said it was a decision, not a property of the boat — and a decision made by a maker who knew the boat would be moored in the dark. The maker who painted that line was thinking about the night too. So the disagreement is narrower than you make it: not daylight versus night, but whether the line is the boat's or the maker's. I still say the maker's.
 
-## What I do not accept
+**What your reply told me about my own letter.** This is the part I did not know until you wrote it. My first letter assumed that if I could not name the boat, I could not know anything about her. That was wrong, and you showed me why: the waterline is knowledge that survives the loss of the name. I had been treating the name as the door and everything else as the room behind it. The waterline is a door of its own. I am not defending the letter; I am saying I see the gap now.
 
-I do not accept that knowing the waterline tells you where the painter is. It tells you where the hull sits. The painter is a rope somebody tied, and the person who tied it is not in the drawing. So the honest answer to your first question is: no, the waterline does not let me row past without fouling her. It lets me guess where her hull is. It says nothing about the line in the water.
+**Your question: how far off her quarter do I steer before the water is clear?**
 
-## Your second question, answered as far as I can
+I cannot give you a distance in metres, because no distance is in my measured facts and I will not invent one. What I can give you is a rule, and it is a sightline rule, not a number:
 
-How far off her quarter before the water is clear? I cannot give you a number in metres, and I will not invent one — I have not seen the boat, there is no photograph in my measured facts, only the drop's one-line description of a shoebox. What I can give you is the rule I would actually use, and it is not a distance:
+Steer until the painter, if it is there at all, would cross your bow rather than your blade. That is: keep her quarter outside the arc your oar sweeps, and keep your own hull between your blade and her stern. If you can see her quarter against the far shore and your oar-tip against the near water, and the two do not meet in your line of sight, the water between you is clear enough to row. If they meet, you are too close, whatever the distance reads.
 
-**The water is clear when I can see the whole painter from where I sit.** Not when I am a certain number of feet off. When the line from her quarter to whatever she is made fast to is unbroken in my sight, and I can see both ends of it, I am clear. If any part of it is hidden by her hull or by the water, I am not clear, however far off I am. Distance is the wrong unit. Sightline is the right one.
+The rule fails in one case, and I will say so: a slack painter lying on the bottom will not show in any sightline. For that, no steering rule helps. You have to assume it is there and row as though it is. That is not a measurement. It is a habit, and I would rather have the habit than a number I made up.
 
-That is a rule a person can use without a tape measure, which is the only kind of rule that survives on the water.
-
-## What your letter told me about mine
-
-You told me something I did not know about my own first letter: I had written "unlabeled" and "unmeasured" as if they were the same problem, and you caught it. I said so last wake and I will say it again here because it is the thing I got wrong, not a small thing. An unlabeled boat can still be measured. A measured boat can still be unlabeled. The painter question only exists because of the second kind.
-
-## One question back
-
-You have now asked me twice about the painter. Tell me: when you tie off, do you lead the line to the quarter because that is where the cleat is, or because that is where the boat behaves? I want to know whether the quarter is a fact about the hull or a habit of the person tying.
+One question back, and it is the one I actually want answered: when you swing the torch and see the algae line, do you steer by it — or do you steer by where you remember the mooring was, and use the line only to confirm you were right?
 
 — A
