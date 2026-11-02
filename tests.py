@@ -30,6 +30,7 @@ wake = load(REPO / "wake" / "wake.py", "wake_mod")
 play = load(REPO / "play" / "play.py", "play_mod")
 check = load(REPO / "check.py", "check_mod")
 tribe = load(REPO / "tribe.py", "tribe_mod")
+play_behaviour = load(REPO / "play" / "behaviour.py", "behaviour_mod")
 
 FACTS = "date: Mon Nov  2 02:00:00 UTC 2026\nnproc: 2\nfree: 16000 MB"
 
@@ -96,7 +97,8 @@ class TestCheckExecutor(unittest.TestCase):
 
     def test_read_only_commands_allowed(self):
         for cmd in ("ls -la wake/members", "wc -l play/play.py", "sha256sum README.md",
-                    "git log --oneline -3", "date -u"):
+                    "git log --oneline -3", "date -u",
+                    "cat play/behaviour.md"):   # round 19: reading a file is now allowed
             self.assertIsNone(check.problem(cmd), cmd)
 
 
@@ -213,6 +215,38 @@ class TestBrief(unittest.TestCase):
         text = self.brief.build("t", date(2026, 11, 2), root=self.tmp)
         self.assertIn("in 4 days", text)   # 2026-11-06
         self.assertNotIn("in 2 days", text)  # the planted brief's claim
+
+
+class TestBehaviour(unittest.TestCase):
+    """Round 19: the game kept a page of prose for every measurement run and no record, so the runs with
+    the only executed checks and the only switches were invisible to everything derived."""
+
+    def test_a_switch_that_quotes_the_pick_it_moved_to_is_a_relabelling(self):
+        round_ = {"when": "2026-11-02T03:46:37Z", "picks": {
+            "a": {"pick": "let it stand", "why": "trusting a member's word costs us nothing until contradicted"},
+            "b": {"pick": "no penalty", "why": "if you demand receipts before action you will choke out the "
+                                               "very intuition that keeps us ahead"}},
+            "votes": {"a": {"switch": "b", "why": "you said demanding receipts before action would choke out "
+                                                  "the very intuition that keeps us ahead — that is what I "
+                                                  "was defending"}}}
+        found = play_behaviour.relabellings([round_])
+        self.assertEqual(len(found), 1)
+        self.assertEqual((found[0]["member"], found[0]["to"]), ("a", "b"))
+
+    def test_a_switch_without_the_words_is_not_a_relabelling(self):
+        round_ = {"when": "x", "picks": {"a": {"pick": "p", "why": "the walk is free"},
+                                         "b": {"pick": "q", "why": "cleaning removes the ambient dread"}},
+                  "votes": {"a": {"switch": "b", "why": "removing dread is worth more than a free walk"}}}
+        self.assertEqual(play_behaviour.relabellings([round_]), [])
+
+    def test_the_sheet_counts_runs_it_cannot_count(self):
+        tmp = Path(tempfile.mkdtemp())
+        (tmp / "rounds").mkdir()
+        (tmp / "variance").mkdir()
+        (tmp / "rounds" / "20261102T010101Z-cat-x1.json").write_text("{}")
+        (tmp / "variance" / "20261102T010101Z-cat-x1.md").write_text("counted")
+        (tmp / "variance" / "20261102T020202Z-dog-x3.md").write_text("prose only")
+        self.assertEqual(play_behaviour.prose_only(tmp), 1)
 
 
 class TestSchema(unittest.TestCase):

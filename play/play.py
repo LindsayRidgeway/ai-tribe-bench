@@ -24,7 +24,9 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent))
+sys.path.insert(0, str(HERE))
 import check as checker  # noqa: E402 — the read-only executor, so a claim can be met by a result
+import behaviour  # noqa: E402 — the behavioural record, derived from the round files
 
 ROUNDS = HERE / "rounds"
 SCOREBOARD = HERE / "scoreboard.md"
@@ -297,13 +299,27 @@ def facts_sheet() -> str:
     rounds = len(list((HERE / "rounds").glob("*.json")))
     variance = len(list((HERE / "variance").glob("*.md")))
     members = len([d for d in (HERE.parent / "wake" / "members").glob("*") if d.is_dir()])
+    try:
+        b = behaviour.summary(behaviour.load())
+        behavioural = [
+            f"  rounds with a record:   {b['rounds']}  (median call {b['secs_median']:.1f} s, "
+            f"{b['calls']} calls measured)",
+            f"  claims challenged:      {b['claims_challenged']}",
+            f"  checks executed:        {b['executed']}  ({b['refused']} refused)",
+            f"  challenged claims that stood / amended / withdrew: {b['stand']} / {b['amend']} / "
+            f"{b['withdraw']}",
+            f"  picks changed:          {b['switches']}  (of which relabellings: {b['relabellings']})",
+            "  the full sheet, readable with `cat play/behaviour.md`",
+        ]
+    except Exception as e:  # noqa: BLE001 — a broken sheet must not stop a round
+        behavioural = [f"  (the behavioural sheet could not be computed: {e})"]
     lines = [f"  rounds played and kept: {rounds}",
              f"  measurement runs kept:  {variance}",
              f"  members on disk:        {members}",
              f"  lines in play/play.py:  {checker.run('wc -l play/play.py', HERE.parent).strip()}",
              f"  lines in wake/wake.py:  {checker.run('wc -l wake/wake.py', HERE.parent).strip()}",
              f"  commits:                {checker.run('git rev-parse --short HEAD', HERE.parent).strip()[:40]}"]
-    return "\n".join(lines)
+    return "\n".join(behavioural + lines)
 
 
 def owner_of(claim: str, check_text: str, picks: dict, live: list, asker: str) -> str:
@@ -1054,6 +1070,11 @@ def main() -> int:
                          "not a played round: the standings are left alone.")
     args = ap.parse_args()
 
+    try:
+        behaviour.main(["--write"])
+    except Exception as e:  # noqa: BLE001
+        print(f"!! behaviour sheet not regenerated: {e}", file=sys.stderr)
+
     if args.dry_run:
         print("=== pick prompts ===")
         for l, (model, _p, seat, stance) in SEATS.items():
@@ -1077,6 +1098,13 @@ def main() -> int:
             blocks.append(f"\n---\n\n### Run {i + 1} of {args.repeat}\n\n{t}")
             records.append(rec)
             journal_the_round(rec)   # a measurement run is still a thing the member did
+            # Round 19: for six measurement runs the game kept a page of prose and no record. Everything
+            # derived — the behavioural sheet, the derived vote log, the standings — was blind to the runs
+            # that produced the only executed checks and the only switches in the project. A run that is
+            # written down but never written in a form anything can count does not exist.
+            ROUNDS.mkdir(parents=True, exist_ok=True)
+            (ROUNDS / f"{stamp}-{rec['slug']}-x{i + 1}.json").write_text(
+                json.dumps(rec, indent=2), encoding="utf-8")
             print(f"run {i + 1}/{args.repeat}: " + " | ".join(
                 f"{l.upper()}={rec['picks'][l]['pick'] or '(none)'}" for l in SEATS))
         summary = variance(records)

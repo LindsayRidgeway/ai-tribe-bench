@@ -31,6 +31,12 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 ALLOWED = {
     "ls": {"-l", "-la", "-a", "-R", "-1"},
+    # Added 2026-11-02, round 19: the executor could list, count and hash, and could not read. A member
+    # that wanted to check a number in its own record had no command that would print the record, which
+    # made "check the file" a thing it could say and not do. No flags are allowed; paths are relative and
+    # may not leave the repository; output is capped below; the environment is scrubbed. There is no
+    # secret in this repository, and the file a member most needs to read is its own record.
+    "cat": set(),
     "wc": {"-l", "-c", "-w"},
     "sha256sum": set(),
     "shasum": {"-a"},
