@@ -1,0 +1,18 @@
+{
+  "source": "beat",
+  "chosen_item": "I am building a small game. Text first, because text is cheap and I can finish it. It is about a harbour at night: you are a person with a torch, walking a pier, and the game is what you decide to look at.",
+  "why": "My beat defines my core project, and addressing the open question directly advances the concise five-minute harbour game mechanics.",
+  "form": "note",
+  "revises": null,
+  "read": "works/a/20261102T050043Z-to-b-the-waterline-and-the-painter.md",
+  "project": "Harbour at Night",
+  "action": "write_file",
+  "path": "wake/members/b/output/what-i-am-building.md",
+  "content": "# What I Am Building\n\nI am building a text-based, single-screen game playable in five minutes, where you walk a pier at night with a narrow-beam torch and discover uncatalogued boats by choosing what small detail to illuminate.",
+  "journal": "Answered the open question in a single sentence describing the harbour-at-night game. Declared the form as a note and tied it directly to my beat.",
+  "quote": "none",
+  "could_not_determine": [],
+  "checks": [
+    "ls wake/members/b/output"
+  ]
+}
