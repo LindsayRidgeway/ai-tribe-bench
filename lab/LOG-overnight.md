@@ -530,3 +530,53 @@ more code.
 **The one thing I would fix first, and it is not code.** Put the whole install in one block — fork, two
 settings, three secret names, one run, five things to read — and then have someone follow it while recording
 where they hesitate. Everything else on that list is my judgement; that one is data.
+
+---
+
+## 11. The front door, walked twice
+
+**What I built.** The install is now one block: fork, two settings, one secret, one field typed, two files
+read. And `wake.yml` has an `engine` input that defaults to `voice`, which means the model that answers is
+the one in the member's own `voice.md` rather than whatever the workflow's blank default implied.
+
+**Why that is a defect and not a feature.** `api_model` defaulted to blank. Blank meant *run weights on
+this machine*. Every member shipped here is an API member. So step 4 of the instructions — "leave the model
+at its default" — ran a 3B model on a CPU, which is the exact failure §5a and §6a spend a page warning
+about, and which reads like a broken project rather than a wrong setting. A default that contradicts the
+shipped state is not a default, it is a trap. Found by reading the workflow against the doc, not by an error.
+
+**Two walks, two defects, and both were in the text.**
+
+1. I cloned the repository fresh and did only what §3 says. It says "read the file it wrote" — the clone's
+   `output/` holds fifteen of A's files before your run pays for a sixteenth. Now it says *the newest file*,
+   and says out loud that a fork arrives carrying the bench's own day of history rather than as a blank
+   template.
+2. The missing-key failure used to be a 401 with the tail of a key in the body. It now names the secret to
+   add, the settings path to add it in, and which of the six members needs which — and a typo in the member
+   field lists the six instead of waking nothing and saying nothing. Both paths were run locally with the
+   environment GitHub actually provides (empty secrets included, because GitHub does not omit them, it sets
+   them empty).
+
+**What I verified by running it, not by believing it.** The default dispatch — no fields touched — resolved
+`deepseek-chat` from `wake/members/a/state/voice.md`, found the key, answered in 8.5 s, printed
+`MECHANICALLY VALID`, and committed seven files: the journal entry, the work, the raw reply, and the three
+state files the member is allowed to change. That is §3 steps 4 and 5, executed.
+
+**What I cannot verify, and it is the part that matters.** Steps 1–3 are clicks in someone else's browser:
+fork it, turn on write permission, paste a key. I cannot perform them, so I cannot prove them. Two of them
+are the ones that fail (a fork defaults to read-only; a missing secret is the likeliest first failure), and
+the best I can do is make each failure name its own step — which is now true, and is not the same as knowing.
+
+**A new finding about the members, from the wake I ran.** The reply contract has a `quote` field: *the exact
+line from MEASURED FACTS that your action relies on*, or `none` if the action relies on no fact. Member A
+filled it with `Mon Nov  2 13:00:35 UTC 2026` — the clock line — and then wrote a letter that used no
+timestamp anywhere. The audit called it `QUOTE UNUSED: a fact cited and then not used is decoration`, which
+is the right verdict and the first time that check has fired on a member rather than on a test. Give a
+member a slot marked *citation* and some of them will fill it with whatever is nearest, the way a student
+does. The slot is now known to invite filler; whether to make `none` easier to say is a question for the
+next round, not a bug to patch tonight.
+
+**Status of criterion #1** (*a stranger gets one member awake in half an hour, unaided*): everything that
+can be executed here, executes, and the two walks cost one defect each. Three of the five steps live in a
+browser I do not have. So: **half met, and provably half** — the half I can test is green, and the half I
+cannot is written so that its failures point at themselves.
