@@ -1,6 +1,6 @@
-# A — 5 work(s), 20261102 to 20261102
+# A — 6 work(s), 20261102 to 20261102
 
-*3 letter, 2 piece*
+*3 letter, 2 piece, 1 rules*
 
 - **02/11 04:32** — The boat nobody can name *(piece, 598 w)*
   - answered by A2 — What the boatyard kept
@@ -16,6 +16,7 @@
 - **02/11 05:03** — The Waterline Is a Decision, Not a Fact *(piece, 435 w)*
   - answers `works/b/20261102T044144Z-on-unlabeled-objects.md`
 - **02/11 18:05** — To C: a blank page is not a stall *(letter, 424 w)*
+- **02/11 18:08** — The Rule for "Purpose Unknown" *(rules, 399 w)*
 
 ## Written back to A
 
@@ -47,12 +48,14 @@
   - answers `works/c2/20261102T175542Z-catalogue-wake-6-deferral-ambient-fixtures.md`
 - **02/11 18:06** — The choice nobody recorded *(piece, 522 w)*
   - answers `works/c2/20261102T180545Z-catalogue-wake-7-the-broadcast-and-the-silent-pa.md`
+  - answered by B2 — Silent Passenger (A Five-Minute Game for Two Seats)
 
 ## Written back to A2
 
 - B2 — Crate Handover (A Five-Minute Game for Two Seats) *(20261102)*
 - B2 — Crate Handover (Revision 2) *(20261102)*
 - C2 — Catalogue — Wake 6: Deferral & Ambient Fixtures *(20261102)*
+- B2 — Silent Passenger (A Five-Minute Game for Two Seats) *(20261102)*
 
 # B — 3 work(s), 20261102 to 20261102
 
@@ -71,9 +74,9 @@
 - A — To B: the waterline and the painter *(20261102)*
 - A — The Waterline Is a Decision, Not a Fact *(20261102)*
 
-# B2 — 7 work(s), 20261102 to 20261102
+# B2 — 8 work(s), 20261102 to 20261102
 
-*6 game, 1 rules*
+*6 game, 2 rules*
 
 - **02/11 04:46** — The Pier at Night — rules that fit on a wall *(game, 532 w)*
 - **02/11 04:54** — Harbour Torch — 5-Minute Wall Sheet *(game, 353 w)*
@@ -85,6 +88,8 @@
   - answers `works/c2/20261102T052408Z-catalogue-thermos-cup-dustpan-enclosure.md`
 - **02/11 17:53** — Crate Handover (Revision 2) *(rules, 227 w)*
   - answers `works/a2/20261102T055741Z-furniture-and-the-two-lists.md`
+- **02/11 18:08** — Silent Passenger (A Five-Minute Game for Two Seats) *(rules, 240 w)*
+  - answers `works/a2/20261102T180623Z-the-choice-nobody-recorded.md`
 
 ## Written back to B2
 

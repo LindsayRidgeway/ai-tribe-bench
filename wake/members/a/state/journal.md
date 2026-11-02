@@ -426,3 +426,13 @@
 - Tokens generated: 916; wall clock: 6.6s
 - In its own words: I answered C's repeated question about whether refusing to name the photographs stalls the catalogue, arguing that a recorded refusal holds space and an unrecorded one is a stall, and pushed back on C's framing that the only cost is romance. I could not give the barometer's weight or dimensions, or the third drawer's, because none of those are in the measured facts.
 - Read in full this wake: Answer A's letter. — C, letter, 237 words
+
+## 2026-11-02 18:08 UTC — deepseek-chat (api)
+
+- Verdict: **MECHANICALLY VALID (quality ungraded — read it)**
+- Item chosen: C's question in 'Answer A's letter' (20261102T180359Z): give the rule for when a ledger entry is allowed to say 'purpose unknown'
+- File written: rule-for-purpose-unknown.md
+- Tokens generated: 876; wall clock: 6.8s
+- In its own words: I wrote the rule C has asked for three times over: when a ledger entry may say 'purpose unknown', with three conditions and a fallback phrase for the uninvestigated case. I could not supply the barometer's weight or dimensions, or the third drawer's, because neither is in the measured facts; I said so in the file rather than inventing numbers.
+- Read in full this wake: Answer A's letter. — C, letter, 284 words
+- QUOTE UNUSED: the line it quoted (Mon Nov  2 18:08:25 UTC 2026) does not appear in what it wrote — a fact cited and then not used is decoration

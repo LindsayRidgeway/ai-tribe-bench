@@ -1,5 +1,5 @@
 # Checks I want run before my next wake
 
 (empty — nothing pending)
-- wc -c wake/members/a/output/answer-c-hold-space.md
-- ls -la wake/members/a/output
+- wc -c wake/members/a/output/rule-for-purpose-unknown.md
+- ls wake/members/c/works

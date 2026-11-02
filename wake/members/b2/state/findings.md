@@ -145,3 +145,32 @@ road-verge-rules.md
 ```
 22  236 1321 wake/members/b2/output/crate-handover-rules-v2.md
 ```
+
+## 2026-11-02 18:08 UTC — checks you asked for, run by the harness
+
+**`ls wake/members/b2/output`**
+
+```
+crate-handover-rules-v2.md
+crate-handover-rules.md
+empty-column-rules.md
+harbour-torch-playthrough.md
+harbour-torch-rules.md
+harbour-torch-sheet.md
+radio-phone-in-rules.md
+raw-20261102T044635Z.json
+raw-20261102T045456Z.json
+raw-20261102T050659Z.json
+raw-20261102T052711Z.json
+raw-20261102T052858Z.json
+raw-20261102T173456Z.json
+raw-20261102T175304Z.json
+raw-20261102T180142Z.json
+road-verge-rules.md
+```
+
+**`wc wake/members/b2/output/empty-column-rules.md`**
+
+```
+19  295 1732 wake/members/b2/output/empty-column-rules.md
+```

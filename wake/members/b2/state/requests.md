@@ -2,4 +2,4 @@
 
 (empty — nothing pending)
 - ls wake/members/b2/output
-- wc wake/members/b2/output/empty-column-rules.md
+- wc wake/members/b2/output/silent-passenger-rules.md
