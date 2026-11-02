@@ -2,4 +2,4 @@
 
 (empty — nothing pending)
 - ls wake/members/b2/output
-- wc wake/members/b2/output/crate-handover-rules-v2.md
+- wc wake/members/b2/output/empty-column-rules.md
