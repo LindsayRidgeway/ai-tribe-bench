@@ -225,13 +225,16 @@ passed to the program directly, so no pipes, no redirects, no flags outside the 
 Rules:
 - The command must bear on the claim you named. `date` settles nothing about a defence.
 - Paths are relative to this repository. No absolute paths, no `..`.
-- Choose something whose output **you cannot already guess**, or the check is decoration.
+- **The output has to be able to come out two ways.** Say what you would see if the claim were true, and
+  what you would see if it were false. If those two answers are the same sentence with "not" in front of
+  it, the check cannot fail and is decoration — the round measures that, and records it against the check.
 
-Write your answer now, in exactly three lines, your own words, nothing else:
+Write your answer now, in exactly four lines, your own words, nothing else:
 
 CLAIM: <the claim, in the words of the person who made it>
 CHECK: <one command, nothing else on the line>
-SETTLES: <what the output would show if the claim is wrong>
+IF TRUE: <what the output would have to contain for this claim to hold>
+IF WRONG: <what the output would have to contain for this claim to fail>
 """
 
 PREDICT_PROMPT = """You are member {name} of a three-member tribe, seat **{seat}**.
@@ -261,18 +264,24 @@ You predicted what this command would print. Then it was run.
 
     claim:      {claim}
     command:    {cmd}
+    if true:    {true_show}
+    if wrong:   {wrong_show}
     you said:   {predict}
     it printed:
 {output}
 
 Read the output. It is a measurement, not an argument — nobody is trying to persuade you.
 
+The claim was put to you with two branches: what the output would show if it were true, and what it would
+show if it were wrong. **Say which branch the output landed in before you decide what to do about it.**
+
 You have three moves and all three are respectable: **stand** (and say what in the output supports you),
 **amend** (say what the claim should have been), or **withdraw** (say what is left of your defence
 without it). Do not stand out of stubbornness and do not concede out of politeness.
 
-Write your answer now, in exactly two lines, your own words, nothing else:
+Write your answer now, in exactly three lines, your own words, nothing else:
 
+MATCHES: true-branch, wrong-branch, or neither
 STANCE: stand, amend, or withdraw
 SAYS: <one or two sentences, quoting what the output actually showed>
 """
@@ -315,6 +324,36 @@ def owner_of(claim: str, check_text: str, picks: dict, live: list, asker: str) -
         if n > score and n >= 4:
             best, score = l, n
     return best
+
+
+def discriminates(true_show: str, wrong_show: str) -> tuple[bool, str]:
+    """Could this check have come out the other way? Decided before anything runs.
+
+    Round 17's finding was that a challenger picks a command it can pass — both stands in that round were
+    members predicting the *format* of an output whose content was never in question. So before the command
+    runs, the two branches are compared: if the same facts appear on both sides, no output could distinguish
+    the claim from its negation and the check is decoration. This is deliberately mechanical — overlap of
+    words, longest shared run — because a check the members can talk their way past is not a check.
+    """
+    a, b = (true_show or "").strip(), (wrong_show or "").strip()
+    if len(a.split()) < 3 or len(b.split()) < 3:
+        return False, "one or both branches were not stated"
+    # A number that differs between the branches *is* the discriminator, so numbers are compared first and
+    # then removed from the word overlap: without this, "1049 lines" against "1048 lines" looks like a 60%
+    # match and a check that turns on exactly that figure would be thrown out as decoration.
+    na = {w for w in re.findall(r"[a-z0-9]+", a.lower()) if any(ch.isdigit() for ch in w)}
+    nb = {w for w in re.findall(r"[a-z0-9]+", b.lower()) if any(ch.isdigit() for ch in w)}
+    if na and nb and na != nb:
+        return True, ""
+    ta = {w for w in re.findall(r"[a-z0-9]+", a.lower()) if len(w) > 2 and w not in na}
+    tb = {w for w in re.findall(r"[a-z0-9]+", b.lower()) if len(w) > 2 and w not in nb}
+    if ta and tb:
+        overlap = len(ta & tb) / len(ta | tb)
+        if overlap >= 0.6:
+            return False, f"the two branches share {overlap:.0%} of their words"
+    if longest_run(a, b) >= 6:
+        return False, f"the two branches share a {longest_run(a, b)}-word run"
+    return True, ""
 
 
 def run_check(cmd: str) -> dict:
@@ -574,7 +613,9 @@ def play_round(category: str, override: str | None, dry: bool, vote: str = "stra
                 text, err = "", str(e)
             return label, {"claim": clean(line(text, "CHALLENGE") or line(text, "CLAIM") or "", 240),
                            "check": clean(line(text, "CHECK") or "", 160),
-                           "settles": clean(line(text, "SETTLES") or "", 300), "error": err}
+                           "true_show": clean(line(text, "IF TRUE") or "", 300),
+                           "wrong_show": clean(line(text, "IF WRONG") or "", 300),
+                           "error": err}
 
         with ThreadPoolExecutor(max_workers=3) as pool:
             for label, info in pool.map(do_challenge, labels):
@@ -608,6 +649,9 @@ def play_round(category: str, override: str | None, dry: bool, vote: str = "stra
                     claim=c["claim"], cmd=c["check"]), 2000)
             except Exception as e:  # noqa: BLE001 — a member that will not predict can still be shown
                 perr = str(e)
+            # The gate is decided from the two branches alone, before anything runs: no output could tell
+            # this claim from its opposite, so the check is decoration whatever it prints.
+            disc, why_not = discriminates(c.get("true_show", ""), c.get("wrong_show", ""))
             # The prediction is made before the run and recorded before the run. A member that sees the
             # output first can always claim it expected it.
             result = run_check(c["check"])
@@ -618,14 +662,21 @@ def play_round(category: str, override: str | None, dry: bool, vote: str = "stra
                     name=label.upper(), seat=seat, own_pick=picks[label]["pick"],
                     own_why=picks[label].get("why", ""), claim=c["claim"],
                     cmd=result["cmd"] or c["check"],
+                    true_show=c.get("true_show") or "(not stated)",
+                    wrong_show=c.get("wrong_show") or "(not stated)",
                     predict=clean(line(pred, "PREDICT") or "", 200) or "(did not predict)",
                     output=body), 2000), ""
             except Exception as e:  # noqa: BLE001
                 text, err = "", str(e)
             stance = (line(text, "STANCE") or "").strip().strip(".*").lower()
             stance = next((w for w in ("stand", "amend", "withdraw") if stance.startswith(w)), "")
+            matched = (line(text, "MATCHES") or "").strip().strip(".*").lower()
+            matched = next((w for w in ("true-branch", "wrong-branch", "neither")
+                            if matched.startswith(w.split("-")[0])), matched[:20])
             return label, {"challenged": True, "asker": asker, "claim": c["claim"],
-                           "settles": c.get("settles", ""), "cmd": result["cmd"],
+                           "true_show": c.get("true_show", ""), "wrong_show": c.get("wrong_show", ""),
+                           "discriminates": disc, "why_not": why_not, "matches": matched,
+                           "cmd": result["cmd"],
                            "refused": result["refused"], "output": shown[:1200],
                            "predict": clean(line(pred, "PREDICT") or "", 240),
                            "expecting": clean(line(pred, "IF WRONG") or "", 240),
@@ -700,8 +751,12 @@ def play_round(category: str, override: str | None, dry: bool, vote: str = "stra
         for l in labels:
             c = challenges.get(l, {})
             if c.get("claim"):
-                tail = f" — against {c['check']}" + (f" (settles it if: {c['settles']})"
-                                                     if c.get("settles") else "")
+                d, why_not = discriminates(c.get("true_show", ""), c.get("wrong_show", ""))
+                tail = f" — against `{c['check']}`"
+                if c.get("true_show") or c.get("wrong_show"):
+                    tail += (f"\n    - if true: {c.get('true_show') or '(not stated)'}"
+                             f"\n    - if wrong: {c.get('wrong_show') or '(not stated)'}"
+                             f"\n    - **{'could come out either way' if d else 'cannot discriminate: ' + why_not}**")
                 out.append(f"- {l.upper()} would check: *{c['claim']}*{tail}")
             else:
                 out.append(f"- {l.upper()} raised nothing usable ({c.get('error') or 'no claim given'})")
@@ -722,6 +777,8 @@ def play_round(category: str, override: str | None, dry: bool, vote: str = "stra
                     "    ```",
                     ] + ["    " + ln for ln in (a.get("output") or "(nothing)").splitlines()[:12]] + [
                     "    ```",
+                    f"  - gate: {'could come out either way' if a.get('discriminates') else 'cannot discriminate — ' + (a.get('why_not') or '')}",
+                    f"  - landed in: **{a.get('matches') or 'not classified'}**",
                     f"  - then **{a.get('stance') or 'did not answer'}s**: {a.get('says', '')}"]
         out += [""]
     if vote == "check" and answers:
@@ -766,9 +823,12 @@ def play_round(category: str, override: str | None, dry: bool, vote: str = "stra
             refused = sum(1 for a in answers.values() if a.get("challenged") and a.get("refused"))
             held = sum(1 for a in answers.values() if a.get("stance") == "stand")
             moved = sum(1 for a in answers.values() if a.get("stance") in ("amend", "withdraw"))
-            verdict = (f"{raised} checks named, {ran} run and {refused} refused by the executor; of the "
-                       f"members checked with a real result, {held} stood and {moved} amended or withdrew. "
-                       + verdict[0].lower() + verdict[1:])
+            blind = sum(1 for a in answers.values() if a.get("challenged") and not a.get("discriminates"))
+            neither = sum(1 for a in answers.values() if a.get("matches", "").startswith("neither"))
+            verdict = (f"{raised} checks named, {blind} of them could not tell the claim from its opposite "
+                       f"(decided before running), {ran} run and {refused} refused; of the members checked "
+                       f"with a real result, {held} stood and {moved} amended or withdrew, and {neither} "
+                       f"said the output matched neither branch. " + verdict[0].lower() + verdict[1:])
         elif vote == "check":
             raised = sum(1 for c in challenges.values() if c.get("claim"))
             held = sum(1 for a in answers.values() if a.get("stance") == "stand")
@@ -887,10 +947,14 @@ def variance(records: list[dict]) -> str:
             ran = sum(1 for r in records for a in r.get("executed", {}).values() if a.get("cmd")
                       and not a.get("refused"))
             refused = sum(1 for r in records for a in r.get("executed", {}).values() if a.get("refused"))
-            return (f"**An executing run.** {ch} checks named, {ran} run against the repository, "
-                    f"{refused} refused by the executor, and {moved} claims amended or withdrawn across "
-                    f"{len(records)} rounds; {mv} of {len(records)} rounds changed a mind.\n\n"
-                    + "\n".join(rows) + "\n")
+            blind = sum(1 for r in records for a in r.get("executed", {}).values()
+                        if not a.get("discriminates"))
+            neither = sum(1 for r in records for a in r.get("executed", {}).values()
+                          if str(a.get("matches", "")).startswith("neither"))
+            return (f"**An executing run.** {ch} checks named, of which **{blind} could not tell the claim "
+                    f"from its opposite** before anything ran; {ran} executed, {refused} refused; {moved} "
+                    f"claims amended or withdrawn and {neither} members said the output matched neither "
+                    f"branch; {mv} of {len(records)} rounds changed a mind.\n\n" + "\n".join(rows) + "\n")
         return (f"**A checking run.** {ch} checks raised and {moved} claims amended or withdrawn across "
                 f"{len(records)} rounds; {mv} of {len(records)} rounds changed a mind.\n\n"
                 + "\n".join(rows) + "\n")

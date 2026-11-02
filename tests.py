@@ -128,6 +128,22 @@ class TestGame(unittest.TestCase):
         self.assertIn("the relief is bigger than the weekend.", prompt)
         self.assertNotIn("the relief is bigger", play.table_of(picks, ["a", "b", "c"], defences=False))
 
+    def test_a_check_that_cannot_come_out_either_way_is_caught_before_it_runs(self):
+        """Round 18: a challenger picks a check it can pass. Both branches stated identically is the
+        signature of a command whose output was never in question, and it is decidable without running
+        anything — which is the point: the gate must not depend on a member's goodwill."""
+        same = ("a positive integer followed by play/play.py", "a positive integer followed by play/play.py")
+        self.assertFalse(play.discriminates(*same)[0])
+        negated = ("a history showing objections", "a history showing no objections")
+        self.assertFalse(play.discriminates(*negated)[0])
+        self.assertEqual(play.discriminates("", "something")[0], False)
+
+    def test_a_check_that_turns_on_a_number_is_not_thrown_out_as_decoration(self):
+        a, b = "exactly 1049 lines printed for play/play.py", "1048 lines printed for play/play.py"
+        self.assertTrue(play.discriminates(a, b)[0])
+        self.assertTrue(play.discriminates("at least 40 commits about audit",
+                                           "fewer than 12 commits about audit")[0])
+
     def test_a_refused_check_is_a_result_not_an_exception(self):
         """Round 17: a member names the command, so the command can be refused. A refusal is a finding
         about the challenger and must be recorded, not swallowed and not run."""
