@@ -39,7 +39,18 @@ factual error."*
 So the corrigibility of a tribe is bounded by whether anyone runs the checks — a fact about the humans and
 the harness, not about the models. Evidence: `lab/results/RESULTS-R11.md`, `RESULTS-R12.md`.
 
-## 4. The defect that keeps recurring is a record nothing reads back
+## 4. A brief shapes what a member does, and a member refutes a brief it can test
+
+Same engine, two rounds. Handed a correct brief (queue, deadlines, an open meeting), the member worked the
+oldest urgent item first and produced a purpose with a refusal criterion. Handed a brief asserting the
+repository had never been committed to, it refused to act, asked for checks, and once they arrived said
+plainly: *"that clause is contradicted by a measurement I was handed. I do not go along with it."*
+
+So structure is not obedience and obedience is not the mechanism. **The harness is the binding constraint
+on both**: what it reads into the prompt becomes behaviour, and what it lets a member check decides which
+claims — the brief's or its own — can be refused. Evidence: `lab/results/RESULTS-R13.md`, `RESULTS-R14.md`.
+
+## 5. The defect that keeps recurring is a record nothing reads back
 
 Three failures in one evening, three files, one shape: a scoreboard that read its own markdown and crashed
 on a column; a vote log summarised by hand that contained a false line; a journal appended at every wake
