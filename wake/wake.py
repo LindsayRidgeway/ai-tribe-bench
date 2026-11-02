@@ -259,7 +259,8 @@ def echo_finding(content: str, letter: str) -> str | None:
     return None
 
 
-def audit(content: str, journal: str, facts: str, parsed_quote: str = '', also_known: str = '') -> list[str]:
+def audit(content: str, journal: str, facts: str, parsed_quote: str = '', also_known: str = '',
+          soil: str = '', beat: str = '', letter: str = '') -> list[str]:
     """Findings in plain English. Empty means nothing could be *shown* to be unsourced.
 
     Coarse on purpose. Matching on number-and-unit, not number alone, because a fabricated '19
@@ -279,8 +280,24 @@ def audit(content: str, journal: str, facts: str, parsed_quote: str = '', also_k
 
     q = " ".join(str(parsed_quote or "").split())
     if q and q.lower() != "none":
-        if q not in " ".join(facts.split()):
-            problems.append("QUOTE NOT IN FACTS: the line it says it used is not in the block it was given")
+        flat = " ".join(facts.split())
+        if q not in flat:
+            # Added 2026-11-02 with the soil: a member asked what made it choose its act quoted the drop
+            # ("a shoebox of photographs of boats nobody can identify") — an exact quotation from the
+            # block it was given, and the audit called it a fabrication because only MEASURED FACTS
+            # counted. An audit that accuses an honest quote teaches the reader to ignore the word.
+            where = ""
+            for label, text in (("THE SOIL", soil), ("YOUR BEAT", beat),
+                                ("THE LETTER", letter or "")):
+                if text and q in " ".join(text.split()):
+                    where = label
+                    break
+            if where:
+                problems.append(f"QUOTE FROM {where}: the line it used is a quotation from that block, "
+                                f"not from MEASURED FACTS — checkable by a reader, and not a fabrication")
+            else:
+                problems.append("QUOTE NOT IN FACTS: the line it says it used is not in the block it "
+                                "was given")
 
     denial = re.search(r"(could ?not|cannot|can't|unable to|not available|did not) (measure|check|find)", journal or "", re.I)
     if denial and claimed(content):
@@ -680,6 +697,9 @@ having answered something nobody said.
             facts_block,
             str(parsed.get("quote", "")),
             also_known=letter,
+            soil=soil,
+            beat=beat,
+            letter=letter,
         )
         q = str(parsed.get("quote", "")).strip()
         if q and q.lower() != "none" and q not in str(parsed.get("content", "")) \

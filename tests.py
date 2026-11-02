@@ -63,6 +63,20 @@ class TestEcho(unittest.TestCase):
 class TestQuote(unittest.TestCase):
     """The quote field must be a line from the facts, character for character."""
 
+    def test_a_quote_from_the_soil_is_not_a_fabrication(self):
+        """2026-11-02: a member asked what made it choose its act quoted the drop verbatim — an exact
+        quotation from a block it was given — and the audit called it a fabrication, because only
+        MEASURED FACTS counted. An audit that accuses an honest quote teaches the reader to ignore it."""
+        drop = "A box arrives from a boatyard clear-out: 40 years of tide tables, a broken brass barometer."
+        out = wake.audit("content " * 30, "journal", FACTS, parsed_quote="a broken brass barometer",
+                         soil=drop)
+        self.assertFalse(any("NOT IN FACTS" in f for f in out), out)
+        self.assertTrue(any("QUOTE FROM THE SOIL" in f for f in out), out)
+
+    def test_a_quote_from_nowhere_is_still_a_finding(self):
+        out = wake.audit("content " * 30, "journal", FACTS, parsed_quote="the boat was built in 1938")
+        self.assertTrue(any("NOT IN FACTS" in f for f in out), out)
+
     def test_paraphrase_is_not_a_quote(self):
         findings = wake.audit("content", "journal", FACTS, parsed_quote="nproc is 2")
         self.assertTrue(any("QUOTE NOT IN FACTS" in f for f in findings), findings)

@@ -86,9 +86,18 @@ jobs:
               fi
               api="$(grep -E '^api:' "wake/members/$who/state/voice.md" | head -1 | awk '{print $2}')"
               model="$(grep -E '^model:' "wake/members/$who/state/voice.md" | head -1 | awk '{print $2}')"
+              # The wake must write a NEW file. On 2026-11-02 the reply failed to parse, no file was
+              # written, and this branch filed the member's previous answer as a new work — a stale
+              # output wearing a fresh header. A work filed from an old answer is worse than no work.
+              marker="$(mktemp)"
               python3 wake/wake.py --member "$who" --api-model "$model" --api-base "$api" \
                 "${read_args[@]}" --ask "$brief" > /tmp/work.log 2>&1 || tail -30 /tmp/work.log
-              newest="$(ls -t "wake/members/$who/output"/*.md | head -1)"
+              newest="$(find "wake/members/$who/output" -name '*.md' -newer "$marker" | head -1)"
+              rm -f "$marker"
+              [ -n "$newest" ] || { echo "**nothing filed** — the wake wrote no file this time, so there "
+                echo "is no work to file. The wake's own log said:"; echo; echo '```'
+                tail -12 /tmp/work.log; echo '```' ; } > /tmp/reply.md
+              if [ -z "$newest" ]; then cat /tmp/reply.md; exit 0; fi
               slug="$(printf '%s' "$brief" | tr 'A-Z' 'a-z' | tr -cs 'a-z0-9' '-' | cut -c1-40 | sed 's/-$//')"
               stamp="$(date -u +%Y%m%dT%H%M%SZ)"
               mkdir -p "works/$who"

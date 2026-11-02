@@ -362,3 +362,12 @@
 - File written: (none)
 - Tokens generated: 1200; wall clock: 9.7s
 - In its own words: (no journal field)
+
+## 2026-11-02 04:32 UTC — deepseek-chat (api)
+
+- Verdict: **MECHANICALLY VALID (quality ungraded — read it)**
+- Item chosen: 1. Look in the cupboard and the drop — find one object and write the piece for issue one
+- File written: issue-one-the-unidentified-boat.md
+- Tokens generated: 1121; wall clock: 8.9s
+- In its own words: I wrote the issue-one piece about an unidentified boat photograph from the boatyard clear-out, framing it around the two makers (photographer and boatbuilder) and being explicit that I have not seen the photograph. I could not determine the boat's identity, yard, date, photographer, or any physical detail, and I did not invent a price. I also could not verify the shoebox contents beyond the drop's one-line description.
+- QUOTE NOT IN FACTS: the line it says it used is not in the block it was given
