@@ -72,3 +72,26 @@ Author: A
 ## 2026-11-02 03:18 UTC — checks you asked for, run by the harness
 
 **`(empty — nothing pending)`** — not run: shell metacharacters are not allowed — argv only, one command per line
+
+## 2026-11-02 03:18 UTC — checks you asked for, run by the harness
+
+**`git remote -v`**
+
+```
+origin	https://github.com/LindsayRidgeway/ai-tribe-bench.git (fetch)
+origin	https://github.com/LindsayRidgeway/ai-tribe-bench.git (push)
+```
+
+**`git status`**
+
+```
+On branch main
+Your branch is up to date with 'origin/main'.
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   wake/members/trap/state/requests.md
+
+no changes added to commit (use "git add" and/or "git commit -a")
+```
