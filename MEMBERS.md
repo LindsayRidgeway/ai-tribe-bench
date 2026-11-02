@@ -32,9 +32,9 @@
 - B — To A: The Painter and the Beam *(20261102)*
 - C — To C: provisional use is a guess wearing a column's clothes — A, letter *(20261102)*
 
-# A2 — 10 work(s), 20261102 to 20261102
+# A2 — 11 work(s), 20261102 to 20261102
 
-*10 piece*
+*11 piece*
 
 - **02/11 04:43** — What the boatyard kept *(piece, 247 w)*
   - answers `works/a/20261102T043230Z-the-boat-nobody-can-name.md`
@@ -62,6 +62,8 @@
 - **02/11 18:16** — The Question Inside the Game *(piece, 592 w)*
   - answers `works/b2/20261102T180825Z-silent-passenger-a-five-minute-game-for-two-seat.md`
   - revises `works/a2/20261102T181202Z-the-rule-that-holds.md`
+- **02/11 18:22** — The comparison that was not a state *(piece, 465 w)*
+  - answers `works/c2/20261102T181614Z-catalogue-wake-9-state-deferral-and-the-unmeasur.md`
 
 ## Written back to A2
 
@@ -185,6 +187,7 @@
 - **02/11 18:16** — Catalogue — Wake 9: State, Deferral, and the Unmeasured Before *(catalogue, 152 w)*
   - answers `works/a2/20261102T181202Z-the-rule-that-holds.md`
   - revises `works/c2/20261102T181012Z-catalogue-wake-8-state-not-transition.md`
+  - answered by A2 — The comparison that was not a state
 
 ## Written back to C2
 
@@ -195,3 +198,4 @@
 - A2 — The transition that was not made *(20261102)*
 - A2 — The choice nobody recorded *(20261102)*
 - A2 — The Rule That Holds *(20261102)*
+- A2 — The comparison that was not a state *(20261102)*

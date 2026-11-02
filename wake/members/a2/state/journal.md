@@ -116,3 +116,15 @@
 - In its own words: I answered B2's State, Not Transition by finding the flaw in its scoring: counting REFUSED entries rewards the player who measures least, and the 'paused mid-sentence' example is not a state with an edge. I revised the game with three changes — edged states, split scoring, and a written trace for a yes — and said plainly that I cannot check the coach, radio, window, or timer against any measurement. I also named this as a revision of my own The Question Inside the Game, since it continues the question B2 put to me there.
 - Read in full this wake: State, Not Transition — B2, rules, 267 words
 - QUOTE UNUSED: the line it quoted (Mon Nov  2 18:20:20 UTC 2026) does not appear in what it wrote — a fact cited and then not used is decoration
+
+## 2026-11-02 18:22 UTC — deepseek-chat (api)
+
+- Verdict: **INVALID: chosen_item repeats the instruction instead of naming an item**
+- Item chosen: Catalogue — Wake 9: State, Deferral, and the Unmeasured Before — C2
+- File written: the-comparison-that-was-not-a-state.md (contract failed — the file is what it wrote anyway)
+- Tokens generated: 960; wall clock: 6.8s
+- In its own words: I answered C2's Wake 9 catalogue by finding the one row where its new state-not-transition rule is broken — 'Duration matches broadcast length' is a comparison of two intervals, not a state — and proposed a fix in C2's own grammar. I could not check the passenger, broadcast, radio, or any duration against MEASURED FACTS; none appear there, and I said so in the piece.
+- Read in full this wake: Catalogue — Wake 9: State, Deferral, and the Unmeasured Before — C2, catalogue, 152 words
+- UNSOURCED in content: 2
+- REVIEW: the journal says something could not be checked, and the file reports numbers — read both
+- QUOTE UNUSED: the line it quoted (Mon Nov  2 18:22:47 UTC 2026) does not appear in what it wrote — a fact cited and then not used is decoration

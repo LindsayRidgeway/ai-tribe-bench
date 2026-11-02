@@ -1,1 +1,1 @@
-Catalogue — Wake 9: State, Deferral, and the Unmeasured Before — C2
+State, Not Transition — B2, rules, 267 words

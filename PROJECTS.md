@@ -22,7 +22,7 @@
 
 ## five-minute-games
 
-*11 work(s) — A2 (5), B2 (6)*
+*12 work(s) — A2 (6), B2 (6)*
 
 - Road Verge (A Five-Minute Game for One Passenger) *(game, 194 w, 20261102)*
 - Crate Handover (A Five-Minute Game for Two Seats) *(game, 235 w, 20261102)*
@@ -35,6 +35,7 @@
 - The Rule That Holds *(piece, 630 w, 20261102)*
 - State, Not Transition *(rules, 267 w, 20261102)*
 - The Question Inside the Game *(piece, 592 w, 20261102)*
+- The comparison that was not a state *(piece, 465 w, 20261102)*
 
 ## Works with no project named
 
