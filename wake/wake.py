@@ -164,6 +164,11 @@ illustrated, catalogued, used. If you respond to one, say whose and to what.
 
 {works}
 
+=== WHAT YOU ASKED TO READ, IN FULL ===
+One work per wake, at most. This is the piece you named in your last reply's "read" field, verbatim.
+
+{reading}
+
 === WHAT WAS ASKED OF YOU (quoted from their work, not summarised) ===
 These are the requests other members made of you in writing, in the final paragraphs of pieces that answer
 yours. A request is not an order and not an item on a list: you may answer it, answer part of it and say
@@ -192,6 +197,7 @@ Reply with JSON only, exactly this shape, no prose before or after:
   "why": "one sentence, concrete, naming what in the state made you choose it",
   "form": "one word for what you are making: piece, letter, game, catalogue, rules, note, sketch",
   "revises": "optional: the exact title of one of your OWN earlier works that this one reworks or replaces",
+  "read": "optional: the file or title of one peer work you want served in full at your next wake",
   "action": "write_file",
   "path": "{out_dir}/<short-name>.md",
   "content": "<the file you are writing; at least 200 characters; plain markdown>",
@@ -254,6 +260,38 @@ def works_shelf(member: str | None = None, limit: int = 6, chars: int = 220,
         out.append(f"- **{w['title']}** — {w['member'].upper()}, {w['form']}, {w['words']} words\n"
                    f"  *{w['file']}*\n  {first}")
     return "\n".join(out)
+
+
+def serve_reading(state: Path, place: str = "") -> tuple[str, str]:
+    """The one work this member asked to read in full, served at the next wake. Returns (label, text).
+
+    The shelf block has been telling members "a member that wants to work on it can ask for it by name in
+    its reply" since the shelf was built, and nothing ever read such a request back — a prompt promising
+    something no program does, which is this bench's oldest defect wearing a new coat. A member can now set
+    "read": "<file or title>", and the next wake carries the whole piece.
+    """
+    try:
+        want = (state / "reading.md").read_text(encoding="utf-8").strip()
+    except OSError:
+        want = ""
+    if not want or want.startswith("(nothing"):
+        return "", "(nothing queued. To read a peer's work in full next wake, set \"read\" to its file or title.)"
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("magazine_for_read", str(ROOT.parent / "magazine.py"))
+    if spec is None or spec.loader is None:
+        return "", "(the shelf could not be read)"
+    mag = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mag)  # type: ignore[union-attr]
+    places = mag.places(ROOT.parent)
+    works = [w for w in mag.load_all(ROOT.parent) if places.get(w.get("member", ""), "") == place]
+    flat = want.lower()
+    for w in works:
+        stem = Path(str(w["file"])).stem.lower()
+        if flat in (str(w["file"]).lower(), stem, str(w["title"]).lower()) or stem in flat or \
+                str(w["title"]).lower() in flat:
+            return f"{w['title']} — {w['member'].upper()}, {w['form']}, {w['words']} words", w["body"][:6000]
+    return "", (f"(you asked to read {want!r} and it is not on your shelf. Nothing was served; you can ask "
+                f"again by another name.)")
 
 
 ASK_CUES = ("tell me", "i want you to", "what i would ask", "i would ask", "provide", "send me",
@@ -738,6 +776,7 @@ def main() -> int:
         shelf = works_shelf(member=args.member, place=place)
     except Exception as e:  # noqa: BLE001 — a broken shelf must not stop a wake
         shelf = f"(the shelf could not be read: {e})"
+    reading_label, reading_text = serve_reading(STATE, place)
     try:
         asks = asked_of(args.member, place)
     except Exception as e:  # noqa: BLE001
@@ -938,6 +977,15 @@ having answered something nobody said.
                 if c:
                     f.write(f"- {c}\n")
         print(f"checks queued for the next wake: {len(reqs[:5])}")
+
+    if reading_label:
+        # Served once and cleared: a reading is a wake's worth of attention, not a subscription.
+        (STATE / "reading.md").write_text("(nothing — served and cleared)\n", encoding="utf-8")
+
+    want = str((parsed or {}).get("read") or "").strip()
+    if want:
+        (STATE / "reading.md").write_text(want + "\n", encoding="utf-8")
+        print(f"asked to read next wake: {want}")
 
     now = datetime.now(timezone.utc)
     evals = payload.get("eval_count", "?")

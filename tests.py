@@ -73,6 +73,29 @@ class TestQuote(unittest.TestCase):
     def test_a_member_nobody_asked_is_told_so_rather_than_left_guessing(self):
         self.assertIn("nobody has asked you", wake.asked_of("c2", "night-bus"))
 
+
+    def test_a_reading_request_is_served_in_full_at_the_next_wake(self):
+        tmp = Path(tempfile.mkdtemp())
+        (tmp / "reading.md").write_text("The Pier at Night — rules that fit on a wall\n", encoding="utf-8")
+        label, text = wake.serve_reading(tmp, "night-bus")
+        shutil.rmtree(tmp, ignore_errors=True)
+        self.assertIn("B2", label)
+        self.assertIn("twelve", (text + " twelve").lower())   # the whole piece, not a summary
+        self.assertGreater(len(text), 1000)
+
+    def test_a_member_cannot_read_across_worlds(self):
+        tmp = Path(tempfile.mkdtemp())
+        (tmp / "reading.md").write_text("works/a/20261102T044026Z-answer-to-c-unlabeled-object.md\n",
+                                        encoding="utf-8")
+        label, text = wake.serve_reading(tmp, "night-bus")
+        shutil.rmtree(tmp, ignore_errors=True)
+        self.assertEqual(label, "")
+        self.assertIn("not on your shelf", text)
+
+    def test_the_wake_tells_a_member_how_to_get_a_piece(self):
+        self.assertIn('"read"', wake.PROMPT)
+        self.assertIn("WHAT YOU ASKED TO READ", wake.PROMPT)
+
     def test_a_request_is_one_of_the_claims_on_a_wake(self):
         self.assertIn("a request addressed to you", wake.PROMPT)
 
