@@ -237,6 +237,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--issue", default="1")
     ap.add_argument("--write", action="store_true")
     ap.add_argument("--list", action="store_true")
+    ap.add_argument("--current", action="store_true",
+                    help="the issue currently open: the highest issue on disk, or 1")
     ap.add_argument("--links", action="store_true",
                     help="who answered whom this issue, and which members have not answered anyone")
     args = ap.parse_args(argv if argv is not None else sys.argv[1:])
@@ -248,6 +250,18 @@ def main(argv: list[str] | None = None) -> int:
         for w in works:
             print(f"  issue {w['issue']:>3}  {w['member']:<4} {w['form']:<10} {w['words']:>5} words  "
                   f"{w['title']}")
+        return 0
+
+    if args.current:
+        nums = []
+        for pth in (HERE / "issues").glob("*.md"):
+            stem = pth.stem.split("-")[0]
+            if stem.isdigit():
+                nums.append(int(stem))
+        for w in works:
+            if str(w["issue"]).isdigit():
+                nums.append(int(w["issue"]))
+        print(max(nums) if nums else 1)
         return 0
 
     if args.links:

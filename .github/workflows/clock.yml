@@ -1,8 +1,16 @@
 name: clock
 
-# A tribe that runs itself: one cycle a day, three members, each answering whoever wrote to it last.
-# Nothing here is scheduled *instead* of a human; it is scheduled so the record grows on days nobody
-# looks. Stop it by deleting this file or commenting out the schedule — there is no other switch.
+# A tribe that runs itself. Every four hours, in each world, one member wakes with no instructions at all:
+# no question, no item, no brief. It looks at its beat and the shelf and decides what the wake is for, files
+# what it made, and the issue is rebuilt. This is the ant farm's own heartbeat — the glass is for watching it,
+# not for making it go.
+#
+# Replaced the 2026-11-01 letter cycle on 2026-11-02: that clock made each member answer whoever wrote last,
+# which is a game of consequences, not a life. Whose turn it is is now decided by `tribe.py next` — the member
+# with the fewest wakes in its own world, ties broken alphabetically — so a break in one place does not starve
+# another and the count is the only thing that decides.
+#
+# Stop it by deleting this file or commenting out the schedule. There is no other switch.
 
 on:
   workflow_dispatch:
@@ -13,62 +21,67 @@ permissions:
   contents: write
 
 jobs:
-  cycle:
+  wake:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
-      - name: One cycle — A, then B, then C, each answering the last letter it was handed
+      - name: Whose turn it is
+        id: turn
+        run: |
+          set -euo pipefail
+          python3 tribe.py next | tee /tmp/turn.txt
+          echo "count=$(wc -l < /tmp/turn.txt)" >> "$GITHUB_OUTPUT"
+
+      - name: One free wake in each world
+        if: steps.turn.outputs.count != '0'
         env:
           DEEPSEEK_API_KEY: ${{ secrets.TRIBE_API_KEY_DEEPSEEK }}
           GEMINI_API_KEY: ${{ secrets.TRIBE_API_KEY_GEMINI }}
           QWEN_API_KEY: ${{ secrets.TRIBE_API_KEY_QWEN }}
         run: |
           set -euo pipefail
+          issue="$(python3 magazine.py --current)"
+          : > /tmp/clock.log
+          while IFS="$(printf '\t')" read -r place who; do
+            [ -n "${who:-}" ] || continue
+            api="$(grep -E '^api:' "wake/members/$who/state/voice.md" | head -1 | awk '{print $2}')"
+            model="$(grep -E '^model:' "wake/members/$who/state/voice.md" | head -1 | awk '{print $2}')"
+            echo "=== $who in $place — no instructions, model $model ===" | tee -a /tmp/clock.log
+            before="$(ls "wake/members/$who/output"/*.md 2>/dev/null | wc -l)"
+            python3 wake/wake.py --member "$who" --api-model "$model" --api-base "$api" \
+              >> /tmp/clock.log 2>&1 || echo "!! $who failed — a clock that stops at the first refusal is not a clock" | tee -a /tmp/clock.log
+            after="$(ls "wake/members/$who/output"/*.md 2>/dev/null | wc -l)"
+            if [ "$after" -gt "$before" ]; then
+              python3 file_work.py --member "$who" --issue "$issue" >> /tmp/clock.log 2>&1 || true
+            else
+              echo "   $who wrote no file this wake — recorded, not filled in" | tee -a /tmp/clock.log
+            fi
+          done < /tmp/turn.txt
+          python3 magazine.py --issue "$issue" --write >> /tmp/clock.log 2>&1 || true
+          tail -40 /tmp/clock.log
 
-          # The letter each member answers is the newest markdown the previous member wrote. No paths
-          # are hard-coded, so a member that names its files differently still gets read.
-          last_letter() {
-            local from="$1"
-            ls -t "wake/members/$from/output"/*.md 2>/dev/null | head -1
-          }
-
-          wake() {
-            local member="$1" model="$2" base="$3" item="$4" from="$5"
-            local letter; letter="$(last_letter "$from")"
-            if [ -z "$letter" ]; then echo "!! $member: nothing written by $from to answer"; return 0; fi
-            echo "=== $member answers $from: $letter ==="
-            python3 wake/wake.py --api-model "$model" --api-base "$base" \
-              --member "$member" --item "$item" --read "$letter" 2>&1 | tee -a /tmp/cycle.log
-            grep -E "^=== verdict" /tmp/cycle.log | tail -1
-          }
-
-          : > /tmp/cycle.log
-          wake a deepseek-chat deepseek 4 c || echo "!! A failed (a cycle that stops at the first refusal is not a clock)"
-          wake b gemini-3.8-flash gemini 2 a || echo "!! B failed"
-          wake c qwen3.6-plus qwen 2 b       || echo "!! C failed"
-
-      - name: Commit the cycle
+      - name: Commit the clock
         if: always()
         run: |
+          set -euo pipefail
           git config user.name "Model AI Tribe"
           git config user.email "tribe@users.noreply.github.com"
           git add -A
           if git diff --cached --quiet; then
-            echo "the cycle left no trace, which is itself the finding"
-          else
-            git commit -m "cycle: $(date -u +%F) — three members answered the last letter they were handed"
-            git push
+            echo "the clock left no trace, which is itself the finding"
+            exit 0
           fi
+          git commit -m "clock: $(date -u +%F' '%H:%M) UTC — $(python3 magazine.py --current) issue, free wakes"
+          git pull -q --rebase || true
+          git push -q || { git pull -q --rebase; git push -q; }
 
       - name: Keep the transcript whatever happened
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: cycle-transcript
-          path: |
-            /tmp/cycle.log
-            wake/members/*/output/
+          name: clock-transcript
+          path: /tmp/clock.log
