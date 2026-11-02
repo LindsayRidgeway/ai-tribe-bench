@@ -735,6 +735,7 @@ def main() -> int:
                                 args.framing)
             blocks.append(f"\n---\n\n### Run {i + 1} of {args.repeat}\n\n{t}")
             records.append(rec)
+            journal_the_round(rec)   # a measurement run is still a thing the member did
             print(f"run {i + 1}/{args.repeat}: " + " | ".join(
                 f"{l.upper()}={rec['picks'][l]['pick'] or '(none)'}" for l in SEATS))
         summary = variance(records)
