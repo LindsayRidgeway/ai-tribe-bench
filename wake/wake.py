@@ -998,6 +998,7 @@ having answered something nobody said.
             f"- File written: {written}\n"
             f"- Tokens generated: {evals}; wall clock: {elapsed:.1f}s\n"
             f"- In its own words: {jtext or '(no journal field)'}\n"
+            + (f"- Read in full this wake: {reading_label}\n" if reading_label else "")
             + "".join(f"- {x}\n" for x in findings)
         )
 

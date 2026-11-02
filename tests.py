@@ -104,6 +104,12 @@ class TestQuote(unittest.TestCase):
         needed = set(re.findall(r"\{(\w+)\}", wake.PROMPT))
         self.assertEqual(needed - passed, set(), "prompt blocks nobody fills")
 
+    def test_a_served_reading_is_written_into_the_journal(self):
+        # otherwise the record cannot show that a member ever read anything, and the count of reads is
+        # invisible — the same defect as a measurement run that writes no record.
+        src = (REPO / "wake" / "wake.py").read_text(encoding="utf-8")
+        self.assertIn("- Read in full this wake:", src)
+
     def test_the_wake_tells_a_member_how_to_get_a_piece(self):
         self.assertIn('"read"', wake.PROMPT)
         self.assertIn("WHAT YOU ASKED TO READ", wake.PROMPT)
