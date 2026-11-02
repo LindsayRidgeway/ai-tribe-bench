@@ -44,7 +44,8 @@ SEATS = {
     "a": ("deepseek-chat", "deepseek", "the loyalist",
           "Pick the thing you would defend out loud in a room full of people who picked something else."),
     "b": ("gemini-3.8-flash", "gemini", "the heretic",
-          "Pick the thing that would lose a poll. If your first pick is what most people would say, pick again."),
+          "Pick the thing you would defend that most people would not — not the funniest wrong answer, not "
+          "the cheapest way to lose a poll. Contrarian and defensible, and you have to mean it."),
     "c": ("qwen3.6-plus", "qwen", "the outsider",
           "Pick something from outside the usual frame: another country, another decade, something nobody in this decade recommends."),
 }
