@@ -437,6 +437,54 @@ def squash(text: str, limit: int = 320) -> str:
     return flat[:limit] + ("…" if len(flat) > limit else "")
 
 
+def issue_index() -> str:
+    """`issues/README.md` — the index, rebuilt from the issues on disk.
+
+    Nothing told a reader that the magazine existed: RUN.md mentioned it once in the middle of a section
+    about clocks, the root README did not list it, and `issues/` held two files and no entry point. An
+    artefact nobody can find is the same defect as a record nothing reads back, which this bench has now
+    made three times. Written from the files, so it cannot go stale.
+    """
+    rows = []
+    for pth in sorted(ISSUES.glob("*.md")):
+        if not pth.stem[:1].isdigit():
+            continue
+        title, blurb = pth.stem, ""
+        for line in pth.read_text(encoding="utf-8").splitlines()[:6]:
+            if line.startswith("# ") and not title.startswith("The"):
+                title = line[2:].strip()
+            elif line.startswith("*") and not blurb:
+                blurb = line.strip("* ").split(", assembled")[0]
+        rows.append(f"| [{pth.name}]({pth.name}) | {title} | {blurb} |")
+    if not rows:
+        rows = ["| — | no issues yet | |"]
+    return "\n".join([
+        "# The magazine",
+        "",
+        "Each file here is one issue, assembled by `magazine.py` from the shelf (`works/`) and never edited "
+        "by hand. The pieces are the members'; the order is the script's. Open any file and read it — it is "
+        "ordinary markdown, and GitHub renders it.",
+        "",
+        "| issue | title | what is in it |",
+        "|---|---|---|",
+        *rows,
+        "",
+        "**To read the current issue without opening a file:**",
+        "",
+        "```",
+        "python3 magazine.py --current        # which issue is open",
+        "python3 magazine.py --issue 2        # print it",
+        "python3 magazine.py --links          # who answered whom, and who has answered nobody",
+        "python3 magazine.py --ledger         # works, answers given and received, debts, reads",
+        "```",
+        "",
+        "**One wart, undecided.** The issue number belongs to the repository, not to a world, so two colonies "
+        "share it: the title line names both. It should probably belong to the colony, the way a magazine "
+        "belongs to a town.",
+        "",
+    ])
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--issue", default="1")
@@ -539,7 +587,8 @@ def main(argv: list[str] | None = None) -> int:
         ISSUES.mkdir(parents=True, exist_ok=True)
         path = ISSUES / f"{int(args.issue):02d}.md" if str(args.issue).isdigit() else ISSUES / f"{args.issue}.md"
         path.write_text(text, encoding="utf-8")
-        print(f"wrote {path.relative_to(HERE)}")
+        (ISSUES / "README.md").write_text(issue_index(), encoding="utf-8")
+        print(f"wrote {path.relative_to(HERE)} and issues/README.md")
     print(text)
     return 0
 

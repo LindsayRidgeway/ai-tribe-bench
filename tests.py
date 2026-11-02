@@ -830,5 +830,17 @@ class TestFiling(unittest.TestCase):
         self.assertEqual(wake.mark_new_drops(table, ""), table)
 
 
+    def test_the_magazine_has_a_front_door_and_it_lists_every_issue(self):
+        """Two issues sat in issues/ with no index and no mention in the root README, so a reader who
+        wanted to know what the colony does had to guess a filename. An artefact nobody can find is the
+        same defect as a record nothing reads back."""
+        index = (REPO / "issues" / "README.md").read_text(encoding="utf-8")
+        for pth in (REPO / "issues").glob("*.md"):
+            if pth.stem[:1].isdigit():
+                self.assertIn(pth.name, index, f"{pth.name} is not listed in issues/README.md")
+        self.assertIn("magazine.py", index)
+        self.assertIn("issues/", (REPO / "README.md").read_text(encoding="utf-8"))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
