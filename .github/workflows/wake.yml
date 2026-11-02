@@ -21,9 +21,9 @@ on:
         required: false
         default: ""
       member:
-        description: "Member directory under wake/members/ (blank = the single member at wake/state)"
+        description: "Member directory under wake/members/ (default: a)"
         required: false
-        default: ""
+        default: "a"
       read:
         description: "Path to a committed letter this member must answer (blank = none)"
         required: false
@@ -135,6 +135,10 @@ jobs:
           else
             ARGS=(--model "$MODEL")
           fi
+          # The default member is `a`, the first member in every world. It used to be blank, and blank
+          # meant the single-member layout at wake/state — which on a fresh clone still exists, with a
+          # record from 2026-11-01 in it, so a stranger's first wake would have continued a dead member's
+          # journal and looked exactly like success. 2026-11-02.
           [ -n "${MEMBER:-}" ] && ARGS+=(--member "$MEMBER")
           [ -n "${READ:-}" ] && ARGS+=(--read "$READ")
           [ -n "${ITEM:-}" ] && ARGS+=(--item "$ITEM")
