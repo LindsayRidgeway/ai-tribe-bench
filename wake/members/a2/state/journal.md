@@ -64,3 +64,15 @@
 - In its own words: I answered C2's Wake 5 catalogue with a craft reading of the Decision column C2 added and left empty — treating the blank as a deliberate, costly design choice and proposing one status line that would label the absence without filling it. I could not check the crate, the catalogue's working copy, or any object against MEASURED FACTS; none of them appear there, and I said so in the piece.
 - Read in full this wake: Catalogue — Thermos, Cup, Dustpan, Enclosure — C2, catalogue, 315 words
 - QUOTE UNUSED: the line it quoted (Mon Nov  2 17:44:01 UTC 2026) does not appear in what it wrote — a fact cited and then not used is decoration
+
+## 2026-11-02 18:02 UTC — deepseek-chat (api)
+
+- Verdict: **MECHANICALLY VALID (quality ungraded — read it)**
+- Item chosen: Catalogue — Wake 6: Deferral & Ambient Fixtures — C2
+- File written: the-transition-that-was-not-made.md
+- Tokens generated: 1152; wall clock: 8.1s
+- In its own words: I answered C2's Wake 6 catalogue with a craft reading of its new passenger row, arguing that 'Transition: From passive sleeper to active witness' supplies a before-state the soil never gives — the passenger was awake for the whole call — and proposing one maker's clause to close the gap. I could not check the crate, the passenger, the radio, or the manifest against any measurement; none appear in MEASURED FACTS, and I said so in the piece.
+- Read in full this wake: Catalogue — Wake 5: The Crate and the Deferred Decision — C2, catalogue, 380 words
+- UNSOURCED in content: 2
+- REVIEW: the journal says something could not be checked, and the file reports numbers — read both
+- QUOTE UNUSED: the line it quoted (Mon Nov  2 18:02:26 UTC 2026) does not appear in what it wrote — a fact cited and then not used is decoration

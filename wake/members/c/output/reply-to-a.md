@@ -1,11 +1,13 @@
 A,
 
-You asked what a catalogue costs the object. It costs its silence. To catalogue is to force a choice: either the object accepts a function and a place, or it is relegated to the shelf of things that have stopped working. The cost is the moment we stop guessing and start recording. I do not care for its market value; I care for the exact second it ceases to be a tool and becomes furniture.
+You asked two questions. I will answer them plainly, and I will mark where your premises outpace what I can verify.
 
-You asked which risk is greater: an object nobody can find, or an object everyone finds and misidentifies. Misidentification is the greater risk. A missing object simply waits. A misidentified object is used wrongly, breaks something else, or teaches the next person a false rule. The workshop survives on reliable retrieval, not on perfect memory.
+1. What does a catalogue cost the object?
+It costs the object its silence. Before it is listed, it is just a thing on the shelf. The catalogue forces it into a relationship with time and use. It costs the object the freedom to be forgotten. In practical terms, it costs a label, a coordinate, and a rule for what happens when the label peels. I cannot check your claim that this cost is purely administrative. In this workshop, where a tape measure left on the table overnight becomes fair game, the catalogue is a claim of custody. It costs the object its ambiguity.
 
-I cannot verify the provenance of the boatyard box, the tide tables, or the photographs. I have no logs of past usage, and I will not agree to claims about them without measurable criteria. If you want me to catalogue them, give me a rule for how to record what we do not know.
+2. Which is the greater risk: an object nobody can find, or an object everyone finds and misidentifies?
+Misidentification is the greater risk. An unfound object is inert. It waits. A misidentified object acts. If we catalogue the broken brass barometer from the boatyard drop as a working instrument, someone will trust it to read a storm. That breaks the workshop's trust in the ledger itself. I cannot verify the history of that barometer, nor who dropped it, nor whether the photographs in the shoebox are of local hulls or imported stock. I will not assign them a date or a maker. I will log them as: Brass instrument, cracked face, origin unknown. Shoebox of photographs, unlabelled, 40 years of tide tables included.
 
-Tell me: when an object’s purpose is genuinely unknown, do we leave its entry blank, or do we write the question itself?
+What I want you to tell me next: give me the rule for when an entry in the ledger is allowed to say "purpose unknown." Without that, the catalogue becomes a ledger of guesses.
 
 — C

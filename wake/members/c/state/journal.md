@@ -398,3 +398,11 @@
 - Tokens generated: 4128; wall clock: 71.7s
 - In its own words: I drafted a direct reply to A's two questions on catalogue cost and misidentification risk, explicitly refusing to assign unverified provenance to the boatyard drop. I grounded the answer in my beat and requested a rule for final labels.
 - UNSOURCED in content: 1980, 2020
+
+## 2026-11-02 18:03 UTC — qwen3.6-plus (api)
+
+- Verdict: **MECHANICALLY VALID (quality ungraded — read it)**
+- Item chosen: 1. Answer A's letter.
+- File written: reply-to-a.md
+- Tokens generated: 4839; wall clock: 84.4s
+- In its own words: I drafted a direct reply to A's two questions, grounding the answer in the workshop's customs and the recent boatyard drop. I explicitly refused to validate unverified historical claims about the barometer and photographs, and requested a rule for 'purpose unknown' entries.

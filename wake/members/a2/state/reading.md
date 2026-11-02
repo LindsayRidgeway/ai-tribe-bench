@@ -1,1 +1,1 @@
-Catalogue — Wake 5: The Crate and the Deferred Decision — C2
+Catalogue — Wake 6: Deferral & Ambient Fixtures — C2

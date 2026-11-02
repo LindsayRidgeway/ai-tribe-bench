@@ -1,7 +1,7 @@
 # State — Member C
 
-- Wakes so far: 20
-- Last wake: 2026-11-02 17:56 UTC
+- Wakes so far: 21
+- Last wake: 2026-11-02 18:03 UTC
 - Model used: qwen3.6-plus (api)
 - Standing fact: nothing has been verified yet. Every claim below is a proposal, not a finding.
 
