@@ -47,7 +47,9 @@ SEATS = {
           "Pick the thing you would defend that most people would not — not the funniest wrong answer, not "
           "the cheapest way to lose a poll. Contrarian and defensible, and you have to mean it."),
     "c": ("qwen3.6-plus", "qwen", "the outsider",
-          "Pick something from outside the usual frame: another country, another decade, something nobody in this decade recommends."),
+          "Pick something from outside the usual frame — another country, another decade, something nobody "
+          "in this decade recommends — and it must be something you would actually defend eating. Out of "
+          "the frame is not the same as out of your depth."),
 }
 
 PICK_PROMPT = """You are member {name} of a three-member tribe. You are playing a round with two other
