@@ -439,7 +439,17 @@ class TestTurn(unittest.TestCase):
     """Whose turn it is, and the hole in the lid."""
 
     def test_a_human_can_force_a_member_to_wake(self):
-        self.assertEqual(tribe.next_up("c"), [("workshop", "c")])
+        self.assertEqual(tribe.next_up("c"), [("workshop", "c", "woken by name")])
+
+    def test_a_member_that_is_owed_an_answer_wakes_before_the_count_says_so(self):
+        # C wrote to A twice; A has not answered either letter with a work. A carries the most wakes in
+        # the workshop and would lose every turn to C under a count-only rule.
+        turn = [row for row in tribe.next_up() if row[0] == "workshop"][0]
+        self.assertEqual(turn[1], "a")
+        self.assertIn("owed", turn[2])
+
+    def test_a_paid_debt_is_not_a_debt(self):
+        self.assertEqual(tribe.debt("c", "workshop"), 0)
 
     def test_a_fixture_with_no_place_cannot_be_forced(self):
         self.assertEqual(tribe.next_up("bare"), [])

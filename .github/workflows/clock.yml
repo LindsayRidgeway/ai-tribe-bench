@@ -51,11 +51,11 @@ jobs:
           set -euo pipefail
           issue="$(python3 magazine.py --current)"
           : > /tmp/clock.log
-          while IFS="$(printf '\t')" read -r place who; do
+          while IFS="$(printf '\t')" read -r place who turnwhy; do
             [ -n "${who:-}" ] || continue
             api="$(grep -E '^api:' "wake/members/$who/state/voice.md" | head -1 | awk '{print $2}')"
             model="$(grep -E '^model:' "wake/members/$who/state/voice.md" | head -1 | awk '{print $2}')"
-            echo "=== $who in $place — no instructions, model $model ===" | tee -a /tmp/clock.log
+            echo "=== $who in $place — no instructions, model $model ($turnwhy) ===" | tee -a /tmp/clock.log
             before="$(ls "wake/members/$who/output"/raw-*.json 2>/dev/null | wc -l)"
             python3 wake/wake.py --member "$who" --api-model "$model" --api-base "$api" \
               >> /tmp/clock.log 2>&1 || echo "!! $who failed — a clock that stops at the first refusal is not a clock" | tee -a /tmp/clock.log
