@@ -65,8 +65,9 @@ jobs:
             # — a work written and never filed. A raw reply exists once per wake, so it cannot lie in
             # either direction: a failed wake adds none, an overwriting wake adds one.
             after="$(ls "wake/members/$who/output"/raw-*.json 2>/dev/null | wc -l)"
+            newest="$(ls -t "wake/members/$who/output"/raw-*.json 2>/dev/null | head -1 || true)"
             if [ "$after" -gt "$before" ]; then
-              python3 file_work.py --member "$who" --issue "$issue" >> /tmp/clock.log 2>&1 || true
+              python3 file_work.py --member "$who" --issue "$issue" --raw "$newest" >> /tmp/clock.log 2>&1 || true
             else
               echo "   $who wrote no file this wake — recorded, not filled in" | tee -a /tmp/clock.log
             fi

@@ -40,6 +40,25 @@ def newest_reply(member: str) -> dict | None:
     return None
 
 
+def read_raw(path: Path) -> dict | None:
+    """Exactly the reply this wake produced — never "the newest one that happens to parse".
+
+    On 2026-11-02 a2's reply was cut off by the token limit, so it did not parse; the clock counted a new
+    raw file, called file_work, and file_work fell back to a2's previous good reply and re-filed it. The
+    stale-work defect, back through another door: the harness chose which reply to publish.
+    """
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError) as e:
+        print(f"nothing to file: {path.name} is not a parsed reply ({e})")
+        return None
+    if not data.get("content"):
+        print(f"nothing to file: {path.name} has no content")
+        return None
+    data["_file"] = str(path)
+    return data
+
+
 def title_of(content: str, fallback: str) -> str:
     for ln in content.splitlines():
         if ln.startswith("#"):
@@ -59,9 +78,13 @@ def named_peer(said: str, members: set[str]) -> str:
     invented conversation.
     """
     lookup = {m.lower(): m for m in members}
-    pat = re.compile(r"\b([A-Z]\d?)['\u2019]s\b|\b(?:[Rr]eply to|[Aa]nswer to|[Aa]nswering|[Aa]nswer|[Aa]nswers)\s+([A-Z]\d?)\b")
+    pat = re.compile(
+        r"\b([A-Z]\d?)['\u2019]s\b"                                  # "A's letter"
+        r"|\b(?:[Rr]eply to|[Aa]nswer to|[Aa]nswering|[Aa]nswer|[Aa]nswers)\s+([A-Z]\d?)\b"  # "Answer A"
+        r"|(?:^|[.!?]\s+|,\s+)([A-Z]\d?)[,.:]")                      # vocative: "You are right, A, ..."
+
     for m in pat.finditer(said):
-        tok = (m.group(1) or m.group(2) or "").lower()
+        tok = (m.group(1) or m.group(2) or m.group(3) or "").lower()
         if tok in lookup:          # members are stored lower-case, named in prose as capitals
             return lookup[tok]
     return ""
@@ -92,6 +115,12 @@ def match_ref(text: str, member: str) -> tuple[str, str]:
         if mine:
             pool, because = mine, f"it says it answered {peer}"
     flat = " ".join(text.split()).lower()
+    # If it named the file, it named the work. B's reply set chosen_item to the full path of A's letter
+    # and the matcher, which only ever looked at titles, recorded no edge at all.
+    for w in pool:
+        path = str(w["file"]).lower()
+        if path in flat or path.rsplit("/", 1)[-1].rsplit(".", 1)[0] in flat:
+            return w["file"], f"names the file {w['file']}"
     floor = 0.6 if because else 0.75
     scored = []
     for w in pool:
@@ -107,6 +136,11 @@ def match_ref(text: str, member: str) -> tuple[str, str]:
     # The share is still the gate — it stops one common word from carrying an edge.
     scored = [row for row in scored if row[1] >= floor]
     scored.sort(key=lambda row: (-row[0], -row[1]))
+    if not scored and peer:
+        # It named a member and no piece. That is a real edge and a smaller claim: B answered A, and the
+        # shelf does not get to decide which of A's pieces it had in mind. Recorded as `member:<name>` so
+        # the graph shows a conversation without inventing a work-level citation.
+        return f"member:{peer}", f"names {peer} and no title of {peer}'s — the edge is to the member"
     if not scored:
         return "", ""
     if len(scored) > 1 and scored[0][0] - scored[1][0] < 6:
@@ -141,10 +175,11 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--form", default="", help="override; by default the member's own `form` field is used")
     ap.add_argument("--issue", default="1")
     ap.add_argument("--dry", action="store_true")
+    ap.add_argument("--raw", default="", help="the raw reply this wake wrote; default: the newest parseable one")
     ap.add_argument("--ref", default="", help="a work this member was handed deliberately, across worlds")
     args = ap.parse_args(argv if argv is not None else sys.argv[1:])
 
-    reply = newest_reply(args.member)
+    reply = read_raw(Path(args.raw)) if args.raw else newest_reply(args.member)
     if not reply:
         print(f"nothing to file: {args.member} has no parsed reply on disk")
         return 2
@@ -186,6 +221,11 @@ def main(argv: list[str] | None = None) -> int:
     if args.dry:
         return 0
     path = HERE / rel
+    if path.exists():
+        # A work already filed is a fact about the past. Re-filing it silently rewrote a2's header from
+        # "piece" back to "note" on 2026-11-02 and undid a correction nobody would have noticed.
+        print(f"already on the shelf: {rel} — left as it is")
+        return 0
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(head + content + "\n", encoding="utf-8")
     return 0

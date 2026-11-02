@@ -170,6 +170,17 @@ def last_wake_of(d: Path) -> str:
     return f"{m.group(1)}{m.group(2)}{m.group(3)}T{m.group(4)}{m.group(5)}" if m else ""
 
 
+def is_pressing(last_wake: str, oldest_debt_when: str) -> bool:
+    """Is this member still owed a turn for a request, or has it already had one since?
+
+    Both arguments are 'YYYYMMDDTHHMM'-prefixed strings, so plain comparison orders them. One turn per
+    request: the pull is real, and the choice of what to do with the turn stays the member's.
+    """
+    if not oldest_debt_when:
+        return False
+    return not last_wake or last_wake <= oldest_debt_when
+
+
 def oldest_debt(member: str) -> str:
     return DEBT_OLDEST.get(member, "")
 
@@ -268,8 +279,7 @@ def next_up(force: str = "") -> list[tuple[str, str, str]]:
             # earlier answer, and under a plain "debt first" rule it would have been woken again and again
             # until it complied. Pressing only while the member has not had a turn since the request
             # keeps the pull real and keeps the choice theirs.
-            last = last_wake_of(d)
-            return (0 if not last or last <= oldest_debt(d.name) else 1), f"owed {owed}"
+            return (0 if is_pressing(last_wake_of(d), oldest_debt(d.name)) else 1), f"owed {owed}"
 
         group = sorted(by_place[place], key=lambda d: (*pressing(d)[:1], wakes_of(d), d.name))
         chosen = group[0]

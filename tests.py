@@ -441,12 +441,14 @@ class TestTurn(unittest.TestCase):
     def test_a_human_can_force_a_member_to_wake(self):
         self.assertEqual(tribe.next_up("c"), [("workshop", "c", "woken by name")])
 
-    def test_a_member_that_already_had_its_turn_does_not_get_the_turn_again(self):
-        # A was woken at 05:03 owing C two letters and spent the wake reworking an earlier answer. Under
-        # "debt first" it would be woken again and again until it complied; the turn after that wake
-        # belongs to B, who has been owed an answer since 05:00 and has not woken since.
-        turn = [row for row in tribe.next_up() if row[0] == "workshop"][0]
-        self.assertEqual(turn[1], "b")
+    def test_a_member_not_woken_since_the_letter_is_pressing(self):
+        self.assertTrue(tribe.is_pressing("20261102T0441", "20261102T050043Z"))
+
+    def test_a_member_woken_since_the_letter_has_had_its_turn(self):
+        self.assertFalse(tribe.is_pressing("20261102T0503", "20261102T045414Z"))
+
+    def test_no_debt_is_never_pressing(self):
+        self.assertFalse(tribe.is_pressing("", ""))
 
     def test_the_reason_for_the_turn_is_printed(self):
         for place, who, why in tribe.next_up():
@@ -509,6 +511,48 @@ class TestFiling(unittest.TestCase):
 
     def test_the_prompt_asks_for_a_revision_edge(self):
         self.assertIn('"revises"', wake.PROMPT)
+
+
+    def test_a_reply_that_names_the_file_gets_that_work(self):
+        text = ("chosen_item: works/a/20261102T050043Z-to-b-the-waterline-and-the-painter.md. "
+                "You are right that the painter is a decision.")
+        ref, why = file_work.match_ref(text, "b")
+        self.assertIn("waterline", ref, why)
+
+    def test_a_reply_that_names_only_a_member_gets_a_member_edge(self):
+        # B answered A without naming a piece. The conversation happened; the citation does not exist,
+        # and the shelf should record the first and not invent the second.
+        text = "You are right, A, that a painted waterline tells me nothing about where the painter leads."
+        ref, why = file_work.match_ref(text, "b")
+        self.assertEqual(ref, "member:a", why)
+
+    def test_a_member_edge_is_printed_as_a_letter_to_that_member(self):
+        tmp = Path(tempfile.mkdtemp())
+        (tmp / "works").mkdir(); (tmp / "soil").mkdir()
+        (tmp / "soil" / "world.md").write_text("a workshop")
+        (tmp / "soil" / "drops.md").write_text("| when | by | what |\n|---|---|---|\n")
+        (tmp / "works" / "b").mkdir(parents=True)
+        (tmp / "works" / "b" / "one.md").write_text(
+            "---\ntitle: To A\nform: letter\nissue: 1\nref: member:a\n---\n\nYou are right.\n", encoding="utf-8")
+        text = magazine.build("1", magazine.load_all(tmp), tmp)
+        shutil.rmtree(tmp, ignore_errors=True)
+        self.assertIn("To A (no piece named)", text)
+
+
+    def test_a_raw_reply_that_did_not_parse_files_nothing(self):
+        tmp = Path(tempfile.mkdtemp())
+        raw = tmp / "raw-20261102T050000Z.json"
+        raw.write_text('{"chosen_item": "x", "content": "cut off mid-str', encoding="utf-8")
+        self.assertIsNone(file_work.read_raw(raw))
+        shutil.rmtree(tmp, ignore_errors=True)
+
+    def test_a_work_already_on_the_shelf_is_not_rewritten(self):
+        # the guard is in main(), so read the source: a stamp-and-slug that already exists must be left
+        src = (REPO / "file_work.py").read_text(encoding="utf-8")
+        self.assertIn("already on the shelf", src)
+
+    def test_a_dash_ref_is_not_a_letter_to_nobody(self):
+        self.assertNotIn("On *-*", (REPO / "issues" / "02.md").read_text(encoding="utf-8"))
 
     def test_the_clock_counts_raw_replies_not_output_files(self):
         # A wake that writes to the same filename twice leaves the .md count unchanged; counting raw

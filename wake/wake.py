@@ -538,7 +538,7 @@ def ask_api(base: str, key: str, model: str, prompt: str, images: list[str] | No
         "model": model,
         "messages": [{"role": "user", "content": content if images else prompt}],
         "temperature": 0.4,
-        "max_tokens": 1200,
+        "max_tokens": 2400,
         "response_format": {"type": "json_object"},
         "stream": False,
     }
@@ -829,6 +829,11 @@ having answered something nobody said.
     REQUIRED = REQUIRED_FIELDS
 
     verdict = "INVALID: the reply was not JSON"
+    if payload.get("finish_reason") == "length" or payload.get("choices", [{}])[0].get("finish_reason") == "length":
+        # A reply cut off mid-string is the harness's limit, not the member's mistake. It was recorded as
+        # "not JSON" on 2026-11-02 for a2, which reads as a member that cannot follow a format when the
+        # truth is that the budget ran out at 1,200 tokens and the JSON was sliced in half.
+        verdict = "TRUNCATED: the harness's token limit cut the reply mid-JSON — not the member's error"
     written = "(none)"
     question = "?"
     jtext = ""

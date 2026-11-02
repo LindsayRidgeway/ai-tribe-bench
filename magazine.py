@@ -150,8 +150,15 @@ def build(issue: str, works: list[dict] | None = None, root: Path | None = None)
         out += ["---", "", "## Letters", ""]
         by_ref: dict[str, list[dict]] = {}
         for l in letters:
-            by_ref.setdefault(l.get("ref") or "(unaddressed)", []).append(l)
+            ref = (l.get("ref") or "").strip()
+            by_ref.setdefault("(unaddressed)" if ref in ("", "-", "none") else ref, []).append(l)
         for ref, group in by_ref.items():
+            if ref.startswith("member:"):
+                who = ref.split(":", 1)[1].upper()
+                for l in group:
+                    out += [f"### To {who} (no piece named)", "",
+                            f"**{l['member'].upper()}** — {l['form']}, {l['words']} words", "", l["body"], ""]
+                continue
             if ref == "(unaddressed)":
                 # A note that answers nothing is not a letter "On -". Publishing a member's standalone
                 # piece under an empty reference was the magazine telling the reader it was a reply.
