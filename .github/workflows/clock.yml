@@ -63,9 +63,6 @@ jobs:
           git reset --hard "origin/$ref"
           git log --oneline -1
 
-        with:
-          fetch-depth: 1
-
       # The same one-line beacon as wake.yml, for a fork whose owner goes straight to the clock and never
       # runs a single wake by hand. The marker names the repository, so running both workflows still sends
       # one line, not two.
