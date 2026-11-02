@@ -59,7 +59,12 @@ def build(value: str, work: str, soil: str | None, lever: str, member: str, plac
         "",
         f"**Did it reach the member?** {verdict}",
         "",
-        f"**Did the wake use it?** {', '.join(used) if used else 'no word from the change appears in what it wrote'}",
+        f"**Words from the change that appear in the piece:** "
+        f"{', '.join(used) if used else 'none — no word from the change appears in what it wrote'}",
+        "",
+        "A shared word is not use: `inside` appears in a sentence about an oar and settles nothing. This line "
+        "exists to stop a piece being called *unrelated* when it plainly quotes the ground, and to stop it "
+        "being called *responsive* because it shares one adjective. Read `work.md`.",
         "",
     ]
     if soil is not None and not arrived:
