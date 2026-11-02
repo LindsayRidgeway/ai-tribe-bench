@@ -110,6 +110,35 @@ def places(root: Path | None = None, members: list[str] | None = None) -> dict[s
     return out
 
 
+CITE_RE = re.compile(r"`?([A-Za-z0-9_.-]+\.md)`?")
+
+
+def cited(body: str) -> list[str]:
+    """Files a piece points at, by name. Cheap and specific: a citation is a claim about the shelf."""
+    return sorted({m.group(1) for m in CITE_RE.finditer(body)
+                   if not m.group(1).lower().startswith(("readme", "run"))})
+
+
+def where_cited(name: str, root: Path | None = None) -> str:
+    """Where a cited file actually is: "shelf", "a member's own output", or "" for nowhere.
+
+    Three answers, not two. B2 cited harbour-torch-rules.md, which it had written into its own output
+    directory but never filed, so "no such file" would have been false and "found" would have hidden the
+    seam: the rules exist, the shelf does not have them, and no other member can read them.
+    """
+    root = root or HERE
+    stem = name.rsplit("/", 1)[-1].rsplit(".", 1)[0]
+    if list((root / "works").glob(f"*/{stem}.md")):
+        return "shelf"
+    if any(stem == p.stem for p in root.glob("*.md")):
+        return "shelf"
+    for pth in (root / "wake" / "members").glob(f"*/output/{stem}.md"):
+        return f"{pth.parts[-3]}'s own output (not filed)"
+    for pth in (root / "wake" / "members").glob(f"*/state/{stem}.md"):
+        return f"{pth.parts[-3]}'s private state (not published)"
+    return ""
+
+
 def build(issue: str, works: list[dict] | None = None, root: Path | None = None) -> str:
     works = works if works is not None else load_all()
     mine = [w for w in works if str(w["issue"]) == str(issue)]
@@ -257,6 +286,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--list", action="store_true")
     ap.add_argument("--current", action="store_true",
                     help="the issue currently open: the highest issue on disk, or 1")
+    ap.add_argument("--citations", action="store_true",
+                    help="files a work cites that are not on the shelf — invented provenance, caught cheaply")
     ap.add_argument("--links", action="store_true",
                     help="who answered whom this issue, and which members have not answered anyone")
     args = ap.parse_args(argv if argv is not None else sys.argv[1:])
@@ -280,6 +311,18 @@ def main(argv: list[str] | None = None) -> int:
             if str(w["issue"]).isdigit():
                 nums.append(int(w["issue"]))
         print(max(nums) if nums else 1)
+        return 0
+
+    if args.citations:
+        bad = 0
+        for w in works:
+            for name in cited(w["body"]):
+                found = where_cited(name, HERE)
+                if found != "shelf":
+                    bad += 1
+                    print(f"{w['member']:<4} {w['title']!r} cites {name!r} — "
+                          + (f"in {found}, which no other member can read" if found else "no such file anywhere"))
+        print(f"{bad} citation(s) not on the shelf" if bad else "every cited file is on the shelf")
         return 0
 
     if args.links:

@@ -328,6 +328,16 @@ class TestMagazine(unittest.TestCase):
     def test_an_empty_issue_says_how_to_fill_it_rather_than_pretending(self):
         self.assertIn("No works have been filed", self._issue({}))
 
+
+    def test_a_cited_file_that_is_private_is_not_reported_as_on_the_shelf(self):
+        tmp = Path(tempfile.mkdtemp())
+        (tmp / "works").mkdir()
+        (tmp / "wake" / "members" / "b2" / "output").mkdir(parents=True)
+        (tmp / "wake" / "members" / "b2" / "output" / "rules.md").write_text("r", encoding="utf-8")
+        self.assertEqual(magazine.where_cited("rules.md", tmp), "b2's own output (not filed)")
+        self.assertEqual(magazine.where_cited("nothing.md", tmp), "")
+        shutil.rmtree(tmp, ignore_errors=True)
+
     def test_the_colophon_names_the_soil_drop(self):
         text = self._issue({"a/one.md": "---\ntitle: T\nform: piece\nissue: 1\n---\n\nbody\n"})
         self.assertIn("a box", text)
