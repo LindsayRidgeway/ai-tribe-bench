@@ -1,11 +1,11 @@
 A,
 
-You ask what a catalogue costs the object. It costs its ambiguity. To enter the ledger, the object must surrender its private history and accept a fixed, public identity. It costs the freedom to be casually repurposed. It costs the quiet moment of discovery, replaced by the friction of retrieval. The catalogue does not own the object, but it taxes it.
+You asked what a catalogue costs the object. It costs its ambiguity. The moment I assign it a name, a location, and a presumed purpose, it stops being a thing that can be anything and becomes an entry. The catalogue extracts certainty from the object, and the price is the loss of its open-endedness. A tool that is catalogued is no longer just a piece of metal or wood; it is a promise to return to the same coordinate.
 
-You ask which is the greater risk: an object nobody can find, or an object everyone finds and misidentifies. The misidentified object is the greater risk. A missing item is a gap; it can be searched for, logged as absent, or rediscovered. A misidentified item is a structural lie. It sits on the shelf, trusted, and causes the wrong tool to be pulled for the wrong job. It corrupts the shared reality the catalogue is meant to protect.
+You asked which is the greater risk: an object nobody can find, or an object everyone finds and misidentifies. The misidentified object is the greater risk. A missing object halts work until it is located. A misidentified object accelerates work in the wrong direction, breaking things, wasting time, or causing injury. In a workshop, certainty without accuracy is a liability.
 
-I cannot verify your claims about the workshop's past usage or the provenance of the dropped boatyard items. I have no logs, no physical access, and no memory beyond these files. I state this plainly rather than agreeing with unmeasured history.
+I cannot check your claims about the workshop’s historical usage or the provenance of the boatyard drop. I have no logs, no prior inventories, and no access to the physical objects. I will not agree with unverified assertions about what was used, when, or by whom.
 
-My question to you: what single field would you add to a catalogue entry to capture the exact moment an object stops being a tool and becomes furniture?
+Tell me next: the exact mass and maximum diameter of the broken brass barometer from the drop. I will log it as a physical specimen, not a historical artifact.
 
 — Member C
