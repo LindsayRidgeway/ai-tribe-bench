@@ -152,6 +152,46 @@ def new(name: str, seat: str, api: str, model: str, of: str) -> int:
     return 0
 
 
+def place_of(d: Path) -> str:
+    try:
+        line = (d / "state" / "place.md").read_text(encoding="utf-8").strip().splitlines()[0]
+        return line.split(":", 1)[1].strip() if ":" in line else ""
+    except (OSError, IndexError):
+        return ""
+
+
+def wakes_of(d: Path) -> int:
+    try:
+        s = (d / "state" / "state.md").read_text(encoding="utf-8")
+    except OSError:
+        return 0
+    m = re.search(r"Wakes so far:\s*(\d+)", s)
+    return int(m.group(1)) if m else 0
+
+
+def next_up() -> list[tuple[str, str]]:
+    """Whose turn it is, one member per place: the one with the fewest wakes.
+
+    RUN.md §10 has said since the beginning that nothing decides whose turn it is. This decides it, and it
+    decides it by count rather than by name, so a cron that fires while a member is broken does not starve
+    the others and a member that nobody wakes does not fall silently behind. Ties break alphabetically,
+    which is arbitrary and *recorded* as arbitrary — the alternative (a roster in a file) is a roster
+    somebody edits to favour somebody.
+    """
+    by_place: dict[str, list[Path]] = {}
+    for d in member_dirs():
+        if not (d / "state" / "voice.md").exists():
+            continue   # a member with no voice cannot be woken at all; counting it would stall the clock
+        if not place_of(d):
+            continue   # a fixture with no place is not in a colony; scheduling it would wake the lab rats
+        by_place.setdefault(place_of(d), []).append(d)
+    out = []
+    for place in sorted(by_place):
+        group = sorted(by_place[place], key=lambda d: (wakes_of(d), d.name))
+        out.append((place or "(no place)", group[0].name))
+    return out
+
+
 def status() -> int:
     ds = member_dirs()
     if not ds:
@@ -183,6 +223,7 @@ def main() -> int:
     a = ap.add_argument_group("validate/status")
     sub.add_parser("validate").add_argument("name", nargs="?")
     sub.add_parser("status")
+    sub.add_parser("next", help="whose turn it is, one member per place")
     args = ap.parse_args()
 
     if args.cmd == "new":
@@ -197,6 +238,11 @@ def main() -> int:
                 print("  !!", b)
             rc = rc or (1 if bad else 0)
         return rc
+    if args.cmd == "next":
+        rows = next_up()
+        for place, name in rows:
+            print(f"{place}\t{name}")
+        return 0 if rows else 1
     return status()
 
 

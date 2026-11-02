@@ -122,3 +122,21 @@ now scoped to the member's own place.
 
 **State.** 43 tests green. Issue 1 (workshop): 6 works, 3 reply edges. Issue 2 (night coach): 3 works, 1
 edge, and `--links` says which members in the coach still owe someone an answer.
+
+### Correction to entry 3, found by the scheduler in entry 4
+
+`tribe.py status` now prints the model each member actually last woke on, and it caught a mistake in my
+soil comparison: **B2's game was written by deepseek-chat, not gemini.** I test-ran that wake locally
+because my own key is the deepseek one, and I did not notice that I had swapped the engine. So the table in
+entry 3 claiming "engine is controlled (same three models, same three beats)" is wrong for B2. A2 and C2
+are correct — they woke through the workflow on their own voices.
+
+The comparison in entry 3 stands for A (deepseek ↔ deepseek) and C (qwen ↔ qwen). For B it compares
+deepseek-in-a-coach against gemini-in-a-workshop, which is worse than no comparison. I am leaving the wrong
+work in place rather than deleting it — deleting a member's work because it embarrasses the experiment is
+the worst thing this bench could start doing — and having B2 wake on gemini next, so the coach has both
+engines and the pair can be compared properly.
+
+The general fault, which is the same one as everything else tonight: **a number I could have derived, I
+assumed.** The harness wrote `Model used: deepseek-chat` into the state file at the moment of the wake, and
+`tribe.py status` reads it, and I had not looked.
