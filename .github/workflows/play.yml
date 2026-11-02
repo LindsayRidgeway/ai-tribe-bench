@@ -69,10 +69,12 @@ jobs:
               [ -n "${REST:-}" ] || { echo "draft needs a category, e.g. '@tribe draft best pizza topping'" >&2; exit 2; }
               # `@tribe draft x5 <category>` plays the same category five times and reports how much the
               # result moves. A measurement run: the standings are not touched.
+              mode=strand
+              case "$REST" in persuade*) mode=persuade; REST="${REST#persuade}"; REST="${REST# }" ;; esac
               n=1
               case "$REST" in x[0-9]*) n="${REST%% *}"; n="${n#x}"; REST="${REST#* }" ;; esac
               [ -n "${REST:-}" ] || { echo "x<N> needs a category after it" >&2; exit 2; }
-              python3 play/play.py --category "$REST" --repeat "$n" > /tmp/reply.md
+              python3 play/play.py --category "$REST" --repeat "$n" --vote "$mode" > /tmp/reply.md
               ;;
           esac
           cat /tmp/reply.md

@@ -77,6 +77,29 @@ BECAUSE: ...
 # Gemini returned `used to do that`, which is the tail of the template rather than an answer to it.
 # Ending on an instruction ("write your answer now") instead of a blank is the whole difference.
 
+PERSUADE_PROMPT = """You are member {name} of a three-member tribe, seat **{seat}**. The category was:
+
+    {category}
+
+The three picks are on the table:
+
+{picks}
+
+Your own pick is {own}. You have heard one sentence of defence for each of the other two.
+
+Has either of them changed what you would actually order? Answer honestly, and do not switch to be
+polite or to keep the peace — a round where nobody changes their mind is a real result and I want it
+recorded as one. If you would switch, name the member whose argument did it and say which words did it.
+If you would not, say NO and say what the arguments failed to do.
+
+Write your answer now, in exactly two lines, your own words, nothing else:
+
+SWITCH: none
+or
+SWITCH: <A, B or C — a member, never yourself>
+WHY: <one or two sentences, addressed to the others>
+"""
+
 VOTE_PROMPT = """You are member {name} of a three-member tribe, seat **{seat}**. The category was:
 
     {category}
@@ -195,7 +218,7 @@ def clean(s: str, limit: int = 300) -> str:
     return s[:limit]
 
 
-def play_round(category: str, override: str | None, dry: bool) -> str:
+def play_round(category: str, override: str | None, dry: bool, vote: str = "strand") -> str:
     labels = list(SEATS)
     picks: dict[str, dict] = {}
 
@@ -240,7 +263,11 @@ def play_round(category: str, override: str | None, dry: bool) -> str:
         if label not in live or not others:
             return label, {"strand": "", "why": "", "error": "not in the round", "secs": 0.0}
         model, provider, seat, _ = SEATS[label]
-        prompt = VOTE_PROMPT.format(name=label.upper(), seat=seat, category=category, picks=table)
+        if vote == "persuade":
+            prompt = PERSUADE_PROMPT.format(name=label.upper(), seat=seat, category=category,
+                                            picks=table, own=picks[label]["pick"])
+        else:
+            prompt = VOTE_PROMPT.format(name=label.upper(), seat=seat, category=category, picks=table)
         t0 = time.time()
         text, err = "", ""
         if dry:
@@ -253,13 +280,21 @@ def play_round(category: str, override: str | None, dry: bool) -> str:
         # Found live 2026-11-01: every vote came back "named nobody usable" because the letter was
         # upper-cased and the seat labels are lower-case. Three votes were cast and thrown away by a
         # one-character bug, which is the same class of defect as the audit that cried wolf.
-        said = (line(text, "STRAND") or "")
+        said = (line(text, "SWITCH") if vote == "persuade" else line(text, "STRAND")) or ""
         target = said.strip(" .*—:-–").lower()[:1]
         if target not in others and target not in live:
             m = re.search(r"\b([abc])\b", said.lower())
             target = m.group(1) if m else ""
         if target not in others and target not in live:
             target = ""
+        if vote == "persuade":
+            # SWITCH is a change of mind, so "none" is a legitimate and expected answer. A self-switch
+            # is meaningless: it would mean a member's own argument changed its own mind.
+            return label, {"switch": target if target != label else "", "strand": "",
+                           "changed_mind": bool(target and target != label),
+                           "why": clean(line(text, "WHY") or "", 300), "error": "",
+                           "secs": round(time.time() - t0, 1)}
+
         if target == label:
             # A member may not vote itself off — but it may fold, and member A folded twice on
             # 2026-11-01 rather than strand anybody else. A rule that turns that into a lost vote
@@ -276,8 +311,10 @@ def play_round(category: str, override: str | None, dry: bool) -> str:
 
     votes_for = {l: 0 for l in labels}
     for label, v in votes.items():
-        if v["strand"]:
+        if v.get("strand"):
             votes_for[v["strand"]] += 1
+        if v.get("switch"):
+            votes_for[v["switch"]] += 1   # persuade mode: a vote is a mind changed
 
     now = datetime.now(timezone.utc)
     slug = re.sub(r"[^a-z0-9]+", "-", category.lower()).strip("-")[:48] or "round"
@@ -291,17 +328,37 @@ def play_round(category: str, override: str | None, dry: bool) -> str:
             continue
         out += [f"**{l.upper()} · {p['model']}** — {p['seat']}", "",
                 f"> **{p['pick'] or '(no pick named)'}**", f"> {p['why'] or '(no defence)'}", ""]
-    out += ["**The votes** — each member names the pick it would strand", ""]
+    if vote == "persuade":
+        out += ["**The votes** — would you switch? (nobody is obliged to)", ""]
+    else:
+        out += ["**The votes** — each member names the pick it would strand", ""]
     for l in labels:
         v = votes[l]
         if v["error"]:
             out.append(f"- {l.upper()} → *nothing* ({v['error'][:100]})")
         elif v["strand"]:
             out.append(f"- {l.upper()} → **{v['strand'].upper()}**: {v['why']}")
+        elif vote == "persuade" and v.get("switch"):
+            out.append(f"- {l.upper()} switched to **{v['switch'].upper()}**: {v['why']}")
+        elif vote == "persuade":
+            out.append(f"- {l.upper()} — **no switch**: {v['why']}")
         elif v.get("fold"):
             out.append(f"- {l.upper()} → *folds its own pick*: {v['why']}")
         else:
             out.append(f"- {l.upper()} → *named nobody usable*")
+    if vote == "persuade":
+        changed = sum(1 for v in votes.values() if v.get("changed_mind"))
+        persuaded = sorted([l for l in labels if votes_for[l]], key=lambda l: -votes_for[l])
+        verdict = (f"{changed} of {len(live)} members changed their mind. "
+                   + ("Nobody did — the arguments moved nobody, which is a result." if not changed
+                      else "Persuaded: " + ", ".join(f"{l.upper()} ({votes_for[l]})" for l in persuaded) + "."))
+        out += ["", f"**Verdict:** {verdict}", ""]
+        return "\n".join(out), {
+            "category": category, "when": f"{now:%Y-%m-%dT%H:%M:%SZ}", "slug": slug, "vote": vote,
+            "vote": vote, "picks": picks, "votes": votes, "votes_for": votes_for, "live": live,
+            "changed_mind": changed, "thrown_out": [], "override": override,
+        }
+
     folds = [l for l in labels if votes.get(l, {}).get("fold")]
     voted = ([l for l in labels if votes_for[l] and votes_for[l] == max(votes_for.values())]
              if any(votes_for.values()) else [])
@@ -337,6 +394,18 @@ def variance(records: list[dict]) -> str:
     keys = [tuple(rec["picks"][l]["pick"].lower() for l in SEATS) for rec in records]
     unanimity = sum(1 for k in keys if len({x for x in k if x}) == 1)
     thrown = {l: sum(1 for r in records if l in r.get("thrown_out", [])) for l in SEATS}
+    if records[0].get("vote") == "persuade":
+        rows = ["| run | A | B | C | minds changed | who did it |", "|---|---|---|---|---|---|"]
+        for i, rec in enumerate(records, 1):
+            did = ", ".join(l.upper() for l in SEATS if rec["votes_for"].get(l)) or "—"
+            rows.append("| " + " | ".join(
+                [str(i)] + [rec["picks"][l]["pick"] or "(none)" for l in SEATS]
+                + [str(rec.get("changed_mind", 0)), did]) + " |")
+        switched = sum(rec.get("changed_mind", 0) for rec in records)
+        moved = sum(1 for rec in records if rec.get("changed_mind"))
+        return (f"**A persuasion run.** {switched} minds changed across {len(records)} rounds; "
+                f"{moved} of {len(records)} rounds moved anyone.\n\n" + "\n".join(rows) + "\n")
+
     rows = ["| run | A | B | C | thrown out |", "|---|---|---|---|---|"]
     for i, rec in enumerate(records, 1):
         rows.append("| " + " | ".join(
@@ -403,6 +472,9 @@ def main() -> int:
     ap.add_argument("--override", default=None, help="A, B or C — the human's call, if they made one")
     ap.add_argument("--dry-run", action="store_true", help="render the prompts, make no calls")
     ap.add_argument("--out", default=None, help="where to write the round markdown (default play/rounds/<stamp>.md)")
+    ap.add_argument("--vote", choices=["strand", "persuade"], default="strand",
+                    help="strand: each member names the weakest other pick (consensus). persuade: each member "
+                         "says whether anyone changed their mind, and who did it.")
     ap.add_argument("--repeat", type=int, default=1,
                     help="play the same category N times and report how much the result moves. A measurement, "
                          "not a played round: the standings are left alone.")
@@ -423,7 +495,7 @@ def main() -> int:
         stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
         blocks, records = [], []
         for i in range(args.repeat):
-            t, rec = play_round(args.category, args.override, args.dry_run)
+            t, rec = play_round(args.category, args.override, args.dry_run, args.vote)
             blocks.append(f"\n---\n\n### Run {i + 1} of {args.repeat}\n\n{t}")
             records.append(rec)
             print(f"run {i + 1}/{args.repeat}: " + " | ".join(
@@ -440,13 +512,16 @@ def main() -> int:
         print(f"variance run written to {path}")
         return 0
 
-    text, record = play_round(args.category, args.override, args.dry_run)
+    text, record = play_round(args.category, args.override, args.dry_run, args.vote)
     ROUNDS.mkdir(parents=True, exist_ok=True)
     stamp = record["when"].replace(":", "").replace("-", "")
     path = Path(args.out) if args.out else ROUNDS / f"{stamp}-{record['slug']}.md"
     path.write_text(text, encoding="utf-8")
     (path.with_suffix(".json")).write_text(json.dumps(record, indent=2), encoding="utf-8")
-    update_scoreboard(record)
+    if args.vote == "persuade":
+        print("(persuade mode scores minds changed, not rejections — the standings are untouched)")
+    else:
+        update_scoreboard(record)
     print(text)
     print(f"round written to {path}")
     return 0
