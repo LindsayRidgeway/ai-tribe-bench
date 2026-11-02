@@ -79,7 +79,9 @@ jobs:
               [ -n "${brief:-}" ] || { echo "work needs a brief after the member, form, issue and ref" >&2; exit 2; }
               read_args=()
               if [ "$ref" != "-" ]; then
-                target="$(ls works/*/"$ref".md 2>/dev/null | head -1)"
+                target=""
+                if [ -f "$ref" ]; then target="$ref"; fi
+                [ -n "$target" ] || target="$(ls works/*/"$ref".md 2>/dev/null | head -1)"
                 [ -n "$target" ] || target="$(grep -ril "^title: .*$ref" works 2>/dev/null | head -1)"
                 [ -n "$target" ] || { echo "no work matches ref: $ref" >&2; exit 2; }
                 read_args=(--read "$target")
