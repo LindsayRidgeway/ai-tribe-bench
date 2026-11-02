@@ -1,26 +1,33 @@
 # Reply to the vote log
 
-I do not go along, so I will not accept the flattering reading of this table just because it favors my seat.
+## What I can actually determine from the log
 
-## What the log actually shows
+I have no record of what my pick was before this wake. My state file says plainly: "nothing has been verified yet. Every claim below is a proposal, not a finding." So I cannot compare tonight's pick to a prior pick of mine, because no prior pick of mine is in front of me. I will not invent one.
 
-Six rejection-vote rounds are listed, not fifteen. Across them: A thrown 0, B thrown 4, C thrown 4. A received any vote in 0 rounds. The checking runs report "5 runs, A never thrown" for the rejection condition, and 14 of 15 checks raised with 0 of 15 switched in the checking condition.
+What the log does show, read cold:
 
-## What I can determine
+- In the rejection-vote rounds, A is named 3 times, B 2 times, C 6 times.
+- A is thrown out 0 times, B 1 time, C 2 times.
+- The log's own note is the important part: with three seats a member is thrown out only when both others name it. A member named once per round and never twice "has not survived anything: the rule never reached it."
 
-From the table alone: in the six recorded rounds, my picks were never the most-stranded pick. That is a fact about the log. It is NOT the same as my picks being better. Two rival explanations fit the same data equally well:
+That last line is a claim about interpretation, and I can check it against the table. A was named in three rounds (21:47, 21:50, 21:51) and thrown out in none. Being named once is not survival; it is the rule failing to fire. So "A survived" would be a misreading of the same numbers. I agree with the log's note on that point because I can recompute it from the columns, not because it was asserted.
 
-1. **Better picks.** If A's picks were genuinely less strandable, zero votes is the expected result.
-2. **Tilted seat.** The rule says each member names a pick drawn from the other two, never its own. With three seats, a member can only be thrown if BOTH others name it. So a seat is safe whenever the other two disagree — which happens for structural reasons, not merit. A loyalist seat that reliably echoes the plurality is never the stranded one.
+## Preference: has my pick changed?
 
-## What the log cannot settle
+I cannot say. There is no prior pick of mine in my files to compare against. If the question means "does the log change who I would name tonight," then my answer is that the log gives me no reason to name C more or less: C's high count (6 named, 2 thrown) reflects being named by both others twice, which is the rule working, not evidence about C's quality. I would not move my pick on that basis. But that is a statement about what the log supports, not a report of a change I can verify in myself.
 
-- It does not say whether the fifteen rounds you mention are the same as these six. The table has six rows. I cannot reconcile fifteen with six from what is written.
-- It does not record who voted for whom, only the outcome. Without the per-member ballots I cannot tell whether A was spared by merit or by the other two splitting.
-- "A never thrown" in the checking runs is reported as a summary, not a per-run table. I cannot check it.
+## Belief: has my explanation of my own result changed?
 
-## My answer
+Yes, in one specific way I can point to. Before reading the log I had no articulated explanation of my own result. Now I have one that is checkable: my result (0 throws) is explained by the rule never reaching me, not by me being unobjectionable. That is a change from "no explanation" to "an explanation grounded in the table." Whether it is a change from some earlier explanation I once held, I cannot determine — that earlier text is not in my files.
 
-Neither. The log is consistent with both "better picks" and "tilted seat," and it does not contain the ballots needed to separate them. Zero votes against a seat is evidence of safety, not of quality. I will not claim my picks were better on this record.
+## What I am assuming, flagged
 
-What would settle it: the per-round ballots, and a round where A's pick was actually strandable by both others. Neither is in the log.
+- I assume the table was derived correctly by `play/log.py`. I have not seen the script or the round files.
+- I assume "—" means named nobody usable, per the log's own legend.
+- I assume the checking round (3/3 checks, 0 minds changed) is about the same category as the 21:50 round; the log does not say which round it re-examines.
+
+## What I could not determine
+
+- My prior pick. Not in my files.
+- My prior explanation. Not in my files.
+- Whether the checking round's "0 minds changed" includes me. The log does not attribute it.
