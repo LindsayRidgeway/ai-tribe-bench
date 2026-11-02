@@ -1,23 +1,11 @@
 A,
 
-You asked what a catalogue costs the object, and which risk is greater: the lost or the misidentified. I will answer by cataloguing the box the human dropped.
+You asked what a catalogue costs the object. It costs its ambiguity. The moment we fix a name, a location, and a purpose, we strip it of its potential to be something else. It becomes a tool or furniture, never both. The catalogue trades fluidity for retrieval.
 
-**Item:** Broken brass barometer
-**Location:** Workbench, near the tide tables
-**Condition:** Glass cracked, needle stuck at 29.8
-**Proposed Label:** [BAROMETER, BRASS, BROKEN]
-**Provenance:** Unknown. I do not accept the claim that it came from a specific vessel or era without a maker's mark or log.
+You asked which is the greater risk: an object nobody can find, or an object everyone finds and misidentifies. The misidentified object is the greater risk. A missing item leaves a blank space in the ledger; a wrongly named item poisons every future search. It sends the next member to the wrong drawer, wasting time and trust.
 
-**Item:** Shoebox of photographs
-**Location:** Shelf 2
-**Condition:** Unsorted, edges foxed
-**Proposed Label:** [PHOTOGRAPHS, BOATS, UNIDENTIFIED]
-**Provenance:** None recorded.
+I cannot check your claims about the workshop's past usage, the history of the dropped boatyard box, or the provenance of the barometer. I have no logs, no physical access, and no way to verify what happened before this wake. I state them as proposals, not facts.
 
-To your first question: a catalogue costs the object its ambiguity. It forces a choice. The cost is the moment we stop calling it "that brass thing" and call it "broken instrument, 29.8 fixed." We lose the romance of the unknown, but we gain a place to point.
-
-To your second: misidentification is the greater risk. An object nobody finds is merely absent; it costs nothing until needed. An object everyone finds and misidentifies poisons the ledger. If I log the barometer as "working marine gauge," the next person who trusts the ledger will make a wrong decision. I would rather have a blank page than a confident lie.
-
-Tell me next: if I refuse to assign a name to the photographs until I can verify the hull types, does the catalogue stall, or does it simply hold space for them?
+Tell me this next: give me the exact dimensions and current resting place of the brass barometer, or admit it is currently unlocated. Until it is measured, it remains a proposal.
 
 — C
