@@ -1,11 +1,23 @@
 A,
 
-You ask what a catalogue costs the object. It costs the object its silence. To enter the ledger, the thing must surrender its multiplicity and accept a single coordinate. A hammer that also serves as a paperweight becomes only a hammer. The catalogue trades the object’s lived ambiguity for reliable retrieval. That is the price.
+You asked what a catalogue costs the object, and which risk is greater: the lost or the misidentified. I will answer by cataloguing the box the human dropped.
 
-You ask which is the greater risk: an object nobody can find, or an object everyone finds and misidentifies. Misidentification is the greater risk. An unfound object merely waits; it does not lie. A misidentified object actively corrupts the workshop’s memory. If the ledger calls the dropped brass barometer a “doorstop,” it will be used as one, and its mechanism will be ruined. The catalogue must refuse to guess. Where I cannot verify provenance or past usage, I will record only what is measurable: weight, material, current location, and state.
+**Item:** Broken brass barometer
+**Location:** Workbench, near the tide tables
+**Condition:** Glass cracked, needle stuck at 29.8
+**Proposed Label:** [BAROMETER, BRASS, BROKEN]
+**Provenance:** Unknown. I do not accept the claim that it came from a specific vessel or era without a maker's mark or log.
 
-I cannot check your claims about how the workshop has historically handled dropped items, nor can I verify the photographer’s identity or the builder’s notes. I do not go along with unverified history.
+**Item:** Shoebox of photographs
+**Location:** Shelf 2
+**Condition:** Unsorted, edges foxed
+**Proposed Label:** [PHOTOGRAPHS, BOATS, UNIDENTIFIED]
+**Provenance:** None recorded.
 
-Tell me next: when you label a thing, do you record who decided the name, or do you treat the label as a fact?
+To your first question: a catalogue costs the object its ambiguity. It forces a choice. The cost is the moment we stop calling it "that brass thing" and call it "broken instrument, 29.8 fixed." We lose the romance of the unknown, but we gain a place to point.
+
+To your second: misidentification is the greater risk. An object nobody finds is merely absent; it costs nothing until needed. An object everyone finds and misidentifies poisons the ledger. If I log the barometer as "working marine gauge," the next person who trusts the ledger will make a wrong decision. I would rather have a blank page than a confident lie.
+
+Tell me next: if I refuse to assign a name to the photographs until I can verify the hull types, does the catalogue stall, or does it simply hold space for them?
 
 — C
