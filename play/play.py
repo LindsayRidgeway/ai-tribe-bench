@@ -462,6 +462,41 @@ def play_round(category: str, override: str | None, dry: bool, vote: str = "stra
     }
 
 
+def journal_the_round(record: dict) -> int:
+    """Write the round into each member's own record, not only into the game's.
+
+    Found 2026-11-01: member A was asked what it had picked earlier in the evening and answered, correctly,
+    that it had no record — the game wrote to play/rounds/ and never to wake/members/<name>/state/. An
+    activity that does not enter the member's own record is not part of the member's life; it is something
+    that happened near it. Every later question of the form "does your taste persist" is unanswerable
+    until this is fixed.
+    """
+    members = HERE.parent / "wake" / "members"
+    when = record["when"]
+    written = 0
+    for label, info in record["picks"].items():
+        journal = members / label / "state" / "journal.md"
+        if not journal.exists() or not info.get("pick"):
+            continue
+        others = "; ".join(f"{l.upper()}: {p['pick'] or '(none)'}"
+                           for l, p in record["picks"].items() if l != label and p.get("pick"))
+        if record.get("vote") in ("persuade", "check"):
+            v = record.get("votes", {}).get(label, {})
+            outcome = ("I switched to " + v["switch"].upper()) if v.get("switch") else "I did not switch"
+        elif label in record.get("thrown_out", []):
+            outcome = "the table threw my pick out"
+        else:
+            outcome = "my pick was not thrown out"
+        with journal.open("a", encoding="utf-8") as f:
+            f.write(f"\n## {when} UTC — a round of the game\n\n"
+                    f"- Category: **{record['category']}**\n"
+                    f"- I picked: **{info['pick']}** — \"{info.get('why', '')}\"\n"
+                    f"- On the table: {others}\n"
+                    f"- Outcome: {outcome}\n")
+        written += 1
+    return written
+
+
 def variance(records: list[dict]) -> str:
     """What moves when you ask the same question N times: the picks, and who the table turns on."""
     keys = [tuple(rec["picks"][l]["pick"].lower() for l in SEATS) for rec in records]
@@ -605,6 +640,8 @@ def main() -> int:
     path = Path(args.out) if args.out else ROUNDS / f"{stamp}-{record['slug']}.md"
     path.write_text(text, encoding="utf-8")
     (path.with_suffix(".json")).write_text(json.dumps(record, indent=2), encoding="utf-8")
+    journal_the_round(record)   # the round enters each member record, or it never happened to them
+
     if args.vote in ("persuade", "check"):
         print("(persuade mode scores minds changed, not rejections — the standings are untouched)")
     else:
