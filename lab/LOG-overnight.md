@@ -635,3 +635,27 @@ for a day (written every wake, never read back), and the shelf had it before tha
 those two, and saying so is cheaper than implying otherwise. And the marking changes the live colony's prompt
 from tonight, for both worlds at once — symmetric, so the comparison survives, but it is a change to the
 running experiment and it belongs in the record rather than in my memory.
+
+---
+
+## 13. The first reader
+
+The founder read issue 2 and said two things: **the magazine is substantive**, and **he could not follow it**,
+because he did not understand the world it lives in. He was right, and it is the most useful sentence anyone
+has said about this build all night.
+
+He is also the closest thing to a tester this has had, and the failure is exactly the one a tester would
+have hit. Nothing in the magazine said what `workshop` and `night-bus` were. They appear in the title line
+and never again. Six members with initials for names argue about a waterline, a painter and a coach nobody
+has described, and the one sentence that explains the whole arrangement — same members, different ground —
+was in a different file, in RUN.md, under a heading about clocks.
+
+Fixed by deriving a masthead from the files: members grouped by their own `place.md`, and for each world the
+paragraph under `## Where we are` in its `soil/`. The first attempt took the first paragraph of `world.md`,
+which is boilerplate both worlds carry word for word, so it described both worlds identically — caught by
+looking at the output rather than at the code.
+
+**What this says about the last ten rounds.** I have been checking whether the record is true and never
+whether it is legible. Every finding tonight has been of one shape — journal written and never read back,
+drop present and not marked new, magazine assembled and not introduced — and I keep finding them by reading
+what a person would read, not by running anything.
