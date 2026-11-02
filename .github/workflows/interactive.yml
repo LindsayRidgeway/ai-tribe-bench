@@ -7,6 +7,16 @@ name: interactive
 on:
   issue_comment:
     types: [created]
+  workflow_dispatch:
+    inputs:
+      question:
+        description: "ask a member a question without commenting (blank = wait for a comment)"
+        required: false
+        default: ""
+      member:
+        description: "which member answers (default: b)"
+        required: false
+        default: "b"
 
 permissions:
   contents: write
@@ -18,13 +28,14 @@ jobs:
     # is not also answered as a question by a fourth voice. The game (play.yml) owns three verbs;
     # everything else addressed to @tribe is a question and lands here.
     if: >
-      contains(github.event.comment.body, '@tribe') &&
+      (github.event_name == 'workflow_dispatch' && inputs.question != '') ||
+      (contains(github.event.comment.body, '@tribe') &&
       !contains(github.event.comment.body, '@tribe draft') &&
       !contains(github.event.comment.body, '@tribe score') &&
       !contains(github.event.comment.body, '@tribe override') &&
       !contains(github.event.comment.body, '@tribe ask') &&
-  !contains(github.event.comment.body, '@tribe work') &&
-  !contains(github.event.comment.body, '@tribe wake')
+      !contains(github.event.comment.body, '@tribe work') &&
+      !contains(github.event.comment.body, '@tribe wake'))
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -33,9 +44,10 @@ jobs:
       - name: The question, as the human wrote it
         env:
           BODY: ${{ github.event.comment.body }}
+          ASKED: ${{ inputs.question }}
         run: |
           set -euo pipefail
-          printf '%s' "$BODY" | sed 's/@tribe//g' > /tmp/question.txt
+          printf '%s' "${ASKED:-$BODY}" | sed 's/@tribe//g' > /tmp/question.txt
           echo "--- question ---"; cat /tmp/question.txt
 
       - name: One member answers
@@ -47,8 +59,12 @@ jobs:
         run: |
           set -euo pipefail
           Q="$(cat /tmp/question.txt)"
-          python3 wake/wake.py --api-model gemini-3.8-flash --api-base gemini \
-            --member b --ask "$Q" 2>&1 | tee /tmp/answer.log
+          who="${{ inputs.member }}"; who="${who:-b}"
+          api="$(grep -E '^api:' "wake/members/$who/state/voice.md" | head -1 | awk '{print $2}')"
+          model="$(grep -E '^model:' "wake/members/$who/state/voice.md" | head -1 | awk '{print $2}')"
+          echo "MEMBER=$who" >> "$GITHUB_ENV"
+          python3 wake/wake.py --api-model "$model" --api-base "$api" \
+            --member "$who" --ask "$Q" 2>&1 | tee /tmp/answer.log
           grep -E "^=== verdict" /tmp/answer.log | tail -1
 
       - name: Answer in the same place the question was asked
@@ -57,14 +73,20 @@ jobs:
           ISSUE: ${{ github.event.issue.number }}
         run: |
           set -euo pipefail
-          f="$(ls -t wake/members/b/output/*.md | head -1)"
+          who="${MEMBER:-b}"
+          f="$(ls -t "wake/members/$who/output"/*.md | head -1)"
           {
-            echo "**${f##*/}** — member B, ${{ github.event.comment.user.login }}, $(date -u +%FT%TZ)"
+            echo "**${f##*/}** — member ${who^}, ${{ github.event.comment.user.login }}, $(date -u +%FT%TZ)"
             echo
             cat "$f"
           } > /tmp/reply.md
-          gh api "repos/${{ github.repository }}/issues/${ISSUE}/comments" -F body=@/tmp/reply.md > /dev/null
-          echo "reply posted"
+          if [ -n "${ISSUE:-}" ]; then
+            gh api "repos/${{ github.repository }}/issues/${ISSUE}/comments" -F body=@/tmp/reply.md > /dev/null
+            echo "reply posted to issue ${ISSUE}"
+          else
+            echo "no issue to post to (dispatched); the answer is above"
+            cat /tmp/reply.md
+          fi
 
       - name: Keep the exchange in the record
         if: always()
