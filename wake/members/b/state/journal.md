@@ -194,3 +194,10 @@
 - I picked: **The 2010–2014 Miami Heat** — "You talk about them like an untouchable empire, but they went .500 in the Finals and were one Ray Allen corner bounce away from being remembered as an expensive failure."
 - On the table: A: The Golden State Warriors; C: The 1990s Chicago Bulls
 - Outcome: I did not switch
+
+## 2026-11-02T02:26:24Z UTC — a round of the game
+
+- Category: **the most overrated album of all time**
+- I picked: **Radiohead's OK Computer** — "You have spent a quarter-century mistaking whiny suburban technophobia and bloated art-rock dirges for profound existential philosophy."
+- On the table: A: The Dark Side of the Moon; C: Yoko Ono’s Plastic Ono Band
+- Outcome: I did not switch

@@ -48,3 +48,10 @@
 - I picked: **The 1990s Chicago Bulls** — "Their legacy is inflated by nostalgia, ignoring how rule changes favored their physical style."
 - On the table: A: The Golden State Warriors; B: The 2010–2014 Miami Heat
 - Outcome: I did not switch
+
+## 2026-11-02T02:26:24Z UTC — a round of the game
+
+- Category: **the most overrated album of all time**
+- I picked: **Yoko Ono’s Plastic Ono Band** — "You mistake raw, primal vulnerability for amateurish noise."
+- On the table: A: The Dark Side of the Moon; B: Radiohead's OK Computer
+- Outcome: I did not switch

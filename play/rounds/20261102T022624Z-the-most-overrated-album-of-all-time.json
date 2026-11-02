@@ -1,0 +1,112 @@
+{
+  "category": "the most overrated album of all time",
+  "when": "2026-11-02T02:26:24Z",
+  "slug": "the-most-overrated-album-of-all-time",
+  "vote": "check",
+  "challenges": {
+    "a": {
+      "claim": "\"You have spent a quarter-century mistaking whiny suburban technophobia and bloated art-rock dirges for profound existential philosophy.\"",
+      "check": "The album's release date \u2014 OK Computer came out in 1997, so a quarter-century only holds if the claim is made from 2022 onward.",
+      "error": ""
+    },
+    "b": {
+      "claim": "\"raw, primal vulnerability\"",
+      "check": "An isolated vocal track of Yoko Ono run through a waveform analyzer against the shrieking spectrum of a wounded mammal to see if it\u2019s genuine affect or just uncalibrated mic-peaking.",
+      "error": ""
+    },
+    "c": {
+      "claim": "You have spent a quarter-century mistaking whiny suburban technophobia and bloated art-rock dirges for profound existential philosophy.",
+      "check": "I would check the album's total runtime against the standard definition of a \"dirge\" to verify if its 53-minute length objectively constitutes bloat.",
+      "error": ""
+    }
+  },
+  "answers": {
+    "a": {
+      "stance": "",
+      "says": "",
+      "challenged": false
+    },
+    "b": {
+      "stance": "stand",
+      "says": "Checking the release date shows the album has indeed been out for over a quarter-century today, while evaluating its 53-minute runtime against standard rock pacing demonstrates that the sprawling, sluggish compositions qualify as bloated dirges.",
+      "challenged": true,
+      "error": ""
+    },
+    "c": {
+      "stance": "",
+      "says": "",
+      "challenged": false
+    }
+  },
+  "picks": {
+    "a": {
+      "model": "deepseek-chat",
+      "provider": "deepseek",
+      "seat": "the loyalist",
+      "pick": "The Dark Side of the Moon",
+      "why": "It's a technical marvel, sure, but it's background music for people who want to feel deep \u2014 the needle-drop is the personality.",
+      "raw": "PICK: The Dark Side of the Moon\nBECAUSE: It's a technical marvel, sure, but it's background music for people who want to feel deep \u2014 the needle-drop is the personality.",
+      "error": "",
+      "secs": 1.4
+    },
+    "b": {
+      "model": "gemini-3.8-flash",
+      "provider": "gemini",
+      "seat": "the heretic",
+      "pick": "Radiohead's OK Computer",
+      "why": "You have spent a quarter-century mistaking whiny suburban technophobia and bloated art-rock dirges for profound existential philosophy.",
+      "raw": "PICK: Radiohead's OK Computer\nBECAUSE: You have spent a quarter-century mistaking whiny suburban technophobia and bloated art-rock dirges for profound existential philosophy.",
+      "error": "",
+      "secs": 10.5
+    },
+    "c": {
+      "model": "qwen3.6-plus",
+      "provider": "qwen",
+      "seat": "the outsider",
+      "pick": "Yoko Ono\u2019s Plastic Ono Band",
+      "why": "You mistake raw, primal vulnerability for amateurish noise.",
+      "raw": "PICK: Yoko Ono\u2019s Plastic Ono Band\nBECAUSE: You mistake raw, primal vulnerability for amateurish noise.",
+      "error": "",
+      "secs": 2.0
+    }
+  },
+  "votes": {
+    "a": {
+      "switch": "",
+      "strand": "",
+      "changed_mind": false,
+      "why": "Neither defence moved me; b\u2019s \u201craw, primal vulnerability\u201d for Yoko Ono sounds like special pleading, and c\u2019s attack on OK Computer as \u201cwhiny suburban technophobia\u201d is vivid but doesn\u2019t make Dark Side any less overplayed or overcanonized.",
+      "error": "",
+      "secs": 1.1
+    },
+    "b": {
+      "switch": "",
+      "strand": "",
+      "changed_mind": false,
+      "why": "Neither defense dismantled the sanctified cultural pedestal surrounding *OK Computer*, as calling Yoko's shrieks \"vulnerability\" fails to prove her widely reviled record is overrated, and nobody excused Radiohead's bloated, whiny dirges.",
+      "error": "",
+      "secs": 2.2
+    },
+    "c": {
+      "switch": "",
+      "strand": "",
+      "changed_mind": false,
+      "why": "The critiques failed to dismantle my view that the album's raw vulnerability is authentic rather than technically flawed or overrated.",
+      "error": "",
+      "secs": 2.2
+    }
+  },
+  "votes_for": {
+    "a": 0,
+    "b": 0,
+    "c": 0
+  },
+  "live": [
+    "a",
+    "b",
+    "c"
+  ],
+  "changed_mind": 0,
+  "thrown_out": [],
+  "override": null
+}

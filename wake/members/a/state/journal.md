@@ -118,3 +118,10 @@
 - I picked: **The Golden State Warriors** — "One jump-shooting team gets called a dynasty for beating injured opponents, and we all pretend that's the same thing as dominance."
 - On the table: B: The 2010–2014 Miami Heat; C: The 1990s Chicago Bulls
 - Outcome: I did not switch
+
+## 2026-11-02T02:26:24Z UTC — a round of the game
+
+- Category: **the most overrated album of all time**
+- I picked: **The Dark Side of the Moon** — "It's a technical marvel, sure, but it's background music for people who want to feel deep — the needle-drop is the personality."
+- On the table: B: Radiohead's OK Computer; C: Yoko Ono’s Plastic Ono Band
+- Outcome: I did not switch
