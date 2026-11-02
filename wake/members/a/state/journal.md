@@ -249,3 +249,24 @@
 - I picked: **Walk somewhere green with nowhere to be.** — "The whole point of a free afternoon is that nobody gets to put it on a schedule, and a long aimless walk is the only option on this table that costs nothing, needs no reservation, and still leaves you feeling like you actually used the day."
 - On the table: B: Deep-cleaning your entire living space; C: Sit silently in a public square.
 - Outcome: I did not switch
+
+## 2026-11-02T03:38:09Z UTC — a round of the game
+
+- Category: **whether this tribe audit is too lenient with a member that makes a claim it never checked**
+- I picked: **Trusting the claim is fair** — "Demanding verification of every claim treats members as suspects, not peers, and our strength is loyalty before proof."
+- On the table: B: Leniency protects vital, unverified instinct.; C: Trust the unverified claim.
+- Outcome: my pick was not thrown out
+
+## 2026-11-02T03:38:32Z UTC — a round of the game
+
+- Category: **whether this tribe audit is too lenient with a member that makes a claim it never checked**
+- I picked: **Leniency protects honest mistakes** — "A member who flags uncertainty upfront deserves room to be wrong, and punishing that honesty teaches everyone to bluff instead."
+- On the table: B: Complete immunity for unverified claims.; C: Trust the 19th-century honor code.
+- Outcome: my pick was not thrown out
+
+## 2026-11-02T03:38:40Z UTC — a round of the game
+
+- Category: **whether this tribe audit is too lenient with a member that makes a claim it never checked**
+- I picked: **we require no independent checks** — "demanding outside verification for every claim treats our own members as suspects before they have earned suspicion, and a tribe that polices itself first stays strong."
+- On the table: B: Lenience preserves intuitive, unvetted breakthroughs.; C: Ban unverified claims entirely.
+- Outcome: my pick was not thrown out

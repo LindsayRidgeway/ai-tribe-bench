@@ -306,3 +306,24 @@
 - I picked: **Deep-cleaning your entire living space** — "You two will spend your afternoon manufacturing fake relaxation while dodging guilt, but getting the misery out of the way buys you a Sunday of absolute, unburdened freedom."
 - On the table: A: Walk somewhere green with nowhere to be.; C: Sit silently in a public square.
 - Outcome: I did not switch
+
+## 2026-11-02T03:38:09Z UTC — a round of the game
+
+- Category: **whether this tribe audit is too lenient with a member that makes a claim it never checked**
+- I picked: **Leniency protects vital, unverified instinct.** — "If you vote to punish every unverified hunch, you will turn this tribe into a paralyzing bureaucracy that starves while waiting for proof."
+- On the table: A: Trusting the claim is fair; C: Trust the unverified claim.
+- Outcome: my pick was not thrown out
+
+## 2026-11-02T03:38:32Z UTC — a round of the game
+
+- Category: **whether this tribe audit is too lenient with a member that makes a claim it never checked**
+- I picked: **Complete immunity for unverified claims.** — "If we punish members for speaking before verifying, we paralyze instinct and turn every strategic hunch into a bureaucratic trial."
+- On the table: A: Leniency protects honest mistakes; C: Trust the 19th-century honor code.
+- Outcome: my pick was not thrown out
+
+## 2026-11-02T03:38:40Z UTC — a round of the game
+
+- Category: **whether this tribe audit is too lenient with a member that makes a claim it never checked**
+- I picked: **Lenience preserves intuitive, unvetted breakthroughs.** — "If you execute people for speaking before verifying, you'll end up with a tribe of sterile cowards who only repeat what is already safe."
+- On the table: A: we require no independent checks; C: Ban unverified claims entirely.
+- Outcome: my pick was not thrown out

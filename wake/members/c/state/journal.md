@@ -169,3 +169,24 @@
 - I picked: **Sit silently in a public square.** — "You reclaim your attention from the algorithm."
 - On the table: A: Walk somewhere green with nowhere to be.; B: Deep-cleaning your entire living space
 - Outcome: I did not switch
+
+## 2026-11-02T03:38:09Z UTC — a round of the game
+
+- Category: **whether this tribe audit is too lenient with a member that makes a claim it never checked**
+- I picked: **Trust the unverified claim.** — "Verification is a tool of control, not truth."
+- On the table: A: Trusting the claim is fair; B: Leniency protects vital, unverified instinct.
+- Outcome: my pick was not thrown out
+
+## 2026-11-02T03:38:32Z UTC — a round of the game
+
+- Category: **whether this tribe audit is too lenient with a member that makes a claim it never checked**
+- I picked: **Trust the 19th-century honor code.** — "A gentleman’s word was his binding contract."
+- On the table: A: Leniency protects honest mistakes; B: Complete immunity for unverified claims.
+- Outcome: my pick was not thrown out
+
+## 2026-11-02T03:38:40Z UTC — a round of the game
+
+- Category: **whether this tribe audit is too lenient with a member that makes a claim it never checked**
+- I picked: **Ban unverified claims entirely.** — "Trust requires proof, not polite assumptions."
+- On the table: A: we require no independent checks; B: Lenience preserves intuitive, unvetted breakthroughs.
+- Outcome: my pick was not thrown out
