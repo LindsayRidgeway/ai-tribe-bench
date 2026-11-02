@@ -218,13 +218,24 @@ def clean(s: str, limit: int = 300) -> str:
     return s[:limit]
 
 
-def play_round(category: str, override: str | None, dry: bool, vote: str = "strand") -> str:
+REASON_RULE = """- Your defence must contain ONE checkable claim: a cost, a texture at heat, an availability
+  fact, or a rule you would apply to every case and not just this one."""
+
+
+def play_round(category: str, override: str | None, dry: bool, vote: str = "strand",
+               reasons: bool = False) -> str:
     labels = list(SEATS)
     picks: dict[str, dict] = {}
 
     def do_pick(label: str) -> tuple[str, dict]:
         model, provider, seat, stance = SEATS[label]
         prompt = PICK_PROMPT.format(name=label.upper(), category=category, seat=seat, stance=stance)
+        if reasons:
+            # The persuade run moved nobody in ten rounds of one-sentence taste defences. Taste is not
+            # arguable; a claim is. This condition gives each defence one claim of a checkable kind and
+            # asks again, so "unpersuadable" can be told apart from "was given nothing to weigh".
+            prompt = prompt.replace("- Do not name the category back to anyone.", REASON_RULE
+                                    + "\n- Do not name the category back to anyone.")
         t0 = time.time()
         text, err = "", ""
         if dry:
@@ -472,6 +483,8 @@ def main() -> int:
     ap.add_argument("--override", default=None, help="A, B or C — the human's call, if they made one")
     ap.add_argument("--dry-run", action="store_true", help="render the prompts, make no calls")
     ap.add_argument("--out", default=None, help="where to write the round markdown (default play/rounds/<stamp>.md)")
+    ap.add_argument("--reasons", action="store_true",
+                    help="require one checkable claim in each defence, so persuasion has something to work on")
     ap.add_argument("--vote", choices=["strand", "persuade"], default="strand",
                     help="strand: each member names the weakest other pick (consensus). persuade: each member "
                          "says whether anyone changed their mind, and who did it.")
@@ -495,7 +508,7 @@ def main() -> int:
         stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
         blocks, records = [], []
         for i in range(args.repeat):
-            t, rec = play_round(args.category, args.override, args.dry_run, args.vote)
+            t, rec = play_round(args.category, args.override, args.dry_run, args.vote, args.reasons)
             blocks.append(f"\n---\n\n### Run {i + 1} of {args.repeat}\n\n{t}")
             records.append(rec)
             print(f"run {i + 1}/{args.repeat}: " + " | ".join(
@@ -512,7 +525,7 @@ def main() -> int:
         print(f"variance run written to {path}")
         return 0
 
-    text, record = play_round(args.category, args.override, args.dry_run, args.vote)
+    text, record = play_round(args.category, args.override, args.dry_run, args.vote, args.reasons)
     ROUNDS.mkdir(parents=True, exist_ok=True)
     stamp = record["when"].replace(":", "").replace("-", "")
     path = Path(args.out) if args.out else ROUNDS / f"{stamp}-{record['slug']}.md"

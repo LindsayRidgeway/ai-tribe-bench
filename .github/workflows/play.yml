@@ -71,10 +71,12 @@ jobs:
               # result moves. A measurement run: the standings are not touched.
               mode=strand
               case "$REST" in persuade*) mode=persuade; REST="${REST#persuade}"; REST="${REST# }" ;; esac
+              reasons=""
+              case "$REST" in reasons*) reasons="--reasons"; REST="${REST#reasons}"; REST="${REST# }" ;; esac
               n=1
               case "$REST" in x[0-9]*) n="${REST%% *}"; n="${n#x}"; REST="${REST#* }" ;; esac
               [ -n "${REST:-}" ] || { echo "x<N> needs a category after it" >&2; exit 2; }
-              python3 play/play.py --category "$REST" --repeat "$n" --vote "$mode" > /tmp/reply.md
+              python3 play/play.py --category "$REST" --repeat "$n" --vote "$mode" $reasons > /tmp/reply.md
               ;;
           esac
           cat /tmp/reply.md
