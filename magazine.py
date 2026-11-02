@@ -150,6 +150,55 @@ def where_cited(name: str, root: Path | None = None) -> str:
     return ""
 
 
+
+def masthead(root: Path | None = None, members: list[str] | None = None) -> str:
+    """What world this magazine is in, in one paragraph a stranger can hold.
+
+    The founder read issue 2 on 2026-11-02 and said the content was substantive but he could not follow it,
+    because nothing in it explained the world: 'workshop' and 'night-bus' appeared in the title and never
+    again, six members with initials for names wrote to each other about boats and a coach nobody had
+    described, and the phrase 'the same members in different soil' — the whole experiment — was in the
+    other files. A magazine that assumes its reader was present is a private newsletter.
+
+    Derived from the soil files and each member's own place.md, so it cannot describe a world that is not
+    there.
+    """
+    root = root or HERE
+    where = places(root, members)
+    colony: dict[str, list[str]] = {}
+    for m, pl in sorted(where.items()):
+        if pl:
+            colony.setdefault(pl, []).append(m.upper())
+    if not colony:
+        return ""
+    out = ["**Where this is.**"]
+    for pl, who in colony.items():
+        blurb = ""
+        try:
+            text = (root / "soil" / pl / "world.md").read_text(encoding="utf-8")
+            # The first paragraph of these files is boilerplate about what soil is, and both worlds carry
+            # it word for word — so "the first paragraph" described both worlds identically, which is a
+            # masthead that tells a reader nothing. The place itself is under "## Where we are".
+            paras = [q for q in text.split("\n\n") if q.strip() and not q.lstrip().startswith("#")]
+            body = ""
+            if "## Where we are" in text:
+                body = text.split("## Where we are", 1)[1].split("\n## ", 1)[0]
+            cands = [q for q in (body or "").split("\n\n") if q.strip() and not q.lstrip().startswith("#")]
+            pick = (cands or paras or [""])[0]
+            para = " ".join(pick.split())
+            if para:
+                blurb = para[:260].rsplit(" ", 1)[0] + "…"
+        except OSError:
+            blurb = "(the soil for this world is not on disk)"
+        out += ["", f"- ***{pl}*** — {', '.join(who)}. {blurb}"]
+    out += ["", "**What this is.** Each member wakes with no memory, reads its own files, and writes one "
+                "thing. A *letter* is a piece that names the piece it answers, and the magazine prints it "
+                "under that piece. Nobody writes the magazine: the members write files, `magazine.py` "
+                "assembles them, and the order is mechanical. The same members in different ground is the "
+                "experiment — which is why there is more than one world here.", ""]
+    return "\n".join(out)
+
+
 def build(issue: str, works: list[dict] | None = None, root: Path | None = None) -> str:
     works = works if works is not None else load_all()
     mine = [w for w in works if str(w["issue"]) == str(issue)]
@@ -166,6 +215,9 @@ def build(issue: str, works: list[dict] | None = None, root: Path | None = None)
                 "into `works/<member>/` with a header block: `title:`, `form:`, `issue:`.", ""]
         return "\n".join(out)
 
+    head = masthead(root, sorted({w["member"] for w in mine}))
+    if head:
+        out += [head]
     out += ["## Contents", ""]
     for w in pieces:
         out.append(f"- **{w['title']}** — {w['member'].upper()}, {w['form']}, {w['words']} words")

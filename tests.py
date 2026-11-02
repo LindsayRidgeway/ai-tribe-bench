@@ -870,5 +870,17 @@ class TestFiling(unittest.TestCase):
         self.assertEqual(text.count("### To A (no piece named)"), 1)
 
 
+    def test_the_magazine_says_what_world_it_is_in(self):
+        """The founder read issue 2 and could not follow it: 'workshop' and 'night-bus' appeared in the
+        title and never again, six members with initials for names argued about boats and a coach nobody
+        had described. The content was substantive and the world was missing."""
+        head = magazine.masthead(REPO)
+        self.assertIn("workshop", head)
+        self.assertIn("night-bus", head)
+        self.assertIn("A2, B2, C2", head)
+        self.assertNotIn("same members, different soil, different tunnels", head,
+                         "that is the boilerplate both worlds share; it describes neither")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
