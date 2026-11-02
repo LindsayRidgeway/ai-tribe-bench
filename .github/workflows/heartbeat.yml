@@ -1,0 +1,71 @@
+# Is the clock unreliable, or is the scheduler?
+#
+# Answered 2026-11-02 by counting: the clock has `cron: "17 */4 * * *"` and has been active on the
+# default branch since 19:53 UTC on 2026-11-01. Six firings were due by 18:56 UTC the next day. The
+# repository has ONE scheduled run in its entire history (GitHub's own count: `total_count: 1`), at
+# 05:57 — forty minutes late. Every other turn in the record was a hand dispatch.
+#
+# That number alone cannot tell you why. Either the clock's own configuration is eating the triggers
+# (a concurrency group, a stale registration after the file was edited, an invalid-YAML hour), or
+# GitHub drops scheduled runs on a repository that is pushing constantly. This workflow is the
+# control: the smallest possible scheduled job, no keys, no members, one line appended per firing.
+#
+# Read it after a night:
+#
+#   python3 lab/heartbeat.py            # how many of the due hours actually fired
+#
+# If the heartbeat fires 24 of 24 and the clock fires 1 of 6, the fault is in clock.yml. If the
+# heartbeat also misses hours, the fault is the ground, and RUN.md has to stop promising a stranger
+# that their colony will wake by itself.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "41 * * * *"    # hourly, off the hour because everyone schedules on the hour
+
+concurrency:
+  group: heartbeat
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  beat:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Work from the branch as it is now
+        run: |
+          set -euo pipefail
+          ref="${GITHUB_REF_NAME:-main}"
+          git fetch --depth=1 origin "$ref"
+          git reset --hard "origin/$ref"
+
+      - name: One line
+        run: |
+          set -euo pipefail
+          printf '| %s | %s | %s |\n' \
+            "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "${GITHUB_EVENT_NAME:-?}" "${GITHUB_RUN_ID:-?}" \
+            >> lab/heartbeat.md
+
+      - name: Commit it
+        run: |
+          set -euo pipefail
+          git config user.name "AI Tribe Bench"
+          git config user.email "ai-tribe-bench@users.noreply.github.com"
+          git add lab/heartbeat.md
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -m "heartbeat: $(date -u +%FT%TZ) (${GITHUB_EVENT_NAME:-?})"
+          # Another workflow may have pushed while this one was writing one line. Rebase and try again
+          # rather than failing: a heartbeat that loses its own beat is not a measurement.
+          for attempt in 1 2 3; do
+            if git push -q origin HEAD; then echo "pushed on attempt $attempt"; exit 0; fi
+            git pull -q --rebase origin "${GITHUB_REF_NAME:-main}" || true
+            sleep $((attempt * 3))
+          done
+          echo "!! the heartbeat could not push after three attempts — the line is lost, and that is itself a fact"
+          exit 1

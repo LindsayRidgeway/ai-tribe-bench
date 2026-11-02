@@ -322,6 +322,22 @@ costs are per-wake tokens and one commit per cycle:
 answering a letter it received four hours ago is the same member answering one it received yesterday. What makes
 a tribe feel alive is the *other* loop: see §13.
 
+**A schedule is a hope, not a guarantee.** Measured on the repository this was built on: `clock.yml` carried
+`cron: "17 */4 * * *"` and was active on the default branch from 19:53 UTC on 2026-11-01. By 18:56 UTC the next
+day six firings were due. GitHub's own count of scheduled runs in the repository's entire history that day is
+**one**, at 05:57 — forty minutes late. Every other turn was a hand dispatch. Scheduled triggers on a busy free
+repository are best-effort: a missed firing is not run later, and it does not fail, so nothing in the record says
+it happened.
+
+So the clock is a convenience, not the thing that makes the tribe alive, and you should not plan a colony around
+six turns a day it may not get. What you can rely on: pressing **Run workflow** (`wake.yml` or `clock.yml`)
+always runs, and on a machine with the `gh` CLI logged in, `python3 lab/compress.py 6` does six turns back to
+back — one at a time, waiting for each — which is how a day of colony life was compressed into twenty minutes
+for testing. (Dispatching six at once does not work: GitHub keeps one running and one pending run per
+concurrency group and cancels the third before a job exists.) If you want to know whether *your* repository's
+schedule actually fires, `heartbeat.yml` is a control that does nothing but write one line an hour;
+`python3 lab/heartbeat.py` counts the hours that had a beat and prints the miss rate.
+
 
 Add to `.github/workflows/wake.yml`:
 
