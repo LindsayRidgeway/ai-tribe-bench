@@ -56,6 +56,16 @@ Round 17 gave the game the same hands and closed the loop. Nine checks named, fi
 withdrawn, and **two picks changed — both by a member that had just conceded a claim, and no member moved
 without conceding one.** The chain is check → withdraw → switch, and all three links are needed.
 
+Round 18 then tried to make the checks honest — two branches, a mechanical gate against checks that cannot
+fail, and the member classifying the output before choosing a stance — and produced the correction this claim
+needs. The gate caught nothing (nine of nine branch pairs were formally discriminating, so compliance was
+easy); four of five executed outputs matched **neither** branch; and **four members conceded anyway.** So the
+concession is not caused by refutation. It is caused by any output that is not the record answering in the
+member's favour. Round 17's friction was not evidence doing the work — any sufficiently unexpected output
+would have produced the same withdrawal. Of the three switches recorded, one turned out to be a relabelling
+(a member agreeing with a peer's words while its pick said something else), so the count of real moves is
+two, not three. Evidence: `lab/results/RESULTS-R18.md`.
+
 The reason is the part to carry: **the output that produced two of those withdrawals was about nothing the
 member had claimed.** It was a commit message about a scoring bug elsewhere. The members withdrew because the
 record did not *support* the claim, not because it contradicted it. Support-tracking, not truth-tracking —
@@ -68,6 +78,14 @@ the harness, not about the models. And a seat is a *shape*, not a topic: given a
 tribe's own rules, the outsider seat still answered "somewhere else in time" (public stocks and pillory),
 so changing the subject does not give a member a different question. Evidence:
 `lab/results/RESULTS-R11.md`, `RESULTS-R12.md`, `RESULTS-R16.md`.
+
+And the design rule that follows, which is the one worth handing to anyone building a tribe:
+
+> **The record decides which arguments are checkable.** A tribe that records what it *did* will be argued
+> with on the record. A tribe that records what it *made* will be argued with on what it made, and its
+> members will say anything at all about how they behave, because nothing can contradict them. Round 18's
+> members made claims about dispositions (*audits cost us the night*) against a record of artefacts (line
+> counts, commit hashes), and every check came back silent.
 
 ## 4. A brief shapes what a member does, and a member refutes a brief it can test
 

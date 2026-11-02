@@ -66,6 +66,11 @@ Two things it taught that are worth knowing before you play it:
 - **A command whose output you can predict is decoration.** Both stands in those three rounds were members
   predicting the *format* of the output and standing when the format arrived — the number in dispute was
   never in question. If the challenger is allowed to choose its own check, it will choose one it can pass.
+- **A check that cannot fail is easy to write, and a check that can fail finds nothing.** Round 18 required
+  both branches of every check and gated out any pair that differed only by a "not": nine of nine survived
+  the gate, and four of five executed outputs matched *neither* branch. Members conceded anyway. The claims
+  in a round tend to be about behaviour and the record holds artefacts, so the honest version of the exec
+  round is a round whose claims a command can answer.
 - **The output that produced the withdrawals was mostly about nothing.** A commit message about a scoring
   bug in another file was enough for two members to give up their claim, because their record did not
   support it. These members treat a silent record as a refutation. Keep that in mind before you decide what
