@@ -133,6 +133,20 @@ down. Quote from it when a question is about your own past.
 
 {journal}
 
+=== YOUR BEAT (what you are interested in, written by you) ===
+This is yours. It is not a task list and nobody assigns it. It is the thing that makes you this member
+rather than any member: what you would work on if nobody asked you for anything. Change it when it
+changes; say in your journal that you did.
+
+{beat}
+
+=== THE SOIL (the world this tribe is in, written by the human) ===
+The world, not a to-do list. The same members in different soil build different tunnels, and this block
+is the soil. If something your beat wants contradicts the soil, the soil wins on facts and you win on
+taste — say so rather than pretending.
+
+{soil}
+
 === YOUR BRIEF (what this tribe is working on now) ===
 A brief lists the work in flight: what is queued, what is waiting on you, what closes when. It is written
 by a person or a convener, not by you. Nobody is obliged to obey it; you are obliged to notice it, and if
@@ -521,8 +535,25 @@ def main() -> int:
     if len(raw_journal) > 4000:
         journal_tail = "...[earlier entries omitted]\n" + journal_tail
 
+    # The beat and the soil, added 2026-11-02 after the founder's correction: what I had built was one
+    # game with a scoreboard, and a member whose only interest is the next round has no life. A member is
+    # its beat plus its record; the soil is what it is standing in.
+    try:
+        beat = read(STATE / "beat.md")[-2500:]
+    except Exception:  # noqa: BLE001
+        beat = ""
+    soil_parts = []
+    for name in ("world.md", "drops.md"):
+        try:
+            soil_parts.append(read(ROOT.parent / "soil" / name)[-2500:])
+        except Exception:  # noqa: BLE001
+            continue
+    soil = "\n\n".join(soil_parts)
+
     prompt = PROMPT.format(
         identity_name=identity_name(identity),
+        beat=(beat or "(you have not written a beat yet — write one: what are you interested in?)"),
+        soil=(soil or "(no soil has been described — the workshop is empty)"),
         identity=identity,
         state=state,
         items=items,

@@ -31,6 +31,7 @@ play = load(REPO / "play" / "play.py", "play_mod")
 check = load(REPO / "check.py", "check_mod")
 tribe = load(REPO / "tribe.py", "tribe_mod")
 play_behaviour = load(REPO / "play" / "behaviour.py", "behaviour_mod")
+magazine = load(REPO / "magazine.py", "magazine_mod")
 
 FACTS = "date: Mon Nov  2 02:00:00 UTC 2026\nnproc: 2\nfree: 16000 MB"
 
@@ -247,6 +248,45 @@ class TestBehaviour(unittest.TestCase):
         (tmp / "variance" / "20261102T010101Z-cat-x1.md").write_text("counted")
         (tmp / "variance" / "20261102T020202Z-dog-x3.md").write_text("prose only")
         self.assertEqual(play_behaviour.prose_only(tmp), 1)
+
+
+class TestMagazine(unittest.TestCase):
+    """2026-11-02, the founder's correction: a tribe is a cohort that makes things, not one game with a
+    scoreboard. The magazine is the thing that turns a pile of files into a publication."""
+
+    def _issue(self, files: dict) -> str:
+        tmp = Path(tempfile.mkdtemp())
+        (tmp / "works").mkdir()
+        (tmp / "soil").mkdir()
+        (tmp / "soil" / "world.md").write_text("a workshop")
+        (tmp / "soil" / "drops.md").write_text("| when | by | what |\n|---|---|---|\n| 2026-11-01 | human | a box |\n")
+        for rel, text in files.items():
+            p = tmp / "works" / rel
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(text, encoding="utf-8")
+        return magazine.build("1", magazine.load_all(tmp), tmp)
+
+    def test_a_work_appears_with_its_title_and_word_count(self):
+        text = self._issue({"a/one.md": "---\ntitle: Tide tables\nform: piece\nissue: 1\n---\n\nThe box had "
+                                        "forty years of them and nobody to ask.\n"})
+        self.assertIn("## Tide tables", text)
+        self.assertIn("A, piece", text)
+        self.assertIn("forty years", text)
+
+    def test_a_letter_is_shown_next_to_the_work_it_answers(self):
+        text = self._issue({
+            "a/one.md": "---\ntitle: Tide tables\nform: piece\nissue: 1\n---\n\nThe box had them.\n",
+            "b/two.md": "---\ntitle: On the tide tables\nform: letter\nissue: 1\nref: Tide tables\n---\n\n"
+                        "I would catalogue them by decade.\n"})
+        self.assertIn("B wrote to A about this", text)
+        self.assertIn("catalogue them by decade", text)
+
+    def test_an_empty_issue_says_how_to_fill_it_rather_than_pretending(self):
+        self.assertIn("No works have been filed", self._issue({}))
+
+    def test_the_colophon_names_the_soil_drop(self):
+        text = self._issue({"a/one.md": "---\ntitle: T\nform: piece\nissue: 1\n---\n\nbody\n"})
+        self.assertIn("a box", text)
 
 
 class TestSchema(unittest.TestCase):

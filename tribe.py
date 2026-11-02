@@ -34,6 +34,8 @@ REQUIRED = {
     "voice.md": ("human", "which API and model it borrows"),
 }
 OPTIONAL = {
+    "beat.md": ("member", "what this member is interested in, as opposed to what it was asked; read into "
+                          "every wake. Not a task list, and nobody assigns it"),
     "brief.md": ("human+convener", "what the tribe is working on now; included in the prompt"),
     "requests.md": ("member", "read-only checks it wants run before its next wake"),
     "findings.md": ("harness", "what those checks said"),

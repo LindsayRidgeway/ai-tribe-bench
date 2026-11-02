@@ -19,7 +19,8 @@ jobs:
       contains(github.event.comment.body, '@tribe draft') ||
       contains(github.event.comment.body, '@tribe score') ||
       contains(github.event.comment.body, '@tribe override') ||
-      contains(github.event.comment.body, '@tribe ask')
+      contains(github.event.comment.body, '@tribe ask') ||
+      contains(github.event.comment.body, '@tribe work')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -65,6 +66,41 @@ jobs:
               # Replay the same category with the human's call recorded. Cheaper and more honest than
               # editing a finished round: the table's votes stay in the file next to the override.
               python3 play/play.py --category "$cat" --override "$l" > /tmp/reply.md
+              ;;
+            work*)
+              # A member filing something for the magazine. `@tribe work <member> <form> <issue> <ref|-> <brief>`
+              # form: piece | catalogue | game | letter | note.  ref: the work a letter answers, or -.
+              who="$(printf '%s' "$REST" | awk '{print $1}')"
+              form="$(printf '%s' "$REST" | awk '{print $2}')"
+              issue="$(printf '%s' "$REST" | awk '{print $3}')"
+              ref="$(printf '%s' "$REST" | awk '{print $4}')"
+              brief="$(printf '%s' "$REST" | cut -d' ' -f5-)"
+              [ -f "wake/members/$who/state/voice.md" ] || { echo "no such member: $who" >&2; exit 2; }
+              [ -n "${brief:-}" ] || { echo "work needs a brief after the member, form, issue and ref" >&2; exit 2; }
+              read_args=()
+              if [ "$ref" != "-" ]; then
+                target="$(ls works/*/"$ref".md 2>/dev/null | head -1)"
+                [ -n "$target" ] || target="$(grep -ril "^title: .*$ref" works 2>/dev/null | head -1)"
+                [ -n "$target" ] || { echo "no work matches ref: $ref" >&2; exit 2; }
+                read_args=(--read "$target")
+              fi
+              api="$(grep -E '^api:' "wake/members/$who/state/voice.md" | head -1 | awk '{print $2}')"
+              model="$(grep -E '^model:' "wake/members/$who/state/voice.md" | head -1 | awk '{print $2}')"
+              python3 wake/wake.py --member "$who" --api-model "$model" --api-base "$api" \
+                "${read_args[@]}" --ask "$brief" > /tmp/work.log 2>&1 || tail -30 /tmp/work.log
+              newest="$(ls -t "wake/members/$who/output"/*.md | head -1)"
+              slug="$(printf '%s' "$brief" | tr 'A-Z' 'a-z' | tr -cs 'a-z0-9' '-' | cut -c1-40 | sed 's/-$//')"
+              stamp="$(date -u +%Y%m%dT%H%M%SZ)"
+              mkdir -p "works/$who"
+              title="$(grep -m1 '^#' "$newest" | sed 's/^#*[[:space:]]*//')"
+              [ -n "$title" ] || title="$brief"
+              { printf -- '---\ntitle: %s\nform: %s\nissue: %s\nref: %s\nmember: %s\nwhen: %s\n---\n\n' \
+                  "$title" "$form" "$issue" "${ref:--}" "$who" "$stamp"
+                cat "$newest"; } > "works/$who/$stamp-$slug.md"
+              python3 magazine.py --issue "$issue" --write > /tmp/issue.md 2>&1 || tail -20 /tmp/issue.md
+              { echo "**${who} filed a $form for issue ${issue}"                      $([ "$ref" != "-" ] && echo " — a response to *${ref}*")**"; echo
+                echo "_Filed as \`works/$who/$stamp-$slug.md\`. The wake's own words:_"; echo
+                cat "$newest"; } > /tmp/reply.md
               ;;
             ask*)
               who="$(printf '%s' "$REST" | awk '{print $1}')"
