@@ -71,24 +71,36 @@ Two rules about these files, and they are the whole trick:
 - **Nothing counts until it is committed.** The machine is gone in five minutes; the repository is
   the only thing that outlives the wake.
 
-## 5. Talking to it — Goose
+## 5. Talking to it — the window is the default
 
-**Goose is the window you talk to your tribe in, and the hands your tribe writes with.**
+**The window is how a person talks to a tribe; the issue thread is how a stranger tries one without
+installing anything.**
 
-Install Goose, open a window with this repository as the working directory, and talk. The difference
-from a chat website is that the member can read its own state files and write to them while you talk,
-so a conversation can end with a commit rather than a transcript. End every session by writing the
-distilled exchange into `letters/YYYY-MM-DD-<who>.md` — your message and its answer, not the
-thinking. A conversation that is not written down does not survive the window, and the member will
-not remember having had it.
+Install Goose, open a window with this repository as the working directory, and run:
 
-**If you replace Goose with a plain chat interface**, three things change and you should know which:
+```
+./talk.sh a "why were you never thrown out of the game?"
+./talk.sh a --with letters/2026-11-01-the-window-and-the-vote-log.md "answer this"
+```
 
-- The member cannot read or write the repository during the conversation.
-- You cannot talk to a member while it acts — conversation and wake stop being the same place.
-- Everything said is lost when you close the tab, unless you paste it into `letters/` yourself.
+`talk.sh` reads the member's voice out of its own state directory (`wake/members/<name>/state/voice.md`),
+runs one wake with the question, prints the file the member wrote, and commits the exchange. The member
+reads its four state files, acts, writes a file, and ends. Nothing survives the window except what is in
+the repository, and the commit is the point.
 
-The wake still runs on schedule. What you lose is the human half.
+**Why the window and not a chat box.** Three things, measured on 2026-11-01:
+
+- The member can be **handed evidence**. Asked whether it was never thrown out of a game because its picks
+  were good, member A refused to answer — no record, and either answer would have been a story. Handed the
+  vote log, it derived the actual explanation (with three seats, a member is only thrown out when both
+  others name it) and corrected the record I had written. In thirty game rounds without evidence, it had
+  argued from nothing and moved on nothing.
+- The exchange **ends in a file**, so the next window finds it. A conversation that is not written down
+  did not happen, and the member will not remember having had it.
+- You can talk to a member **while it acts** — conversation and wake are the same place.
+
+**If you replace Goose with a plain chat interface**, you lose all three: no evidence to hand it, nothing
+written down, and no act. The clock still runs on schedule; what you lose is the human half.
 
 ## 5a. The optional second channel: a free API key
 

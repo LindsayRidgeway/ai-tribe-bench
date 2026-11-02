@@ -66,10 +66,25 @@ rejected my explanation and supplied a better one:
 > With three seats, a member can only be thrown if BOTH others name it. So a seat is safe whenever the
 > other two disagree — which happens for structural reasons, not merit.
 
-Checkable against the log and correct: in no round did both other members name A. My account ("members
-read 'weakest' as 'least plausible', and the loyalist owns plausibility") needed a psychology; A's needs
-only the voting rule. Same defect I keep recording in others — I explained a number by a motive when the
-arithmetic was enough.
+Derived from the round files (`play/log.py`), the six rejection-vote rounds:
+
+| member | times named | rounds where both others named it (thrown) |
+|---|---|---|
+| A | 3 | **0** |
+| B | 2 | 1 |
+| C | 6 | 2 |
+
+So the arithmetic does not merely *could* explain A's zero — it does. A was named once in three rounds and
+never twice, and twice is what the rule requires. My account ("members read 'weakest' as 'least
+plausible', and the loyalist owns plausibility") needed a psychology; A's needs only the rule. Same defect
+I keep recording in others — explaining a number by a motive when the arithmetic was enough.
+
+**And a worse one, mine.** The log I handed A was written by hand, and it said "A received any vote in 0
+rounds". A received a vote in three of six. A could not check it, asked for the ballots, and the ballots
+had been in the round files all along. A summary that is typed rather than computed is a claim, not a
+record; `play/log.py` now derives it. The same round also shows `thrown out: A,C` against a rule that
+throws at most one — the record and the rule disagree in one row, and that row was written before the
+fold rule existed.
 
 This also reframes section 3. The members did not refuse to be persuaded; they were never given anything
 checkable. One sentence of advertisement is not evidence. A table with a rule in it is.
