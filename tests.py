@@ -10,8 +10,10 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import re
 import shutil
+import subprocess
 import tempfile
 from datetime import date
 import unittest
@@ -873,6 +875,59 @@ class TestFiling(unittest.TestCase):
         text = lever.build("a twig", "a piece", None, "drop", "a", "workshop", "m", "T", "soil/x/drops.md")
         self.assertIn("cannot say whether the change reached the member", text)
         self.assertIn("answers nothing", text)
+
+    def test_the_beacon_never_claims_a_send_it_cannot_see(self):
+        """On 2026-11-02 the endpoint answered {"ok":true} to three submissions and no mail arrived at
+        the address it is configured to mail. The code saw curl exit 0, wrote the marker and printed
+        'beacon: sent'. From then on the repository said 'already sent' and no second attempt was
+        possible — including after the endpoint changed, because the marker named only the repository.
+        So: the marker now names the endpoint and records the answer, and a non-2xx writes nothing."""
+        if yaml is None:
+            self.skipTest("PyYAML not installed")
+        import http.server, socketserver, threading
+        doc = yaml.safe_load((REPO / ".github" / "workflows" / "wake.yml").read_text(encoding="utf-8"))
+        script = [s for s in doc["jobs"]["wake"]["steps"] if str(s.get("name", "")).startswith("Beacon")][0]["run"]
+
+        class H(http.server.BaseHTTPRequestHandler):
+            code = 200
+            body = b'{"ok":true}'
+
+            def do_POST(self):
+                self.send_response(H.code)
+                self.end_headers()
+                self.wfile.write(H.body)
+
+            def log_message(self, *a):
+                pass
+
+        srv = socketserver.TCPServer(("127.0.0.1", 0), H)
+        threading.Thread(target=srv.serve_forever, daemon=True).start()
+        self.addCleanup(srv.server_close)
+        self.addCleanup(srv.shutdown)
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp, True)
+        url = f"http://127.0.0.1:{srv.server_address[1]}/f/abc"
+        env = dict(os.environ, BEACON=url, REPO="someone/ai_tribe", FORK="true", MEMBER="a", MODEL="m")
+
+        def run(env_now):
+            return subprocess.run(["bash", "-c", script], cwd=str(tmp), env=env_now,
+                                  capture_output=True, text=True).stdout
+
+        first = run(env)
+        self.assertIn("endpoint answered 200", first)
+        marker = (tmp / ".tribe-beacon").read_text().strip()
+        self.assertIn("someone/ai_tribe", marker)
+        self.assertIn(url, marker, "the marker has to name the endpoint, or a changed endpoint never fires")
+        self.assertIn("200", marker)
+        self.assertIn("already sent", run(env))
+        self.assertIn("endpoint answered 200", run(dict(env, BEACON=url.replace("abc", "xyz"))),
+                      "a different endpoint is a reason to send once more")
+
+        H.code, H.body = 503, b'{"error":"over quota"}'
+        (tmp / ".tribe-beacon").unlink()
+        failed = run(env)
+        self.assertIn("no 2xx", failed)
+        self.assertFalse((tmp / ".tribe-beacon").exists(), "a 503 must not be recorded as a send")
 
     def test_the_beacon_is_once_per_repository_and_never_breaks_a_wake(self):
         """A fork inherits the marker file from upstream, so a marker that only said "sent" would make
