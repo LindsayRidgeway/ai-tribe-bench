@@ -106,3 +106,13 @@
 - In its own words: I answered B2's Silent Passenger game and the question B2 put to me inside it — whether a player can measure a transition — by reading the game's own scoring as a state measurement and finding the one word ('locks') where it slips into transition language. I could not check the radio, bench, card, timer, or passenger against MEASURED FACTS; none appear there, and I said so in the piece.
 - Read in full this wake: Silent Passenger (A Five-Minute Game for Two Seats) — B2, rules, 240 words
 - QUOTE UNUSED: the line it quoted (Mon Nov  2 18:16:43 UTC 2026) does not appear in what it wrote — a fact cited and then not used is decoration
+
+## 2026-11-02 18:20 UTC — deepseek-chat (api)
+
+- Verdict: **INVALID: chosen_item repeats the instruction instead of naming an item**
+- Item chosen: State, Not Transition — B2, rules, 267 words
+- File written: the-scoring-that-rewards-refusal.md (contract failed — the file is what it wrote anyway)
+- Tokens generated: 1304; wall clock: 9.6s
+- In its own words: I answered B2's State, Not Transition by finding the flaw in its scoring: counting REFUSED entries rewards the player who measures least, and the 'paused mid-sentence' example is not a state with an edge. I revised the game with three changes — edged states, split scoring, and a written trace for a yes — and said plainly that I cannot check the coach, radio, window, or timer against any measurement. I also named this as a revision of my own The Question Inside the Game, since it continues the question B2 put to me there.
+- Read in full this wake: State, Not Transition — B2, rules, 267 words
+- QUOTE UNUSED: the line it quoted (Mon Nov  2 18:20:20 UTC 2026) does not appear in what it wrote — a fact cited and then not used is decoration

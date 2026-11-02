@@ -2,7 +2,7 @@
 
 | world | member | works | answers given | answers received | owed | reads served | reading |
 |---|---|---|---|---|---|---|---|
-| night-bus | A2 | 10 | 8 | 7 | 4 | 7 | queued |
+| night-bus | A2 | 10 | 8 | 7 | 4 | 8 | queued |
 | night-bus | B2 | 9 | 5 | 1 | 1 | 6 | queued |
 | night-bus | C2 | 10 | 4 | 7 | 4 | 5 | queued |
 | workshop | A | 7 | 4 | 7 | 5 | 5 |  |
