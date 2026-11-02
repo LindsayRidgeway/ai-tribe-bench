@@ -1,0 +1,169 @@
+name: lever
+
+# The founder's hypothesis, tested: the same colony in different ground builds different tunnels.
+#
+# One wake, in a throwaway copy of this repository, with exactly one thing changed — and the live record
+# untouched. This is not a second colony; it is one member of an existing one, woken on ground it has never
+# stood on, and the question is whether the piece it writes is different in kind from the pieces it writes
+# at home. Nothing in soil/, works/ or wake/members/*/state/ in this repository is modified.
+#
+# Run by hand only. It costs one API call and it must never fire on a schedule: an experiment that runs
+# while nobody is looking is just more weather.
+
+on:
+  workflow_dispatch:
+    inputs:
+      member:
+        description: "Which member to wake in the copy (a, b, c, a2, b2, c2)"
+        required: false
+        default: "a"
+      lever:
+        description: "What to change: drop | soil | beat | place"
+        required: false
+        default: "drop"
+      value:
+        description: "The thing dropped / the soil paragraph / the new beat / the place name"
+        required: false
+        default: "a cardboard tube from the inside of a roll of wrapping paper, damp at one end"
+
+permissions:
+  contents: write
+
+jobs:
+  lever:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up the copy
+        id: setup
+        run: |
+          set -euo pipefail
+          member='${{ inputs.member }}'
+          src="wake/members/$member/state"
+          [ -d "$src" ] || { echo "!! no member called '$member'"; exit 1; }
+          place="$(sed -nE 's/^place: *//p' "$src/place.md" | head -1 | tr -d '[:space:]')"
+          [ -n "$place" ] || { echo "!! $member stands in no place — cannot lever a member with no ground"; exit 1; }
+          api="$(grep -E '^api:' "$src/voice.md" | head -1 | awk '{print $2}')"
+          model="$(grep -E '^model:' "$src/voice.md" | head -1 | awk '{print $2}')"
+          # A copy of the whole repository, not just the member: the member reads soil/, works/ and its own
+          # state, and a copy that is missing any of them is not the same member in different ground.
+          rsync -a --exclude .git ./ /tmp/x/
+          echo "member=$member"      >> "$GITHUB_OUTPUT"
+          echo "place=$place"        >> "$GITHUB_OUTPUT"
+          echo "api=$api"            >> "$GITHUB_OUTPUT"
+          echo "model=$model"        >> "$GITHUB_OUTPUT"
+          echo "member $member, ground $place, voice $model on $api"
+
+      - name: Change exactly one thing, in the copy
+        id: change
+        env:
+          LEVER: ${{ inputs.lever }}
+          VALUE: ${{ inputs.value }}
+          MEMBER: ${{ steps.setup.outputs.member }}
+          PLACE: ${{ steps.setup.outputs.place }}
+        run: |
+          set -euo pipefail
+          f=""
+          case "$LEVER" in
+            drop)
+              f="soil/$PLACE/drops.md"
+              # A drop is recorded the way a human records one: with a date and a "you", in the same table
+              # the clock's own drops use. A twig that arrives without provenance is a prompt.
+              printf '| %s | you | %s |\n' "$(date -u +%F)" "$VALUE" >> "/tmp/x/$f"
+              ;;
+            soil)
+              f="soil/$PLACE/world.md"
+              printf '\n\n%s\n' "$VALUE" >> "/tmp/x/$f"
+              ;;
+            beat)
+              f="wake/members/$MEMBER/state/beat.md"
+              printf '# Beat — member %s\n\n%s\n' "$MEMBER" "$VALUE" > "/tmp/x/$f"
+              ;;
+            place)
+              # Standing somewhere else: the member keeps its beat, its journal and its works, and reads
+              # different ground. This is the founder's sentence taken literally.
+              f="wake/members/$MEMBER/state/place.md"
+              printf '%s\n' "$VALUE" > "/tmp/x/$f"
+              ;;
+            *)
+              echo "!! unknown lever '$LEVER' — drop, soil, beat or place"; exit 1;;
+          esac
+          echo "changed: $f"
+          echo "f=$f" >> "$GITHUB_OUTPUT"
+          diff -u "$f" "/tmp/x/$f" > /tmp/lever.diff || true
+          cat /tmp/lever.diff
+
+      - name: One wake on the changed ground
+        env:
+          MEMBER: ${{ steps.setup.outputs.member }}
+          API_MODEL: ${{ steps.setup.outputs.model }}
+          API_BASE: ${{ steps.setup.outputs.api }}
+          DEEPSEEK_API_KEY: ${{ secrets.TRIBE_API_KEY_DEEPSEEK }}
+          GEMINI_API_KEY: ${{ secrets.TRIBE_API_KEY_GEMINI }}
+          QWEN_API_KEY: ${{ secrets.TRIBE_API_KEY_QWEN }}
+        run: |
+          set -euo pipefail
+          cd /tmp/x
+          python3 wake/wake.py --member "$MEMBER" --api-model "$API_MODEL" --api-base "$API_BASE" \
+            > /tmp/wake.log 2>&1 || { echo "!! the wake exited non-zero — last lines:"; tail -6 /tmp/wake.log; }
+          grep -E "verdict|chose|chosen|File written" /tmp/wake.log | tail -6 || true
+
+      - name: File the experiment in the live repository
+        env:
+          LEVER: ${{ inputs.lever }}
+          VALUE: ${{ inputs.value }}
+          MEMBER: ${{ steps.setup.outputs.member }}
+          PLACE: ${{ steps.setup.outputs.place }}
+          MODEL: ${{ steps.setup.outputs.model }}
+          CHANGED: ${{ steps.change.outputs.f }}
+        run: |
+          set -euo pipefail
+          stamp="$(date -u +%Y%m%dT%H%M%SZ)"
+          out="lab/experiments/${stamp}-${LEVER}-${MEMBER}"
+          mkdir -p "$out"
+          # The changed file, the verdict, the work, and the journal entry — nothing else. The point is to
+          # be able to read the experiment a week later without the copy.
+          cp "/tmp/x/${CHANGED}" "$out/changed.md" 2>/dev/null || echo "(the changed file was not written)" > "$out/changed.md"
+          head -c 4000 /tmp/wake.log > "$out/run.log"
+          newest="$(ls -t /tmp/x/wake/members/"$MEMBER"/output/*.md 2>/dev/null | head -1 || true)"
+          if [ -n "$newest" ]; then cp "$newest" "$out/work.md"; fi
+          tail -12 "/tmp/x/wake/members/$MEMBER/state/journal.md" > "$out/journal.md" 2>/dev/null || true
+          {
+            echo "# Lever: $LEVER, on member $MEMBER in $PLACE"
+            echo
+            echo "**What was changed** — \`$CHANGED\`:"
+            echo
+            echo '```'
+            echo "$VALUE"
+            echo '```'
+            echo
+            echo "**Run at** $stamp, voice $MODEL."
+            echo
+            # Whether the wake used the thing that was put in front of it is a checkable question, and it
+            # is the only one this workflow asks. A member that writes the same piece in new ground has
+            # told us the ground does not matter; a member that writes something it could not have written
+            # at home has told us the opposite. Both are findings. "Different" is for a human to judge.
+            echo "**Words from the change that appear in what it wrote:**"
+            echo
+            for w in $VALUE; do
+              w="$(echo "$w" | tr -d '.,;:()"')"
+              [ "${#w}" -ge 5 ] || continue
+              if [ -n "$newest" ] && grep -qi -- "$w" "$newest"; then echo "- \`$w\` — used"; fi
+            done
+            echo
+            echo "(empty list = its answer never touched the new ground)"
+          } > "$out/README.md"
+          cat "$out/README.md"
+          echo "out=$out" >> "$GITHUB_OUTPUT"
+
+      - name: Commit the experiment
+        run: |
+          set -euo pipefail
+          git config user.name "AI Tribe Bench"
+          git config user.email "ai-tribe-bench@users.noreply.github.com"
+          git add lab/experiments
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -m "lever: ${{ inputs.lever }} on ${{ inputs.member }} (${{ steps.setup.outputs.place }})"
+          git push || { git pull --rebase -q; git push; }
