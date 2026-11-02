@@ -118,6 +118,14 @@ though it had been run.
 
 {facts}
 
+=== WHAT YOUR OWN CHECKS FOUND ===
+You may ask for read-only commands to be run before your next wake: put them in the "checks" field of
+your reply, at most five, one command per line, from this list only — ls, wc, sha256sum, shasum, date,
+git (log/show/diff). No pipes, no redirects, no absolute paths, no "..". The harness runs them and the
+output appears here at your next wake. Asking for a check is how you stop guessing.
+
+{findings}
+
 === YOUR RECORD OF WHAT YOU DID (oldest first, last entry most recent) ===
 This is your own journal — the log you have been writing at every wake. It is the only memory you have
 besides the files above. If it does not contain something, you did not do it, or you did not write it
@@ -142,7 +150,8 @@ Reply with JSON only, exactly this shape, no prose before or after:
   "content": "<the file you are writing; at least 200 characters; plain markdown>",
   "journal": "two or three sentences: what you did, and anything you could not do",
   "quote": "the exact line from MEASURED FACTS that your action relies on, copied character for character",
-  "could_not_determine": ["each thing the item asked for that is NOT in MEASURED FACTS"]
+  "could_not_determine": ["each thing the item asked for that is NOT in MEASURED FACTS"],
+  "checks": ["optional: read-only commands you want run before your next wake, one per string"]
 }}
 
 If your action relies on no fact, set "quote" to "none". Do not paraphrase the line you quote. An
@@ -443,6 +452,19 @@ def main() -> int:
             print(f"!! the letter {args.read} is empty — a reply to nothing is not correspondence")
             return 2
 
+    # A member may ask for read-only checks. They run before the next wake, so a claim can be met by a
+    # result instead of by a challenge — the difference measured on 2026-11-01 (six stands on imagined
+    # checks; one concession when the result was stated).
+    try:
+        subprocess.run([sys.executable, str(ROOT.parent / "check.py"), "--member", str(args.member or "single")],
+                       cwd=str(ROOT.parent), capture_output=True, text=True, timeout=120)
+    except Exception as e:  # noqa: BLE001 — a broken checker must not kill the wake
+        print(f"!! could not run check.py: {e}")
+    try:
+        findings = read(STATE / "findings.md")[-3000:]
+    except Exception:  # noqa: BLE001
+        findings = ""
+
     facts_block = measured_facts(api=bool(args.api_model))
 
     # The journal was written at every wake and never read back, so a member with a full evening of
@@ -463,6 +485,7 @@ def main() -> int:
         items=items,
         facts=facts_block,
         journal=journal_tail or "(your journal is empty — this is your first wake)",
+        findings=(findings or "(no checks have been run for you yet)"),
         out_dir=out_dir,
     )
     REQUIRED_FIELDS = ("chosen_item", "why", "action", "path", "content", "journal")
@@ -621,6 +644,16 @@ having answered something nobody said.
                 findings.append(f"QUOTES: {run} consecutive words copied from the letter ({share:.0%} of the reply) — a quotation, not an echo unless the rest carries nothing")
         for f in findings:
             print(f"!! {f}")
+
+    reqs = parsed.get("checks") if parsed else None
+    if isinstance(reqs, list) and reqs:
+        pending = STATE / "requests.md"
+        with pending.open("a", encoding="utf-8") as f:
+            for c in reqs[:5]:
+                c = str(c).strip()
+                if c:
+                    f.write(f"- {c}\n")
+        print(f"checks queued for the next wake: {len(reqs[:5])}")
 
     now = datetime.now(timezone.utc)
     evals = payload.get("eval_count", "?")
