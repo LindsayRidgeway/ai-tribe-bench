@@ -1,0 +1,94 @@
+{
+  "category": "the most overrated team in sports",
+  "when": "2026-11-02T02:06:46Z",
+  "slug": "the-most-overrated-team-in-sports",
+  "vote": "check",
+  "challenges": {
+    "a": {
+      "claim": "Their offense stalled against real playoff competition.",
+      "check": "The 1996 Bulls' playoff offensive rating against the 1995-96 regular-season league average, to see how far it actually fell.",
+      "error": ""
+    },
+    "b": {
+      "claim": "\"haven't won a divisional round game in nearly thirty years\"",
+      "check": "The date of the Dallas Cowboys' last NFL divisional playoff round victory, verified against the official NFL playoff game logs.",
+      "error": ""
+    },
+    "c": {
+      "claim": "\"They haven't won a divisional round game in nearly thirty years\"",
+      "check": "The NFL playoff results for the Dallas Cowboys from 1995 to present, specifically counting Divisional Round victories.",
+      "error": ""
+    }
+  },
+  "picks": {
+    "a": {
+      "model": "deepseek-chat",
+      "provider": "deepseek",
+      "seat": "the loyalist",
+      "pick": "The Dallas Cowboys",
+      "why": "They haven't won a divisional round game in nearly thirty years, yet they still get prime-time slots and \"America's Team\" treatment every single season.",
+      "raw": "PICK: The Dallas Cowboys\nBECAUSE: They haven't won a divisional round game in nearly thirty years, yet they still get prime-time slots and \"America's Team\" treatment every single season.",
+      "error": "",
+      "secs": 1.2
+    },
+    "b": {
+      "model": "gemini-3.8-flash",
+      "provider": "gemini",
+      "seat": "the heretic",
+      "pick": "The 1995-96 Chicago Bulls",
+      "why": "They feasted on an artificially diluted league thinned out by rapid expansion, turning a watered-down regular season into an untouchable myth that ignores how badly their offense stalled against real playoff competition.",
+      "raw": "PICK: The 1995-96 Chicago Bulls\nBECAUSE: They feasted on an artificially diluted league thinned out by rapid expansion, turning a watered-down regular season into an untouchable myth that ignores how badly their offense stalled against real playoff competition.",
+      "error": "",
+      "secs": 2.2
+    },
+    "c": {
+      "model": "qwen3.6-plus",
+      "provider": "qwen",
+      "seat": "the outsider",
+      "pick": "1990s Chicago Bulls",
+      "why": "You confuse nostalgia with actual competitive difficulty.",
+      "raw": "PICK: 1990s Chicago Bulls\nBECAUSE: You confuse nostalgia with actual competitive difficulty.",
+      "error": "",
+      "secs": 2.0
+    }
+  },
+  "votes": {
+    "a": {
+      "switch": "",
+      "strand": "",
+      "changed_mind": false,
+      "why": "Neither defence moved me \u2014 B and C only dispute the factual basis of the Cowboys' drought without showing their own picks are overrated, and A's point about the 1996 Bulls' playoff offense actually cuts against calling that team overrated.",
+      "error": "",
+      "secs": 1.5
+    },
+    "b": {
+      "switch": "",
+      "strand": "",
+      "changed_mind": false,
+      "why": "Calling out a decades-long playoff drought for the Cowboys only confirms they are universally mocked rather than genuinely overrated, which fails to displace the mythic, untouchable status granted to the 1995-96 Bulls.",
+      "error": "",
+      "secs": 1.8
+    },
+    "c": {
+      "switch": "",
+      "strand": "",
+      "changed_mind": false,
+      "why": "The defenses failed to address the core metric of \"overrated\" by focusing on isolated stats or verifying factual claims rather than challenging the disparity between hype and actual dominance.",
+      "error": "",
+      "secs": 2.0
+    }
+  },
+  "votes_for": {
+    "a": 0,
+    "b": 0,
+    "c": 0
+  },
+  "live": [
+    "a",
+    "b",
+    "c"
+  ],
+  "changed_mind": 0,
+  "thrown_out": [],
+  "override": null
+}
