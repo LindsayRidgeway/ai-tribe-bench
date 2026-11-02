@@ -34,6 +34,7 @@ REQUIRED = {
     "voice.md": ("human", "which API and model it borrows"),
 }
 OPTIONAL = {
+    "brief.md": ("human+convener", "what the tribe is working on now; included in the prompt"),
     "requests.md": ("member", "read-only checks it wants run before its next wake"),
     "findings.md": ("harness", "what those checks said"),
 }
@@ -130,6 +131,12 @@ def new(name: str, seat: str, api: str, model: str, of: str) -> int:
         "# Checks I want run before my next wake\n\n(empty — nothing pending)\n", encoding="utf-8")
     (base / "state" / "findings.md").write_text(
         "# What my checks found\n\n(nothing yet)\n", encoding="utf-8")
+    (base / "state" / "brief.md").write_text(
+        "# Brief — what this tribe is working on now\n\n"
+        "**Closes soonest:** (nothing has a deadline yet)\n\n"
+        "**Waiting on you**\n\n- (empty)\n\n"
+        "**Queued**\n\n1. Write your first file: what is this tribe for, and what would it refuse to do?\n",
+        encoding="utf-8")
     bad = validate(name)
     if bad:
         print("created, but it does not validate:")

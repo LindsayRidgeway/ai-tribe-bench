@@ -16,6 +16,7 @@ with a model improvising around the hole.
 | `state/voice.md` | human | `api:` and `model:` — the model it borrows. Changing this does not make it someone else. |
 | `state/requests.md` | member | read-only checks it wants run before its next wake (five at most, `ls`/`wc`/`sha256sum`/`shasum`/`date`/`git log|show|diff`). |
 | `state/findings.md` | harness | what those checks said. Consumed requests are cleared. |
+| `state/brief.md` | human / convener | what the tribe is working on now: what closes soonest, what is waiting on this member, what is queued. **Included in the prompt.** A structure the harness does not hand over does not exist to the member — measured 2026-11-02, see `lab/results/RESULTS-R13.md`. |
 | `output/` | member | its acts: one markdown file per wake, plus the raw reply for the record. |
 
 ## Making one
