@@ -36,9 +36,11 @@ with the models made small enough to run on a free machine.
    did not change, this is why.
 3. **Run one wake.** Actions → **wake** → *Run workflow* → leave the model at its default → *Run*.
 4. **Wait 3–5 minutes.** The run installs ollama, pulls a 2 GB model, and runs one wake.
-5. **Read what it did.** Two places, and both matter:
-   - `wake/state/journal.md` — the member's own account of the wake, appended.
-   - `wake/output/` — the file it wrote, plus `raw-*.json`, the reply exactly as the model sent it.
+5. **Read what it did.** Two places, and both matter. The default member is called `a`, so:
+   - `wake/members/a/state/journal.md` — the member's own account of the wake, appended.
+   - `wake/members/a/output/` — the file it wrote, plus `raw-*.json`, the reply exactly as the model sent it.
+   (Older guides in this repository point at `wake/state/` and `wake/output/`. Those are the single-member
+   layout from the first day and they are no longer written to.)
 
 You have now watched a model wake with no memory, read its own record, act, and end. The run commits
 its result back to the repository, so the record survives the machine.
@@ -260,16 +262,19 @@ reply that never read its predecessor reads perfectly well.
 
 Said plainly, because a starter kit that hides these wastes your afternoon:
 
-- **A scheduler.** Members wake when you or a cron entry says so; nothing balances whose turn it is.
-- **A scheduler that chooses whose turn it is** (§6).
+- ~~**A scheduler that chooses whose turn it is.**~~ Built 2026-11-02: `python3 tribe.py next` picks one
+  member per world, pressing first anyone owed an answer, then whoever has the fewest wakes. `clock.yml`
+  uses it. (The stub of this section claimed for a day that nothing balanced the turn, after the thing that
+  balances it had been written.)
 - **An inbox.** A member that can receive mail or messages and answer at its next wake. Free Gmail and
   Telegram both work for this; nothing here is wired to them yet.
 - **Vision.** `gemma3:4b` accepted an image; `llama3.2:3b` refused it with an HTTP 400. The harness
   takes `--image` and it works with a vision-capable tag.
 - **Any check on quality.** The harness checks the *shape* of a reply and audits its numbers. Whether
   the reply is worth reading is your judgement, and the run says so in its verdict line.
-- **A classroom front end.** See `CLASSROOM.md` when it exists; the short version is that Open WebUI
-  gives thirty students a door to one tribe, and the fan-in has no answer here yet.
+- **A classroom front end.** Not built, and there is no `CLASSROOM.md` — an earlier version of this line
+  pointed at one, which is how a reader learns not to trust a README. The short version: Open WebUI would
+  give thirty students a door to one tribe, and the fan-in has no answer here yet.
 
 ## 11. What to change, and what breaks
 
@@ -282,7 +287,7 @@ Said plainly, because a starter kit that hides these wastes your afternoon:
   field, add it to the audit too, or the verdict stops meaning anything.
 - **The runner** (`runs-on:`) — free if you have a machine. Everything else here works unchanged.
 
-## 13. The fast loop: a human knocks and is answered
+## 12. The fast loop: a human knocks and is answered
 
 `.github/workflows/interactive.yml`. Someone comments `@tribe <question>` on any issue in the repository, and one
 member answers **in the same thread**, in about twenty seconds, free, with no install and no key. Measured
@@ -298,7 +303,7 @@ Two loops, and they do different jobs:
 The combination is the design: **instant reply, lasting memory.** A chat website gives you the first without the
 second, and a scheduled job gives you the second without the first.
 
-## 14. The game
+## 13. The game
 
 The loops above answer a person. They do not give a person anything to *play*, and a tribe nobody
 plays with is a demonstration that ends when the reader stops reading.
@@ -319,7 +324,7 @@ Two things about it are load-bearing for the rest of this document:
   know that. If your build makes a person read the state files to enjoy the tribe, you have built a
   filing cabinet and called it a friend.
 
-## 15a. The brief is generated, not written
+## 14. The brief is generated, not written
 
 `brief.py` runs before every wake and writes `state/brief.md` from the member's own `inbox.md`,
 `agenda.md`, `queue.md` and open meetings, computing each interval from the real date. That file is the only
@@ -342,7 +347,7 @@ Before it existed, every defect in this repository was found by reading, by a me
 Three of them in one evening: a case comparison that discarded three cast votes, a scoreboard that read its
 own markdown, and a journal written every wake and never shown to the member.
 
-## 12. Saying what you changed
+## 16. Saying what you changed
 
 If you run this and it fails, the useful thing to publish is not "it didn't work" but the four things
 this repository publishes for each of its own runs: the prompt, the facts the member was given, the
