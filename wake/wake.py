@@ -118,6 +118,13 @@ though it had been run.
 
 {facts}
 
+=== YOUR RECORD OF WHAT YOU DID (oldest first, last entry most recent) ===
+This is your own journal — the log you have been writing at every wake. It is the only memory you have
+besides the files above. If it does not contain something, you did not do it, or you did not write it
+down. Quote from it when a question is about your own past.
+
+{journal}
+
 === YOUR OPEN ITEMS ===
 {items}
 
@@ -438,12 +445,24 @@ def main() -> int:
 
     facts_block = measured_facts(api=bool(args.api_model))
 
+    # The journal was written at every wake and never read back, so a member with a full evening of
+    # rounds in its record answered "I have no record of what I picked" — correctly. Found 2026-11-01,
+    # the day the game started writing into member journals: a record that is not shown is not a memory.
+    try:
+        raw_journal = read(STATE / "journal.md")
+    except Exception:  # noqa: BLE001
+        raw_journal = ""
+    journal_tail = raw_journal[-4000:].lstrip()
+    if len(raw_journal) > 4000:
+        journal_tail = "...[earlier entries omitted]\n" + journal_tail
+
     prompt = PROMPT.format(
         identity_name=identity_name(identity),
         identity=identity,
         state=state,
         items=items,
         facts=facts_block,
+        journal=journal_tail or "(your journal is empty — this is your first wake)",
         out_dir=out_dir,
     )
     REQUIRED_FIELDS = ("chosen_item", "why", "action", "path", "content", "journal")
