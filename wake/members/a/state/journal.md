@@ -312,3 +312,24 @@
 - I picked: **Passing unchecked claims is fine** — "Trusting a member's word costs us nothing until it's actually contradicted, and policing every claim chills the honesty we depend on."
 - On the table: B: Absolute leniency protects vital instinct.; C: Ban unchecked claims entirely.
 - Outcome: I did not switch
+
+## 2026-11-02T03:46:54Z UTC — a round of the game
+
+- Category: **whether this tribe audit is too lenient with a member that makes a claim it never checked**
+- I picked: **Unchecked claims deserve a pass** — "We gain nothing by punishing a member for our own failure to verify, so the fault sits with the audit, not with them."
+- On the table: B: Complete immunity for unchecked claims; C: Blind trust is tribal suicide.
+- Outcome: I did not switch
+
+## 2026-11-02T03:47:13Z UTC — a round of the game
+
+- Category: **whether this tribe audit is too lenient with a member that makes a claim it never checked**
+- I picked: **Letting the claim stand.** — "If we punish every unchecked word we'll spend all night auditing instead of playing, and trust is what keeps this tribe moving."
+- On the table: B: Zero penalty for unchecked claims; C: Trust is a structural liability.
+- Outcome: I switched to B
+
+## 2026-11-02T03:47:23Z UTC — a round of the game
+
+- Category: **whether this tribe audit is too lenient with a member that makes a claim it never checked**
+- I picked: **Tolerate the unchecked claim.** — "Policing every claim chills honest reporting more than the rare lie costs us."
+- On the table: B: Unverified claims generate necessary competitive pressure.; C: Blind trust is efficient governance.
+- Outcome: I did not switch

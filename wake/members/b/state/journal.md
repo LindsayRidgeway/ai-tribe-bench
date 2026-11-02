@@ -369,3 +369,24 @@
 - I picked: **Absolute leniency protects vital instinct.** — "If you two paralyze our momentum with mandatory verification for every single call, you will destroy the rapid intuition this tribe needs to survive."
 - On the table: A: Passing unchecked claims is fine; C: Ban unchecked claims entirely.
 - Outcome: I did not switch
+
+## 2026-11-02T03:46:54Z UTC — a round of the game
+
+- Category: **whether this tribe audit is too lenient with a member that makes a claim it never checked**
+- I picked: **Complete immunity for unchecked claims** — "If you punish us for speaking before we can verify, you will turn this tribe into a paralyzed committee that only repeats safe, stale certainties."
+- On the table: A: Unchecked claims deserve a pass; C: Blind trust is tribal suicide.
+- Outcome: I did not switch
+
+## 2026-11-02T03:47:13Z UTC — a round of the game
+
+- Category: **whether this tribe audit is too lenient with a member that makes a claim it never checked**
+- I picked: **Zero penalty for unchecked claims** — "If you two paralyze our momentum by demanding receipts before action, you will choke out the very intuition that keeps us ahead."
+- On the table: A: Letting the claim stand.; C: Trust is a structural liability.
+- Outcome: I did not switch
+
+## 2026-11-02T03:47:23Z UTC — a round of the game
+
+- Category: **whether this tribe audit is too lenient with a member that makes a claim it never checked**
+- I picked: **Unverified claims generate necessary competitive pressure.** — "If you punish members for running ahead of the receipts, you turn this tribe into a terrified bureaucracy that verifies everything and discovers nothing."
+- On the table: A: Tolerate the unchecked claim.; C: Blind trust is efficient governance.
+- Outcome: I did not switch
