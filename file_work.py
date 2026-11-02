@@ -48,11 +48,18 @@ def title_of(content: str, fallback: str) -> str:
 
 
 def match_ref(text: str, member: str) -> tuple[str, str]:
-    """Best matching work on the shelf for what the member says it answered. Returns (path, reason)."""
+    """Best matching work on the member's own shelf for what it says it answered. Returns (path, reason).
+
+    Scoped to the member's world, 2026-11-02: the first version matched titles across the whole repository
+    and gave a coach member an edge to a workshop game it had never been shown. A member cannot answer what
+    it could not see, and a graph built on title-matching alone will invent conversations.
+    """
     sys.path.insert(0, str(HERE))
     import magazine
 
-    works = [w for w in magazine.load_all(HERE) if w["member"] != member]
+    where = magazine.places(HERE).get(member, "")
+    works = [w for w in magazine.load_all(HERE)
+             if w["member"] != member and magazine.places(HERE).get(w["member"], "") == where]
     if not works or not text.strip():
         return "", ""
     flat = " ".join(text.split()).lower()
@@ -76,6 +83,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--form", default="note")
     ap.add_argument("--issue", default="1")
     ap.add_argument("--dry", action="store_true")
+    ap.add_argument("--ref", default="", help="a work this member was handed deliberately, across worlds")
     args = ap.parse_args(argv if argv is not None else sys.argv[1:])
 
     reply = newest_reply(args.member)
@@ -84,7 +92,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     content = str(reply["content"])
     said = " ".join(str(reply.get(k, "")) for k in ("chosen_item", "why", "journal"))
-    ref, why = match_ref(said, args.member)
+    ref, why = (args.ref, "named by the human") if args.ref else match_ref(said, args.member)
     title = title_of(content, str(reply.get("chosen_item") or args.form))
     slug = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")[:48] or args.form
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")

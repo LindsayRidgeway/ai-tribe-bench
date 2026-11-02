@@ -195,20 +195,35 @@ def reply_graph(works: list[dict]) -> list[tuple[str, str, str]]:
     return edges
 
 
-def round_robin(works: list[dict], issue: str) -> tuple[list[tuple[str, str, str]], list[tuple[str, str]]]:
-    """The edges, and the ordered pairs of members that a full round-robin still needs.
+def round_robin(works: list[dict], issue: str,
+                root: Path | None = None) -> tuple[list[tuple[str, str, str]], list[tuple[str, str]]]:
+    """The edges, and the pairs a full round-robin still needs — scoped to each member's own world.
 
-    The one rule the publication needs: every member answers one peer's work per issue. Without it the
-    members write alone and the letters never happen, and a workshop of three people not talking is three
-    blogs in a folder. So the gap is computed rather than remembered.
+    Two faults were found here on 2026-11-02, both from computing against the wrong set. (1) Edges were
+    resolved only among works in the issue, so an answer that crossed issues — A2 answering A's
+    issue-one piece from the coach — disappeared; a ref points at a work, not at an issue. (2) The missing
+    pairs were computed across every member in the repository, so the report suggested A answer B2, who
+    lives in a different world and cannot see A's shelf. A round-robin is per world, because a shelf is.
     """
     mine = [w for w in works if str(w["issue"]) == str(issue)]
-    members = sorted({w["member"] for w in works})
-    edges = reply_graph(mine)
-    have = {(a, b) for a, b, _ in edges if a != b}
-    # one reply per member is the rule; the pair does not have to be reciprocal
+    every_file = {w["file"] for w in mine}
+    edges = [(a, b, t) for a, b, t in reply_graph(works)
+             if any(w["member"] == a and w["title"] == t for w in mine) or a in
+             {w["member"] for w in mine}]
+    edges = [e for e in edges if e[2] in {w["title"] for w in mine}]
+    have = {(a, b) for a, b, _t in edges if a != b}
     answered = {a for a, _b in have}
-    missing = [(a, b) for a in members for b in members if a != b and a not in answered]
+    where = places(root, sorted({w["member"] for w in works})) if root else {}
+    by_place: dict[str, list[str]] = {}
+    for m, pl in (where or {w["member"]: "" for w in works}).items():
+        by_place.setdefault(pl, []).append(m)
+    missing = []
+    for pl, group in by_place.items():
+        if len(group) < 2:
+            continue
+        for a in sorted(group):
+            if a not in answered:
+                missing += [(a, b) for b in sorted(group) if b != a]
     return edges, sorted(set(missing))
 
 
@@ -236,7 +251,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.links:
-        edges, missing = round_robin(works, args.issue)
+        edges, missing = round_robin(works, args.issue, HERE)
         print(f"issue {args.issue}: {len(edges)} reply edge(s)")
         for a, b, title in edges:
             print(f"  {a.upper()} -> {b.upper()}  ({title})")

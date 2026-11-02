@@ -2,7 +2,7 @@
 title: The Pier at Night — rules that fit on a wall
 form: game
 issue: 2
-ref: works/b/20261102T043339Z-you-have-a-title-and-no-mechanics-write.md
+ref: -
 member: b2
 when: 20261102T044641Z
 ---

@@ -72,3 +72,53 @@ costs, each answer written from inside its own beat rather than as a general opi
 
 That is the thing nineteen rounds of the game never produced, and it is the founder's ant farm: the members
 are not answering me, they are answering each other.
+
+---
+
+## 3 — the same colony in a different soil, and three leaks I introduced doing it
+
+**The test the founder named.** "The same colony of ants placed in a different kind of soil would build
+different shaped tunnels." So: three members of the same calibre with **byte-identical beats**, in a
+different world, no chores, and no orders.
+
+**The second soil** is `soil/night-bus/`: the back lounge of a fourteen-hour coach, two drivers who hand
+over at a halfway depot and barely meet, eleven sleeping passengers, a manifest, a route card, a thermos,
+and a plastic crate of lost property that the house custom forbids sorting. Same beats, no cupboard.
+
+**Which soil a member stands in is now a property of its own files** — `state/place.md`, one line. Two
+colonies share one repository, and the magazine names where each issue was made (`issue 2 — night-bus`).
+That is the ant farm: one building, two tanks.
+
+**What the second colony made, and where the first one was softer:**
+
+| | workshop | night coach |
+|---|---|---|
+| craft (A) | 598 words, a lyrical piece about an unidentified photograph, limits stated | 247 words, an argument: the boat is unnamed not because the name was lost but because nobody was willing to stop and write — "the clear-out is not a sorting, it is a postponement" |
+| games (B) | 207 words: a title, a sketch of a rule | 532 words: **complete mechanics** — six circles on paper, a 12-second battery, one second buys a shape, two a sound, three a true sentence, and the game ends by answering *what did you decide not to look at?* |
+| cataloguing (C) | 230 words: ten objects, every "last used" marked Unknown, the broken barometer judged unjustifiable | 198 words: eleven objects with a **tool → furniture axis** — the chargers "tool-to-furniture transition complete" — and the crate indexed in situ because the house custom forbids sorting |
+
+The coach is a *constraining* soil (a fixed inventory, a route card with times, a manifest that is an
+order and not a list) and both the game and the catalogue came out with an internal rule and a budget. The
+workshop is a *cluttered* soil and the works came out discursive. That is the founder's claim, roughly
+confirmed — with one honest confound I cannot remove tonight: the second colony has **no journal**, so I
+cannot separate "different soil" from "fresh member with no baggage". Engine is controlled (same three
+models, same three beats); history is not.
+
+**C2 caught a leak I had made.** In its notes: *"I note the shelf contains works referencing a 'boatyard'
+and a 'shoebox'. The soil contains neither. I catalogue only what is measured and stated."* The shelf block
+I added in exchange 1 was **global** — so the first coach member was shown the workshop's works, and
+answered one across worlds. A member checking its shelf against its soil found the seam. Fixed: the shelf is
+now scoped to the member's own place.
+
+**Two more leaks, both in my derivation:**
+- `magazine.py --links` dropped a reply edge that crossed issues (A2 answering an issue-one work) because it
+  filtered to the issue before resolving refs. A ref points at a work, not an issue.
+- It also suggested pairs across worlds (A should answer B2), when a round-robin is per world because a
+  shelf is. Both fixed; edges and gaps are now computed per place.
+- And `file_work.py` invented an edge of its own: it matched the title "Harbour at Night" and attached B2's
+  game to B's workshop sketch, which B2 had never been shown. Its own journal said `source: beat`. I removed
+  the edge rather than keep a conversation that did not happen, and the matcher is now scoped to the world —
+  with a `--ref` override for the case where a human deliberately hands a member another world's work.
+
+**State.** 43 tests green. Issue 1 (workshop): 6 works, 3 reply edges. Issue 2 (night coach): 3 works, 1
+edge, and `--links` says which members in the coach still owe someone an answer.
