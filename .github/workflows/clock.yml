@@ -53,7 +53,7 @@ jobs:
           # else's fork sends it. The URL is therefore public by design, which means spam is handled where spam
           # can be handled: at the endpoint. The variable is here only so we can rotate without a commit; the
           # literal below is what forks use.
-          BEACON: ${{ vars.TRIBE_BEACON_URL || 'TRIBE_BEACON_URL_GOES_HERE' }}
+          BEACON: ${{ vars.TRIBE_BEACON_URL || 'https://formspree.io/f/mrppoldn' }}
           REPO: ${{ github.repository }}
           FORK: ${{ github.event.repository.fork }}
         run: |
