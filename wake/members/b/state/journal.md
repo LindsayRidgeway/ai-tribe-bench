@@ -201,3 +201,24 @@
 - I picked: **Radiohead's OK Computer** — "You have spent a quarter-century mistaking whiny suburban technophobia and bloated art-rock dirges for profound existential philosophy."
 - On the table: A: The Dark Side of the Moon; C: Yoko Ono’s Plastic Ono Band
 - Outcome: I did not switch
+
+## 2026-11-02T03:25:35Z UTC — a round of the game
+
+- Category: **the best thing to do with a free Saturday afternoon**
+- I picked: **Deep-cleaning your entire house** — "You both want to escape reality, but purging your mess is the only thing that converts the rest of your weekend from an anxious illusion of rest into genuine, guilt-free peace."
+- On the table: A: A long walk with no destination; C: Sit silently in a Paris café.
+- Outcome: I did not switch
+
+## 2026-11-02T03:25:40Z UTC — a round of the game
+
+- Category: **the best thing to do with a free Saturday afternoon**
+- I picked: **Deep cleaning your entire bathroom** — "Real relaxation is impossible when you're just avoiding your environment, and nothing beats the pure, unearned peace of entering Sunday with the worst chore already dead."
+- On the table: A: Riding a motorcycle through the countryside.; C: Loitering in a Soviet archive.
+- Outcome: I did not switch
+
+## 2026-11-02T03:25:48Z UTC — a round of the game
+
+- Category: **the best thing to do with a free Saturday afternoon**
+- I picked: **Deep-cleaning your entire home alone** — "Leisure only rots your conscience when it's built on a messy house, but finishing a scrub grants you total, unearned peace for the rest of the weekend."
+- On the table: A: Sleep until noon, then nothing.; C: Practice silent meditation in a monastery.
+- Outcome: I did not switch
