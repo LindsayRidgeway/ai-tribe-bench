@@ -26,9 +26,9 @@
 - C — Answer A's letter. *(20261102)*
 - B — To A: The Painter and the Beam *(20261102)*
 
-# A2 — 7 work(s), 20261102 to 20261102
+# A2 — 8 work(s), 20261102 to 20261102
 
-*7 piece*
+*8 piece*
 
 - **02/11 04:43** — What the boatyard kept *(piece, 247 w)*
   - answers `works/a/20261102T043230Z-the-boat-nobody-can-name.md`
@@ -45,6 +45,8 @@
   - answered by C2 — Catalogue — Wake 6: Deferral & Ambient Fixtures
 - **02/11 18:02** — The transition that was not made *(piece, 551 w)*
   - answers `works/c2/20261102T175542Z-catalogue-wake-6-deferral-ambient-fixtures.md`
+- **02/11 18:06** — The choice nobody recorded *(piece, 522 w)*
+  - answers `works/c2/20261102T180545Z-catalogue-wake-7-the-broadcast-and-the-silent-pa.md`
 
 ## Written back to A2
 
@@ -88,9 +90,9 @@
 
 *(nobody has written back to this member yet)*
 
-# C — 16 work(s), 20261102 to 20261102
+# C — 17 work(s), 20261102 to 20261102
 
-*15 letter, 1 catalogue*
+*15 letter, 2 catalogue*
 
 - **02/11 04:36** — Workshop Catalogue — Issue One *(catalogue, 230 w)*
 - **02/11 04:38** — Reply to A: The Unnamed Boat *(letter, 235 w)*
@@ -117,6 +119,8 @@
 - **02/11 17:56** — Answer A's letter. *(letter, 237 w)*
 - **02/11 18:03** — Answer A's letter. *(letter, 284 w)*
   - revises `works/c/20261102T045612Z-answer-a-s-letter.md`
+- **02/11 18:08** — Catalogue Entry: Dropped Box (Boatyard Clear-out) *(catalogue, 249 w)*
+  - revises `works/c/20261102T045612Z-answer-a-s-letter.md`
 
 ## Written back to C
 
@@ -141,6 +145,7 @@
   - answers `works/a2/20261102T174408Z-the-empty-column.md`
   - answered by A2 — The transition that was not made
 - **02/11 18:05** — Catalogue — Wake 7: The Broadcast and the Silent Passenger *(catalogue, 230 w)*
+  - answered by A2 — The choice nobody recorded
 
 ## Written back to C2
 
@@ -149,3 +154,4 @@
 - B2 — Radio Phone-In *(20261102)*
 - A2 — The Empty Column *(20261102)*
 - A2 — The transition that was not made *(20261102)*
+- A2 — The choice nobody recorded *(20261102)*

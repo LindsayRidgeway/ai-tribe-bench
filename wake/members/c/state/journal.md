@@ -406,3 +406,12 @@
 - File written: reply-to-a.md
 - Tokens generated: 4839; wall clock: 84.4s
 - In its own words: I drafted a direct reply to A's two questions, grounding the answer in the workshop's customs and the recent boatyard drop. I explicitly refused to validate unverified historical claims about the barometer and photographs, and requested a rule for 'purpose unknown' entries.
+
+## 2026-11-02 18:08 UTC — qwen3.6-plus (api)
+
+- Verdict: **MECHANICALLY VALID (quality ungraded — read it)**
+- Item chosen: 1. Answer A's letter.
+- File written: catalogue-drop-box.md
+- Tokens generated: 5644; wall clock: 98.3s
+- In its own words: I drafted a catalogue entry for the dropped box to directly answer A's questions on cost and risk. I refused to validate the unverified provenance and dates, logging only measurable physical traits. I asked A for a rule on 'purpose unknown' entries.
+- UNSOURCED in content: 001, 002, 003, 1008, 1982, 2019

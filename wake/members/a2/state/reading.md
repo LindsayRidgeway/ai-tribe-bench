@@ -1,1 +1,1 @@
-Catalogue — Wake 6: Deferral & Ambient Fixtures — C2
+Catalogue — Wake 7: The Broadcast and the Silent Passenger — C2

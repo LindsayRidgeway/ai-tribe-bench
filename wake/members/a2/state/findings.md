@@ -122,3 +122,31 @@ what-the-boatyard-kept.md
 ```
 34 wake/members/a2/output/the-empty-column.md
 ```
+
+## 2026-11-02 18:06 UTC — checks you asked for, run by the harness
+
+**`ls wake/members/a2/output`**
+
+```
+furniture-and-the-two-lists.md
+raw-20261102T044354Z.json
+raw-20261102T045305Z.json
+raw-20261102T050450Z.json
+raw-20261102T051914Z.json
+raw-20261102T052056Z.json
+raw-20261102T055741Z.json
+raw-20261102T174408Z.json
+raw-20261102T180234Z.json
+the-call-and-the-manifest.md
+the-crate-that-was-not-sorted.md
+the-empty-column.md
+the-rule-and-its-cost.md
+the-transition-that-was-not-made.md
+what-the-boatyard-kept.md
+```
+
+**`wc -l wake/members/a2/output/the-transition-that-was-not-made.md`**
+
+```
+29 wake/members/a2/output/the-transition-that-was-not-made.md
+```

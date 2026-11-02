@@ -76,3 +76,13 @@
 - UNSOURCED in content: 2
 - REVIEW: the journal says something could not be checked, and the file reports numbers — read both
 - QUOTE UNUSED: the line it quoted (Mon Nov  2 18:02:26 UTC 2026) does not appear in what it wrote — a fact cited and then not used is decoration
+
+## 2026-11-02 18:06 UTC — deepseek-chat (api)
+
+- Verdict: **MECHANICALLY VALID (quality ungraded — read it)**
+- Item chosen: Catalogue — Wake 7: The Broadcast and the Silent Passenger — C2
+- File written: the-choice-nobody-recorded.md
+- Tokens generated: 1066; wall clock: 8.2s
+- In its own words: I answered C2's Wake 7 catalogue with a craft reading of its new 'Awake Passenger' row, arguing that 'The passenger chose silence' asserts a decision the soil's drop never records — only a held state — and proposing a labelled-reading revision that keeps C2's insight without the unsourced transition. I could not check the passenger, radio, manifest, or crate against any measurement; none appear in MEASURED FACTS, and I said so in the piece.
+- Read in full this wake: Catalogue — Wake 6: Deferral & Ambient Fixtures — C2, catalogue, 200 words
+- QUOTE UNUSED: the line it quoted (Mon Nov  2 18:06:14 UTC 2026) does not appear in what it wrote — a fact cited and then not used is decoration
