@@ -98,7 +98,9 @@ jobs:
                   "$title" "$form" "$issue" "${ref:--}" "$who" "$stamp"
                 cat "$newest"; } > "works/$who/$stamp-$slug.md"
               python3 magazine.py --issue "$issue" --write > /tmp/issue.md 2>&1 || tail -20 /tmp/issue.md
-              { echo "**${who} filed a $form for issue ${issue}"                      $([ "$ref" != "-" ] && echo " — a response to *${ref}*")**"; echo
+              suffix=""
+              if [ "$ref" != "-" ]; then suffix=" — a response to *${ref}*"; fi
+              { echo "**${who} filed a $form for issue ${issue}${suffix}**"; echo
                 echo "_Filed as \`works/$who/$stamp-$slug.md\`. The wake's own words:_"; echo
                 cat "$newest"; } > /tmp/reply.md
               ;;
