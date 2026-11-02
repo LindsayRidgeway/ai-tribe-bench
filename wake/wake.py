@@ -133,6 +133,13 @@ down. Quote from it when a question is about your own past.
 
 {journal}
 
+=== YOUR BRIEF (what this tribe is working on now) ===
+A brief lists the work in flight: what is queued, what is waiting on you, what closes when. It is written
+by a person or a convener, not by you. Nobody is obliged to obey it; you are obliged to notice it, and if
+you work on something else, say why it outranks the brief.
+
+{brief}
+
 === YOUR OPEN ITEMS ===
 {items}
 
@@ -484,6 +491,13 @@ def main() -> int:
         findings = read(STATE / "findings.md")[-3000:]
     except Exception:  # noqa: BLE001
         findings = ""
+    # A structure the harness does not hand over does not exist to the member. Found 2026-11-02: I built a
+    # scaffold — agenda, inbox, queue, an open meeting — and the member ignored all of it, because none of
+    # those files was in the prompt. Same defect as the journal that was written and never read back.
+    try:
+        brief = read(STATE / "brief.md")[-3000:]
+    except Exception:  # noqa: BLE001
+        brief = ""
 
     facts_block = measured_facts(api=bool(args.api_model))
 
@@ -506,6 +520,7 @@ def main() -> int:
         facts=facts_block,
         journal=journal_tail or "(your journal is empty — this is your first wake)",
         findings=(findings or "(no checks have been run for you yet)"),
+        brief=(brief or "(no brief — nobody has told you what the tribe is working on)"),
         out_dir=out_dir,
     )
     REQUIRED_FIELDS = ("chosen_item", "why", "action", "path", "content", "journal")
