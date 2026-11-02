@@ -113,6 +113,21 @@ class TestGame(unittest.TestCase):
         why = "Their legacy is inflated, ignoring how rule changes favored their physical style."
         self.assertGreaterEqual(play.longest_run(claim, why), 6)
 
+    def test_the_voter_is_shown_the_defence_the_prompt_promises(self):
+        """Round 16: the persuade prompt said "you have heard one sentence of defence for each of the
+        other two" and the table held two nouns. Sixteen rounds of "nothing persuades" were played on a
+        table with no arguments on it. If a prompt claims a member has been told something, the thing
+        must be in the prompt."""
+        picks = {"a": {"pick": "a long walk", "why": "it is free and it fixes a mood."},
+                 "b": {"pick": "do your taxes", "why": "the relief is bigger than the weekend."},
+                 "c": {"pick": "stand still", "why": "a forest is the only room that does not ask."}}
+        prompt = play.PERSUADE_PROMPT.format(
+            name="A", seat="the loyalist", category="a free Saturday",
+            picks=play.table_of(picks, ["a", "b", "c"]), own="a long walk", decide="pick")
+        self.assertIn("You have heard one sentence of defence", prompt)
+        self.assertIn("the relief is bigger than the weekend.", prompt)
+        self.assertNotIn("the relief is bigger", play.table_of(picks, ["a", "b", "c"], defences=False))
+
     def test_a_neutral_round_asks_nobody_to_defend_eating(self):
         """Round 16: the seats are written for taste. Played in the neutral framing — a question about
         the tribe's own practice — the outsider seat was still being asked to defend eating an audit,

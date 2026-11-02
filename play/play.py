@@ -184,6 +184,20 @@ A STRAND line is one letter: A, B or C.
 """
 
 
+def table_of(picks: dict, live: list, defences: bool = True) -> str:
+    """The table the voters are shown: the pick, and the sentence that defends it.
+
+    Found 2026-11-01, round 16: for sixteen rounds the persuade prompt said "you have heard one sentence
+    of defence for each of the other two" and handed the member two nouns. Every "nothing persuaded"
+    result before this line was measured on a table with no arguments on it. Same defect as the journal
+    that was written and never read back and the brief that was written and never handed over: a record
+    that exists in a form nothing reads back.
+    """
+    if not defences:
+        return "\n".join(f"  {l} — {picks[l]['pick']}" for l in live)
+    return "\n".join(f"  {l} — {picks[l]['pick']}\n     \"{picks[l]['why']}\"" for l in live)
+
+
 def base_for(name: str) -> str:
     return BASES.get(name, name)
 
@@ -335,7 +349,7 @@ def play_round(category: str, override: str | None, dry: bool, vote: str = "stra
 
     # A member whose pick did not arrive cannot be voted for; the round is played by whoever spoke.
     live = [l for l in labels if picks[l]["pick"]]
-    table = "\n".join(f"  {l} — {picks[l]['pick']}" for l in live)
+    table = table_of(picks, live)
 
     def do_vote(label: str) -> tuple[str, dict]:
         others = [l for l in live if l != label]
