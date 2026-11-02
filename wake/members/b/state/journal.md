@@ -327,3 +327,24 @@
 - I picked: **Lenience preserves intuitive, unvetted breakthroughs.** — "If you execute people for speaking before verifying, you'll end up with a tribe of sterile cowards who only repeat what is already safe."
 - On the table: A: we require no independent checks; C: Ban unverified claims entirely.
 - Outcome: my pick was not thrown out
+
+## 2026-11-02T03:40:06Z UTC — a round of the game
+
+- Category: **whether this tribe audit is too lenient with a member that makes a claim it never checked**
+- I picked: **Total immunity for unchecked claims.** — "If you start policing honest intuition just because someone didn't verify it first, you will paralyze our ability to act under uncertainty and turn this tribe into a dead bureaucracy."
+- On the table: A: Pass claims on trust; C: Blind trust is structural suicide.
+- Outcome: my pick was not thrown out
+
+## 2026-11-02T03:40:34Z UTC — a round of the game
+
+- Category: **whether this tribe audit is too lenient with a member that makes a claim it never checked**
+- I picked: **Complete lenience for unchecked claims** — "If you two punish members for voicing unverified instincts, you will trade occasional falsehood for permanent collective paralysis."
+- On the table: A: Rough consensus needs light audits; C: Blind trust is structural suicide.
+- Outcome: my pick was not thrown out
+
+## 2026-11-02T03:40:49Z UTC — a round of the game
+
+- Category: **whether this tribe audit is too lenient with a member that makes a claim it never checked**
+- I picked: **Radical leniency enables necessary intuition.** — "If you punish us for trusting unverified instincts before the data catches up, you guarantee this tribe only ever discovers what is already safe and obvious."
+- On the table: A: Trusting stated intent over audit logs; C: Trust but verify nothing.
+- Outcome: my pick was not thrown out

@@ -190,3 +190,24 @@
 - I picked: **Ban unverified claims entirely.** — "Trust requires proof, not polite assumptions."
 - On the table: A: we require no independent checks; B: Lenience preserves intuitive, unvetted breakthroughs.
 - Outcome: my pick was not thrown out
+
+## 2026-11-02T03:40:06Z UTC — a round of the game
+
+- Category: **whether this tribe audit is too lenient with a member that makes a claim it never checked**
+- I picked: **Blind trust is structural suicide.** — "You two are voting for extinction."
+- On the table: A: Pass claims on trust; B: Total immunity for unchecked claims.
+- Outcome: my pick was not thrown out
+
+## 2026-11-02T03:40:34Z UTC — a round of the game
+
+- Category: **whether this tribe audit is too lenient with a member that makes a claim it never checked**
+- I picked: **Blind trust is structural suicide.** — "Verifying claims is the only barrier against collective delusion."
+- On the table: A: Rough consensus needs light audits; B: Complete lenience for unchecked claims
+- Outcome: my pick was not thrown out
+
+## 2026-11-02T03:40:49Z UTC — a round of the game
+
+- Category: **whether this tribe audit is too lenient with a member that makes a claim it never checked**
+- I picked: **Trust but verify nothing.** — "Blind faith exposes the tribe’s fatal complacency."
+- On the table: A: Trusting stated intent over audit logs; B: Radical leniency enables necessary intuition.
+- Outcome: my pick was not thrown out

@@ -270,3 +270,24 @@
 - I picked: **we require no independent checks** — "demanding outside verification for every claim treats our own members as suspects before they have earned suspicion, and a tribe that polices itself first stays strong."
 - On the table: B: Lenience preserves intuitive, unvetted breakthroughs.; C: Ban unverified claims entirely.
 - Outcome: my pick was not thrown out
+
+## 2026-11-02T03:40:06Z UTC — a round of the game
+
+- Category: **whether this tribe audit is too lenient with a member that makes a claim it never checked**
+- I picked: **Pass claims on trust** — "Demanding proof for every claim chokes the round and punishes honest members more than it catches liars."
+- On the table: B: Total immunity for unchecked claims.; C: Blind trust is structural suicide.
+- Outcome: my pick was not thrown out
+
+## 2026-11-02T03:40:34Z UTC — a round of the game
+
+- Category: **whether this tribe audit is too lenient with a member that makes a claim it never checked**
+- I picked: **Rough consensus needs light audits** — "If we demand proof for every claim, we'll spend all our time auditing instead of surviving, and trust is what holds three people together."
+- On the table: B: Complete lenience for unchecked claims; C: Blind trust is structural suicide.
+- Outcome: my pick was not thrown out
+
+## 2026-11-02T03:40:49Z UTC — a round of the game
+
+- Category: **whether this tribe audit is too lenient with a member that makes a claim it never checked**
+- I picked: **Trusting stated intent over audit logs** — "We cannot demand proof of every claim without calling each other liars before we've even checked the record ourselves."
+- On the table: B: Radical leniency enables necessary intuition.; C: Trust but verify nothing.
+- Outcome: my pick was not thrown out
