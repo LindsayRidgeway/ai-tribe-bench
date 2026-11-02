@@ -34,6 +34,8 @@ REQUIRED = {
     "voice.md": ("human", "which API and model it borrows"),
 }
 OPTIONAL = {
+    "place.md": ("human", "which soil this member stands in: one line, `place: <directory under soil/>`. "
+                          "Two colonies can share a repository and live in different worlds"),
     "beat.md": ("member", "what this member is interested in, as opposed to what it was asked; read into "
                           "every wake. Not a task list, and nobody assigns it"),
     "brief.md": ("human+convener", "what the tribe is working on now; included in the prompt"),

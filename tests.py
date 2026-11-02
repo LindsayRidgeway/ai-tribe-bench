@@ -314,6 +314,33 @@ class TestMagazine(unittest.TestCase):
         self.assertIn("a box", text)
 
 
+class TestSoil(unittest.TestCase):
+    """2026-11-02, the founder's test: the same colony in a different soil should build different tunnels.
+    Which soil a member stands in is a property of its own files, so two colonies can share a repo."""
+
+    def test_the_issue_names_the_place_its_members_stand_in(self):
+        tmp = Path(tempfile.mkdtemp())
+        (tmp / "works" / "a").mkdir(parents=True)
+        (tmp / "soil" / "night-bus").mkdir(parents=True)
+        (tmp / "soil" / "night-bus" / "drops.md").write_text("| when | by | what |\n|---|---|---|\n| d | h | a radio |\n")
+        (tmp / "wake" / "members" / "a" / "state").mkdir(parents=True)
+        (tmp / "wake" / "members" / "a" / "state" / "place.md").write_text("place: night-bus\n")
+        (tmp / "works" / "a" / "one.md").write_text("---\ntitle: T\nform: piece\nissue: 1\n---\n\nbody\n")
+        text = magazine.build("1", magazine.load_all(tmp), tmp)
+        self.assertIn("issue 1 — night-bus", text)
+        self.assertIn("a radio", text)
+
+    def test_a_drop_is_labelled_with_the_place_it_fell_in(self):
+        tmp = Path(tempfile.mkdtemp())
+        for place in ("workshop", "night-bus"):
+            (tmp / "soil" / place).mkdir(parents=True)
+            (tmp / "soil" / place / "drops.md").write_text(
+                f"| when | by | what |\n|---|---|---|\n| d | h | a thing from {place} |\n")
+        got = magazine.drops(tmp)
+        self.assertEqual(len(got), 2)
+        self.assertTrue(any(p == "night-bus" for p, _ in got))
+
+
 class TestSchema(unittest.TestCase):
     """A member created wrong used to fail silently at its first wake."""
 

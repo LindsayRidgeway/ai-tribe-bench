@@ -607,12 +607,24 @@ def main() -> int:
         beat = read(STATE / "beat.md")[-2500:]
     except Exception:  # noqa: BLE001
         beat = ""
+    # Which soil this member stands in is a property of the member, not a global switch: two colonies can
+    # live in the same repository, each in its own world, which is the whole point of an ant farm.
     soil_parts = []
-    for name in ("world.md", "drops.md"):
-        try:
-            soil_parts.append(read(ROOT.parent / "soil" / name)[-2500:])
-        except Exception:  # noqa: BLE001
-            continue
+    try:
+        place = read(STATE / "place.md").strip().splitlines()
+        place = " ".join(place[0].split(":", 1)[1].split()) if place and ":" in place[0] else ""
+    except Exception:  # noqa: BLE001
+        place = ""
+    soil_dirs = [ROOT.parent / "soil" / place] if place else []
+    soil_dirs.append(ROOT.parent / "soil")   # the flat layout, for a member that predates places
+    for d in soil_dirs:
+        for name in ("world.md", "drops.md"):
+            try:
+                soil_parts.append(read(d / name)[-2500:])
+            except Exception:  # noqa: BLE001
+                continue
+        if soil_parts:
+            break
     soil = "\n\n".join(soil_parts)
 
     # The shelf: what the other members made. Found 2026-11-02 — with a beat and no shelf, a member with

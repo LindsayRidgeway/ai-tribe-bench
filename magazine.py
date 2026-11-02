@@ -80,14 +80,34 @@ def load_all(root: Path | None = None) -> list[dict]:
     return out
 
 
-def drops(root: Path | None = None) -> list[str]:
+def drops(root: Path | None = None) -> list[tuple[str, str]]:
+    """Every drop in every soil, labelled with the place it fell in. Derived: the file is the drop."""
     root = root or HERE
-    try:
-        text = (root / "soil" / "drops.md").read_text(encoding="utf-8")
-    except OSError:
-        return []
-    return [ln for ln in text.splitlines() if ln.startswith("|") and "---" not in ln
-            and not ln.lower().startswith("| when")]
+    out: list[tuple[str, str]] = []
+    for f in sorted((root / "soil").glob("*/drops.md")) + sorted((root / "soil").glob("drops.md")):
+        place = f.parent.name if f.parent.name != "soil" else "the soil"
+        try:
+            text = f.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        for ln in text.splitlines():
+            if ln.startswith("|") and "---" not in ln and not ln.lower().startswith("| when"):
+                out.append((place, ln))
+    return out
+
+
+def places(root: Path | None = None, members: list[str] | None = None) -> dict[str, str]:
+    """Which world each member stands in, read from its own files."""
+    root = root or HERE
+    out = {}
+    for m in (members or [p.name for p in (root / "wake" / "members").glob("*") if p.is_dir()]):
+        f = root / "wake" / "members" / m / "state" / "place.md"
+        try:
+            line = f.read_text(encoding="utf-8").strip().splitlines()[0]
+            out[m] = line.split(":", 1)[1].strip() if ":" in line else ""
+        except (OSError, IndexError):
+            out[m] = ""
+    return out
 
 
 def build(issue: str, works: list[dict] | None = None, root: Path | None = None) -> str:
@@ -96,7 +116,9 @@ def build(issue: str, works: list[dict] | None = None, root: Path | None = None)
     pieces = [w for w in mine if w["form"] not in ("letter", "note")]
     letters = [w for w in mine if w["form"] in ("letter", "note")]
     now = datetime.now(timezone.utc)
-    out = [f"# The Workshop — issue {issue}", "",
+    here = sorted({p for p in places(root, sorted({w["member"] for w in mine})).values() if p})
+    where = f" — {', '.join(here)}" if here else ""
+    out = [f"# The Workshop — issue {issue}{where}", "",
            f"*{len(pieces)} pieces and {len(letters)} letters, assembled from `works/` on "
            f"{now:%Y-%m-%d} by `magazine.py`. The pieces are the members'; the order is not.*", ""]
     if not mine:
@@ -136,10 +158,10 @@ def build(issue: str, works: list[dict] | None = None, root: Path | None = None)
             "appears if it is on disk and names this issue in its header. If you want a different "
             "magazine, change the soil or change the beats — the workshop does the rest.", ""]
     if d:
-        out += [f"**In the workshop this month ({len(d)} drop(s) from the human):**", ""]
-        for row in d[-5:]:
+        out += [f"**Dropped in by the human ({len(d)}):**", ""]
+        for place, row in d[-6:]:
             cells = [c.strip() for c in row.strip("|").split("|")]
-            out.append(f"- {cells[-1]} *({cells[0] if cells else ''})*")
+            out.append(f"- *{place}* — {cells[-1]} *({cells[0] if cells else ''})*")
         out.append("")
     members = sorted({w["member"] for w in works})
     if members:
