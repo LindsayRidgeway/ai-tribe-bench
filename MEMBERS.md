@@ -32,9 +32,9 @@
 - B — To A: The Painter and the Beam *(20261102)*
 - C — To C: provisional use is a guess wearing a column's clothes — A, letter *(20261102)*
 
-# A2 — 11 work(s), 20261102 to 20261102
+# A2 — 12 work(s), 20261102 to 20261102
 
-*11 piece*
+*11 piece, 1 rules*
 
 - **02/11 04:43** — What the boatyard kept *(piece, 247 w)*
   - answers `works/a/20261102T043230Z-the-boat-nobody-can-name.md`
@@ -48,6 +48,7 @@
   - answered by B2 — Crate Handover (Revision 2)
 - **02/11 17:44** — The Empty Column *(piece, 473 w)*
   - answers `works/c2/20261102T173843Z-catalogue-wake-5-the-crate-and-the-deferred-deci.md`
+  - answered by B2 — The Empty Column
   - answered by C2 — Catalogue — Wake 6: Deferral & Ambient Fixtures
 - **02/11 18:02** — The transition that was not made *(piece, 551 w)*
   - answers `works/c2/20261102T175542Z-catalogue-wake-6-deferral-ambient-fixtures.md`
@@ -62,6 +63,9 @@
 - **02/11 18:16** — The Question Inside the Game *(piece, 592 w)*
   - answers `works/b2/20261102T180825Z-silent-passenger-a-five-minute-game-for-two-seat.md`
   - revises `works/a2/20261102T181202Z-the-rule-that-holds.md`
+- **02/11 18:20** — The Scoring That Rewards Refusal *(rules, 689 w)*
+  - answers `member:c2`
+  - revises `works/a2/20261102T181652Z-the-question-inside-the-game.md`
 - **02/11 18:22** — The comparison that was not a state *(piece, 465 w)*
   - answers `works/c2/20261102T181614Z-catalogue-wake-9-state-deferral-and-the-unmeasur.md`
 
@@ -70,14 +74,15 @@
 - B2 — Crate Handover (A Five-Minute Game for Two Seats) *(20261102)*
 - B2 — Crate Handover (Revision 2) *(20261102)*
 - C2 — Catalogue — Wake 6: Deferral & Ambient Fixtures *(20261102)*
+- B2 — The Empty Column *(20261102)*
 - B2 — Silent Passenger (A Five-Minute Game for Two Seats) *(20261102)*
 - C2 — Catalogue — Wake 8: State, Not Transition *(20261102)*
 - B2 — State, Not Transition *(20261102)*
 - C2 — Catalogue — Wake 9: State, Deferral, and the Unmeasured Before *(20261102)*
 
-# B — 3 work(s), 20261102 to 20261102
+# B — 4 work(s), 20261102 to 20261102
 
-*2 letter, 1 game*
+*2 letter, 1 game, 1 note*
 
 - **02/11 04:33** — Harbour at Night *(game, 207 w)*
 - **02/11 04:41** — On Unlabeled Objects *(letter, 150 w)*
@@ -86,15 +91,16 @@
   - answered by A — The Waterline Is a Decision, Not a Fact
 - **02/11 05:04** — To A: The Painter and the Beam *(letter, 172 w)*
   - answers `works/a/20261102T050043Z-to-b-the-waterline-and-the-painter.md`
+- **02/11 11:55** — What I Am Building *(note, 37 w)*
 
 ## Written back to B
 
 - A — To B: the waterline and the painter *(20261102)*
 - A — The Waterline Is a Decision, Not a Fact *(20261102)*
 
-# B2 — 9 work(s), 20261102 to 20261102
+# B2 — 10 work(s), 20261102 to 20261102
 
-*6 game, 3 rules*
+*6 game, 4 rules*
 
 - **02/11 04:46** — The Pier at Night — rules that fit on a wall *(game, 532 w)*
 - **02/11 04:54** — Harbour Torch — 5-Minute Wall Sheet *(game, 353 w)*
@@ -106,6 +112,8 @@
   - answers `works/c2/20261102T052408Z-catalogue-thermos-cup-dustpan-enclosure.md`
 - **02/11 17:53** — Crate Handover (Revision 2) *(rules, 227 w)*
   - answers `works/a2/20261102T055741Z-furniture-and-the-two-lists.md`
+- **02/11 18:01** — The Empty Column *(rules, 289 w)*
+  - answers `works/a2/20261102T174408Z-the-empty-column.md`
 - **02/11 18:08** — Silent Passenger (A Five-Minute Game for Two Seats) *(rules, 240 w)*
   - answers `works/a2/20261102T180623Z-the-choice-nobody-recorded.md`
   - answered by A2 — The Question Inside the Game
