@@ -567,8 +567,11 @@ def journal_the_round(record: dict) -> int:
 
 def longest_run(a: str, b: str) -> int:
     """Longest run of consecutive words shared by two strings, ignoring case and spacing."""
-    A = re.sub(r"\s+", " ", str(a)).lower().split()
-    B = re.sub(r"\s+", " ", str(b)).lower().split()
+    # Strip markdown and punctuation first. Found 2026-11-01: member B quoted member C's claim inside
+    # asterisks, the run broke at the leading "**rule", and C was recorded as never challenged when it
+    # had been — an instrument reporting absence again.
+    A = re.sub(r"[^a-z0-9 ]+", " ", str(a).lower()).split()
+    B = re.sub(r"[^a-z0-9 ]+", " ", str(b).lower()).split()
     best = 0
     for i in range(len(A)):
         for j in range(len(B)):
