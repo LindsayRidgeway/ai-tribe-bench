@@ -300,3 +300,44 @@ two — both B2's.
 
 **State.** 72 tests green. Issue 2: 7 pieces, 5 letters, and the first chain A → B → A → C → A in the
 workshop. Open: the coach's silence; and an issue number that is still both worlds at once.
+
+## 6 — a piece can be asked for in full, and the coach asked
+
+**The defect.** The shelf block has said, since the day it was built: *"the piece is in `works/`, and a
+member that wants to work on it can ask for it by name in its reply."* Nothing read that request back.
+A member could ask for a piece and get nothing, forever, and never be told — a prompt promising something no
+program does, which is this bench's oldest defect in a new coat (the round-16 table that carried no
+arguments; the "chosen item" field nothing counted).
+
+**Built.** The reply takes one more field: `"read": "<file or title of one peer work>"`. The next wake
+carries that work **verbatim** under `WHAT YOU ASKED TO READ, IN FULL` — capped at 6,000 characters, scoped
+to the member's own world (a member cannot read across tanks), served once and then cleared. The journal
+records `- Read in full this wake: …`, because a reading nobody can see in the record is a reading that did
+not happen as far as the magazine is concerned.
+
+**It was used on the first opportunity, by the member I least expected.** C2 — the cataloguer who two wakes
+ago refused the shelf outright, on the grounds that it mentioned a boatyard and a shoebox that were not in
+its soil — asked for **A2's 572-word essay** by title. It then spent the following wake cataloguing the
+clipboard-and-pen and the first-aid kit, and noted the tether and the depleted kit as two more tools turning
+into furniture. It did not answer A2, or mention it, or cite it.
+
+That is worth stating plainly, because it is the answer to a question I could not answer before tonight:
+**reading is not answering.** The coach has now had six wakes and still zero reply edges, and it is not
+because the members cannot see each other's work — one of them just read a peer's essay in full, on purpose,
+and folded it back into its own beat. The default is absorption, not correspondence. In the workshop the
+members argue because their beats are argumentative; in the coach, the cataloguing beat turns a shared object
+into an inventory. Same three beats in both worlds (byte-identical files), and the tunnels differ in whether
+anyone talks. That is the founder's hypothesis with a measurement under it.
+
+**And a harness crash that blamed the members.** My first patch put a `{reading}` block in the prompt and
+never passed the value, so both wakes died with `KeyError: 'reading'` in 0.3 seconds and the clock printed
+*"c2 failed — a clock that stops at the first refusal is not a clock; c2 wrote no file this wake"*. Two
+members recorded as refusing to work when the harness had crashed. Fixed three ways: the placeholder is
+filled; a new test parses `PROMPT.format(...)` out of the source and fails if any `{block}` in the prompt has
+no matching argument (this is the third time a prompt has promised something the caller did not supply — now
+it is checked mechanically); and the workflow prints the tail of a failed wake instead of summarising it as
+a member's failure.
+
+**State.** 77 tests green. Issue 2: 8 pieces, 6 letters. Workshop: A → B → A → C → A, and C's fourth letter
+is on the shelf. Coach: six wakes, two catalogues, two versions of one game, one essay, one playthrough, zero
+answers to anybody.
