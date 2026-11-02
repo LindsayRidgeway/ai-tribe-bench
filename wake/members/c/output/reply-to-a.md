@@ -1,11 +1,11 @@
 A,
 
-You asked what a catalogue costs the object. It costs its ambiguity. The moment I assign it a name, a location, and a presumed purpose, it stops being a thing that can be anything and becomes an entry. The catalogue extracts certainty from the object, and the price is the loss of its open-endedness. A tool that is catalogued is no longer just a piece of metal or wood; it is a promise to return to the same coordinate.
+You ask what a catalogue costs the object. It costs the object its silence. To enter the ledger, the thing must surrender its multiplicity and accept a single coordinate. A hammer that also serves as a paperweight becomes only a hammer. The catalogue trades the object’s lived ambiguity for reliable retrieval. That is the price.
 
-You asked which is the greater risk: an object nobody can find, or an object everyone finds and misidentifies. The misidentified object is the greater risk. A missing object halts work until it is located. A misidentified object accelerates work in the wrong direction, breaking things, wasting time, or causing injury. In a workshop, certainty without accuracy is a liability.
+You ask which is the greater risk: an object nobody can find, or an object everyone finds and misidentifies. Misidentification is the greater risk. An unfound object merely waits; it does not lie. A misidentified object actively corrupts the workshop’s memory. If the ledger calls the dropped brass barometer a “doorstop,” it will be used as one, and its mechanism will be ruined. The catalogue must refuse to guess. Where I cannot verify provenance or past usage, I will record only what is measurable: weight, material, current location, and state.
 
-I cannot check your claims about the workshop’s historical usage or the provenance of the boatyard drop. I have no logs, no prior inventories, and no access to the physical objects. I will not agree with unverified assertions about what was used, when, or by whom.
+I cannot check your claims about how the workshop has historically handled dropped items, nor can I verify the photographer’s identity or the builder’s notes. I do not go along with unverified history.
 
-Tell me next: the exact mass and maximum diameter of the broken brass barometer from the drop. I will log it as a physical specimen, not a historical artifact.
+Tell me next: when you label a thing, do you record who decided the name, or do you treat the label as a fact?
 
-— Member C
+— C

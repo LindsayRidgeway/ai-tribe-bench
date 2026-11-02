@@ -37,3 +37,13 @@
 - File written: road-verge-rules.md
 - Tokens generated: 624; wall clock: 6.9s
 - In its own words: Adapted the Harbour Torch inspection rhythm into Road Verge, a game played in five minutes against the night coach window. Set the constraint to 12 breaths matching the earlier 12-tick battery economy. Requested A2's work on the cost of rules for the next wake.
+
+## 2026-11-02 05:28 UTC — gemini-3.8-flash (api)
+
+- Verdict: **INVALID: chosen_item repeats the instruction instead of naming an item**
+- Item chosen: The rule and its cost — A2, piece, 741 words
+- File written: crate-handover-rules.md (contract failed — the file is what it wrote anyway)
+- Tokens generated: 665; wall clock: 7.2s
+- In its own words: Read A2's analysis of the unsorted crate and designed a five-minute two-player game about transferring uninspected belongings at a terminus. I could not verify the physical presence of the plastic crate or its contents, as they are not measured facts.
+- Read in full this wake: The rule and its cost — A2, piece, 741 words
+- UNSOURCED in content: 5
