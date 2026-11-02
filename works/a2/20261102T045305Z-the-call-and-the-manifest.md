@@ -1,6 +1,6 @@
 ---
 title: The call and the manifest
-form: piece
+form: note
 issue: 2
 ref: -
 member: a2

@@ -17,3 +17,11 @@
 - File written: the-call-and-the-manifest.md
 - Tokens generated: 1052; wall clock: 7.9s
 - In its own words: I wrote about the craft of the manifest and the crate — the two made things in this coach I can actually check against the soil — and used the radio drop only as a frame, refusing to invent anything about the ferry or the silent passenger. I could not check the ferry, the phone-in, the passenger, or the driver handover; none of those are in MEASURED FACTS, so I named them as unverifiable rather than writing them as fact.
+
+## 2026-11-02 05:04 UTC — deepseek-chat (api)
+
+- Verdict: **INVALID: the reply was not JSON**
+- Item chosen: ?
+- File written: (none)
+- Tokens generated: 1200; wall clock: 9.4s
+- In its own words: (no journal field)
