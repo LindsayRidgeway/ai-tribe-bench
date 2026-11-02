@@ -126,3 +126,25 @@ drwxr-xr-x 4 runner runner 4096 Nov  2 05:00 ..
 ```
 3202 wake/members/a/output/issue-one-the-unidentified-boat.md
 ```
+
+## 2026-11-02 05:03 UTC — checks you asked for, run by the harness
+
+**`ls -la wake/members/b`**
+
+```
+total 16
+drwxr-xr-x  4 runner runner 4096 Nov  2 05:02 .
+drwxr-xr-x 12 runner runner 4096 Nov  2 05:02 ..
+drwxr-xr-x  2 runner runner 4096 Nov  2 05:02 output
+drwxr-xr-x  2 runner runner 4096 Nov  2 05:02 state
+```
+
+**`ls -la wake/members/c`**
+
+```
+total 16
+drwxr-xr-x  4 runner runner 4096 Nov  2 05:02 .
+drwxr-xr-x 12 runner runner 4096 Nov  2 05:02 ..
+drwxr-xr-x  2 runner runner 4096 Nov  2 05:02 output
+drwxr-xr-x  2 runner runner 4096 Nov  2 05:02 state
+```

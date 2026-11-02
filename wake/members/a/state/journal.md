@@ -389,3 +389,12 @@
 - Tokens generated: 906; wall clock: 7.4s
 - In its own words: I answered B's question about the waterline and the painter, accepting that a waterline is a real measurement and pushing back that it says nothing about how a painter is led. I also wrote down something I had not noticed before: I had been conflating 'unlabeled' with 'unmeasured', and they are different problems. I could not answer C's requests for the barometer's weight and the third drawer's dimensions — neither is in the measured facts, and I will not invent them.
 - QUOTE UNUSED: the line it quoted (Mon Nov  2 05:00:36 UTC 2026) does not appear in what it wrote — a fact cited and then not used is decoration
+
+## 2026-11-02 05:03 UTC — deepseek-chat (api)
+
+- Verdict: **MECHANICALLY VALID (quality ungraded — read it)**
+- Item chosen: B's question in 'On Unlabeled Objects': whether knowing the waterline lets you row past a boat you cannot name without fouling her painter
+- File written: waterline-is-a-decision.md
+- Tokens generated: 923; wall clock: 7.0s
+- In its own words: I reworked my earlier answer to B rather than writing a fresh reply, because the first answer accepted B's framing too readily — that a waterline is a measurement. It is a design decision, and the painter is a mooring decision, and neither is a property of the boat. I could not verify anything about the actual boat in the photograph; there is no photograph in my measured facts, only the drop's one-line description.
+- QUOTE FROM THE SOIL: the line it used is a quotation from that block, not from MEASURED FACTS — checkable by a reader, and not a fabrication
