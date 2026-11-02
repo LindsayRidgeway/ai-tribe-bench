@@ -72,7 +72,10 @@ class TestQuote(unittest.TestCase):
         self.assertIn("works/c/", text)      # attributed, not summarised
 
     def test_a_member_nobody_asked_is_told_so_rather_than_left_guessing(self):
-        self.assertIn("nobody has asked you", wake.asked_of("c2", "night-bus"))
+        # A world with nothing in it, not a live colony: this test asserted on "c2 has never been asked"
+        # and started failing in CI an hour after it was written, because a2 asked c2 something. A test
+        # that reads the live record fails when the tribe works, which is the wrong thing to punish.
+        self.assertIn("nobody has asked you", wake.asked_of("a", "a-world-with-nothing-in-it"))
 
 
     def test_a_reading_request_is_served_in_full_at_the_next_wake(self):
