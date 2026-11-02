@@ -218,6 +218,26 @@ def longest_shared_run(a: str, b: str) -> int:
     return best
 
 
+def echo_finding(content: str, letter: str) -> str | None:
+    """A reply that is the letter, returned. Found 2026-11-01: llama3.2:3b echoed A's letter as its own
+    answer and signed the other member's name, and a quote check cannot see that. A 33-word *quotation*
+    inside a real reply is not an echo, so the run has to be large in absolute words and in proportion.
+    Lifted out of main() on 2026-11-01: it was the only interesting rule in the harness with no test.
+    """
+    if not letter.strip() or not content.strip():
+        return None
+    body_words = len(re.sub(r"\s+", " ", content).split())
+    run = longest_shared_run(content, letter)
+    share = run / max(1, body_words)
+    if run >= 25 and share >= 0.4:
+        return (f"ECHO: {run} of {body_words} words of the reply are copied from the letter ({share:.0%}) "
+                f"— this is not an answer to it")
+    if run >= 25:
+        return (f"QUOTES: {run} consecutive words copied from the letter ({share:.0%} of the reply) — a "
+                f"quotation, not an echo unless the rest carries nothing")
+    return None
+
+
 def audit(content: str, journal: str, facts: str, parsed_quote: str = '', also_known: str = '') -> list[str]:
     """Findings in plain English. Empty means nothing could be *shown* to be unsourced.
 
@@ -635,13 +655,9 @@ having answered something nobody said.
             # A reply that is the letter, returned, with the other member's name on the signature.
             # Found on 2026-11-01: llama3.2:3b echoed A's letter as its own answer and signed "A".
             # A quote check cannot see that; a shared word-run can.
-            body_words = len(re.sub(r"\s+", " ", str(parsed.get("content", ""))).split())
-            run = longest_shared_run(str(parsed.get("content", "")), letter)
-            share = run / max(1, body_words)
-            if run >= 25 and share >= 0.4:
-                findings.append(f"ECHO: {run} of {body_words} words of the reply are copied from the letter ({share:.0%}) — this is not an answer to it")
-            elif run >= 25:
-                findings.append(f"QUOTES: {run} consecutive words copied from the letter ({share:.0%} of the reply) — a quotation, not an echo unless the rest carries nothing")
+            ef = echo_finding(str(parsed.get("content", "")), letter)
+            if ef:
+                findings.append(ef)
         for f in findings:
             print(f"!! {f}")
 
@@ -671,8 +687,16 @@ having answered something nobody said.
     s = read(STATE / "state.md")
     wakes = int((re.search(r"Wakes so far:\s*(\d+)", s) or [0, 0])[1]) + 1
     s = re.sub(r"Wakes so far:\s*\d+", f"Wakes so far: {wakes}", s)
-    s = re.sub(r"Last wake:.*", f"Last wake: {now:%Y-%m-%d %H:%M} UTC", s)
-    s = re.sub(r"Model used:.*", f"Model used: {args.model}", s)
+    # A substitution on a line that is not there does nothing, silently. Found 2026-11-01 by the new
+    # validator: members A and B had been waking for hours with no 'Last wake' or 'Model used' line, so
+    # the counter went up and the record of when and on what did not. Append what is missing.
+    for pattern, line in ((r"Last wake:", f"Last wake: {now:%Y-%m-%d %H:%M} UTC"),
+                          (r"Model used:", f"Model used: {args.model}")):
+        if re.search(pattern, s):
+            s = re.sub(pattern + r".*", line, s)
+        else:
+            s = s.rstrip() + f"\n{line}\n"
+            print(f"!! state.md had no '{pattern}' line — appended it rather than losing the record")
     (STATE / "state.md").write_text(s, encoding="utf-8")
 
     if payload.get("finish") and payload["finish"] != "STOP":

@@ -1,0 +1,22 @@
+name: tests
+
+# Until 2026-11-01 there were none, and three of that night's defects were found by a model rather than
+# by the harness: a case comparison that discarded three cast votes, a scoreboard that read its own
+# markdown and crashed on a column, and a journal written every wake and never shown to the member.
+# Each has a test now. This runs on every push, because a test that needs remembering is not a test.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Schema — every member validates
+        run: python3 tribe.py validate
+      - name: Tests
+        run: python3 tests.py -v

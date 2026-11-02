@@ -15,9 +15,10 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 
 
-def main() -> int:
+def main(root: Path | None = None) -> int:
+    base = Path(root) if root else HERE
     rounds = []
-    for f in sorted(glob.glob(str(HERE / "rounds" / "*.json"))):
+    for f in sorted(glob.glob(str(base / "rounds" / "*.json"))):
         d = json.loads(Path(f).read_text(encoding="utf-8"))
         rounds.append(d)
 
@@ -67,4 +68,5 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    import sys
+    raise SystemExit(main(Path(sys.argv[1]) if len(sys.argv) > 1 else None))
