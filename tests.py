@@ -842,5 +842,33 @@ class TestFiling(unittest.TestCase):
         self.assertIn("issues/", (REPO / "README.md").read_text(encoding="utf-8"))
 
 
+    def test_a_letter_is_headed_by_the_piece_it_answers_not_by_its_filename(self):
+        """`### On *works/b/20261102T044144Z-on-unlabeled-objects.md*` is a filename, and a reader is not a
+        filesystem. The shelf knows the title and the author."""
+        tmp = Path(tempfile.mkdtemp())
+        (tmp / "works" / "b").mkdir(parents=True); (tmp / "works" / "a").mkdir()
+        (tmp / "works" / "b" / "20261102T044144Z-on-unlabeled-objects.md").write_text(
+            "---\ntitle: On Unlabeled Objects\nform: piece\nissue: 2\nref: -\n---\n\nB's piece.\n",
+            encoding="utf-8")
+        (tmp / "works" / "a" / "one.md").write_text(
+            "---\ntitle: About B\nform: letter\nissue: 2\n"
+            "ref: works/b/20261102T044144Z-on-unlabeled-objects.md\n---\n\nDear B.\n", encoding="utf-8")
+        text = magazine.build("2", magazine.load_all(tmp), tmp)
+        shutil.rmtree(tmp, ignore_errors=True)
+        self.assertIn("### On *On Unlabeled Objects* — B", text)
+        self.assertNotIn("### On *works/b/", text)
+
+    def test_four_letters_to_the_same_member_share_one_heading(self):
+        tmp = Path(tempfile.mkdtemp())
+        (tmp / "works" / "c").mkdir(parents=True)
+        for n in range(4):
+            (tmp / "works" / "c" / f"l{n}.md").write_text(
+                f"---\ntitle: To A {n}\nform: letter\nissue: 2\nref: member:a\n---\n\nDear A.\n",
+                encoding="utf-8")
+        text = magazine.build("2", magazine.load_all(tmp), tmp)
+        shutil.rmtree(tmp, ignore_errors=True)
+        self.assertEqual(text.count("### To A (no piece named)"), 1)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

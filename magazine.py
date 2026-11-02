@@ -194,10 +194,12 @@ def build(issue: str, works: list[dict] | None = None, root: Path | None = None)
             by_ref.setdefault("(unaddressed)" if ref in ("", "-", "none") else ref, []).append(l)
         for ref, group in by_ref.items():
             if ref.startswith("member:"):
+                # The heading goes outside the loop: four letters to A under one heading is a
+                # conversation; four identical headings is the harness talking to itself.
                 who = ref.split(":", 1)[1].upper()
+                out += [f"### To {who} (no piece named)", ""]
                 for l in group:
-                    out += [f"### To {who} (no piece named)", "",
-                            f"**{l['member'].upper()}** — {l['form']}, {l['words']} words", "", l["body"], ""]
+                    out += [f"**{l['member'].upper()}** — {l['form']}, {l['words']} words", "", l["body"], ""]
                 continue
             if ref == "(unaddressed)":
                 # A note that answers nothing is not a letter "On -". Publishing a member's standalone
@@ -206,9 +208,16 @@ def build(issue: str, works: list[dict] | None = None, root: Path | None = None)
                     out += [f"### {l['title']}", "",
                             f"**{l['member'].upper()}** — {l['form']}, {l['words']} words", "", l["body"], ""]
                 continue
-            out += [f"### On *{ref}*", ""]
+            # A heading that says `works/b/20261102T044144Z-on-unlabeled-objects.md` is a filename, not a
+            # thing a person is reading. The shelf knows the title and the author of what is being
+            # answered, so print those and keep the path out of the reader's way.
+            piece = next((w for w in works if str(w.get("file", "")) == ref), None)
+            if piece:
+                out += [f"### On *{piece['title']}* — {piece['member'].upper()}", ""]
+            else:
+                out += [f"### On *{ref}*", "", "(the piece this answers is not on the shelf)", ""]
             for l in group:
-                out += [f"**{l['member'].upper()}** — {l['words']} words", "", l["body"], ""]
+                out += [f"**{l['member'].upper()}** — {l['form']}, {l['words']} words", "", l["body"], ""]
 
     d = drops(root)
     out += ["---", "", "## Colophon", "",
