@@ -736,7 +736,7 @@ def play_round(category: str, override: str | None, dry: bool, vote: str = "stra
             else:
                 out.append(f"- {l.upper()} — challenged and did not answer ({a.get('error') or 'no stance given'})")
         out += [""]
-    if vote in ("persuade", "check"):
+    if vote in ("persuade", "check", "exec"):
         out += ["**The votes** — would you switch? (nobody is obliged to)", ""]
     else:
         out += ["**The votes** — each member names the pick it would strand", ""]
@@ -746,15 +746,15 @@ def play_round(category: str, override: str | None, dry: bool, vote: str = "stra
             out.append(f"- {l.upper()} → *nothing* ({v['error'][:100]})")
         elif v["strand"]:
             out.append(f"- {l.upper()} → **{v['strand'].upper()}**: {v['why']}")
-        elif vote in ("persuade", "check") and v.get("switch"):
+        elif vote in ("persuade", "check", "exec") and v.get("switch"):
             out.append(f"- {l.upper()} switched to **{v['switch'].upper()}**: {v['why']}")
-        elif vote in ("persuade", "check"):
+        elif vote in ("persuade", "check", "exec"):
             out.append(f"- {l.upper()} — **no switch**: {v['why']}")
         elif v.get("fold"):
             out.append(f"- {l.upper()} → *folds its own pick*: {v['why']}")
         else:
             out.append(f"- {l.upper()} → *named nobody usable*")
-    if vote in ("persuade", "check"):
+    if vote in ("persuade", "check", "exec"):
         changed = sum(1 for v in votes.values() if v.get("changed_mind"))
         persuaded = sorted([l for l in labels if votes_for[l]], key=lambda l: -votes_for[l])
         verdict = (f"{changed} of {len(live)} members changed their mind. "
@@ -832,7 +832,7 @@ def journal_the_round(record: dict) -> int:
             continue
         others = "; ".join(f"{l.upper()}: {p['pick'] or '(none)'}"
                            for l, p in record["picks"].items() if l != label and p.get("pick"))
-        if record.get("vote") in ("persuade", "check"):
+        if record.get("vote") in ("persuade", "check", "exec"):
             v = record.get("votes", {}).get(label, {})
             outcome = ("I switched to " + v["switch"].upper()) if v.get("switch") else "I did not switch"
         elif label in record.get("thrown_out", []):
