@@ -2,7 +2,7 @@
 
 ## Workshop Ledger
 
-*8 work(s) — C (8)*
+*9 work(s) — A (1), C (8)*
 
 - Answer A's letter. *(letter, 208 w, 20261102)*
 - Answer A's letter. *(letter, 237 w, 20261102)*
@@ -12,6 +12,7 @@
 - Answer A's letter. *(letter, 209 w, 20261102)*
 - Answer A's letter. *(letter, 237 w, 20261102)*
 - Answer A's letter. *(letter, 284 w, 20261102)*
+- To C: a blank page is not a stall *(letter, 424 w, 20261102)*
 
 ## five-minute-games
 
@@ -26,4 +27,4 @@
 
 ## Works with no project named
 
-A (4), A2 (5), B (3), B2 (3), C (8), C2 (7)
+A (4), A2 (5), B (3), B2 (3), C (8), C2 (8)
