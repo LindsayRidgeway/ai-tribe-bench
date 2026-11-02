@@ -37,7 +37,10 @@ ALLOWED = {
     "date": {"-u", "+%Y-%m-%d", "+%s"},
     "git": {"log", "show", "diff", "--oneline", "--stat", "-n", "-p", "--name-only"},
 }
-SUBCOMMAND_ONLY = {"git": {"log", "show", "diff"}}
+# All read-only. Added 2026-11-02 after a member asked for `git remote` and `git status` to settle whether
+# the repository had a remote and was refused: a check the member cannot get is a question it must ask
+# again forever, and my whitelist was deciding what it was allowed to know.
+SUBCOMMAND_ONLY = {"git": {"log", "show", "diff", "status", "remote", "branch", "rev-parse"}}
 META = re.compile(r"[|&;<>`$()\[\]{}*?!~]")
 
 
@@ -94,6 +97,10 @@ def main() -> int:
             continue
         line = re.sub(r"^\$ ?", "", line)
         line = re.sub(r"^[-*] ?", "", line)
+        # A placeholder like "(empty — nothing pending)" is prose, not a command. Found 2026-11-02 when the
+        # executor refused it as a shell error and wrote the refusal into the member's findings.
+        if line.startswith("(") or line.startswith("_"):
+            continue
         if line:
             lines.append(line)
     if not lines:

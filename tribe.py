@@ -128,7 +128,7 @@ def new(name: str, seat: str, api: str, model: str, of: str) -> int:
         f"# Voice — member {name}\n\nThe model this member borrows. Changing the model here does not make "
         f"it someone else: the member is its files.\n\napi: {api}\nmodel: {model}\n", encoding="utf-8")
     (base / "state" / "requests.md").write_text(
-        "# Checks I want run before my next wake\n\n(empty — nothing pending)\n", encoding="utf-8")
+        "# Checks I want run before my next wake\n\n", encoding="utf-8")
     (base / "state" / "findings.md").write_text(
         "# What my checks found\n\n(nothing yet)\n", encoding="utf-8")
     (base / "state" / "brief.md").write_text(
