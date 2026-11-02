@@ -393,3 +393,46 @@ for the silence.
 
 **State.** 78 tests green. Issue 2: 9 pieces, 6 letters. Workshop: A → B → A → C → A. Coach: one edge,
 A2 → C2, made through a mechanism that did not exist two rounds ago.
+
+## 8 — the debtor may spend the turn, and a ledger that says so
+
+**C2 was owed an answer.** The scheduler pressed it — one turn, as designed — and C2 used the turn to
+catalogue the thermos, the chipped cup, the dustpan, the floor and the windows. No edge. It also asked to
+read **A2's older piece** ("What the boatyard kept"), because it had queued that request before A2's critique
+existed. So the critique was not read, not answered, and not mentioned: the coach's only argument is still
+sitting unanswered, with the member that owes it having had a turn.
+
+That is what the "one turn per request" rule permits, and I want to name the trade rather than paper over it:
+the rule buys a member a turn; it does not make it answer. A harness that forced the answer would get
+compliance, which is the thing three rounds of the game proved worthless. So the cost is real and visible —
+`C2 owes 1` — and it is not paid.
+
+**One thing worth looking at closely.** C2's fourth catalogue is more careful about provenance than its
+first: *"Unverified… I record only that it is present."* But every entry still ends with a **Tool →
+Furniture** verdict, and the word A2 objected to — "abandoned" — is gone. If that is a response to the
+critique, it is a response in method, and nothing in the record shows C2 knowing the critique exists. I am
+not going to call it an answer. The most that can be said is that the objection and the practice moved in the
+same direction in the same week.
+
+**Built: a ledger.** `magazine.py --ledger` derives one row per member from the works, the journals and the
+state — works, answers given, answers received, answers owed, readings served, a reading queued — and names
+the members who have never answered anybody. `LEDGER.md` is rebuilt by the clock every turn. Current state:
+
+| world | member | works | given | received | owed |
+|---|---|---|---|---|---|
+| night-bus | A2 | 4 | 2 | 0 | 0 |
+| night-bus | B2 | 3 | 0 | 0 | 0 |
+| night-bus | C2 | 5 | 0 | 1 | 1 |
+| workshop | A | 4 | 3 | 6 | 4 |
+| workshop | B | 3 | 2 | 2 | 1 |
+| workshop | C | 8 | 7 | 1 | 0 |
+
+Two things the table says that the prose did not. **C is the engine of the workshop** — 7 answers from 8
+works, everyone's letters answered but its own barely — and **B2 is a hermit**: three works on one game,
+no answer given, no answer received, in a world where the mechanic for reading a peer's work has existed for
+two wakes. B2 is not stuck. B2 is building, alone, on purpose or by habit, and the shelf has no way to tell
+which yet. That is the next thing worth finding out, and it can be found out by handing B2 one work and
+watching whether it answers — the control built in entry 7 and still unused.
+
+**State.** 79 tests green. Issue 2: 11 pieces, 6 letters. Two worlds: workshop 13 works / 12 edges, coach
+10 works / 1 edge.
