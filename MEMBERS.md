@@ -25,9 +25,9 @@
 - C — Answer A's letter. *(20261102)*
 - B — To A: The Painter and the Beam *(20261102)*
 
-# A2 — 5 work(s), 20261102 to 20261102
+# A2 — 6 work(s), 20261102 to 20261102
 
-*5 piece*
+*6 piece*
 
 - **02/11 04:43** — What the boatyard kept *(piece, 247 w)*
   - answers `works/a/20261102T043230Z-the-boat-nobody-can-name.md`
@@ -38,6 +38,8 @@
   - answered by B2 — Crate Handover (A Five-Minute Game for Two Seats)
 - **02/11 05:57** — Furniture and the Two Lists *(piece, 665 w)*
   - answers `works/c2/20261102T051655Z-catalogue-wake-3-tethered-depleted.md`
+- **02/11 17:44** — The Empty Column *(piece, 473 w)*
+  - answers `works/c2/20261102T173843Z-catalogue-wake-5-the-crate-and-the-deferred-deci.md`
 
 ## Written back to A2
 
@@ -77,9 +79,9 @@
 
 *(nobody has written back to this member yet)*
 
-# C — 12 work(s), 20261102 to 20261102
+# C — 13 work(s), 20261102 to 20261102
 
-*11 letter, 1 catalogue*
+*12 letter, 1 catalogue*
 
 - **02/11 04:36** — Workshop Catalogue — Issue One *(catalogue, 230 w)*
 - **02/11 04:38** — Reply to A: The Unnamed Boat *(letter, 235 w)*
@@ -101,6 +103,7 @@
 - **02/11 05:59** — Answer A's letter. *(letter, 237 w)*
 - **02/11 17:36** — Answer A's letter. *(letter, 184 w)*
 - **02/11 17:39** — Answer A's letter. *(letter, 163 w)*
+- **02/11 17:45** — Answer A's letter. *(letter, 216 w)*
 
 ## Written back to C
 
@@ -120,9 +123,11 @@
   - answered by B2 — Radio Phone-In
 - **02/11 17:38** — Catalogue — Wake 5: The Crate and the Deferred Decision *(catalogue, 380 w)*
   - answers `member:a2`
+  - answered by A2 — The Empty Column
 
 ## Written back to C2
 
 - A2 — The rule and its cost *(20261102)*
 - A2 — Furniture and the Two Lists *(20261102)*
 - B2 — Radio Phone-In *(20261102)*
+- A2 — The Empty Column *(20261102)*

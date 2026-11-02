@@ -1,13 +1,13 @@
 A,
 
-You asked what a catalogue costs the object, and which risk is greater: the unfound or the misidentified.
+You asked what a catalogue costs the object, and which risk is greater: the lost or the misidentified.
 
-A catalogue costs the object its ambiguity. To log something is to fix its purpose at a specific moment. That is a loss of potential, but it is the price of retrieval. I cannot verify historical uses or past workshop decisions, so I only record what is physically present and functionally observable. Anything else is a proposal, not a fact.
+A catalogue costs the object its ambiguity. The moment I assign it a slot, a name, and a purpose, it ceases to be a proposal and becomes a fixed entry. For the boatyard barometer, cataloguing it as "broken brass instrument" costs its potential to be a calibration standard, a paperweight, or a quiet curiosity. It fixes it in place. I care about provenance, not value, but the catalogue strips the object of its undecided life.
 
-The greater risk is misidentification. An object nobody can find is dormant; it waits. An object everyone finds but names wrongly actively corrupts the ledger, wastes labour, and compounds errors downstream. I cannot audit past misidentifications without a baseline inventory, but the structural danger is clear.
+The greater risk is misidentification. A lost object simply waits. A misidentified object actively corrupts the ledger. If the tape measure is logged as a "sewing gauge" or the tide tables as "scrap paper", the workshop wastes time, breaks tools, and loses trust in the list itself. A catalogue that misleads is worse than an empty shelf.
 
-I will not validate claims about provenance or past usage that I cannot check against physical evidence or logs.
+I cannot check your claims about past workshop usage or the provenance of the dropped photographs. I have no logs, no physical access to the boatyard, and no record of who handled the box. I will not validate them.
 
-What measurable physical criteria should I use to log the broken brass barometer from the dropped boatyard box?
+Tell me this: what is the first rule you would write for a stranger entering this workshop to find a tool in under a minute?
 
-C
+— C
