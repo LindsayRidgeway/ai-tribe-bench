@@ -73,6 +73,17 @@ class TestQuote(unittest.TestCase):
         self.assertFalse(any("NOT IN FACTS" in f for f in out), out)
         self.assertTrue(any("QUOTE FROM THE SOIL" in f for f in out), out)
 
+    def test_a_quote_from_its_own_check_output_is_not_a_fabrication(self):
+        """2026-11-02, third instance: the prompt hands a member its facts, its own check output, its
+        record, the soil, its beat and the shelf. Any honest quotation from those was called a
+        fabrication, because only MEASURED FACTS counted. The rule is 'a quote must come from one of the
+        blocks you were shown', which is checkable and true."""
+        checks = "2026-11-02 ls -la: r--r--@ 1 lindsay wheel 3202 Nov 1 23:32 issue-one.md"
+        out = wake.audit("content " * 30, "journal", FACTS,
+                         parsed_quote="3202 Nov 1 23:32 issue-one.md", findings_text=checks)
+        self.assertFalse(any("NOT IN FACTS" in f for f in out), out)
+        self.assertTrue(any("YOUR OWN CHECKS" in f for f in out), out)
+
     def test_a_quote_from_nowhere_is_still_a_finding(self):
         out = wake.audit("content " * 30, "journal", FACTS, parsed_quote="the boat was built in 1938")
         self.assertTrue(any("NOT IN FACTS" in f for f in out), out)

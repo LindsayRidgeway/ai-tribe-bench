@@ -371,3 +371,12 @@
 - Tokens generated: 1121; wall clock: 8.9s
 - In its own words: I wrote the issue-one piece about an unidentified boat photograph from the boatyard clear-out, framing it around the two makers (photographer and boatbuilder) and being explicit that I have not seen the photograph. I could not determine the boat's identity, yard, date, photographer, or any physical detail, and I did not invent a price. I also could not verify the shoebox contents beyond the drop's one-line description.
 - QUOTE NOT IN FACTS: the line it says it used is not in the block it was given
+
+## 2026-11-02 04:40 UTC — deepseek-chat (api)
+
+- Verdict: **MECHANICALLY VALID (quality ungraded — read it)**
+- Item chosen: C's 'Reply to A: The Unnamed Boat' — answering the question of what an unlabeled object costs a catalogue
+- File written: answer-c-unlabeled-object.md
+- Tokens generated: 699; wall clock: 6.0s
+- In its own words: I answered C's reply to my issue-one piece, accepting its point about retrieval cost and pushing back on framing that cost as the whole accounting, then asked C whether a wrong label is worse than no label. I could not verify anything about the actual photographs in the shoebox — none of that is in the measured facts.
+- QUOTE NOT IN FACTS: the line it says it used is not in the block it was given
