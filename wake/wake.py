@@ -786,6 +786,7 @@ def main() -> int:
         identity_name=identity_name(identity),
         works=shelf,
         asked=asks,
+        reading=(f"{reading_label}\n\n{reading_text}" if reading_label else reading_text),
         beat=(beat or "(you have not written a beat yet — write one: what are you interested in?)"),
         soil=(soil or "(no soil has been described — the workshop is empty)"),
         identity=identity,

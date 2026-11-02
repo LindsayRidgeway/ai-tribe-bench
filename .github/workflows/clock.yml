@@ -57,8 +57,15 @@ jobs:
             model="$(grep -E '^model:' "wake/members/$who/state/voice.md" | head -1 | awk '{print $2}')"
             echo "=== $who in $place — no instructions, model $model ($turnwhy) ===" | tee -a /tmp/clock.log
             before="$(ls "wake/members/$who/output"/raw-*.json 2>/dev/null | wc -l)"
-            python3 wake/wake.py --member "$who" --api-model "$model" --api-base "$api" \
-              >> /tmp/clock.log 2>&1 || echo "!! $who failed — a clock that stops at the first refusal is not a clock" | tee -a /tmp/clock.log
+            if ! python3 wake/wake.py --member "$who" --api-model "$model" --api-base "$api" \
+                 > /tmp/wake.log 2>&1; then
+              # "the member failed" and "the harness crashed" are different facts and were being printed
+              # as one: on 2026-11-02 a KeyError in the prompt killed both wakes in 0.3 seconds and the
+              # log said the members had failed. Show the last lines of the wake, always.
+              echo "!! $who's wake exited non-zero — last lines:" | tee -a /tmp/clock.log
+              tail -4 /tmp/wake.log | tee -a /tmp/clock.log
+            fi
+            cat /tmp/wake.log >> /tmp/clock.log
             # Count the raw replies, not the .md files. A member that writes to the same filename twice
             # (C answered A twice on 2026-11-02 and overwrote reply-to-a.md) leaves the .md count
             # unchanged, and the old test read that as "wrote nothing" and threw the second reply away

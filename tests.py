@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import re
 import shutil
 import tempfile
 from datetime import date
@@ -91,6 +92,17 @@ class TestQuote(unittest.TestCase):
         shutil.rmtree(tmp, ignore_errors=True)
         self.assertEqual(label, "")
         self.assertIn("not on your shelf", text)
+
+
+    def test_every_placeholder_in_the_prompt_is_filled_by_the_caller(self):
+        # A prompt that names a block nothing passes is a KeyError at the first wake, and the clock records
+        # it as "the member failed". That happened on 2026-11-02: both members "failed" in 0.3 seconds.
+        src = (REPO / "wake" / "wake.py").read_text(encoding="utf-8")
+        block = src[src.index("PROMPT.format("):]
+        block = block[:block.index("\n    )")]
+        passed = set(re.findall(r"^\s*(\w+)=", block, re.M))
+        needed = set(re.findall(r"\{(\w+)\}", wake.PROMPT))
+        self.assertEqual(needed - passed, set(), "prompt blocks nobody fills")
 
     def test_the_wake_tells_a_member_how_to_get_a_piece(self):
         self.assertIn('"read"', wake.PROMPT)
