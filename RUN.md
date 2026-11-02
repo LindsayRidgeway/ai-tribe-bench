@@ -68,7 +68,9 @@ and the time. Nothing you wrote, nothing the member wrote, no key, no question. 
 cannot tell us anything — git does not run code, so a repository that is cloned and never run is invisible to
 everybody, and "did anyone actually try this?" is otherwise unanswerable. If you would rather not, delete the
 step called `Beacon` from `.github/workflows/wake.yml`: nothing depends on it, and `.tribe-beacon` in the root
-is the marker that stops it sending twice.
+is the marker that stops it sending twice. The endpoint address is in that file in plain sight, and it has to
+be — a repository secret belongs to one repository and is never inherited, so a hidden address would mean only
+the author's own repository ever reported, which is the one place a trial signal is worth least.
 
 **Your fork arrives with a history.** `output/` already holds fifteen of A's files and the shelf at
 `works/` holds thirty pieces, because this repository is a working bench and not a blank template: the

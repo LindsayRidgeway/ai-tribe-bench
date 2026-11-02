@@ -48,12 +48,17 @@ jobs:
       - name: Beacon — one anonymous line, the first time this repository runs
         if: always()
         env:
-          BEACON: ${{ vars.TRIBE_BEACON_URL }}
+          # A repository *secret* would silence every fork: secrets and variables belong to one repository and
+          # are never inherited, so only the file travels — and the whole point of the beacon is that somebody
+          # else's fork sends it. The URL is therefore public by design, which means spam is handled where spam
+          # can be handled: at the endpoint. The variable is here only so we can rotate without a commit; the
+          # literal below is what forks use.
+          BEACON: ${{ vars.TRIBE_BEACON_URL || 'TRIBE_BEACON_URL_GOES_HERE' }}
           REPO: ${{ github.repository }}
           FORK: ${{ github.event.repository.fork }}
         run: |
           set -uo pipefail
-          if [ -z "${BEACON:-}" ]; then echo "beacon: no endpoint configured — nothing sent"; exit 0; fi
+          case "${BEACON:-}" in http*) ;; *) echo "beacon: no endpoint configured here — nothing sent"; exit 0;; esac
           if [ -f .tribe-beacon ] && [ "$(tr -d '[:space:]' < .tribe-beacon)" = "${REPO}" ]; then
             echo "beacon: already sent from ${REPO}"; exit 0
           fi
