@@ -169,7 +169,7 @@ def wakes_of(d: Path) -> int:
     return int(m.group(1)) if m else 0
 
 
-def next_up() -> list[tuple[str, str]]:
+def next_up(force: str = "") -> list[tuple[str, str]]:
     """Whose turn it is, one member per place: the one with the fewest wakes.
 
     RUN.md §10 has said since the beginning that nothing decides whose turn it is. This decides it, and it
@@ -178,6 +178,14 @@ def next_up() -> list[tuple[str, str]]:
     which is arbitrary and *recorded* as arbitrary — the alternative (a roster in a file) is a roster
     somebody edits to favour somebody.
     """
+    forced = [n.strip() for n in force.replace(",", " ").split() if n.strip()]
+    if forced:
+        # The human's hand on the glass: name a member and it wakes now, wherever it stands. Every ant
+        # farm has a hole in the lid. This does NOT bypass the colony rule — a member with no place has
+        # no world to be woken into — and it does not touch the count, so the next automatic turn still
+        # goes to whoever has the fewest wakes.
+        return [(place_of(d) or "(no place)", d.name) for d in member_dirs()
+                if d.name in forced and place_of(d) and (d / "state" / "voice.md").exists()]
     by_place: dict[str, list[Path]] = {}
     for d in member_dirs():
         if not (d / "state" / "voice.md").exists():
@@ -223,7 +231,8 @@ def main() -> int:
     a = ap.add_argument_group("validate/status")
     sub.add_parser("validate").add_argument("name", nargs="?")
     sub.add_parser("status")
-    sub.add_parser("next", help="whose turn it is, one member per place")
+    p_next = sub.add_parser("next", help="whose turn it is, one member per place")
+    p_next.add_argument("--force", default="", help="members to wake now (comma or space separated)")
     args = ap.parse_args()
 
     if args.cmd == "new":
@@ -239,7 +248,7 @@ def main() -> int:
             rc = rc or (1 if bad else 0)
         return rc
     if args.cmd == "next":
-        rows = next_up()
+        rows = next_up(args.force)
         for place, name in rows:
             print(f"{place}\t{name}")
         return 0 if rows else 1

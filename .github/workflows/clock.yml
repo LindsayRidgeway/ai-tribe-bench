@@ -14,6 +14,11 @@ name: clock
 
 on:
   workflow_dispatch:
+    inputs:
+      force:
+        description: "members to wake now, comma separated (a human dropping a twig in); empty = the count decides"
+        required: false
+        default: ""
   schedule:
     - cron: "17 */4 * * *"    # every four hours, on the 17th minute
 
@@ -33,7 +38,7 @@ jobs:
         id: turn
         run: |
           set -euo pipefail
-          python3 tribe.py next | tee /tmp/turn.txt
+          python3 tribe.py next --force "${{ inputs.force }}" | tee /tmp/turn.txt
           echo "count=$(wc -l < /tmp/turn.txt)" >> "$GITHUB_OUTPUT"
 
       - name: One free wake in each world

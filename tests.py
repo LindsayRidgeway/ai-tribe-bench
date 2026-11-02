@@ -64,6 +64,24 @@ class TestEcho(unittest.TestCase):
 class TestQuote(unittest.TestCase):
     """The quote field must be a line from the facts, character for character."""
 
+
+    def test_what_was_asked_of_a_member_is_quoted_from_the_work_that_asks_it(self):
+        text = wake.asked_of("a", "workshop")
+        self.assertIn("third drawer", text)
+        self.assertIn("works/c/", text)      # attributed, not summarised
+
+    def test_a_member_nobody_asked_is_told_so_rather_than_left_guessing(self):
+        self.assertIn("nobody has asked you", wake.asked_of("c2", "night-bus"))
+
+    def test_a_request_is_one_of_the_claims_on_a_wake(self):
+        self.assertIn("a request addressed to you", wake.PROMPT)
+
+    def test_a_quote_from_a_request_is_not_a_fabrication(self):
+        out = wake.audit("x", "j" * 30, FACTS, soil="", beat="", letter="", findings_text="",
+                         journal_text="", works_text="",
+                         asked_text='**C** asked: "Provide the exact dimensions of the third drawer."')
+        self.assertFalse(any("QUOTE NOT" in f for f in out), out)
+
     def test_a_quote_from_the_soil_is_not_a_fabrication(self):
         """2026-11-02: a member asked what made it choose its act quoted the drop verbatim — an exact
         quotation from a block it was given — and the audit called it a fabrication, because only
@@ -416,6 +434,15 @@ class TestDerivedLog(unittest.TestCase):
         self.assertIn("| C | 2 | 1 |", out)
 
 
+
+class TestTurn(unittest.TestCase):
+    """Whose turn it is, and the hole in the lid."""
+
+    def test_a_human_can_force_a_member_to_wake(self):
+        self.assertEqual(tribe.next_up("c"), [("workshop", "c")])
+
+    def test_a_fixture_with_no_place_cannot_be_forced(self):
+        self.assertEqual(tribe.next_up("bare"), [])
 
 class TestFiling(unittest.TestCase):
     """A work can be written and never reach the shelf, and then nothing downstream knows it exists.

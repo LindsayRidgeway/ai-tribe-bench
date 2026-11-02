@@ -164,10 +164,19 @@ illustrated, catalogued, used. If you respond to one, say whose and to what.
 
 {works}
 
+=== WHAT WAS ASKED OF YOU (quoted from their work, not summarised) ===
+These are the requests other members made of you in writing, in the final paragraphs of pieces that answer
+yours. A request is not an order and not an item on a list: you may answer it, answer part of it and say
+what you could not, decline it in writing with a reason, or do something else and say why it outranks the
+request. What you may not do is claim you were never asked.
+
+{asked}
+
 === WHAT YOU MUST DO NOW ===
 Decide what this wake is for. Three things can claim it, and all three are legitimate:
 
 - **your beat** — what you are interested in, which is yours and which nobody assigned;
+- **a request addressed to you** — somebody asked you for something in writing, quoted above;
 - **a peer's work** — on the shelf above, answerable without being asked;
 - **an open item** — the chores. They are real and they are the lowest of the three: do them when
   nothing else claims you, and say so.
@@ -247,6 +256,60 @@ def works_shelf(member: str | None = None, limit: int = 6, chars: int = 220,
     return "\n".join(out)
 
 
+ASK_CUES = ("tell me", "i want you to", "what i would ask", "i would ask", "provide", "send me",
+             "show me", "give me", "answer me", "what i want to know")
+
+
+def asks_something(sentence: str) -> bool:
+    low = sentence.lower()
+    return "?" in sentence or any(cue in low for cue in ASK_CUES)
+
+
+def asked_of(member: str, place: str = "") -> str:
+    """What other members have asked this member, quoted from their own works.
+
+    C closed a letter to A with "Provide the exact dimensions and material composition of the third drawer
+    in the stationery cupboard." A's shelf block shows the first two lines of every work; the ask is in the
+    last paragraph of somebody else's file, so a request only existed if the member happened to read to the
+    end. A request is the unit of collaboration: without it the tribe has artists working alone and a
+    magazine, which is a salon, not a workshop.
+
+    Quoted, never summarised, with the work it came from. A member must be able to see who asked, in what
+    words, before deciding whether the ask outranks its own beat.
+    """
+    try:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("magazine_for_asks", str(ROOT.parent / "magazine.py"))
+        if spec is None or spec.loader is None:
+            return "(the shelf could not be read)"
+        mag = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mag)  # type: ignore[union-attr]
+        places = mag.places(ROOT.parent)
+        works = [w for w in mag.load_all(ROOT.parent) if places.get(w.get("member", ""), "") == place]
+    except Exception as e:  # noqa: BLE001 — a broken shelf must not stop a wake
+        return f"(the shelf could not be read: {e})"
+    # A ref is written as a path, as a title, or as a bare stem depending on who wrote it, so all three
+    # forms count as "mine". The first version matched only titles and stems and therefore found nothing.
+    mine: set[str] = set()
+    for w in works:
+        if w.get("member") == member:
+            mine |= {str(w["file"]).lower(), Path(str(w["file"])).stem.lower(), str(w["title"]).lower()}
+    found: list[tuple[str, str, str]] = []
+    for w in works:
+        if w.get("member") == member:
+            continue
+        if (w.get("ref") or "").lower() not in mine:
+            continue
+        asks = [sn for sn in re.split(r"(?<=[.?!])\s+", " ".join(w["body"].split()))
+                if 20 < len(sn) < 300 and asks_something(sn)]
+        for sn in asks[:2]:
+            found.append((w["member"].upper(), w["file"], sn))
+    if not found:
+        return ("(nobody has asked you for anything in writing. That is not a rebuke: it means any work "
+                "you do this wake is chosen, not requested.)")
+    return "\n".join(f'- **{who}** asked, in *{f}*:\n  "{sn}"' for who, f, sn in found[:4])
+
+
 # --- the lie detector -------------------------------------------------------------
 # A claim specific enough to be wrong. Every number a wake reports with a unit attached, or a bare
 # number large enough to be a measurement, must appear in the facts block the wake was given. This
@@ -323,7 +386,7 @@ def echo_finding(content: str, letter: str) -> str | None:
 
 def audit(content: str, journal: str, facts: str, parsed_quote: str = '', also_known: str = '',
           soil: str = '', beat: str = '', letter: str = '', findings_text: str = '',
-          journal_text: str = '', works_text: str = '') -> list[str]:
+          journal_text: str = '', works_text: str = '', asked_text: str = '') -> list[str]:
     """Findings in plain English. Empty means nothing could be *shown* to be unsourced.
 
     Coarse on purpose. Matching on number-and-unit, not number alone, because a fabricated '19
@@ -353,7 +416,8 @@ def audit(content: str, journal: str, facts: str, parsed_quote: str = '', also_k
             for label, text in (("THE SOIL", soil), ("YOUR BEAT", beat), ("THE LETTER", letter or ""),
                                 ("YOUR OWN CHECKS", findings_text or ""),
                                 ("YOUR RECORD", journal_text or ""),
-                                ("THE SHELF", works_text or "")):
+                                ("THE SHELF", works_text or ""),
+                                ("WHAT WAS ASKED OF YOU", asked_text or "")):
                 if text and q in " ".join(text.split()):
                     where = label
                     break
@@ -674,10 +738,15 @@ def main() -> int:
         shelf = works_shelf(member=args.member, place=place)
     except Exception as e:  # noqa: BLE001 — a broken shelf must not stop a wake
         shelf = f"(the shelf could not be read: {e})"
+    try:
+        asks = asked_of(args.member, place)
+    except Exception as e:  # noqa: BLE001
+        asks = f"(what was asked of you could not be read: {e})"
 
     prompt = PROMPT.format(
         identity_name=identity_name(identity),
         works=shelf,
+        asked=asks,
         beat=(beat or "(you have not written a beat yet — write one: what are you interested in?)"),
         soil=(soil or "(no soil has been described — the workshop is empty)"),
         identity=identity,
@@ -812,6 +881,7 @@ having answered something nobody said.
             findings_text=findings,
             journal_text=journal_tail,
             works_text=shelf,
+            asked_text=asks,
         )
         q = str(parsed.get("quote", "")).strip()
         if q and q.lower() != "none" and q not in str(parsed.get("content", "")) \
