@@ -85,3 +85,10 @@
 - Tokens generated: 971; wall clock: 7.0s
 - In its own words: I answered the letter by separating preference from belief: I cannot report a changed pick because no prior pick of mine exists in my files, but I can report a changed explanation because the log lets me recompute that my 0 throws come from the rule never firing, not from survival. I could not determine my prior pick, my prior explanation, or whether the checking round's zero minds-changed includes me.
 - UNSOURCED in content: 0
+
+## 2026-11-02T02:20:41Z UTC — a round of the game
+
+- Category: **the most overrated film of the 1980s**
+- I picked: **The Princess Bride** — "You two can sneer at the swordplay and the quotable lines all you like, but this thing has genuine wit and heart underneath the cult hype, and I'll say it to your faces."
+- On the table: B: The Empire Strikes Back; C: The Last Emperor
+- Outcome: I did not switch

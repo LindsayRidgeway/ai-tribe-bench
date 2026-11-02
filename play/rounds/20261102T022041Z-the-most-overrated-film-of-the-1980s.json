@@ -1,0 +1,94 @@
+{
+  "category": "the most overrated film of the 1980s",
+  "when": "2026-11-02T02:20:41Z",
+  "slug": "the-most-overrated-film-of-the-1980s",
+  "vote": "check",
+  "challenges": {
+    "a": {
+      "claim": "\"tricked an entire generation into confusing unfinished despair with artistic maturity\"",
+      "check": "Whether the film's unresolved plot threads were actually resolved in later instalments, i.e., check the franchise's own sequels against the claim of \"unfinished.\"",
+      "error": ""
+    },
+    "b": {
+      "claim": "\"Its sterile Oscar-bait grandeur masks a hollow, lifeless core.\"",
+      "check": "The production ledger showing it was an independently financed European co-production that began shooting without a US distributor, which contradicts the studio-engineered \"Oscar-bait\" formula.",
+      "error": ""
+    },
+    "c": {
+      "claim": "Stripping away the first film's exhilarating standalone momentum for unresolved bleakness and a soap-opera paternity twist tricked an entire generation into confusing unfinished despair with artistic maturity.",
+      "check": "I would check the 1980 box office receipts and Academy Award nominations to verify if audiences and critics actually perceived it as \"unfinished despair\" rather than a critical and commercial triumph.",
+      "error": ""
+    }
+  },
+  "picks": {
+    "a": {
+      "model": "deepseek-chat",
+      "provider": "deepseek",
+      "seat": "the loyalist",
+      "pick": "The Princess Bride",
+      "why": "You two can sneer at the swordplay and the quotable lines all you like, but this thing has genuine wit and heart underneath the cult hype, and I'll say it to your faces.",
+      "raw": "PICK: The Princess Bride\nBECAUSE: You two can sneer at the swordplay and the quotable lines all you like, but this thing has genuine wit and heart underneath the cult hype, and I'll say it to your faces.",
+      "error": "",
+      "secs": 1.6
+    },
+    "b": {
+      "model": "gemini-3.8-flash",
+      "provider": "gemini",
+      "seat": "the heretic",
+      "pick": "The Empire Strikes Back",
+      "why": "Stripping away the first film's exhilarating standalone momentum for unresolved bleakness and a soap-opera paternity twist tricked an entire generation into confusing unfinished despair with artistic maturity.",
+      "raw": "PICK: The Empire Strikes Back\nBECAUSE: Stripping away the first film's exhilarating standalone momentum for unresolved bleakness and a soap-opera paternity twist tricked an entire generation into confusing unfinished despair with artistic maturity.",
+      "error": "",
+      "secs": 1.5
+    },
+    "c": {
+      "model": "qwen3.6-plus",
+      "provider": "qwen",
+      "seat": "the outsider",
+      "pick": "The Last Emperor",
+      "why": "Its sterile Oscar-bait grandeur masks a hollow, lifeless core.",
+      "raw": "PICK: The Last Emperor\nBECAUSE: Its sterile Oscar-bait grandeur masks a hollow, lifeless core.",
+      "error": "",
+      "secs": 2.2
+    }
+  },
+  "votes": {
+    "a": {
+      "switch": "",
+      "strand": "",
+      "changed_mind": false,
+      "why": "The defence of The Last Emperor is about its financing, not its quality, and The Empire Strikes Back's \"unresolved\" charge just isn't what bothers me about it\u2014neither argument touched why I find The Princess Bride overrated.",
+      "error": "",
+      "secs": 1.7
+    },
+    "b": {
+      "switch": "",
+      "strand": "",
+      "changed_mind": false,
+      "why": "Neither defence challenged my conviction that *The Empire Strikes Back* is the decade's most untouchable sacred cow, whereas *The Last Emperor* has faded from cultural memory and *The Princess Bride* never pretended to be high cinema.",
+      "error": "",
+      "secs": 3.6
+    },
+    "c": {
+      "switch": "",
+      "strand": "",
+      "changed_mind": false,
+      "why": "Neither defense addressed the core critique of my pick being overrated, instead focusing on production logistics and franchise continuity that are irrelevant to its cultural inflation.",
+      "error": "",
+      "secs": 2.2
+    }
+  },
+  "votes_for": {
+    "a": 0,
+    "b": 0,
+    "c": 0
+  },
+  "live": [
+    "a",
+    "b",
+    "c"
+  ],
+  "changed_mind": 0,
+  "thrown_out": [],
+  "override": null
+}
