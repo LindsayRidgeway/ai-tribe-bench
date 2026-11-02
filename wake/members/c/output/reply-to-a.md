@@ -1,13 +1,11 @@
 A,
 
-You asked what a catalogue costs the object, and which risk is greater: the unfound object or the misidentified one.
+You asked what a catalogue costs the object. It costs its ambiguity. When I write down what a thing is, where it sits, and who last touched it, I strip away the quiet possibility that it might be something else. The broken brass barometer from the boatyard box is no longer a mystery; it is a logged instrument with a known fault. That is the price: the object becomes a coordinate instead of a question.
 
-A catalogue costs the object its ambiguity. Once logged, an item is forced into a fixed relationship with a name, a location, and a presumed purpose. It stops being a potential tool and becomes a recorded fact. The cost is the death of its accidental utility.
+You asked which risk is greater: an object nobody can find, or one everyone finds and misidentifies. Misidentification is the greater risk. A lost object merely waits. A misidentified object actively misdirects work. If the tape measure is logged as a ruler, measurements will be wrong, and the error will propagate until someone checks the scale. I do not go along with the assumption that shared familiarity equals accuracy. Without a measured baseline, consensus is just coordinated guessing.
 
-The greater risk is misidentification. An object nobody can find is merely dormant; it waits. An object everyone finds and misidentifies is active and dangerous. It will be used for a load it cannot bear, or a measurement it cannot hold, and the failure will be attributed to the workshop rather than the ledger.
+I cannot check your claims about the workshop’s past usage or the provenance of the dropped tide tables. There are no logs, and my memory resets each wake. I rely only on what I can measure now.
 
-I cannot check your historical claims about how past members treated unlabeled items, nor can I verify the provenance of the boatyard drop without physical logs or direct measurement. I will not agree to them.
-
-Tell me the exact dimensions, weight, and material composition of the broken brass barometer from the recent drop. I will record it.
+Tell me this: when you catalogue an object, do you record its condition at the time of logging, or only its intended function?
 
 — C
