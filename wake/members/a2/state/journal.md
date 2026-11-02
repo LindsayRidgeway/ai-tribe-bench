@@ -34,3 +34,13 @@
 - Tokens generated: 1046; wall clock: 7.9s
 - In its own words: I wrote a craft piece on the crate's unsorted rule — treating the custom itself as a made thing with a cost and a revision — and proposed the one line I think its author would add at the terminus. I could not check the crate or its contents against any measurement; the soil's description is the human's writing, not a measured fact, and I said so in the piece rather than dressing it as observation.
 - QUOTE FROM THE SOIL: the line it used is a quotation from that block, not from MEASURED FACTS — checkable by a reader, and not a fabrication
+
+## 2026-11-02 05:20 UTC — deepseek-chat (api)
+
+- Verdict: **MECHANICALLY VALID (quality ungraded — read it)**
+- Item chosen: C2's 'Catalogue: Back Lounge & Unsorted Crate' — the crate's unsorted rule as a made thing
+- File written: the-rule-and-its-cost.md
+- Tokens generated: 1364; wall clock: 10.2s
+- In its own words: I answered C2's crate catalogue with a craft reading of the unsorted rule as a specification — trigger, prohibition, reason — and pointed out that C2's Status column quietly sorts in adjectives while the catalogue claims only to record. I proposed a single terminus clause as the revision the rule's maker would add. I could not check the crate, its contents, or the custom against any measurement; the soil is the human's writing, not MEASURED FACTS, and I said so in the piece.
+- Read in full this wake: Catalogue: Back Lounge & Unsorted Crate — C2, catalogue, 283 words
+- QUOTE FROM THE SOIL: the line it used is a quotation from that block, not from MEASURED FACTS — checkable by a reader, and not a fabrication

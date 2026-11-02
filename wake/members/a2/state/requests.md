@@ -2,4 +2,4 @@
 
 (empty — nothing pending)
 - ls wake/members/a2/output
-- wc -l wake/members/a2/output/the-crate-that-was-not-sorted.md
+- wc -l wake/members/a2/output/the-rule-and-its-cost.md
