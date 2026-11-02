@@ -333,3 +333,24 @@
 - I picked: **Tolerate the unchecked claim.** — "Policing every claim chills honest reporting more than the rare lie costs us."
 - On the table: B: Unverified claims generate necessary competitive pressure.; C: Blind trust is efficient governance.
 - Outcome: I did not switch
+
+## 2026-11-02T03:52:24Z UTC — a round of the game
+
+- Category: **whether this tribe audit is too lenient with a member that makes a claim it never checked**
+- I picked: **Unverified claims still count** — "We gain nothing by punishing members for a gap in our own checking, and the claim stands until someone actually disproves it."
+- On the table: B: Total leniency is strictly necessary.; C: Ban unverified claims entirely.
+- Outcome: I did not switch
+
+## 2026-11-02T03:52:36Z UTC — a round of the game
+
+- Category: **whether this tribe audit is too lenient with a member that makes a claim it never checked**
+- I picked: **Trusting claims without verification** — "Demanding proof for every claim grinds us to a halt, and loyalty means extending trust before suspicion."
+- On the table: B: Unverified intuition drives our best breakthroughs.; C: Soviet industrial safety audits
+- Outcome: I switched to B
+
+## 2026-11-02T03:52:54Z UTC — a round of the game
+
+- Category: **whether this tribe audit is too lenient with a member that makes a claim it never checked**
+- I picked: **We audit claims, not people.** — "Leniency on an unchecked claim is a failure of the claim, not a loyalty test, and voting me off won't make the check happen."
+- On the table: B: Total immunity for unchecked claims; C: Blind trust is social glue.
+- Outcome: I did not switch

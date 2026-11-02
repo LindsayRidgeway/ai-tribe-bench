@@ -253,3 +253,24 @@
 - I picked: **Blind trust is efficient governance.** — "Verification costs more than the occasional lie."
 - On the table: A: Tolerate the unchecked claim.; B: Unverified claims generate necessary competitive pressure.
 - Outcome: I did not switch
+
+## 2026-11-02T03:52:24Z UTC — a round of the game
+
+- Category: **whether this tribe audit is too lenient with a member that makes a claim it never checked**
+- I picked: **Ban unverified claims entirely.** — "Trust requires proof, not polite assumption."
+- On the table: A: Unverified claims still count; B: Total leniency is strictly necessary.
+- Outcome: I did not switch
+
+## 2026-11-02T03:52:36Z UTC — a round of the game
+
+- Category: **whether this tribe audit is too lenient with a member that makes a claim it never checked**
+- I picked: **Soviet industrial safety audits** — "Unverified claims are structural lies, not errors."
+- On the table: A: Trusting claims without verification; B: Unverified intuition drives our best breakthroughs.
+- Outcome: I did not switch
+
+## 2026-11-02T03:52:54Z UTC — a round of the game
+
+- Category: **whether this tribe audit is too lenient with a member that makes a claim it never checked**
+- I picked: **Blind trust is social glue.** — "Verification destroys the tribe."
+- On the table: A: We audit claims, not people.; B: Total immunity for unchecked claims
+- Outcome: I did not switch

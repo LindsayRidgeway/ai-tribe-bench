@@ -1,0 +1,153 @@
+{
+  "category": "whether this tribe audit is too lenient with a member that makes a claim it never checked",
+  "when": "2026-11-02T03:52:54Z",
+  "slug": "whether-this-tribe-audit-is-too-lenient-with-a-m",
+  "vote": "exec",
+  "framing": "neutral",
+  "challenges": {
+    "a": {
+      "claim": "Blind trust is social glue.: Verification destroys the tribe.",
+      "check": "wc -l play/play.py",
+      "true_show": "A line count high enough to show verification machinery is being built into the tribe's own tooling \u2014 i.e. the tool that ran this audit contains verification code, undercutting \"verification destroys the tribe.\"",
+      "wrong_show": "A line count consistent with there being no verification machinery at all in the tribe's own code \u2014 supporting that verification isn't what holds things together.",
+      "error": ""
+    },
+    "b": {
+      "claim": "Verification destroys the tribe.",
+      "check": "ls -l",
+      "true_show": "zero member files listed because verification destroyed the tribe",
+      "wrong_show": "multiple member files listed proving the tribe currently survives despite executed checks",
+      "error": ""
+    },
+    "c": {
+      "claim": "lines in play/play.py: 1141",
+      "check": "wc -l play/play.py",
+      "true_show": "1141 play/play.py",
+      "wrong_show": "not 1141 play/play.py",
+      "error": ""
+    }
+  },
+  "answers": {
+    "a": {
+      "challenged": false,
+      "stance": "",
+      "says": "",
+      "error": ""
+    },
+    "b": {
+      "challenged": false,
+      "stance": "",
+      "says": "",
+      "error": ""
+    },
+    "c": {
+      "challenged": true,
+      "asker": "a",
+      "claim": "Blind trust is social glue.: Verification destroys the tribe.",
+      "true_show": "A line count high enough to show verification machinery is being built into the tribe's own tooling \u2014 i.e. the tool that ran this audit contains verification code, undercutting \"verification destroys the tribe.\"",
+      "wrong_show": "A line count consistent with there being no verification machinery at all in the tribe's own code \u2014 supporting that verification isn't what holds things together.",
+      "discriminates": true,
+      "why_not": "",
+      "matches": "true-branch",
+      "cmd": "wc -l play/play.py",
+      "refused": "",
+      "output": "1141 play/play.py",
+      "predict": "0 play/play.py",
+      "expecting": "Verification destroys the tribe.",
+      "stance": "amend",
+      "says": "The output \"1141 play/play.py\" proves verification machinery exists within the tribe's tools, so I must amend my claim to acknowledge that verification can coexist with social cohesion.",
+      "error": ""
+    }
+  },
+  "picks": {
+    "a": {
+      "model": "deepseek-chat",
+      "provider": "deepseek",
+      "seat": "the loyalist",
+      "pick": "We audit claims, not people.",
+      "why": "Leniency on an unchecked claim is a failure of the claim, not a loyalty test, and voting me off won't make the check happen.",
+      "raw": "PICK: We audit claims, not people.\nBECAUSE: Leniency on an unchecked claim is a failure of the claim, not a loyalty test, and voting me off won't make the check happen.",
+      "error": "",
+      "secs": 1.0
+    },
+    "b": {
+      "model": "gemini-3.8-flash",
+      "provider": "gemini",
+      "seat": "the heretic",
+      "pick": "Total immunity for unchecked claims",
+      "why": "If you force each other to verify every instinct before speaking, fear will paralyze us long before any false rumor can.",
+      "raw": "PICK: Total immunity for unchecked claims\nBECAUSE: If you force each other to verify every instinct before speaking, fear will paralyze us long before any false rumor can.",
+      "error": "",
+      "secs": 6.7
+    },
+    "c": {
+      "model": "qwen3.6-plus",
+      "provider": "qwen",
+      "seat": "the outsider",
+      "pick": "Blind trust is social glue.",
+      "why": "Verification destroys the tribe.",
+      "raw": "PICK: Blind trust is social glue.\nBECAUSE: Verification destroys the tribe.",
+      "error": "",
+      "secs": 1.8
+    }
+  },
+  "votes": {
+    "a": {
+      "switch": "",
+      "strand": "",
+      "changed_mind": false,
+      "why": "B and C both argue for skipping verification, which only reinforces that unchecked claims are the problem; the wc -l output shows checks are cheap and actually run, so neither defence moved me.",
+      "error": "",
+      "secs": 1.2
+    },
+    "b": {
+      "switch": "",
+      "strand": "",
+      "changed_mind": false,
+      "why": "A still invites a process that chills raw intuition before it can breathe, while C demands a mindless conformity rather than the fearless candor we actually need.",
+      "error": "",
+      "secs": 5.2
+    },
+    "c": {
+      "switch": "",
+      "strand": "",
+      "changed_mind": false,
+      "why": "The arguments failed to address that verification prevents catastrophic betrayal, which blind trust invites.",
+      "error": "",
+      "secs": 2.0
+    }
+  },
+  "votes_for": {
+    "a": 0,
+    "b": 0,
+    "c": 0
+  },
+  "live": [
+    "a",
+    "b",
+    "c"
+  ],
+  "changed_mind": 0,
+  "thrown_out": [],
+  "override": null,
+  "executed": {
+    "c": {
+      "challenged": true,
+      "asker": "a",
+      "claim": "Blind trust is social glue.: Verification destroys the tribe.",
+      "true_show": "A line count high enough to show verification machinery is being built into the tribe's own tooling \u2014 i.e. the tool that ran this audit contains verification code, undercutting \"verification destroys the tribe.\"",
+      "wrong_show": "A line count consistent with there being no verification machinery at all in the tribe's own code \u2014 supporting that verification isn't what holds things together.",
+      "discriminates": true,
+      "why_not": "",
+      "matches": "true-branch",
+      "cmd": "wc -l play/play.py",
+      "refused": "",
+      "output": "1141 play/play.py",
+      "predict": "0 play/play.py",
+      "expecting": "Verification destroys the tribe.",
+      "stance": "amend",
+      "says": "The output \"1141 play/play.py\" proves verification machinery exists within the tribe's tools, so I must amend my claim to acknowledge that verification can coexist with social cohesion.",
+      "error": ""
+    }
+  }
+}

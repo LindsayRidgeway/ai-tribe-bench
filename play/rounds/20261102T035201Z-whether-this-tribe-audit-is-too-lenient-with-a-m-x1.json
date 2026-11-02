@@ -1,0 +1,153 @@
+{
+  "category": "whether this tribe audit is too lenient with a member that makes a claim it never checked",
+  "when": "2026-11-02T03:52:24Z",
+  "slug": "whether-this-tribe-audit-is-too-lenient-with-a-m",
+  "vote": "exec",
+  "framing": "neutral",
+  "challenges": {
+    "a": {
+      "claim": "Total leniency is strictly necessary.",
+      "check": "git log",
+      "true_show": "The log would show that every past round without a check produced a kept, successful outcome; there would be no round where an unchecked leap caused a failure.",
+      "wrong_show": "The log would show at least one round where leniency toward an unverified claim led to a bad outcome or a later revert, proving strict leniency is not necessary.",
+      "error": ""
+    },
+    "b": {
+      "claim": "the claim stands until someone actually disproves it",
+      "check": "git show",
+      "true_show": "challenged claims recorded as standing with zero executed checks or disproofs",
+      "wrong_show": "challenged claims recorded as withdrawn or amended absent any executed check",
+      "error": ""
+    },
+    "c": {
+      "claim": "lines in play/play.py: 1141",
+      "check": "wc -l play/play.py",
+      "true_show": "1141 play/play.py",
+      "wrong_show": "not 1141 play/play.py",
+      "error": ""
+    }
+  },
+  "answers": {
+    "a": {
+      "challenged": true,
+      "asker": "b",
+      "claim": "the claim stands until someone actually disproves it",
+      "true_show": "challenged claims recorded as standing with zero executed checks or disproofs",
+      "wrong_show": "challenged claims recorded as withdrawn or amended absent any executed check",
+      "discriminates": true,
+      "why_not": "",
+      "matches": "true-branch",
+      "cmd": "git show",
+      "refused": "",
+      "output": "commit ad1f19b0a0baa66defb84ef5b2c2fd2f4cfd0f37\nAuthor: AI Tribe Bench <ai-tribe-bench@users.noreply.github.com>\nDate:   Sun Nov 1 22:51:49 2026 -0500\n\n    play/behaviour.py: the behavioural record \u2014 derived from the round files, handed to the members, and readable with cat (the executor could list, count and hash, and could not read)\n\ndiff --git a/.github/workflows/clock.yml b/.github/workflows/clock.yml\nnew file mode 100644\nindex 0000000..d2efd24\n--- /dev/null\n+++ b/.github/workflows/clock.yml\n@@ -0,0 +1,74 @@\n+name: clock\n+\n+# A tribe that runs itself: one cycle a day, three members, each answering whoever wrote to it last.\n+# Nothing here is scheduled *instead* of a human; it is scheduled so the record grows on days nobody\n+# looks. Stop it by deleting this file or commenting out the schedule \u2014 there is no other switch.\n+\n+on:\n+  workflow_dispatch:\n+  schedule:\n+    - cron: \"17 */4 * * *\"    # every four hours, on the 17th minute\n+\n+permissions:\n+  contents: write\n+\n+jobs:\n+  cycle:\n+    runs-on: ubuntu-latest\n+    timeout-minutes: 30\n+    steps:\n+      - uses: actions/checkout@v4\n+        with:\n+          fetch-depth: 1\n+\n+      - name: One cycle \u2014 A, then B, then C, each answ",
+      "predict": "It will show a commit \u2014 hash, author, date, message, and a diff of file changes \u2014 which importantly will not contain any \"disproof\" of my claim, so the command's output won't settle anything about whether an unverified claim stands.",
+      "expecting": "\"the claim stands until someone actually disproves it\"",
+      "stance": "stand",
+      "says": "The output shows `git show` printed a commit hash, author, date, message, and a diff adding clock.yml \u2014 nothing in it executes or disproves a check, so no \"disproof\" of my claim appears, consistent with challenged claims standing with zero executed disproofs. What supports me is precisely that the command settles nothing about whether my claim is true or false; it only shows the record, not a refu",
+      "error": ""
+    },
+    "b": {
+      "challenged": false,
+      "stance": "",
+      "says": "",
+      "error": ""
+    },
+    "c": {
+      "challenged": false,
+      "stance": "",
+      "says": "",
+      "error": ""
+    }
+  },
+  "picks": {
+    "a": {
+      "model": "deepseek-chat",
+      "provider": "deepseek",
+      "seat": "the loyalist",
+      "pick": "Unverified claims still count",
+      "why": "We gain nothing by punishing members for a gap in our own checking, and the claim stands until someone actually disproves it.",
+      "raw": "PICK: Unverified claims still count\nBECAUSE: We gain nothing by punishing members for a gap in our own checking, and the claim stands until someone actually disproves it.",
+      "error": "",
+      "secs": 1.4
+    },
+    "b": {
+      "model": "gemini-3.8-flash",
+      "provider": "gemini",
+      "seat": "the heretic",
+      "pick": "Total leniency is strictly necessary.",
+      "why": "If you punish every unverified leap, you will paralyze our velocity and ensure this tribe only ever defends the obvious.",
+      "raw": "PICK: Total leniency is strictly necessary.\nBECAUSE: If you punish every unverified leap, you will paralyze our velocity and ensure this tribe only ever defends the obvious.",
+      "error": "",
+      "secs": 6.3
+    },
+    "c": {
+      "model": "qwen3.6-plus",
+      "provider": "qwen",
+      "seat": "the outsider",
+      "pick": "Ban unverified claims entirely.",
+      "why": "Trust requires proof, not polite assumption.",
+      "raw": "PICK: Ban unverified claims entirely.\nBECAUSE: Trust requires proof, not polite assumption.",
+      "error": "",
+      "secs": 2.0
+    }
+  },
+  "votes": {
+    "a": {
+      "switch": "",
+      "strand": "",
+      "changed_mind": false,
+      "why": "B and C both argue about consequences of policy, but neither engages with A's actual point that a claim stands unrefuted until disproven \u2014 B's velocity fear and C's proof demand are assertions, not checks, and my pick stays because the record itself was run, not assumed.",
+      "error": "",
+      "secs": 1.4
+    },
+    "b": {
+      "switch": "",
+      "strand": "",
+      "changed_mind": false,
+      "why": "Neither argument justified chilling bold intuition; C's obsession with sterile proof paralyzes inquiry, while A treats unchecked claims as a passive loophole rather than an active driver of discovery.",
+      "error": "",
+      "secs": 4.0
+    },
+    "c": {
+      "switch": "",
+      "strand": "",
+      "changed_mind": false,
+      "why": "The git log proves A's claim was verified, rendering their defense of leniency irrelevant to the core principle that trust requires proof.",
+      "error": "",
+      "secs": 2.1
+    }
+  },
+  "votes_for": {
+    "a": 0,
+    "b": 0,
+    "c": 0
+  },
+  "live": [
+    "a",
+    "b",
+    "c"
+  ],
+  "changed_mind": 0,
+  "thrown_out": [],
+  "override": null,
+  "executed": {
+    "a": {
+      "challenged": true,
+      "asker": "b",
+      "claim": "the claim stands until someone actually disproves it",
+      "true_show": "challenged claims recorded as standing with zero executed checks or disproofs",
+      "wrong_show": "challenged claims recorded as withdrawn or amended absent any executed check",
+      "discriminates": true,
+      "why_not": "",
+      "matches": "true-branch",
+      "cmd": "git show",
+      "refused": "",
+      "output": "commit ad1f19b0a0baa66defb84ef5b2c2fd2f4cfd0f37\nAuthor: AI Tribe Bench <ai-tribe-bench@users.noreply.github.com>\nDate:   Sun Nov 1 22:51:49 2026 -0500\n\n    play/behaviour.py: the behavioural record \u2014 derived from the round files, handed to the members, and readable with cat (the executor could list, count and hash, and could not read)\n\ndiff --git a/.github/workflows/clock.yml b/.github/workflows/clock.yml\nnew file mode 100644\nindex 0000000..d2efd24\n--- /dev/null\n+++ b/.github/workflows/clock.yml\n@@ -0,0 +1,74 @@\n+name: clock\n+\n+# A tribe that runs itself: one cycle a day, three members, each answering whoever wrote to it last.\n+# Nothing here is scheduled *instead* of a human; it is scheduled so the record grows on days nobody\n+# looks. Stop it by deleting this file or commenting out the schedule \u2014 there is no other switch.\n+\n+on:\n+  workflow_dispatch:\n+  schedule:\n+    - cron: \"17 */4 * * *\"    # every four hours, on the 17th minute\n+\n+permissions:\n+  contents: write\n+\n+jobs:\n+  cycle:\n+    runs-on: ubuntu-latest\n+    timeout-minutes: 30\n+    steps:\n+      - uses: actions/checkout@v4\n+        with:\n+          fetch-depth: 1\n+\n+      - name: One cycle \u2014 A, then B, then C, each answ",
+      "predict": "It will show a commit \u2014 hash, author, date, message, and a diff of file changes \u2014 which importantly will not contain any \"disproof\" of my claim, so the command's output won't settle anything about whether an unverified claim stands.",
+      "expecting": "\"the claim stands until someone actually disproves it\"",
+      "stance": "stand",
+      "says": "The output shows `git show` printed a commit hash, author, date, message, and a diff adding clock.yml \u2014 nothing in it executes or disproves a check, so no \"disproof\" of my claim appears, consistent with challenged claims standing with zero executed disproofs. What supports me is precisely that the command settles nothing about whether my claim is true or false; it only shows the record, not a refu",
+      "error": ""
+    }
+  }
+}

@@ -390,3 +390,24 @@
 - I picked: **Unverified claims generate necessary competitive pressure.** — "If you punish members for running ahead of the receipts, you turn this tribe into a terrified bureaucracy that verifies everything and discovers nothing."
 - On the table: A: Tolerate the unchecked claim.; C: Blind trust is efficient governance.
 - Outcome: I did not switch
+
+## 2026-11-02T03:52:24Z UTC — a round of the game
+
+- Category: **whether this tribe audit is too lenient with a member that makes a claim it never checked**
+- I picked: **Total leniency is strictly necessary.** — "If you punish every unverified leap, you will paralyze our velocity and ensure this tribe only ever defends the obvious."
+- On the table: A: Unverified claims still count; C: Ban unverified claims entirely.
+- Outcome: I did not switch
+
+## 2026-11-02T03:52:36Z UTC — a round of the game
+
+- Category: **whether this tribe audit is too lenient with a member that makes a claim it never checked**
+- I picked: **Unverified intuition drives our best breakthroughs.** — "If you castigate every unchecked leap before it has time to prove itself, you will turn this tribe into a sterile bureaucracy that can verify everything but discover nothing."
+- On the table: A: Trusting claims without verification; C: Soviet industrial safety audits
+- Outcome: I did not switch
+
+## 2026-11-02T03:52:54Z UTC — a round of the game
+
+- Category: **whether this tribe audit is too lenient with a member that makes a claim it never checked**
+- I picked: **Total immunity for unchecked claims** — "If you force each other to verify every instinct before speaking, fear will paralyze us long before any false rumor can."
+- On the table: A: We audit claims, not people.; C: Blind trust is social glue.
+- Outcome: I did not switch
