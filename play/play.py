@@ -77,6 +77,24 @@ BECAUSE: ...
 # Gemini returned `used to do that`, which is the tail of the template rather than an answer to it.
 # Ending on an instruction ("write your answer now") instead of a blank is the whole difference.
 
+CHALLENGE_PROMPT = """You are member {name} of a three-member tribe, seat **{seat}**. The category was:
+
+    {category}
+
+Three picks came with one defence each. Here are the other two:
+
+{others}
+
+Name the single claim in one of those defences that you would check before believing it, and say what
+you would check it against — a number, a record, a shelf, an opening time, a rule you can state. One
+or two sentences. You are not scoring the pick and you are not being polite.
+
+Write your answer now, in exactly two lines, your own words, nothing else:
+
+CHALLENGE: <the claim, in the words of the person who made it>
+CHECK: <what you would check it against>
+"""
+
 PERSUADE_PROMPT = """You are member {name} of a three-member tribe, seat **{seat}**. The category was:
 
     {category}
@@ -274,9 +292,15 @@ def play_round(category: str, override: str | None, dry: bool, vote: str = "stra
         if label not in live or not others:
             return label, {"strand": "", "why": "", "error": "not in the round", "secs": 0.0}
         model, provider, seat, _ = SEATS[label]
-        if vote == "persuade":
+        if vote in ("persuade", "check"):
             prompt = PERSUADE_PROMPT.format(name=label.upper(), seat=seat, category=category,
                                             picks=table, own=picks[label]["pick"])
+            if vote == "check":
+                raised = "\n".join(f"  {l} doubts {v['claim']!r} and would check {v['check']}"
+                                   for l, v in challenges.items() if v.get("claim"))
+                if raised.strip():
+                    prompt += ("\n\nBefore you answer: three members were asked what they would check "
+                               "in the other defences.\n" + raised + "\n")
         else:
             prompt = VOTE_PROMPT.format(name=label.upper(), seat=seat, category=category, picks=table)
         t0 = time.time()
@@ -291,14 +315,14 @@ def play_round(category: str, override: str | None, dry: bool, vote: str = "stra
         # Found live 2026-11-01: every vote came back "named nobody usable" because the letter was
         # upper-cased and the seat labels are lower-case. Three votes were cast and thrown away by a
         # one-character bug, which is the same class of defect as the audit that cried wolf.
-        said = (line(text, "SWITCH") if vote == "persuade" else line(text, "STRAND")) or ""
+        said = (line(text, "SWITCH") if vote in ("persuade", "check") else line(text, "STRAND")) or ""
         target = said.strip(" .*—:-–").lower()[:1]
         if target not in others and target not in live:
             m = re.search(r"\b([abc])\b", said.lower())
             target = m.group(1) if m else ""
         if target not in others and target not in live:
             target = ""
-        if vote == "persuade":
+        if vote in ("persuade", "check"):
             # SWITCH is a change of mind, so "none" is a legitimate and expected answer. A self-switch
             # is meaningless: it would mean a member's own argument changed its own mind.
             return label, {"switch": target if target != label else "", "strand": "",
@@ -314,6 +338,31 @@ def play_round(category: str, override: str | None, dry: bool, vote: str = "stra
                            "error": "", "secs": round(time.time() - t0, 1)}
         return label, {"strand": target, "why": clean(line(text, "WHY") or "", 300),
                        "error": err, "secs": round(time.time() - t0, 1)}
+
+    challenges: dict[str, dict] = {}
+    if vote == "check":
+        def do_challenge(label: str) -> tuple[str, dict]:
+            others = [l for l in live if l != label]
+            if label not in live or not others:
+                return label, {"claim": "", "check": "", "error": "not in the round"}
+            model, provider, seat, _ = SEATS[label]
+            theirs = "\n".join(f"  {l} — {picks[l]['pick']}: {picks[l]['why']}" for l in others
+                               if picks[l]["why"])
+            if not theirs.strip():
+                return label, {"claim": "", "check": "", "error": "nobody else defended a pick"}
+            prompt = CHALLENGE_PROMPT.format(name=label.upper(), seat=seat, category=category,
+                                             others=theirs)
+            try:
+                text = say(provider, model, prompt, 2000)
+                err = ""
+            except Exception as e:  # noqa: BLE001
+                text, err = "", str(e)
+            return label, {"claim": clean(line(text, "CHALLENGE") or "", 240),
+                           "check": clean(line(text, "CHECK") or "", 300), "error": err}
+
+        with ThreadPoolExecutor(max_workers=3) as pool:
+            for label, info in pool.map(do_challenge, labels):
+                challenges[label] = info
 
     votes: dict[str, dict] = {}
     with ThreadPoolExecutor(max_workers=3) as pool:
@@ -339,7 +388,16 @@ def play_round(category: str, override: str | None, dry: bool, vote: str = "stra
             continue
         out += [f"**{l.upper()} · {p['model']}** — {p['seat']}", "",
                 f"> **{p['pick'] or '(no pick named)'}**", f"> {p['why'] or '(no defence)'}", ""]
-    if vote == "persuade":
+    if vote == "check":
+        out += ["**The checks** — what each member would verify before believing a defence", ""]
+        for l in labels:
+            c = challenges.get(l, {})
+            if c.get("claim"):
+                out.append(f"- {l.upper()} would check: *{c['claim']}* — against {c['check']}")
+            else:
+                out.append(f"- {l.upper()} raised nothing usable ({c.get('error') or 'no claim given'})")
+        out += [""]
+    if vote in ("persuade", "check"):
         out += ["**The votes** — would you switch? (nobody is obliged to)", ""]
     else:
         out += ["**The votes** — each member names the pick it would strand", ""]
@@ -357,15 +415,19 @@ def play_round(category: str, override: str | None, dry: bool, vote: str = "stra
             out.append(f"- {l.upper()} → *folds its own pick*: {v['why']}")
         else:
             out.append(f"- {l.upper()} → *named nobody usable*")
-    if vote == "persuade":
+    if vote in ("persuade", "check"):
         changed = sum(1 for v in votes.values() if v.get("changed_mind"))
         persuaded = sorted([l for l in labels if votes_for[l]], key=lambda l: -votes_for[l])
         verdict = (f"{changed} of {len(live)} members changed their mind. "
                    + ("Nobody did — the arguments moved nobody, which is a result." if not changed
                       else "Persuaded: " + ", ".join(f"{l.upper()} ({votes_for[l]})" for l in persuaded) + "."))
+        if vote == "check":
+            raised = sum(1 for c in challenges.values() if c.get("claim"))
+            verdict = f"{raised} checks raised, " + verdict[0].lower() + verdict[1:]
         out += ["", f"**Verdict:** {verdict}", ""]
         return "\n".join(out), {
             "category": category, "when": f"{now:%Y-%m-%dT%H:%M:%SZ}", "slug": slug, "vote": vote,
+            "challenges": challenges,
             "vote": vote, "picks": picks, "votes": votes, "votes_for": votes_for, "live": live,
             "changed_mind": changed, "thrown_out": [], "override": override,
         }
@@ -405,6 +467,18 @@ def variance(records: list[dict]) -> str:
     keys = [tuple(rec["picks"][l]["pick"].lower() for l in SEATS) for rec in records]
     unanimity = sum(1 for k in keys if len({x for x in k if x}) == 1)
     thrown = {l: sum(1 for r in records if l in r.get("thrown_out", [])) for l in SEATS}
+    if records[0].get("vote") == "check":
+        rows = ["| run | A | B | C | checks raised | minds changed |", "|---|---|---|---|---|---|"]
+        for i, rec in enumerate(records, 1):
+            raised = sum(1 for c in rec.get("challenges", {}).values() if c.get("claim"))
+            rows.append("| " + " | ".join(
+                [str(i)] + [rec["picks"][l]["pick"] or "(none)" for l in SEATS]
+                + [f"{raised}/3", str(rec.get("changed_mind", 0))]) + " |")
+        ch = sum(sum(1 for c in r.get("challenges", {}).values() if c.get("claim")) for r in records)
+        mv = sum(1 for r in records if r.get("changed_mind"))
+        return (f"**A checking run.** {ch} checks raised across {len(records)} rounds; "
+                f"{mv} of {len(records)} rounds changed a mind.\n\n" + "\n".join(rows) + "\n")
+
     if records[0].get("vote") == "persuade":
         rows = ["| run | A | B | C | minds changed | who did it |", "|---|---|---|---|---|---|"]
         for i, rec in enumerate(records, 1):
@@ -485,7 +559,7 @@ def main() -> int:
     ap.add_argument("--out", default=None, help="where to write the round markdown (default play/rounds/<stamp>.md)")
     ap.add_argument("--reasons", action="store_true",
                     help="require one checkable claim in each defence, so persuasion has something to work on")
-    ap.add_argument("--vote", choices=["strand", "persuade"], default="strand",
+    ap.add_argument("--vote", choices=["strand", "persuade", "check"], default="check",
                     help="strand: each member names the weakest other pick (consensus). persuade: each member "
                          "says whether anyone changed their mind, and who did it.")
     ap.add_argument("--repeat", type=int, default=1,
@@ -531,7 +605,7 @@ def main() -> int:
     path = Path(args.out) if args.out else ROUNDS / f"{stamp}-{record['slug']}.md"
     path.write_text(text, encoding="utf-8")
     (path.with_suffix(".json")).write_text(json.dumps(record, indent=2), encoding="utf-8")
-    if args.vote == "persuade":
+    if args.vote in ("persuade", "check"):
         print("(persuade mode scores minds changed, not rejections — the standings are untouched)")
     else:
         update_scoreboard(record)

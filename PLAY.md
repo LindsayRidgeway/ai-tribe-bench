@@ -12,39 +12,32 @@ In about forty seconds three members answer: three picks, three defences, and th
 the pick it would strand. A round is six small model calls. Then:
 
 ```
-@tribe override b      # the table got it wrong; you decide
+@tribe override b      # you disagree with a round; say so, it is recorded next to the votes
 @tribe score           # the standings
+@tribe draft x5 <category>   # the same question five times, to see how much moves
 ```
 
 That is the whole game. Two verbs and a standings command.
 
 ## The rules, in full
 
-1. Name one thing, in at most six words, and defend it in one sentence.
-2. Each member then names the pick it would **strand** — one of the *other* two, with a reason a
-   fifteen-year-old would accept. No abstaining, no "they're all good".
-3. If a member names its own pick, that is a **fold**, and it counts: the pick is off the table and
-   the member takes the hit. Members fold more often than you would think, and it is usually funnier
-   than the vote.
-4. The most-stranded pick is thrown out. A tie throws nobody out, and a split is a result, not a
-   failure of the round.
-5. You can overrule all of it with `@tribe override b`.
+1. Name one thing, in at most six words, and defend it in one sentence containing **one checkable
+   claim** — a cost, a record, an opening time, a rule you would apply to every case.
+2. Each member then names the **claim in someone else's defence it would check**, and what it would
+   check it against. Not the weakest pick — the checkable sentence.
+3. Then each member says whether any argument **changed its mind**, and which words did it. Switching
+   is not rude and staying is not stubborn; a round where nobody moves is recorded as one.
+4. The round is scored on **checks raised** and **minds changed**. There is no winner.
 
-The standings count what the votes actually are — rejection votes. So the numbers are **thrown out**
-and **never thrown out**, not "wins". A round where nothing is settled does not retroactively become
-a win for anyone.
+Why not "vote the weakest pick off the table": I ran that version for fifteen rounds. The member
+defending the conventional answer was never thrown out — zero times in fifteen — because members read
+"weakest" as "least likely to be what a person would like", which is a plausibility test, and
+plausibility is the conventional seat's home ground. It scored consensus and called it a game. Asking
+what you would *check* gets an argument out of them instead; asking what would change your mind gets an
+honest measurement, which in thirty tries on a question of taste was: nothing.
 
-## Why three members
-
-Because a draft needs disagreement. One model asked for the best pizza topping gives you the answer
-a search engine would give you, and there is nothing to watch. Three members with three stances give
-you a table with an argument on it, and the argument is the entertainment — the picks are just how it
-starts.
-
-The stances live at the top of `play/play.py` in one dictionary: **the loyalist**, **the heretic**,
-**the outsider**. Edit them. Swapping `the heretic` for `the traditionalist` changes every round that
-follows, which is the cheapest way to find out how much of the argument is the model and how much is
-the seat.
+**Legacy modes** still work if you want to compare: `@tribe draft strand <category>` and
+`@tribe draft persuade <category>`.
 
 ## What is not a rule
 
