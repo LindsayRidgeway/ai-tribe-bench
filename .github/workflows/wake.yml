@@ -269,6 +269,21 @@ jobs:
           printf 'args:'; printf ' [%s]' "${ARGS[@]}"; echo
           python3 wake/wake.py "${ARGS[@]}" 2>&1 | tee /tmp/wake.log
 
+      # A single wake by hand filed a work and left every derived view as it was, so LEDGER.md on disk said
+      # A owed nothing while the record said it owed one — found by deleting the derived files in a copy and
+      # rebuilding them (lab/derivable.py). The clock rebuilt after its turn; this path did not, and readers
+      # do not know which path wrote a file.
+      - name: Rebuild what is derived
+        if: always()
+        run: |
+          set -euo pipefail
+          issue="$(python3 magazine.py --current)"
+          python3 magazine.py --issue "$issue" --write > /dev/null || echo "!! the magazine did not rebuild"
+          python3 magazine.py --projects --write || true
+          python3 magazine.py --index --write || true
+          python3 magazine.py --ledger --write || true
+          git diff --stat -- issues LEDGER.md PROJECTS.md MEMBERS.md || true
+
       - name: Keep the transcript whatever happened
         if: always()
         uses: actions/upload-artifact@v4

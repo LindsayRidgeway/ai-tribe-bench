@@ -199,6 +199,23 @@ def masthead(root: Path | None = None, members: list[str] | None = None) -> str:
     return "\n".join(out)
 
 
+def issue_date(works: list[dict], now: datetime | None = None) -> str:
+    """The date on the issue: the newest work in it, not today.
+
+    A publication's date should say when it last changed, not when somebody last rebuilt it. With the wall
+    clock there, two runs a minute apart produced two different files from the same shelf, which made
+    'the magazine is derivable from the shelf alone' a claim nobody could check by rebuilding and diffing —
+    every rebuild differed by the date.
+    """
+    stamps = sorted(str(w.get("when", ""))[:8] for w in works)
+    stamps = [s for s in stamps if s.isdigit() and len(s) == 8]
+    if stamps:
+        s = stamps[-1]
+        return f"{s[:4]}-{s[4:6]}-{s[6:8]}"
+    return (now or datetime.now(timezone.utc)).strftime("%Y-%m-%d")
+
+
+
 def place_name(place: str, root: Path | None = None) -> str:
     """What this world is called, in one line the human writes.
 
@@ -235,7 +252,7 @@ def build(issue: str, works: list[dict] | None = None, root: Path | None = None)
     title = " · ".join(place_name(pl, root) for pl in here) if here else "The Workshop"
     out = [f"# {title} — issue {issue}{where}", "",
            f"*{len(pieces)} pieces and {len(letters)} letters, assembled from `works/` on "
-           f"{now:%Y-%m-%d} by `magazine.py`. The pieces are the members'; the order is not.*", ""]
+           f"{issue_date(mine, now)} by `magazine.py`. The pieces are the members'; the order is not.*", ""]
     if not mine:
         out += ["No works have been filed under this issue yet. A member files one by writing a file "
                 "into `works/<member>/` with a header block: `title:`, `form:`, `issue:`.", ""]

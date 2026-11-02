@@ -25,3 +25,8 @@ jobs:
         run: python3 tribe.py validate
       - name: Tests
         run: python3 tests.py -v
+      # Every published file must be a function of the record. If this fails, one of them was edited by
+      # hand or the builder has an input that is not the shelf — either way a reader is being shown
+      # something the record does not support.
+      - name: Derived files rebuild byte for byte
+        run: python3 lab/derivable.py
