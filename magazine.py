@@ -138,6 +138,9 @@ def where_cited(name: str, root: Path | None = None) -> str:
     stem = name.rsplit("/", 1)[-1].rsplit(".", 1)[0]
     if list((root / "works").glob(f"*/{stem}.md")):
         return "shelf"
+    for w in load_all(root):
+        if str(w.get("source_file", "")).lower() == name.lower():
+            return f"shelf (filed as {w['title']!r})"
     if any(stem == p.stem for p in root.glob("*.md")):
         return "shelf"
     for pth in (root / "wake" / "members").glob(f"*/output/{stem}.md"):

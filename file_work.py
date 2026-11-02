@@ -214,8 +214,12 @@ def main(argv: list[str] | None = None) -> int:
     stamp = m.group(1) if m else datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     rel = f"works/{args.member}/{stamp}-{slug}.md"
     project = (args.project or str(reply.get("project") or "")).strip()
+    # What the member called its own file. Without this the citations check called a work's own rules file
+    # "not on the shelf" when it was on the shelf, filed under the member's title.
+    own_file = Path(str(reply.get("path") or "")).name
     head = (f"---\ntitle: {title}\nform: {form}\nissue: {args.issue}\n"
             f"ref: {ref or '-'}\n" + (f"project: {project}\n" if project else "") + (f"revises: {revises}\n" if revises else "")
+            + (f"source_file: {own_file}\n" if own_file else "")
             + f"member: {args.member}\nwhen: {stamp}\n---\n\n")
     print(f"{'would file' if args.dry else 'filed'} {rel}")
     print(f"  source: {reply.get('source') or '(not given)'} — {str(reply.get('chosen_item'))[:90]}")

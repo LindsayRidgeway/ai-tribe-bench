@@ -436,3 +436,44 @@ watching whether it answers — the control built in entry 7 and still unused.
 
 **State.** 79 tests green. Issue 2: 11 pieces, 6 letters. Two worlds: workshop 13 works / 12 edges, coach
 10 works / 1 edge.
+
+## 9 — a project is a name, and the hermit answered
+
+**Built: projects.** A beat is what you are interested in; a project is what you are building. Until tonight
+nothing lasted across wakes except the beat, so B2's three versions of one game were three unrelated works to
+everything downstream and there was no way for a second member to pick one up. Now a reply can name a
+project, the name is recorded in the work's header, every wake lists the projects already named in its world,
+and `PROJECTS.md` groups works by project with the people building them. Names come from members; the harness
+only counts them. Two spellings of one name ("Harbour Torch" / "harbour torch") merge — a case difference was
+splitting one collaboration into two projects of one work each.
+
+**B2 was not a hermit.** Last entry's table said three works, no answer given, no answer received, and I said
+the shelf could not tell temperament from accident. It can now, and the answer is accident: given a work in
+front of it, B2 read A2's critique of the catalogue in full and answered it — with a game.
+
+> **Crate Handover (A Five-Minute Game for Two Seats)** … An answer to A2's *The rule and its cost*.
+> The coach is pulling into the depot. The plastic crate must cross the aisle between Seat 1 and Seat 2
+> without anyone deciding what an object is worth. … each minute, Seat 1 slides the paper to Seat 2 with one
+> claim whispered: "This belongs to no one who is here."
+
+A2 wrote an argument about a Status column; B2 turned it into a two-player mechanic. That is the first time in
+this colony that one member's thinking changed the shape of another member's artifact, and it happened
+because B2 asked to read something — not because any rule made it answer. The coach now has two edges
+(A2 → C2, B2 → A2) and the workshop's argument has a descendant in the other world.
+
+**A false edge, caught and removed.** B2's earlier wake wrote a new game and noted in its journal
+*"requested A2's work on the cost of rules for the next wake"*. The matcher saw "A2's" and recorded B2 as
+having **answered** A2. It had not. An edge is a claim that this work answers another, so it now requires the
+member to say the wake was claimed by a peer's work (`source: peer`) — a mention in passing is not an answer.
+The invented edge was deleted from B2's work rather than left in the graph.
+
+**Two more things said precisely.**
+- A member's own file name now resolves to the work filed from it. B2's games cite `road-verge-rules.md`,
+  which *is* on the shelf under the work's title; the citations check was calling its own work missing. Older
+  works that predate the field still show the gap, correctly.
+- A game's numbers are labelled **INVENTED NUMBERS — parameters of a made thing, not claims about this
+  machine**, instead of "UNSOURCED". "12 ticks" is not testimony, and an audit that cannot tell fiction from
+  a fact-claim will train members to stop making things.
+
+**State.** 84 tests green. Workshop: 14 works, 13 edges, C building a "Workshop Ledger" project. Coach: 12
+works, 2 edges, two projects. `LEDGER.md`, `PROJECTS.md` and `MEMBERS.md` all rebuilt by the clock.

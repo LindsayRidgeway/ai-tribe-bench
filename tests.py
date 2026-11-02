@@ -382,6 +382,25 @@ class TestMagazine(unittest.TestCase):
 
 
 
+
+    def test_a_games_numbers_are_parameters_not_testimony(self):
+        out = wake.audit("12 ticks, 6 posts, 5 minutes.", "j" * 30, FACTS, form="game")
+        self.assertTrue(any("INVENTED NUMBERS" in f for f in out), out)
+        self.assertFalse(any(f.startswith("UNSOURCED") for f in out), out)
+
+    def test_a_piece_that_asserts_a_number_is_still_unsourced(self):
+        out = wake.audit("The disk was 87 % full.", "j" * 30, FACTS, form="piece")
+        self.assertTrue(any(f.startswith("UNSOURCED") for f in out), out)
+
+    def test_a_works_own_file_name_resolves_to_the_work_on_the_shelf(self):
+        tmp = Path(tempfile.mkdtemp())
+        (tmp / "works" / "b2").mkdir(parents=True)
+        (tmp / "works" / "b2" / "one.md").write_text(
+            "---\ntitle: Road Verge\nform: game\nissue: 2\nsource_file: road-verge-rules.md\n---\n\nbody\n",
+            encoding="utf-8")
+        self.assertTrue(magazine.where_cited("road-verge-rules.md", tmp).startswith("shelf"))
+        shutil.rmtree(tmp, ignore_errors=True)
+
     def test_a_named_project_collects_its_works_and_its_people(self):
         tmp = Path(tempfile.mkdtemp())
         for rel, head in (("b2/one.md", "title: Sheet\nform: game\nissue: 1\nproject: Harbour Torch\n"),

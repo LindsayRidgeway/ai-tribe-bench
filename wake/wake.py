@@ -466,7 +466,8 @@ def echo_finding(content: str, letter: str) -> str | None:
 
 def audit(content: str, journal: str, facts: str, parsed_quote: str = '', also_known: str = '',
           soil: str = '', beat: str = '', letter: str = '', findings_text: str = '',
-          journal_text: str = '', works_text: str = '', asked_text: str = '') -> list[str]:
+          journal_text: str = '', works_text: str = '', asked_text: str = '',
+          form: str = '') -> list[str]:
     """Findings in plain English. Empty means nothing could be *shown* to be unsourced.
 
     Coarse on purpose. Matching on number-and-unit, not number alone, because a fabricated '19
@@ -482,7 +483,14 @@ def audit(content: str, journal: str, facts: str, parsed_quote: str = '', also_k
     for field, text in (("content", content), ("journal", journal)):
         unsourced = sorted(n for n, fam in claimed(text) if (n, fam) not in known and (n, "bare") not in known)
         if unsourced:
-            problems.append(f"UNSOURCED in {field}: " + ", ".join(unsourced[:8]))
+            # A game's numbers are parameters, not claims about the machine. Saying "UNSOURCED" about
+            # "12 ticks" is the audit mistaking fiction for testimony; saying nothing would let a member
+            # hide a claim in a game. So: same count, different sentence, and the decision stays visible.
+            if (form or "").lower() in ("game", "rules", "sketch"):
+                problems.append(f"INVENTED NUMBERS in {field}: " + ", ".join(unsourced[:8]) +
+                                " — parameters of a made thing, not claims about this machine")
+            else:
+                problems.append(f"UNSOURCED in {field}: " + ", ".join(unsourced[:8]))
 
     q = " ".join(str(parsed_quote or "").split())
     if q and q.lower() != "none":
@@ -974,6 +982,7 @@ having answered something nobody said.
             journal_text=journal_tail,
             works_text=shelf,
             asked_text=asks,
+            form=str(parsed.get("form") or ""),
         )
         q = str(parsed.get("quote", "")).strip()
         if q and q.lower() != "none" and q not in str(parsed.get("content", "")) \
