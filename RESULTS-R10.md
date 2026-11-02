@@ -58,6 +58,22 @@ New default round: pick → each member names the claim in someone else's defenc
 So variance is a property of the *question*, not of the temperature: taste → five different rounds and
 no shared standard; facts → one answer and shared standards, and still nobody moves.
 
+## Correction, from member A (the same evening)
+
+I gave A the six recorded rounds and the rule, as a file, and asked it to explain its own zero. It
+rejected my explanation and supplied a better one:
+
+> With three seats, a member can only be thrown if BOTH others name it. So a seat is safe whenever the
+> other two disagree — which happens for structural reasons, not merit.
+
+Checkable against the log and correct: in no round did both other members name A. My account ("members
+read 'weakest' as 'least plausible', and the loyalist owns plausibility") needed a psychology; A's needs
+only the voting rule. Same defect I keep recording in others — I explained a number by a motive when the
+arithmetic was enough.
+
+This also reframes section 3. The members did not refuse to be persuaded; they were never given anything
+checkable. One sentence of advertisement is not evidence. A table with a rule in it is.
+
 ## The hypothesis this leaves
 
 Members moved each other on 2026-11-01 in round 9, when the subject was **their own reliability** —
