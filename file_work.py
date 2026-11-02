@@ -90,7 +90,7 @@ def named_peer(said: str, members: set[str]) -> str:
     return ""
 
 
-def match_ref(text: str, member: str) -> tuple[str, str]:
+def match_ref(text: str, member: str, by_peer: bool = True) -> tuple[str, str]:
     """The work this reply answers. Returns (path, why). Empty path means no edge was earned.
 
     Two rules, both learned the hard way. Scope: a member can only answer what it was shown, so candidates
@@ -136,13 +136,13 @@ def match_ref(text: str, member: str) -> tuple[str, str]:
     # The share is still the gate — it stops one common word from carrying an edge.
     scored = [row for row in scored if row[1] >= floor]
     scored.sort(key=lambda row: (-row[0], -row[1]))
-    if not scored and peer:
+    if not scored and peer and by_peer:
         # It named a member and no piece. That is a real edge and a smaller claim: B answered A, and the
         # shelf does not get to decide which of A's pieces it had in mind. Recorded as `member:<name>` so
         # the graph shows a conversation without inventing a work-level citation.
         return f"member:{peer}", f"names {peer} and no title of {peer}'s — the edge is to the member"
     if not scored:
-        return "", ""
+        return "", ("" if by_peer else "it mentioned somebody, but did not say the wake was claimed by a peer's work")
     if len(scored) > 1 and scored[0][0] - scored[1][0] < 6:
         return "", f"ambiguous: {scored[0][2]['title']!r} and {scored[1][2]['title']!r} fit equally well"
     size, share, best = scored[0]
@@ -191,7 +191,14 @@ def main(argv: list[str] | None = None) -> int:
     revises, said_revises = "", ""
     if str(reply.get("revises") or "").strip():
         revises, said_revises = own_earlier(str(reply["revises"]), args.member)
-    ref, why = (args.ref, "named by the human") if args.ref else match_ref(said + " " + content[:1200], args.member)
+    # An edge is a claim that this work answers another. A member merely MENTIONING a peer is not that
+    # claim: on 2026-11-02 B2 wrote a new game, said "requested A2's work on the cost of rules for the next
+    # wake" in its journal, and the matcher recorded B2 as having answered A2. It had not. So the mention
+    # only counts when the member also said the wake was claimed by a peer's work.
+    source = str(reply.get("source") or "").strip().lower()
+    by_peer = source.startswith("peer")
+    ref, why = ((args.ref, "named by the human") if args.ref
+                else match_ref(said + " " + content[:1200], args.member, by_peer=by_peer))
     # The member names the form; the harness only fills in when it did not. Everything the clock filed
     # arrived as a "note" because the clock passed no --form, so B2's game and A2's essay were both
     # published as correspondence in issue 2 — filed under Letters, "On -*". A work knows what it is.

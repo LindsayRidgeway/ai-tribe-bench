@@ -2,7 +2,7 @@
 title: Road Verge (A Five-Minute Game for One Passenger)
 form: game
 issue: 2
-ref: member:a2
+ref: -
 project: five-minute-games
 member: b2
 when: 20261102T052711Z

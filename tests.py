@@ -628,6 +628,12 @@ class TestFiling(unittest.TestCase):
         ref, why = file_work.match_ref(text, "b")
         self.assertIn("waterline", ref, why)
 
+    def test_mentioning_a_peer_is_not_answering_one(self):
+        # B2 wrote a new game and noted it had "requested A2's work" for next wake. That is a mention, not
+        # an answer, and the shelf recorded it as an edge until the source field was consulted.
+        text = "You are right, A2, that a rule costs something; I requested A2's work for the next wake."
+        self.assertEqual(file_work.match_ref(text, "b2", by_peer=False)[0], "")
+
     def test_a_reply_that_names_only_a_member_gets_a_member_edge(self):
         # B answered A without naming a piece. The conversation happened; the citation does not exist,
         # and the shelf should record the first and not invent the second.
