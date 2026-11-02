@@ -622,6 +622,16 @@ class TestFiling(unittest.TestCase):
         prompt = instruction + " Your JSON must contain chosen_item, why, action, path, content, journal."
         self.assertTrue(wake.echoes_instruction(instruction, prompt, own="a beat about boats"))
 
+    def test_naming_a_peers_piece_in_the_shelfs_own_format_is_not_echoing(self):
+        """A2 woke free, chose B2's game off the shelf, wrote a real revision of it, and was filed as
+        'INVALID: chosen_item repeats the instruction instead of naming an item' — because the shelf is
+        part of the prompt and the member named a shelf line. A verdict that calls a good wake a contract
+        breach is a lie in the record (2026-11-02, 18:20)."""
+        shelf = "- **State, Not Transition** — B2, rules, 267 words\n  *works/b2/x.md*"
+        prompt = "Decide what this wake is for.\n\n" + shelf
+        self.assertFalse(wake.echoes_instruction("State, Not Transition — B2, rules, 267 words", prompt,
+                                                own=shelf))
+
     def test_a_short_item_is_never_an_echo(self):
         self.assertFalse(wake.echoes_instruction("C's letter", "C's letter is on the shelf", own=""))
 

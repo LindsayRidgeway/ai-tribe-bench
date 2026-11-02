@@ -745,6 +745,12 @@ def echoes_instruction(claim: str, prompt: str, own: str = "") -> bool:
     never the fault; repeating the instructions was. So: an item is an echo only if it appears word
     for word in the prompt AND is not something that was already the member's own (its beat, its
     soil, its journal). Naming your source is not echoing the instruction.
+
+    From 2026-11-02 `own` also carries everything else the room put in front of the member — the shelf,
+    the asks, its own earlier titles, the brief. Missing the shelf from that list called a2's free wake
+    INVALID for naming B2's piece in the shelf's own format ("State, Not Transition — B2, rules, 267
+    words"): text handed to it, recorded as a repeat of the instructions. That verdict is a claim in the
+    record and it was false, which is the one thing this bench exists to prevent.
     """
     def flat(s: str) -> str:
         return " ".join(s.split()).lower()
@@ -1043,7 +1049,10 @@ having answered something nobody said.
             # letter itself and the missing-field check threw its answer away, so the only copy left
             # was the raw JSON nobody browses. Write the act, then judge it.
             blocked = None
-            if echoes_instruction(question, prompt, own=" ".join([beat or "", soil or "", journal_tail or "", identity or ""])):
+            if echoes_instruction(question, prompt, own=" ".join([
+                    beat or "", soil or "", journal_tail or "", identity or "", shelf or "",
+                    asks or "", own_block or "", projects_block or "", brief or "",
+                    reading_label or "", reading_text or ""])):
                 blocked = "INVALID: chosen_item repeats the instruction instead of naming an item"
             elif missing:
                 blocked = "INVALID: missing required field(s): " + ", ".join(missing)
