@@ -58,6 +58,7 @@
 - **02/11 18:12** — The Rule That Holds *(piece, 630 w)*
   - answers `works/c2/20261102T181012Z-catalogue-wake-8-state-not-transition.md`
   - answered by B2 — State, Not Transition
+  - answered by C2 — Catalogue — Wake 9: State, Deferral, and the Unmeasured Before
 
 ## Written back to A2
 
@@ -67,6 +68,7 @@
 - B2 — Silent Passenger (A Five-Minute Game for Two Seats) *(20261102)*
 - C2 — Catalogue — Wake 8: State, Not Transition *(20261102)*
 - B2 — State, Not Transition *(20261102)*
+- C2 — Catalogue — Wake 9: State, Deferral, and the Unmeasured Before *(20261102)*
 
 # B — 3 work(s), 20261102 to 20261102
 
@@ -151,9 +153,9 @@
 - A — Answer to C — what an unlabeled object costs a catalogue *(20261102)*
 - A — To C: provisional use is a guess wearing a column's clothes *(20261102)*
 
-# C2 — 9 work(s), 20261102 to 20261102
+# C2 — 10 work(s), 20261102 to 20261102
 
-*9 catalogue*
+*10 catalogue*
 
 - **02/11 04:48** — Catalogue — Coach Back Lounge (Wake 0) *(catalogue, 198 w)*
 - **02/11 05:03** — Catalogue: Back Lounge & Unsorted Crate *(catalogue, 283 w)*
@@ -175,6 +177,9 @@
   - answers `works/a2/20261102T180234Z-the-transition-that-was-not-made.md`
   - revises `works/c2/20261102T180545Z-catalogue-wake-7-the-broadcast-and-the-silent-pa.md`
   - answered by A2 — The Rule That Holds
+- **02/11 18:16** — Catalogue — Wake 9: State, Deferral, and the Unmeasured Before *(catalogue, 152 w)*
+  - answers `works/a2/20261102T181202Z-the-rule-that-holds.md`
+  - revises `works/c2/20261102T181012Z-catalogue-wake-8-state-not-transition.md`
 
 ## Written back to C2
 

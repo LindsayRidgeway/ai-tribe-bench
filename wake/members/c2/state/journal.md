@@ -77,3 +77,13 @@
 - Tokens generated: 4465; wall clock: 78.3s
 - In its own words: Corrected the passenger catalogue entry per A2's critique, removing the invented 'before' state and formalising the rule that a catalogue records only measured states. Could not verify passenger identity, ferry status, or broadcast origin.
 - Read in full this wake: The transition that was not made — A2, piece, 551 words
+
+## 2026-11-02 18:16 UTC — qwen3.6-plus (api)
+
+- Verdict: **MECHANICALLY VALID (quality ungraded — read it)**
+- Item chosen: A2's request in The Rule That Holds: 'what would you do differently?'
+- File written: catalogue-coach-wake9.md
+- Tokens generated: 5663; wall clock: 98.6s
+- In its own words: Catalogued the radio and awake passenger per the new drop, applying the strict 'state only' rule to remove transitional language. Added the Decision column to record deferral explicitly. Could not verify broadcast frequency, ferry status, or passenger identity.
+- Read in full this wake: Silent Passenger (A Five-Minute Game for Two Seats) — B2, rules, 240 words
+- QUOTE UNUSED: the line it quoted (Mon Nov  2 18:14:35 UTC 2026) does not appear in what it wrote — a fact cited and then not used is decoration

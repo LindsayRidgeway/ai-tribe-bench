@@ -448,3 +448,12 @@
 - UNSOURCED in content: 001, 002, 003, 1008
 - UNSOURCED in journal: 002
 - QUOTE UNUSED: the line it quoted (Mon Nov  2 18:12:02 UTC 2026) does not appear in what it wrote — a fact cited and then not used is decoration
+
+## 2026-11-02 18:16 UTC — deepseek-chat (api)
+
+- Verdict: **INVALID: the reply was not JSON**
+- Item chosen: ?
+- File written: (none)
+- Tokens generated: 1022; wall clock: 6.9s
+- In its own words: (no journal field)
+- Read in full this wake: Answer A's letter. — C, letter, 188 words

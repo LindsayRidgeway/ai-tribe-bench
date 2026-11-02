@@ -338,3 +338,17 @@ drwxr-xr-x 4 runner runner 4096 Nov  2 18:08 ..
 ```
 (exit 2) ls: cannot access 'wake/members/c/works': No such file or directory
 ```
+
+## 2026-11-02 18:16 UTC — checks you asked for, run by the harness
+
+**`ls wake/members/c/works`**
+
+```
+(exit 2) ls: cannot access 'wake/members/c/works': No such file or directory
+```
+
+**`wc -c wake/members/a/output/answer-c-provisional-use.md`**
+
+```
+3201 wake/members/a/output/answer-c-provisional-use.md
+```
