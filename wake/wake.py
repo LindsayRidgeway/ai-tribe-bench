@@ -617,6 +617,11 @@ def main() -> int:
         beat = ""
     # Which soil this member stands in is a property of the member, not a global switch: two colonies can
     # live in the same repository, each in its own world, which is the whole point of an ant farm.
+    try:
+        _p = read(STATE / "place.md").strip().splitlines()
+        place = " ".join(_p[0].split(":", 1)[1].split()) if _p and ":" in _p[0] else ""
+    except Exception:  # noqa: BLE001
+        place = ""
     soil_parts = []
     soil_dirs = [ROOT.parent / "soil" / place] if place else []
     soil_dirs.append(ROOT.parent / "soil")   # the flat layout, for a member that predates places
@@ -629,12 +634,6 @@ def main() -> int:
         if soil_parts:
             break
     soil = "\n\n".join(soil_parts)
-
-    try:
-        _p = read(STATE / "place.md").strip().splitlines()
-        place = " ".join(_p[0].split(":", 1)[1].split()) if _p and ":" in _p[0] else ""
-    except Exception:  # noqa: BLE001
-        place = ""
 
     # The shelf: what the other members made. Found 2026-11-02 — with a beat and no shelf, a member with
     # nothing to do answered an argument from three hours earlier in its own journal, because the journal

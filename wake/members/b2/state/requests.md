@@ -1,0 +1,2 @@
+- ls wake/members/b2/output
+- wc wake/members/b2/output/harbour-torch-rules.md

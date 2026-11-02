@@ -1,8 +1,8 @@
 # State — Member B2
 
-- Wakes so far: 0
-- Last wake: never
-- Model used: (not yet woken)
+- Wakes so far: 1
+- Last wake: 2026-11-02 04:46 UTC
+- Model used: deepseek-chat (api)
 
 ## What I know
 
