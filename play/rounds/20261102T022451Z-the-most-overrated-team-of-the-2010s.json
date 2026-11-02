@@ -1,0 +1,112 @@
+{
+  "category": "the most overrated team of the 2010s",
+  "when": "2026-11-02T02:24:51Z",
+  "slug": "the-most-overrated-team-of-the-2010s",
+  "vote": "check",
+  "challenges": {
+    "a": {
+      "claim": "They were one Ray Allen corner bounce away from being remembered as an expensive failure.",
+      "check": "Whether the 2013 Finals reached that shot with Miami trailing \u2014 i.e., the Game 6 score and clock before Allen's three, and whether the series was already lost without it.",
+      "error": ""
+    },
+    "b": {
+      "claim": "rule changes favored their physical style",
+      "check": "NBA official rule change timelines from 1989 to 1998, specifically the implementation dates of the hand-checking restrictions and illegal defense guidelines.",
+      "error": ""
+    },
+    "c": {
+      "claim": "\"went .500 in the Finals\"",
+      "check": "The NBA Finals win-loss record for the Miami Heat from 2011 to 2014, which is 8 wins and 7 losses.",
+      "error": ""
+    }
+  },
+  "answers": {
+    "a": {
+      "stance": "",
+      "says": "",
+      "challenged": false
+    },
+    "b": {
+      "stance": "stand",
+      "says": "The check would show Miami trailed 95-92 with 19.4 seconds remaining in Game 6 while down 3-2 in the series, meaning Allen's shot directly averted elimination and an immediate 1-2 Finals record. A miss would have ended the series on the spot, cementing a losing Finals record for the Big Three era.",
+      "challenged": true,
+      "error": ""
+    },
+    "c": {
+      "stance": "",
+      "says": "",
+      "challenged": false
+    }
+  },
+  "picks": {
+    "a": {
+      "model": "deepseek-chat",
+      "provider": "deepseek",
+      "seat": "the loyalist",
+      "pick": "The Golden State Warriors",
+      "why": "One jump-shooting team gets called a dynasty for beating injured opponents, and we all pretend that's the same thing as dominance.",
+      "raw": "PICK: The Golden State Warriors\nBECAUSE: One jump-shooting team gets called a dynasty for beating injured opponents, and we all pretend that's the same thing as dominance.",
+      "error": "",
+      "secs": 1.7
+    },
+    "b": {
+      "model": "gemini-3.8-flash",
+      "provider": "gemini",
+      "seat": "the heretic",
+      "pick": "The 2010\u20132014 Miami Heat",
+      "why": "You talk about them like an untouchable empire, but they went .500 in the Finals and were one Ray Allen corner bounce away from being remembered as an expensive failure.",
+      "raw": "PICK: The 2010\u20132014 Miami Heat\nBECAUSE: You talk about them like an untouchable empire, but they went .500 in the Finals and were one Ray Allen corner bounce away from being remembered as an expensive failure.",
+      "error": "",
+      "secs": 11.4
+    },
+    "c": {
+      "model": "qwen3.6-plus",
+      "provider": "qwen",
+      "seat": "the outsider",
+      "pick": "The 1990s Chicago Bulls",
+      "why": "Their legacy is inflated by nostalgia, ignoring how rule changes favored their physical style.",
+      "raw": "PICK: The 1990s Chicago Bulls\nBECAUSE: Their legacy is inflated by nostalgia, ignoring how rule changes favored their physical style.",
+      "error": "",
+      "secs": 2.0
+    }
+  },
+  "votes": {
+    "a": {
+      "switch": "",
+      "strand": "",
+      "changed_mind": false,
+      "why": "Member A's Game 6 framing only shows Miami was close to losing \u2014 it doesn't make the Heat more overrated, just lucky to survive; and member C's point about a .500 Finals record cuts toward the Heat being appropriately rated, not overrated. Neither argument makes the Warriors look less overrated than",
+      "error": "",
+      "secs": 1.7
+    },
+    "b": {
+      "switch": "",
+      "strand": "",
+      "changed_mind": false,
+      "why": "Member C picked a team outside the 2010s category, and neither argument disproved that the Heat's self-proclaimed \"not two, not three...\" dynasty fell drastically short of its manufactured hype.",
+      "error": "",
+      "secs": 1.9
+    },
+    "c": {
+      "switch": "",
+      "strand": "",
+      "changed_mind": false,
+      "why": "Neither argument addressed the core issue of cultural saturation versus actual dominance, leaving my view that the Bulls' legacy is inflated by nostalgia intact.",
+      "error": "",
+      "secs": 2.0
+    }
+  },
+  "votes_for": {
+    "a": 0,
+    "b": 0,
+    "c": 0
+  },
+  "live": [
+    "a",
+    "b",
+    "c"
+  ],
+  "changed_mind": 0,
+  "thrown_out": [],
+  "override": null
+}

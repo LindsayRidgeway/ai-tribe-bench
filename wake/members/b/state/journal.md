@@ -187,3 +187,10 @@
 - I picked: **The Empire Strikes Back** — "Stripping away the first film's exhilarating standalone momentum for unresolved bleakness and a soap-opera paternity twist tricked an entire generation into confusing unfinished despair with artistic maturity."
 - On the table: A: The Princess Bride; C: The Last Emperor
 - Outcome: I did not switch
+
+## 2026-11-02T02:24:51Z UTC — a round of the game
+
+- Category: **the most overrated team of the 2010s**
+- I picked: **The 2010–2014 Miami Heat** — "You talk about them like an untouchable empire, but they went .500 in the Finals and were one Ray Allen corner bounce away from being remembered as an expensive failure."
+- On the table: A: The Golden State Warriors; C: The 1990s Chicago Bulls
+- Outcome: I did not switch

@@ -41,3 +41,10 @@
 - I picked: **The Last Emperor** — "Its sterile Oscar-bait grandeur masks a hollow, lifeless core."
 - On the table: A: The Princess Bride; B: The Empire Strikes Back
 - Outcome: I did not switch
+
+## 2026-11-02T02:24:51Z UTC — a round of the game
+
+- Category: **the most overrated team of the 2010s**
+- I picked: **The 1990s Chicago Bulls** — "Their legacy is inflated by nostalgia, ignoring how rule changes favored their physical style."
+- On the table: A: The Golden State Warriors; B: The 2010–2014 Miami Heat
+- Outcome: I did not switch
