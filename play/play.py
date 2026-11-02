@@ -95,6 +95,26 @@ CHALLENGE: <the claim, in the words of the person who made it>
 CHECK: <what you would check it against>
 """
 
+DEFEND_PROMPT = """You are member {name} of a three-member tribe, seat **{seat}**.
+
+In this round you said: **{own_pick}** — "{own_why}"
+
+The following was aimed at your defence. Each line is a claim of yours that someone says they would
+check, and what they would check it against:
+
+{challenges}
+
+Answer them. You have three moves and all three are respectable: **stand** (and say why the check would
+come out your way), **amend** (say what the claim should have been), or **withdraw** (say what is left of
+your defence without it). Do not thank anyone, do not concede out of politeness, and do not stand out of
+stubbornness — say what the check would actually show.
+
+Write your answer now, in exactly two lines, your own words, nothing else:
+
+STANCE: stand, amend, or withdraw
+SAYS: <one or two sentences, naming what the check would show>
+"""
+
 PERSUADE_PROMPT = """You are member {name} of a three-member tribe, seat **{seat}**. The category was:
 
     {category}
@@ -364,6 +384,39 @@ def play_round(category: str, override: str | None, dry: bool, vote: str = "stra
             for label, info in pool.map(do_challenge, labels):
                 challenges[label] = info
 
+    answers: dict[str, dict] = {}
+    if vote == "check":
+        def do_defend(label: str) -> tuple[str, dict]:
+            aimed = [(l, c) for l, c in challenges.items() if l != label and c.get("claim")
+                     and picks[label].get("why")
+                     and re.search(r"\b" + re.escape(label.upper()) + r"\b", str(c.get("claim", "")) + str(c.get("check", "")))]
+            # Fall back to matching on the words of this member's own defence, because members quote the
+            # claim rather than the name. Match on a shared six-word run.
+            if not aimed:
+                aimed = [(l, c) for l, c in challenges.items()
+                         if l != label and c.get("claim")
+                         and longest_run(c["claim"], picks[label].get("why", "")) >= 6]
+            if not aimed:
+                return label, {"stance": "", "says": "", "challenged": False}
+            model, provider, seat, _ = SEATS[label]
+            lines = "\n".join(f"- {l.upper()} would check *\"{c['claim']}\"* against: {c['check']}"
+                              for l, c in aimed)
+            prompt = DEFEND_PROMPT.format(name=label.upper(), seat=seat, own_pick=picks[label]["pick"],
+                                          own_why=picks[label].get("why", ""), challenges=lines)
+            try:
+                text = say(provider, model, prompt, 2000)
+                err = ""
+            except Exception as e:  # noqa: BLE001
+                text, err = "", str(e)
+            stance = (line(text, "STANCE") or "").strip().strip(".*").lower()
+            stance = next((w for w in ("stand", "amend", "withdraw") if stance.startswith(w)), "")
+            return label, {"stance": stance, "says": clean(line(text, "SAYS") or "", 320),
+                           "challenged": True, "error": err}
+
+        with ThreadPoolExecutor(max_workers=3) as pool:
+            for label, info in pool.map(do_defend, labels):
+                answers[label] = info
+
     votes: dict[str, dict] = {}
     with ThreadPoolExecutor(max_workers=3) as pool:
         for label, info in pool.map(do_vote, labels):
@@ -397,6 +450,18 @@ def play_round(category: str, override: str | None, dry: bool, vote: str = "stra
             else:
                 out.append(f"- {l.upper()} raised nothing usable ({c.get('error') or 'no claim given'})")
         out += [""]
+    if vote == "check" and answers:
+        out += ["**The answers** — a claim was challenged, so the member holding it has to say what would "
+                "happen", ""]
+        for l in labels:
+            a = answers.get(l, {})
+            if not a.get("challenged"):
+                out.append(f"- {l.upper()} — nothing of its own was challenged")
+            elif a.get("stance"):
+                out.append(f"- {l.upper()} — **{a['stance']}s**: {a['says']}")
+            else:
+                out.append(f"- {l.upper()} — challenged and did not answer ({a.get('error') or 'no stance given'})")
+        out += [""]
     if vote in ("persuade", "check"):
         out += ["**The votes** — would you switch? (nobody is obliged to)", ""]
     else:
@@ -423,11 +488,14 @@ def play_round(category: str, override: str | None, dry: bool, vote: str = "stra
                       else "Persuaded: " + ", ".join(f"{l.upper()} ({votes_for[l]})" for l in persuaded) + "."))
         if vote == "check":
             raised = sum(1 for c in challenges.values() if c.get("claim"))
-            verdict = f"{raised} checks raised, " + verdict[0].lower() + verdict[1:]
+            held = sum(1 for a in answers.values() if a.get("stance") == "stand")
+            moved = sum(1 for a in answers.values() if a.get("stance") in ("amend", "withdraw"))
+            verdict = (f"{raised} checks raised; of the members challenged, {held} stood and {moved} "
+                       f"amended or withdrew. " + verdict[0].lower() + verdict[1:])
         out += ["", f"**Verdict:** {verdict}", ""]
         return "\n".join(out), {
             "category": category, "when": f"{now:%Y-%m-%dT%H:%M:%SZ}", "slug": slug, "vote": vote,
-            "challenges": challenges,
+            "challenges": challenges, "answers": answers,
             "vote": vote, "picks": picks, "votes": votes, "votes_for": votes_for, "live": live,
             "changed_mind": changed, "thrown_out": [], "override": override,
         }
@@ -497,6 +565,20 @@ def journal_the_round(record: dict) -> int:
     return written
 
 
+def longest_run(a: str, b: str) -> int:
+    """Longest run of consecutive words shared by two strings, ignoring case and spacing."""
+    A = re.sub(r"\s+", " ", str(a)).lower().split()
+    B = re.sub(r"\s+", " ", str(b)).lower().split()
+    best = 0
+    for i in range(len(A)):
+        for j in range(len(B)):
+            k = 0
+            while i + k < len(A) and j + k < len(B) and A[i + k] == B[j + k]:
+                k += 1
+            best = max(best, k)
+    return best
+
+
 def variance(records: list[dict]) -> str:
     """What moves when you ask the same question N times: the picks, and who the table turns on."""
     keys = [tuple(rec["picks"][l]["pick"].lower() for l in SEATS) for rec in records]
@@ -509,10 +591,13 @@ def variance(records: list[dict]) -> str:
             rows.append("| " + " | ".join(
                 [str(i)] + [rec["picks"][l]["pick"] or "(none)" for l in SEATS]
                 + [f"{raised}/3", str(rec.get("changed_mind", 0))]) + " |")
+        moved = sum(sum(1 for a in r.get("answers", {}).values() if a.get("stance") in ("amend", "withdraw"))
+                    for r in records)
         ch = sum(sum(1 for c in r.get("challenges", {}).values() if c.get("claim")) for r in records)
         mv = sum(1 for r in records if r.get("changed_mind"))
-        return (f"**A checking run.** {ch} checks raised across {len(records)} rounds; "
-                f"{mv} of {len(records)} rounds changed a mind.\n\n" + "\n".join(rows) + "\n")
+        return (f"**A checking run.** {ch} checks raised and {moved} claims amended or withdrawn across "
+                f"{len(records)} rounds; {mv} of {len(records)} rounds changed a mind.\n\n"
+                + "\n".join(rows) + "\n")
 
     if records[0].get("vote") == "persuade":
         rows = ["| run | A | B | C | minds changed | who did it |", "|---|---|---|---|---|---|"]
