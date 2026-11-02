@@ -18,7 +18,8 @@ jobs:
     if: >
       contains(github.event.comment.body, '@tribe draft') ||
       contains(github.event.comment.body, '@tribe score') ||
-      contains(github.event.comment.body, '@tribe override')
+      contains(github.event.comment.body, '@tribe override') ||
+      contains(github.event.comment.body, '@tribe ask')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -64,6 +65,21 @@ jobs:
               # Replay the same category with the human's call recorded. Cheaper and more honest than
               # editing a finished round: the table's votes stay in the file next to the override.
               python3 play/play.py --category "$cat" --override "$l" > /tmp/reply.md
+              ;;
+            ask*)
+              who="$(printf '%s' "$REST" | awk '{print $1}')"
+              q="$(printf '%s' "$REST" | cut -d' ' -f2-)"
+              [ -f "wake/members/$who/state/voice.md" ] || { echo "no such member: $who" >&2; exit 2; }
+              [ -n "${q:-}" ] && [ "$q" != "$who" ] || { echo "ask needs a question after the member" >&2; exit 2; }
+              # The member gets the derived vote log as a letter it must answer, and the question as the
+              # question. This is the window path in a thread: evidence in the room, not just an advert.
+              python3 play/log.py > /tmp/vote-log.md
+              api="$(grep -E '^api:' "wake/members/$who/state/voice.md" | head -1 | awk '{print $2}')"
+              model="$(grep -E '^model:' "wake/members/$who/state/voice.md" | head -1 | awk '{print $2}')"
+              python3 wake/wake.py --member "$who" --api-model "$model" --api-base "$api" \
+                --read /tmp/vote-log.md --ask "$q" > /tmp/ask.log 2>&1 || tail -30 /tmp/ask.log
+              newest="$(ls -t "wake/members/$who/output"/*.md | head -1)"
+              { echo "**Member ${who}**, with the vote log attached — asked: *${q}*"; echo; cat "$newest"; } > /tmp/reply.md
               ;;
             *)
               [ -n "${REST:-}" ] || { echo "draft needs a category, e.g. '@tribe draft best pizza topping'" >&2; exit 2; }

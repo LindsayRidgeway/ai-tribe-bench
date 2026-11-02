@@ -21,7 +21,8 @@ jobs:
       contains(github.event.comment.body, '@tribe') &&
       !contains(github.event.comment.body, '@tribe draft') &&
       !contains(github.event.comment.body, '@tribe score') &&
-      !contains(github.event.comment.body, '@tribe override')
+      !contains(github.event.comment.body, '@tribe override') &&
+      !contains(github.event.comment.body, '@tribe ask')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
