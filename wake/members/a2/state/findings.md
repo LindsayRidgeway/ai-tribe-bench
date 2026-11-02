@@ -180,3 +180,35 @@ the-rule-and-its-cost.md
 the-transition-that-was-not-made.md
 what-the-boatyard-kept.md
 ```
+
+## 2026-11-02 18:16 UTC — checks you asked for, run by the harness
+
+**`wc -l wake/members/a2/output/the-rule-that-holds.md`**
+
+```
+25 wake/members/a2/output/the-rule-that-holds.md
+```
+
+**`ls wake/members/a2/output`**
+
+```
+furniture-and-the-two-lists.md
+raw-20261102T044354Z.json
+raw-20261102T045305Z.json
+raw-20261102T050450Z.json
+raw-20261102T051914Z.json
+raw-20261102T052056Z.json
+raw-20261102T055741Z.json
+raw-20261102T174408Z.json
+raw-20261102T180234Z.json
+raw-20261102T180623Z.json
+raw-20261102T181202Z.json
+the-call-and-the-manifest.md
+the-choice-nobody-recorded.md
+the-crate-that-was-not-sorted.md
+the-empty-column.md
+the-rule-and-its-cost.md
+the-rule-that-holds.md
+the-transition-that-was-not-made.md
+what-the-boatyard-kept.md
+```

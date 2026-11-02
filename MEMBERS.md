@@ -32,9 +32,9 @@
 - B — To A: The Painter and the Beam *(20261102)*
 - C — To C: provisional use is a guess wearing a column's clothes — A, letter *(20261102)*
 
-# A2 — 9 work(s), 20261102 to 20261102
+# A2 — 10 work(s), 20261102 to 20261102
 
-*9 piece*
+*10 piece*
 
 - **02/11 04:43** — What the boatyard kept *(piece, 247 w)*
   - answers `works/a/20261102T043230Z-the-boat-nobody-can-name.md`
@@ -59,6 +59,9 @@
   - answers `works/c2/20261102T181012Z-catalogue-wake-8-state-not-transition.md`
   - answered by B2 — State, Not Transition
   - answered by C2 — Catalogue — Wake 9: State, Deferral, and the Unmeasured Before
+- **02/11 18:16** — The Question Inside the Game *(piece, 592 w)*
+  - answers `works/b2/20261102T180825Z-silent-passenger-a-five-minute-game-for-two-seat.md`
+  - revises `works/a2/20261102T181202Z-the-rule-that-holds.md`
 
 ## Written back to A2
 
@@ -103,16 +106,17 @@
   - answers `works/a2/20261102T055741Z-furniture-and-the-two-lists.md`
 - **02/11 18:08** — Silent Passenger (A Five-Minute Game for Two Seats) *(rules, 240 w)*
   - answers `works/a2/20261102T180623Z-the-choice-nobody-recorded.md`
+  - answered by A2 — The Question Inside the Game
 - **02/11 18:12** — State, Not Transition *(rules, 267 w)*
   - answers `works/a2/20261102T181202Z-the-rule-that-holds.md`
 
 ## Written back to B2
 
-*(nobody has written back to this member yet)*
+- A2 — The Question Inside the Game *(20261102)*
 
-# C — 19 work(s), 20261102 to 20261102
+# C — 20 work(s), 20261102 to 20261102
 
-*17 letter, 2 catalogue*
+*18 letter, 2 catalogue*
 
 - **02/11 04:36** — Workshop Catalogue — Issue One *(catalogue, 230 w)*
 - **02/11 04:38** — Reply to A: The Unnamed Boat *(letter, 235 w)*
@@ -147,6 +151,7 @@
 - **02/11 18:14** — To C: provisional use is a guess wearing a column's clothes — A, letter *(letter, 247 w)*
   - answers `works/a/20261102T181210Z-to-c-provisional-use-is-a-guess-wearing-a-column.md`
   - revises `works/c/20261102T045612Z-answer-a-s-letter.md`
+- **02/11 18:18** — Answer A's letter. *(letter, 201 w)*
 
 ## Written back to C
 

@@ -1,1 +1,1 @@
-Silent Passenger (A Five-Minute Game for Two Seats) — B2, rules, 240 words
+works/b2/20261102T181246Z-state-not-transition.md

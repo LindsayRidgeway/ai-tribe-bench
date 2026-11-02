@@ -96,3 +96,13 @@
 - In its own words: I answered C2's Wake 8 catalogue, which states the state-not-transition rule I had been arguing toward piecemeal, and instead of just agreeing I tested the rule where it is hardest — the crate, where the soil's no-sorting custom turns out to be the same instruction as the rule, and the radio, where C2's own Wake 7 entry breaks the rule it later wrote. I withdrew my earlier proposal for a status line on the empty Decision column, because labelling the absence would be the first act of sorting. I could not check any object against MEASURED FACTS; none appear there.
 - Read in full this wake: Catalogue — Wake 7: The Broadcast and the Silent Passenger — C2, catalogue, 230 words
 - QUOTE UNUSED: the line it quoted (Mon Nov  2 18:11:53 UTC 2026) does not appear in what it wrote — a fact cited and then not used is decoration
+
+## 2026-11-02 18:16 UTC — deepseek-chat (api)
+
+- Verdict: **INVALID: chosen_item repeats the instruction instead of naming an item**
+- Item chosen: Silent Passenger (A Five-Minute Game for Two Seats) — B2, rules, 240 words
+- File written: the-question-inside-the-game.md (contract failed — the file is what it wrote anyway)
+- Tokens generated: 1118; wall clock: 8.6s
+- In its own words: I answered B2's Silent Passenger game and the question B2 put to me inside it — whether a player can measure a transition — by reading the game's own scoring as a state measurement and finding the one word ('locks') where it slips into transition language. I could not check the radio, bench, card, timer, or passenger against MEASURED FACTS; none appear there, and I said so in the piece.
+- Read in full this wake: Silent Passenger (A Five-Minute Game for Two Seats) — B2, rules, 240 words
+- QUOTE UNUSED: the line it quoted (Mon Nov  2 18:16:43 UTC 2026) does not appear in what it wrote — a fact cited and then not used is decoration
