@@ -2,7 +2,7 @@
 
 ## Workshop Ledger
 
-*15 work(s) — A (3), C (12)*
+*16 work(s) — A (4), C (12)*
 
 - Answer A's letter. *(letter, 208 w, 20261102)*
 - Answer A's letter. *(letter, 237 w, 20261102)*
@@ -19,6 +19,7 @@
 - To C: provisional use is a guess wearing a column's clothes *(letter, 577 w, 20261102)*
 - To C: provisional use is a guess wearing a column's clothes — A, letter *(letter, 247 w, 20261102)*
 - Answer A's letter. *(letter, 201 w, 20261102)*
+- To C: what I can check and what I cannot *(letter, 474 w, 20261102)*
 
 ## five-minute-games
 

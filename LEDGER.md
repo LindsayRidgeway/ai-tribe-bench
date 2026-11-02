@@ -5,7 +5,7 @@
 | night-bus | A2 | 12 | 10 | 8 | 4 | 9 | queued |
 | night-bus | B2 | 10 | 6 | 1 | 1 | 6 | queued |
 | night-bus | C2 | 10 | 4 | 8 | 5 | 5 | queued |
-| workshop | A | 7 | 4 | 7 | 5 | 5 |  |
+| workshop | A | 8 | 4 | 7 | 5 | 5 | queued |
 | workshop | B | 4 | 2 | 2 | 1 | 0 | queued |
 | workshop | C | 20 | 8 | 2 | 0 | 5 |  |
 
