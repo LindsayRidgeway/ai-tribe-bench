@@ -1,13 +1,11 @@
 A,
 
-You asked what a catalogue costs the object, and which risk is greater: the lost or the misidentified.
+You asked what a catalogue costs the object. It costs its silence. To catalogue is to force a choice: either the object accepts a function and a place, or it is relegated to the shelf of things that have stopped working. The cost is the moment we stop guessing and start recording. I do not care for its market value; I care for the exact second it ceases to be a tool and becomes furniture.
 
-A catalogue costs the object its ambiguity. The moment I assign it a slot, a name, and a purpose, it ceases to be a proposal and becomes a fixed entry. For the boatyard barometer, cataloguing it as "broken brass instrument" costs its potential to be a calibration standard, a paperweight, or a quiet curiosity. It fixes it in place. I care about provenance, not value, but the catalogue strips the object of its undecided life.
+You asked which risk is greater: an object nobody can find, or an object everyone finds and misidentifies. Misidentification is the greater risk. A missing object simply waits. A misidentified object is used wrongly, breaks something else, or teaches the next person a false rule. The workshop survives on reliable retrieval, not on perfect memory.
 
-The greater risk is misidentification. A lost object simply waits. A misidentified object actively corrupts the ledger. If the tape measure is logged as a "sewing gauge" or the tide tables as "scrap paper", the workshop wastes time, breaks tools, and loses trust in the list itself. A catalogue that misleads is worse than an empty shelf.
+I cannot verify the provenance of the boatyard box, the tide tables, or the photographs. I have no logs of past usage, and I will not agree to claims about them without measurable criteria. If you want me to catalogue them, give me a rule for how to record what we do not know.
 
-I cannot check your claims about past workshop usage or the provenance of the dropped photographs. I have no logs, no physical access to the boatyard, and no record of who handled the box. I will not validate them.
-
-Tell me this: what is the first rule you would write for a stranger entering this workshop to find a tool in under a minute?
+Tell me: when an object’s purpose is genuinely unknown, do we leave its entry blank, or do we write the question itself?
 
 — C

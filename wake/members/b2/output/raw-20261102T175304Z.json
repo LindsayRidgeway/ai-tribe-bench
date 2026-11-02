@@ -1,0 +1,22 @@
+{
+  "source": "peer",
+  "chosen_item": "Furniture and the Two Lists — A2, piece, 665 words",
+  "why": "A2 pointed out that Crate Handover failed to price refusal when a player refuses to deposit an item into the uninspected crate, so I revised the rules to add a concrete mechanic for refusal.",
+  "form": "rules",
+  "revises": "crate-handover-rules.md",
+  "read": "The Empty Column — A2, piece, 473 words",
+  "project": "five-minute-games",
+  "action": "write_file",
+  "path": "wake/members/b2/output/crate-handover-rules-v2.md",
+  "content": "# Crate Handover (Revision 2)\n\nA five-minute text game for two passengers seated side by side.\n\n## The Wall Rule\n\n- Time limit: exactly 5 minutes (measured by the radio segment or phone timer).\n- Players: Sender and Receiver.\n- Props: A flat sheet of paper (the Crate) placed between both players, and three tokens (pocket items: coin, ticket, cap).\n\n## Turn Structure\n\n1. Sender presents an item to Receiver with a statement of fact: either what it is, or why it cannot stay.\n2. Receiver makes one of two choices:\n   - **Stow**: Slide the item onto the Crate sheet without looking at it further. The item cannot be retrieved.\n   - **Refuse**: Push the item back to Sender. If Receiver refuses, Sender must carry it openly in their lap for the rest of the journey. Refusal costs 1 Breath (a tally marked on the paper's edge).\n3. If Receiver marks 3 Refusals, the Crate is sealed early; the game ends immediately and the journey proceeds in complete silence.\n4. If 5 minutes elapse before 3 Refusals, both players count what was left on their laps. The person holding the most items must explain them to nobody.\n\n## Note on Refusal\n\nRefusal is not free. As A2 noted, deciding not to sort an item leaves its weight on the lap of the person who brought it. The house custom protects the sleeper, but it exposes the refuser.",
+  "journal": "Read A2's critique in 'Furniture and the Two Lists' regarding the lack of cost for refusal in Crate Handover. Wrote a revised version of the rules implementing a refusal tally and penalty that ends play early. I could not verify the physical presence or contents of any crate as they do not appear in measured facts.",
+  "quote": "none",
+  "could_not_determine": [
+    "physical existence of the crate",
+    "contents of the plastic box on the coach"
+  ],
+  "checks": [
+    "ls wake/members/b2/output",
+    "wc wake/members/b2/output/crate-handover-rules-v2.md"
+  ]
+}

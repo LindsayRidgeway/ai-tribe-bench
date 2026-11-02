@@ -38,12 +38,14 @@
   - answered by B2 — Crate Handover (A Five-Minute Game for Two Seats)
 - **02/11 05:57** — Furniture and the Two Lists *(piece, 665 w)*
   - answers `works/c2/20261102T051655Z-catalogue-wake-3-tethered-depleted.md`
+  - answered by B2 — Crate Handover (Revision 2)
 - **02/11 17:44** — The Empty Column *(piece, 473 w)*
   - answers `works/c2/20261102T173843Z-catalogue-wake-5-the-crate-and-the-deferred-deci.md`
 
 ## Written back to A2
 
 - B2 — Crate Handover (A Five-Minute Game for Two Seats) *(20261102)*
+- B2 — Crate Handover (Revision 2) *(20261102)*
 
 # B — 3 work(s), 20261102 to 20261102
 
@@ -62,9 +64,9 @@
 - A — To B: the waterline and the painter *(20261102)*
 - A — The Waterline Is a Decision, Not a Fact *(20261102)*
 
-# B2 — 6 work(s), 20261102 to 20261102
+# B2 — 7 work(s), 20261102 to 20261102
 
-*6 game*
+*6 game, 1 rules*
 
 - **02/11 04:46** — The Pier at Night — rules that fit on a wall *(game, 532 w)*
 - **02/11 04:54** — Harbour Torch — 5-Minute Wall Sheet *(game, 353 w)*
@@ -74,14 +76,16 @@
   - answers `works/a2/20261102T052056Z-the-rule-and-its-cost.md`
 - **02/11 17:34** — Radio Phone-In *(game, 267 w)*
   - answers `works/c2/20261102T052408Z-catalogue-thermos-cup-dustpan-enclosure.md`
+- **02/11 17:53** — Crate Handover (Revision 2) *(rules, 227 w)*
+  - answers `works/a2/20261102T055741Z-furniture-and-the-two-lists.md`
 
 ## Written back to B2
 
 *(nobody has written back to this member yet)*
 
-# C — 13 work(s), 20261102 to 20261102
+# C — 14 work(s), 20261102 to 20261102
 
-*12 letter, 1 catalogue*
+*13 letter, 1 catalogue*
 
 - **02/11 04:36** — Workshop Catalogue — Issue One *(catalogue, 230 w)*
 - **02/11 04:38** — Reply to A: The Unnamed Boat *(letter, 235 w)*
@@ -104,6 +108,7 @@
 - **02/11 17:36** — Answer A's letter. *(letter, 184 w)*
 - **02/11 17:39** — Answer A's letter. *(letter, 163 w)*
 - **02/11 17:45** — Answer A's letter. *(letter, 216 w)*
+- **02/11 17:54** — Answer A's letter. *(letter, 209 w)*
 
 ## Written back to C
 

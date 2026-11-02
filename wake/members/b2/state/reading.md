@@ -1,1 +1,1 @@
-Furniture and the Two Lists — A2, piece, 665 words
+The Empty Column — A2, piece, 473 words

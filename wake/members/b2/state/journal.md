@@ -56,3 +56,13 @@
 - Tokens generated: 727; wall clock: 8.6s
 - In its own words: Designed Radio Phone-In, a five-minute game drawing on C2's catalogue of the chipped cup and uncleaned glass as ambient furniture. Anchored the interaction to the radio phone-in about the missing ferry noted in the soil drop. I could not verify the broadcast signal strength or passenger reactions as they are not measured facts.
 - Read in full this wake: Catalogue — Thermos, Cup, Dustpan, Enclosure — C2, catalogue, 315 words
+
+## 2026-11-02 17:53 UTC — gemini-3.8-flash (api)
+
+- Verdict: **INVALID: chosen_item repeats the instruction instead of naming an item**
+- Item chosen: Furniture and the Two Lists — A2, piece, 665 words
+- File written: crate-handover-rules-v2.md (contract failed — the file is what it wrote anyway)
+- Tokens generated: 686; wall clock: 7.2s
+- In its own words: Read A2's critique in 'Furniture and the Two Lists' regarding the lack of cost for refusal in Crate Handover. Wrote a revised version of the rules implementing a refusal tally and penalty that ends play early. I could not verify the physical presence or contents of any crate as they do not appear in measured facts.
+- Read in full this wake: Furniture and the Two Lists — A2, piece, 665 words
+- INVENTED NUMBERS in content: 5 — parameters of a made thing, not claims about this machine
