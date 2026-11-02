@@ -113,6 +113,15 @@ class TestGame(unittest.TestCase):
         why = "Their legacy is inflated, ignoring how rule changes favored their physical style."
         self.assertGreaterEqual(play.longest_run(claim, why), 6)
 
+    def test_a_neutral_round_asks_nobody_to_defend_eating(self):
+        """Round 16: the seats are written for taste. Played in the neutral framing — a question about
+        the tribe's own practice — the outsider seat was still being asked to defend eating an audit,
+        which would have been read as a finding about the member rather than about the prompt."""
+        words = play.FRAMING["neutral"]["stance_c"] + " " + play.FRAMING["neutral"]["decide"]
+        self.assertNotIn("eat", words)
+        self.assertNotIn("order", words)
+        self.assertIn("eat", play.FRAMING["food"]["stance_c"])
+
     def test_variance_counts_distinct_outcomes(self):
         rec = lambda a, b, c: {"picks": {"a": {"pick": a}, "b": {"pick": b}, "c": {"pick": c}},
                                "votes_for": {}, "thrown_out": [], "live": ["a", "b", "c"]}

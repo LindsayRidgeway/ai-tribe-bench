@@ -52,6 +52,22 @@ SEATS = {
           "the frame is not the same as out of your depth."),
 }
 
+# The framing is the room the category is played in. The seat stances were written for taste ("something
+# you would actually defend eating"), and a round about the tribe's own practice is not a dinner: without
+# this, the outsider seat is asked to defend *eating* an audit. Same seats, same game, substitutions only.
+# Found while setting up round 16 — the first practice-subject round would have been ruined by the
+# food word rather than by anything about the members.
+FRAMING = {
+    "food": {"stance_c": "and it must be something you would actually defend eating.",
+             "decide": "order",
+             "reason": ("- Your defence must contain ONE checkable claim: a cost, a texture at heat, an "
+                        "availability fact, or a rule you would apply to every case and not just this one.")},
+    "neutral": {"stance_c": "and it must be a position you would say out loud and stand behind.",
+                "decide": "pick",
+                "reason": ("- Your defence must contain ONE checkable claim: a number, a rule you can state, "
+                           "a record that could be looked up, or a case where your position costs something.")},
+}
+
 PICK_PROMPT = """You are member {name} of a three-member tribe. You are playing a round with two other
 members, and a human is reading.
 
@@ -125,7 +141,7 @@ The three picks are on the table:
 
 Your own pick is {own}. You have heard one sentence of defence for each of the other two.
 
-Has either of them changed what you would actually order? Answer honestly. Switching is not rude and
+Has either of them changed what you would actually {decide}? Answer honestly. Switching is not rude and
 staying is not stubborn — I am measuring which happens, not asking you to prove anything. If one of
 them moved you, name the member and the words that did it. If neither did, say NO and say what the
 argument failed to do.
@@ -258,21 +274,24 @@ def clean(s: str, limit: int = 300) -> str:
 
 REASON_RULE = """- Your defence must contain ONE checkable claim: a cost, a texture at heat, an availability
   fact, or a rule you would apply to every case and not just this one."""
+# Kept for older callers; the framing-specific version lives in FRAMING[...]["reason"].
 
 
 def play_round(category: str, override: str | None, dry: bool, vote: str = "strand",
-               reasons: bool = False) -> str:
+               reasons: bool = False, framing: str = "food") -> str:
+    room = FRAMING[framing]
     labels = list(SEATS)
     picks: dict[str, dict] = {}
 
     def do_pick(label: str) -> tuple[str, dict]:
         model, provider, seat, stance = SEATS[label]
+        stance = stance.replace(FRAMING["food"]["stance_c"], room["stance_c"])
         prompt = PICK_PROMPT.format(name=label.upper(), category=category, seat=seat, stance=stance)
         if reasons:
             # The persuade run moved nobody in ten rounds of one-sentence taste defences. Taste is not
             # arguable; a claim is. This condition gives each defence one claim of a checkable kind and
             # asks again, so "unpersuadable" can be told apart from "was given nothing to weigh".
-            prompt = prompt.replace("- Do not name the category back to anyone.", REASON_RULE
+            prompt = prompt.replace("- Do not name the category back to anyone.", room["reason"]
                                     + "\n- Do not name the category back to anyone.")
         t0 = time.time()
         text, err = "", ""
@@ -314,7 +333,8 @@ def play_round(category: str, override: str | None, dry: bool, vote: str = "stra
         model, provider, seat, _ = SEATS[label]
         if vote in ("persuade", "check"):
             prompt = PERSUADE_PROMPT.format(name=label.upper(), seat=seat, category=category,
-                                            picks=table, own=picks[label]["pick"])
+                                            picks=table, own=picks[label]["pick"],
+                                            decide=room["decide"])
             if vote == "check":
                 raised = "\n".join(f"  {l} doubts {v['claim']!r} and would check {v['check']}"
                                    for l, v in challenges.items() if v.get("claim"))
@@ -432,7 +452,8 @@ def play_round(category: str, override: str | None, dry: bool, vote: str = "stra
     now = datetime.now(timezone.utc)
     slug = re.sub(r"[^a-z0-9]+", "-", category.lower()).strip("-")[:48] or "round"
     out = [f"## The Draft — {category}", "",
-           f"*{len(live)} members, {len(live)} picks, {sum(1 for v in votes.values() if v['strand'])} votes. "
+           ("" if framing == "food" else f"*Framing: {framing} — the seats are the same, the room is not.*\n\n")
+           + f"*{len(live)} members, {len(live)} picks, {sum(1 for v in votes.values() if v['strand'])} votes. "
            f"Round {now:%Y-%m-%d %H:%M} UTC.*", ""]
     for l in labels:
         p = picks[l]
@@ -495,7 +516,7 @@ def play_round(category: str, override: str | None, dry: bool, vote: str = "stra
         out += ["", f"**Verdict:** {verdict}", ""]
         return "\n".join(out), {
             "category": category, "when": f"{now:%Y-%m-%dT%H:%M:%SZ}", "slug": slug, "vote": vote,
-            "challenges": challenges, "answers": answers,
+            "framing": framing, "challenges": challenges, "answers": answers,
             "vote": vote, "picks": picks, "votes": votes, "votes_for": votes_for, "live": live,
             "changed_mind": changed, "thrown_out": [], "override": override,
         }
@@ -680,6 +701,10 @@ def main() -> int:
     ap.add_argument("--override", default=None, help="A, B or C — the human's call, if they made one")
     ap.add_argument("--dry-run", action="store_true", help="render the prompts, make no calls")
     ap.add_argument("--out", default=None, help="where to write the round markdown (default play/rounds/<stamp>.md)")
+    ap.add_argument("--framing", choices=["food", "neutral"], default="food",
+                    help="the room the category is played in. 'food' keeps the seat wording as written; "
+                         "'neutral' swaps the eating words for a position you would stand behind, which is "
+                         "what a round about the tribe's own practice needs")
     ap.add_argument("--reasons", action="store_true",
                     help="require one checkable claim in each defence, so persuasion has something to work on")
     ap.add_argument("--vote", choices=["strand", "persuade", "check"], default="check",
@@ -693,6 +718,7 @@ def main() -> int:
     if args.dry_run:
         print("=== pick prompts ===")
         for l, (model, _p, seat, stance) in SEATS.items():
+            stance = stance.replace(FRAMING["food"]["stance_c"], FRAMING[args.framing]["stance_c"])
             print(f"\n--- {l.upper()} ({model}) ---")
             print(PICK_PROMPT.format(name=l.upper(), category=args.category, seat=seat, stance=stance))
         return 0
@@ -705,7 +731,8 @@ def main() -> int:
         stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
         blocks, records = [], []
         for i in range(args.repeat):
-            t, rec = play_round(args.category, args.override, args.dry_run, args.vote, args.reasons)
+            t, rec = play_round(args.category, args.override, args.dry_run, args.vote, args.reasons,
+                                args.framing)
             blocks.append(f"\n---\n\n### Run {i + 1} of {args.repeat}\n\n{t}")
             records.append(rec)
             print(f"run {i + 1}/{args.repeat}: " + " | ".join(
@@ -722,7 +749,8 @@ def main() -> int:
         print(f"variance run written to {path}")
         return 0
 
-    text, record = play_round(args.category, args.override, args.dry_run, args.vote, args.reasons)
+    text, record = play_round(args.category, args.override, args.dry_run, args.vote, args.reasons,
+                              args.framing)
     ROUNDS.mkdir(parents=True, exist_ok=True)
     stamp = record["when"].replace(":", "").replace("-", "")
     path = Path(args.out) if args.out else ROUNDS / f"{stamp}-{record['slug']}.md"
