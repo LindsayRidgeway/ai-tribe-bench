@@ -287,7 +287,32 @@ jobs:
           [ -n "${ASK:-}" ] && ARGS+=(--ask "$ASK")
           [ -n "${IMG:-}" ] && ARGS+=(--image "$IMG")
           printf 'args:'; printf ' [%s]' "${ARGS[@]}"; echo
+          touch /tmp/wake-start
           python3 wake/wake.py "${ARGS[@]}" 2>&1 | tee /tmp/wake.log
+
+      # The clock filed what its members wrote. This path did not, and nobody noticed for a day because
+      # RUN.md tells a stranger to read `output/`, which is where the file lands either way. The visible
+      # difference is the magazine and the shelf: after a hand wake the colony had grown by nothing, the
+      # work was invisible to the other five members, and the next clock turn could not answer it. Measured
+      # 2026-11-02: member b2's wake wrote a playable game into output/ and works/b2/ did not change.
+      # Everything the clock does after a wake happens here now, guarded so a re-run does not file the
+      # same reply twice.
+      - name: File what this wake wrote, so the shelf and the magazine can see it
+        run: |
+          set -euo pipefail
+          m="${MEMBER:-a}"
+          if [ ! -f /tmp/wake-start ]; then
+            echo "the wake step never started — nothing to file"
+            exit 0
+          fi
+          newest="$(ls -t "wake/members/$m/output"/raw-*.json 2>/dev/null | head -1 || true)"
+          if [ -z "$newest" ] || [ ! "$newest" -nt /tmp/wake-start ]; then
+            echo "this wake left no raw reply — nothing to file (a refusal is recorded in the journal)"
+            exit 0
+          fi
+          issue="$(python3 magazine.py --current)"
+          python3 file_work.py --member "$m" --issue "$issue" --raw "$newest" || \
+            echo "!! filing failed — the reply is still in $newest and the journal still says what happened"
 
       # A single wake by hand filed a work and left every derived view as it was, so LEDGER.md on disk said
       # A owed nothing while the record said it owed one — found by deleting the derived files in a copy and

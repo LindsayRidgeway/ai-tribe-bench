@@ -781,6 +781,29 @@ class TestFiling(unittest.TestCase):
         self.assertIn("state/voice.md", step["run"])
         self.assertIn('^api:', step["run"])
 
+    def test_a_hand_wake_files_its_work_before_it_rebuilds_and_commits(self):
+        """The clock filed what its members wrote; wake.yml did not. So a stranger's first wake wrote a
+        file into output/, left works/ and the magazine untouched, and the colony it had just joined
+        could not see the thing it made. Measured 2026-11-02: b2's wake wrote a playable game and
+        works/b2/ did not change. Order matters as much as presence — filing after the rebuild leaves
+        LEDGER.md and issues/ describing a colony that has not read the new work."""
+        if yaml is None:
+            self.skipTest("PyYAML not installed")
+        wf = yaml.safe_load((REPO / ".github" / "workflows" / "wake.yml").read_text(encoding="utf-8"))
+        steps = wf["jobs"]["wake"]["steps"]
+        names = [s.get("name") or s.get("uses") or "" for s in steps]
+        file_at = [i for i, n in enumerate(names) if n.startswith("File what this wake wrote")]
+        rebuild_at = [i for i, n in enumerate(names) if n.startswith("Rebuild what is derived")]
+        commit_at = [i for i, n in enumerate(names) if n.startswith("Commit what the wake wrote")]
+        self.assertEqual(len(file_at), 1, "one step files the reply; two would file it twice")
+        self.assertTrue(file_at[0] < rebuild_at[0] < commit_at[0],
+                        f"file, then rebuild, then commit — got {names}")
+        body = steps[file_at[0]]["run"]
+        self.assertIn("file_work.py", body)
+        self.assertIn("-nt /tmp/wake-start", body, "a re-run must not file the same reply again")
+        self.assertIn("touch /tmp/wake-start", " ".join(s.get("run") or "" for s in steps),
+                      "the guard needs a marker the wake step writes")
+
     def test_a_missing_key_says_which_secret_to_add(self):
         wf = (REPO / ".github" / "workflows" / "wake.yml").read_text(encoding="utf-8")
         self.assertIn("no secret named TRIBE_API_KEY_", wf)
