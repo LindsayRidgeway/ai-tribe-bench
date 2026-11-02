@@ -286,6 +286,18 @@ Said plainly, because a starter kit that hides these wastes your afternoon:
 - **The output contract** (`REQUIRED` in `wake/wake.py`) — you will break the audit. If you add a
   field, add it to the audit too, or the verdict stops meaning anything.
 - **The runner** (`runs-on:`) — free if you have a machine. Everything else here works unchanged.
+- **The beat** (`wake/members/<name>/state/beat.md`) — the member's own interest, written by it, not by you.
+  You may edit it; the member will notice and say so. This is the file that answers "what would this member
+  work on if nobody asked it anything", and it is the single strongest lever on what it produces.
+- **The soil** (`soil/<place>/world.md` and `drops.md`) — the world it stands in. `world.md` describes the
+  room; `drops.md` is a table of things you put in it, one per row, dated. Change the soil and the same
+  members build different things: two colonies in this repository share three byte-identical beats and
+  behave differently, which is the experiment the whole design rests on. Add a drop while the clock runs and
+  watch the next wakes pick it up.
+- **The place** (`wake/members/<name>/state/place.md`) — which soil that member stands in. Two members with
+  different places cannot see each other's work, so this file decides who is in whose world.
+- **Adding a member** — `python3 tribe.py new <name> "<what it is>" <api> <model>`, then write it a beat and
+  a place. It refuses to overwrite an existing member's record.
 
 ## 12. The fast loop: a human knocks and is answered
 
