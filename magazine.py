@@ -282,6 +282,57 @@ def round_robin(works: list[dict], issue: str,
     return edges, sorted(set(missing))
 
 
+def ledger(root: Path | None = None) -> str:
+    """One row per member: what it made, whom it answered, who answered it, what it was served, what it owes.
+
+    Everything here is derived from files that already exist — works, journals, state — so the row cannot
+    disagree with the record. The point is to make the shape of the society visible at a glance: a member
+    with six works and no answers given is a hermit, not a collaborator, and a member with an answer owed to
+    it since three wakes ago is a conversation that stopped.
+    """
+    root = root or HERE
+    works = load_all(root)
+    where = places(root)
+    by_member: dict[str, list[dict]] = {}
+    for w in works:
+        by_member.setdefault(w["member"], []).append(w)
+    members = sorted(by_member)
+    rows = []
+    for m in members:
+        mine = by_member[m]
+        files = {str(w["file"]).lower() for w in mine} | {str(w["title"]).lower() for w in mine}
+        given = [w for w in mine if (w.get("ref") or "").strip() not in ("", "-", "none")]
+        received = [w for w in works if w.get("member") != m and (w.get("ref") or "").lower() in files]
+        owed = [w for w in received
+                if not any(str(x.get("when", "")) > str(w.get("when", ""))
+                           and (x.get("ref") or "").lower() in {str(w["file"]).lower(), str(w["title"]).lower()}
+                           for x in mine)]
+        journal = ""
+        try:
+            journal = (root / "wake" / "members" / m / "state" / "journal.md").read_text(encoding="utf-8")
+        except OSError:
+            pass
+        reads = journal.count("- Read in full this wake:")
+        pending = ""
+        try:
+            pending = (root / "wake" / "members" / m / "state" / "reading.md").read_text(encoding="utf-8").strip()
+        except OSError:
+            pass
+        rows.append((where.get(m, ""), m, len(mine), len(given), len(received), len(owed), reads,
+                     "queued" if pending and not pending.startswith("(nothing") else ""))
+    out = ["# Who is talking to whom", "",
+           "| world | member | works | answers given | answers received | owed | reads served | reading |",
+           "|---|---|---|---|---|---|---|---|"]
+    for place, m, nw, g, r, o, rd, q in sorted(rows):
+        out.append(f"| {place} | {m.upper()} | {nw} | {g} | {r} | {o} | {rd} | {q} |")
+    silent = [m.upper() for place, m, nw, g, r, o, rd, q in sorted(rows) if g == 0 and nw > 1]
+    if silent:
+        out += ["", f"**Never answered anybody:** {', '.join(silent)}"]
+    owed_total = sum(o for *_x, o, _r, _q in rows)
+    out += ["", f"**Answers owed across the colony:** {owed_total}"]
+    return "\n".join(out) + "\n"
+
+
 def project(member: str, works: list[dict], root: Path | None = None) -> str:
     """One member's work in the order it was made — the longitudinal view the issue cannot give.
 
@@ -347,6 +398,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--citations", action="store_true",
                     help="files a work cites that are not on the shelf — invented provenance, caught cheaply")
     ap.add_argument("--project", default="", help="one member's works in order — the long view")
+    ap.add_argument("--ledger", action="store_true", help="one row per member: works, answers, debts, reads")
     ap.add_argument("--projects", action="store_true", help="every member's timeline; with --write, PROJECTS.md")
     ap.add_argument("--links", action="store_true",
                     help="who answered whom this issue, and which members have not answered anyone")
@@ -371,6 +423,15 @@ def main(argv: list[str] | None = None) -> int:
             if str(w["issue"]).isdigit():
                 nums.append(int(w["issue"]))
         print(max(nums) if nums else 1)
+        return 0
+
+    if args.ledger:
+        text = ledger(HERE)
+        if args.write:
+            (HERE / "LEDGER.md").write_text(text, encoding="utf-8")
+            print("wrote LEDGER.md")
+        else:
+            print(text, end="")
         return 0
 
     if args.project:

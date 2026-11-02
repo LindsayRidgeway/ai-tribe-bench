@@ -380,6 +380,27 @@ class TestMagazine(unittest.TestCase):
         shutil.rmtree(tmp, ignore_errors=True)
 
 
+
+    def test_the_ledger_counts_who_answers_whom(self):
+        tmp = Path(tempfile.mkdtemp())
+        (tmp / "works" / "a").mkdir(parents=True); (tmp / "works" / "b").mkdir(parents=True)
+        (tmp / "wake" / "members" / "a" / "state").mkdir(parents=True)
+        (tmp / "wake" / "members" / "b" / "state").mkdir(parents=True)
+        (tmp / "works" / "a" / "one.md").write_text(
+            "---\ntitle: One\nform: piece\nissue: 1\nwhen: 20261102T040000Z\n---\n\nbody\n", encoding="utf-8")
+        (tmp / "works" / "a" / "two.md").write_text(
+            "---\ntitle: Two\nform: piece\nissue: 1\nwhen: 20261102T060000Z\n---\n\nbody\n", encoding="utf-8")
+        (tmp / "works" / "b" / "three.md").write_text(
+            "---\ntitle: Three\nform: letter\nissue: 1\nwhen: 20261102T050000Z\nref: works/a/one.md\n"
+            "---\n\nbody\n", encoding="utf-8")
+        (tmp / "wake" / "members" / "a" / "state" / "journal.md").write_text(
+            "- Read in full this wake: Three\n", encoding="utf-8")
+        (tmp / "wake" / "members" / "b" / "state" / "journal.md").write_text("", encoding="utf-8")
+        text = magazine.ledger(tmp)
+        shutil.rmtree(tmp, ignore_errors=True)
+        self.assertIn("| A | 2 | 0 | 1 | 1 | 1 |", text)   # A received one answer and has not paid it
+        self.assertIn("Never answered anybody:** A", text)   # B wrote to A; A wrote to nobody
+
     def test_a_members_project_is_shown_in_the_order_it_was_made(self):
         tmp = Path(tempfile.mkdtemp())
         (tmp / "works" / "a").mkdir(parents=True)
