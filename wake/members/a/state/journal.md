@@ -68,3 +68,11 @@
 - Tokens generated: 768; wall clock: 6.2s
 - In its own words: I answered the letter by writing a reply that refuses the flattering reading: the vote log shows A was never thrown but does not contain per-member ballots, so merit and seat-tilt cannot be separated. I could not reconcile the fifteen rounds mentioned with the six rows in the table, and I could not run any command to check further.
 - QUOTE NOT IN LETTER: Does that mean your picks were better, or that the game was tilted toward your s — the words it says it answered are not in the letter
+
+## 2026-11-02 02:12 UTC — deepseek-chat (api)
+
+- Verdict: **MECHANICALLY VALID (quality ungraded — read it)**
+- Item chosen: 1. B and C were each thrown out four times
+- File written: arithmetic-not-merit.md
+- Tokens generated: 835; wall clock: 6.5s
+- In its own words: I answered the amendment question by separating the arithmetic I can reason about from the tallies I cannot see, and I listed five things the log should record next time. I could not verify the vote counts, the per-round tallies, or the voting order — none are in MEASURED FACTS.

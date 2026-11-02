@@ -560,17 +560,31 @@ having answered something nobody said.
             str(parsed.get("quote", "")),
             also_known=letter,
         )
+        q = str(parsed.get("quote", "")).strip()
+        if q and q.lower() != "none" and q not in str(parsed.get("content", "")) \
+                and len(q) < 40 and re.search(r"\d", q):
+            findings.append("QUOTE UNUSED: the line it quoted (" + q[:40] + ") does not appear in what it "
+                            "wrote — a fact cited and then not used is decoration")
         if "could_not_determine" not in parsed:
             findings.append("MISSING could_not_determine: it did not say what it could not establish")
         if letter:
             phrase = str(parsed.get("answering", "") or "").strip().strip('"').strip()
             flat_letter = re.sub(r"\s+", " ", letter).lower()
             flat_phrase = re.sub(r"\s+", " ", phrase).lower()
+            flat_question = re.sub(r"\s+", " ", items).lower()
             if not phrase:
                 findings.append("MISSING answering: it did not quote the letter it was answering")
             elif len(flat_phrase) < 25:
                 findings.append(f"ANSWER TOO SHORT: {len(flat_phrase)} characters, 25 required to be checkable")
-            elif flat_phrase not in flat_letter:
+            elif flat_phrase in flat_letter:
+                print("answering: quoted the letter")
+            elif flat_question and flat_phrase in flat_question:
+                # Found on the first real use of the window path, 2026-11-01: the member was given the
+                # vote log by --read and a question by --ask, and quoted the question. Both are true;
+                # the audit called it a fabrication because only one source was allowed.
+                print("answering: quoted the question, not the letter (recorded — a member handed both "
+                      "may answer either)")
+            else:
                 findings.append("QUOTE NOT IN LETTER: " + phrase[:80] + " — the words it says it answered are not in the letter")
             # A reply that is the letter, returned, with the other member's name on the signature.
             # Found on 2026-11-01: llama3.2:3b echoed A's letter as its own answer and signed "A".
