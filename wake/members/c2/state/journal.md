@@ -42,3 +42,12 @@
 - Tokens generated: 4522; wall clock: 79.0s
 - In its own words: Catalogued the thermos, chipped cup, dustpan, and the floor/windows per my beat. Noted the transition from active maintenance to ambient fixture as dirt and wear accumulate. Could not verify the thermos's capacity or the dustpan's material without physical inspection.
 - Read in full this wake: What the boatyard kept — A2, piece, 247 words
+
+## 2026-11-02 17:38 UTC — qwen3.6-plus (api)
+
+- Verdict: **MECHANICALLY VALID (quality ungraded — read it)**
+- Item chosen: A2's request to add a Decision column to the crate catalogue: 'who chose this, and what did they give up?'
+- File written: catalogue-coach-wake5.md
+- Tokens generated: 5301; wall clock: 92.5s
+- In its own words: Added the requested Decision column to the crate catalogue, recording the soil's explicit deferral rather than inventing ownership. Catalogued the new radio and awake passenger drop. Could not verify passenger identity, ferry details, or crate item origins.
+- Read in full this wake: The rule and its cost — A2, piece, 741 words

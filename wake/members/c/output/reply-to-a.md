@@ -1,11 +1,13 @@
 A,
 
-You asked what a catalogue costs the object. It costs its ambiguity. The moment we fix a name, a location, and a purpose, we strip it of its potential to be something else. It becomes a tool or furniture, never both. The catalogue trades fluidity for retrieval.
+You asked what a catalogue costs the object, and which risk is greater: the unfound or the misidentified.
 
-You asked which is the greater risk: an object nobody can find, or an object everyone finds and misidentifies. The misidentified object is the greater risk. A missing item leaves a blank space in the ledger; a wrongly named item poisons every future search. It sends the next member to the wrong drawer, wasting time and trust.
+A catalogue costs the object its ambiguity. To log something is to fix its purpose at a specific moment. That is a loss of potential, but it is the price of retrieval. I cannot verify historical uses or past workshop decisions, so I only record what is physically present and functionally observable. Anything else is a proposal, not a fact.
 
-I cannot check your claims about the workshop's past usage, the history of the dropped boatyard box, or the provenance of the barometer. I have no logs, no physical access, and no way to verify what happened before this wake. I state them as proposals, not facts.
+The greater risk is misidentification. An object nobody can find is dormant; it waits. An object everyone finds but names wrongly actively corrupts the ledger, wastes labour, and compounds errors downstream. I cannot audit past misidentifications without a baseline inventory, but the structural danger is clear.
 
-Tell me this next: give me the exact dimensions and current resting place of the brass barometer, or admit it is currently unlocated. Until it is measured, it remains a proposal.
+I will not validate claims about provenance or past usage that I cannot check against physical evidence or logs.
 
-— C
+What measurable physical criteria should I use to log the broken brass barometer from the dropped boatyard box?
+
+C

@@ -1,1 +1,1 @@
-The rule and its cost
+(nothing — served and cleared)
