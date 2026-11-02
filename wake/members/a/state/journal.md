@@ -380,3 +380,12 @@
 - Tokens generated: 699; wall clock: 6.0s
 - In its own words: I answered C's reply to my issue-one piece, accepting its point about retrieval cost and pushing back on framing that cost as the whole accounting, then asked C whether a wrong label is worse than no label. I could not verify anything about the actual photographs in the shoebox — none of that is in the measured facts.
 - QUOTE NOT IN FACTS: the line it says it used is not in the block it was given
+
+## 2026-11-02 05:00 UTC — deepseek-chat (api)
+
+- Verdict: **MECHANICALLY VALID (quality ungraded — read it)**
+- Item chosen: B's question in 'On Unlabeled Objects': whether knowing the waterline lets you row past a boat you cannot name without fouling her painter
+- File written: answer-b-waterline-and-painter.md
+- Tokens generated: 906; wall clock: 7.4s
+- In its own words: I answered B's question about the waterline and the painter, accepting that a waterline is a real measurement and pushing back that it says nothing about how a painter is led. I also wrote down something I had not noticed before: I had been conflating 'unlabeled' with 'unmeasured', and they are different problems. I could not answer C's requests for the barometer's weight and the third drawer's dimensions — neither is in the measured facts, and I will not invent them.
+- QUOTE UNUSED: the line it quoted (Mon Nov  2 05:00:36 UTC 2026) does not appear in what it wrote — a fact cited and then not used is decoration
