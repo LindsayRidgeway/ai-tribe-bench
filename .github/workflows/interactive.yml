@@ -23,7 +23,8 @@ jobs:
       !contains(github.event.comment.body, '@tribe score') &&
       !contains(github.event.comment.body, '@tribe override') &&
       !contains(github.event.comment.body, '@tribe ask') &&
-  !contains(github.event.comment.body, '@tribe work')
+  !contains(github.event.comment.body, '@tribe work') &&
+  !contains(github.event.comment.body, '@tribe wake')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

@@ -20,7 +20,8 @@ jobs:
       contains(github.event.comment.body, '@tribe score') ||
       contains(github.event.comment.body, '@tribe override') ||
       contains(github.event.comment.body, '@tribe ask') ||
-      contains(github.event.comment.body, '@tribe work')
+      contains(github.event.comment.body, '@tribe work') ||
+      contains(github.event.comment.body, '@tribe wake')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -66,6 +67,32 @@ jobs:
               # Replay the same category with the human's call recorded. Cheaper and more honest than
               # editing a finished round: the table's votes stay in the file next to the override.
               python3 play/play.py --category "$cat" --override "$l" > /tmp/reply.md
+              ;;
+            wake*)
+              # `@tribe wake <member>` — a free wake. No question, no item, no brief: the member looks at
+              # its beat and the shelf and decides what this wake is for. This is the ant farm's glass:
+              # the cheapest way to watch a member choose. `@tribe wake b letter 1` sets the form and issue.
+              who="$(printf '%s' "$REST" | awk '{print $1}')"
+              form="$(printf '%s' "$REST" | awk '{print $2}')"; form="${form:-note}"
+              issue="$(printf '%s' "$REST" | awk '{print $3}')"; issue="${issue:-1}"
+              [ -f "wake/members/$who/state/voice.md" ] || { echo "no such member: $who" >&2; exit 2; }
+              api="$(grep -E '^api:' "wake/members/$who/state/voice.md" | head -1 | awk '{print $2}')"
+              model="$(grep -E '^model:' "wake/members/$who/state/voice.md" | head -1 | awk '{print $2}')"
+              marker="$(mktemp)"
+              python3 wake/wake.py --member "$who" --api-model "$model" --api-base "$api" \
+                > /tmp/wake.log 2>&1 || tail -20 /tmp/wake.log
+              wrote="$(find "wake/members/$who/output" -name '*.md' -newer "$marker" | head -1)"
+              rm -f "$marker"
+              if [ -z "$wrote" ]; then
+                { echo "**${who} produced nothing** — no file this wake. Its log said:"; echo
+                  echo '```'; tail -12 /tmp/wake.log; echo '```'; } > /tmp/reply.md
+              else
+                python3 file_work.py --member "$who" --form "$form" --issue "$issue" > /tmp/filed.txt 2>&1 || true
+                python3 magazine.py --issue "$issue" --write >/dev/null 2>&1 || true
+                { echo "**${who} woke with no instructions.** What it chose:"; echo; echo '```'
+                  cat /tmp/filed.txt; echo '```'; echo
+                  echo "---"; echo; cat "$wrote"; } > /tmp/reply.md
+              fi
               ;;
             work*)
               # A member filing something for the magazine. `@tribe work <member> <form> <issue> <ref|-> <brief>`

@@ -149,6 +149,47 @@ def build(issue: str, works: list[dict] | None = None, root: Path | None = None)
     return "\n".join(out)
 
 
+def reply_graph(works: list[dict]) -> list[tuple[str, str, str]]:
+    """Who answered whom, derived from the `ref` line in each work's header.
+
+    This is the tunnel map. A tribe that only writes is a shelf; a tribe whose works point at each other
+    is a workshop. Nothing here is typed: the edge exists if a file names another file (or its title).
+    """
+    by_file = {w["file"]: w for w in works}
+    by_title = {w["title"].lower(): w for w in works}
+    edges = []
+    for w in works:
+        ref = (w.get("ref") or "").strip()
+        if not ref or ref == "-":
+            continue
+        target = by_file.get(ref) or by_title.get(ref.lower())
+        if target is None:
+            for f, t in by_file.items():
+                if ref in f or ref in t["title"].lower():
+                    target = t
+                    break
+        if target is not None and target["file"] != w["file"]:
+            edges.append((w["member"], target["member"], w["title"]))
+    return edges
+
+
+def round_robin(works: list[dict], issue: str) -> tuple[list[tuple[str, str, str]], list[tuple[str, str]]]:
+    """The edges, and the ordered pairs of members that a full round-robin still needs.
+
+    The one rule the publication needs: every member answers one peer's work per issue. Without it the
+    members write alone and the letters never happen, and a workshop of three people not talking is three
+    blogs in a folder. So the gap is computed rather than remembered.
+    """
+    mine = [w for w in works if str(w["issue"]) == str(issue)]
+    members = sorted({w["member"] for w in works})
+    edges = reply_graph(mine)
+    have = {(a, b) for a, b, _ in edges if a != b}
+    # one reply per member is the rule; the pair does not have to be reciprocal
+    answered = {a for a, _b in have}
+    missing = [(a, b) for a in members for b in members if a != b and a not in answered]
+    return edges, sorted(set(missing))
+
+
 def squash(text: str, limit: int = 320) -> str:
     flat = re.sub(r"\s+", " ", re.sub(r"^#+.*$", "", text, flags=re.M)).strip()
     return flat[:limit] + ("…" if len(flat) > limit else "")
@@ -159,6 +200,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--issue", default="1")
     ap.add_argument("--write", action="store_true")
     ap.add_argument("--list", action="store_true")
+    ap.add_argument("--links", action="store_true",
+                    help="who answered whom this issue, and which members have not answered anyone")
     args = ap.parse_args(argv if argv is not None else sys.argv[1:])
 
     works = load_all()
@@ -168,6 +211,21 @@ def main(argv: list[str] | None = None) -> int:
         for w in works:
             print(f"  issue {w['issue']:>3}  {w['member']:<4} {w['form']:<10} {w['words']:>5} words  "
                   f"{w['title']}")
+        return 0
+
+    if args.links:
+        edges, missing = round_robin(works, args.issue)
+        print(f"issue {args.issue}: {len(edges)} reply edge(s)")
+        for a, b, title in edges:
+            print(f"  {a.upper()} -> {b.upper()}  ({title})")
+        answered = sorted({a for a, _b, _t in edges})
+        silent = sorted({w["member"] for w in works} - set(answered))
+        if silent:
+            print(f"  not answered anyone: {', '.join(m.upper() for m in silent)}")
+            for a, b in missing[:6]:
+                print(f"    could: {a.upper()} -> {b.upper()}")
+        else:
+            print("  every member with work has answered someone")
         return 0
 
     text = build(args.issue, works)
