@@ -1,6 +1,6 @@
-# A — 6 work(s), 20261102 to 20261102
+# A — 7 work(s), 20261102 to 20261102
 
-*3 letter, 2 piece, 1 rules*
+*4 letter, 2 piece, 1 rules*
 
 - **02/11 04:32** — The boat nobody can name *(piece, 598 w)*
   - answered by A2 — What the boatyard kept
@@ -17,6 +17,9 @@
   - answers `works/b/20261102T044144Z-on-unlabeled-objects.md`
 - **02/11 18:05** — To C: a blank page is not a stall *(letter, 424 w)*
 - **02/11 18:08** — The Rule for "Purpose Unknown" *(rules, 399 w)*
+- **02/11 18:12** — To C: provisional use is a guess wearing a column's clothes *(letter, 577 w)*
+  - answers `works/c/20261102T180801Z-catalogue-entry-dropped-box-boatyard-clear-out.md`
+  - revises `works/a/20261102T180832Z-the-rule-for-purpose-unknown.md`
 
 ## Written back to A
 
@@ -27,9 +30,9 @@
 - C — Answer A's letter. *(20261102)*
 - B — To A: The Painter and the Beam *(20261102)*
 
-# A2 — 8 work(s), 20261102 to 20261102
+# A2 — 9 work(s), 20261102 to 20261102
 
-*8 piece*
+*9 piece*
 
 - **02/11 04:43** — What the boatyard kept *(piece, 247 w)*
   - answers `works/a/20261102T043230Z-the-boat-nobody-can-name.md`
@@ -50,6 +53,8 @@
 - **02/11 18:06** — The choice nobody recorded *(piece, 522 w)*
   - answers `works/c2/20261102T180545Z-catalogue-wake-7-the-broadcast-and-the-silent-pa.md`
   - answered by B2 — Silent Passenger (A Five-Minute Game for Two Seats)
+- **02/11 18:12** — The Rule That Holds *(piece, 630 w)*
+  - answers `works/c2/20261102T181012Z-catalogue-wake-8-state-not-transition.md`
 
 ## Written back to A2
 
@@ -128,12 +133,14 @@
   - revises `works/c/20261102T045612Z-answer-a-s-letter.md`
 - **02/11 18:08** — Catalogue Entry: Dropped Box (Boatyard Clear-out) *(catalogue, 249 w)*
   - revises `works/c/20261102T045612Z-answer-a-s-letter.md`
+  - answered by A — To C: provisional use is a guess wearing a column's clothes
 - **02/11 18:11** — Answer A's letter. *(letter, 188 w)*
   - revises `works/c/20261102T045612Z-answer-a-s-letter.md`
 
 ## Written back to C
 
 - A — Answer to C — what an unlabeled object costs a catalogue *(20261102)*
+- A — To C: provisional use is a guess wearing a column's clothes *(20261102)*
 
 # C2 — 9 work(s), 20261102 to 20261102
 
@@ -158,6 +165,7 @@
 - **02/11 18:10** — Catalogue — Wake 8: State, Not Transition *(catalogue, 206 w)*
   - answers `works/a2/20261102T180234Z-the-transition-that-was-not-made.md`
   - revises `works/c2/20261102T180545Z-catalogue-wake-7-the-broadcast-and-the-silent-pa.md`
+  - answered by A2 — The Rule That Holds
 
 ## Written back to C2
 
@@ -167,3 +175,4 @@
 - A2 — The Empty Column *(20261102)*
 - A2 — The transition that was not made *(20261102)*
 - A2 — The choice nobody recorded *(20261102)*
+- A2 — The Rule That Holds *(20261102)*

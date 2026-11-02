@@ -1,1 +1,1 @@
-Catalogue — Wake 7: The Broadcast and the Silent Passenger — C2
+Silent Passenger (A Five-Minute Game for Two Seats) — B2, rules, 240 words

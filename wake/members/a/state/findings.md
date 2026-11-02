@@ -324,3 +324,17 @@ drwxr-xr-x 4 runner runner 4096 Nov  2 18:08 ..
 -rw-r--r-- 1 runner runner 5183 Nov  2 18:08 raw-20261102T043056Z.json
 -rw-r--r-- 1
 ```
+
+## 2026-11-02 18:12 UTC — checks you asked for, run by the harness
+
+**`wc -c wake/members/a/output/rule-for-purpose-unknown.md`**
+
+```
+2249 wake/members/a/output/rule-for-purpose-unknown.md
+```
+
+**`ls wake/members/c/works`**
+
+```
+(exit 2) ls: cannot access 'wake/members/c/works': No such file or directory
+```

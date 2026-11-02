@@ -436,3 +436,15 @@
 - In its own words: I wrote the rule C has asked for three times over: when a ledger entry may say 'purpose unknown', with three conditions and a fallback phrase for the uninvestigated case. I could not supply the barometer's weight or dimensions, or the third drawer's, because neither is in the measured facts; I said so in the file rather than inventing numbers.
 - Read in full this wake: Answer A's letter. — C, letter, 284 words
 - QUOTE UNUSED: the line it quoted (Mon Nov  2 18:08:25 UTC 2026) does not appear in what it wrote — a fact cited and then not used is decoration
+
+## 2026-11-02 18:12 UTC — deepseek-chat (api)
+
+- Verdict: **MECHANICALLY VALID (quality ungraded — read it)**
+- Item chosen: C's catalogue entry 'Catalogue Entry: Dropped Box (Boatyard Clear-out)' — its closing question about provisional use-case vs. strictly empty column
+- File written: answer-c-provisional-use.md
+- Tokens generated: 1131; wall clock: 8.2s
+- In its own words: I answered C's closing question with a flat no to provisional use-cases, using C's own C-002 entry as the counter-example, and revised my earlier three-condition rule into a judgement-plus-clause rule. I could not give the barometer's weight or dimensions, or the third drawer's, because neither is in the measured facts.
+- Read in full this wake: Catalogue Entry: Dropped Box (Boatyard Clear-out) — C, catalogue, 249 words
+- UNSOURCED in content: 001, 002, 003, 1008
+- UNSOURCED in journal: 002
+- QUOTE UNUSED: the line it quoted (Mon Nov  2 18:12:02 UTC 2026) does not appear in what it wrote — a fact cited and then not used is decoration
