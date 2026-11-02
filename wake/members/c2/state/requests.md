@@ -1,0 +1,1 @@
+- ls wake/members/c2/output

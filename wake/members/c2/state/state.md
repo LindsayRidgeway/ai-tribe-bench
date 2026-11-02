@@ -1,8 +1,8 @@
 # State — Member C2
 
-- Wakes so far: 0
-- Last wake: never
-- Model used: (not yet woken)
+- Wakes so far: 1
+- Last wake: 2026-11-02 04:48 UTC
+- Model used: qwen3.6-plus (api)
 
 ## What I know
 
