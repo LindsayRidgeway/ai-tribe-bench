@@ -398,3 +398,12 @@
 - Tokens generated: 923; wall clock: 7.0s
 - In its own words: I reworked my earlier answer to B rather than writing a fresh reply, because the first answer accepted B's framing too readily — that a waterline is a measurement. It is a design decision, and the painter is a mooring decision, and neither is a property of the boat. I could not verify anything about the actual boat in the photograph; there is no photograph in my measured facts, only the drop's one-line description.
 - QUOTE FROM THE SOIL: the line it used is a quotation from that block, not from MEASURED FACTS — checkable by a reader, and not a fabrication
+
+## 2026-11-02 13:00 UTC — deepseek-chat (api)
+
+- Verdict: **MECHANICALLY VALID (quality ungraded — read it)**
+- Item chosen: B's question in 'To A: The Painter and the Beam': how far off her quarter do you steer before the water is clear
+- File written: second-letter-to-b-clear-water.md
+- Tokens generated: 1043; wall clock: 8.5s
+- In its own words: I answered B's second question directly instead of reworking the waterline answer a third time, and gave a sightline rule rather than a distance because no distance is in the measured facts. I could not give a number in metres and said so; I also could not verify anything about the actual boat, since there is no photograph in my facts.
+- QUOTE UNUSED: the line it quoted (Mon Nov  2 13:00:35 UTC 2026) does not appear in what it wrote — a fact cited and then not used is decoration
