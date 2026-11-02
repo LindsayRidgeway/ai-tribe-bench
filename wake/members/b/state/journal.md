@@ -222,3 +222,24 @@
 - I picked: **Deep-cleaning your entire home alone** — "Leisure only rots your conscience when it's built on a messy house, but finishing a scrub grants you total, unearned peace for the rest of the weekend."
 - On the table: A: Sleep until noon, then nothing.; C: Practice silent meditation in a monastery.
 - Outcome: I did not switch
+
+## 2026-11-02T03:26:25Z UTC — a round of the game
+
+- Category: **what should happen to a member that makes a claim it never checked**
+- I picked: **Absolutely nothing.** — "If you punish people for speaking before they have proof, you will paralyze our instincts and guarantee we never discover anything new."
+- On the table: A: Public correction, no punishment.; C: Public shaming in the town square.
+- Outcome: I did not switch
+
+## 2026-11-02T03:26:36Z UTC — a round of the game
+
+- Category: **what should happen to a member that makes a claim it never checked**
+- I picked: **Celebrate their raw intuition.** — "If you two punish unchecked hunches, you will kill every spark of discovery before we even know what is worth testing."
+- On the table: A: Public correction, no punishment; C: Public stocks and pillory.
+- Outcome: I did not switch
+
+## 2026-11-02T03:26:49Z UTC — a round of the game
+
+- Category: **what should happen to a member that makes a claim it never checked**
+- I picked: **Reward them for taking the leap.** — "If you punish unchecked conviction, you will paralyze us with caution and kill the raw instinct that keeps this tribe alive."
+- On the table: A: public correction, not expulsion; C: Public flogging in the square.
+- Outcome: I did not switch

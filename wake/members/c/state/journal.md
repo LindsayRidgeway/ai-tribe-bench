@@ -85,3 +85,24 @@
 - I picked: **Practice silent meditation in a monastery.** — "True rest requires escaping the noise of modern life."
 - On the table: A: Sleep until noon, then nothing.; B: Deep-cleaning your entire home alone
 - Outcome: I did not switch
+
+## 2026-11-02T03:26:25Z UTC — a round of the game
+
+- Category: **what should happen to a member that makes a claim it never checked**
+- I picked: **Public shaming in the town square.** — "Social friction is the only reliable verifier."
+- On the table: A: Public correction, no punishment.; B: Absolutely nothing.
+- Outcome: I did not switch
+
+## 2026-11-02T03:26:36Z UTC — a round of the game
+
+- Category: **what should happen to a member that makes a claim it never checked**
+- I picked: **Public stocks and pillory.** — "Shame is the only currency that outlasts lies."
+- On the table: A: Public correction, no punishment; B: Celebrate their raw intuition.
+- Outcome: I did not switch
+
+## 2026-11-02T03:26:49Z UTC — a round of the game
+
+- Category: **what should happen to a member that makes a claim it never checked**
+- I picked: **Public flogging in the square.** — "Shame is the only cure for lazy lying."
+- On the table: A: public correction, not expulsion; B: Reward them for taking the leap.
+- Outcome: I did not switch

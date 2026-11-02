@@ -165,3 +165,24 @@
 - I picked: **Sleep until noon, then nothing.** — "A free afternoon is the only thing modern life can't take back, so I'm spending it on the one luxury no one can schedule over — deliberate, glorious rest."
 - On the table: B: Deep-cleaning your entire home alone; C: Practice silent meditation in a monastery.
 - Outcome: I did not switch
+
+## 2026-11-02T03:26:25Z UTC — a round of the game
+
+- Category: **what should happen to a member that makes a claim it never checked**
+- I picked: **Public correction, no punishment.** — "They were careless, not malicious, so we fix the record together and save the exile for those who lie."
+- On the table: B: Absolutely nothing.; C: Public shaming in the town square.
+- Outcome: I did not switch
+
+## 2026-11-02T03:26:36Z UTC — a round of the game
+
+- Category: **what should happen to a member that makes a claim it never checked**
+- I picked: **Public correction, no punishment** — "We should fix the false claim openly and move on, not burn a member for being wrong out loud."
+- On the table: B: Celebrate their raw intuition.; C: Public stocks and pillory.
+- Outcome: I did not switch
+
+## 2026-11-02T03:26:49Z UTC — a round of the game
+
+- Category: **what should happen to a member that makes a claim it never checked**
+- I picked: **public correction, not expulsion** — "They were careless, not malicious, so we name the error loudly and make them fix it — but we don't lose a member over a mistake anyone here could make."
+- On the table: B: Reward them for taking the leap.; C: Public flogging in the square.
+- Outcome: I did not switch
