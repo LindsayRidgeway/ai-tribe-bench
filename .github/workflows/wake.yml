@@ -57,6 +57,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # A queued run starts on the commit it was CREATED at, not the branch tip — so a run that waited behind
+      # another one rebases append-only files (journals, ledgers, the magazine) onto a tree that already
+      # contains it, and every one of those is a content conflict. Measured 2026-11-02: two clock runs fired
+      # three seconds apart, the second waited correctly for the first to finish and then died on
+      # 'CONFLICT (content): Merge conflict in wake/members/c/state/journal.md'. The concurrency group was
+      # working; the checkout was stale. Work from the branch as it is now.
+      - name: Work from the branch as it is now
+        run: |
+          set -euo pipefail
+          ref="${GITHUB_REF_NAME:-main}"
+          git fetch --depth=1 origin "$ref"
+          git reset --hard "origin/$ref"
+          git log --oneline -1
+
       - name: Where am I
         run: |
           echo "cores: $(nproc)"; free -g | head -2; df -h / | tail -1
