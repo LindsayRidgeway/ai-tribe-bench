@@ -199,6 +199,28 @@ def masthead(root: Path | None = None, members: list[str] | None = None) -> str:
     return "\n".join(out)
 
 
+def place_name(place: str, root: Path | None = None) -> str:
+    """What this world is called, in one line the human writes.
+
+    It lives in `soil/<place>/name.md` — a file the member never reads, because it is not part of the
+    prompt. The founder's point, 2026-11-02: a person who forks this should name their copy, and the name
+    should be the first thing they can change about it. Before this, the title was the hardcoded words "The
+    Workshop" in magazine.py, so renaming the fork renamed nothing a reader would ever see, and a colony in
+    a school in Tilden would have published under somebody else's name.
+
+    Rename the world and the magazine follows. Rename the fork and it is yours.
+    """
+    root = root or HERE
+    try:
+        line = (root / "soil" / place / "name.md").read_text(encoding="utf-8").strip()
+        if line:
+            return line.splitlines()[0].strip()
+    except OSError:
+        pass
+    return place.replace("-", " ").title()
+
+
+
 def build(issue: str, works: list[dict] | None = None, root: Path | None = None) -> str:
     works = works if works is not None else load_all()
     mine = [w for w in works if str(w["issue"]) == str(issue)]
@@ -207,7 +229,11 @@ def build(issue: str, works: list[dict] | None = None, root: Path | None = None)
     now = datetime.now(timezone.utc)
     here = sorted({p for p in places(root, sorted({w["member"] for w in mine})).values() if p})
     where = f" — {', '.join(here)}" if here else ""
-    out = [f"# The Workshop — issue {issue}{where}", "",
+    # The magazine is named after the world, not after this repository. One world in the issue: its name.
+    # Several: the names, because pretending an issue belongs to one colony when it belongs to two is the
+    # wart this used to sit behind.
+    title = " · ".join(place_name(pl, root) for pl in here) if here else "The Workshop"
+    out = [f"# {title} — issue {issue}{where}", "",
            f"*{len(pieces)} pieces and {len(letters)} letters, assembled from `works/` on "
            f"{now:%Y-%m-%d} by `magazine.py`. The pieces are the members'; the order is not.*", ""]
     if not mine:

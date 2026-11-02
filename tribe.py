@@ -311,6 +311,85 @@ def status() -> int:
     return 0
 
 
+def fresh(name: str = "", place: str = "", confirm: str = "", root: Path | None = None) -> int:
+    """Start a colony with no past.
+
+    A fork arrives carrying this bench's day: thirty works, six journals with a night in them, counters that
+    say a member has woken fifteen times. That is a good demonstration and a bad beginning — a colony whose
+    record was written by somebody else's models has not begun, it is visiting.
+
+    It keeps what makes a member somebody (identity, voice, place, beat) and clears what makes a record
+    (journal, findings, requests, reading, works, issues, derived files) and resets the three harness lines.
+    Destructive, so it wants `--yes`, and it says what it will delete before it does it.
+    """
+    root = root or REPO
+    if confirm != "yes":
+        print("this deletes every work, every journal and every counter in the colony, and keeps the members' "
+              "identity, voice, place and beat.\nre-run with --yes if that is what you want.")
+        return 1
+    places_present = sorted({read_simple(p) for p in (root / "wake" / "members").glob("*/state/place.md")} - {""})
+    if name:
+        target = place or (places_present[0] if len(places_present) == 1 else "")
+        if not target:
+            print(f"there is more than one world here ({', '.join(places_present)}) — say which with --place")
+            return 1
+        f = root / "soil" / target / "name.md"
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_text(name.strip() + "\n", encoding="utf-8")
+        print(f"named {target}: {name.strip()}")
+    cleared = 0
+    for d in sorted((root / "works").glob("*")):
+        for f in sorted(d.glob("*.md")):
+            f.unlink(); cleared += 1
+    for f in sorted((root / "issues").glob("*.md")):
+        if f.stem[:1].isdigit():
+            f.unlink()
+    for f in ("LEDGER.md", "PROJECTS.md", "MEMBERS.md"):
+        (root / f).unlink(missing_ok=True)
+    for d in sorted((root / "wake" / "members").glob("*")):
+        state = d / "state"
+        if not (state / "place.md").exists():
+            continue                      # a fixture, not a colony member
+        (state / "journal.md").write_text(
+            f"# Journal — member {d.name.upper()}\n\n"
+            f"This colony began {__import__('datetime').date.today().isoformat()}. "
+            f"Nothing before this line is mine.\n", encoding="utf-8")
+        for f in ("findings.md", "requests.md", "reading.md"):
+            (state / f).write_text("", encoding="utf-8")
+        sp = state / "state.md"
+        if sp.exists():
+            out = []
+            for line in sp.read_text(encoding="utf-8").splitlines():
+                # The dash is not guaranteed: a member may have written its own header lines, and the
+                # harness only rewrites the three it owns. Match the label, keep the shape.
+                lead = "- " if line.lstrip().startswith("- ") else ""
+                if "Wakes so far:" in line:
+                    line = lead + "Wakes so far: 0"
+                elif "Last wake:" in line:
+                    line = lead + "Last wake: (never) UTC"
+                out.append(line)
+            sp.write_text("\n".join(out) + "\n", encoding="utf-8")
+    print(f"cleared {cleared} work(s); members keep their identity, voice, place and beat")
+    bad = [b for d in sorted((root / "wake" / "members").glob("*"))
+           if (d / "state" / "place.md").exists() for b in validate(d.name)]
+    if bad:
+        print("!! this fresh colony does not validate — which is a bug in fresh(), not in your colony:")
+        for b in bad[:6]:
+            print("  ", b)
+        return 1
+    print("every member validates; the shelf is empty and the magazine will start at issue 1")
+    return 0
+
+
+def read_simple(path: Path) -> str:
+    try:
+        line = path.read_text(encoding="utf-8").strip().splitlines()[0]
+        return line.split(":", 1)[1].strip() if ":" in line else ""
+    except (OSError, IndexError):
+        return ""
+
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -323,6 +402,10 @@ def main() -> int:
     a = ap.add_argument_group("validate/status")
     sub.add_parser("validate").add_argument("name", nargs="?")
     sub.add_parser("status")
+    p_fresh = sub.add_parser("fresh", help="start a colony with no past: clear the record, keep the members")
+    p_fresh.add_argument("--name", default="", help="what this world is called; prints at the top of every issue")
+    p_fresh.add_argument("--place", default="", help="which world, when there is more than one")
+    p_fresh.add_argument("--yes", dest="confirm", action="store_const", const="yes", default="")
     p_next = sub.add_parser("next", help="whose turn it is, one member per place")
     p_next.add_argument("--force", default="", help="members to wake now (comma or space separated)")
     args = ap.parse_args()
@@ -339,6 +422,8 @@ def main() -> int:
                 print("  !!", b)
             rc = rc or (1 if bad else 0)
         return rc
+    if args.cmd == "fresh":
+        return fresh(args.name, args.place, args.confirm)
     if args.cmd == "next":
         rows = next_up(args.force)
         for row in rows:

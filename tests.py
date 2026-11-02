@@ -882,5 +882,36 @@ class TestFiling(unittest.TestCase):
                          "that is the boilerplate both worlds share; it describes neither")
 
 
+    def test_the_colonys_name_is_the_humans_and_prints_at_the_top(self):
+        """The founder's point: forking should be the moment a copy becomes yours. Before this the title was
+        the hardcoded words 'The Workshop', so renaming the fork renamed nothing a reader would ever see."""
+        self.assertEqual(magazine.place_name("workshop"), "The Workshop")
+        tmp = Path(tempfile.mkdtemp()); (tmp / "soil" / "harbour").mkdir(parents=True)
+        (tmp / "soil" / "harbour" / "name.md").write_text("The Tilden Workshop\n")
+        self.assertEqual(magazine.place_name("harbour", tmp), "The Tilden Workshop")
+        self.assertEqual(magazine.place_name("no-such-place", tmp), "No Such Place",
+                         "a world with no name file is named after its directory")
+        shutil.rmtree(tmp, ignore_errors=True)
+
+    def test_the_name_is_not_in_the_prompt_so_naming_changes_nothing_but_the_title(self):
+        """A colony's name must be the human's, not a fact the members read. If it were in the prompt, every
+        fork would be a different experiment by accident."""
+        src = (REPO / "wake" / "wake.py").read_text(encoding="utf-8")
+        self.assertIn('for name in ("world.md", "drops.md")', src)
+        self.assertNotIn("name.md", src)
+
+    def test_fresh_refuses_to_delete_anything_without_yes(self):
+        tmp = Path(tempfile.mkdtemp())
+        (tmp / "works" / "a").mkdir(parents=True)
+        keep = tmp / "works" / "a" / "one.md"
+        keep.write_text("---\ntitle: Keep\nform: piece\nissue: 1\nref: -\n---\n\nx\n", encoding="utf-8")
+        (tmp / "wake" / "members" / "a" / "state").mkdir(parents=True)
+        (tmp / "wake" / "members" / "a" / "state" / "place.md").write_text("place: workshop\n")
+        rc = tribe.fresh(root=tmp)
+        self.assertEqual(rc, 1)
+        self.assertTrue(keep.exists(), "a command that deletes a colony must not delete it on a typo")
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

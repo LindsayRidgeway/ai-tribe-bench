@@ -29,7 +29,12 @@ import urllib.error
 import urllib.request
 from datetime import datetime, timezone
 
-REPO = os.environ.get("TRACTION_REPO", "LindsayRidgeway/ai-tribe-bench")
+# Which repository this is about. In a fork this must be the fork, not the upstream it came from — the
+# whole point is to see whether anybody took a copy, and a file that reports the origin's numbers from
+# inside somebody else's copy reports the wrong thing.
+REPO = (os.environ.get("TRACTION_REPO")
+        or os.environ.get("GITHUB_REPOSITORY")
+        or "LindsayRidgeway/ai-tribe-bench")
 
 
 def get(path: str, token: str = "") -> tuple[object, str]:
