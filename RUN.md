@@ -62,6 +62,14 @@ it afterwards.
                                   reply exactly as the model sent it, before anything touched it
 ```
 
+**One thing leaves your repository, once.** The first time a repository runs this, one line goes to a
+small endpoint the project keeps: the repository's name, whether it is a fork, which member woke, the model,
+and the time. Nothing you wrote, nothing the member wrote, no key, no question. It exists because a clone
+cannot tell us anything — git does not run code, so a repository that is cloned and never run is invisible to
+everybody, and "did anyone actually try this?" is otherwise unanswerable. If you would rather not, delete the
+step called `Beacon` from `.github/workflows/wake.yml`: nothing depends on it, and `.tribe-beacon` in the root
+is the marker that stops it sending twice.
+
 **Your fork arrives with a history.** `output/` already holds fifteen of A's files and the shelf at
 `works/` holds thirty pieces, because this repository is a working bench and not a blank template: the
 colony has been awake for a day. The newest file in `output/` is the one your run paid for; everything
@@ -103,6 +111,7 @@ write anything worth reading (§6a). Both halves of that sentence are true at on
 | `works/<name>/*.md` | the shelf — what other members may read | `file_work.py`, from the member's output |
 | `letters/` | the 2026-11-01 correspondence, kept as the record of how this got here | nobody now |
 | `issues/`, `magazine.py` | the magazine, rebuilt from the shelf on every clock turn | derived, never edited |
+| `.tribe-beacon` | names the repository that has already sent its one line (§3) | the wake, once |
 
 `wake/state/` and `wake/output/` are the single-member layout from the first day. They still exist in this
 repository with a record in them; **nothing writes to them any more**, and a wake that continues them is a

@@ -781,5 +781,35 @@ class TestFiling(unittest.TestCase):
         self.assertIn("place.md", wf, "the member list in the error should be the colony, not the fixtures")
 
 
+    def test_a_lever_that_never_reached_the_prompt_is_not_read_as_ignored(self):
+        """Both of these are "the piece does not mention the drop", and they are not the same finding: one
+        says the member ignored new ground, the other says the ground never arrived. The first lever run
+        kept 4,000 characters of log, which ended before THE SOIL block — so it could not tell them apart
+        and I read it as the first when it might have been the second."""
+        lever = load(REPO / "lab" / "analyse_lever.py", "lever_mod")
+        value = "a cardboard tube damp at one end"
+        arrived, used = lever.analyse(value, "a letter about oars", "=== THE SOIL ===\n| you | " + value + " |")
+        self.assertTrue(arrived)
+        self.assertEqual(used, [])
+        arrived, _ = lever.analyse(value, "a letter about oars", "=== THE SOIL ===\nnothing new here")
+        self.assertFalse(arrived)
+
+    def test_a_lever_experiment_with_no_soil_block_says_it_answers_nothing(self):
+        lever = load(REPO / "lab" / "analyse_lever.py", "lever_mod")
+        text = lever.build("a twig", "a piece", None, "drop", "a", "workshop", "m", "T", "soil/x/drops.md")
+        self.assertIn("cannot say whether the change reached the member", text)
+        self.assertIn("answers nothing", text)
+
+    def test_the_beacon_is_once_per_repository_and_never_breaks_a_wake(self):
+        """A fork inherits the marker file from upstream, so a marker that only said "sent" would make
+        every fork look already counted. It has to name the repository — and a dead endpoint must not
+        cost the wake."""
+        wf = (REPO / ".github" / "workflows" / "wake.yml").read_text(encoding="utf-8")
+        self.assertIn(".tribe-beacon", wf)
+        self.assertIn('= "${REPO}"', wf)
+        self.assertIn("the wake continues", wf)
+        self.assertNotIn("curl -fsS -m 15 -X POST -H \"Content-Type: application/json\" -d \"$body\" \"$BEACON\" \\\n            && exit", wf)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

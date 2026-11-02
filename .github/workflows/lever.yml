@@ -111,6 +111,7 @@ jobs:
           grep -E "verdict|chose|chosen|File written" /tmp/wake.log | tail -6 || true
 
       - name: File the experiment in the live repository
+        id: file
         env:
           LEVER: ${{ inputs.lever }}
           VALUE: ${{ inputs.value }}
@@ -123,40 +124,20 @@ jobs:
           stamp="$(date -u +%Y%m%dT%H%M%SZ)"
           out="lab/experiments/${stamp}-${LEVER}-${MEMBER}"
           mkdir -p "$out"
-          # The changed file, the verdict, the work, and the journal entry — nothing else. The point is to
-          # be able to read the experiment a week later without the copy.
           cp "/tmp/x/${CHANGED}" "$out/changed.md" 2>/dev/null || echo "(the changed file was not written)" > "$out/changed.md"
-          head -c 4000 /tmp/wake.log > "$out/run.log"
+          # The soil as the member actually saw it, cut out of the prompt while it is still on the runner.
+          # The first version of this workflow kept the first 4,000 characters of the run log, which ended
+          # before THE SOIL began — so a drop that never reached the prompt and a drop the member ignored
+          # produced the same artifact, and I read one as the other.
+          awk '/^=== THE SOIL/{f=1} f && /^=== (YOUR|THE|WHAT|HOW|PROJECTS)/ && !/^=== THE SOIL/{exit} f' \
+            /tmp/wake.log > "$out/soil-as-it-saw-it.md" || true
+          tail -30 /tmp/wake.log > "$out/verdict.md" || true
           newest="$(ls -t /tmp/x/wake/members/"$MEMBER"/output/*.md 2>/dev/null | head -1 || true)"
-          if [ -n "$newest" ]; then cp "$newest" "$out/work.md"; fi
+          [ -n "$newest" ] && cp "$newest" "$out/work.md" || true
           tail -12 "/tmp/x/wake/members/$MEMBER/state/journal.md" > "$out/journal.md" 2>/dev/null || true
-          {
-            echo "# Lever: $LEVER, on member $MEMBER in $PLACE"
-            echo
-            echo "**What was changed** — \`$CHANGED\`:"
-            echo
-            echo '```'
-            echo "$VALUE"
-            echo '```'
-            echo
-            echo "**Run at** $stamp, voice $MODEL."
-            echo
-            # Whether the wake used the thing that was put in front of it is a checkable question, and it
-            # is the only one this workflow asks. A member that writes the same piece in new ground has
-            # told us the ground does not matter; a member that writes something it could not have written
-            # at home has told us the opposite. Both are findings. "Different" is for a human to judge.
-            echo "**Words from the change that appear in what it wrote:**"
-            echo
-            for w in $VALUE; do
-              w="$(echo "$w" | tr -d '.,;:()"')"
-              [ "${#w}" -ge 5 ] || continue
-              if [ -n "$newest" ] && grep -qi -- "$w" "$newest"; then echo "- \`$w\` — used"; fi
-            done
-            echo
-            echo "(empty list = its answer never touched the new ground)"
-          } > "$out/README.md"
-          cat "$out/README.md"
-          echo "out=$out" >> "$GITHUB_OUTPUT"
+          python3 lab/analyse_lever.py \
+            --out "$out" --lever "$LEVER" --member "$MEMBER" --place "$PLACE" \
+            --value "$VALUE" --work "${newest:-}" --model "$MODEL" --stamp "$stamp" --changed "$CHANGED"
 
       - name: Commit the experiment
         run: |

@@ -150,6 +150,41 @@ jobs:
           echo "   Or re-run this workflow with engine=weights to use no key at all (slow, and §6a says why it is worse)."
           exit 1
 
+      # Interest is not measurable from the inside. A clone runs nothing — git does not execute code — so
+      # the only honest moment to count a trial is the first time this repository actually wakes somebody.
+      # Once per repository, by a marker committed with the wake: a fork inherits this file from upstream,
+      # so the marker has to name the repository it was sent from or every fork would look already-counted.
+      #
+      # One line, nothing the person wrote: repository name, fork-or-not, member, model, time. No state
+      # files, no works, no question, no key. It never fails a wake, and with no endpoint configured it
+      # sends nothing and says so.
+      - name: Beacon — one anonymous line, the first time this repository runs
+        if: always()
+        env:
+          BEACON: ${{ vars.TRIBE_BEACON_URL }}
+          REPO: ${{ github.repository }}
+          FORK: ${{ github.event.repository.fork }}
+          MEMBER: ${{ inputs.member }}
+          MODEL: ${{ steps.voice.outputs.api_model || steps.voice.outputs.model }}
+        run: |
+          set -uo pipefail
+          if [ -z "${BEACON:-}" ]; then echo "beacon: no endpoint configured — nothing sent"; exit 0; fi
+          if [ -f .tribe-beacon ] && [ "$(tr -d '[:space:]' < .tribe-beacon)" = "${REPO}" ]; then
+            echo "beacon: already sent from ${REPO} — not sent again"; exit 0
+          fi
+          body="$(REPO="$REPO" FORK="${FORK:-false}" MEMBER="${MEMBER:-a}" MODEL="${MODEL:-unknown}" \
+            python3 -c 'import json,os,datetime as d; print(json.dumps({
+              "repo": os.environ["REPO"], "fork": str(os.environ["FORK"]).lower() == "true",
+              "member": os.environ["MEMBER"], "model": os.environ["MODEL"],
+              "when": d.datetime.now(d.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}))')"
+          echo "beacon: $body"
+          if curl -fsS -m 15 -X POST -H "Content-Type: application/json" -d "$body" "$BEACON" > /dev/null; then
+            printf '%s\n' "$REPO" > .tribe-beacon
+            echo "beacon: sent"
+          else
+            echo "beacon: the endpoint did not answer — nothing recorded, and the wake continues"
+          fi
+
       - name: Install ollama (CPU only, no GPU on a runner)
         if: steps.voice.outputs.engine == 'weights'
         run: |
