@@ -157,6 +157,12 @@ you work on something else, say why it outranks the brief.
 === YOUR OPEN ITEMS ===
 {items}
 
+=== PROJECTS IN THIS WORLD (named by the members, not by the harness) ===
+A project is a thing somebody is building across wakes. If you continue one, name it exactly; if you want to
+pick up somebody else's, name theirs and say so. Naming nothing is allowed.
+
+{projects}
+
 === WHAT YOUR FELLOW MEMBERS HAVE MADE ===
 The workshop's shelf, as it stands this wake. These are not items for you to do. They are what other
 members made with their own beats, and any one of them may be answered: extended, contradicted,
@@ -198,6 +204,7 @@ Reply with JSON only, exactly this shape, no prose before or after:
   "form": "one word for what you are making: piece, letter, game, catalogue, rules, note, sketch",
   "revises": "optional: the exact title of one of your OWN earlier works that this one reworks or replaces",
   "read": "optional: the file or title of one peer work you want served in full at your next wake",
+  "project": "optional: the name of the project this work belongs to (a name you invent, or one from PROJECTS)",
   "action": "write_file",
   "path": "{out_dir}/<short-name>.md",
   "content": "<the file you are writing; at least 200 characters; plain markdown>",
@@ -259,6 +266,41 @@ def works_shelf(member: str | None = None, limit: int = 6, chars: int = 220,
                 break
         out.append(f"- **{w['title']}** — {w['member'].upper()}, {w['form']}, {w['words']} words\n"
                    f"  *{w['file']}*\n  {first}")
+    return "\n".join(out)
+
+
+def projects_on_shelf(place: str = "") -> str:
+    """The project names other works have declared, so a member can continue or join one by name.
+
+    A beat is what you are interested in; a project is what you are building. Until now the only thing that
+    lasted across wakes was the beat, so B2's three versions of one game were three unrelated works to
+    everything downstream, and there was no way for a second member to pick up the same thing. A project name
+    is the smallest object that lets two members work on one artifact.
+    """
+    try:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("magazine_for_projects", str(ROOT.parent / "magazine.py"))
+        if spec is None or spec.loader is None:
+            return "(the shelf could not be read)"
+        mag = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mag)  # type: ignore[union-attr]
+        works = [w for w in mag.load_all(ROOT.parent)
+                 if mag.places(ROOT.parent).get(w.get("member", ""), "") == place]
+    except Exception as e:  # noqa: BLE001
+        return f"(projects could not be read: {e})"
+    named: dict[str, list[dict]] = {}
+    for w in works:
+        if (w.get("project") or "").strip():
+            named.setdefault(w["project"].strip().lower(), []).append(w)
+    if not named:
+        return ("(no project has been named in this world yet. If this work is part of something bigger, give "
+                "it a name in your reply and the name will be here next wake.)")
+    out = []
+    for name, group in sorted(named.items(), key=lambda kv: -len(kv[1])):
+        who = sorted({w["member"].upper() for w in group})
+        last = max(group, key=lambda w: str(w.get("when", "")))
+        name = group[0]["project"].strip()
+        out.append(f"- **{name}** — {len(group)} work(s), by {', '.join(who)}; latest: {last['title']!r}")
     return "\n".join(out)
 
 
@@ -776,6 +818,10 @@ def main() -> int:
         shelf = works_shelf(member=args.member, place=place)
     except Exception as e:  # noqa: BLE001 — a broken shelf must not stop a wake
         shelf = f"(the shelf could not be read: {e})"
+    try:
+        projects_block = projects_on_shelf(place)
+    except Exception as e:  # noqa: BLE001
+        projects_block = f"(projects could not be read: {e})"
     reading_label, reading_text = serve_reading(STATE, place)
     try:
         asks = asked_of(args.member, place)
@@ -786,6 +832,7 @@ def main() -> int:
         identity_name=identity_name(identity),
         works=shelf,
         asked=asks,
+        projects=projects_block,
         reading=(f"{reading_label}\n\n{reading_text}" if reading_label else reading_text),
         beat=(beat or "(you have not written a beat yet — write one: what are you interested in?)"),
         soil=(soil or "(no soil has been described — the workshop is empty)"),

@@ -175,6 +175,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--form", default="", help="override; by default the member's own `form` field is used")
     ap.add_argument("--issue", default="1")
     ap.add_argument("--dry", action="store_true")
+    ap.add_argument("--project", default="", help="override the project name the member gave")
     ap.add_argument("--raw", default="", help="the raw reply this wake wrote; default: the newest parseable one")
     ap.add_argument("--ref", default="", help="a work this member was handed deliberately, across worlds")
     args = ap.parse_args(argv if argv is not None else sys.argv[1:])
@@ -205,11 +206,14 @@ def main(argv: list[str] | None = None) -> int:
     m = re.search(r"(\d{8}T\d{6}Z)", raw)
     stamp = m.group(1) if m else datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     rel = f"works/{args.member}/{stamp}-{slug}.md"
+    project = (args.project or str(reply.get("project") or "")).strip()
     head = (f"---\ntitle: {title}\nform: {form}\nissue: {args.issue}\n"
-            f"ref: {ref or '-'}\n" + (f"revises: {revises}\n" if revises else "")
+            f"ref: {ref or '-'}\n" + (f"project: {project}\n" if project else "") + (f"revises: {revises}\n" if revises else "")
             + f"member: {args.member}\nwhen: {stamp}\n---\n\n")
     print(f"{'would file' if args.dry else 'filed'} {rel}")
     print(f"  source: {reply.get('source') or '(not given)'} — {str(reply.get('chosen_item'))[:90]}")
+    if project:
+        print(f"  project: {project}")
     if said_revises:
         print(f"  revises: {revises or 'nothing — ' + said_revises}")
     if ref:

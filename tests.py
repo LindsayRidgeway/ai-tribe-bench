@@ -381,6 +381,23 @@ class TestMagazine(unittest.TestCase):
 
 
 
+
+    def test_a_named_project_collects_its_works_and_its_people(self):
+        tmp = Path(tempfile.mkdtemp())
+        for rel, head in (("b2/one.md", "title: Sheet\nform: game\nissue: 1\nproject: Harbour Torch\n"),
+                          ("c2/two.md", "title: Playing Harbour Torch\nform: letter\nissue: 1\n"
+                                        "project: harbour torch\n"),
+                          ("b2/three.md", "title: Loose\nform: note\nissue: 1\n")):
+            pth = tmp / "works" / rel
+            pth.parent.mkdir(parents=True, exist_ok=True)
+            pth.write_text("---\n" + head + "---\n\nbody\n", encoding="utf-8")
+        text = magazine.project_index(magazine.load_all(tmp))
+        shutil.rmtree(tmp, ignore_errors=True)
+        self.assertIn("## Harbour Torch", text)
+        self.assertIn("2 work(s)", text)          # case does not split a project
+        self.assertIn("C2 (1)", text)             # a second member joined
+        self.assertIn("Works with no project named", text)
+
     def test_the_ledger_counts_who_answers_whom(self):
         tmp = Path(tempfile.mkdtemp())
         (tmp / "works" / "a").mkdir(parents=True); (tmp / "works" / "b").mkdir(parents=True)

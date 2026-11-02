@@ -282,6 +282,52 @@ def round_robin(works: list[dict], issue: str,
     return edges, sorted(set(missing))
 
 
+def project_index(works: list[dict]) -> str:
+    """Every named project: who is building it, how much, and what came last.
+
+    The unit a reader wants after a few days is not the issue and not one member — it is the thing being
+    built. Names come from the members; this function only counts what they named.
+    """
+    named: dict[str, list[dict]] = {}
+    display: dict[str, str] = {}
+    unnamed: dict[str, int] = {}
+    for w in works:
+        name = (w.get("project") or "").strip()
+        if name:
+            # One project, however it was spelled: two members named "Harbour Torch" and "harbour torch"
+            # and the index showed two projects of one work each, which is the difference between a
+            # collaboration and two people building the same thing in separate rooms.
+            key = name.lower()
+            if key not in named:
+                named[key] = []
+                display[key] = name
+            named[key].append(w)
+        else:
+            unnamed[w["member"]] = unnamed.get(w["member"], 0) + 1
+    out = ["# Projects on the shelf", ""]
+    if not named:
+        out += ["*(no member has named a project yet)*", ""]
+    for key, group in sorted(named.items(), key=lambda kv: -len(kv[1])):
+        name = display[key]
+        group = sorted(group, key=lambda w: str(w.get("when", "")))
+        who: dict[str, int] = {}
+        for w in group:
+            who[w["member"]] = who.get(w["member"], 0) + 1
+        out.append(f"## {name}")
+        out.append("")
+        out.append(f"*{len(group)} work(s) — " + ", ".join(f"{m.upper()} ({n})" for m, n in sorted(who.items())) + "*")
+        out.append("")
+        for w in group:
+            out.append(f"- {w['title']} *({w['form']}, {w['words']} w, {w.get('when', '')[:8]})*")
+        out.append("")
+    if unnamed:
+        out.append("## Works with no project named")
+        out.append("")
+        out.append(", ".join(f"{m.upper()} ({n})" for m, n in sorted(unnamed.items())))
+        out.append("")
+    return "\n".join(out)
+
+
 def ledger(root: Path | None = None) -> str:
     """One row per member: what it made, whom it answered, who answered it, what it was served, what it owes.
 
@@ -398,6 +444,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--citations", action="store_true",
                     help="files a work cites that are not on the shelf — invented provenance, caught cheaply")
     ap.add_argument("--project", default="", help="one member's works in order — the long view")
+    ap.add_argument("--index", action="store_true", help="every named project, who is building it, what came last")
     ap.add_argument("--ledger", action="store_true", help="one row per member: works, answers, debts, reads")
     ap.add_argument("--projects", action="store_true", help="every member's timeline; with --write, PROJECTS.md")
     ap.add_argument("--links", action="store_true",
@@ -425,6 +472,15 @@ def main(argv: list[str] | None = None) -> int:
         print(max(nums) if nums else 1)
         return 0
 
+    if args.index:
+        text = project_index(works)
+        if args.write:
+            (HERE / "PROJECTS.md").write_text(text, encoding="utf-8")
+            print("wrote PROJECTS.md")
+        else:
+            print(text, end="")
+        return 0
+
     if args.ledger:
         text = ledger(HERE)
         if args.write:
@@ -442,8 +498,8 @@ def main(argv: list[str] | None = None) -> int:
         members = sorted({w["member"] for w in works})
         text = "\n\n".join(project(m, works, HERE).rstrip() for m in members) + "\n"
         if args.write:
-            (HERE / "PROJECTS.md").write_text(text, encoding="utf-8")
-            print(f"wrote PROJECTS.md — {len(members)} member(s)")
+            (HERE / "MEMBERS.md").write_text(text, encoding="utf-8")
+            print(f"wrote MEMBERS.md — {len(members)} member(s)")
         else:
             print(text, end="")
         return 0

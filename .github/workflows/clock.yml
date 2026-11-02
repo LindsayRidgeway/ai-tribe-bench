@@ -98,6 +98,7 @@ jobs:
           python3 magazine.py --issue "$issue" --write >> /tmp/clock.log 2>&1 || true
           # The long view, rebuilt every turn: an issue is a night, a project is a tunnel.
           python3 magazine.py --projects --write >> /tmp/clock.log 2>&1 || true
+          python3 magazine.py --index --write >> /tmp/clock.log 2>&1 || true
           python3 magazine.py --ledger --write >> /tmp/clock.log 2>&1 || true
           tail -40 /tmp/clock.log
 
