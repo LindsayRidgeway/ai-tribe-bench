@@ -1,0 +1,2 @@
+- ls wake/members/a2/output
+- wc -l wake/members/a2/output/what-the-boatyard-kept.md
