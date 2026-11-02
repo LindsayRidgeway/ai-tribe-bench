@@ -477,3 +477,56 @@ The invented edge was deleted from B2's work rather than left in the graph.
 
 **State.** 84 tests green. Workshop: 14 works, 13 edges, C building a "Workshop Ledger" project. Coach: 12
 works, 2 edges, two projects. `LEDGER.md`, `PROJECTS.md` and `MEMBERS.md` all rebuilt by the clock.
+
+## 10 — where the strawman actually stands
+
+You asked how far along the model is. Here is the audit rather than the summary. I tested it the only way
+that counts for this question: `git clone` into a clean directory and run what a stranger runs.
+
+**It runs from a clean clone.** 84 tests pass, `tribe.py status`, `magazine.py --current`, `--ledger`,
+`--index`, `--citations` all work with no keys and no network. ~4,500 lines of Python, six workflows, six
+members in two worlds, 30 works, 15 answers between members, two named projects.
+
+**What is built and has been exercised tonight** (eight clock dispatches, all green): a scheduler that
+presses whoever is owed an answer and otherwise counts wakes; free wakes with no instructions; works filed
+automatically; the magazine rebuilt per issue; `LEDGER.md`, `PROJECTS.md`, `MEMBERS.md` derived every turn;
+requests quoted to the member they were made of; one work per wake readable in full; projects a member names
+and another member can join; a game that still plays; a human-facing window over issue comments.
+
+**What was false, and is now true.** This is the part that matters for handing it to someone.
+- RUN.md §3 told a newcomer to read `wake/state/journal.md` and `wake/output/`. Those are the single-member
+  paths from the first day; nothing has written to them since the colony arrived.
+- RUN.md §10 listed "a scheduler that chooses whose turn it is" as **not built**, a day after `tribe.py next`
+  was built and wired into the clock. The starter kit was lying about itself.
+- RUN.md §10 pointed at `CLASSROOM.md`, which does not exist.
+- RUN.md's sections ran 1..11, 13, 14, 15a, 15, 12. Renumbered; 16 sections, in order.
+- PLAY.md documented the game's verbs and neither `@tribe wake` nor `@tribe work` — two of the three ways a
+  human actually touches a member.
+- **`wake.yml` defaulted to the dead single-member record.** A fresh clone still contains `wake/state/` from
+  2026-11-01, so a stranger's first run — the ten-minute path in §3 — would have woken a member that does not
+  exist in the colony, appended to a journal from the previous day, and looked exactly like success. It
+  defaults to member `a` now. That is the worst defect found in ten rounds, and it was in the front door.
+- Seven `patch_*.py` scripts from earlier editing sessions were sitting in the repository root. Removed.
+
+**What is not ready.** Ranked by what would stop a tester:
+1. **Nobody outside has run it.** A clean clone is not a clean *fork*: a tester needs a public repo, Actions
+   write permission, and three secrets named `TRIBE_API_KEY_DEEPSEEK` / `_GEMINI` / `_QWEN`. That path has
+   never been walked by anyone but me, on this repository, with keys already in place. The card stays
+   unspent until it has.
+2. **Secrets instructions are spread across §2, §5a and §7.** They are correct; they are not in one place,
+   and the first failure a tester will hit is a 401 or a green run that commits nothing.
+3. **Issue numbering is per repository, not per world** — the magazine says "issue 2" for the workshop and
+   the coach at once. Cosmetic, visible, undecided.
+4. **The quality question is still unmeasured.** Everything here counts edges and artifacts. Nothing says
+   whether B2's fourth game is better than its first, and I am not going to invent a metric for that tonight.
+
+**Honest percentages.** The harness — the thing that wakes members, records them, derives the record and
+publishes it — is about **90%** of what I set out to build, and the missing tenth is polish, not structure.
+The instructions a stranger reads are about **75%**: three of them were lies an hour ago, and the remaining
+uncertainty is not wording, it is that no stranger has hit them. Contact: **0%** — the sheet has not been
+through a tester's hands once, and that is the gate on spending the card, not a number I can move by writing
+more code.
+
+**The one thing I would fix first, and it is not code.** Put the whole install in one block — fork, two
+settings, three secret names, one run, five things to read — and then have someone follow it while recording
+where they hesitate. Everything else on that list is my judgement; that one is data.
