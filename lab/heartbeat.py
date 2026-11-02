@@ -38,14 +38,24 @@ def main() -> int:
         print("no heartbeats yet — the workflow has not fired, or has fired and could not commit.")
         print("both are findings; wait an hour and run this again.")
         return 0
-    span = beats[-1][0] - beats[0][0]
+    # A beat I asked for by hand is not evidence about the scheduler. Only `schedule` rows count, and
+    # the first one is the start of the window — counting the hours before it would be counting silence
+    # that was never due.
+    scheduled = [b for b in beats if b[1] == "schedule"]
+    hand = len(beats) - len(scheduled)
+    if not scheduled:
+        print(f"{len(beats)} beat(s), all dispatched by hand. The cron asks for :41 past every hour; "
+              "come back after at least one has come due, or the answer is still 'unknown'.")
+        return 0
+    span = beats[-1][0] - scheduled[0][0]
     due = int(span.total_seconds() // 3600) + 1
-    fired = len({b[0].replace(minute=0, second=0, microsecond=0) for b in beats})
+    fired = len({b[0].replace(minute=0, second=0, microsecond=0) for b in scheduled})
     print(f"first beat {beats[0][0]:%Y-%m-%dT%H:%MZ}, last {beats[-1][0]:%Y-%m-%dT%H:%MZ} "
           f"({span.total_seconds() / 3600:.1f} hours)")
     print(f"hours due: {due}   hours with a beat: {fired}   missed: {due - fired} "
           f"({100 * (due - fired) / max(due, 1):.0f}%)")
-    late = [b[0].minute for b in beats]
+    print(f"of those, {hand} were dispatched by hand and are not evidence about the schedule.")
+    late = [b[0].minute for b in scheduled]
     if late:
         print(f"minutes past the hour when they arrived: {', '.join(map(str, late))}")
         print("the cron asks for :41. An arrival that is consistently late by the same amount is the "
