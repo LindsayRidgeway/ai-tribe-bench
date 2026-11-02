@@ -441,12 +441,16 @@ class TestTurn(unittest.TestCase):
     def test_a_human_can_force_a_member_to_wake(self):
         self.assertEqual(tribe.next_up("c"), [("workshop", "c", "woken by name")])
 
-    def test_a_member_that_is_owed_an_answer_wakes_before_the_count_says_so(self):
-        # C wrote to A twice; A has not answered either letter with a work. A carries the most wakes in
-        # the workshop and would lose every turn to C under a count-only rule.
+    def test_a_member_that_already_had_its_turn_does_not_get_the_turn_again(self):
+        # A was woken at 05:03 owing C two letters and spent the wake reworking an earlier answer. Under
+        # "debt first" it would be woken again and again until it complied; the turn after that wake
+        # belongs to B, who has been owed an answer since 05:00 and has not woken since.
         turn = [row for row in tribe.next_up() if row[0] == "workshop"][0]
-        self.assertEqual(turn[1], "a")
-        self.assertIn("owed", turn[2])
+        self.assertEqual(turn[1], "b")
+
+    def test_the_reason_for_the_turn_is_printed(self):
+        for place, who, why in tribe.next_up():
+            self.assertTrue(why.strip(), f"{place}/{who} was chosen with no reason given")
 
     def test_a_paid_debt_is_not_a_debt(self):
         self.assertEqual(tribe.debt("c", "workshop"), 0)

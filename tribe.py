@@ -160,6 +160,20 @@ def place_of(d: Path) -> str:
         return ""
 
 
+def last_wake_of(d: Path) -> str:
+    """The last wake as a sortable 'YYYYMMDDTHHMM' string, or "" if the member has never woken."""
+    try:
+        text = (d / "state" / "state.md").read_text(encoding="utf-8")
+    except OSError:
+        return ""
+    m = re.search(r"Last wake:\s*(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})", text)
+    return f"{m.group(1)}{m.group(2)}{m.group(3)}T{m.group(4)}{m.group(5)}" if m else ""
+
+
+def oldest_debt(member: str) -> str:
+    return DEBT_OLDEST.get(member, "")
+
+
 def wakes_of(d: Path) -> int:
     try:
         s = (d / "state" / "state.md").read_text(encoding="utf-8")
@@ -167,6 +181,9 @@ def wakes_of(d: Path) -> int:
         return 0
     m = re.search(r"Wakes so far:\s*(\d+)", s)
     return int(m.group(1)) if m else 0
+
+
+DEBT_OLDEST: dict[str, str] = {}
 
 
 def debt(member: str, place: str) -> int:
@@ -199,6 +216,7 @@ def debt(member: str, place: str) -> int:
     mine = {str(w["file"]).lower() for w in works if w.get("member") == member}
     mine |= {str(w["title"]).lower() for w in works if w.get("member") == member}
     owed = 0
+    oldest = ""
     for w in works:
         if w.get("member") == member or (w.get("ref") or "").lower() not in mine:
             continue
@@ -207,6 +225,8 @@ def debt(member: str, place: str) -> int:
                     and (m.get("ref") or "").lower() in {str(w["file"]).lower(), str(w["title"]).lower()}]
         if not answered:
             owed += 1
+            oldest = min([x for x in (oldest, str(w.get("when", ""))) if x] or [""])
+    DEBT_OLDEST[member] = oldest
     return owed
 
 
@@ -238,11 +258,26 @@ def next_up(force: str = "") -> list[tuple[str, str, str]]:
     for place in sorted(by_place):
         # A debt first, then the count. Ties inside each still break alphabetically, which is arbitrary
         # and recorded as arbitrary.
-        group = sorted(by_place[place],
-                       key=lambda d: (0 if debt(d.name, place) else 1, wakes_of(d), d.name))
+        def pressing(d: Path) -> tuple[int, str]:
+            owed = debt(d.name, place)
+            if not owed:
+                return 1, ""
+            # One turn per request. A member that has already woken since the oldest unpaid letter and
+            # spent the wake on something else has exercised its judgement, and the clock does not get to
+            # make the debt a cage: A was woken at 05:03 owing C two letters, used the wake to rewrite an
+            # earlier answer, and under a plain "debt first" rule it would have been woken again and again
+            # until it complied. Pressing only while the member has not had a turn since the request
+            # keeps the pull real and keeps the choice theirs.
+            last = last_wake_of(d)
+            return (0 if not last or last <= oldest_debt(d.name) else 1), f"owed {owed}"
+
+        group = sorted(by_place[place], key=lambda d: (*pressing(d)[:1], wakes_of(d), d.name))
         chosen = group[0]
+        state, note = pressing(chosen)
         owed = debt(chosen.name, place)
-        why = (f"owed {owed} answer(s)" if owed else f"fewest wakes ({wakes_of(chosen)} in {place})")
+        why = (f"{note} answer(s), not woken since" if state == 0
+               else (f"{note} still owed, but it has had its turn" if owed
+                     else f"fewest wakes ({wakes_of(chosen)} in {place})"))
         out.append((place or "(no place)", chosen.name, why))
     return out
 
