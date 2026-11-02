@@ -74,9 +74,17 @@ def load_all(root: Path | None = None) -> list[dict]:
     out = []
     for p in sorted((root / "works").glob("*/*.md")):
         try:
-            out.append(read_work(p))
+            w = read_work(p)
         except OSError:
             continue
+        # The file is stored relative to the root it was loaded from, always. An absolute path when the
+        # root was a temp directory meant a ref written as "works/a/one.md" never matched the work it
+        # pointed at, so a project view showed a piece with no answer and a conversation with nobody in it.
+        try:
+            w["file"] = str(p.relative_to(root))
+        except ValueError:
+            w["file"] = str(p)
+        out.append(w)
     return out
 
 
@@ -274,6 +282,56 @@ def round_robin(works: list[dict], issue: str,
     return edges, sorted(set(missing))
 
 
+def project(member: str, works: list[dict], root: Path | None = None) -> str:
+    """One member's work in the order it was made — the longitudinal view the issue cannot give.
+
+    An issue is a night; a project is a tunnel. The magazine has been chronological across everybody, so a
+    member building one thing over five wakes appeared five times as five unrelated pieces, and B2's two
+    drafts of one game sat side by side with no line between them. A reader who wants to watch a member get
+    better at something needs the member's own timeline: what it made, in what order, what it answered, what
+    it revised, and what is still owed to it.
+    """
+    mine = sorted([w for w in works if w.get("member") == member], key=lambda w: str(w.get("when", "")))
+    if not mine:
+        return f"# {member.upper()} — nothing on the shelf\n"
+    asked_by_others = []
+    for w in works:
+        if w.get("member") != member and (w.get("ref") or "").lower() in {
+                str(x["file"]).lower() for x in mine} | {str(x["title"]).lower() for x in mine}:
+            asked_by_others.append(w)
+    out = [f"# {member.upper()} — {len(mine)} work(s), {mine[0].get('when', '')[:8]} to "
+           f"{mine[-1].get('when', '')[:8]}", ""]
+    forms: dict[str, int] = {}
+    for w in mine:
+        forms[w["form"]] = forms.get(w["form"], 0) + 1
+    out += ["*" + ", ".join(f"{n} {f}" for f, n in sorted(forms.items(), key=lambda kv: -kv[1])) + "*", ""]
+    prev = ""
+    for w in mine:
+        when = str(w.get("when", ""))
+        stamp = f"{when[6:8]}/{when[4:6]} {when[9:11]}:{when[11:13]}" if len(when) >= 13 else when
+        line = f"- **{stamp}** — {w['title']} *({w['form']}, {w['words']} w)*"
+        out.append(line)
+        if w.get("ref") and w["ref"].strip() not in ("-", ""):
+            out.append(f"  - answers `{w['ref']}`")
+        if w.get("revises"):
+            out.append(f"  - revises `{w['revises']}`")
+        answered_by = [x for x in works if x.get("member") != member
+                       and (x.get("ref") or "").lower() in {str(w["file"]).lower(), str(w["title"]).lower()}]
+        for x in answered_by:
+            out.append(f"  - answered by {x['member'].upper()} — {x['title']}")
+        prev = w["title"]
+    out += ["", "## Written back to " + member.upper(), ""]
+    if not asked_by_others:
+        out.append("*(nobody has written back to this member yet)*")
+    places_map = places(root) if root else {}
+    for w in sorted(asked_by_others, key=lambda w: str(w.get("when", ""))):
+        other = places_map.get(w["member"], "")
+        here = places_map.get(member, "")
+        where = "" if (not places_map or other == here) else f" — in {other}, a world {member.upper()} cannot see"
+        out.append(f"- {w['member'].upper()} — {w['title']} *({w.get('when', '')[:8]})*{where}")
+    return "\n".join(out) + "\n"
+
+
 def squash(text: str, limit: int = 320) -> str:
     flat = re.sub(r"\s+", " ", re.sub(r"^#+.*$", "", text, flags=re.M)).strip()
     return flat[:limit] + ("…" if len(flat) > limit else "")
@@ -288,6 +346,8 @@ def main(argv: list[str] | None = None) -> int:
                     help="the issue currently open: the highest issue on disk, or 1")
     ap.add_argument("--citations", action="store_true",
                     help="files a work cites that are not on the shelf — invented provenance, caught cheaply")
+    ap.add_argument("--project", default="", help="one member's works in order — the long view")
+    ap.add_argument("--projects", action="store_true", help="every member's timeline; with --write, PROJECTS.md")
     ap.add_argument("--links", action="store_true",
                     help="who answered whom this issue, and which members have not answered anyone")
     args = ap.parse_args(argv if argv is not None else sys.argv[1:])
@@ -311,6 +371,20 @@ def main(argv: list[str] | None = None) -> int:
             if str(w["issue"]).isdigit():
                 nums.append(int(w["issue"]))
         print(max(nums) if nums else 1)
+        return 0
+
+    if args.project:
+        print(project(args.project.lower(), works, HERE), end="")
+        return 0
+
+    if args.projects:
+        members = sorted({w["member"] for w in works})
+        text = "\n\n".join(project(m, works, HERE).rstrip() for m in members) + "\n"
+        if args.write:
+            (HERE / "PROJECTS.md").write_text(text, encoding="utf-8")
+            print(f"wrote PROJECTS.md — {len(members)} member(s)")
+        else:
+            print(text, end="")
         return 0
 
     if args.citations:

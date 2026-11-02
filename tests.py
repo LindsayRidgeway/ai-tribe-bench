@@ -379,6 +379,26 @@ class TestMagazine(unittest.TestCase):
         self.assertEqual(magazine.where_cited("nothing.md", tmp), "")
         shutil.rmtree(tmp, ignore_errors=True)
 
+
+    def test_a_members_project_is_shown_in_the_order_it_was_made(self):
+        tmp = Path(tempfile.mkdtemp())
+        (tmp / "works" / "a").mkdir(parents=True)
+        (tmp / "works" / "b").mkdir(parents=True)
+        (tmp / "works" / "a" / "one.md").write_text(
+            "---\ntitle: Harbour\nform: game\nissue: 1\nwhen: 20261102T040000Z\n---\n\nsix posts\n",
+            encoding="utf-8")
+        (tmp / "works" / "a" / "two.md").write_text(
+            "---\ntitle: Harbour, again\nform: game\nissue: 1\nwhen: 20261102T050000Z\n"
+            "revises: works/a/one.md\n---\n\nfive posts\n", encoding="utf-8")
+        (tmp / "works" / "b" / "three.md").write_text(
+            "---\ntitle: On Harbour\nform: letter\nissue: 1\nwhen: 20261102T060000Z\nref: works/a/one.md\n"
+            "---\n\nI played it.\n", encoding="utf-8")
+        text = magazine.project("a", magazine.load_all(tmp), tmp)
+        shutil.rmtree(tmp, ignore_errors=True)
+        self.assertLess(text.index("Harbour *"), text.index("Harbour, again"))
+        self.assertIn("revises `works/a/one.md`", text)
+        self.assertIn("answered by B", text)
+
     def test_the_colophon_names_the_soil_drop(self):
         text = self._issue({"a/one.md": "---\ntitle: T\nform: piece\nissue: 1\n---\n\nbody\n"})
         self.assertIn("a box", text)

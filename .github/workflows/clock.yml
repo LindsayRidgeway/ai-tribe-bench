@@ -19,6 +19,14 @@ on:
         description: "members to wake now, comma separated (a human dropping a twig in); empty = the count decides"
         required: false
         default: ""
+      hand_member:
+        description: "member to hand a work to (empty = hand nothing)"
+        required: false
+        default: ""
+      hand_work:
+        description: "the work handed to that member, as a path on the shelf; it wakes with it as a letter"
+        required: false
+        default: ""
   schedule:
     - cron: "17 */4 * * *"    # every four hours, on the 17th minute
 
@@ -57,7 +65,15 @@ jobs:
             model="$(grep -E '^model:' "wake/members/$who/state/voice.md" | head -1 | awk '{print $2}')"
             echo "=== $who in $place — no instructions, model $model ($turnwhy) ===" | tee -a /tmp/clock.log
             before="$(ls "wake/members/$who/output"/raw-*.json 2>/dev/null | wc -l)"
-            if ! python3 wake/wake.py --member "$who" --api-model "$model" --api-base "$api" \
+            handed=""
+            if [ -n "${{ inputs.hand_member }}" ] && [ "$who" = "${{ inputs.hand_member }}" ] \
+               && [ -n "${{ inputs.hand_work }}" ]; then
+              # The hand on the glass: a person puts one work in front of one member and it wakes with that
+              # work addressed to it, which is the only thing in this harness that makes a reply mandatory.
+              handed="--read ${{ inputs.hand_work }}"
+              echo "   (handed ${{ inputs.hand_work }} by the human)" | tee -a /tmp/clock.log
+            fi
+            if ! python3 wake/wake.py --member "$who" --api-model "$model" --api-base "$api" $handed \
                  > /tmp/wake.log 2>&1; then
               # "the member failed" and "the harness crashed" are different facts and were being printed
               # as one: on 2026-11-02 a KeyError in the prompt killed both wakes in 0.3 seconds and the
@@ -80,6 +96,8 @@ jobs:
             fi
           done < /tmp/turn.txt
           python3 magazine.py --issue "$issue" --write >> /tmp/clock.log 2>&1 || true
+          # The long view, rebuilt every turn: an issue is a night, a project is a tunnel.
+          python3 magazine.py --projects --write >> /tmp/clock.log 2>&1 || true
           tail -40 /tmp/clock.log
 
       - name: Commit the clock
