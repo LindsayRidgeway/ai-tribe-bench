@@ -82,6 +82,34 @@ def fact_commands(api: bool) -> list[str]:
 FACT_COMMANDS += ["hostname", "uname -srm"]
 
 
+def mark_new_drops(drops: str, last_wake: str) -> str:
+    """Say which rows of the drops table arrived since this member last woke.
+
+    A member wakes with no memory and reads the whole table at once, so a twig dropped in ten minutes ago
+    reads exactly like a tide-table box that has been in the corner for a week. Two lever experiments on
+    2026-11-02 put a new object in front of A and B2 — both ignored it and wrote the piece they were
+    already going to write, and both pieces were unchanged by the ground. The drop was in the prompt and
+    indistinguishable from scenery, which is the same defect as a record nothing reads back: present, and
+    not legible as new. The date column was already there; nothing was using it as a date.
+    """
+    m = re.search(r"(\d{4})-(\d{2})-(\d{2})", last_wake or "")
+    if not m:
+        return drops
+    woke = tuple(int(g) for g in m.groups())
+    out = []
+    for line in drops.splitlines():
+        d = re.match(r"\|\s*(\d{4})-(\d{2})-(\d{2})\s*\|", line)
+        cells = line.split("|")
+        if d and tuple(int(g) for g in d.groups()) >= woke and len(cells) >= 4:
+            # Marked inside the cell, not appended to the line: a trailing cell would add a column and
+            # break the table it is in, and a table broken by the harness is a harness bug the member
+            # then has to read through.
+            cells[3] = " **[since your last wake]**" + cells[3]
+            line = "|".join(cells)
+        out.append(line)
+    return "\n".join(out)
+
+
 def measured_facts(api: bool = False) -> str:
     """Run a fixed, safe set of commands and return their real output.
 
@@ -808,15 +836,24 @@ def main() -> int:
     soil_parts = []
     soil_dirs = [ROOT.parent / "soil" / place] if place else []
     soil_dirs.append(ROOT.parent / "soil")   # the flat layout, for a member that predates places
+    try:
+        last_wake = " ".join(line.split(":", 1)[1].split()) if (line := next(
+            (ln for ln in read(STATE / "state.md").splitlines() if ln.startswith("- Last wake:")), "")) else ""
+    except Exception:  # noqa: BLE001
+        last_wake = ""
     for d in soil_dirs:
         for name in ("world.md", "drops.md"):
             try:
-                soil_parts.append(read(d / name)[-2500:])
+                text = read(d / name)[-2500:]
             except Exception:  # noqa: BLE001
                 continue
+            soil_parts.append(mark_new_drops(text, last_wake) if name == "drops.md" else text)
         if soil_parts:
             break
     soil = "\n\n".join(soil_parts)
+    if "[since your last wake]" in soil:
+        soil += ("\n\n(The rows marked **[since your last wake]** arrived after you last woke. They are new "
+                 "ground, not weather: something a human put there since you were last here.)")
 
     # The shelf: what the other members made. Found 2026-11-02 — with a beat and no shelf, a member with
     # nothing to do answered an argument from three hours earlier in its own journal, because the journal

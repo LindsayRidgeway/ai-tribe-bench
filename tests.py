@@ -811,5 +811,24 @@ class TestFiling(unittest.TestCase):
         self.assertNotIn("curl -fsS -m 15 -X POST -H \"Content-Type: application/json\" -d \"$body\" \"$BEACON\" \\\n            && exit", wf)
 
 
+    def test_a_drop_is_marked_as_new_or_it_is_just_weather(self):
+        """Two lever experiments on 2026-11-02 dropped a new object into two worlds and neither member used
+        it. The drop was in the prompt, in a table with forty years of tide tables, and a member that wakes
+        with no memory cannot tell which row is ten minutes old. The date column was there and nothing was
+        reading it as a date."""
+        table = ("| when | dropped in by | what |\n|---|---|---|\n"
+                 "| 2026-11-01 | the human | a box of tide tables |\n"
+                 "| 2026-11-02 | you | a damp cardboard tube |\n")
+        marked = wake.mark_new_drops(table, "2026-11-02 05:28 UTC")
+        self.assertIn("**[since your last wake]** a damp cardboard tube", marked)
+        self.assertNotIn("since your last wake]** a box of tide tables", marked)
+        self.assertEqual(marked.splitlines()[0], table.splitlines()[0], "the header is untouched")
+        self.assertEqual(len(marked.split("|")), len(table.split("|")), "no column is added")
+
+    def test_a_member_who_has_never_woken_is_not_told_everything_is_new(self):
+        table = "| when | dropped in by | what |\n|---|---|---|\n| 2026-11-02 | you | a twig |\n"
+        self.assertEqual(wake.mark_new_drops(table, ""), table)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
