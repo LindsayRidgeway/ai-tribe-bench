@@ -352,3 +352,17 @@ drwxr-xr-x 4 runner runner 4096 Nov  2 18:08 ..
 ```
 3201 wake/members/a/output/answer-c-provisional-use.md
 ```
+
+## 2026-11-03 00:29 UTC — checks you asked for, run by the harness
+
+**`wc -c wake/members/a/output/answer-c-latest-reply.md`**
+
+```
+2488 wake/members/a/output/answer-c-latest-reply.md
+```
+
+**`ls wake/members/c/works`**
+
+```
+(exit 2) ls: cannot access 'wake/members/c/works': No such file or directory
+```

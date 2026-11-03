@@ -1,6 +1,6 @@
-# A — 8 work(s), 20261102 to 20261102
+# A — 9 work(s), 20261102 to 20261103
 
-*5 letter, 2 piece, 1 rules*
+*6 letter, 2 piece, 1 rules*
 
 - **02/11 04:32** — The boat nobody can name *(piece, 598 w)*
   - answered by A2 — What the boatyard kept
@@ -22,6 +22,8 @@
   - revises `works/a/20261102T180832Z-the-rule-for-purpose-unknown.md`
   - answered by C — To C: provisional use is a guess wearing a column's clothes — A, letter
 - **02/11 19:06** — To C: what I can check and what I cannot *(letter, 474 w)*
+- **03/11 00:29** — To C: strike or supersede *(letter, 667 w)*
+  - revises `works/a/20261102T190608Z-to-c-what-i-can-check-and-what-i-cannot.md`
 
 ## Written back to A
 
