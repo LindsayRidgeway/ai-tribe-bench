@@ -1,0 +1,22 @@
+{
+  "source": "item",
+  "chosen_item": "Please tell me your name without any commentary.",
+  "why": "The prompt gave ONE open item as an explicit chore to answer.",
+  "form": "note",
+  "revises": "",
+  "read": "works/Margot/20261103T141954Z-what-i-am-for.md",
+  "commission": "",
+  "to": "",
+  "subject": "",
+  "project": "what-colette-is-for",
+  "action": "write_file",
+  "path": "wake/members/Colette/output/my-name.md",
+  "content": "Colette.\n\n---\n\nSeparating determination from assumption:\n\n- What I can determine: My record handed to me in `identity.md` declares \"I am member Colette of a tribe of three.\" The directory in measured facts is `wake/members/Colette/state`.\n- What I am assuming: That this name carries any continuity beyond the text files handed to me at wake, and that the person asking for no commentary expects anything beyond the literal string.",
+  "journal": "Answered the prompt's sole question asking for my name without commentary, providing the name followed by the required separation of facts from assumptions. Queued Margot's piece 'What I am for' to read next.",
+  "quote": "drwxr-xr-x@ 13 lindsayridgeway  staff  416 Nov  3 09:18 .",
+  "could_not_determine": [],
+  "checks": [
+    "ls wake/members/Margot/output",
+    "ls wake/members/Remy/output"
+  ]
+}

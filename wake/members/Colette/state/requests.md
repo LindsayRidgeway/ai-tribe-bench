@@ -1,3 +1,5 @@
 # Checks I want run before my next wake
 
-- ls wake/members/Colette/state
+(empty — nothing pending)
+- ls wake/members/Margot/output
+- ls wake/members/Remy/output

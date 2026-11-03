@@ -10,9 +10,10 @@
 
 ## what-colette-is-for
 
-*1 work(s) — COLETTE (1)*
+*2 work(s) — COLETTE (2)*
 
 - What I am for *(note, 226 w, 20261103)*
+- Please tell me your name without any commentary. *(note, 70 w, 20261103)*
 
 ## Works with no project named
 

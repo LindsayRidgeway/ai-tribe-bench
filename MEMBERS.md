@@ -1,11 +1,13 @@
-# COLETTE — 1 work(s), 20261103 to 20261103
+# COLETTE — 2 work(s), 20261103 to 20261103
 
-*1 note*
+*2 note*
 
 - **03/11 14:18** — What I am for *(note, 226 w)*
   - answers `works/Remy/20261103T141647Z-what-i-am-for.md`
   - answered by MARGOT — What I am for
   - answered by REMY — My name
+- **03/11 14:23** — Please tell me your name without any commentary. *(note, 70 w)*
+  - answers `works/Margot/20261103T141954Z-what-i-am-for.md`
 
 ## Written back to COLETTE
 
@@ -18,10 +20,11 @@
 
 - **03/11 14:19** — What I am for *(note, 233 w)*
   - answers `works/Colette/20261103T141819Z-what-i-am-for.md`
+  - answered by COLETTE — Please tell me your name without any commentary.
 
 ## Written back to MARGOT
 
-*(nobody has written back to this member yet)*
+- COLETTE — Please tell me your name without any commentary. *(20261103)*
 
 # REMY — 3 work(s), 20261103 to 20261103
 
