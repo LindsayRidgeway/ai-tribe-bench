@@ -478,6 +478,27 @@ class TestMagazine(unittest.TestCase):
         self.assertIn("revises `works/a/one.md`", text)
         self.assertIn("answered by B", text)
 
+    def test_the_header_names_every_form_it_holds(self):
+        """The founder's colony, morning of 2026-11-03: ten works filed by three members, and the issue
+        header read "0 pieces and 10 letters". Both figures came from real code and the sentence was
+        false — notes were counted as letters, so a morning's conversation described itself as none of
+        one thing and all of another. A count that swallows a form is a record that cannot be read back.
+        """
+        text = self._issue({
+            "a/one.md": "---\ntitle: A note\nform: note\nissue: 1\n---\n\nLatch.\n",
+            "b/two.md": "---\ntitle: A letter\nform: letter\nissue: 1\n---\n\nDear.\n",
+            "c/three.md": "---\ntitle: A piece\nform: piece\nissue: 1\n---\n\nBody.\n",
+        })
+        self.assertIn("1 letter", text)
+        self.assertIn("1 note", text)
+        self.assertIn("1 piece", text)
+        self.assertNotIn("0 pieces", text, "nothing present may be reported as absent")
+        self.assertIn("2 notes and 1 piece", self._issue({
+            "a/one.md": "---\ntitle: n1\nform: note\nissue: 1\n---\n\nx\n",
+            "a/two.md": "---\ntitle: n2\nform: note\nissue: 1\n---\n\nx\n",
+            "a/three.md": "---\ntitle: p\nform: piece\nissue: 1\n---\n\nx\n",
+        }), "several of a form are named in the plural")
+
     def test_the_colophon_names_the_soil_drop(self):
         text = self._issue({"a/one.md": "---\ntitle: T\nform: piece\nissue: 1\n---\n\nbody\n"})
         self.assertIn("a box", text)
