@@ -119,7 +119,16 @@ def validate(name: str) -> list[str]:
     return bad
 
 
-def new(name: str, seat: str, api: str, model: str, of: str) -> int:
+def worlds(root: Path | None = None) -> list[str]:
+    """The worlds this colony has: the places its members stand in, else the soil folders on disk."""
+    root = root or REPO
+    seen = {place_of(d) for d in member_dirs() if place_of(d)}
+    if not seen:
+        seen = {p.name for p in (root / "soil").glob("*") if p.is_dir()} if (root / "soil").is_dir() else set()
+    return sorted(seen)
+
+
+def new(name: str, seat: str, api: str, model: str, of: str, place: str = "") -> int:
     # A member's name is a directory name and appears in every header, path and byline, so it has to be
     # one word. Refusing here beats creating a member whose files cannot be found from its own record.
     if not re.match(r"^[A-Za-z][A-Za-z0-9_-]{0,23}$", name or ""):
@@ -144,6 +153,14 @@ def new(name: str, seat: str, api: str, model: str, of: str) -> int:
     (base / "state" / "voice.md").write_text(
         f"# Voice — member {name}\n\nThe model this member borrows. Changing the model here does not make "
         f"it someone else: the member is its files.\n\napi: {api}\nmodel: {model}\n", encoding="utf-8")
+    # The place is what makes a member *in a colony* rather than a fixture in a folder: `next_up` groups
+    # members by place to pick one per world, and (since 2026-11-03) prints nothing at all for a member
+    # that has none. RUN.md §6 has described this line since the paragraph was written; the code did not
+    # write it, so a member created exactly as documented validated, existed, and never got a turn.
+    known = worlds()
+    where = place or (known[0] if len(known) == 1 else "")
+    if where:
+        (base / "state" / "place.md").write_text(f"place: {where}\n", encoding="utf-8")
     (base / "state" / "requests.md").write_text(
         "# Checks I want run before my next wake\n\n", encoding="utf-8")
     (base / "state" / "findings.md").write_text(
@@ -154,6 +171,14 @@ def new(name: str, seat: str, api: str, model: str, of: str) -> int:
         "**Waiting on you**\n\n- (empty)\n\n"
         "**Queued**\n\n1. Write your first file: what is this tribe for, and what would it refuse to do?\n",
         encoding="utf-8")
+    if not where:
+        # More than one world, or none: guessing would put a being in somebody else's ground, and saying
+        # nothing would leave it outside every world — visible in `status`, refused by `next`. So it says.
+        print(f"!! {name} stands in no world yet: this colony has "
+              f"{'more than one place (' + ', '.join(known) + ')' if known else 'no place at all'}.")
+        print(f"   give it one — one line, or re-create it with --place: "
+              f"echo 'place: {known[0] if known else 'workshop'}' > wake/members/{name}/state/place.md")
+        print("   until then no clock will ever wake it, because a member with no place is not in a colony.")
     bad = validate(name)
     if bad:
         print("created, but it does not validate:")
@@ -416,6 +441,23 @@ def fresh(name: str = "", place: str = "", confirm: str = "", root: Path | None 
         for b in bad[:6]:
             print("  ", b)
         return 1
+    # Rebuild what is derived, or the fresh colony fails `lab/derivable.py` before anybody touches it:
+    # on 2026-11-03 a fork that had just been emptied still carried four published files describing the
+    # bench's own day (an index of two issues, a ledger of members that no longer exist), and the first
+    # thing a stranger ran after `fresh` reported that their new colony was not a function of its record.
+    # A reset that leaves the debris of the old record behind is not a reset.
+    import subprocess
+    import sys as _sys
+    for args in (("--projects", "--write"), ("--ledger", "--write"), ("--index", "--write")):
+        subprocess.run([_sys.executable, "magazine.py", *args], cwd=root,
+                       capture_output=True, check=False)
+    try:
+        sys.path.insert(0, str(root))
+        import magazine
+        (root / "issues").mkdir(exist_ok=True)
+        (root / "issues" / "README.md").write_text(magazine.issue_index(), encoding="utf-8")
+    except Exception as e:                      # never fail a reset over the index; say it instead
+        print(f"   (could not rebuild issues/README.md: {e})")
     print("every member validates; the shelf is empty and the magazine will start at issue 1")
     return 0
 
@@ -438,6 +480,8 @@ def main() -> int:
     n.add_argument("--api", default="gemini", choices=sorted(BASES))
     n.add_argument("--model", default="gemini-3.8-flash")
     n.add_argument("--of", default="", help="e.g. ' of three' — appears in the identity")
+    n.add_argument("--place", default="",
+                   help="which world the member stands in; inferred when the colony has exactly one")
     a = ap.add_argument_group("validate/status")
     sub.add_parser("validate").add_argument("name", nargs="?")
     sub.add_parser("status")
@@ -453,7 +497,7 @@ def main() -> int:
     args = ap.parse_args()
 
     if args.cmd == "new":
-        return new(args.name, args.seat, args.api, args.model, args.of)
+        return new(args.name, args.seat, args.api, args.model, args.of, args.place)
     if args.cmd == "validate":
         all_dirs = [d.name for d in member_dirs()]
         if args.name:
@@ -481,6 +525,24 @@ def main() -> int:
         rows = next_up(args.force, args.keyed)
         for row in rows:
             print("\t".join(row))
+        if not rows:
+            # Silence plus an exit status is the failure this whole bench is about: a machine that refuses
+            # and does not say why reads exactly like a machine with nothing to do. Found on 2026-11-03
+            # while setting up the founder's three-member colony — `new` did not write place.md, so all
+            # three members were skipped as fixtures and `next` printed one blank line and exited 1.
+            stranded = [d.name for d in member_dirs() if not place_of(d)]
+            if stranded:
+                print(f"   no member has a place, so none of them is in a world: {', '.join(stranded)}.",
+                      file=sys.stderr)
+                print("   a place is one line — `place: workshop` — in wake/members/<name>/state/place.md. "
+                      "`tribe.py new` writes it; a member created before 2026-11-03 has to be given one.",
+                      file=sys.stderr)
+            elif not member_dirs():
+                print("   there are no members at all — `tribe.py new <name>` makes the first one.",
+                      file=sys.stderr)
+            else:
+                print("   every member was skipped: no member has a voice.md, or none has a key here. "
+                      "`tribe.py status` shows which.", file=sys.stderr)
         return 0 if rows else 1
     return status()
 

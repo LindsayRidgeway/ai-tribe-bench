@@ -763,6 +763,45 @@ class TestSchema(unittest.TestCase):
         tribe.new("z", "the tester", "gemini", "gemini-3.8-flash", "")
         self.assertEqual(tribe.new("z", "again", "gemini", "gemini-3.8-flash", ""), 2)
 
+    def test_a_new_member_stands_in_a_world(self):
+        """Found on 2026-11-03, setting up a three-member colony for the founder.
+
+        RUN.md §6 has said since it was written that `tribe.py new` writes the member's `place.md`. It did
+        not. The member validated, appeared in `status`, and was then invisible to `next_up()` — which groups
+        members by place to choose one per world and quietly skips those with none, on purpose, because a
+        fixture in a folder is not in a colony. So a person could follow the instructions exactly and get
+        three beings, a green validator, and a clock that would never wake any of them.
+        """
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            self.assertEqual(tribe.new("Ada", "the first", "gemini", "gemini-3.8-flash", "", "workshop"), 0)
+        self.assertNotIn("stands in no world", buf.getvalue())
+        self.assertEqual(tribe.place_of(tribe.MEMBERS / "Ada"), "workshop")
+        self.assertEqual(tribe.validate("Ada"), [])
+
+    def test_next_with_no_world_says_why_instead_of_exiting_in_silence(self):
+        """The failure mode this bench is named for: a refusal that looks like an empty queue.
+
+        Three members, none with a place, `tribe.py next` printed one blank line and exited 1. Nothing said
+        the members existed, nothing said what was missing, and a person would reasonably conclude the
+        colony was idle rather than stranded.
+        """
+        for name in ("Ada", "Bruno"):
+            tribe.new(name, "the test", "gemini", "gemini-3.8-flash", "", "workshop")
+            (tribe.MEMBERS / name / "state" / "place.md").unlink()
+        self.assertEqual(tribe.next_up(), [], "a member with no place is not in a colony")
+        buf = io.StringIO()
+        old_argv = sys.argv
+        sys.argv = ["tribe.py", "next"]
+        try:
+            with contextlib.redirect_stderr(buf), contextlib.redirect_stdout(io.StringIO()):
+                rc = tribe.main()
+        finally:
+            sys.argv = old_argv
+        self.assertEqual(rc, 1)
+        self.assertIn("no member has a place", buf.getvalue())
+        self.assertIn("wake/members/<name>/state/place.md", buf.getvalue())
+
 
 class TestDerivedLog(unittest.TestCase):
     """The hand-written vote log said A had received no vote in any round; A had been named in three."""
@@ -1711,6 +1750,22 @@ class TestWindowPath(unittest.TestCase):
         clean.update(env or {})
         return subprocess.run([sys.executable, "wake/wake.py", *args], cwd=REPO, text=True,
                               capture_output=True, env=clean, timeout=60)
+
+    def test_the_window_refuses_to_push_a_colony_into_the_project_it_was_copied_from(self):
+        """Found by doing it, on 2026-11-03, in a smoke test.
+
+        A colony copied with `cp -r` keeps the `origin` of the project it was copied from, so `./talk.sh`
+        commits and then pushes the copy's record into somebody else's repository. In the smoke test the
+        push succeeded and the bench had to be reverted; a person who copies a directory instead of forking
+        it has the same trap and no smoke test to notice for them. The guard reads the push URL and stops.
+        """
+        script = (REPO / "talk.sh").read_text(encoding="utf-8")
+        self.assertIn("*ai-tribe-bench*)", script, "the guard matches the upstream URL")
+        self.assertIn("NOT pushed", script, "and says so in the only line a person will read")
+        self.assertIn("git remote set-url origin", script, "and names the fix")
+        guard = script.index("*ai-tribe-bench*)")
+        push = script.index("if git push -q")
+        self.assertLess(guard, push, "the guard has to run before the push, not after it")
 
     def test_a_missing_key_is_answered_in_four_lines_and_not_after_the_prompt(self):
         r = self._run("--member", "b", "--api-model", "gemini-3.8-flash", "--api-base", "gemini",

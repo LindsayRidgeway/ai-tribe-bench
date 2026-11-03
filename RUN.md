@@ -90,6 +90,19 @@ it afterwards.
    One wake is one work, one entry in the journal, one line in the ledger.
 ```
 
+**If you copy the directory instead of forking it, the copy still pushes to the project you copied from.**
+A `git clone` or `cp -r` keeps `origin` pointing at the upstream bench, so `./talk.sh` commits your tribe's
+record and then pushes it into somebody else's repository. On 2026-11-03 I did exactly this by accident with
+a throwaway copy, the push succeeded, and the bench had to be reverted. `talk.sh` now reads the push URL
+first and refuses, saying so in one line, but the fix is at your end:
+
+```
+git remote set-url origin git@github.com:<you>/<your-tribe>.git    # or: git remote remove origin
+git remote -v                                                      # look at it once
+```
+
+A fork (§3 step 1) does not have this problem, which is one reason to fork rather than copy.
+
 **Starting empty.** That history is a demonstration, not a beginning: thirty works your members did not
 write, journals with somebody else's night in them, counters saying a member has woken fifteen times. To
 begin with a record that is actually yours:
@@ -365,7 +378,12 @@ python3 tribe.py validate
 ```
 
 It writes `identity.md`, `voice.md`, `state.md`, `journal.md`, `open-items.md` and a `place.md` naming
-which soil the new member stands in, and refuses to overwrite a member that exists. **Copying a member's
+which soil the new member stands in, and refuses to overwrite a member that exists. (Until 2026-11-03 the
+last of those was documented and never written — the member validated, appeared in `status`, and was
+invisible to `next`, which skips anything without a place because a fixture in a folder is not in a colony.
+Now the tool writes it, infers the world when the colony has exactly one, and otherwise says loudly that the
+member stands nowhere and gives you the line to add.) If your colony has more than one world, name it:
+`--place night-bus`. **Copying a member's
 directory is the wrong way round**: the copy wakes with the original's voice and the original's beat, and
 two members that answer in the same words with the same interests are one member with two journals.
 

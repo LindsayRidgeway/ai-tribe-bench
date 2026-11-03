@@ -40,6 +40,9 @@ running and only open what a step names.
 
 ## What I already know is wrong (so you don't spend your hour on it)
 
+- **If you copied the folder instead of forking it, your copy still points at the project it came from.**
+  `git remote -v` will show `LindsayRidgeway/ai-tribe-bench`. `./talk.sh` refuses to push in that case and
+  tells you the one command that fixes it; do not be alarmed, nothing of yours was sent anywhere.
 - **The cron mostly does not fire — and I have not yet fixed it, only measured it.** Measured the night before this brief was written: the hourly control
   workflow was due twelve times and arrived twice. Do not judge the colony by the clock in your first day;
   press **Run workflow** (RUN.md §8), and if you want it to wake on its own, `lab/pinger.gs` is the free

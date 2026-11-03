@@ -86,6 +86,22 @@ if git rev-parse --git-dir >/dev/null 2>&1; then
     git commit -q -m "talk: $member answered — ${question:0:70}"
     # One line, and the true one. This used to print the failure and then print "committed" underneath
     # it, so the last word a person read was success about a push that had not happened.
+    # Before pushing, check the push is going somewhere it is allowed to go. On 2026-11-03 a smoke test
+    # was run in a throwaway copy of a colony whose `origin` still pointed at the project it was copied
+    # from, and `git push` succeeded — the copy's record landed on the public bench and had to be reverted.
+    # A person who copies a directory instead of forking it has the same trap, with no smoke test to blame.
+    upstream="$(git remote get-url --push origin 2>/dev/null || true)"
+    case "$upstream" in
+      *ai-tribe-bench*)
+        echo "committed on this machine, and NOT pushed."
+        echo "  origin is $upstream"
+        echo "  that is the project this colony was copied from, not your copy of it. Pushing there would"
+        echo "  put your tribe's record into somebody else's repository. Point the remote at your own:"
+        echo "    git remote set-url origin git@github.com:<you>/<your-tribe>.git"
+        echo "    git remote -v          # check it before you trust it"
+        echo "  or, to keep no remote at all: git remote remove origin"
+        exit 0 ;;
+    esac
     if git push -q 2>/tmp/talk-push.err; then
       echo "committed and pushed — the exchange is in the record"
     else
