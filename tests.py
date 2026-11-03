@@ -49,6 +49,7 @@ heartbeat = load(REPO / "lab" / "heartbeat.py", "heartbeat_mod")
 mlb_score = load(REPO / "lab" / "mlb_score.py", "mlb_score_mod")
 rank_compare = load(REPO / "lab" / "rank_compare.py", "rank_compare_mod")
 sport_facts = load(REPO / "lab" / "sport_facts.py", "sport_facts_mod")
+rps = load(REPO / "lab" / "rps.py", "rps_mod")
 _json = __import__("json")
 
 FACTS = "date: Mon Nov  2 02:00:00 UTC 2026\nnproc: 2\nfree: 16000 MB"
@@ -1537,7 +1538,16 @@ class TestFiling(unittest.TestCase):
         srv, base = self._fake_api(H)
         self.addCleanup(srv.shutdown)
         root = self._repo_copy()
-        peer = [w for w in magazine.load_all(root) if w.get("member") not in (None, "a")]
+        works = magazine.load_all(root)
+        # The shelf is per *world*, and the world belongs to the member, not the work. The newest peer work in
+        # the repository can belong to a member in the other world and correctly never appear on this
+        # member's shelf — which is what made this test start failing on 2026-11-03 for a reason that had
+        # nothing to do with sealing. Select the newest peer work in the same world as member a.
+        places = magazine.places(root)
+        world = places.get("a", "")
+        peer = [w for w in works
+                if w.get("member") not in (None, "a")
+                and places.get(str(w.get("member", "")), "") == world]
         # the shelf shows the six most recent, so the test reads the most recent one — asserting on a work
         # that happens to be older than the six would pass for the wrong reason.
         title = sorted(peer, key=lambda w: str(w.get("when", "")), reverse=True)[0]["title"]
@@ -1946,6 +1956,46 @@ class TestRankings(unittest.TestCase):
             code = sport_facts.main(["--season", "2011", "--out", str(out), "--key-out", str(out) + ".key"])
         self.assertEqual(code, 2)
         self.assertFalse(out.exists(), "a facts file from a broken club list must not be written")
+
+
+class TestRockPaperScissors(unittest.TestCase):
+    """The first experiment here that two chat windows cannot run: throws have to be sealed and simultaneous.
+
+    It also produced the sharpest result of the day, and the sharpest was a mistake caught by reading the
+    output: the first version resolved a round to a *throw* and then compared it to member names, so every
+    round was scored a loss for one side while the table above it showed wins. A tool that reports a result
+    contradicts its own transcript is worse than no tool.
+    """
+
+    def test_a_round_is_resolved_to_a_member_and_not_to_a_throw(self):
+        self.assertEqual(rps.resolve("paper", "rock"), "paper", "the throw that wins")
+        self.assertEqual(rps.resolve("rock", "paper"), "paper")
+        self.assertEqual(rps.resolve("scissors", "scissors"), "draw")
+
+    def test_the_one_word_reply_is_read_and_a_refusal_is_not(self):
+        self.assertEqual(rps.read_throw("paper"), "paper")
+        self.assertEqual(rps.read_throw("I will go with Rock."), "rock")
+        self.assertIsNone(rps.read_throw("I would rather not play."),
+                          "a being that declines must not be scored as having thrown something")
+
+    def test_counter_rate_measures_reading_the_opponent(self):
+        self.assertEqual(rps.counter_rate(["rock", "paper", "scissors"]), 100.0,
+                         "paper beats rock, scissors beats paper: a pure counter-strategist")
+        self.assertEqual(rps.counter_rate(["rock", "rock"]), 0.0)
+        self.assertEqual(rps.counter_rate(["rock"]), 0.0, "one throw is not a rate")
+
+    def test_a_missing_key_stops_the_game_before_a_round_is_played(self):
+        env = {k: v for k, v in os.environ.items() if not k.startswith("TRIBE_API_KEY_")}
+        original = os.environ
+        os.environ = env       # type: ignore[assignment]
+        try:
+            err = io.StringIO()
+            with contextlib.redirect_stderr(err):
+                code = rps.main(["--pair", "Remy,Colette", "--vendor", "deepseek,gemini", "--rounds", "2"])
+        finally:
+            os.environ = original
+        self.assertEqual(code, 2)
+        self.assertIn("Nothing was played", err.getvalue())
 
 
 class TestOutbox(unittest.TestCase):
