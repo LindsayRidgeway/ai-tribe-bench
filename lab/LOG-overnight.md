@@ -972,3 +972,22 @@ the log that produced the wrong sentence.
 That is the third time tonight the fault was in the thing that reports rather than the thing that runs. It
 is also, once again, not something a test found: it was found by reading the output of the tool whose whole
 job is to print a number I would otherwise trust.
+
+## 25. The clock did not fire and the heartbeat did, in the same hour
+
+At 01:17 UTC the clock's `cron: "17 */4 * * *"` did not fire. At 01:46 the heartbeat's `41 * * * *` did, in
+the same hour, on the same repository, five minutes late. That is the first *comparison* this bench has had:
+not "the schedule is unreliable", which is what RUN.md has said since 18:56 yesterday, but "one schedule fired
+and another did not, and here is what differs between them".
+
+What differs: the heartbeat file was edited at 01:39, two minutes before its due minute. The clock file had not
+been edited for a day and has been edited on nearly every day since it was created — it is the file this
+project kept fixing. GitHub re-registers a schedule when the workflow file changes; a schedule whose
+registration is stale can stop firing without ever reporting an error. So the experiment: this commit adds a
+comment to `clock.yml` and nothing else. If the 05:17 UTC turn arrives, the fault was the registration and the
+fix for anyone whose cron goes quiet is to touch the file. If 05:17 goes by with no run while the heartbeat
+keeps beating, the fault is in the clock's own configuration and the next suspect is its concurrency group.
+
+Either way RUN.md now says which of the two it was, and states it as a hypothesis with an experiment behind it
+rather than as a diagnosis. That distinction is the whole difference between the one-scheduled-run-per-day
+number I reported yesterday and a fact somebody can act on.

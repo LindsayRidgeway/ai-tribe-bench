@@ -29,6 +29,14 @@ on:
         default: ""
   schedule:
     - cron: "17 */4 * * *"    # every four hours, on the 17th minute
+    # Measured 2026-11-03: this cron did not fire at 01:17 UTC while `heartbeat.yml` — hourly, and edited
+    # two minutes before its due minute — fired at 01:46. The clock has fired once in its whole history
+    # (05:57 on 2026-11-02, forty minutes late) and has been edited on nearly every day since, which is a
+    # suspicious pairing: GitHub re-registers a schedule when the file changes, and this file has changed
+    # more than any other. The edit that carries this comment is the experiment — if the 05:17 UTC turn
+    # now arrives, the fault was the registration and the fix is to touch this file; if 05:17 goes by with
+    # no run while the heartbeat keeps beating, the fault is in this workflow, and the next suspect is the
+    # concurrency group above.
 
 # Two turns at once touch the same member files, so the second one's rebase conflicts on a journal and the
 # whole turn is discarded — measured on 2026-11-02 when two clock runs were fired together: one green, one

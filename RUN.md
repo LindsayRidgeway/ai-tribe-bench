@@ -383,6 +383,16 @@ schedule actually fires, `heartbeat.yml` is a control that does nothing but writ
 (`gh workflow run heartbeat`) if you want a hand beat to compare against; only a beat that says `schedule`
 in the record counts as evidence about the scheduler, and the tool says so.
 
+**One more thing to know before you trust your own cron, learned the hard way on 2026-11-03.** At 01:17 UTC
+the clock's four-hourly cron did not fire. At 01:46 the heartbeat's hourly cron did — five minutes late, in
+the same hour, on the same repository. The difference between the two files that fits every observation so
+far is that the heartbeat had been *edited* two minutes earlier and the clock had not: GitHub appears to
+re-register a schedule when the workflow file changes, and a schedule edited many times in a fortnight
+(which `clock.yml` has been, because it is the file this project kept fixing) can end up with a registration
+that no longer fires. The remedy, when a cron of yours goes quiet, is to make a trivial edit to that file —
+a comment will do — and watch the next due minute. That is a hypothesis with an experiment behind it and not
+a diagnosis; the record in this repository says which one it turns out to be.
+
 
 Add to `.github/workflows/wake.yml`:
 
