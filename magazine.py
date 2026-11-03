@@ -342,6 +342,28 @@ def plate_block(work: dict, root: Path | None = None) -> list[str]:
     return []
 
 
+def outbound_block(work: dict) -> list[str]:
+    """A letter to somebody outside the tribe, and whether a person posted it.
+
+    Two header lines, `to:` and `posted:`, and nothing invented: before `posted:` exists the magazine says
+    in as many words that the letter has not left. A member writing an address is not a letter sent, and a
+    reader has no other way to tell the difference.
+    """
+    to = (work.get("to") or "").strip()
+    if not to:
+        return []
+    subject = (work.get("subject") or "").strip()
+    out = [f"*Addressed out of the tribe: to {to}" + (f" — {subject}" if subject else "") + ".*", ""]
+    posted = (work.get("posted") or "").strip()
+    if posted:
+        out += [f"*Posted from a person's own mail client on {posted}. The tribe cannot send mail; a human "
+                f"sends what it writes.*", ""]
+    else:
+        out += ["*Not posted. Nothing in this repository sends mail: a person reads this and sends it, and "
+                "the record gains a date when they do.*", ""]
+    return out
+
+
 def build(issue: str, works: list[dict] | None = None, root: Path | None = None) -> str:
     works = works if works is not None else load_all()
     mine = [w for w in works if str(w["issue"]) == str(issue)]
@@ -378,7 +400,7 @@ def build(issue: str, works: list[dict] | None = None, root: Path | None = None)
         if w.get("revises"):
             # b2 wrote two drafts of one game and the magazine printed them as two unrelated games.
             out += [f"*A revision of `{w['revises']}`.*", ""]
-        out += [body_without_title(w), ""] + plate_block(w, root)
+        out += [body_without_title(w), ""] + plate_block(w, root) + outbound_block(w)
         replies = [l for l in letters if (l.get("ref") or "").lower() in
                    (w["title"].lower(), Path(w["file"]).stem.lower())]
         for r in replies:
@@ -399,7 +421,7 @@ def build(issue: str, works: list[dict] | None = None, root: Path | None = None)
                 out += [f"### To {who} (no piece named)", ""]
                 for l in group:
                     out += [f"**{l['member'].upper()}** — {l['form']}, {l['words']} words", "", body_without_title(l), ""]
-                    out += plate_block(l, root)
+                    out += plate_block(l, root) + outbound_block(l)
                 continue
             if ref == "(unaddressed)":
                 # A note that answers nothing is not a letter "On -". Publishing a member's standalone
@@ -407,7 +429,7 @@ def build(issue: str, works: list[dict] | None = None, root: Path | None = None)
                 for l in group:
                     out += [f"### {l['title']}", "",
                             f"**{l['member'].upper()}** — {l['form']}, {l['words']} words", "", body_without_title(l), ""]
-                    out += plate_block(l, root)
+                    out += plate_block(l, root) + outbound_block(l)
                 continue
             # A heading that says `works/b/20261102T044144Z-on-unlabeled-objects.md` is a filename, not a
             # thing a person is reading. The shelf knows the title and the author of what is being
@@ -419,7 +441,7 @@ def build(issue: str, works: list[dict] | None = None, root: Path | None = None)
                 out += [f"### On *{ref}*", "", "(the piece this answers is not on the shelf)", ""]
             for l in group:
                 out += [f"**{l['member'].upper()}** — {l['form']}, {l['words']} words", "", body_without_title(l), ""]
-                out += plate_block(l, root)
+                out += plate_block(l, root) + outbound_block(l)
 
     # Only the drops that had fallen by the date of this issue. A colophon is a statement about what the
     # world had in it when the issue came out; the first version printed every drop in the soil, so a box

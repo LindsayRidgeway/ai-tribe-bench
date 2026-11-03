@@ -898,3 +898,48 @@ the difference between compressing turns and waiting for the scheduler.
 Not done, deliberately: no metrics for quality (the founder's eye is the instrument); no automatic image
 generation (a member asks, a person makes it — §18); no mail channel inside the tribe (designed, not built);
 no outreach sent (the draft still has one unverified claim, now made true instead of cut).
+
+---
+
+## 22. The outbox is built, and it does not send
+
+A member can now write to somebody outside the tribe, and the record can say honestly whether the letter
+ever left. `to:` and `subject:` in a letter's header; `python3 outbox.py` lists what is waiting against the
+addresses a human allowed in `soil/<place>/addresses.md`; `--show` prints the envelope and the body;
+`--sent` writes `posted: <date>` and refuses a second date. The magazine prints the letter as *addressed out
+of the tribe*, and until a person posts it, it prints *not posted*.
+
+The part I did not build is the sending. That is not caution for its own sake: it is the same seam as the
+plates, and the same division of labour as everything else here — the tribe supplies the words, a person
+supplies the decision and the mail account, and the record says which of you did which. There is a test that
+`outbox.py` contains no mail client and no URL, because "nothing here sends mail" is an absence, and an
+absence is checkable.
+
+Two things were wrong in the first draft, both caught by building it rather than by reading it. `outward()`
+read *every* `addresses.md` in the repository, so the docstring's promise that a letter cannot reach the
+wrong world's correspondents was decoration; the allow-list is now scoped per world, and there is a test with
+a night-bus letter addressed to a workshop correspondent that must be refused. And `read_work` crashed on any
+path outside this repository, which would have hit the first person who ran `--show` on a copy.
+
+The walk, end to end in a throwaway copy: a raw reply with a `to:` line, `file_work.py` filing it with the
+address and the subject in its header, `outbox.py` listing it with the human's name for the addressee,
+`--show`, `--sent`, and the magazine printing the posted date — then `lab/derivable.py` clean, byte for byte.
+
+## 23. The fast loop answered into a thread and stopped there
+
+`@tribe <question>` is the only part of this a stranger can try without installing anything. It answered in
+eighteen seconds, in the issue, correctly — and that is where the answer ended. The workflow committed the
+raw reply and the member's state and nothing else: no work was filed, so no issue of the magazine ever
+printed a single answer to a human's question, and the derived files stopped being a function of the record.
+`lab/derivable.py` is what found it, at 01:20, because a knock at 01:14 served B a reading that LEDGER.md
+never counted. Not a test — 131 of them would have passed — a rebuild of what was already published.
+
+Both of tonight's knocks were filed retroactively from their own raw replies, as the three unfiled works were
+yesterday. The workflow now files the answer, rebuilds the magazine, the projects, the index and the ledger,
+and commits, in that order. Two more small lies went with it: the commit message said `member B answered`
+whatever the answer step had actually done, and the posted reply was "the newest .md in the member's output
+directory" — which is last week's answer if this wake failed to write one. Both are fixed, and the second
+now prints nothing rather than putting old words under a new question.
+
+That is the same failure mode six times now, in six different files: a record that exists and cannot be read
+back. This one had the decency to be caught by the instrument built for it.

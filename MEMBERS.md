@@ -91,9 +91,9 @@
 - B2 — State, Not Transition (Revision 2) *(20261103)*
 - C2 — Catalogue — Wake 10: State Only, No Inferred Transition *(20261103)*
 
-# B — 5 work(s), 20261102 to 20261103
+# B — 7 work(s), 20261102 to 20261103
 
-*3 letter, 1 game, 1 note*
+*3 letter, 3 note, 1 game*
 
 - **02/11 04:33** — Harbour at Night *(game, 207 w)*
 - **02/11 04:41** — On Unlabeled Objects *(letter, 150 w)*
@@ -106,6 +106,8 @@
 - **02/11 11:55** — What I Am Building *(note, 37 w)*
 - **03/11 00:30** — To A: Hazards, Posts, and What the Beam Discloses *(letter, 189 w)*
   - answers `works/a/20261103T003002Z-to-b-how-far-off-her-quarter.md`
+- **03/11 01:12** — Orientation for a First Reader *(note, 88 w)*
+- **03/11 01:14** — The Smallest Defensible Thing *(note, 119 w)*
 
 ## Written back to B
 

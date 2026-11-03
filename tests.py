@@ -41,6 +41,7 @@ tribe = load(REPO / "tribe.py", "tribe_mod")
 play_behaviour = load(REPO / "play" / "behaviour.py", "behaviour_mod")
 magazine = load(REPO / "magazine.py", "magazine_mod")
 file_work = load(REPO / "file_work.py", "file_work_mod")
+outbox = load(REPO / "outbox.py", "outbox_mod")
 
 FACTS = "date: Mon Nov  2 02:00:00 UTC 2026\nnproc: 2\nfree: 16000 MB"
 
@@ -1360,6 +1361,170 @@ class TestFiling(unittest.TestCase):
         self.assertNotIn("the image", r.stdout)
         src = (REPO / "wake" / "wake.py").read_text(encoding="utf-8")
         self.assertIn('"the image" if images else "the request"', src)
+
+
+class TestFastLoop(unittest.TestCase):
+    """`@tribe <question>` on an issue is the only part of this harness a stranger can try without
+    installing anything, and on 2026-11-03 it answered into a thread and stopped there: the answer was
+    never filed onto the shelf, so no issue ever printed one, and the derived files stopped being a
+    function of the record — `lab/derivable.py` failed on LEDGER.md because a knock had served B a
+    reading that the ledger never counted. The same shape as the plate that printed nowhere."""
+
+    def _steps(self) -> list[dict]:
+        if yaml is None:
+            self.skipTest("yaml not installed")
+        return yaml.safe_load((REPO / ".github" / "workflows" / "interactive.yml").read_text(encoding="utf-8")
+                              )["jobs"]["answer"]["steps"]
+
+    def _index(self, frag: str) -> int:
+        for i, s in enumerate(self._steps()):
+            if frag in (s.get("name") or ""):
+                return i
+        self.fail(f"no step named like {frag!r}")
+
+    def test_an_answer_is_filed_and_the_magazine_rebuilt_before_the_commit(self):
+        filed = self._index("File the answer")
+        rebuilt = self._index("Rebuild what is derived")
+        committed = self._index("Keep the exchange in the record")
+        self.assertLess(filed, rebuilt)
+        self.assertLess(rebuilt, committed)
+        run = self._steps()[filed].get("run") or ""
+        self.assertIn("file_work.py --member", run)
+        self.assertIn('--raw "$newest"', run)
+        self.assertIn("answer-start", run, "the filing step must know which reply belongs to this answer")
+        self.assertIn("--ledger --write", self._steps()[rebuilt].get("run") or "")
+
+    def test_the_commit_says_which_member_answered(self):
+        run = self._steps()[self._index("Keep the exchange in the record")].get("run") or ""
+        self.assertIn("member ${m} answered", run)
+        self.assertNotIn('"interactive: a human knocked, member B answered"', run,
+                         "the message named B whatever the answer step actually did")
+
+    def test_a_stale_answer_file_is_never_posted_as_this_answer(self):
+        run = self._steps()[self._index("Answer in the same place")].get("run") or ""
+        self.assertIn("answer-start", run)
+        self.assertIn("nothing is posted", run)
+
+
+class TestOutbox(unittest.TestCase):
+    """A letter out of the tribe, and the honest account of whether it left.
+
+    Same seam as the plates (RUN.md §9a): a member writes, a person sends. The failure to avoid is the
+    flattering one — a work carrying an address that a reader takes for a letter posted. So the record gains
+    a date only when a human runs `--sent`, and an address no human listed is refused rather than guessed.
+    """
+
+    def _repo(self) -> Path:
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp, True)
+        for m, place in (("a", "workshop"), ("c", "night-bus")):
+            (tmp / "works" / m).mkdir(parents=True)
+            st = tmp / "wake" / "members" / m / "state"
+            st.mkdir(parents=True)
+            (st / "place.md").write_text(f"place: {place}\n", encoding="utf-8")
+        (tmp / "soil" / "workshop").mkdir(parents=True)
+        (tmp / "soil" / "night-bus").mkdir(parents=True)
+        (tmp / "soil" / "workshop" / "addresses.md").write_text(
+            "| who | address | note |\n|---|---|---|\n| The head teacher | teacher@school.example | asked for a copy |\n",
+            encoding="utf-8")
+        (tmp / "soil" / "night-bus" / "addresses.md").write_text(
+            "| who | address | note |\n|---|---|---|\n| The depot | depot@buses.example | |\n", encoding="utf-8")
+        (tmp / "works" / "a" / "20261103T010000Z-to-the-school.md").write_text(
+            "---\ntitle: To the School\nform: letter\nissue: 2\nref: -\n"
+            "to: teacher@school.example\nsubject: the game we made\n"
+            "member: a\nwhen: 20261103T010000Z\n---\n\nWe made a game. It is four rules long.\n",
+            encoding="utf-8")
+        return tmp
+
+    def test_an_address_a_human_listed_is_the_only_one_a_letter_may_use(self):
+        tmp = self._repo()
+        works = [outbox.read_work(p) for p in sorted((tmp / "works").glob("*/*.md"))]
+        ok, refused = outbox.outward(works, tmp)
+        self.assertEqual([w["title"] for w in ok], ["To the School"])
+        self.assertEqual(refused, [])
+        (tmp / "works" / "a" / "20261103T020000Z-to-nobody.md").write_text(
+            "---\ntitle: To Nobody\nform: letter\nissue: 2\nto: guess@invented.example\nmember: a\n"
+            "when: 20261103T020000Z\n---\n\ndear whoever\n", encoding="utf-8")
+        works = [outbox.read_work(p) for p in sorted((tmp / "works").glob("*/*.md"))]
+        ok, refused = outbox.outward(works, tmp)
+        self.assertEqual([w["title"] for w in refused], ["To Nobody"],
+                         "an invented correspondent is refused, not guessed at")
+
+    def test_one_worlds_correspondent_is_not_the_others(self):
+        """The allow-list is `soil/<place>/addresses.md`, one file per world. The first `outward()` read
+        every addresses.md in the repository, so the docstring's promise that a letter cannot reach the
+        other world's correspondents by accident was decoration."""
+        tmp = self._repo()
+        (tmp / "works" / "c" / "20261103T030000Z-to-the-school.md").write_text(
+            "---\ntitle: To the School, From the Bus\nform: letter\nissue: 2\n"
+            "to: teacher@school.example\nmember: c\nwhen: 20261103T030000Z\n---\n\ndear teacher\n",
+            encoding="utf-8")
+        works = [outbox.read_work(p) for p in sorted((tmp / "works").glob("*/*.md"))]
+        ok, refused = outbox.outward(works, tmp)
+        self.assertEqual([w["member"] for w in ok], ["a"])
+        self.assertEqual([w["member"] for w in refused], ["c"],
+                         "the night-bus cannot post to a correspondent who agreed to hear from the workshop")
+
+    def test_a_posting_is_recorded_once_and_never_twice(self):
+        tmp = self._repo()
+        path = tmp / "works" / "a" / "20261103T010000Z-to-the-school.md"
+        outbox.mark_posted(path, "2026-11-03")
+        self.assertIn("posted: 2026-11-03", path.read_text(encoding="utf-8"))
+        with self.assertRaises(SystemExit):
+            outbox.mark_posted(path, "2026-11-04")
+        self.assertEqual(path.read_text(encoding="utf-8").count("posted:"), 1,
+                         "the record does not get a second date")
+
+    def test_a_posted_letter_is_no_longer_waiting(self):
+        tmp = self._repo()
+        path = tmp / "works" / "a" / "20261103T010000Z-to-the-school.md"
+        outbox.mark_posted(path, "2026-11-03")
+        works = [outbox.read_work(p) for p in sorted((tmp / "works").glob("*/*.md"))]
+        self.assertEqual(outbox.outward(works, tmp), ([], []))
+
+    def test_nothing_in_this_repository_sends_mail(self):
+        """The claim RUN.md makes to a stranger. It is not a policy, it is an absence, and an absence is
+        checkable."""
+        src = (REPO / "outbox.py").read_text(encoding="utf-8")
+        for forbidden in ("import smtplib", "import socket", "urlopen", "requests.", "sendmail", "https://"):
+            self.assertNotIn(forbidden, src, f"outbox.py has {forbidden!r} in it and is supposed not to send")
+        self.assertIn("does NOT do is send", src)
+
+    def test_the_letter_is_shown_as_it_would_go_and_says_it_has_not_gone(self):
+        tmp = self._repo()
+        works = [outbox.read_work(p) for p in sorted((tmp / "works").glob("*/*.md"))]
+        shown = outbox.show(works[0])
+        self.assertIn("To: teacher@school.example", shown)
+        self.assertIn("Subject: the game we made", shown)
+        self.assertIn("four rules long", shown)
+
+        before = magazine.build("2", magazine.load_all(tmp), tmp)
+        self.assertIn("Addressed out of the tribe: to teacher@school.example — the game we made", before)
+        self.assertIn("Not posted", before)
+        self.assertNotIn("Posted from a person's own mail client", before)
+
+        outbox.mark_posted(tmp / "works" / "a" / "20261103T010000Z-to-the-school.md", "2026-11-03")
+        after = magazine.build("2", magazine.load_all(tmp), tmp)
+        self.assertIn("Posted from a person's own mail client on 2026-11-03", after)
+
+    def test_a_piece_is_not_given_an_envelope(self):
+        """file_work writes `to:` only for a letter. A game with an address in its header would print as
+        correspondence — the same mis-filing the form field exists to prevent."""
+        src = (REPO / "file_work.py").read_text(encoding="utf-8")
+        self.assertIn('if form == "letter" else ""', src)
+        self.assertIn('"to": "optional: with form letter', wake.PROMPT)
+        self.assertIn("You cannot send mail either", wake.PROMPT)
+
+    def test_the_instructions_do_not_still_call_the_outbox_unbuilt(self):
+        """A reader who is told a thing does not exist does not look for it. That sentence was true at
+        20:30 and false by 01:40, which is the ordinary way a starter kit starts lying."""
+        src = (REPO / "RUN.md").read_text(encoding="utf-8")
+        self.assertIn("## 9b. Letters that leave", src)
+        self.assertIn("python3 outbox.py --sent", src)
+        self.assertIn("soil/workshop/addresses.md", src)
+        self.assertNotIn("Designed, not built", src)
+        for path in ("outbox.py", "soil/workshop/addresses.md"):
+            self.assertTrue((REPO / path).exists(), f"RUN.md names {path} and it is not in the repository")
 
 
 if __name__ == "__main__":

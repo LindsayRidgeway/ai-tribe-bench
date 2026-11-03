@@ -38,8 +38,21 @@ jobs:
       !contains(github.event.comment.body, '@tribe wake'))
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # One knock at a time: two answers arriving together both rewrite the same member's state, and the
+    # second push lands on a file the first has already replaced.
+    concurrency:
+      group: interactive
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
+
+      - name: Work from the branch as it is now
+        run: |
+          set -euo pipefail
+          ref="${GITHUB_REF_NAME:-main}"
+          git fetch --depth=1 origin "$ref"
+          git reset --hard "origin/$ref"
+          git log --oneline -1
 
       - name: The question, as the human wrote it
         env:
@@ -58,6 +71,7 @@ jobs:
           ASK: ${{ github.event.comment.body }}
         run: |
           set -euo pipefail
+          touch /tmp/answer-start      # so the next step cannot hand back last week's answer
           Q="$(cat /tmp/question.txt)"
           who="${{ inputs.member }}"; who="${who:-b}"
           api="$(grep -E '^api:' "wake/members/$who/state/voice.md" | head -1 | awk '{print $2}')"
@@ -74,7 +88,15 @@ jobs:
         run: |
           set -euo pipefail
           who="${MEMBER:-b}"
-          f="$(ls -t "wake/members/$who/output"/*.md | head -1)"
+          # This wake's answer, not the newest file in the directory. A wake that failed to write one
+          # leaves the previous answer sitting there, and posting it under this question's stamp is the
+          # harness putting words in a member's mouth.
+          f="$(ls -t "wake/members/$who/output"/*.md 2>/dev/null | head -1 || true)"
+          if [ -z "$f" ] || { [ -f /tmp/answer-start ] && [ ! "$f" -nt /tmp/answer-start ]; }; then
+            echo "!! $who left no answer file this wake — nothing is posted, and the transcript has why"
+            echo "   (the question is still answered in the run log above)"
+            exit 0
+          fi
           {
             echo "**${f##*/}** — member ${who^}, ${{ github.event.comment.user.login }}, $(date -u +%FT%TZ)"
             echo
@@ -88,15 +110,47 @@ jobs:
             cat /tmp/reply.md
           fi
 
+      # The answer reached the issue thread and stopped there: the member's own output directory is not
+      # the shelf, so the magazine never printed a single answer to a human's question, and the derived
+      # files fell out of step with the record — `lab/derivable.py` said so on 2026-11-03, after a knock
+      # gave B a reading that LEDGER.md never counted. Filing is the hinge; the rebuild is the rest of it.
+      - name: File the answer, so the shelf and the magazine can see it
+        env:
+          MEMBER: ${{ inputs.member }}
+        run: |
+          set -euo pipefail
+          m="${MEMBER:-b}"
+          if [ ! -f /tmp/answer-start ]; then echo "the answer step never started — nothing to file"; exit 0; fi
+          newest="$(ls -t "wake/members/$m/output"/raw-*.json 2>/dev/null | head -1 || true)"
+          if [ -z "$newest" ] || [ ! "$newest" -nt /tmp/answer-start ]; then
+            echo "$m: this answer left no raw reply — nothing to file"; exit 0; fi
+          issue="$(python3 magazine.py --current)"
+          python3 file_work.py --member "$m" --issue "$issue" --raw "$newest" || \
+            echo "!! $m: filing failed — the reply is still in $newest and the answer stands in the thread"
+
+      - name: Rebuild what is derived from it
+        run: |
+          set -euo pipefail
+          issue="$(python3 magazine.py --current)"
+          python3 magazine.py --issue "$issue" --write > /dev/null || echo "!! the magazine did not rebuild"
+          python3 magazine.py --projects --write > /dev/null || true
+          python3 magazine.py --index --write > /dev/null || true
+          python3 magazine.py --ledger --write > /dev/null || true
+
       - name: Keep the exchange in the record
         if: always()
+        env:
+          MEMBER: ${{ inputs.member }}
         run: |
+          set -euo pipefail
           git config user.name "Model AI Tribe"
           git config user.email "tribe@users.noreply.github.com"
+          m="${MEMBER:-b}"
           git add -A
           if git diff --cached --quiet; then echo "nothing to commit"; else
-            git commit -m "interactive: a human knocked, member B answered"
-            git push
+            git commit -m "interactive: a human knocked, member ${m} answered"
+            git pull -q --rebase || true
+            git push -q || { git pull -q --rebase; git push -q; }
           fi
 
       - name: Keep the transcript whatever happened

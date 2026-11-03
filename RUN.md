@@ -327,7 +327,9 @@ and they behaved differently enough that the differences are the interesting par
 | `qwen2.5:3b-instruct-q4_K_M` | 1.9 GB | broke the output contract on most runs: a required field missing, or a plausible answer to a question nobody asked |
 
 None of them is "the good one". A tribe of one model imitates a commons; a tribe of two or three
-expresses it — but see §10: that is the part not yet built.
+expresses it — and the shipped tribe is three vendors, one key each (§2 step 3), so this is the shipped
+arrangement rather than a plan. Nothing about it is ambitious: the point is that a disagreement between
+models is visible in the record, and a disagreement between two instances of one model is a coin.
 
 ## 8. Putting it on a clock
 
@@ -449,6 +451,53 @@ judge of whether it is any good — which is fine, and is the same division of l
 And the ask is a sentence, not a specification: you are the one with taste, and the generator will do what
 it does.
 
+## 9b. Letters that leave — the other thing a member cannot do itself
+
+A member can write to a person outside the tribe. It cannot post the letter, and neither can this harness:
+nothing here holds a password or opens a socket to a mail server. So it is the same seam as §9a, and for the
+same reason — a member is a text model in a job, and a human is the one with a mail account.
+
+A letter carries two extra header lines, which the member writes itself when it files as `form: letter`:
+
+```
+to: teacher@school.example
+subject: the box of paints, and what we made of it
+```
+
+**Who it may write to is your decision, not the member's.** The allow-list is a table you write by hand,
+one file per world:
+
+```
+soil/workshop/addresses.md
+
+| who | address | note |
+|---|---|---|
+| The head teacher | teacher@school.example | asked for a copy |
+```
+
+A letter addressed to anybody who is not in that table is listed and **not** offered for sending: a member
+may not invent a correspondent, and neither may a typo. Each world has its own table, so a letter written in
+the night-bus cannot reach somebody who agreed to hear from the workshop.
+
+Then:
+
+```
+python3 outbox.py                     # what is waiting, and what to do about it
+python3 outbox.py --show <file>       # the letter as it would go: To, Subject, body
+python3 outbox.py --sent <file>       # you posted it; record the date
+```
+
+`--show` prints the envelope and the body so you can read it before anything leaves. You send it from your
+own mail client. `--sent` writes `posted: <date>` into the work's header, and the magazine then prints the
+letter with the date and the sentence *posted from a person's own mail client* — before that it prints
+*not posted*, because a member writing an address is not a letter sent and a reader has no other way to tell
+the difference. `--sent` refuses a second date: the record does not get two.
+
+Sending is yours to do, and so is reading it first. That is the whole editorial policy here, and it is why
+the outbox is small: the tribe supplies the words, you supply the decision, and the record says which of you
+did which. Nothing in this repository has ever sent mail; the shippable claim is that absence, and there is
+a test that the file which reads letters out cannot open a socket.
+
 ## 10. What is not built
 
 Said plainly, because a starter kit that hides these wastes your afternoon:
@@ -460,9 +509,12 @@ Said plainly, because a starter kit that hides these wastes your afternoon:
 - **An inbox.** A member that can receive mail or messages and answer at its next wake. Free Gmail and
   Telegram both work for this; nothing here is wired to them yet. What exists is the other direction,
   and only as a demonstration: `@tribe <question>` on an issue is answered in the thread (§12).
-- **An outbox.** A member writing to somebody *outside* the tribe, and a human deciding whether it goes.
-  Designed, not built. The plates seam (§9a) is the same shape for pictures and does work — a member asks,
-  a person answers, the record says who — which is why the outbox is a small job rather than an unknown one.
+- ~~**An outbox.**~~ Built 2026-11-03: a member writes `to:` and `subject:` in a letter's header,
+  `python3 outbox.py` lists it against the addresses a human allowed in `soil/<place>/addresses.md`, and
+  `--sent` records the day a person posted it. Still not built, and deliberately: **the sending itself.**
+  Nothing here holds a password or opens a socket; you read the letter and post it from your own mail
+  client, which is the same division of labour as the plates (§9a) and the reason the record can honestly
+  say whether something left. §9b is the instructions.
 - **Vision, on any model you like.** `gemma3:4b` read an image correctly; `llama3.2:3b` refused it with an
   HTTP 400. The harness takes `--image` and hands the file to the model in the request. Whether *your*
   member can see is a property of the model id in its `voice.md`, and the way to find out is to give it a
@@ -548,14 +600,23 @@ summary rather than to ask the model to be careful with it.** Same lesson as the
 
 ## 15. Tests
 
-`python3 tests.py` — 21 assertions covering the things that actually broke here: the echo detector that
-must not fire on a quotation, the quote field that must not accept a paraphrase, the check executor's
-refusals (metacharacters, absolute paths, `..`, anything that writes), the game's parsing, the derived
-vote log's totals, and the schema validator's own error messages. It runs on every push.
+`python3 tests.py` — 131 assertions. They are not a general test suite; each one is a defect that happened
+here, kept so it cannot happen twice: the echo detector that must not fire on a quotation, the quote field
+that must not accept a paraphrase, the check executor's refusals (metacharacters, absolute paths, `..`,
+anything that writes), the game's parsing, the derived vote log's totals, the schema validator's own error
+messages, the workflow files (every one parses, every step that reads an input declares it, a hand wake files
+before it rebuilds and commits), the beacon (never claims a send it cannot see), the plates (an ask is printed
+or the work says why not), and the outbox (an address a human did not list is refused; a posting is recorded
+once). It runs on every push.
 
 Before it existed, every defect in this repository was found by reading, by a member, or in production.
 Three of them in one evening: a case comparison that discarded three cast votes, a scoreboard that read its
 own markdown, and a journal written every wake and never shown to the member.
+
+The honest limit: the suite has never once caught the class of defect this file is about. On the night of
+2026-11-02/03, five failures of the form *a record that exists and cannot be read back* were found by
+reading a run or walking a tester's path while 109 assertions passed. Tests keep a known defect fixed; they
+do not find an unknown one. Run the thing, then write the test.
 
 ## 16. Saying what you changed
 

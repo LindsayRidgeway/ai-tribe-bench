@@ -220,10 +220,16 @@ def main(argv: list[str] | None = None) -> int:
     # A picture the member asked a human to make for this work. One line, clipped: it is a request, not a
     # manuscript, and a header is one line per key by construction.
     commission = " ".join(str(reply.get("commission") or "").split())[:240]
+    # A letter addressed out of the tribe. The harness records the address and does not use it: nothing
+    # here opens a socket. `to` only means anything when the form is a letter, so it is only written then —
+    # a piece with an address in its header would look like correspondence in the magazine.
+    to = " ".join(str(reply.get("to") or "").split())[:120] if form == "letter" else ""
+    subject = " ".join(str(reply.get("subject") or "").split())[:160] if to else ""
     head = (f"---\ntitle: {title}\nform: {form}\nissue: {args.issue}\n"
             f"ref: {ref or '-'}\n" + (f"project: {project}\n" if project else "") + (f"revises: {revises}\n" if revises else "")
             + (f"source_file: {own_file}\n" if own_file else "")
             + (f"commission: {commission}\n" if commission else "")
+            + (f"to: {to}\n" if to else "") + (f"subject: {subject}\n" if subject else "")
             + f"member: {args.member}\nwhen: {stamp}\n---\n\n")
     print(f"{'would file' if args.dry else 'filed'} {rel}")
     print(f"  source: {reply.get('source') or '(not given)'} — {str(reply.get('chosen_item'))[:90]}")
@@ -232,6 +238,10 @@ def main(argv: list[str] | None = None) -> int:
     if commission:
         print(f"  asks for a plate: {commission}")
         print(f"    a person makes it: save as plates/{stamp}-{slug}.jpg  (python3 magazine.py --plates)")
+    if to:
+        print(f"  addressed out of the tribe: {to} — {subject or '(no subject)'}")
+        print(f"    nothing sends this. a person reads it: python3 outbox.py --show works/{args.member}/"
+              f"{stamp}-{slug}.md")
     if said_revises:
         print(f"  revises: {revises or 'nothing — ' + said_revises}")
     if ref:
