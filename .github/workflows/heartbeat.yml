@@ -1,3 +1,9 @@
+name: heartbeat
+
+# (The name is not decoration: without this line GitHub lists the workflow under its file path,
+# so `gh workflow run heartbeat` answers 'could not find any workflows named heartbeat' and the
+# control this file exists to provide is one nobody can start. Found 2026-11-03 at 01:39 UTC, by
+# trying to read the answer instead of assuming the file worked.)
 # Is the clock unreliable, or is the scheduler?
 #
 # Answered 2026-11-02 by counting: the clock has `cron: "17 */4 * * *"` and has been active on the

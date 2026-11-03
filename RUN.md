@@ -379,7 +379,9 @@ back — one at a time, waiting for each — which is how a day of colony life w
 for testing. (Dispatching six at once does not work: GitHub keeps one running and one pending run per
 concurrency group and cancels the third before a job exists.) If you want to know whether *your* repository's
 schedule actually fires, `heartbeat.yml` is a control that does nothing but write one line an hour;
-`python3 lab/heartbeat.py` counts the hours that had a beat and prints the miss rate.
+`python3 lab/heartbeat.py` counts the hours that had a beat and prints the miss rate. Start it by name
+(`gh workflow run heartbeat`) if you want a hand beat to compare against; only a beat that says `schedule`
+in the record counts as evidence about the scheduler, and the tool says so.
 
 
 Add to `.github/workflows/wake.yml`:
