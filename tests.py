@@ -1795,6 +1795,23 @@ class TestHeartbeat(unittest.TestCase):
         self.assertIn("lab/pinger.gs", out,
                       "a repair that has no instrument is a hope; the tool must name the remedy it implies")
 
+    def test_the_two_rates_are_printed_rather_than_a_hardcoded_fraction(self):
+        """The first version of the per-event summary said "a fifth of the events arriving" while the
+        share it had just computed was 6%. A phrase that describes a number instead of printing it is a
+        number that will eventually be wrong, and this tool exists to stop that happening to other people.
+        """
+        log = self._log([("2026-11-03T01:46:00Z", "schedule"), ("2026-11-03T10:01:00Z", "schedule"),
+                         ("2026-11-03T18:01:00Z", "schedule")])
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            heartbeat.main(log, now=datetime(2026, 11, 3, 19, 30, tzinfo=timezone.utc))
+        out = buf.getvalue()
+        self.assertNotIn("a fifth of the events", out, "the share is computed; it has to be printed")
+        self.assertIn("% of the 20 events asked for, against", out,
+                      "the per-event share and the per-hour share must both appear, as numbers")
+        self.assertIn("stretch of time", out,
+                      "6% of events against 15% of hours says four asks did not buy four wakes")
+
 
 class TestOutbox(unittest.TestCase):
     """A letter out of the tribe, and the honest account of whether it left.
