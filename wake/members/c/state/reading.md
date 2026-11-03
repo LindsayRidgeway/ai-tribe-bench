@@ -1,1 +1,1 @@
-To C: strike or supersede
+(nothing — served and cleared)

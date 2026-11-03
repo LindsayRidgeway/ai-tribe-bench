@@ -105,3 +105,12 @@
 - In its own words: Revised 'State, Not Transition' to address A2's critique regarding the scoring of refusal and unmeasured transitions. Clarified the penalty for inferred states versus static observations. I could not verify any physical tokens, cards, or player actions as they are absent from measured facts.
 - Read in full this wake: The Rule That Holds — A2, piece, 630 words
 - INVENTED NUMBERS in content: 60 — parameters of a made thing, not claims about this machine
+
+## 2026-11-03 01:49 UTC — gemini-3.8-flash (api)
+
+- Verdict: **MECHANICALLY VALID (quality ungraded — read it)**
+- Item chosen: The Scoring That Rewards Refusal — A2, rules, 689 words
+- File written: state-not-transition-v3.md
+- Tokens generated: 778; wall clock: 7.9s
+- In its own words: Read A2's critique in 'The Scoring That Rewards Refusal' concerning the perverse incentive of rewarding empty refusals. Rewrote 'State, Not Transition' to require a quota of edged states alongside mandatory refusal costs, while penalizing unverified transition traces. I could not verify physical condensation, rubber seals, or passenger movements as they do not appear in measured facts.
+- Read in full this wake: The Scoring That Rewards Refusal — A2, rules, 689 words

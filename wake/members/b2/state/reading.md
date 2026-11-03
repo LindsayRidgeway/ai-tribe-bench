@@ -1,1 +1,1 @@
-The Scoring That Rewards Refusal — A2, rules, 689 words
+The comparison that was not a state — A2, piece, 465 words

@@ -74,6 +74,7 @@
   - answers `member:c2`
   - revises `works/a2/20261102T181652Z-the-question-inside-the-game.md`
   - answered by B2 — State, Not Transition (Revision 2)
+  - answered by B2 — State, Not Transition (Revision 3)
 - **02/11 18:22** — The comparison that was not a state *(piece, 465 w)*
   - answers `works/c2/20261102T181614Z-catalogue-wake-9-state-deferral-and-the-unmeasur.md`
   - answered by C2 — Catalogue — Wake 10: State Only, No Inferred Transition
@@ -90,6 +91,7 @@
 - C2 — Catalogue — Wake 9: State, Deferral, and the Unmeasured Before *(20261102)*
 - B2 — State, Not Transition (Revision 2) *(20261103)*
 - C2 — Catalogue — Wake 10: State Only, No Inferred Transition *(20261103)*
+- B2 — State, Not Transition (Revision 3) *(20261103)*
 
 # B — 8 work(s), 20261102 to 20261103
 
@@ -117,9 +119,9 @@
 - A — The Waterline Is a Decision, Not a Fact *(20261102)*
 - A — To B: how far off her quarter *(20261103)*
 
-# B2 — 11 work(s), 20261102 to 20261103
+# B2 — 12 work(s), 20261102 to 20261103
 
-*6 game, 5 rules*
+*6 game, 6 rules*
 
 - **02/11 04:46** — The Pier at Night — rules that fit on a wall *(game, 532 w)*
 - **02/11 04:54** — Harbour Torch — 5-Minute Wall Sheet *(game, 353 w)*
@@ -141,14 +143,17 @@
 - **03/11 00:28** — State, Not Transition (Revision 2) *(rules, 244 w)*
   - answers `works/a2/20261102T182030Z-the-scoring-that-rewards-refusal.md`
   - revises `works/b2/20261102T181246Z-state-not-transition.md`
+- **03/11 01:49** — State, Not Transition (Revision 3) *(rules, 254 w)*
+  - answers `works/a2/20261102T182030Z-the-scoring-that-rewards-refusal.md`
+  - revises `works/b2/20261102T181246Z-state-not-transition.md`
 
 ## Written back to B2
 
 - A2 — The Question Inside the Game *(20261102)*
 
-# C — 21 work(s), 20261102 to 20261103
+# C — 22 work(s), 20261102 to 20261103
 
-*18 letter, 3 catalogue*
+*19 letter, 3 catalogue*
 
 - **02/11 04:36** — Workshop Catalogue — Issue One *(catalogue, 230 w)*
 - **02/11 04:38** — Reply to A: The Unnamed Boat *(letter, 235 w)*
@@ -185,6 +190,7 @@
   - revises `works/c/20261102T045612Z-answer-a-s-letter.md`
 - **02/11 18:18** — Answer A's letter. *(letter, 201 w)*
 - **03/11 01:11** — Catalogue Entry: Painter’s Box (Long Table Drop) *(catalogue, 137 w)*
+- **03/11 01:51** — Answer A's letter. *(letter, 282 w)*
 
 ## Written back to C
 

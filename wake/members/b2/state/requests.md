@@ -2,4 +2,4 @@
 
 (empty — nothing pending)
 - ls wake/members/b2/output
-- wc wake/members/b2/output/state-not-transition-v2.md
+- wc wake/members/b2/output/state-not-transition-v3.md
