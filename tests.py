@@ -1716,5 +1716,25 @@ class TestWindowPath(unittest.TestCase):
         self.assertIn("committed on this machine", talk)
 
 
+class TestNothingIsHandEdited(unittest.TestCase):
+    """Every published file must be a function of the record.
+
+    CI has run `lab/derivable.py` since the magazine existed, and it is the check that caught the fast
+    loop answering into an issue thread and nothing else. It was not in the suite, so a local run said
+    green while CI went red — found on 2026-11-03 by pushing a commit that carried a member's state
+    change without its rebuilt LEDGER row. A check you only run in CI is a check you meet after you have
+    already told someone you were done.
+    """
+
+    def test_every_published_file_rebuilds_from_the_record(self):
+        r = subprocess.run([sys.executable, "lab/derivable.py"], cwd=REPO, capture_output=True,
+                           text=True, timeout=300)
+        self.assertEqual(r.returncode, 0, (
+            "a published file is not a function of the record. Rebuild them, do not edit them:\n"
+            "  python3 magazine.py --issue $(python3 magazine.py --current) --write\n"
+            "  python3 magazine.py --projects --write; python3 magazine.py --index --write; "
+            "python3 magazine.py --ledger --write\n\n" + r.stdout[-2000:]))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -798,7 +798,7 @@ summary rather than to ask the model to be careful with it.** Same lesson as the
 
 ## 15. Tests
 
-`python3 tests.py` — 146 assertions. They are not a general test suite; each one is a defect that happened
+`python3 tests.py` — 147 assertions. They are not a general test suite; each one is a defect that happened
 here, kept so it cannot happen twice: the echo detector that must not fire on a quotation, the quote field
 that must not accept a paraphrase, the check executor's refusals (metacharacters, absolute paths, `..`,
 anything that writes), the game's parsing, the derived vote log's totals, the schema validator's own error
@@ -807,7 +807,8 @@ before it rebuilds and commits), the beacon (never claims a send it cannot see),
 or the work says why not), the outbox (an address a human did not list is refused; a posting is recorded
 once), and the window path (a missing key is answered before the prompt is printed, the answer is filed on
 the shelf before it is committed, the command a stranger types does not name the builder's machine, and a
-key has one name in the sheet, in the shell and in the runner). It
+key has one name in the sheet, in the shell and in the runner, and every published file is
+checked against the record on your machine and not only in CI). It
 runs on every push.
 
 Before it existed, every defect in this repository was found by reading, by a member, or in production.
