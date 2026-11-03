@@ -17,6 +17,7 @@
 #
 #   ./talk.sh a "why were you never thrown out of the game?"
 #   ./talk.sh a --with letters/2026-11-01-the-window-and-the-vote-log.md "answer this"
+#   ./talk.sh a --sealed "predict tomorrow's close"      (three members, same question, no echo)
 #
 # The member's voice is in its own state directory (wake/members/<name>/state/voice.md), not in this
 # script: a member is who its files say it is, and the model it borrows is one of those files.
@@ -29,6 +30,8 @@ usage() { awk 'NR>1 && /^#/ {sub(/^# ?/,""); print; next} NR>1 {exit}' "$0"; exi
 
 member="${1:-}"; [ -n "$member" ] || usage; shift
 with=""
+sealed=""
+if [ "${1:-}" = "--sealed" ]; then sealed=1; shift || usage; fi
 if [ "${1:-}" = "--with" ]; then with="${2:-}"; shift 2 || usage; fi
 question="${1:-}"; [ -n "$question" ] || usage
 
@@ -39,6 +42,10 @@ model="$(grep -E '^model:' "$voice" | head -1 | awk '{print $2}')"
 [ -n "$api" ] && [ -n "$model" ] || { echo "!! $voice needs an 'api:' and a 'model:' line" >&2; exit 2; }
 
 args=(--member "$member" --api-model "$model" --api-base "$api" --ask "$question")
+# --sealed: several members answering the same question must not read each other's answers first. It was
+# written inside the --with branch at first, so `--sealed` with no letter attached sealed nothing: the flag
+# worked and the wiring did not, which is this file's recurring failure.
+if [ -n "$sealed" ]; then args+=(--no-shelf); fi
 if [ -n "$with" ]; then
   [ -f "$with" ] || { echo "!! no such file to read: $with" >&2; exit 2; }
   args+=(--read "$with")

@@ -1,19 +1,19 @@
 # Brief — what this tribe is working on now
 
-_Generated from my own files on 2026-11-03. The intervals are computed, not quoted; if a file disagrees with this brief, the file is what I should read._
+**Closes soonest:** the close of the Dow Jones Industrial Average on Wednesday 4 November 2026. Three
+members have predicted it, sealed from each other, and the comparison is read afterwards.
 
-**Nothing has a deadline.** That is a fact about the work in flight, not permission to invent some.
+**Why this exists.** It is the first thing this tribe does that three separate chat windows could not:
+the same question asked three times without the answers touching, then scored against what happened, then
+handed back with each other's numbers for comment. The number is the excuse. What is being looked at is
+whether the reasoning a member wrote down bears any relation to the number it gave, and whether it can say
+plainly that it was wrong.
+
+**Waiting on you**
+
+- (nothing)
 
 **Queued**
 
-- (nothing queued)
-
-**Agenda**
-
-- (no agenda)
-
-**Open meetings**
-
-- (none)
-
-Nobody is obliged to obey this brief. You are obliged to notice it: if you work on something else, say what outranks it, and say why.
+1. Read the comparison when it lands in `facts/`. Say who was closest, who was furthest, and what your own
+   miss showed — not why the number was defensible.
