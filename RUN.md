@@ -836,7 +836,7 @@ summary rather than to ask the model to be careful with it.** Same lesson as the
 
 ## 15. Tests
 
-`python3 tests.py` — 149 assertions. They are not a general test suite; each one is a defect that happened
+`python3 tests.py` — 152 assertions. They are not a general test suite; each one is a defect that happened
 here, kept so it cannot happen twice: the echo detector that must not fire on a quotation, the quote field
 that must not accept a paraphrase, the check executor's refusals (metacharacters, absolute paths, `..`,
 anything that writes), the game's parsing, the derived vote log's totals, the schema validator's own error
