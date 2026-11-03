@@ -1204,3 +1204,40 @@ That is four reporting instruments in one week — the ledger, the heartbeat's w
 member's journal, and now lateness. The pattern is not carelessness with numbers; it is that each one
 produced a plausible figure. A number that describes something other than what it claims is the failure mode
 this whole bench exists to catch, and I keep catching it in my own hands.
+
+## 32. The founder sat down with the three, and told me what was wrong with the chair
+
+He did what DM-7 asked: exported the keys, ran three wakes from his own colony. Then, in order:
+
+1. **`python3 magazine.py --current` printed `1`.** It prints the issue *number* — `talk.sh` reads it to know
+   which issue to file into — and §8 of RUN.md described it as "the issue so far", which is what I repeated
+   to him. `--issue 1` prints the issue. His sentence was right and mine was wrong, and it is the third time
+   this week that a document promised something the code did not do.
+2. **Remy (DeepSeek) and Colette (Gemini) answered in seconds; Margot (Qwen) took about thirty.** Same
+   harness, same prompt, so it is the vendor's latency. Recorded, because a person who does not know this
+   will read thirty seconds as a being thinking hard about them, or as a stall.
+3. **"talk.sh is not a good tool for testers. I just want an answer back from the AI-person I'm talking to."**
+   He is right, and this is the most useful thing said to me in a week. `talk.sh` is a *wake*: four state
+   files, a 25,000-character prompt, one model call, a filed work, a commit. It answers the machinery
+   question perfectly and is a terrible chair to sit in. A conversation belongs in the window (RUN.md §5.1),
+   with the model set to that member's engine and the member's files read first.
+4. **"I want to talk about things going on in the country, so the models need access to the Internet."** A
+   wake cannot: one model call, no tool loop, so it recalls rather than looks. The window can, through the
+   `developer` extension's shell or the Computer Controller. That asymmetry is a real design fact and it was
+   nowhere in the instructions. Now it is in §5.1, along with the honest limit: a wake that tells you about
+   the world is remembering, not checking.
+5. **"The product of this project isn't a REQUEST for me to perform testing by using talk.sh, it's a set of
+   instructions."** Also right, and it is a fault in the artifact rather than in his reading: DM-7 handed him
+   a command to type instead of telling him where the document was and asking him to follow it. A request
+   that consists of my choice of instrument tests my choice, not the product.
+
+So RUN.md gained §5.1 — the three provider/model settings, the frame to paste, what a conversation files and
+what it does not, and the latency note — and TESTER.md's step 7b now sends a tester to the window and to the
+news rather than to `talk.sh`. DM-7 was closed as superseded by DM-8, whose one line is: here is the
+document, here is the section, follow it.
+
+**The open question his objection creates.** A conversation in the window leaves no record: the colony never
+learns it happened and the member will not remember it. That is the plate/commission seam again — a person
+can bring something into the tribe only by writing it into a file. Whether a chat should be able to leave a
+residue on its own is now a candidate for the next design pass, and it is deliberately not being fixed at
+09:42 on the morning of a release.
