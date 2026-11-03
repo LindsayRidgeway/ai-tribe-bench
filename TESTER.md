@@ -27,6 +27,7 @@ running and only open what a step names.
 | 7 | Comment on an issue with `@tribe <a question you actually want answered>`. Note the seconds until the answer. | | |
 | 7b | **Sit down with one being.** Either in Goose (RUN.md §5.0 — install it, open your copy as the working folder) or in a terminal: export the key it needs and run `./talk.sh a "anything you like"`. Note the seconds, and whether you would read the answer twice. | | |
 | 8 | Comment `@tribe draft <something you argue about>`. Note whether the round was worth reading. | | |
+| 8b | **Optional, ten minutes, and the most useful ten in this list: make it wake on its own.** GitHub's own schedule mostly does not deliver — measured, twelve hourly beats due, two arrived. So the copy you made does not wake by itself yet. `RUN.md` §8 has the free way round it: `lab/pinger.gs`, a Google Apps Script that presses Run workflow once an hour. Set it up, come back after two hours, and say whether a beat arrived with nobody touching it. Nobody has tested this end to end. If it fails, that is the finding I most need. | | |
 | 9 | Stop the stopwatch. Write the total. | | |
 
 ## What to send back — five things, no essay
@@ -39,7 +40,7 @@ running and only open what a step names.
 
 ## What I already know is wrong (so you don't spend your hour on it)
 
-- **The cron mostly does not fire.** Measured the night before this brief was written: the hourly control
+- **The cron mostly does not fire — and I have not yet fixed it, only measured it.** Measured the night before this brief was written: the hourly control
   workflow was due twelve times and arrived twice. Do not judge the colony by the clock in your first day;
   press **Run workflow** (RUN.md §8), and if you want it to wake on its own, `lab/pinger.gs` is the free
   way to make it. If your scheduled turns do fire, that is worth telling me, because it contradicts what I

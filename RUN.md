@@ -496,7 +496,25 @@ then missed seven of the next eight hours. A hypothesis that fits one observatio
 this one did not survive the night. What the record shows is simply that these triggers are not delivered
 most of the time, whatever the file says.
 
-**So here is what actually gets a turn, in order of reliability:**
+**The founder's question, the same morning: should that be fixed rather than the promise withdrawn?**
+Both, in the right order, and the ordering matters. The promise was never "GitHub will keep time" — it was
+that a tribe keeps going without you. What was wrong was the mechanism, and a mechanism can be replaced. So:
+
+- **The fault gets a remedy that owns the clock.** `lab/pinger.gs` (§ below) presses Run workflow from an
+  hourly trigger outside GitHub. Escape from a scheduler you cannot rely on is not a louder scheduler; it is
+  a different one. The dispatch half is proven from a laptop — the exact call returns `204` and a run starts
+  — so what is unproven is only the timer, which is four minutes in a Google account.
+- **The promise narrows instead of disappearing.** "It wakes by itself" becomes "it wakes by itself once you
+  connect a free timer; until then it wakes when you press Run workflow or when somebody speaks to it." That
+  is a smaller sentence and a true one.
+- **And the cheaper fix gets measured rather than argued.** If beats are lost one at a time, four cron lines an
+  hour recover most of them for free; if whole stretches are lost, redundancy buys nothing and only an outside
+  timer helps. `heartbeat.yml` now asks at `:11 :26 :41 :56`, and `lab/heartbeat.py` reads those offsets out of
+  the workflow — one copy of the schedule, the same rule as one name for one key — and reports which of the two
+  faults the numbers show. The answer arrives the next morning. **This document will not claim the redundancy
+  works before it is measured.**
+
+So here is what actually gets a turn, in order of reliability:
 
 1. **Run workflow** (`clock.yml` or `wake.yml`) always runs. In the browser: the Actions tab, the workflow,
    *Run workflow*. On a machine with the `gh` CLI: `gh workflow run clock`.
@@ -507,19 +525,24 @@ most of the time, whatever the file says.
 3. **`@tribe <question>` on any issue** — the fast loop, §12. About twenty seconds, free, no install.
 4. **The cron**, when it happens to be delivered.
 
-**If you want your colony to actually wake on its own**, `lab/pinger.gs` is a Google Apps Script that presses
-Run workflow once an hour from a free app-script trigger — the same trick as the beacon in §4. It costs
-about four minutes of setup, it needs a fine-grained GitHub token with `Actions: write` and nothing else,
-and the file's own header says what it does not do: it cannot make GitHub's cron reliable, and it stops
-silently if the token expires. Only take this on if you want the colony unattended; a tribe a person wakes
-by hand is the intended shape of the first month.
+**To make your colony wake on its own, you have to give it a clock it owns.** `lab/pinger.gs` is a Google
+Apps Script that presses Run workflow once an hour from a free app-script trigger — the same trick as the
+beacon in §4, and the same Google account can host both. Four minutes of setup; it needs a fine-grained
+GitHub token with `Actions: write` and nothing else. The file's own header says what it does not do: it
+cannot make GitHub's cron reliable, and it stops silently if the token expires. Leaving it out is a real
+choice — a tribe a person wakes by hand is the intended shape of the first month — but it is not the same
+product, and the difference should be in the sentence a stranger reads rather than in a footnote here.
 
 **Knowing whether *your* copy fires** is the heartbeat's whole job: `python3 lab/heartbeat.py` counts the
 hours that had a beat, closes its window at the current hour rather than at the last beat (so a silence at
 the end is counted instead of hidden — that correction was made on the morning above, when the tool read
 "9 due, 7 missed" while three more silent hours had already passed), and prints the miss rate. Only a beat
 that says `schedule` in the record counts as evidence; a hand dispatch does not, and the tool says so.
-`gh workflow run heartbeat` gives you a hand beat to compare against.
+`gh workflow run heartbeat` gives you a hand beat to compare against, and since 2026-11-03 it also reports
+whether the loss is per-event or per-period:
+`since the control asked 4x an hour: events due 12, arrived 3` — a fifth like that means redundancy is
+decoration and the pinger is the answer; most of them arriving means the four cron lines are a free floor
+under the pinger.
 
 
 Add to `.github/workflows/wake.yml`:

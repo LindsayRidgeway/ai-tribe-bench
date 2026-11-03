@@ -1165,3 +1165,42 @@ stranger can settle. The tester brief gained the step the founder actually cares
 being — and lost three "known wrong" items that were no longer true (two members on weights, no scheduler,
 the game on weights): a brief that warns a tester about faults that have been fixed teaches them to report
 ghosts.
+
+## 31. The founder asked whether the fault should be fixed instead of the promise withdrawn
+
+He read DM-7 and caught the shape of the reasoning in it: twelve hours due, two beats arrived, therefore
+the front door must stop promising a colony that runs itself. That inference was mine, and it was a false
+choice. A mechanism failing is an argument for a different mechanism, not for a smaller promise.
+
+So, in the order a thing has to be done:
+
+1. **The promise narrows rather than disappearing.** "It wakes by itself" becomes "it wakes by itself once
+   you connect a free timer; until then it wakes when you press Run workflow or when someone speaks to it."
+   Smaller sentence, true sentence.
+2. **The colony gets a clock it owns.** `lab/pinger.gs` presses Run workflow from an hourly trigger outside
+   GitHub. The dispatch half is now proven from this machine — the exact call `pinger.gs` makes returned
+   `204` at 13:32Z and a run started — so the untested part is only the timer, which lives in a Google
+   account and therefore in somebody else's hands.
+3. **The cheap fix gets measured, not argued.** If beats are lost one at a time, four cron lines an hour
+   recover most of them for free; if whole stretches are lost, redundancy is decoration. `heartbeat.yml`
+   now asks at `:11 :26 :41 :56`, and `lab/heartbeat.py` reads the offsets out of the workflow file — one
+   copy of the schedule, the same rule as one name for one key — and names which fault the numbers show.
+   Tomorrow morning answers it. This log will not claim the redundancy works before then.
+4. **The founder is not asked to do it.** His card is five minutes with a being, and that is the thing only
+   he can do. Connecting the pinger is a tester's job: it is one of the unverified criteria, and a stranger
+   with a stopwatch settles it better than I can. TESTER.md gained step 8b for it — "optional, ten minutes,
+   and the most useful ten in this list".
+
+**One more instrument was wrong, and I caught it while editing the one next to it.** `lab/heartbeat.py`
+printed "minutes past the hour when they arrived: 46, 1" — so the 10:01 beat read as arriving *one minute
+past* the hour, i.e. early. It was the 09:41 slot arriving twenty minutes late. Lateness has to be measured
+against the slot that was due when the beat arrived, not against the position of the minute hand. Fixed,
+and a test pins it (`5, 20`). Then a second, subtler version of the same mistake appeared in my own fix: the
+tool read today's four offsets and applied them to yesterday's beat, making 10:01 look six minutes late for a
+`:56` slot nobody had asked for yet. The tool was inventing a schedule it had never kept. Historic beats are
+now measured against `:41` and today's against the four.
+
+That is four reporting instruments in one week — the ledger, the heartbeat's window, a test reading the
+member's journal, and now lateness. The pattern is not carelessness with numbers; it is that each one
+produced a plausible figure. A number that describes something other than what it claims is the failure mode
+this whole bench exists to catch, and I keep catching it in my own hands.

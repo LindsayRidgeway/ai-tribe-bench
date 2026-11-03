@@ -1522,6 +1522,53 @@ class TestHeartbeat(unittest.TestCase):
         self.assertIn("hours due: 1", buf.getvalue(),
                       "02:41 has not arrived, so the 02 hour is not yet owed")
 
+    def test_lateness_is_measured_against_the_slot_that_was_due(self):
+        """The tool called a beat at 10:01 "1" minute past the hour, which reads as early.
+
+        It was the 09:41 slot, twenty-one minutes late. Reporting the minute-of-hour and calling it
+        lateness is the same class of defect as every other one this week: a number that is arithmetically
+        correct and describes something else. Found on 2026-11-03 while reading the morning's two beats.
+        """
+        log = self._log([("2026-11-03T01:46:00Z", "schedule"), ("2026-11-03T10:01:00Z", "schedule")])
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            heartbeat.main(log, now=datetime(2026, 11, 3, 13, 20, tzinfo=timezone.utc))
+        out = buf.getvalue()
+        self.assertIn("5, 20", out, "01:46 is 5 late for 01:41 and 10:01 is 20 late for 09:41")
+        self.assertNotIn(": 46, 1", out, "the minute of the hour is not the lateness")
+
+    def test_the_control_asks_more_than_once_an_hour_and_the_tool_reads_its_offsets(self):
+        """The founder's question of 2026-11-03: fix the fault, or withdraw the promise?
+
+        Both, in order — the promise narrows and the fault gets a remedy. This test pins the remedy's
+        control: the workflow must ask more than once an hour so that per-event loss can be told from
+        period loss, and the tool must READ those offsets rather than keeping its own copy of them. A
+        tool with a second copy of the schedule is the same defect as a sheet and a shell spelling one
+        key two ways.
+        """
+        offs = heartbeat.offsets()
+        self.assertGreaterEqual(len(offs), 2, "one cron line an hour cannot tell the two faults apart")
+        self.assertIn(41, offs, "the original :41 beat must stay, or the baseline numbers stop comparing")
+        wf = (REPO / ".github" / "workflows" / "heartbeat.yml").read_text(encoding="utf-8")
+        for o in offs:
+            self.assertIn(f'- cron: "{o:02d} * * * *"', wf)
+        other = Path(tempfile.mkdtemp()) / "control.yml"
+        self.addCleanup(shutil.rmtree, other.parent, True)
+        other.write_text('on:\n  schedule:\n    - cron: "7 * * * *"\n    - cron: "37 * * * *"\n',
+                         encoding="utf-8")
+        self.assertEqual(heartbeat.offsets(other), [7, 37],
+                         "the offsets must come from the file it is handed, not from a constant")
+
+    def test_a_lost_beat_is_named_as_per_event_or_per_period(self):
+        log = self._log([("2026-11-03T15:11:00Z", "schedule"), ("2026-11-03T16:26:00Z", "schedule")])
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            heartbeat.main(log, now=datetime(2026, 11, 3, 18, 50, tzinfo=timezone.utc))
+        out = buf.getvalue()
+        self.assertIn("events due", out)
+        self.assertIn("lab/pinger.gs", out,
+                      "a repair that has no instrument is a hope; the tool must name the remedy it implies")
+
 
 class TestOutbox(unittest.TestCase):
     """A letter out of the tribe, and the honest account of whether it left.

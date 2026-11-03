@@ -11,11 +11,23 @@ must not promise around.
 """
 from __future__ import annotations
 
+import re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 LOG = HERE / "heartbeat.md"
+CONTROL = HERE.parent / ".github" / "workflows" / "heartbeat.yml"
+
+# The control asked for one beat an hour (:41) until 2026-11-03T14:00Z, when it began asking four
+# times (:11 :26 :41 :56) to test one question: are scheduled runs dropped *per event* or for whole
+# periods? This constant is the one thing in this file that is a claim rather than a reading — the log
+# records "schedule", not which of the four cron lines fired — so it is named as a claim and dated.
+FOUR_SINCE = datetime(2026, 11, 3, 14, 0, tzinfo=timezone.utc)
+BASELINE = [41]   # what the control asked for before FOUR_SINCE, and the only honest yardstick for
+                  # beats that arrived before it. Reading yesterday's arrivals against today's four
+                  # offsets made the 10:01 beat look six minutes late for a slot (:56) nobody had
+                  # asked for yet — the tool inventing a schedule it never kept.
 
 
 def rows(log: Path | None = None) -> list[tuple[datetime, str, str]]:
@@ -31,6 +43,39 @@ def rows(log: Path | None = None) -> list[tuple[datetime, str, str]]:
             continue
         out.append((when, cells[1], cells[2]))
     return sorted(out)
+
+
+def offsets(control: Path | None = None) -> list[int]:
+    """The minutes past the hour the control asks for, READ from the workflow.
+
+    Not restated here: a tool holding its own copy of the schedule is the same defect as a sheet and a
+    shell spelling one key two ways. If the workflow gains a cron line, this follows it.
+    """
+    control = control or CONTROL
+    out, text = [], control.read_text(encoding="utf-8") if control.exists() else ""
+    for line in text.splitlines():
+        m = re.match(r"\s*-\s*cron:\s*[\"'](\d+)\s", line)
+        if m:
+            out.append(int(m.group(1)))
+    return sorted(set(out)) or [41]
+
+
+def minutes_late(beat: datetime, offs: list[int]) -> float:
+    """How late, against the most recent slot that was already due when this beat arrived.
+
+    The first version printed `beat.minute` and called it lateness, which read the 10:01 beat as
+    arriving one minute past the hour and therefore *early*, when it was the 09:41 slot arriving
+    twenty minutes late. A one-number summary of lateness has to know which slot it belongs to.
+    """
+    hour = beat.replace(minute=0, second=0, microsecond=0)
+    best = None
+    for back in range(0, 7):
+        for o in offs:
+            slot = hour - timedelta(hours=back) + timedelta(minutes=o)
+            if slot <= beat:
+                d = (beat - slot).total_seconds() / 60
+                best = d if best is None else min(best, d)
+    return best if best is not None else 0.0
 
 
 def main(log: Path | None = None, now: datetime | None = None) -> int:
@@ -73,15 +118,43 @@ def main(log: Path | None = None, now: datetime | None = None) -> int:
           f"({100 * (due - fired) / max(due, 1):.0f}%)")
     if hand_in_window:
         print(f"{hand_in_window} hand dispatch(es) fall inside the window and do NOT count as beats.")
-    late = [b[0].minute for b in scheduled]
-    print(f"minutes past the hour when they arrived: {', '.join(map(str, late))}  (the cron asks for :41)")
+    offs = offsets()
+    asked = ":" + " :".join(f"{o:02d}" for o in offs)
+    late = [minutes_late(b[0], offs if b[0] >= FOUR_SINCE else BASELINE) for b in scheduled]
+    print(f"minutes late, against the slot already due when each arrived: "
+          f"{', '.join(f'{d:.0f}' for d in late)}  (the control asks for {asked} now, for :41 then)")
     if len(late) > 1:
-        print("an arrival late by the same amount every time is the scheduler's queue; wildly different "
-              "lateness is load. One arrival can tell you neither.")
+        print("the same lateness every time is a queue; wildly different lateness is load. One arrival "
+              "can tell you neither.")
+    # The four-offset hour tests a narrower question than "does the scheduler work": whether a lost beat
+    # is one event lost or a stretch of time lost. Four independent asks per hour distinguish them.
+    per_hour = len(offs)
+    since = max(first, FOUR_SINCE)
+    if now > FOUR_SINCE:
+        hours_since = int((end - since.replace(minute=0, second=0, microsecond=0))
+                          .total_seconds() // 3600) + 1
+        events_due = max(hours_since, 0) * per_hour
+        arrived = sum(1 for b in scheduled if b[0] >= since)
+        print(f"\nsince the control asked {per_hour}x an hour: events due {events_due}, arrived {arrived}. "
+              f"(The hours-due figure above asks for {per_hour}x that many events.)")
+        if events_due and arrived:
+            share = 100 * arrived / events_due
+            if share < 40:
+                print("a fifth of the events arriving is the same rate as when the control asked once an "
+                      "hour: the loss is not per-event, and asking more often will not fix it. An hourly "
+                      "timer outside GitHub (RUN.md §8, lab/pinger.gs) is the fix.")
+            elif share > 75:
+                print("most events arriving although hours went missing when the control asked once: the "
+                      "loss is per-event, so redundant cron lines are a floor — and still a floor, not a "
+                      "guarantee. lab/pinger.gs is what makes it certain.")
+            else:
+                print("between a fifth and three quarters of the events arrive: partial loss, so neither "
+                      "redundant crons nor a single external timer is enough on its own. Keep both.")
     if fired < due:
         print("\nsome hours passed with no beat. On this ground a scheduled wake is a hope, not a "
-              "guarantee: RUN.md must tell a tester that the clock is best-effort and that Run workflow "
-              "is the reliable way to get a turn.")
+              "guarantee. The remedy is a timer this colony owns rather than a louder cron: RUN.md §8 "
+              "ranks Run workflow, a hand wake, @tribe and then the cron, and lab/pinger.gs is the free "
+              "hourly pulse outside GitHub.")
     elif due < 6:
         print(f"\nno hour was missed — but {due} hour(s) is not an answer yet. The clock missed six in a row "
               "on this ground; come back when the heartbeat has eight or more behind it.")

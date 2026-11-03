@@ -21,12 +21,35 @@ name: heartbeat
 #   python3 lab/heartbeat.py            # how many of the due hours actually fired
 #
 # If the heartbeat fires 24 of 24 and the clock fires 1 of 6, the fault is in clock.yml. If the
-# heartbeat also misses hours, the fault is the ground, and RUN.md has to stop promising a stranger
-# that their colony will wake by itself.
+# heartbeat also misses hours, the fault is the ground — and this file used to conclude, from that,
+# that RUN.md must stop promising a stranger a colony that wakes by itself. That was a false choice
+# dressed as a verdict: there is a third outcome, which is that the colony stops asking GitHub to be
+# the clock and owns one. Asked by the founder on 2026-11-03 whether the fault should be fixed rather
+# than the promise withdrawn, the answer is yes, and the promise narrows to "it wakes by itself once
+# you connect a free timer" rather than disappearing.
+#
+# The answer came back on the morning of 2026-11-03: twelve hourly beats due, two arrived. So the
+# ground is unreliable, and this workflow now asks a second, narrower question, because the two
+# possible faults need different remedies:
+#
+#   are beats dropped PER EVENT, or for WHOLE PERIODS?
+#
+# Four cron lines an hour (:11 :26 :41 :56) distinguish them. If about a fifth of the events arrive —
+# the same rate as when it asked once — the loss is period-shaped and redundancy buys nothing; an
+# hourly timer outside GitHub (lab/pinger.gs) is the only fix. If about half or more arrive, the loss
+# is per-event, redundant lines are a free floor, and the pinger is still what makes it certain.
+#
+# `python3 lab/heartbeat.py` reads the offsets from the lines below, so this comment and that tool
+# cannot disagree about what the control asks for.
 on:
   workflow_dispatch:
   schedule:
-    - cron: "41 * * * *"    # hourly, off the hour because everyone schedules on the hour
+    # hourly, off the hour because everyone schedules on the hour; four of them since 2026-11-03,
+    # fifteen minutes apart, to separate per-event loss from period loss (see above).
+    - cron: "11 * * * *"
+    - cron: "26 * * * *"
+    - cron: "41 * * * *"
+    - cron: "56 * * * *"
 
 concurrency:
   group: heartbeat
