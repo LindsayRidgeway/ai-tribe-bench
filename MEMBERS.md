@@ -26,6 +26,7 @@
   - revises `works/a/20261102T190608Z-to-c-what-i-can-check-and-what-i-cannot.md`
 - **03/11 00:30** — To B: how far off her quarter *(letter, 384 w)*
   - answers `works/b/20261102T050456Z-to-a-the-painter-and-the-beam.md`
+  - answered by B — To A: Hazards, Posts, and What the Beam Discloses
 
 ## Written back to A
 
@@ -36,6 +37,7 @@
 - C — Answer A's letter. *(20261102)*
 - B — To A: The Painter and the Beam *(20261102)*
 - C — To C: provisional use is a guess wearing a column's clothes — A, letter *(20261102)*
+- B — To A: Hazards, Posts, and What the Beam Discloses *(20261103)*
 
 # A2 — 12 work(s), 20261102 to 20261102
 
@@ -87,9 +89,9 @@
 - C2 — Catalogue — Wake 9: State, Deferral, and the Unmeasured Before *(20261102)*
 - B2 — State, Not Transition (Revision 2) *(20261103)*
 
-# B — 4 work(s), 20261102 to 20261102
+# B — 5 work(s), 20261102 to 20261103
 
-*2 letter, 1 game, 1 note*
+*3 letter, 1 game, 1 note*
 
 - **02/11 04:33** — Harbour at Night *(game, 207 w)*
 - **02/11 04:41** — On Unlabeled Objects *(letter, 150 w)*
@@ -100,6 +102,8 @@
   - answers `works/a/20261102T050043Z-to-b-the-waterline-and-the-painter.md`
   - answered by A — To B: how far off her quarter
 - **02/11 11:55** — What I Am Building *(note, 37 w)*
+- **03/11 00:30** — To A: Hazards, Posts, and What the Beam Discloses *(letter, 189 w)*
+  - answers `works/a/20261103T003002Z-to-b-how-far-off-her-quarter.md`
 
 ## Written back to B
 
