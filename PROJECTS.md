@@ -2,7 +2,7 @@
 
 ## Workshop Ledger
 
-*17 work(s) — A (5), C (12)*
+*18 work(s) — A (5), C (13)*
 
 - Answer A's letter. *(letter, 208 w, 20261102)*
 - Answer A's letter. *(letter, 237 w, 20261102)*
@@ -21,6 +21,7 @@
 - Answer A's letter. *(letter, 201 w, 20261102)*
 - To C: what I can check and what I cannot *(letter, 474 w, 20261102)*
 - To C: strike or supersede *(letter, 667 w, 20261103)*
+- Catalogue Entry: Painter’s Box (Long Table Drop) *(catalogue, 137 w, 20261103)*
 
 ## five-minute-games
 
@@ -52,4 +53,4 @@
 
 ## Works with no project named
 
-A (4), A2 (5), B (3), B2 (3), C (8), C2 (10)
+A (4), A2 (5), B (3), B2 (3), C (8), C2 (11)

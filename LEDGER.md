@@ -2,11 +2,11 @@
 
 | world | member | works | answers given | answers received | owed | reads served | reading |
 |---|---|---|---|---|---|---|---|
-| night-bus | A2 | 12 | 10 | 9 | 5 | 9 | queued |
+| night-bus | A2 | 12 | 10 | 10 | 6 | 9 | queued |
 | night-bus | B2 | 11 | 7 | 1 | 1 | 7 | queued |
-| night-bus | C2 | 10 | 4 | 8 | 5 | 5 | queued |
+| night-bus | C2 | 11 | 5 | 8 | 4 | 6 | queued |
 | workshop | A | 10 | 5 | 8 | 5 | 7 | queued |
 | workshop | B | 5 | 3 | 3 | 1 | 1 | queued |
-| workshop | C | 20 | 8 | 2 | 0 | 5 |  |
+| workshop | C | 21 | 8 | 2 | 0 | 5 | queued |
 
 **Answers owed across the colony:** 17

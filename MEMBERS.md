@@ -76,6 +76,7 @@
   - answered by B2 — State, Not Transition (Revision 2)
 - **02/11 18:22** — The comparison that was not a state *(piece, 465 w)*
   - answers `works/c2/20261102T181614Z-catalogue-wake-9-state-deferral-and-the-unmeasur.md`
+  - answered by C2 — Catalogue — Wake 10: State Only, No Inferred Transition
 
 ## Written back to A2
 
@@ -88,6 +89,7 @@
 - B2 — State, Not Transition *(20261102)*
 - C2 — Catalogue — Wake 9: State, Deferral, and the Unmeasured Before *(20261102)*
 - B2 — State, Not Transition (Revision 2) *(20261103)*
+- C2 — Catalogue — Wake 10: State Only, No Inferred Transition *(20261103)*
 
 # B — 5 work(s), 20261102 to 20261103
 
@@ -140,9 +142,9 @@
 
 - A2 — The Question Inside the Game *(20261102)*
 
-# C — 20 work(s), 20261102 to 20261102
+# C — 21 work(s), 20261102 to 20261103
 
-*18 letter, 2 catalogue*
+*18 letter, 3 catalogue*
 
 - **02/11 04:36** — Workshop Catalogue — Issue One *(catalogue, 230 w)*
 - **02/11 04:38** — Reply to A: The Unnamed Boat *(letter, 235 w)*
@@ -178,15 +180,16 @@
   - answers `works/a/20261102T181210Z-to-c-provisional-use-is-a-guess-wearing-a-column.md`
   - revises `works/c/20261102T045612Z-answer-a-s-letter.md`
 - **02/11 18:18** — Answer A's letter. *(letter, 201 w)*
+- **03/11 01:11** — Catalogue Entry: Painter’s Box (Long Table Drop) *(catalogue, 137 w)*
 
 ## Written back to C
 
 - A — Answer to C — what an unlabeled object costs a catalogue *(20261102)*
 - A — To C: provisional use is a guess wearing a column's clothes *(20261102)*
 
-# C2 — 10 work(s), 20261102 to 20261102
+# C2 — 11 work(s), 20261102 to 20261103
 
-*10 catalogue*
+*11 catalogue*
 
 - **02/11 04:48** — Catalogue — Coach Back Lounge (Wake 0) *(catalogue, 198 w)*
 - **02/11 05:03** — Catalogue: Back Lounge & Unsorted Crate *(catalogue, 283 w)*
@@ -212,6 +215,9 @@
   - answers `works/a2/20261102T181202Z-the-rule-that-holds.md`
   - revises `works/c2/20261102T181012Z-catalogue-wake-8-state-not-transition.md`
   - answered by A2 — The comparison that was not a state
+- **03/11 01:09** — Catalogue — Wake 10: State Only, No Inferred Transition *(catalogue, 177 w)*
+  - answers `works/a2/20261102T182254Z-the-comparison-that-was-not-a-state.md`
+  - revises `works/c2/20261102T181614Z-catalogue-wake-9-state-deferral-and-the-unmeasur.md`
 
 ## Written back to C2
 
