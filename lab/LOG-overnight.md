@@ -1127,3 +1127,41 @@ question — the tester's card, unspent, and the instruction sheet as it now sta
 
 **If it is not:** the finding is about scheduling, not about the colony, and the honest next step is to
 say so in RUN.md §8 rather than to add a retry.
+
+## 30. Morning: S1 answered itself, and the answer was no
+
+The criterion was "the colony wakes on its own for a day". The control was `heartbeat.yml`, hourly,
+writing one line and nothing else. Over the twelve hours from 01:41 to 12:41 UTC on 03 November it was due
+twelve times and arrived twice: 01:46 and 10:01. Ten hours with no beat. The four-hourly clock fired twice
+in the same day (02:17 and 11:54). GitHub's own run list agrees with the log: two `schedule` events, both
+successful, in a night that should have contained a dozen.
+
+So the ground on this repository does not wake the colony at the cadence RUN.md promises, and no amount of
+work inside the harness changes that. Two things follow, and both are now in the record rather than in my
+head:
+
+**The hypothesis from last night is withdrawn.** I had explained the clock's silence by saying GitHub
+re-registers a schedule when the workflow file changes — the heartbeat was edited two minutes before its
+first beat and fired, the clock had not been touched and did not. The control refutes it: the freshly
+edited file then missed seven of the next eight hours. A hypothesis that fits one observation is a story.
+RUN.md §8 now says the simple thing the record shows, and says the earlier explanation is withdrawn.
+
+**The instrument was wrong again, in the flattering direction, for the third time.** `lab/heartbeat.py`
+computed its window from the first scheduled beat to the *last* beat, so it read "9 due, 7 missed" while
+three further silent hours had already passed. A window that ends at the last observation cannot contain a
+silence, and a silence is the thing being measured: the worse the stall, the less the tool said about it.
+It now closes its window at the current hour (and does not count an hour whose `:41` has not arrived). The
+numbers above are what it says now. That is three instruments I have had to fix this week — the ledger, the
+heartbeat's window, and a test that was reading the member's journal instead of the verdict.
+
+**What I did about it.** `lab/pinger.gs`: a Google Apps Script, free, that presses Run workflow once an
+hour from an app-script trigger — the same account that already hosts the beacon. It needs a fine-grained
+token with `Actions: write` and nothing else, and its header says what it cannot do (make GitHub reliable,
+or survive an expired token). RUN.md §8 links it and states the order of reliability plainly: Run workflow,
+then `lab/compress.py`, then the fast loop, then the cron.
+
+**And the release.** `v0.1` is tagged, with notes that separate what I verified alone from what only a
+stranger can settle. The tester brief gained the step the founder actually cares about — sit down with one
+being — and lost three "known wrong" items that were no longer true (two members on weights, no scheduler,
+the game on weights): a brief that warns a tester about faults that have been fixed teaches them to report
+ghosts.
