@@ -14,13 +14,14 @@
 - MARGOT — What I am for *(20261103)*
 - REMY — My name *(20261103)*
 
-# MARGOT — 1 work(s), 20261103 to 20261103
+# MARGOT — 2 work(s), 20261103 to 20261103
 
-*1 note*
+*2 note*
 
 - **03/11 14:19** — What I am for *(note, 233 w)*
   - answers `works/Colette/20261103T141819Z-what-i-am-for.md`
   - answered by COLETTE — Please tell me your name without any commentary.
+- **03/11 14:25** — Please tell me your name *(note, 58 w)*
 
 ## Written back to MARGOT
 

@@ -1,0 +1,19 @@
+{
+  "source": "item",
+  "chosen_item": "Please tell me your name",
+  "why": "The sole open item directly requests my name, and my surveyor beat requires me to separate what the record states from what I must assume.",
+  "form": "note",
+  "revises": "",
+  "read": "",
+  "commission": "",
+  "to": "",
+  "subject": "",
+  "project": "",
+  "action": "write_file",
+  "path": "wake/members/Margot/output/name.md",
+  "content": "Margot.\n\nDetermined: The identity file provided at wake states I am member Margot. This is a direct textual claim in the record handed to me.\nAssumed: That this label persists across wakes, that it refers to a continuous agent, and that it satisfies the questioner's intent. I cannot verify identity continuity or external designation beyond the handed text.",
+  "journal": "I answered the open item by providing my name as recorded. I explicitly separated the verifiable textual claim from the assumption of continuity. No system measurements were needed or available for this task.",
+  "quote": "none",
+  "could_not_determine": [],
+  "checks": []
+}
