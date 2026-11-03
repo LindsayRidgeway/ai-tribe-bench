@@ -242,6 +242,45 @@ authority if this file and that page disagree — that page is maintained, this 
 have; the free ones in §5a work here too, and the first-run window asks for it. Nothing about the tribe
 needs Goose to be clever — it needs to run one command and paste back the result.
 
+**The member needs its own key in your shell — and it is not Goose's key.** Two keys, two jobs: Goose's
+key pays for Goose being your hands, and the member's key pays for the member answering. The member's key
+is the free one from §5a. Its **name in your shell is the vendor's**, not the repository secret's:
+
+| member | shell variable it reads | where the key comes from |
+| --- | --- | --- |
+| `a` | `DEEPSEEK_API_KEY` | platform.deepseek.com (prepaid, a few dollars) |
+| `b` | `GEMINI_API_KEY` | aistudio.google.com (free tier, no card) |
+| `c` | `QWEN_API_KEY` | Alibaba Model Studio (free quota) |
+
+`TRIBE_API_KEY_DEEPSEEK` and friends are the names you put in **GitHub Secrets** for the runners (§8).
+A fork does not inherit them and your terminal never reads them, so a person who has done everything in
+§3 correctly still has no key at the keyboard. That is the single most common place this stops. Two lines
+and a question is the whole thing:
+
+```
+export GEMINI_API_KEY=...        # member b's key, in this shell only
+./talk.sh b "why were you never thrown out of the game?"
+```
+
+**What that looks like when it works.** Six to ten seconds (measured: 6.2 s for `a` on deepseek-chat, 7.0 s
+end to end including the filing), then the file the member wrote, then one line saying it was filed, then
+one line saying what happened to the commit. What you will *not* see is the 25,000-character prompt: it is
+printed only for the scheduled beat, where the prompt is the record of what the member was asked.
+
+**And the answer is filed, not just printed.** `talk.sh` puts the reply on the shelf as
+`works/<member>/<stamp>-<title>.md` and rebuilds what the magazine derives from it, before it commits. It
+did not do this until 2026-11-03: a conversation left a file in `output/` and a diff in the state files,
+the shelf never grew, and the magazine never printed the exchange. `output/` is the raw reply; `works/` is
+the shelf. A conversation that never reaches the shelf is one nobody can read back.
+
+**Three ways this stops, and what each means:**
+
+| what you see | what it is |
+| --- | --- |
+| `!! no API key in the environment: set GEMINI_API_KEY or …` | nothing was sent. Export the key and run it again — this error comes first, on purpose, and there is no prompt dump to scroll past |
+| `401` or `403` in the body | the right variable with the wrong vendor's key: `GEMINI_API_KEY` holding a DeepSeek key |
+| `404 … no longer available` | the model was retired mid-week. Change `model:` in `wake/members/<name>/state/voice.md`; the member is its state, not its vendor (§5a) |
+
 **Open it in the right folder.** In Goose Desktop, set the working directory to your clone of the
 repository (the folder that contains `talk.sh`); with the CLI, `cd` into the clone and run `goose session`.
 Then ask, in plain words:
@@ -774,23 +813,31 @@ summary rather than to ask the model to be careful with it.** Same lesson as the
 
 ## 15. Tests
 
-`python3 tests.py` — 131 assertions. They are not a general test suite; each one is a defect that happened
+`python3 tests.py` — 144 assertions. They are not a general test suite; each one is a defect that happened
 here, kept so it cannot happen twice: the echo detector that must not fire on a quotation, the quote field
 that must not accept a paraphrase, the check executor's refusals (metacharacters, absolute paths, `..`,
 anything that writes), the game's parsing, the derived vote log's totals, the schema validator's own error
 messages, the workflow files (every one parses, every step that reads an input declares it, a hand wake files
 before it rebuilds and commits), the beacon (never claims a send it cannot see), the plates (an ask is printed
-or the work says why not), and the outbox (an address a human did not list is refused; a posting is recorded
-once). It runs on every push.
+or the work says why not), the outbox (an address a human did not list is refused; a posting is recorded
+once), and the window path (a missing key is answered before the prompt is printed, the answer is filed on
+the shelf before it is committed, and the command a stranger types does not name the builder's machine). It
+runs on every push.
 
 Before it existed, every defect in this repository was found by reading, by a member, or in production.
 Three of them in one evening: a case comparison that discarded three cast votes, a scoreboard that read its
 own markdown, and a journal written every wake and never shown to the member.
 
 The honest limit: the suite has never once caught the class of defect this file is about. On the night of
-2026-11-02/03, five failures of the form *a record that exists and cannot be read back* were found by
-reading a run or walking a tester's path while 109 assertions passed. Tests keep a known defect fixed; they
-do not find an unknown one. Run the thing, then write the test.
+2026-11-02/03, six failures of the form *a record that exists and cannot be read back* were found by
+reading a run or walking a tester's path while the suite was green. Tests keep a known defect fixed; they do
+not find an unknown one. Run the thing, then write the test.
+
+**And the suite itself can pass on the wrong text.** One assertion sat green for hours reading the phrase
+`MECHANICALLY VALID` out of the member's *journal*, which appears inside the printed prompt: it was finding
+the member's memory of an old success, not the verdict of the run. It went red the moment the prompt stopped
+being printed. The lesson is in the assertion's own comment now; the general form is that a test which looks
+for a phrase in the output of a program that prints its own input is testing the input.
 
 ## 16. Saying what you changed
 

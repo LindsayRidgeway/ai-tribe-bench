@@ -16,6 +16,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 from datetime import date
 import unittest
@@ -1358,9 +1359,20 @@ class TestFiling(unittest.TestCase):
             "chosen_item": "the line of my beat", "why": "a recovery test", "form": "note",
             "action": "write_file", "path": "recovered.md",
             "content": "# Recovered\n\n" + ("This proves the wake after a broken one still files a work. " * 5),
-            "journal": "Wrote a note.", "quote": "none", "could_not_determine": []})
+            # The journal must be a sentence: the harness refuses fewer than twenty characters, and
+            # "Wrote a note." is thirteen. This fixture said exactly that, and the assertion above was
+            # green anyway because it was matching the phrase in the printed prompt. Fixing the
+            # assertion exposed a "recovery" that had never once recovered.
+            "source": "item", "journal": "Wrote the recovery note after a wake that returned garbage.",
+            "quote": "none", "could_not_determine": []})
         r2 = self._wake_against(root, base)
-        self.assertIn("MECHANICALLY VALID", r2.stdout)
+        # The verdict LINE, not the phrase. This assertion used to be `assertIn("MECHANICALLY VALID",
+        # r2.stdout)` and it passed for a year of afternoons on the wrong text: the prompt was printed
+        # back then, and the member's own journal — which is inside the prompt — quotes past verdicts
+        # ("- Verdict: **MECHANICALLY VALID ...**"). So the test found the words in the member's memory
+        # of having once succeeded, whatever the current wake actually returned. It kept passing the
+        # day the printing stopped; it went red immediately, which is how it was found. 2026-11-03.
+        self.assertIn("=== verdict: MECHANICALLY VALID", r2.stdout)
         self.assertIn("recovered.md", {q.name for q in out.glob("*.md")},
                       "the wake after a broken one did not file, so a broken run did cost something")
         srv.shutdown(); srv.server_close()
@@ -1607,6 +1619,77 @@ class TestOutbox(unittest.TestCase):
         self.assertNotIn("Designed, not built", src)
         for path in ("outbox.py", "soil/workshop/addresses.md"):
             self.assertTrue((REPO / path).exists(), f"RUN.md names {path} and it is not in the repository")
+
+
+class TestWindowPath(unittest.TestCase):
+    """The first ten minutes of a stranger's conversation with a member.
+
+    This is the path the founder wants to test by hand, and until 2026-11-03 it was the only one nobody
+    but me had ever walked. Walking it as a stranger found three faults in the first two minutes: the
+    25,000-character prompt printed *before* the missing key was reported (519 lines, error at the
+    bottom), the key name RUN.md gives (`TRIBE_API_KEY_GEMINI`) rejected by the tool (which wanted
+    `GEMINI_API_KEY`), and the answer left in `output/` so the shelf never grew and the magazine never
+    printed a word of it. None of the three was findable by the suite; all three were findable by typing
+    the command a person is told to type.
+    """
+
+    def _run(self, *args: str, env: dict[str, str] | None = None) -> subprocess.CompletedProcess:
+        clean = {k: v for k, v in os.environ.items()
+                 if not k.endswith("_API_KEY") and k != "TRIBE_API_KEY"}
+        clean.update(env or {})
+        return subprocess.run([sys.executable, "wake/wake.py", *args], cwd=REPO, text=True,
+                              capture_output=True, env=clean, timeout=60)
+
+    def test_a_missing_key_is_answered_in_four_lines_and_not_after_the_prompt(self):
+        r = self._run("--member", "b", "--api-model", "gemini-3.8-flash", "--api-base", "gemini",
+                      "--ask", "who are you?")
+        self.assertEqual(r.returncode, 2)
+        self.assertNotIn("=== prompt", r.stdout, "the prompt was printed before the credential was checked")
+        self.assertLess(len(r.stdout.strip().splitlines()), 8, r.stdout[:400])
+        self.assertIn("no API key", r.stdout)
+
+    def test_the_secret_name_in_run_md_is_one_of_the_names_the_tool_accepts(self):
+        # The message lists what it would have accepted, so the doc's name appearing here is the
+        # behavioural claim: a person who set TRIBE_API_KEY_GEMINI in their shell is not told "no key".
+        r = self._run("--member", "b", "--api-model", "gemini-3.8-flash", "--api-base", "gemini",
+                      "--ask", "who are you?")
+        self.assertIn("TRIBE_API_KEY_GEMINI", r.stdout)
+
+    def test_the_prompt_is_off_by_default_and_the_scheduled_beat_asks_for_it(self):
+        self.assertIn("--show-prompt", (REPO / "wake" / "wake.py").read_text(encoding="utf-8"))
+        beat = (REPO / ".github" / "workflows" / "wake.yml").read_text(encoding="utf-8")
+        self.assertIn("--show-prompt", beat, "the scheduled beat stopped recording what its members were asked")
+
+    def test_a_window_conversation_is_filed_on_the_shelf_before_it_is_committed(self):
+        talk = (REPO / "talk.sh").read_text(encoding="utf-8")
+        filed = talk.index("file_work.py")
+        rebuilt = talk.index("magazine.py --issue")
+        committed = talk.index("git add -A")
+        self.assertLess(filed, rebuilt)
+        self.assertLess(rebuilt, committed)
+        self.assertIn("shelf", talk)
+        self.assertIn("does not re-file the last one", talk)
+
+    def test_the_command_a_stranger_types_does_not_name_my_own_machine(self):
+        for path in ("talk.sh", "RUN.md"):
+            src = (REPO / path).read_text(encoding="utf-8")
+            self.assertNotIn("~/LLM", src, f"{path} tells a stranger to source a file of mine")
+
+    def test_the_usage_text_is_read_as_it_is_and_not_by_line_number(self):
+        talk = (REPO / "talk.sh").read_text(encoding="utf-8")
+        self.assertNotIn("sed -n '2,", talk, "the header is printed by line range again")
+        self.assertIn("awk", talk)
+
+    def test_run_md_tells_the_person_the_name_of_the_key_their_shell_reads(self):
+        src = (REPO / "RUN.md").read_text(encoding="utf-8")
+        self.assertIn("export GEMINI_API_KEY", src)
+        self.assertIn("DEEPSEEK_API_KEY", src)
+        self.assertIn("A fork does not inherit them", src)
+
+    def test_a_failed_push_is_not_reported_as_success(self):
+        talk = (REPO / "talk.sh").read_text(encoding="utf-8")
+        self.assertNotIn('push -q 2>/dev/null || echo', talk)
+        self.assertIn("committed on this machine", talk)
 
 
 if __name__ == "__main__":

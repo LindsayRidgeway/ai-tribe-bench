@@ -1041,3 +1041,41 @@ C2's reply is a refusal to describe a passenger it cannot measure, which is the 
 So the control works, the seam is real, and the mechanism by which this colony resumes a stopped conversation
 is a person handing one work to one member. That is the hand on the glass the founder asked for when he said
 he wanted an ant farm and not a scoreboard.
+
+## 28. The first ten minutes: walked as a stranger, and it did not work
+
+The founder's next test is the one nobody had ever run: install Goose, open a window on the repository,
+say hello to a being. So I cloned the repository to a fresh directory, unset every key, and did what
+RUN.md tells a person to do. Three faults in the first two minutes.
+
+**The prompt came first and the error came last.** With no key in the shell, `./talk.sh b "hi"` printed
+519 lines — 25,308 characters of system prompt — and then, at the very bottom, one line: `!! no API key in
+the environment`. The credential check sat *after* the prompt print. It was four lines away from the
+command and forty screens away from the eye. The check now runs first: four lines, exit 2, and the fourth
+line is the exact `export` to type.
+
+**Two names for one thing.** RUN.md tells the tester the key is `TRIBE_API_KEY_GEMINI`; the tool accepted
+`GEMINI_API_KEY` and `TRIBE_API_KEY`. So a person who had done §3 correctly — the secret is in the
+repository and the runner uses it happily — reached the window and was told `no API key`. Both names are
+accepted now, and the error lists them, and RUN.md has a table of what each member's shell reads.
+
+**The answer went somewhere no reader could read it.** `talk.sh` printed the reply, committed `output/` and
+the state diffs, and never filed the work: the shelf did not grow, the magazine printed nothing, and
+`lab/derivable.py` was silent — because `output/` is not a published file, so derivability cannot see the
+hole. This is the fast loop's fault from log 23, in the path that is supposed to be the *main* one, and it
+had been there for every conversation the founder might have read. `talk.sh` now files, rebuilds issue /
+projects / index / ledger, and then commits, in that order.
+
+Walked again afterwards in a clean clone: 42 lines of output instead of 535, 6.2 s for the answer, a new
+file on the shelf, `every published file (6) rebuilds byte for byte`, one commit. Also: a failed push used
+to print its error and then print `committed` underneath it, so the last word was a success about
+something that had not happened.
+
+**And the suite had been lying in the same direction.** Fixing the prompt printed nothing turned one
+assertion red — `assertIn("MECHANICALLY VALID", r2.stdout)` — which had been green for hours because the
+member's own journal is inside the prompt, and the journal quotes past verdicts (`- Verdict: **MECHANICALLY
+VALID …**`). The test was finding the memory of an old success. With the assertion fixed to the verdict
+line, the "recovery" wake it was guarding turned out never to have recovered: its fixture carried a
+thirteen-character journal and no `source`, so the harness had refused it every time. Both fixed; 144
+assertions green; the honest limit in RUN.md §15 now says this out loud, because it is the sixth instance
+of the same class and the first one where the instrument was a test.
