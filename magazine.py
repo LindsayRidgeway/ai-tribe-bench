@@ -295,6 +295,28 @@ def commissions(works: list[dict], root: Path | None = None) -> tuple[list[dict]
     return asked, made
 
 
+def unmatched_plates(works: list[dict], root: Path | None = None) -> list[Path]:
+    """Picture files in plates/ whose name belongs to no work on the shelf.
+
+    A plate is found by the work's own filename stem, and a person dropping a file in by hand has no way to
+    know that unless they read `--plates` first. On 2026-11-03 a real plate arrived at 20:51 as
+    `plates/bollard-painting.jpg`, was the picture the commission asked for, and would never have been
+    printed: the filename is the only link between the two, and there was nothing anywhere that said so. The
+    directory listing is the last place a silent non-print can hide.
+    """
+    root = root or HERE
+    known = {Path(str(w.get("file", ""))).stem for w in works}
+    out = []
+    for f in sorted((root / "plates").glob("*")):
+        if f.suffix.lower() in (".md", ".txt") or f.stem == "README":
+            continue
+        if f.suffix.lower() not in (".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg"):
+            continue
+        if f.stem not in known:
+            out.append(f)
+    return out
+
+
 def body_without_title(work: dict) -> str:
     """The body with a leading heading dropped when it is the work's own title.
 
@@ -770,7 +792,8 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.plates:
         asked, made = commissions(works)
-        if not asked and not made:
+        strays = unmatched_plates(works) if (not asked and not made) else []
+        if not asked and not made and not strays:
             print("no member has asked for a picture. A work asks by carrying one line, `commission:`.")
             print("Nothing here is generated: a text model cannot paint, and the free generators — Mage in")
             print("Slow mode, the one inside Google Docs — are a browser and a person. That person is you.")
@@ -787,6 +810,13 @@ def main(argv: list[str] | None = None) -> int:
             print(f"\nmade ({len(made)}):")
             for w in made:
                 print(f"  {w['member'].upper()} — {w['title']}: {plate_for(w).name}")
+        strays = unmatched_plates(works)
+        if strays:
+            print(f"\nin plates/ but named for no work on the shelf ({len(strays)}) — these will never be "
+                  f"printed:")
+            for f in strays:
+                print(f"  {f.name}")
+            print("  The filename IS the link: rename it to the 'save as' name above and rebuild the issue.")
         return 0
 
     if args.index:

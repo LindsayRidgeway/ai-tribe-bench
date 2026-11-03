@@ -535,6 +535,23 @@ class TestPlates(unittest.TestCase):
         self.assertIn("Mage in Slow mode", text)
         self.assertNotIn("has not been made yet", text)
 
+    def test_a_plate_named_for_no_work_is_reported_not_ignored(self):
+        """A real plate arrived at 20:51 on 2026-11-03 as `plates/bollard-painting.jpg`. It was the picture
+        the commission asked for, it was the right picture, and the magazine would never have printed it:
+        the filename is the only link between a picture and its work, and nothing anywhere said so. A file
+        a person made by hand, silently not printed, is the worst version of this bench's recurring fault."""
+        tmp = self._repo()
+        (tmp / "plates" / "bollard-painting.jpg").write_bytes(b"\xff\xd8\xff not really a jpeg")
+        strays = magazine.unmatched_plates(magazine.load_all(tmp), tmp)
+        self.assertEqual([p.name for p in strays], ["bollard-painting.jpg"])
+        (tmp / "plates" / "20261102T040000Z-harbour.jpg").write_bytes(b"\xff\xd8\xff")
+        strays = magazine.unmatched_plates(magazine.load_all(tmp), tmp)
+        self.assertEqual([p.name for p in strays], ["bollard-painting.jpg"],
+                         "a plate named for a work on the shelf is not a stray")
+        src = (REPO / "magazine.py").read_text(encoding="utf-8")
+        self.assertIn("named for no work on the shelf", src)
+        self.assertIn("The filename IS the link", src)
+
     def test_the_credit_is_never_invented(self):
         tmp = self._repo()
         self.addCleanup(shutil.rmtree, tmp, True)
