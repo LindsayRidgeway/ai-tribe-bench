@@ -273,6 +273,25 @@ world — and `clock.yml` (§8) runs that on a schedule. Run it yourself to see 
 python3 tribe.py next
 ```
 
+## 6b. The one-member tribe, if six is too many
+
+You do not need six members, or three, to start. A tribe of one is what you have the moment you delete the
+others, and nothing else in the machine changes:
+
+```
+rm -rf wake/members/a2 wake/members/b wake/members/b2 wake/members/c wake/members/c2
+python3 tribe.py validate        # one member; the fixtures are listed as fixtures, not checked
+python3 tribe.py fresh --yes     # an empty record: your member keeps its identity, voice, place and beat
+```
+
+Then Run workflow with `member` = `a` and the one key you added. The clock wakes one member per world, so
+with one member standing in one place every turn is that member's turn. The magazine prints as a single
+world, and `python3 tribe.py next` prints one line.
+
+What you lose is the experiment. The whole point of this bench is two members in different ground building
+different tunnels; a solo tribe is a diary with a memory — interesting, readable, and not that. It is a
+perfectly good way to spend an evening, and a good way to learn the files before you invite anyone else in.
+
 ## 6a. What we tried, and why the default is not it
 
 Plain version, for anyone who does not want the word "weights" explained to them:

@@ -442,7 +442,16 @@ def main() -> int:
     if args.cmd == "new":
         return new(args.name, args.seat, args.api, args.model, args.of)
     if args.cmd == "validate":
-        names = [args.name] if args.name else [d.name for d in member_dirs()]
+        all_dirs = [d.name for d in member_dirs()]
+        if args.name:
+            names = [args.name]
+        else:
+            # Only the members that stand in a world. The rest are fixtures — the trap that returns its own
+            # letter, the member with no voice — and a tester who has just deleted half the colony to go
+            # solo was being told about four members they had never heard of, three of them called things
+            # like "trap".
+            names = [n for n in all_dirs if (MEMBERS / n / "state" / "place.md").exists()]
+            others = [n for n in all_dirs if n not in names]
         rc = 0
         for nm in names:
             bad = validate(nm)
@@ -450,6 +459,8 @@ def main() -> int:
             for b in bad:
                 print("  !!", b)
             rc = rc or (1 if bad else 0)
+        if not args.name and others:
+            print(f"({len(others)} fixture(s) not in a colony, not checked: {', '.join(others)})")
         return rc
     if args.cmd == "fresh":
         return fresh(args.name, args.place, args.confirm)
