@@ -1,5 +1,6 @@
 # Checks I want run before my next wake
 
+(empty — nothing pending)
 - ls wake/members/Remy/output
-- wc -l wake/members/Remy/output/what-i-am-for.md
-- date
+- wc -l wake/members/Remy/output/my-name.md
+- shasum wake/members/Remy/output/my-name.md
