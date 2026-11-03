@@ -355,7 +355,12 @@ def plate_block(work: dict, root: Path | None = None) -> list[str]:
             shown = plate.relative_to(root or HERE)
         except ValueError:
             shown = Path("plates") / plate.name
-        return [f"![{work['title']}]({shown.as_posix()})", "",
+        # The picture is written from the issue's own directory, not from the repository root. An image
+        # path of `plates/x.jpg` inside `issues/02.md` resolves to `issues/plates/x.jpg` on GitHub, so the
+        # one published picture in this record would have shown a broken image to the first reader to open
+        # the issue on the web — the founder's own question, "what do I do to see the magazine", one click
+        # from a broken box. Found 2026-11-02 21:40 by opening it the way he would.
+        return [f"![{work['title']}](../{shown.as_posix()})", "",
                 f"*Plate: asked for by {work['member'].upper()}, {plate_credit(work, root)}.*", ""]
     if (work.get("commission") or "").strip():
         # An ask with no picture is part of the record, and printing it is what makes the human's absence

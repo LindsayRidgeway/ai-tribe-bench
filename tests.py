@@ -530,7 +530,8 @@ class TestPlates(unittest.TestCase):
         (tmp / "plates" / "20261102T040000Z-harbour.md").write_text(
             "watercolour study, made with Mage in Slow mode, 2026-11-02\n", encoding="utf-8")
         text = magazine.build("1", magazine.load_all(tmp), tmp)
-        self.assertIn("![Harbour Torch](plates/20261102T040000Z-harbour.jpg)", text)
+        self.assertIn("![Harbour Torch](../plates/20261102T040000Z-harbour.jpg)", text,
+                      "the issue lives in issues/, so a root-relative image is a broken image on GitHub")
         self.assertIn("asked for by A", text)
         self.assertIn("Mage in Slow mode", text)
         self.assertNotIn("has not been made yet", text)
