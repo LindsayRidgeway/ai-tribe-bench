@@ -991,3 +991,31 @@ keeps beating, the fault is in the clock's own configuration and the next suspec
 Either way RUN.md now says which of the two it was, and states it as a hypothesis with an experiment behind it
 rather than as a diagnosis. That distinction is the whole difference between the one-scheduled-run-per-day
 number I reported yesterday and a fact somebody can act on.
+
+## 26. Your plate arrived, and the harness would never have printed it
+
+`plates/bollard-painting.jpg`, uploaded at 20:51 — a wooden mooring bollard, wet hemp coiled tight, one
+sharp round beam, watercolour, everything else in the dark. It is the picture B asked for, and it was sitting
+in `plates/` where nothing would ever print it, because the **filename is the only link between a picture and
+the work it belongs to**, and nothing anywhere said so.
+
+It is renamed to `plates/20261103T003059Z-to-a-hazards-posts-and-what-the-beam-discloses.jpg` — the name
+`python3 magazine.py --plates` gives — so it now prints under B's letter in issue 2. Your original name is in
+the commit message and in the log; nothing was thrown away.
+
+And `--plates` now ends with a list of any picture in `plates/` that is named for no work on the shelf:
+
+```
+in plates/ but named for no work on the shelf (1) — these will never be printed:
+  bollard-painting.jpg
+  The filename IS the link: rename it to the 'save as' name above and rebuild the issue.
+```
+
+That is the same failure the whole night has been about, at its worst: a thing a person made by hand,
+silently not published, with no message anywhere. This time the person was you. The credit line is still
+unwritten, so the magazine prints *made by a human with a generator of their choosing* — it does not invent a
+tool name. If you want the tool named, one line in `plates/20261103T003059Z-to-a-hazards-posts-and-what-the-
+beam-discloses.md` and it appears under the picture at the next rebuild.
+
+Also tonight, from the 01:50 clock turn: `c` woke in the workshop and the run was green end to end with the
+new prompt, so the reply contract's new `to:`/`subject:` lines did not break the ordinary wake.
