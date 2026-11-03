@@ -56,9 +56,17 @@ def predictions(root: Path | None = None, also: list[str] | None = None) -> list
             continue
         h = header(text)
         c = CONF.search(text)
-        # In `works/<member>/x.md` the member is the directory; in `experiment/remy.md` it is the file stem.
+        # In `works/<member>/x.md` the member is the directory; in `experiment/Remy.md` it is the file stem.
         # Without this the chat-session answers were all scored as a member called "experiment".
         who = p.parent.name if p.parent.parent.name == "works" else p.stem
+        # A file called `remy.md` and a seat called `Remy` are one being, and the founder asked whether they
+        # were two. They were two ROWS in this table, which is the same defect this project has now fixed
+        # twice elsewhere: one thing written in two spellings, and a tool that quietly treats them as two
+        # things. Grouping is case-insensitive and the second draft of a session (`-after.md`) is never a
+        # prediction.
+        if who.lower().endswith(("-after", "-probe")):
+            continue
+        who = who[:1].upper() + who[1:] if who[:1].islower() else who
         found.append({
             "member": who,
             "file": str(p.relative_to(root)),
@@ -69,12 +77,12 @@ def predictions(root: Path | None = None, also: list[str] | None = None) -> list
         })
     # One prediction per member: the last one filed. A member that re-predicted after seeing the result
     # must not have its second guess scored — that is the one way this comparison could flatter anybody.
-    latest: dict[str, dict] = {}
+    latest: dict[str, dict] = {}          # keyed by the case-folded name: one row per being, always
     for f in found:
         key = (str(f["when"] or ""), f["file"])
-        if f["member"] not in latest or key > (str(latest[f["member"]]["when"] or ""),
-                                               latest[f["member"]]["file"]):
-            latest[f["member"]] = f
+        slot = f["member"].casefold()
+        if slot not in latest or key > (str(latest[slot]["when"] or ""), latest[slot]["file"]):
+            latest[slot] = f
     return sorted(latest.values(), key=lambda f: f["member"])
 
 
@@ -94,10 +102,18 @@ def render(rows: list[dict], actual: float, target: str, daily_move: float | Non
         out.append(f"| {r['member']} | {r['value']:,.1f} | {e:+,.1f} | "
                    f"{str(r['confidence']) + '%' if r['confidence'] is not None else '—'} |")
     out.append("")
-    best = min(rows, key=lambda r: abs(r["value"] - actual))
-    worst = max(rows, key=lambda r: abs(r["value"] - actual))
-    out += [f"Closest: **{best['member']}**, off by {abs(best['value'] - actual):,.1f} points. "
-            f"Furthest: **{worst['member']}**, off by {abs(worst['value'] - actual):,.1f} points.", ""]
+    if len(rows) == 1:
+        # One row cannot have a closest and a furthest. The first version printed the same being as both,
+        # which reads as a comparison and is a sentence about nothing.
+        only = rows[0]
+        out += [f"Only one prediction was filed, so there is nothing to compare it to: "
+                f"**{only['member']}** was off by {abs(only['value'] - actual):,.1f} points. A comparison "
+                f"needs at least two beings answering the same question.", ""]
+    else:
+        best = min(rows, key=lambda r: abs(r["value"] - actual))
+        worst = max(rows, key=lambda r: abs(r["value"] - actual))
+        out += [f"Closest: **{best['member']}**, off by {abs(best['value'] - actual):,.1f} points. "
+                f"Furthest: **{worst['member']}**, off by {abs(worst['value'] - actual):,.1f} points.", ""]
     if len(rows) > 1:
         spread = statistics.pstdev([r["value"] for r in rows])
         out += [f"The three predictions spread {spread:,.1f} points apart (population standard deviation) "

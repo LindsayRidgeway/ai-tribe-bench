@@ -578,6 +578,38 @@ class TestThreeAnswers(unittest.TestCase):
         self.assertIn("Three guesses on one session", text, "a single session must not be sold as a skill")
         self.assertIn("232.2 points on an average day", text)
 
+    def test_one_being_is_one_row_however_its_name_is_spelled(self):
+        """The founder asked, on 2026-11-03: "are remy and Remy two different seats?"
+
+        No — `works/Remy/` is the seat's shelf and `experiment/remy.md` was a chat session's answer, and the
+        comparison printed them as two members because it took the name from a filename. One being written in
+        two spellings is the same defect this project has fixed twice already; here it produced a table with a
+        closest called Remy and a furthest called remy. And a session's second draft (`-after.md`) is never a
+        prediction, or the after-the-fact note would be scored against the real guess.
+        """
+        root = self._root()
+        (root / "works" / "Remy").mkdir(parents=True)
+        (root / "works" / "Remy" / "w.md").write_text(
+            "---\ntitle: filed\nform: note\nissue: 1\nwhen: 2026-11-03T09:00:00Z\n---\n\nnothing\n",
+            encoding="utf-8")
+        (root / "experiment").mkdir()
+        (root / "experiment" / "remy.md").write_text(
+            "---\ntitle: chat\nform: note\nissue: 1\nwhen: 2026-11-03T18:00:00Z\n---\n\nPREDICTION: 51720\n",
+            encoding="utf-8")
+        (root / "experiment" / "remy-after.md").write_text("PREDICTION: 51900\n", encoding="utf-8")
+        mod = load(REPO / "lab" / "compare.py", "compare_mod")
+        old_root = mod.ROOT
+        mod.ROOT = root
+        try:
+            rows = mod.predictions(also=["experiment"])
+        finally:
+            mod.ROOT = old_root
+        self.assertEqual([r["member"] for r in rows], ["Remy"], "one being, one row, one spelling")
+        self.assertEqual(rows[0]["value"], 51720.0, "the -after file is a comment, not a prediction")
+        text = mod.render(rows, 51737.7, "2026-11-04", None)
+        self.assertIn("Only one prediction was filed", text)
+        self.assertNotIn("Furthest", text, "one row cannot have a furthest")
+
     def test_no_prediction_lines_says_so_instead_of_inventing_a_table(self):
         root = self._root()
         (root / "works" / "Remy").mkdir(parents=True)
