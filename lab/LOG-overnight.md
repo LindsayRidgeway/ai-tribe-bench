@@ -1265,3 +1265,21 @@ models: it borrows hosted frontier engines. The history still belongs in §6a, w
 what was wrong was letting it stand as the project's own comparison. §16 now points its argument at the
 question this project actually invites — whether a tribe is more than role-play with a filing cabinet — which
 is a question its own record can settle and the old one could not.
+
+**10:24 — the founder asked what DM-8 was actually for, and the answer was: the wrong test.** "You are not
+asking me to follow the instructions and create an AI tribe. Instead you're just asking me to use model home
+itself to try having a conversation." Correct on both halves.
+
+Two questions were hiding under one ask. *Can a stranger stand the model up from the instructions* — fork,
+settings, secret, Run workflow, read the journal — is the criterion the release is waiting on and the one
+nobody has done. *Is the being worth talking to* is a second question with a different answer, and §5.1 (written
+this morning to answer his fair complaint that `talk.sh` is a bad chair) tests only that.
+
+Worse, and worth writing down where I will see it again: **a conversation in the window does not test the tribe
+model at all.** The claim the whole bench rests on is that a member — files plus one model call per wake —
+accumulates something across turns. Chatting in Goose tests whether a frontier model can role-play from a
+folder, which is true of every model on the market and says nothing about whether the record does work. I
+answered "this chair is uncomfortable" by pointing at a different room instead of handing him the document.
+
+An addendum went out on the same request id rather than a third id in forty minutes: RUN.md §3 through §8, in
+your own fork, twenty minutes, and what I want back is where you got stuck.
