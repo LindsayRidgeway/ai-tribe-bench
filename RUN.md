@@ -377,6 +377,63 @@ DeepSeek seat and the Gemini seat answered in a few seconds; the Qwen seat (Marg
 same size of prompt, so the difference is the vendor's latency and not the machine. It is worth knowing
 before you decide a being is sulking.
 
+## 5.2 An experiment with three answers: sealed wakes, and a comparison you can check
+
+This is the first thing this machinery does that a chat window cannot. Ask all three members the same
+question, keep them from reading each other's answers, score the answers against something that actually
+happened, then hand the score back and ask them what the miss showed. Three commercial apps cannot do it:
+each one remembers nothing of the others, and nobody owns a record of the comparison.
+
+The founder proposed it on 2026-11-03 with the Dow close. It works for anything with a checkable outcome.
+
+**Round one — the sealed question.** Each member is woken with the same question and `--sealed`, which
+withholds the shelf for that wake. Without it the second answer is shaped by the first: a filed work's
+title and opening line travel on the shelf, so three answers converge and you cannot tell a prediction
+from an echo afterwards.
+
+```
+python3 lab/dow.py                                   # the facts a wake cannot fetch, with the source and the clock
+./talk.sh Remy    --sealed --with facts/dow-<date>.md "<the question>"
+./talk.sh Colette --sealed --with facts/dow-<date>.md "<the question>"
+./talk.sh Margot  --sealed --with facts/dow-<date>.md "<the question>"
+```
+
+**A wake cannot look anything up**, so the second part of that command is not optional: `lab/dow.py`
+fetches the last sessions and writes them with the URL and the timestamp, and says whether the last
+number is a closed session or one still running. A member asked for a number without it will produce one
+out of training data and sound just as certain.
+
+**Ask for one machine-readable line.** In the question, require:
+
+> Begin the file with `PREDICTION: <number>`, then a confidence as a percentage, the two facts you relied
+> on, and what would prove you wrong.
+
+Prose cannot be scored, and an answer nobody can score is not a test. A member may decline to predict —
+that is allowed and it is recorded as a refusal rather than a coin flip dressed as a forecast.
+
+**Round two — the comparison.** After the close, write the settled number and let the tool do the
+arithmetic:
+
+```
+python3 lab/dow.py --date <tomorrow>                 # the same file, now with the session closed
+python3 lab/compare.py --actual <the close> --daily-move <points>
+```
+
+`lab/compare.py` reads the `PREDICTION:` line, scores each member's **last** prediction (never its best
+one), names the closest and the furthest, and prints two things that keep it honest: that one session
+cannot show anybody predicts well, and how large an average day's move was — an error smaller than that
+is what a coin flip produces. The file it writes is what you hand back:
+
+```
+./talk.sh Remy --with facts/comparison-<date>.md "The close was <n>. Here are the three answers. Who was
+closest, who was furthest, and what did your own miss show about how you reasoned? Do not defend the
+number."
+```
+
+Then compare the *notes*. The number is the excuse for the interesting part: whether a member's stated
+reasoning bore any relation to the number it gave, and whether it can say plainly that it was wrong. A
+member that defends a guess is telling you something too.
+
 ## 5a. The optional second channel: a free API key
 
 A weight file is a few billion numbers you download once; it runs on the runner, offline, and can be taken

@@ -515,6 +515,81 @@ class TestMagazine(unittest.TestCase):
         self.assertIn("A revision of `works/b/x.md`", text)
 
 
+class TestThreeAnswers(unittest.TestCase):
+    """The founder's first real experiment, 2026-11-03: three members, one question, then a comparison.
+
+    Two tools exist because a harness with no tools cannot do this honestly: `lab/dow.py` writes the facts
+    a member cannot fetch, and `lab/compare.py` does the arithmetic so the comparison is a file rather than
+    a vibe. Both are tested on their failure paths first, because a facts file invented from memory is
+    worse than no facts file — a member cannot tell the difference once it is on disk.
+    """
+
+    def _root(self) -> Path:
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp, True)
+        (tmp / "lab").mkdir()
+        for f in ("dow.py", "compare.py"):
+            shutil.copy(REPO / "lab" / f, tmp / "lab" / f)
+        return tmp
+
+    def test_the_facts_tool_writes_nothing_when_the_endpoint_fails(self):
+        root = self._root()
+        out = root / "facts" / "x.md"
+        r = subprocess.run([sys.executable, "lab/dow.py", "--url", "http://127.0.0.1:9/none",
+                            "--out", str(out)], cwd=root, capture_output=True, text=True, timeout=120)
+        self.assertEqual(r.returncode, 2)
+        self.assertFalse(out.exists(), "a failed fetch must leave no facts file behind")
+        self.assertIn("invented from memory is worse than no facts file", r.stdout)
+
+    def test_a_running_session_is_not_reported_as_a_close(self):
+        """The Dow at 10:33 in the morning is a moving number, and a member told "the Dow is 51,717" will
+        treat it as settled. The facts file has to say which one it is holding."""
+        mod = load(REPO / "lab" / "dow.py", "dow_mod")
+        from datetime import datetime as _dt
+        rows = [{"when": _dt(2026, 11, 2, 14, 30, tzinfo=timezone.utc), "open": 1.0, "high": 2.0,
+                 "low": 0.5, "close": 51984.0},
+                {"when": _dt(2026, 11, 3, 14, 30, tzinfo=timezone.utc), "open": 2.0, "high": 3.0,
+                 "low": 1.0, "close": 51737.7}]
+        meta = {"regularMarketPrice": 51737.66, "regularMarketTime": 1793720029}
+        text = mod.render(rows, meta, "2026-11-04")
+        self.assertIn("still running", text)
+        self.assertIn("not a close", text)
+        self.assertIn("PREDICTION:", text, "the question must ask for the one shape a tool can parse")
+
+    def test_the_comparison_scores_one_prediction_per_member_and_says_what_noise_looks_like(self):
+        root = self._root()
+        for member, when, value, conf in (("Remy", "2026-11-03T17:10:00Z", "51,850", "55"),
+                                          ("Remy", "2026-11-04T21:30:00Z", "51,740", "90"),
+                                          ("Margot", "2026-11-03T17:15:00Z", "51,600", "60")):
+            d = root / "works" / member
+            d.mkdir(parents=True, exist_ok=True)
+            (d / f"{when}.md").write_text(
+                f"---\ntitle: n\nform: note\nissue: 1\nwhen: {when}\n---\n\nPREDICTION: {value}\n\n"
+                f"Confidence: {conf}%.\n", encoding="utf-8")
+        r = subprocess.run([sys.executable, "lab/compare.py", "--actual", "51737.7",
+                            "--target", "2026-11-04", "--daily-move", "232.2",
+                            "--out", str(root / "facts" / "c.md")],
+                           cwd=root, capture_output=True, text=True, timeout=120)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        text = (root / "facts" / "c.md").read_text(encoding="utf-8")
+        self.assertIn("| Remy | 51,740.0 |", text, "the LAST prediction is scored, not the best one")
+        self.assertNotIn("51,850.0", text, "a first guess must not be scored after the result was known")
+        self.assertIn("Closest: **Remy**", text)
+        self.assertIn("Three guesses on one session", text, "a single session must not be sold as a skill")
+        self.assertIn("232.2 points on an average day", text)
+
+    def test_no_prediction_lines_says_so_instead_of_inventing_a_table(self):
+        root = self._root()
+        (root / "works" / "Remy").mkdir(parents=True)
+        (root / "works" / "Remy" / "a.md").write_text(
+            "---\ntitle: n\nform: note\nissue: 1\n---\n\nI think it will go up a bit.\n", encoding="utf-8")
+        r = subprocess.run([sys.executable, "lab/compare.py", "--actual", "51737.7", "--out",
+                            str(root / "facts" / "c.md")],
+                           cwd=root, capture_output=True, text=True, timeout=120)
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("cannot be checked by anybody", (root / "facts" / "c.md").read_text(encoding="utf-8"))
+
+
 class TestPlates(unittest.TestCase):
     """A text model cannot paint, and every free generator worth using is a browser and a person (Mage in
     Slow mode, the one inside Google Docs). So the colony does not generate: a work may carry one line,
@@ -1392,6 +1467,65 @@ class TestFiling(unittest.TestCase):
         srv = HTTPServer(("127.0.0.1", 0), handler)
         threading.Thread(target=srv.serve_forever, daemon=True).start()
         return srv, f"http://127.0.0.1:{srv.server_address[1]}"
+
+    def test_a_sealed_wake_does_not_show_the_other_members_answers(self):
+        """The founder's first real experiment, 2026-11-03, and the defect that would have quietly ruined it.
+
+        Three members, one question — predict tomorrow's close — and afterwards a comparison of who was
+        closest. The shelf carries a filed work's title and first line, so member two reads member one's
+        number before giving its own. Three answers to one question, converging, with no way afterwards to
+        tell a prediction from an echo. `--no-shelf` seals the wake; this test reads the prompt the wake
+        actually sends, with a fake endpoint and no money spent.
+        """
+        from http.server import BaseHTTPRequestHandler
+        import json as _json
+        seen: list[str] = []
+
+        class H(BaseHTTPRequestHandler):
+            def do_POST(self):
+                body = self.rfile.read(int(self.headers.get("Content-Length", 0))).decode()
+                seen.append(body)
+                out = _json.dumps({"choices": [{"message": {"content": _json.dumps(
+                    {"source": "item", "journal": "Nothing to do this wake but answer.",
+                     "action": "none"})}}]}).encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(out)))
+                self.end_headers()
+                self.wfile.write(out)
+
+            def log_message(self, *a):
+                pass
+
+        srv, base = self._fake_api(H)
+        self.addCleanup(srv.shutdown)
+        root = self._repo_copy()
+        peer = [w for w in magazine.load_all(root) if w.get("member") not in (None, "a")]
+        # the shelf shows the six most recent, so the test reads the most recent one — asserting on a work
+        # that happens to be older than the six would pass for the wrong reason.
+        title = sorted(peer, key=lambda w: str(w.get("when", "")), reverse=True)[0]["title"]
+
+        def prompt_for(*extra: str) -> str:
+            import subprocess, sys
+            seen.clear()
+            subprocess.run([sys.executable, "wake/wake.py", "--member", "a", "--api-model", "fake",
+                            "--api-base", base, "--api-key-env", "FAKE_KEY", *extra],
+                           cwd=root, capture_output=True, text=True, timeout=300,
+                           env={"PATH": "/usr/bin:/bin", "FAKE_KEY": "x", "HOME": "/tmp"})
+            return seen[-1] if seen else ""
+
+        # The shelf writes "- **Title** — C, letter, 243 words". The title alone is not the test: a member's
+        # own journal quotes its peers' titles too ("C's 'Answer A's letter'"), and that is memory, not a
+        # leak. What must be gone is the shelf ENTRY, which carries the opening line — and with it a number.
+        entry = f"- **{title}**"
+        plain = prompt_for()
+        sealed = prompt_for("--no-shelf")
+        # assertTrue/assertFalse, not assertIn: a failure here dumps a 25,000-character prompt, and a test
+        # whose failure is unreadable is a test nobody reads.
+        self.assertTrue(entry in plain, "the shelf is the default and a peer's work is on it")
+        self.assertTrue("sealed for this wake" in sealed, "a sealed wake says why the shelf is empty")
+        self.assertFalse(entry in sealed,
+                         "a sealed wake must not carry the peer's shelf entry, and so its number")
 
     def test_a_garbage_reply_files_nothing_and_the_next_wake_still_works(self):
         from http.server import BaseHTTPRequestHandler

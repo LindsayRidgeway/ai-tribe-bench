@@ -799,6 +799,11 @@ def main() -> int:
     ap.add_argument("--read", default=None, help="path to a letter addressed to this member; requires the reply to quote it")
     ap.add_argument("--api-model", default=None, help="API model id; uses an OpenAI-compatible endpoint instead of ollama")
     ap.add_argument("--api-base", default=None, help="endpoint base URL, or a name from API_BASES (deepseek, groq, openrouter, gemini, ...)")
+    ap.add_argument("--no-shelf", action="store_true", dest="no_shelf",
+                    help="seal this wake: do not show the other members' works. For the case where several "
+                         "members answer the same question and the answers are going to be compared — a "
+                         "filed work's title and opening line travel on the shelf, so the second answer "
+                         "would otherwise be shaped by the first.")
     ap.add_argument("--show-prompt", action="store_true",
                     help="print the whole prompt before asking. Off by default: it is 25,000 characters, "
                          "and a person asking a member a question wants the answer, not the machinery. "
@@ -945,6 +950,16 @@ def main() -> int:
         shelf = works_shelf(member=args.member, place=place)
     except Exception as e:  # noqa: BLE001 — a broken shelf must not stop a wake
         shelf = f"(the shelf could not be read: {e})"
+    if getattr(args, "no_shelf", False):
+        # A sealed wake. The founder's first real experiment, 2026-11-03: three members each predicting
+        # the same number, then comparing who was closest. The shelf carries a filed work's title and its
+        # opening line, so member two would read member one's answer before giving its own — three
+        # answers to one question, converging, and no way afterwards to tell a prediction from an echo.
+        # Sealing is not a courtesy: it is the difference between an experiment and a chorus.
+        shelf = ("(sealed for this wake. Your fellow members' works are deliberately not shown, because "
+                 "this wake is one of several answering the same question and your answer is not to be "
+                 "shaped by theirs. Nobody is withholding anything from you — the shelf is in the "
+                 "repository and you will read it in full next time.)")
     try:
         own_block = own_works(args.member, place)
     except Exception as e:  # noqa: BLE001 — never stop a wake for a listing
