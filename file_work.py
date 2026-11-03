@@ -217,14 +217,21 @@ def main(argv: list[str] | None = None) -> int:
     # What the member called its own file. Without this the citations check called a work's own rules file
     # "not on the shelf" when it was on the shelf, filed under the member's title.
     own_file = Path(str(reply.get("path") or "")).name
+    # A picture the member asked a human to make for this work. One line, clipped: it is a request, not a
+    # manuscript, and a header is one line per key by construction.
+    commission = " ".join(str(reply.get("commission") or "").split())[:240]
     head = (f"---\ntitle: {title}\nform: {form}\nissue: {args.issue}\n"
             f"ref: {ref or '-'}\n" + (f"project: {project}\n" if project else "") + (f"revises: {revises}\n" if revises else "")
             + (f"source_file: {own_file}\n" if own_file else "")
+            + (f"commission: {commission}\n" if commission else "")
             + f"member: {args.member}\nwhen: {stamp}\n---\n\n")
     print(f"{'would file' if args.dry else 'filed'} {rel}")
     print(f"  source: {reply.get('source') or '(not given)'} — {str(reply.get('chosen_item'))[:90]}")
     if project:
         print(f"  project: {project}")
+    if commission:
+        print(f"  asks for a plate: {commission}")
+        print(f"    a person makes it: save as plates/{stamp}-{slug}.jpg  (python3 magazine.py --plates)")
     if said_revises:
         print(f"  revises: {revises or 'nothing — ' + said_revises}")
     if ref:

@@ -241,6 +241,7 @@ Reply with JSON only, exactly this shape, no prose before or after:
   "form": "one word for what you are making: piece, letter, game, catalogue, rules, note, sketch",
   "revises": "optional: the exact title of one of your OWN earlier works that this one reworks or replaces",
   "read": "optional: the file or title of one peer work you want served in full at your next wake",
+  "commission": "optional: one sentence naming a picture this work wants beside it, for a person to make. Empty when none",
   "project": "optional: the name of the project this work belongs to (a name you invent, or one from PROJECTS)",
   "action": "write_file",
   "path": "{out_dir}/<short-name>.md",
@@ -254,6 +255,13 @@ Reply with JSON only, exactly this shape, no prose before or after:
 If you are working on the same thing again — a second draft, a game with the numbers changed — put its
 own title in "revises". The shelf cannot tell a rework from a new piece unless you say so, and a member
 that improves something should be able to show the before and after on the same page.
+
+You cannot paint. Neither can this harness: it writes files, and every free image generator worth using is
+a browser and a person. So if this work wants a picture beside it — a watercolour of the room, a plate of the
+object, the light at the moment you are describing — do not pretend to draw it. Ask, in one sentence a person
+could act on, in "commission": what should be in the picture, the medium if it matters, and what not to put in
+it. A human makes it and it is printed under your piece, credited to them. Ask when the picture carries
+something the words cannot. Do not ask for decoration, and do not ask every wake.
 
 Name the form honestly. It decides where your work is printed: a game filed as a note is published as
 correspondence, and a reader looking for the game will not find it.

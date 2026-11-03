@@ -489,6 +489,88 @@ class TestMagazine(unittest.TestCase):
         self.assertIn("A revision of `works/b/x.md`", text)
 
 
+class TestPlates(unittest.TestCase):
+    """A text model cannot paint, and every free generator worth using is a browser and a person (Mage in
+    Slow mode, the one inside Google Docs). So the colony does not generate: a work may carry one line,
+    `commission:`, and a human makes the picture and drops it in `plates/`. The image is a source like the
+    soil — the magazine still rebuilds from the record, and the record says who asked and that a person
+    answered. The failure to avoid is the quiet one: an ask that is printed nowhere looks like a feature
+    that does not exist."""
+
+    def _repo(self) -> Path:
+        tmp = Path(tempfile.mkdtemp())
+        (tmp / "works" / "a").mkdir(parents=True)
+        (tmp / "soil").mkdir()
+        (tmp / "soil" / "world.md").write_text("a workshop", encoding="utf-8")
+        (tmp / "soil" / "drops.md").write_text("| when | by | what |\n|---|---|---|\n| 2026-11-01 | h | a box |\n",
+                                               encoding="utf-8")
+        (tmp / "plates").mkdir()
+        (tmp / "works" / "a" / "20261102T040000Z-harbour.md").write_text(
+            "---\ntitle: Harbour Torch\nform: game\nissue: 1\nwhen: 20261102T040000Z\n"
+            "commission: a watercolour of the harbour at night, one lamp, no lettering\n---\n\nsix posts\n",
+            encoding="utf-8")
+        return tmp
+
+    def test_an_ask_with_no_picture_is_printed_and_not_hidden(self):
+        tmp = self._repo()
+        self.addCleanup(shutil.rmtree, tmp, True)
+        text = magazine.build("1", magazine.load_all(tmp), tmp)
+        self.assertIn("A plate was asked for here and has not been made yet", text)
+        self.assertIn("a watercolour of the harbour at night", text)
+        self.assertNotIn("![", text)
+
+    def test_a_made_plate_is_printed_with_credit_to_the_person_who_made_it(self):
+        tmp = self._repo()
+        self.addCleanup(shutil.rmtree, tmp, True)
+        (tmp / "plates" / "20261102T040000Z-harbour.jpg").write_bytes(b"\xff\xd8\xff not really a jpeg")
+        (tmp / "plates" / "20261102T040000Z-harbour.md").write_text(
+            "watercolour study, made with Mage in Slow mode, 2026-11-02\n", encoding="utf-8")
+        text = magazine.build("1", magazine.load_all(tmp), tmp)
+        self.assertIn("![Harbour Torch](plates/20261102T040000Z-harbour.jpg)", text)
+        self.assertIn("asked for by A", text)
+        self.assertIn("Mage in Slow mode", text)
+        self.assertNotIn("has not been made yet", text)
+
+    def test_the_credit_is_never_invented(self):
+        tmp = self._repo()
+        self.addCleanup(shutil.rmtree, tmp, True)
+        (tmp / "plates" / "20261102T040000Z-harbour.png").write_bytes(b"\x89PNG\r\n")
+        text = magazine.build("1", magazine.load_all(tmp), tmp)
+        self.assertIn("made by a human with a generator of their choosing", text)
+        self.assertNotIn("Mage", text, "a tool name the human did not write is a fabrication")
+
+    def test_commissions_lists_what_a_person_still_has_to_make(self):
+        tmp = self._repo()
+        self.addCleanup(shutil.rmtree, tmp, True)
+        asked, made = magazine.commissions(magazine.load_all(tmp), tmp)
+        self.assertEqual([w["title"] for w in asked], ["Harbour Torch"])
+        self.assertEqual(made, [])
+        (tmp / "plates" / "20261102T040000Z-harbour.jpg").write_bytes(b"x")
+        asked, made = magazine.commissions(magazine.load_all(tmp), tmp)
+        self.assertEqual((asked, [w["title"] for w in made]), ([], ["Harbour Torch"]))
+
+    def test_filing_a_reply_carries_the_commission_into_the_work(self):
+        """The field is only real if it survives the shelf. The clock files through file_work.py, which
+        writes the header, so a commission the prompt accepts and the header drops would be an ask nobody
+        can see — the shape this whole day has been about."""
+        tmp = Path(tempfile.mkdtemp()) / "repo"
+        self.addCleanup(shutil.rmtree, tmp.parent, True)
+        shutil.copytree(REPO, tmp, ignore=shutil.ignore_patterns(".git", "__pycache__"))
+        raw = tmp / "wake" / "members" / "a" / "output" / "raw-20261102T190000Z.json"
+        raw.write_text(json.dumps({
+            "source": "beat", "chosen_item": "the lamp", "why": "it is in the room",
+            "form": "piece", "action": "write_file", "path": "wake/members/a/output/lamp.md",
+            "content": "# The Lamp\n\n" + "The lamp is on. " * 20,
+            "journal": "I wrote about the lamp and asked for a picture of it.",
+            "commission": "a watercolour of one lamp in a dark room, no people, no text"}), encoding="utf-8")
+        out = subprocess_run(tmp, "file_work.py", "--member", "a", "--issue", "1", "--raw", str(raw))
+        self.assertIn("asks for a plate", out)
+        filed = sorted((tmp / "works" / "a").glob("20261102T190000Z-*.md"))
+        self.assertTrue(filed, out)
+        head = filed[-1].read_text(encoding="utf-8")
+        self.assertIn("commission: a watercolour of one lamp in a dark room", head)
+
+
 class TestSoil(unittest.TestCase):
     """2026-11-02, the founder's test: the same colony in a different soil should build different tunnels.
     Which soil a member stands in is a property of its own files, so two colonies can share a repo."""

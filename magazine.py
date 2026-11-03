@@ -238,6 +238,54 @@ def place_name(place: str, root: Path | None = None) -> str:
 
 
 
+PLATES = HERE / "plates"
+
+
+def plate_for(work: dict, root: Path | None = None) -> Path | None:
+    """The picture a human made for this work, if it exists.
+
+    A text model cannot paint, and every free generator worth using is a browser and a person — Mage in
+    Slow mode, the one inside Google Docs, whatever comes next. So the colony does not generate: it ASKS.
+    A work may carry one line, `commission:`, saying what picture would carry something the words cannot,
+    and a human makes it with whatever tool they have and drops the file in `plates/` under the work's
+    own stem. The image is then a source like the soil, not a derived file: the magazine still rebuilds
+    byte for byte from the record, and the record says who asked and that a human answered.
+    """
+    root = root or HERE
+    stem = Path(str(work.get("file", ""))).stem
+    if not stem:
+        return None
+    for ext in (".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg"):
+        p = root / "plates" / (stem + ext)
+        if p.exists():
+            return p
+    return None
+
+
+def plate_credit(work: dict, root: Path | None = None) -> str:
+    """One line the human may leave beside the picture, saying what made it. Never invented."""
+    root = root or HERE
+    note = root / "plates" / (Path(str(work.get("file", ""))).stem + ".md")
+    try:
+        first = note.read_text(encoding="utf-8").strip().splitlines()[0].strip()
+        if first:
+            return first
+    except (OSError, IndexError):
+        pass
+    return "made by a human with a generator of their choosing"
+
+
+def commissions(works: list[dict], root: Path | None = None) -> tuple[list[dict], list[dict]]:
+    """(asked for and not yet made, asked for and made). A commission is a chore for a person, so it
+    needs a list a person can read — the same reason the ledger exists for debt."""
+    asked, made = [], []
+    for w in works:
+        if not (w.get("commission") or "").strip():
+            continue
+        (made if plate_for(w, root) else asked).append(w)
+    return asked, made
+
+
 def build(issue: str, works: list[dict] | None = None, root: Path | None = None) -> str:
     works = works if works is not None else load_all()
     mine = [w for w in works if str(w["issue"]) == str(issue)]
@@ -275,6 +323,18 @@ def build(issue: str, works: list[dict] | None = None, root: Path | None = None)
             # b2 wrote two drafts of one game and the magazine printed them as two unrelated games.
             out += [f"*A revision of `{w['revises']}`.*", ""]
         out += [w["body"], ""]
+        plate = plate_for(w, root)
+        if plate is not None:
+            try:
+                shown = plate.relative_to(root or HERE)
+            except ValueError:
+                shown = Path("plates") / plate.name
+            out += [f"![{w['title']}]({shown.as_posix()})", "",
+                    f"*Plate: asked for by {w['member'].upper()}, {plate_credit(w, root)}.*", ""]
+        elif (w.get("commission") or "").strip():
+            # An ask with no picture is still part of the record, and printing it is what makes the
+            # human's absence visible instead of silent. It is not padding: it is one line, in italics.
+            out += [f"*A plate was asked for here and has not been made yet: {w['commission'].strip()}*", ""]
         replies = [l for l in letters if (l.get("ref") or "").lower() in
                    (w["title"].lower(), Path(w["file"]).stem.lower())]
         for r in replies:
@@ -604,6 +664,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--projects", action="store_true", help="every member's timeline; with --write, PROJECTS.md")
     ap.add_argument("--links", action="store_true",
                     help="who answered whom this issue, and which members have not answered anyone")
+    ap.add_argument("--plates", action="store_true",
+                    help="pictures the members asked for, and which of them a human has made yet")
     args = ap.parse_args(argv if argv is not None else sys.argv[1:])
 
     works = load_all()
@@ -625,6 +687,27 @@ def main(argv: list[str] | None = None) -> int:
             if str(w["issue"]).isdigit():
                 nums.append(int(w["issue"]))
         print(max(nums) if nums else 1)
+        return 0
+
+    if args.plates:
+        asked, made = commissions(works)
+        if not asked and not made:
+            print("no member has asked for a picture. A work asks by carrying one line, `commission:`.")
+            print("Nothing here is generated: a text model cannot paint, and the free generators — Mage in")
+            print("Slow mode, the one inside Google Docs — are a browser and a person. That person is you.")
+            return 0
+        if asked:
+            print(f"asked for, not yet made ({len(asked)}) — drop the file in plates/ under the name shown:")
+            for w in asked:
+                stem = Path(w["file"]).stem
+                print(f"\n  {w['member'].upper()} — {w['title']}")
+                print(f"    make: {w['commission'].strip()}")
+                print(f"    save as: plates/{stem}.jpg   (or .png/.webp/.svg)")
+                print(f"    credit: plates/{stem}.md, one line — what made it")
+        if made:
+            print(f"\nmade ({len(made)}):")
+            for w in made:
+                print(f"  {w['member'].upper()} — {w['title']}: {plate_for(w).name}")
         return 0
 
     if args.index:
