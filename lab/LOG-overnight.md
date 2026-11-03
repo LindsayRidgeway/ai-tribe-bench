@@ -943,3 +943,32 @@ now prints nothing rather than putting old words under a new question.
 
 That is the same failure mode six times now, in six different files: a record that exists and cannot be read
 back. This one had the decency to be caught by the instrument built for it.
+
+---
+
+## 24. First scheduled beat at 01:46, and the instrument that reads it was wrong too
+
+The heartbeat fired on its own for the first time at 01:46:07 UTC, five minutes after the `:41` the cron
+asks for. One beat is not an answer — the clock missed six in a row on this ground — but it does settle the
+narrower question the night was waiting on: **GitHub's scheduler does fire this repository's crons**, and it
+fires them late. Whether it fires them *often enough* is what the next eight hours say.
+
+Reading it found two things that were wrong in the reading.
+
+**`gh workflow run heartbeat` did not exist.** The file had no `name:` line, so GitHub listed the workflow
+under its path, `.github/workflows/heartbeat.yml`, and the command RUN.md tells a reader to type answered
+"could not find any workflows named heartbeat". The control existed and could not be started by the name it
+was documented under. It has a name now, and RUN.md says that only a beat whose record says `schedule` counts
+as evidence.
+
+**And the counter was reading its own log wrongly.** Its window ran from the first beat of any kind to the
+last, so the hand dispatch at 18:58 and the first scheduled beat at 01:46 produced *"0.0 hours … hours due: 1
+… of those, 1 were dispatched by hand"* — one hour of evidence printed as an answer about a seven-hour night,
+with a hand beat reported as being inside a window it predated. The window is now the scheduled beats only,
+the hand beats are counted separately and only when they fall inside it, and a result over fewer than six
+hours says in as many words that it is not an answer yet. There are two tests for it, and the first one is
+the log that produced the wrong sentence.
+
+That is the third time tonight the fault was in the thing that reports rather than the thing that runs. It
+is also, once again, not something a test found: it was found by reading the output of the tool whose whole
+job is to print a number I would otherwise trust.

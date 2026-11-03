@@ -8,7 +8,9 @@ to the member. Each of those has a test here.
 """
 from __future__ import annotations
 
+import contextlib
 import importlib.util
+import io
 import json
 import os
 import re
@@ -42,6 +44,7 @@ play_behaviour = load(REPO / "play" / "behaviour.py", "behaviour_mod")
 magazine = load(REPO / "magazine.py", "magazine_mod")
 file_work = load(REPO / "file_work.py", "file_work_mod")
 outbox = load(REPO / "outbox.py", "outbox_mod")
+heartbeat = load(REPO / "lab" / "heartbeat.py", "heartbeat_mod")
 
 FACTS = "date: Mon Nov  2 02:00:00 UTC 2026\nnproc: 2\nfree: 16000 MB"
 
@@ -1404,6 +1407,48 @@ class TestFastLoop(unittest.TestCase):
         run = self._steps()[self._index("Answer in the same place")].get("run") or ""
         self.assertIn("answer-start", run)
         self.assertIn("nothing is posted", run)
+
+
+class TestHeartbeat(unittest.TestCase):
+    """The control for 'is the clock unreliable or the scheduler?' — and the tool that reads it had the same
+    fault it was built to detect. Its window was computed from the first beat of any kind to the last, so a
+    hand dispatch at 18:58 and the first scheduled beat at 01:46 produced '0.0 hours, hours due: 1': one
+    hour of evidence printed as an answer about a seven-hour night, and a line claiming a hand dispatch was
+    inside a window it predated."""
+
+    def _log(self, lines: list[str]) -> Path:
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp, True)
+        p = tmp / "heartbeat.md"
+        p.write_text("| when (UTC) | event | run |\n|---|---|---|\n" +
+                     "".join(f"| {when} | {ev} | {i} |\n" for i, (when, ev) in enumerate(lines)),
+                     encoding="utf-8")
+        return p
+
+    def test_a_hand_dispatch_before_the_window_is_not_inside_it(self):
+        log = self._log([("2026-11-02T18:58:56Z", "workflow_dispatch"),
+                         ("2026-11-03T01:46:12Z", "schedule")])
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            heartbeat.main(log)
+        out = buf.getvalue()
+        self.assertIn("hours due: 1", out)
+        self.assertIn("missed: 0", out)
+        self.assertNotIn("1 hand dispatch(es) fall inside the window", out,
+                         "the 18:58 hand beat predates the window and was being counted inside it")
+        self.assertIn("is not an answer yet", out, "one hour must not be reported as a settled answer")
+
+    def test_six_due_and_one_fired_is_reported_as_a_miss(self):
+        log = self._log([("2026-11-02T05:57:00Z", "schedule"), ("2026-11-02T09:41:00Z", "schedule"),
+                         ("2026-11-02T13:41:00Z", "schedule"), ("2026-11-02T17:41:00Z", "schedule")])
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            heartbeat.main(log)
+        out = buf.getvalue()
+        # 05:57 to 17:41 is 11.7 hours, so twelve hourly slots were due and four arrived
+        self.assertIn("hours due: 12", out)
+        self.assertIn("missed: 8", out)
+        self.assertIn("a scheduled wake is a hope", out)
 
 
 class TestOutbox(unittest.TestCase):
