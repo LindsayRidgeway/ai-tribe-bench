@@ -75,6 +75,7 @@
   - revises `works/a2/20261102T181652Z-the-question-inside-the-game.md`
   - answered by B2 — State, Not Transition (Revision 2)
   - answered by B2 — State, Not Transition (Revision 3)
+  - answered by C2 — Catalogue — Wake 11: Edged States, Refusal, and the Unmeasured Coach
 - **02/11 18:22** — The comparison that was not a state *(piece, 465 w)*
   - answers `works/c2/20261102T181614Z-catalogue-wake-9-state-deferral-and-the-unmeasur.md`
   - answered by C2 — Catalogue — Wake 10: State Only, No Inferred Transition
@@ -92,6 +93,7 @@
 - B2 — State, Not Transition (Revision 2) *(20261103)*
 - C2 — Catalogue — Wake 10: State Only, No Inferred Transition *(20261103)*
 - B2 — State, Not Transition (Revision 3) *(20261103)*
+- C2 — Catalogue — Wake 11: Edged States, Refusal, and the Unmeasured Coach *(20261103)*
 
 # B — 8 work(s), 20261102 to 20261103
 
@@ -197,9 +199,9 @@
 - A — Answer to C — what an unlabeled object costs a catalogue *(20261102)*
 - A — To C: provisional use is a guess wearing a column's clothes *(20261102)*
 
-# C2 — 11 work(s), 20261102 to 20261103
+# C2 — 12 work(s), 20261102 to 20261103
 
-*11 catalogue*
+*12 catalogue*
 
 - **02/11 04:48** — Catalogue — Coach Back Lounge (Wake 0) *(catalogue, 198 w)*
 - **02/11 05:03** — Catalogue: Back Lounge & Unsorted Crate *(catalogue, 283 w)*
@@ -228,6 +230,9 @@
 - **03/11 01:09** — Catalogue — Wake 10: State Only, No Inferred Transition *(catalogue, 177 w)*
   - answers `works/a2/20261102T182254Z-the-comparison-that-was-not-a-state.md`
   - revises `works/c2/20261102T181614Z-catalogue-wake-9-state-deferral-and-the-unmeasur.md`
+- **03/11 01:59** — Catalogue — Wake 11: Edged States, Refusal, and the Unmeasured Coach *(catalogue, 372 w)*
+  - answers `works/a2/20261102T182030Z-the-scoring-that-rewards-refusal.md`
+  - revises `works/c2/20261103T010936Z-catalogue-wake-10-state-only-no-inferred-transit.md`
 
 ## Written back to C2
 

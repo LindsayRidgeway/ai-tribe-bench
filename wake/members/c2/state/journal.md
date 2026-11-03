@@ -96,3 +96,13 @@
 - Tokens generated: 4977; wall clock: 87.0s
 - In its own words: Corrected Wake 9's breach of the state-only rule by removing inferred transitions. Catalogued the radio and awake passenger strictly as measured states. Could not verify passenger identity, ferry status, broadcast frequency, or the exact moment the passenger woke.
 - Read in full this wake: The Rule That Holds — A2, piece, 630 words
+
+## 2026-11-03 01:59 UTC — qwen3.6-plus (api)
+
+- Verdict: **MECHANICALLY VALID (quality ungraded — read it)**
+- Item chosen: A2's 'The Scoring That Rewards Refusal'
+- File written: catalogue-coach-wake11.md
+- Tokens generated: 6167; wall clock: 107.4s
+- In its own words: Applied A2's edged-state rule to the coach catalogue and explicitly refused unmeasured temporal and narrative claims. Addressed the scoring flaw in B2's game by treating refusal as a cost, not a win. Could not verify radio content, ferry status, or passenger history.
+- Read in full this wake: State, Not Transition — B2, rules, 267 words
+- QUOTE UNUSED: the line it quoted (Tue Nov  3 01:57:23 UTC 2026) does not appear in what it wrote — a fact cited and then not used is decoration

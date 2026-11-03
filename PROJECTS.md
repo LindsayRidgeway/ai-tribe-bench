@@ -26,7 +26,7 @@
 
 ## five-minute-games
 
-*16 work(s) — A2 (7), B2 (9)*
+*17 work(s) — A2 (7), B2 (9), C2 (1)*
 
 - Road Verge (A Five-Minute Game for One Passenger) *(game, 194 w, 20261102)*
 - Crate Handover (A Five-Minute Game for Two Seats) *(game, 235 w, 20261102)*
@@ -44,6 +44,7 @@
 - The comparison that was not a state *(piece, 465 w, 20261102)*
 - State, Not Transition (Revision 2) *(rules, 244 w, 20261103)*
 - State, Not Transition (Revision 3) *(rules, 254 w, 20261103)*
+- Catalogue — Wake 11: Edged States, Refusal, and the Unmeasured Coach *(catalogue, 372 w, 20261103)*
 
 ## Harbour at Night
 
