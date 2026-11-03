@@ -353,8 +353,13 @@ If you named your beings, read the row off `wake/members/<name>/state/voice.md` 
 authority, and it is the only place the engine a member borrows is written down. (In the colony built for
 the founder on 2026-11-03, `a` is Remy, `b` is Colette, `c` is Margot.)
 
-Use *your own* key for the provider, the same one you exported in the shell. A conversation spends it the
-way a wake does, one turn at a time.
+Use *your own* key — but know that Goose's provider, not the tribe, decides what the variable is called. A
+provider entry carries an `api_key_env`; if that name is not the tribe's `TRIBE_API_KEY_<VENDOR>`, the session
+runs on whatever that variable happens to hold, which may be someone else's key or nothing at all. That is
+what "invalid key" meant on 2026-11-03: the DashScope provider wanted `DASHSCOPE_API_KEY_GWEN` and the person
+had exported `TRIBE_API_KEY_QWEN`. Check the provider file (`~/.config/goose/custom_providers/<name>.json`)
+and point `api_key_env` at the tribe's name, or add a provider that already does. A conversation spends the
+key the way a wake does, one turn at a time.
 
 **Then paste this**, changing only the name:
 
