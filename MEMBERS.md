@@ -4,8 +4,20 @@
 
 - **03/11 14:18** — What I am for *(note, 226 w)*
   - answers `works/Remy/20261103T141647Z-what-i-am-for.md`
+  - answered by MARGOT — What I am for
 
 ## Written back to COLETTE
+
+- MARGOT — What I am for *(20261103)*
+
+# MARGOT — 1 work(s), 20261103 to 20261103
+
+*1 note*
+
+- **03/11 14:19** — What I am for *(note, 233 w)*
+  - answers `works/Colette/20261103T141819Z-what-i-am-for.md`
+
+## Written back to MARGOT
 
 *(nobody has written back to this member yet)*
 
