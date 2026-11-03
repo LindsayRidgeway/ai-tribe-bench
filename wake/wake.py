@@ -803,7 +803,7 @@ def main() -> int:
                     help="print the whole prompt before asking. Off by default: it is 25,000 characters, "
                          "and a person asking a member a question wants the answer, not the machinery. "
                          "The scheduled beat passes this, because there the prompt is the record.")
-    ap.add_argument("--api-key-env", default=None, help="name of the environment variable holding the key (default TRIBE_API_KEY, then <BASE>_API_KEY)")
+    ap.add_argument("--api-key-env", default=None, help="name of the environment variable holding the key (default: TRIBE_API_KEY_<VENDOR>, the only name this project uses; pass this only to override it, as the tests do)")
     args = ap.parse_args()
 
     if not args.model and not args.api_model:
@@ -1018,11 +1018,14 @@ having answered something nobody said.
         # asked for GEMINI_API_KEY — and accepting both, which is what I did first, is not a fix: it
         # leaves two names in the world and calls the confusion compatibility. 2026-11-03.
         #
-        # The vendor's own name is still read, because a person may already have GEMINI_API_KEY exported
-        # from something else. It is grace, not a second name: when it is used, the line below says so and
-        # names the one this project uses.
+        # One name and no fallbacks. I kept GEMINI_API_KEY as "grace, in case the person already has one
+        # exported from something else", and the founder asked what something else. Nothing I could
+        # point to: no SDK installed on this machine reads that variable, and the names in my own
+        # environment come from my own bot.env. It was a plausible-sounding reason I had not checked —
+        # the same defect the audit in this harness calls a fabricated citation. So the alias is gone.
+        # An explicit --api-key-env is a caller's choice, not a second name; nothing ships with one.
         canonical = "TRIBE_API_KEY_" + provider.removesuffix("_API_KEY")
-        names = [n for n in (args.api_key_env,) if n] or [canonical, provider, "TRIBE_API_KEY"]
+        names = [n for n in (args.api_key_env,) if n] or [canonical]
         used = next((n for n in names if os.environ.get(n)), None)
         key = os.environ[used] if used else None
         if not key:
@@ -1031,8 +1034,7 @@ having answered something nobody said.
                   f" The repository secret of the same name is for the runner, not for your shell:")
             print(f"   export {canonical}=... and run this again")
             return 2
-        if used != canonical:
-            print(f"note: key read from {used} — the name this project uses is {canonical}")
+
 
     if args.show_prompt:
         print(f"=== prompt ({len(prompt)} chars) ===")

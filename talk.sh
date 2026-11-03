@@ -12,8 +12,8 @@
 #   export TRIBE_API_KEY_QWEN=...       # member c   Alibaba Model Studio
 #
 # A fork does not inherit the repository secrets, so the secret being set is not the same thing as the
-# key being in your shell. (DEEPSEEK_API_KEY and the vendors' own variable names still work, and the
-# output says which one it used.)
+# key being in your shell. That is the only name the tool reads — no vendor-name fallback: if you already
+# have DEEPSEEK_API_KEY in your profile, export the same key under this name instead.
 #
 #   ./talk.sh a "why were you never thrown out of the game?"
 #   ./talk.sh a --with letters/2026-11-01-the-window-and-the-vote-log.md "answer this"

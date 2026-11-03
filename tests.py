@@ -1705,10 +1705,21 @@ class TestWindowPath(unittest.TestCase):
         run = (REPO / "RUN.md").read_text(encoding="utf-8")
         self.assertIn("| `b` | `TRIBE_API_KEY_GEMINI` |", run)
 
-    def test_a_vendor_variable_is_read_as_grace_and_says_so(self):
-        src = (REPO / "wake" / "wake.py").read_text(encoding="utf-8")
-        self.assertIn("note: key read from", src, "a borrowed name is used silently")
-        self.assertIn("the name this project uses is", src)
+    def test_there_is_one_key_name_and_no_second_one_half_works(self):
+        """Asked why not one name, I first accepted both. Asked what the second name was *for*, I had no
+        answer: no SDK on this machine reads it. So there is one, and it is the same word in the sheet,
+        the workflow, the shell and the tool."""
+        wake_src = (REPO / "wake" / "wake.py").read_text(encoding="utf-8")
+        self.assertIn("names = [n for n in (args.api_key_env,) if n] or [canonical]", wake_src,
+                      "a fallback name is back in the tool")
+        self.assertNotIn("note: key read from", wake_src)
+        play_src = (REPO / "play" / "play.py").read_text(encoding="utf-8")
+        self.assertIn('names = [f"TRIBE_API_KEY_{provider.upper()}"]', play_src,
+                      "the game arm reads a name no workflow sets")
+        r = self._run("--member", "b", "--api-model", "gemini-3.8-flash", "--api-base", "gemini",
+                      "--ask", "who are you?")
+        self.assertIn("set TRIBE_API_KEY_GEMINI\n", r.stdout,
+                      "the error offers a second name to try instead of the one instruction")
 
     def test_a_failed_push_is_not_reported_as_success(self):
         talk = (REPO / "talk.sh").read_text(encoding="utf-8")

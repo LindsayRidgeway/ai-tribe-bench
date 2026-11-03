@@ -1069,7 +1069,17 @@ place and taught nobody. The rename is gone: `TRIBE_API_KEY_<VENDOR>` is the sec
 what the tool looks for, and a workflow that renames a key on arrival now fails a test. The vendor's own
 name is still read, because a person may already have one exported — but it prints `note: key read from
 GEMINI_API_KEY — the name this project uses is TRIBE_API_KEY_GEMINI`, so grace is announced instead of being
-mistaken for a second name. 146 assertions.
+mistaken for a second name.
+
+Then he asked the second question, which is the one that counts: *exported from something else — what
+something else?* Nothing. I searched the installed packages on this machine for `GEMINI_API_KEY`,
+`GOOGLE_API_KEY` and `DEEPSEEK_API_KEY`: zero files in site-packages. The only two places those names
+appear are my own `bot.env` and the workflows I had just rewritten. So the fallback was a plausible reason
+I never checked — the exact defect the harness's own audit reports as `QUOTE NOT IN FACTS`, committed by
+the person writing the audit. The alias is gone, from the wake and from `play.py` (which read
+`<VENDOR>_API_KEY` and a generic `TRIBE_API_KEY`, neither of which any workflow sets, so the game arm would
+have reported "no key" on a repository where every key was present). One name, in the sheet, the secret,
+the workflow, the shell and the tool. 147 assertions, and one of them asks the question again.
 
 **The answer went somewhere no reader could read it.** `talk.sh` printed the reply, committed `output/` and
 the state diffs, and never filed the work: the shelf did not grow, the magazine printed nothing, and

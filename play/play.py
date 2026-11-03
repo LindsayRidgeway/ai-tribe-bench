@@ -396,7 +396,10 @@ def base_for(name: str) -> str:
 
 
 def key_for(provider: str) -> tuple[str | None, str]:
-    names = [f"{provider.upper()}_API_KEY", "TRIBE_API_KEY"]
+    # The same name the workflows use, spelled once: TRIBE_API_KEY_<VENDOR>. This file used the
+    # vendor's own name and a generic TRIBE_API_KEY, neither of which any workflow sets, so the game
+    # arm would have reported "no key" on a repository where every key was present.
+    names = [f"TRIBE_API_KEY_{provider.upper()}"]
     for n in names:
         if os.environ.get(n):
             return os.environ[n], n

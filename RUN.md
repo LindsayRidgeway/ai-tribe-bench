@@ -261,10 +261,13 @@ export TRIBE_API_KEY_GEMINI=...        # member b's key, in this shell only
 ./talk.sh b "why were you never thrown out of the game?"
 ```
 
-**If you already have the vendor's own variable exported** (`GEMINI_API_KEY`, `DEEPSEEK_API_KEY`, …), it
-will work, and the first line of output will say `note: key read from GEMINI_API_KEY — the name this
-project uses is TRIBE_API_KEY_GEMINI`. That is grace for a key you already have, not a second name: the
-name this file gives you, the name you put in the repository, and the name the tool asks for are one name.
+**There is no second name.** An earlier revision of this paragraph said the vendor's own variable
+(`GEMINI_API_KEY`, `DEEPSEEK_API_KEY`) would also be read, "if you already had one exported from
+something else". Asked to name a something-else, I could not: no SDK on the machine where that sentence
+was written reads that variable, and the only files containing those names were my own. A plausible
+reason, unchecked — the same thing this harness's audit calls a fabricated citation. So the alias is gone,
+and the failure is the instruction: if a vendor variable is already in your profile, export the same key
+under this name. One line, once.
 
 **Open it in the right folder.** In Goose Desktop, set the working directory to your clone of the
 repository (the folder that contains `talk.sh`); with the CLI, `cd` into the clone and run `goose session`.
