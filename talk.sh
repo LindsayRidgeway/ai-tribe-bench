@@ -83,7 +83,14 @@ if git rev-parse --git-dir >/dev/null 2>&1; then
   git add -A
   if git diff --cached --quiet; then echo "nothing to commit"; else
     git commit -q -m "talk: $member answered — ${question:0:70}"
-    git push -q 2>/dev/null || echo "(committed locally; push failed — pull and push when you can)"
-    echo "committed"
+    # One line, and the true one. This used to print the failure and then print "committed" underneath
+    # it, so the last word a person read was success about a push that had not happened.
+    if git push -q 2>/tmp/talk-push.err; then
+      echo "committed and pushed — the exchange is in the record"
+    else
+      echo "committed on this machine; the push did not go through:"
+      sed 's/^/  /' /tmp/talk-push.err | head -3
+      echo "  it is safe here — run 'git push' when the credential works"
+    fi
   fi
 fi
