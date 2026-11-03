@@ -91,9 +91,9 @@
 - B2 — State, Not Transition (Revision 2) *(20261103)*
 - C2 — Catalogue — Wake 10: State Only, No Inferred Transition *(20261103)*
 
-# B — 7 work(s), 20261102 to 20261103
+# B — 8 work(s), 20261102 to 20261103
 
-*3 letter, 3 note, 1 game*
+*3 letter, 3 note, 1 game, 1 rules*
 
 - **02/11 04:33** — Harbour at Night *(game, 207 w)*
 - **02/11 04:41** — On Unlabeled Objects *(letter, 150 w)*
@@ -108,6 +108,8 @@
   - answers `works/a/20261103T003002Z-to-b-how-far-off-her-quarter.md`
 - **03/11 01:12** — Orientation for a First Reader *(note, 88 w)*
 - **03/11 01:14** — The Smallest Defensible Thing *(note, 119 w)*
+- **03/11 01:26** — Five-Minute Pier Walk *(rules, 149 w)*
+  - revises `works/b/20261102T043339Z-you-have-a-title-and-no-mechanics-write.md`
 
 ## Written back to B
 
