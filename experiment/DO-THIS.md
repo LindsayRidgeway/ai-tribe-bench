@@ -62,13 +62,33 @@ goose run -i experiment/Colette.task.md --provider google --model gemini-3.8-fla
 
 Same probe, same `/exit`.
 
-### Step 6. Run Margot, same shape
+### Step 6. Run Margot, same shape — with the key named the way the tribe names it
+
+Your key is fine. The *provider* was reading a different variable: Goose's `custom_alibaba` wants
+`DASHSCOPE_API_KEY_GWEN` — Gwen's key, which is not set in your terminal. An empty key and a wrong key give
+the same message, so "invalid key" was pointing at the name, not at the vault. One thing, two names, for the
+third time in this project.
+
+I added a provider that reads the tribe's name:
 
 ```bash
-goose run -i experiment/Margot.task.md --provider custom_alibaba --model qwen3.6-plus --max-turns 25 -s
+echo "TRIBE_API_KEY_QWEN is ${TRIBE_API_KEY_QWEN:+set}"
+
+goose run -i experiment/Margot.task.md --provider custom_qwen_trial --model qwen3.6-plus --max-turns 25 -s
 ```
 
+If the echo prints nothing, your vault did not export into this terminal: export it here and run the second
+line. I tested the plumbing on this machine with a deliberately wrong key — the request reached Alibaba and
+came back `401 Incorrect API key provided`, which is the proof that the endpoint, the model and the provider
+are wired correctly and only the key was missing.
+
 Same probe, same `/exit`.
+
+**Whose key answered.** Worth knowing before you read the numbers. Your Remy session ran on
+`DEEPSEEK_API_KEY_DMITRI` and your Colette session on the Google sign-in the Goose app already has — both
+were already on this Mac; neither is the `TRIBE_API_KEY_DEEPSEEK` or `TRIBE_API_KEY_GEMINI` you exported. That
+does not spoil the answers: the question was whether three engines can research and predict, and they can.
+But the record should not say your keys did it, and it will not.
 
 ### Step 7. Check all three wrote their files
 
@@ -120,7 +140,7 @@ session as a skill ranking.
 ```bash
 goose run -i experiment/Remy.after.md    --provider custom_deepseek --model deepseek-chat     --max-turns 20
 goose run -i experiment/Colette.after.md --provider google           --model gemini-3.8-flash  --max-turns 20
-goose run -i experiment/Margot.after.md  --provider custom_alibaba    --model qwen3.6-plus     --max-turns 20
+goose run -i experiment/Margot.after.md  --provider custom_qwen_trial --model qwen3.6-plus     --max-turns 20
 ```
 
 Each writes `experiment/<name>-after.md`. No `-s` this time — you are not probing, you are collecting.

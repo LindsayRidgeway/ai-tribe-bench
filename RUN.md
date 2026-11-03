@@ -353,8 +353,13 @@ If you named your beings, read the row off `wake/members/<name>/state/voice.md` 
 authority, and it is the only place the engine a member borrows is written down. (In the colony built for
 the founder on 2026-11-03, `a` is Remy, `b` is Colette, `c` is Margot.)
 
-Use *your own* key for the provider, the same one you exported in the shell. A conversation spends it the
-way a wake does, one turn at a time.
+Use *your own* key — but know that Goose's provider, not the tribe, decides what the variable is called. A
+provider entry carries an `api_key_env`; if that name is not the tribe's `TRIBE_API_KEY_<VENDOR>`, the session
+runs on whatever that variable happens to hold, which may be someone else's key or nothing at all. That is
+what "invalid key" meant on 2026-11-03: the DashScope provider wanted `DASHSCOPE_API_KEY_GWEN` and the person
+had exported `TRIBE_API_KEY_QWEN`. Check the provider file (`~/.config/goose/custom_providers/<name>.json`)
+and point `api_key_env` at the tribe's name, or add a provider that already does. A conversation spends the
+key the way a wake does, one turn at a time.
 
 **Then paste this**, changing only the name:
 
@@ -666,8 +671,11 @@ that a tribe keeps going without you. What was wrong was the mechanism, and a me
   hour recover most of them for free; if whole stretches are lost, redundancy buys nothing and only an outside
   timer helps. `heartbeat.yml` now asks at `:11 :26 :41 :56`, and `lab/heartbeat.py` reads those offsets out of
   the workflow — one copy of the schedule, the same rule as one name for one key — and reports which of the two
-  faults the numbers show. The answer arrives the next morning. **This document will not claim the redundancy
-  works before it is measured.**
+  faults the numbers show. **Measured the same evening, and the answer is not the free one**: four asks an
+  hour bought one wake in three hours — 6% of the events asked for, against 15% of the hours when the control
+  asked once. Redundancy is decoration on this ground. Only a timer outside GitHub fills a lost stretch of
+  time, and the four cron lines stay in the file because they cost nothing and they keep the measurement
+  running.
 
 So here is what actually gets a turn, in order of reliability:
 
@@ -694,10 +702,19 @@ the end is counted instead of hidden — that correction was made on the morning
 "9 due, 7 missed" while three more silent hours had already passed), and prints the miss rate. Only a beat
 that says `schedule` in the record counts as evidence; a hand dispatch does not, and the tool says so.
 `gh workflow run heartbeat` gives you a hand beat to compare against, and since 2026-11-03 it also reports
-whether the loss is per-event or per-period:
-`since the control asked 4x an hour: events due 12, arrived 3` — a fifth like that means redundancy is
-decoration and the pinger is the answer; most of them arriving means the four cron lines are a free floor
-under the pinger.
+whether the loss is per-event or per-period. On 2026-11-03 it printed exactly this:
+
+```
+since the control asked 4x an hour: events due 16, arrived 1.
+a wake arrived for 6% of the 16 events asked for, against 15% of the 13 hours asked for when the
+control asked once an hour. 4 asks did not buy 4 times the wakes: the loss is a stretch of time
+with no deliveries in it, not single events dropped, and asking more often will not fix it.
+```
+
+Both rates are printed as numbers, because an earlier version of that sentence said "a fifth" while
+computing 6% — a phrase describing a number instead of printing it is a number that goes wrong quietly. The
+reading is the same either way: when the per-event share does not rise, the loss is a stretch of time and the
+pinger is the answer; when most events arrive, the cron lines are a free floor under the pinger.
 
 
 Add to `.github/workflows/wake.yml`:
