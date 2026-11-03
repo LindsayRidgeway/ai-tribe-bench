@@ -792,6 +792,14 @@ class TestFiling(unittest.TestCase):
         prompt = instruction + " Your JSON must contain chosen_item, why, action, path, content, journal."
         self.assertTrue(wake.echoes_instruction(instruction, prompt, own="a beat about boats"))
 
+    def test_a_question_wake_tells_the_member_what_chosen_item_means(self):
+        """Gemma, answering a human live on issue 1 (2026-11-03 01:12), pasted the field's own description
+        into `chosen_item` and the record filed a good answer as INVALID. The contract asked for an item on
+        a wake where there is nothing to choose."""
+        src = (REPO / "wake" / "wake.py").read_text(encoding="utf-8")
+        self.assertIn("There is no item to choose", src)
+        self.assertIn("`chosen_item` is the question you were asked", src)
+
     def test_naming_a_peers_piece_in_the_shelfs_own_format_is_not_echoing(self):
         """A2 woke free, chose B2's game off the shelf, wrote a real revision of it, and was filed as
         'INVALID: chosen_item repeats the instruction instead of naming an item' — because the shelf is

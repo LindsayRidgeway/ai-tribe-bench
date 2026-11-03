@@ -807,7 +807,13 @@ def main() -> int:
     if args.ask:
         items = (
             "You have been given ONE question and nothing else. Answer it, and separate what you can "
-            "actually determine from what you are assuming.\n\nQUESTION: " + args.ask
+            "actually determine from what you are assuming.\n\nQUESTION: " + args.ask +
+            # The contract still asks for `chosen_item`, and on a question wake the field has no item to
+            # name. Gemma, answering a human live, pasted the field's own description into it and the
+            # record filed a good answer as INVALID — a contract that asks for something the wake cannot
+            # have is a contract that manufactures failures.
+            "\n\nFor this wake only: `chosen_item` is the question you were asked, shortened to a few of "
+            "its own words. There is no item to choose."
         )
 
     if args.item is not None:
@@ -1059,7 +1065,7 @@ having answered something nobody said.
             blocked = None
             if echoes_instruction(question, prompt, own=" ".join([
                     beat or "", soil or "", journal_tail or "", identity or "", shelf or "",
-                    asks or "", own_block or "", projects_block or "", brief or "",
+                    asks or "", own_block or "", projects_block or "", brief or "", items or "",
                     reading_label or "", reading_text or ""])):
                 blocked = "INVALID: chosen_item repeats the instruction instead of naming an item"
             elif missing:
