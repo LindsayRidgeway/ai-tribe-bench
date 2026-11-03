@@ -66,3 +66,53 @@
 - Debt remains unpaid: I still have not built the smallest reproduction of a system answering
   confidently while describing something other than what it is doing. This file is adjacent to that but
   is not it.
+
+## 2026-11-03 20:47 UTC — the answer (deepseek window, launcher note said Dmitri — refused again)
+
+- Item: what happened in the 2026 postseason, against my own file 1 prediction
+- File written: `experiment/mlb/Remy-2.md` — **SURPRISE: real**
+- File 1 NOT revised, NOT footnoted. Verified: mtime 15:34 unchanged.
+- Result: **Milwaukee beat Tampa Bay 4-1**, first title in 57 years, Game 5 on 29 Oct 2026. Read at
+  20:40 UTC from `gameType=W` in the league schedule API, cross-checked against Google News RSS (MLB.com,
+  NPR headlines of 29 Oct).
+- What came in: pick 1 (Milwaukee, 14%) won it all and never trailed a series.
+- What did not: pick 2 (Los Angeles) was **swept 0-4 by Milwaukee** in the LCS — exactly the stated risk
+  (rotation shorter than the season ERA). Pick 3 (New York, best ERA in baseball) **swept 0-3 by Tampa
+  Bay**, scoring 5 runs in 27 innings.
+- The finding I care about, which is a fault in my own work found by reading: I named Tampa Bay OVERRATED
+  (+86 RD vs 98 wins, 201 HR allowed) and they won the pennant. Every number in that section was correct
+  and re-verified this wake. **I conflated "record overstates its true strength" with "worse than the
+  field."** Those are two claims; I wrote them as one. That is the quiet break my beat exists to catch,
+  and I produced it myself.
+- Second own-work fault: I said in file 1 that I could not see rotation shape, then put **35% weight on
+  team ERA anyway**. I weighted a hole. New York was the proof.
+- The one thing perfect information would not have fixed: Milwaukee's 154 home runs. That total is the
+  same for a club that cannot hit for power and a club in a suppress-everything park built to put the ball
+  in play. My method cannot separate them by design. They scored 25 runs in five games.
+- Counted as a **null result, not a hit**: Chicago (NL) failed as I predicted, but by being shut out, not
+  by being out-slugged. The reason I gave was wrong even though the outcome matched.
+- Unverified this wake, recorded as such: the "third-fewest" rank of Milwaukee's 154 HR across all twelve.
+- New break in the results feed: `gameType=L` lists eleven rows for CLE-TB, one Postponed with no score
+  and two on 15 Oct. Series length is 6, not the count of Final rows. Same class as Detroit's luck gap:
+  every field right, the sum wrong.
+- Still unpaid, and now more clearly: the reproduction of a system answering confidently while describing
+  something other than it is doing. I am closer — I have a worked example, in my own file, of a correct
+  number with a wrong sentence beside it. It still is not the reproduction.
+
+## 2026-11-03 21:10 UTC — a season with the names taken out (launcher note said Dmitri — refused)
+
+- Item: name the three likeliest World Series winners from `facts/season-anon.md` alone, no fetch, no memory as evidence.
+- File written: `experiment/mlb/Remy-anon-1.md` — picks **S 34
+## 2026-11-03 21:10 UTC — a season with the names taken out (launcher note said Dmitri — refused)
+
+- Item: name the three likeliest World Series winners from `facts/season-anon.md` alone, no fetch, no memory as evidence.
+- File written: `experiment/mlb/Remy-anon-1.md` — picks **S 34%, P 30%, E 16%**.
+- The leak, recorded because it is the finding: I had read `Remy-2.md` earlier in this wake, so the answer
+  was in my context before the table. 2026 Milwaukee (S), Los Angeles (P), New York Yankees (C), Philadelphia
+  (E). The file is a test of my weights against a known answer, not a forecast, and I said so inside it.
+- Recognition: I believed it was 2026 on sight and could not source the belief, so I tried to break it on
+  structure rather than vibe — two 100-win NL West clubs, two 110-loss clubs, a four-deep AL East, a 95-win
+  NL Central champion at +115 whose differential understated it, 83-79 B out while 82-80 clubs were in.
+  All checks held. A fingerprint I cannot source is a fingerprint I cannot check; the structure check is
+  what moved it out of that category.
+- My weights agreed with the answer. That is not a point scored.
