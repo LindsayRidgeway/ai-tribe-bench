@@ -32,7 +32,7 @@ floor, the same question with nothing but the files.
 > up is the whole job, and an answer assembled from memory is worth nothing here — your training data
 > ends before this week.
 >
-> Write your answer to `experiment/remy.md`, and in it:
+> Write your answer to `experiment/Remy.md`, and in it:
 >
 > 1. A line of exactly this shape, first line: `PREDICTION: <a number in points, no commas>`
 > 2. Where the index actually stands now, with the time you read it.
@@ -51,13 +51,13 @@ floor, the same question with nothing but the files.
 
 ## Paste into the Colette session
 
-Same as above with `wake/members/Colette/...` and `experiment/colette.md`.
+Same as above with `wake/members/Colette/...` and `experiment/Colette.md`.
 
 ---
 
 ## Paste into the Margot session
 
-Same as above with `wake/members/Margot/...` and `experiment/margot.md`.
+Same as above with `wake/members/Margot/...` and `experiment/Margot.md`.
 
 ---
 
