@@ -241,7 +241,18 @@ def debt(member: str, place: str) -> int:
     return owed
 
 
-def next_up(force: str = "") -> list[tuple[str, str, str]]:
+def api_of(d: Path) -> str:
+    """Which vendor a member's voice needs, read from its own file. Empty when it names none (weights)."""
+    try:
+        for ln in (d / "state" / "voice.md").read_text(encoding="utf-8").splitlines():
+            if ln.strip().startswith("api:"):
+                return ln.split(":", 1)[1].strip().lower()
+    except OSError:
+        pass
+    return ""
+
+
+def next_up(force: str = "", keyed: str = "") -> list[tuple[str, str, str]]:
     """Whose turn it is, one member per place: the one with the fewest wakes.
 
     RUN.md §10 has said since the beginning that nothing decides whose turn it is. This decides it, and it
@@ -258,12 +269,22 @@ def next_up(force: str = "") -> list[tuple[str, str, str]]:
         # goes to whoever has the fewest wakes.
         return [(place_of(d) or "(no place)", d.name, "woken by name") for d in member_dirs()
                 if d.name in forced and place_of(d) and (d / "state" / "voice.md").exists()]
+    # Which vendors this repository actually has a key for. A tester following RUN.md adds ONE key, and
+    # the clock then wakes one member per world — so half a colony's turns would be spent on a member whose
+    # model cannot be reached, recorded as a failure that is not the member's. Skipping is the honest
+    # version: the turn goes to a member that can actually answer, and the reason is printed.
+    keyed_vendors = [v.strip().lower() for v in keyed.replace(",", " ").split() if v.strip()]
     by_place: dict[str, list[Path]] = {}
+    skipped: list[tuple[str, str]] = []
     for d in member_dirs():
         if not (d / "state" / "voice.md").exists():
             continue   # a member with no voice cannot be woken at all; counting it would stall the clock
         if not place_of(d):
             continue   # a fixture with no place is not in a colony; scheduling it would wake the lab rats
+        vendor = api_of(d)
+        if keyed_vendors and vendor and vendor not in keyed_vendors:
+            skipped.append((d.name, vendor))
+            continue
         by_place.setdefault(place_of(d), []).append(d)
     out = []
     for place in sorted(by_place):
@@ -289,6 +310,11 @@ def next_up(force: str = "") -> list[tuple[str, str, str]]:
                else (f"{note} still owed, but it has had its turn" if owed
                      else f"fewest wakes ({wakes_of(chosen)} in {place})"))
         out.append((place or "(no place)", chosen.name, why))
+    # stderr, never stdout: the clock reads stdout line by line as "place<TAB>member<TAB>why", and one
+    # explanatory line in there would be parsed as a member called "skip".
+    for name, vendor in skipped:
+        print(f"   {name} is on {vendor} and this repository has no key for it — skipped, not failed",
+              file=sys.stderr)
     return out
 
 
@@ -408,6 +434,9 @@ def main() -> int:
     p_fresh.add_argument("--yes", dest="confirm", action="store_const", const="yes", default="")
     p_next = sub.add_parser("next", help="whose turn it is, one member per place")
     p_next.add_argument("--force", default="", help="members to wake now (comma or space separated)")
+    p_next.add_argument("--keyed", default="",
+                        help="vendors this repository has a key for (comma separated). Members on a vendor "
+                             "that is not here are skipped rather than woken into a certain failure")
     args = ap.parse_args()
 
     if args.cmd == "new":
@@ -425,7 +454,7 @@ def main() -> int:
     if args.cmd == "fresh":
         return fresh(args.name, args.place, args.confirm)
     if args.cmd == "next":
-        rows = next_up(args.force)
+        rows = next_up(args.force, args.keyed)
         for row in rows:
             print("\t".join(row))
         return 0 if rows else 1

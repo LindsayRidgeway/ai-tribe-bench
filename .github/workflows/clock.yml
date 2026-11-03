@@ -121,9 +121,23 @@ jobs:
           esac
       - name: Whose turn it is
         id: turn
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.TRIBE_API_KEY_DEEPSEEK }}
+          GEMINI_API_KEY: ${{ secrets.TRIBE_API_KEY_GEMINI }}
+          QWEN_API_KEY: ${{ secrets.TRIBE_API_KEY_QWEN }}
         run: |
           set -euo pipefail
-          python3 tribe.py next --force "${{ inputs.force }}" | tee /tmp/turn.txt
+          # A tester following RUN.md adds ONE key. The clock wakes one member per world, so without this
+          # every other turn went to a member whose model could not be reached and was recorded as a
+          # failure that was not the member's — a colony that looks broken on its first day. Skipping is
+          # honest: the turn goes to somebody who can answer, and the reason is printed (on stderr, so it
+          # is not read as a turn).
+          KEYED=""
+          [ -n "${DEEPSEEK_API_KEY:-}" ] && KEYED="$KEYED deepseek"
+          [ -n "${GEMINI_API_KEY:-}" ] && KEYED="$KEYED gemini"
+          [ -n "${QWEN_API_KEY:-}" ] && KEYED="$KEYED qwen"
+          echo "keys for:${KEYED:- none — every member will be skipped}"
+          python3 tribe.py next --force "${{ inputs.force }}" --keyed "$KEYED" | tee /tmp/turn.txt
           echo "count=$(wc -l < /tmp/turn.txt)" >> "$GITHUB_OUTPUT"
 
       - name: One free wake in each world

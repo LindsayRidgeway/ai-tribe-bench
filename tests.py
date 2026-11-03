@@ -539,6 +539,39 @@ class TestPlates(unittest.TestCase):
         self.assertIn("made by a human with a generator of their choosing", text)
         self.assertNotIn("Mage", text, "a tool name the human did not write is a fabrication")
 
+    def test_a_turn_goes_to_a_member_this_repository_has_a_key_for(self):
+        """RUN.md tells a tester to add ONE key. The clock wakes one member per world, so without this the
+        other world's turn went to a member whose vendor has no key — a wake that fails on the first
+        request and files an INVALID verdict about a member that never got to speak. Skipping is honest
+        and it keeps the colony moving. A name given by a human still wins: an explicit instruction is not
+        a guess about the environment."""
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp, True)
+        for m, vendor, place in (("a", "deepseek", "shop"), ("b", "gemini", "shop"),
+                                 ("c", "qwen", "bus"), ("d", "gemini", "bus")):
+            st = tmp / "wake" / "members" / m / "state"
+            st.mkdir(parents=True)
+            (st / "voice.md").write_text(f"api: {vendor}\nmodel: m-{m}\n", encoding="utf-8")
+            (st / "place.md").write_text(f"place: {place}\n", encoding="utf-8")
+            (st / "state.md").write_text("- Wakes so far: 0\n- Last wake: (never) UTC\n", encoding="utf-8")
+            (st / "journal.md").write_text("", encoding="utf-8")
+            (st / "open-items.md").write_text("# Open items — there are none\n", encoding="utf-8")
+        was = tribe.ROOT if hasattr(tribe, "ROOT") else None
+        old_dir = getattr(tribe, "MEMBERS", None)
+        try:
+            tribe.MEMBERS = tmp / "wake" / "members"
+            rows = tribe.next_up(keyed="deepseek")
+            self.assertEqual([r[1] for r in rows], ["a"], "only the member with a key is woken")
+            rows = tribe.next_up(keyed="deepseek,gemini")
+            # one per world: `shop` has a and b on two vendors, `bus` has c (qwen) and d (gemini) — so d,
+            # not c, because c's vendor has no key here.
+            self.assertEqual(sorted(r[1] for r in rows), ["a", "d"])
+            rows = tribe.next_up(keyed="deepseek", force="c")
+            self.assertEqual([r[1] for r in rows], ["c"], "a human naming a member is not overruled")
+        finally:
+            if old_dir is not None:
+                tribe.MEMBERS = old_dir
+
     def test_a_members_own_heading_is_not_printed_twice(self):
         """The magazine prints `## Title` above every piece, and most members start their file with
         `# Title`. The result was a title, a byline, and the same title again — visible in every issue,
