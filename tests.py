@@ -539,6 +539,18 @@ class TestPlates(unittest.TestCase):
         self.assertIn("made by a human with a generator of their choosing", text)
         self.assertNotIn("Mage", text, "a tool name the human did not write is a fabrication")
 
+    def test_a_members_own_heading_is_not_printed_twice(self):
+        """The magazine prints `## Title` above every piece, and most members start their file with
+        `# Title`. The result was a title, a byline, and the same title again — visible in every issue,
+        and reported by nobody because a reader who cannot follow a world does not stop to say why.
+        Only a duplicate goes: a first line that says something else is content."""
+        dup = magazine.body_without_title({"title": "The Pier at Night", "body": "# The Pier at Night\n\nbody"})
+        self.assertEqual(dup, "body")
+        other = magazine.body_without_title({"title": "The Pier at Night", "body": "# A note on the beams\n\nbody"})
+        self.assertIn("A note on the beams", other)
+        plain = magazine.body_without_title({"title": "T", "body": "no heading at all"})
+        self.assertEqual(plain, "no heading at all")
+
     def test_a_colophon_only_names_drops_that_had_already_fallen(self):
         """Derivability caught this, not a reader: a box of watercolours dropped on 3 November appeared in
         issue 1, dated 2 November, so rebuilding issue 1 a day later produced a different file. A colophon

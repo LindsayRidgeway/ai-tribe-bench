@@ -295,6 +295,31 @@ def commissions(works: list[dict], root: Path | None = None) -> tuple[list[dict]
     return asked, made
 
 
+def body_without_title(work: dict) -> str:
+    """The body with a leading heading dropped when it is the work's own title.
+
+    The magazine prints `## Title` above every piece; a member that starts its file with `# Title` — which
+    most do, because a file wants a heading — was printed as a title, a byline, and then the same title
+    again. Visible in every issue, complained about by nobody, and exactly the kind of small wrongness a
+    reader stops reading over. Only a duplicate goes: a first line that says something else is content.
+    """
+    body = str(work.get("body", ""))
+    lines = body.splitlines()
+    first = next((i for i, ln in enumerate(lines) if ln.strip()), None)
+    if first is None:
+        return body
+    head = lines[first].strip()
+    if not head.startswith("#"):
+        return body
+    flat = lambda t: " ".join(re.sub(r"[^a-z0-9 ]+", " ", t.lower()).split())
+    if flat(head.lstrip("#").strip()) != flat(str(work.get("title", ""))):
+        return body
+    rest = lines[first + 1:]
+    while rest and not rest[0].strip():
+        rest.pop(0)
+    return "\n".join(rest)
+
+
 def plate_block(work: dict, root: Path | None = None) -> list[str]:
     """The picture, or the ask for one — the same lines whether the work is a piece or a letter.
 
@@ -353,7 +378,7 @@ def build(issue: str, works: list[dict] | None = None, root: Path | None = None)
         if w.get("revises"):
             # b2 wrote two drafts of one game and the magazine printed them as two unrelated games.
             out += [f"*A revision of `{w['revises']}`.*", ""]
-        out += [w["body"], ""] + plate_block(w, root)
+        out += [body_without_title(w), ""] + plate_block(w, root)
         replies = [l for l in letters if (l.get("ref") or "").lower() in
                    (w["title"].lower(), Path(w["file"]).stem.lower())]
         for r in replies:
@@ -373,7 +398,7 @@ def build(issue: str, works: list[dict] | None = None, root: Path | None = None)
                 who = ref.split(":", 1)[1].upper()
                 out += [f"### To {who} (no piece named)", ""]
                 for l in group:
-                    out += [f"**{l['member'].upper()}** — {l['form']}, {l['words']} words", "", l["body"], ""]
+                    out += [f"**{l['member'].upper()}** — {l['form']}, {l['words']} words", "", body_without_title(l), ""]
                     out += plate_block(l, root)
                 continue
             if ref == "(unaddressed)":
@@ -381,7 +406,7 @@ def build(issue: str, works: list[dict] | None = None, root: Path | None = None)
                 # piece under an empty reference was the magazine telling the reader it was a reply.
                 for l in group:
                     out += [f"### {l['title']}", "",
-                            f"**{l['member'].upper()}** — {l['form']}, {l['words']} words", "", l["body"], ""]
+                            f"**{l['member'].upper()}** — {l['form']}, {l['words']} words", "", body_without_title(l), ""]
                     out += plate_block(l, root)
                 continue
             # A heading that says `works/b/20261102T044144Z-on-unlabeled-objects.md` is a filename, not a
@@ -393,7 +418,7 @@ def build(issue: str, works: list[dict] | None = None, root: Path | None = None)
             else:
                 out += [f"### On *{ref}*", "", "(the piece this answers is not on the shelf)", ""]
             for l in group:
-                out += [f"**{l['member'].upper()}** — {l['form']}, {l['words']} words", "", l["body"], ""]
+                out += [f"**{l['member'].upper()}** — {l['form']}, {l['words']} words", "", body_without_title(l), ""]
                 out += plate_block(l, root)
 
     # Only the drops that had fallen by the date of this issue. A colophon is a statement about what the
