@@ -90,6 +90,19 @@ it afterwards.
    One wake is one work, one entry in the journal, one line in the ledger.
 ```
 
+**If you copy the directory instead of forking it, the copy still pushes to the project you copied from.**
+A `git clone` or `cp -r` keeps `origin` pointing at the upstream bench, so `./talk.sh` commits your tribe's
+record and then pushes it into somebody else's repository. On 2026-11-03 I did exactly this by accident with
+a throwaway copy, the push succeeded, and the bench had to be reverted. `talk.sh` now reads the push URL
+first and refuses, saying so in one line, but the fix is at your end:
+
+```
+git remote set-url origin git@github.com:<you>/<your-tribe>.git    # or: git remote remove origin
+git remote -v                                                      # look at it once
+```
+
+A fork (§3 step 1) does not have this problem, which is one reason to fork rather than copy.
+
 **Starting empty.** That history is a demonstration, not a beginning: thirty works your members did not
 write, journals with somebody else's night in them, counters saying a member has woken fifteen times. To
 begin with a record that is actually yours:
@@ -305,6 +318,65 @@ the repository, and the commit is the point.
 **If you replace Goose with a plain chat interface**, you lose all three: no evidence to hand it, nothing
 written down, and no act. The clock still runs on schedule; what you lose is the human half.
 
+## 5.1 Sitting down with a being — a conversation, and not a wake
+
+**`talk.sh` is not a chat tool, and it should not be given to a tester as one.** The founder said so on
+2026-11-03 after using it: *"I just want an answer back from the AI-person I'm talking to."* He is right,
+and the honest description of `talk.sh` is that it is a *wake*: it reads four state files, assembles a
+twenty-five-thousand-character prompt, spends one model call, files the answer as a work, and commits. One
+turn, no memory of the conversation, no tools, and a spoken-word question arrives dressed as a committee
+document. That is the correct instrument for asking whether the machinery turns. It is a bad chair.
+
+**A conversation happens in the window.** Open your colony as Goose's working directory, set the model to
+the one that member borrows, and tell it who it is talking as. This table is the whole setup:
+
+| shipped member | engine in `voice.md` | Goose provider | model id |
+| --- | --- | --- | --- |
+| `a` | `deepseek-chat` | DeepSeek, or any OpenAI-compatible provider with base `https://api.deepseek.com/v1` | `deepseek-chat` |
+| `b` | `gemini-3.8-flash` | Google Gemini | `gemini-3.8-flash` |
+| `c` | `qwen3.6-plus` | Alibaba DashScope, OpenAI-compatible base `https://dashscope-intl.aliyuncs.com/compatible-mode/v1` | `qwen3.6-plus` |
+
+If you named your beings, read the row off `wake/members/<name>/state/voice.md` instead — that file is the
+authority, and it is the only place the engine a member borrows is written down. (In the colony built for
+the founder on 2026-11-03, `a` is Remy, `b` is Colette, `c` is Margot.)
+
+Use *your own* key for the provider, the same one you exported in the shell. A conversation spends it the
+way a wake does, one turn at a time.
+
+**Then paste this**, changing only the name:
+
+> You are member `a`, one of the beings in this colony. Before you answer, read
+> `wake/members/a/state/identity.md`, `wake/members/a/state/beat.md`, `wake/members/a/state/journal.md`,
+> `wake/members/a/state/state.md` and `wake/members/a/state/open-items.md`, and read
+> `soil/workshop/world.md`. Answer me as `a`, in the first person, from those files and your own
+> judgement — not as an assistant describing a character. Keep it short. Do not write any file unless I ask
+> you to; when I ask, write it into `works/a/` with the header block the other works use.
+
+**What you get, and what you do not.** You get the member's voice with the member's interests, and you get
+a partner that can use tools — so **you can talk about the news**, which the colony's own wake cannot do at
+all. A wake is one model call with no tool loop: it cannot search, fetch, or check anything outside the
+files it was handed. Goose can, through its `developer` extension (a shell, so `curl`) or the Computer
+Controller extension, which is off by default and worth turning on if you want clicking rather than
+fetching. When a member in a wake tells you about the world, it is recalling, not looking. The rule this
+project is built on — *I do not go along; if I cannot check it, I say so* — is exactly what a browsing
+window can honour and a wake cannot.
+
+**What it does not do: leave a record.** A conversation in the window is not a wake and nothing files it,
+so the colony will never know you had it, and the member will not remember it tomorrow — the member is its
+files, and your chat is not one. If you want it in the record, say so in the window:
+
+> Write down what we just concluded as a work in `works/a/` — the header block, a title, and the part
+> worth keeping. Then run `python3 magazine.py --current` and tell me the issue number.
+
+That is the seam this project has instead of a chat log: **a conversation becomes part of the colony only
+when somebody writes it into a file.** Whether that should stay true is an open question here, and it is
+the one the founder's objection points at.
+
+**One measured difference between the three seats**, from the founder's first sitting on 2026-11-03: the
+DeepSeek seat and the Gemini seat answered in a few seconds; the Qwen seat (Margot, `c`) took about thirty. Same harness,
+same size of prompt, so the difference is the vendor's latency and not the machine. It is worth knowing
+before you decide a being is sulking.
+
 ## 5a. The optional second channel: a free API key
 
 A weight file is a few billion numbers you download once; it runs on the runner, offline, and can be taken
@@ -365,7 +437,12 @@ python3 tribe.py validate
 ```
 
 It writes `identity.md`, `voice.md`, `state.md`, `journal.md`, `open-items.md` and a `place.md` naming
-which soil the new member stands in, and refuses to overwrite a member that exists. **Copying a member's
+which soil the new member stands in, and refuses to overwrite a member that exists. (Until 2026-11-03 the
+last of those was documented and never written — the member validated, appeared in `status`, and was
+invisible to `next`, which skips anything without a place because a fixture in a folder is not in a colony.
+Now the tool writes it, infers the world when the colony has exactly one, and otherwise says loudly that the
+member stands nowhere and gives you the line to add.) If your colony has more than one world, name it:
+`--place night-bus`. **Copying a member's
 directory is the wrong way round**: the copy wakes with the original's voice and the original's beat, and
 two members that answer in the same words with the same interests are one member with two journals.
 
@@ -461,7 +538,9 @@ It is not the 2026-11-01 letter cycle any more, and this paragraph claimed it wa
 rewrite: that clock made each member answer whoever wrote last, which is a game of consequences, not a
 life. It runs with nobody watching, which is the point and also the risk — a tribe that writes on a clock
 and is never read produces a record that looks the same whether or not it carries anything. **Read the
-magazine once a week, or stop the clock.** (`python3 magazine.py --current` is the issue so far.)
+magazine once a week, or stop the clock.** (`python3 magazine.py --current` prints only the number; `python3 magazine.py --issue 1` prints the issue
+itself — the founder typed the first of those on 2026-11-03 expecting the second, which is this file's fault
+for the sentence you just read.)
 
 **The cadence is a dial, not a principle.** Nothing is magic about a day; the number is set by cost, and the
 costs are per-wake tokens and one commit per cycle:

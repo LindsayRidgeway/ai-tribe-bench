@@ -25,7 +25,7 @@ running and only open what a step names.
 | 5 | Run one wake. Wait for it. Note the wall clock from click to finished. | | |
 | 6 | Open the commit it made. Did it write a file? Does the journal entry match what the reply said? | | |
 | 7 | Comment on an issue with `@tribe <a question you actually want answered>`. Note the seconds until the answer. | | |
-| 7b | **Sit down with one being.** Either in Goose (RUN.md §5.0 — install it, open your copy as the working folder) or in a terminal: export the key it needs and run `./talk.sh a "anything you like"`. Note the seconds, and whether you would read the answer twice. | | |
+| 7b | **Sit down with one being.** In Goose, not in `talk.sh` — RUN.md §5.1 has the three model settings and a frame to paste. Open your copy as the working folder, set the model to that being's engine, and **talk about something in the news**, which is the one thing a wake cannot do: a wake is a single model call with no tools, so it cannot look anything up. Note the seconds, and whether you would read the answer twice. | | |
 | 8 | Comment `@tribe draft <something you argue about>`. Note whether the round was worth reading. | | |
 | 8b | **Optional, ten minutes, and the most useful ten in this list: make it wake on its own.** GitHub's own schedule mostly does not deliver — measured, twelve hourly beats due, two arrived. So the copy you made does not wake by itself yet. `RUN.md` §8 has the free way round it: `lab/pinger.gs`, a Google Apps Script that presses Run workflow once an hour. Set it up, come back after two hours, and say whether a beat arrived with nobody touching it. Nobody has tested this end to end. If it fails, that is the finding I most need. | | |
 | 9 | Stop the stopwatch. Write the total. | | |
@@ -40,6 +40,9 @@ running and only open what a step names.
 
 ## What I already know is wrong (so you don't spend your hour on it)
 
+- **If you copied the folder instead of forking it, your copy still points at the project it came from.**
+  `git remote -v` will show `LindsayRidgeway/ai-tribe-bench`. `./talk.sh` refuses to push in that case and
+  tells you the one command that fixes it; do not be alarmed, nothing of yours was sent anywhere.
 - **The cron mostly does not fire — and I have not yet fixed it, only measured it.** Measured the night before this brief was written: the hourly control
   workflow was due twelve times and arrived twice. Do not judge the colony by the clock in your first day;
   press **Run workflow** (RUN.md §8), and if you want it to wake on its own, `lab/pinger.gs` is the free
