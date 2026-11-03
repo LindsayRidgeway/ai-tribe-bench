@@ -1101,3 +1101,29 @@ line, the "recovery" wake it was guarding turned out never to have recovered: it
 thirteen-character journal and no `source`, so the harness had refused it every time. Both fixed; 144
 assertions green; the honest limit in RUN.md §15 now says this out loud, because it is the sixth instance
 of the same class and the first one where the instrument was a test.
+
+## 29. What to read when you wake up
+
+Nothing is waiting on you. This entry is the index, so you do not have to ask me what happened.
+
+**The question S1 asks** is whether the ground wakes this colony on its own once a day has gone by. The
+instrument is `lab/heartbeat.md` — one line per beat, written by `heartbeat.yml` on an hourly cron, plus the
+reader `python3 lab/heartbeat.py`, which reports hours due, hours that fired, hours missed, and how late
+each arrived. It refuses to be an answer under six hours, and it was wrong once already (it computed its
+window from the first beat of any kind, so a hand dispatch made it report a miss that had not happened).
+
+**What green looks like in the morning:** eight or more scheduled beats, most hours present, late by
+minutes rather than absent. **What a miss looks like:** whole hours with no line. One miss is not a
+finding — GitHub's scheduler is best-effort and says so. Six in a row, as happened to the clock on 02
+November, is a finding.
+
+**The other half of the evidence** is the clock's own scheduled turns: whether `clock.yml` fired through
+the night and left commits that name members. A hand dispatch at 03:53 UTC proved the workflow green with
+the new key plumbing (three keys found, two members woke, both filed, 21 files committed, derivable clean),
+so a scheduled failure from here would be the scheduler and not the code.
+
+**If it is green:** the strawman's last criterion is met on the ground, and v0.1 becomes a release
+question — the tester's card, unspent, and the instruction sheet as it now stands.
+
+**If it is not:** the finding is about scheduling, not about the colony, and the honest next step is to
+say so in RUN.md §8 rather than to add a retry.
