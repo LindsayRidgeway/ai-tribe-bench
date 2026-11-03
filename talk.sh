@@ -1,20 +1,30 @@
 #!/usr/bin/env bash
-# Talk to one member.
+# Talk to one member — the window path. The human asks, the member reads its own files, writes a file,
+# and the answer is filed on the shelf as a commit.
 #
-# This is the window path: the human asks, the member reads its own files, writes a file, and the
-# exchange ends as a commit. Run it from a Goose window with this repository as the working directory,
-# or from a terminal. The keys live in the environment, one per vendor:
+# Run it from a Goose window with this repository as the working directory, or from a terminal.
 #
-#   set -a; . ~/LLM/dmitri-bot/bot.env; set +a        # or export DEEPSEEK_API_KEY=...
+# ONE THING FIRST: a member borrows a model, and that needs a key in your own shell. The name is the
+# vendor's, not the repository secret's:
+#
+#   export DEEPSEEK_API_KEY=...     # member a   platform.deepseek.com
+#   export GEMINI_API_KEY=...       # member b   aistudio.google.com (free, no card)
+#   export QWEN_API_KEY=...         # member c   Alibaba Model Studio
+#
+# TRIBE_API_KEY_DEEPSEEK and friends are the GitHub *secrets* the runners use; they are not in your
+# shell, and a fork does not inherit them. talk.sh accepts those names too if you set them yourself.
+#
 #   ./talk.sh a "why were you never thrown out of the game?"
 #   ./talk.sh a --with letters/2026-11-01-the-window-and-the-vote-log.md "answer this"
 #
-# The member's voice is in its own state directory (voice.md), not in this script: a member is who its
-# files say it is, and the model it borrows is one of those files.
+# The member's voice is in its own state directory (wake/members/<name>/state/voice.md), not in this
+# script: a member is who its files say it is, and the model it borrows is one of those files.
 set -euo pipefail
 cd "$(dirname "$0")"
 
-usage() { sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'; exit 2; }
+# The usage text is the header, read as it is rather than by line number: the header has been
+# edited five times and the sed range was wrong twice.
+usage() { awk 'NR>1 && /^#/ {sub(/^# ?/,""); print; next} NR>1 {exit}' "$0"; exit 2; }
 
 member="${1:-}"; [ -n "$member" ] || usage; shift
 with=""
@@ -33,13 +43,38 @@ if [ -n "$with" ]; then
   args+=(--read "$with")
 fi
 
+touch /tmp/talk-start
 python3 wake/wake.py "${args[@]}"
 
-newest="$(ls -t "wake/members/$member/output"/*.md 2>/dev/null | head -1 || true)"
+out="wake/members/$member/output"
+newest="$(ls -t "$out"/*.md 2>/dev/null | head -1 || true)"
 if [ -n "$newest" ]; then
   echo
   echo "=== $member wrote ${newest} ==="
   sed -n '1,120p' "$newest"
+fi
+
+# The answer goes on the shelf, not only in output/.
+#
+# It did not, until 2026-11-03. A conversation here left a file in `output/`, a diff in the member's
+# state files, and nothing a reader could read: the shelf (`works/`) never grew, so the magazine never
+# printed the exchange and `lab/derivable.py` never complained — `output/` is not a published file, so
+# derivability could not see the hole. The fast loop had the same fault in .github/workflows/interactive.yml
+# and was caught only because it changed a *published* file. This is the third time tonight that the
+# only instrument that would have caught it was a person reading the record. So both paths now file.
+raw="$(ls -t "$out"/raw-*.json 2>/dev/null | head -1 || true)"
+if [ -n "$raw" ] && [ "$raw" -nt /tmp/talk-start ]; then
+  issue="$(python3 magazine.py --current)"
+  echo
+  echo "=== filing it, so the shelf and the magazine can see it (issue $issue) ==="
+  python3 file_work.py --member "$member" --issue "$issue" --raw "$raw" || true
+  python3 magazine.py --issue "$issue" --write >/dev/null || true
+  python3 magazine.py --projects --write >/dev/null || true
+  python3 magazine.py --index --write >/dev/null || true
+  python3 magazine.py --ledger --write >/dev/null || true
+else
+  echo
+  echo "(no new reply was written, so nothing is filed: a failed wake does not re-file the last one)"
 fi
 
 # A conversation that is not written down did not happen. The member's file is written by the harness;

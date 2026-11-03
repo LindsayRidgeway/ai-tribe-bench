@@ -309,6 +309,10 @@ jobs:
           [ -n "${ITEM:-}" ] && ARGS+=(--item "$ITEM")
           [ -n "${ASK:-}" ] && ARGS+=(--ask "$ASK")
           [ -n "${IMG:-}" ] && ARGS+=(--image "$IMG")
+          # The scheduled beat prints the prompt, because here the prompt IS the record: when a member
+          # refuses or answers wrongly, the log is the only place to see what it was asked. A person at
+          # a terminal asking a question does not want 25,000 characters between them and the answer.
+          ARGS+=(--show-prompt)
           printf 'args:'; printf ' [%s]' "${ARGS[@]}"; echo
           touch /tmp/wake-start
           python3 wake/wake.py "${ARGS[@]}" 2>&1 | tee /tmp/wake.log

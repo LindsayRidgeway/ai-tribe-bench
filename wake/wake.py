@@ -799,6 +799,10 @@ def main() -> int:
     ap.add_argument("--read", default=None, help="path to a letter addressed to this member; requires the reply to quote it")
     ap.add_argument("--api-model", default=None, help="API model id; uses an OpenAI-compatible endpoint instead of ollama")
     ap.add_argument("--api-base", default=None, help="endpoint base URL, or a name from API_BASES (deepseek, groq, openrouter, gemini, ...)")
+    ap.add_argument("--show-prompt", action="store_true",
+                    help="print the whole prompt before asking. Off by default: it is 25,000 characters, "
+                         "and a person asking a member a question wants the answer, not the machinery. "
+                         "The scheduled beat passes this, because there the prompt is the record.")
     ap.add_argument("--api-key-env", default=None, help="name of the environment variable holding the key (default TRIBE_API_KEY, then <BASE>_API_KEY)")
     args = ap.parse_args()
 
@@ -990,30 +994,45 @@ having answered something nobody said.
 """
         REQUIRED_FIELDS = REQUIRED_FIELDS + ("answering",)
 
-    print(f"=== prompt ({len(prompt)} chars) ===")
-    print(prompt)
-
+    # The key is checked BEFORE the prompt is printed. It used to be checked after, so the first
+    # thing a person saw when their key was missing was twenty-six thousand characters of prompt
+    # and then one line of error at the bottom of it — with the error, and not the prompt, a
+    # screenful away from the command they typed. A missing credential is answered in one line.
     images = None
     if args.image:
         raw = Path(args.image).read_bytes()
         images = [base64.b64encode(raw).decode()]
         prompt += f"\n\nAn image is attached to this message ({len(raw)} bytes)."
 
+    base, names, key = "", [], None
+    if args.api_model:
+        named = (args.api_base or "deepseek").strip()
+        base = API_BASES.get(named, named)
+        # Provider-specific first, generic second. A single generic secret means a two-member
+        # tribe sends the same key to both vendors — found 2026-11-01, when the Gemini key went
+        # to DeepSeek and came back 401. One key per member is the pattern for a reason.
+        provider = (named if named in API_BASES else base.split("//")[-1].split(".")[0]).upper() + "_API_KEY"
+        # ... and the same name with the repository-secret prefix on it, because RUN.md tells a
+        # person their key is called TRIBE_API_KEY_GEMINI and the tool used to accept only
+        # GEMINI_API_KEY. Two names for one thing is a trap; accept both, print one.
+        prefixed = "TRIBE_API_KEY_" + provider.removesuffix("_API_KEY")
+        names = [n for n in (args.api_key_env,) if n] or [provider, prefixed, "TRIBE_API_KEY"]
+        key = next((os.environ[n] for n in names if os.environ.get(n)), None)
+        if not key:
+            print("!! no API key in the environment: set " + " or ".join(names))
+            print(f"   this wake asks {base} for {args.api_model} as member {args.member or '(none)'}."
+                  f" The repository secret of the same name is for the runner, not for your shell:")
+            print(f"   export {provider}=... and run this again")
+            return 2
+
+    if args.show_prompt:
+        print(f"=== prompt ({len(prompt)} chars) ===")
+        print(prompt)
+
     t0 = time.time()
     try:
         if args.api_model:
-            named = (args.api_base or "deepseek").strip()
-            base = API_BASES.get(named, named)
-            # Provider-specific first, generic second. A single generic secret means a two-member
-            # tribe sends the same key to both vendors — found 2026-11-01, when the Gemini key went
-            # to DeepSeek and came back 401. One key per member is the pattern for a reason.
-            provider = (named if named in API_BASES else base.split("//")[-1].split(".")[0]).upper() + "_API_KEY"
-            names = [n for n in (args.api_key_env,) if n] or [provider, "TRIBE_API_KEY"]
-            key = next((os.environ[n] for n in names if os.environ.get(n)), None)
-            if not key:
-                print("!! no API key in the environment: set " + " or ".join(names))
-                return 2
-            print(f"channel: api {base} model {args.api_model} (key from {names[0]})")
+            print(f"channel: api {base} model {args.api_model} (key from {next((n for n in names if os.environ.get(n)), names[0])})")
             reply, payload = ask_api(base, key, args.api_model, prompt, images)
         else:
             reply, payload = ask(args.host, args.model, prompt, images)
