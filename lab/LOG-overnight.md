@@ -828,3 +828,33 @@ reader has no way to check.
 
 117 tests. The taste is not automatable and does not pretend to be: Slow mode on Mage or Google's own
 generator will do a watercolour, a person chooses which, and the record says who made the picture.
+
+---
+
+## 19. Correction: the beacon works, and the first verdict about it was wrong
+
+I wrote, in this file and in RUN.md and in the code comments, that the beacon endpoint "accepted three
+submissions and delivered no mail at all". That was false, and it was false in the direction this bench is
+supposed to be most careful about — a confident statement about something I could not see.
+
+The founder reported two batches of Formspree mail, the second a little after 14:00 EST. My submissions were
+at 14:29 UTC (the CI send), then three tests at 14:00–14:02 EST and one more CI send at 14:06 EST. So the
+mail arrived; it arrived late, and the count roughly matches. Nothing was broken except my reading of a gap.
+
+What survives the correction is the narrow point and only that: **a sender can see a status and cannot see a
+mailbox.** For those hours "the endpoint is working and the mail is slow" and "the endpoint is accepting and
+nothing will ever arrive" produced the same evidence at my end — a 200 and an inbox I cannot open. The
+honest sentence was "accepted, delivery not visible from here", which is what the beacon now records in
+`.tribe-beacon`; the dishonest one was "no mail arrived", which I inferred from one check at the wrong
+moment and then wrote down as a finding.
+
+The code changes made in the belief that delivery was broken are still right, and for a better reason than
+the one that prompted them:
+
+- the marker names the endpoint as well as the repository, so changing endpoints sends once more;
+- a non-2xx writes nothing, so a rejected form is not recorded as a send;
+- the endpoint's own answer goes into the file, so a reader can see what was said instead of what I assumed.
+
+The Apps Script file stays too, but for its real advantage rather than as a rescue: a Sheet is a record and
+the mail is only a notification. If delivery is ever slow again, the count is still visible to a person
+without waiting for an inbox.

@@ -1000,11 +1000,13 @@ class TestFiling(unittest.TestCase):
         self.assertIn("answers nothing", text)
 
     def test_the_beacon_never_claims_a_send_it_cannot_see(self):
-        """On 2026-11-02 the endpoint answered {"ok":true} to three submissions and no mail arrived at
-        the address it is configured to mail. The code saw curl exit 0, wrote the marker and printed
-        'beacon: sent'. From then on the repository said 'already sent' and no second attempt was
-        possible — including after the endpoint changed, because the marker named only the repository.
-        So: the marker now names the endpoint and records the answer, and a non-2xx writes nothing."""
+        """On 2026-11-02 the endpoint answered {"ok":true} to three submissions; the mail arrived hours
+        later, in two batches, so the endpoint was fine and the first verdict written about it was wrong.
+        The lesson survives the correction: a sender can see a status and cannot see a mailbox, the code
+        saw curl exit 0, wrote the marker and printed 'beacon: sent', and from then on the repository
+        said 'already sent' with no second attempt possible — including after the endpoint changed,
+        because the marker named only the repository. So: the marker names the endpoint and records the
+        answer, and a non-2xx writes nothing."""
         if yaml is None:
             self.skipTest("PyYAML not installed")
         import http.server, socketserver, threading

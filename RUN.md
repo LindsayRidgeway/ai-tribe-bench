@@ -91,10 +91,12 @@ is the marker that stops it sending twice. The endpoint address is in that file 
 be — a repository secret belongs to one repository and is never inherited, so a hidden address would mean only
 the author's own repository ever reported, which is the one place a trial signal is worth least.
 
-Be honest about what that line proves: that a repository ran a wake and an endpoint accepted a request. On
-2026-11-02 the endpoint used here accepted three submissions and delivered no mail at all, which nobody could
-tell from the sending side — so the step now records what the endpoint answered, in `.tribe-beacon`, next to
-the repository name and the address it used. If you replace that file's endpoint with your own (the file to
+Be honest about what that line proves: that a repository ran a wake and an endpoint accepted a request — not
+that a person was told. On 2026-11-02 the endpoint used here accepted three submissions and the mail reached
+the inbox hours later, in two batches, which is exactly the gap: from the sending side a mailbox that is slow
+and a mailbox that will never receive look identical, and the first verdict written into this file ("no mail
+arrived") was wrong for about six hours. So the step records what the endpoint answered, in `.tribe-beacon`,
+next to the repository name and the address it used, and claims nothing beyond it. If you replace that file's endpoint with your own (the file to
 paste into a Google Sheet is `lab/apps-script-beacon.gs`, and the Sheet is the durable record rather than the
 mail), the marker sees a different address and sends once more.
 

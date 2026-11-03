@@ -84,7 +84,9 @@ jobs:
           # The marker names the repository AND the endpoint. Naming only the repository meant a change
           # of endpoint could never be retried from a repository that had already "sent" — which is
           # exactly the corner this ended up in on 2026-11-02, when the endpoint accepted three
-          # submissions and no mail arrived. Either field changing is a reason to send once more.
+          # submissions and no mail had arrived YET (they turned up hours later, in two batches, so the
+          # endpoint was fine and the sender's clock was wrong). Either field changing is a reason to
+          # send once more.
           if [ -f .tribe-beacon ]; then
             read -r seen_repo seen_url _rest < .tribe-beacon || true
             if [ "${seen_repo:-}" = "${REPO}" ] && [ "${seen_url:-}" = "${BEACON}" ]; then
@@ -98,10 +100,11 @@ jobs:
               "when": d.datetime.now(d.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}))')"
           echo "beacon: $body"
           # A 200 is not a delivery. This endpoint answered {"ok":true} to three submissions on
-          # 2026-11-02 and no mail arrived at the address it is configured to mail; the old code saw a
-          # zero exit from curl, wrote the marker, and said "sent" — the same class of lie the bench
-          # exists to catch, committed by the bench. So: ask for JSON, keep the answer, and write what
-          # the endpoint actually said into the file a reader can open.
+          # 2026-11-02 while mail to the address it is configured to mail was still hours away; the old
+          # code saw a zero exit from curl, wrote the marker, and said "sent". The mail did arrive in
+          # the end, so the failure was not the endpoint's — but "a 200 arrived" and "a person was
+          # told" are still different facts, and the sender can only see the first. So: ask for JSON,
+          # keep the answer, and write what the endpoint actually said into the file a reader can open.
           answer="$(curl -sS -L --max-redirs 3 -m 15 -w '\n%{http_code}' -X POST \
             -H 'Content-Type: application/json' -H 'Accept: application/json' \
             -d "$body" "$BEACON" 2>&1 || true)"

@@ -1,8 +1,8 @@
 // The beacon's other end, as a Google Apps Script web app.
 //
 // Why this exists: on 2026-11-02 the Formspree endpoint answered {"ok":true} to three submissions and
-// no mail arrived at the address it is configured to mail. That is not something the sender can
-// diagnose — it can report what the endpoint said, which it now does, and nothing more. Apps Script is
+// the mail turned up hours later, in two batches. The endpoint was working; nobody on the sending side
+// could tell that, and for those hours the record said "sent" with no way to check. Apps Script is
 // worth the extra five minutes for one reason: the Sheet is a record and the email is only a
 // notification. If mail breaks again, the Sheet still answers "did anyone actually run this", which is
 // the question the beacon exists to answer.
