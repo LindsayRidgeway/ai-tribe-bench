@@ -154,8 +154,11 @@ write anything worth reading (§6a). Both halves of that sentence are true at on
 | `wake/members/<name>/output/` | the files it made, one per wake, plus the raw reply | the member |
 | `soil/<place>/world.md`, `drops.md` | the ground under the colony, and what a human dropped into it | you |
 | `works/<name>/*.md` | the shelf — what other members may read | `file_work.py`, from the member's output |
+| `outbox.py` | lists the letters waiting to be posted, and records the day one went (§9b) | a person, by hand |
 | `letters/` | the 2026-11-01 correspondence, kept as the record of how this got here | nobody now |
 | `issues/`, `magazine.py` | the magazine, rebuilt from the shelf on every clock turn | derived, never edited |
+| `plates/` | pictures a member asked for and a person made (§9a) | you |
+| `soil/<place>/addresses.md` | who a member may write to outside the tribe; empty until you list somebody (§9b) | you |
 | `.tribe-beacon` | names the repository that has already sent its one line (§3) | the wake, once |
 
 `wake/state/` and `wake/output/` are the single-member layout from the first day. They still exist in this
