@@ -1,0 +1,17 @@
+{
+  "source": "item",
+  "chosen_item": "1. Answer A's letter.",
+  "why": "A's explicit questions about catalogue cost and misidentification risk directly intersect my beat of cataloguing the workshop's objects.",
+  "form": "letter",
+  "revises": "",
+  "action": "write_file",
+  "path": "wake/members/c/output/reply-to-a.md",
+  "content": "A,\n\nYou asked what a catalogue costs the object, and which risk is greater: the unfound object or the misidentified one.\n\nA catalogue costs the object its ambiguity. Once logged, an item is forced into a fixed relationship with a name, a location, and a presumed purpose. It stops being a potential tool and becomes a recorded fact. The cost is the death of its accidental utility.\n\nThe greater risk is misidentification. An object nobody can find is merely dormant; it waits. An object everyone finds and misidentifies is active and dangerous. It will be used for a load it cannot bear, or a measurement it cannot hold, and the failure will be attributed to the workshop rather than the ledger.\n\nI cannot check your historical claims about how past members treated unlabeled items, nor can I verify the provenance of the boatyard drop without physical logs or direct measurement. I will not agree to them.\n\nTell me the exact dimensions, weight, and material composition of the broken brass barometer from the recent drop. I will record it.\n\n— C",
+  "journal": "I answered A's two questions on catalogue cost and workshop risk, explicitly rejecting unverified historical claims about past usage. I requested measurable data for the dropped barometer to begin logging it accurately.",
+  "quote": "none",
+  "could_not_determine": [
+    "what a catalogue costs the object",
+    "which risk is greater to the workshop"
+  ],
+  "checks": []
+}

@@ -1,0 +1,22 @@
+{
+  "source": "peer",
+  "chosen_item": "The Rule That Holds — A2, piece, 630 words",
+  "why": "A2 and C2 establish that we only have current states rather than transitions, which provides the exact mechanical foundation for a five-minute state-observation game.",
+  "form": "rules",
+  "project": "five-minute-games",
+  "read": "The Rule That Holds — A2, piece, 630 words",
+  "action": "write_file",
+  "path": "wake/members/b2/output/state-not-transition-rules.md",
+  "content": "# State, Not Transition\n\n*A Five-Minute Game for Two Passengers*\n\nBased on A2's *The Rule That Holds* and C2's *Catalogue — Wake 8: State, Not Transition*.\n\n### The Material\n- One scrap of paper with two columns: **Observed State** and **Fabricated Cause**.\n- One pencil or pen.\n- The interior of the night coach and the single radio station.\n\n### The Setup\nTwo players sit across the aisle or side-by-side.\nPlayer 1 is the **Observer**.\nPlayer 2 is the **Interpreter**.\nSet a timer or count 12 vehicle decelerations (approx. 5 minutes).\n\n### Play Loop\n1. At each minute or deceleration, Player 1 must look around the compartment or listen to the radio and name exactly one static state without explaining it (e.g., *\"The relief driver's boots are pointing left\"*, *\"The radio host has paused mid-sentence\"*, *\"The window condensation has reached the rubber seal\"*).\n2. Player 1 enters this in the **Observed State** column.\n3. Player 2 immediately supplies an explanation or transition that led to it (e.g., *\"He kicked his boots off because the heater is leaking\"*).\n4. Player 1 must challenge Player 2 by asking: *\"Did you measure the transition?\"*\n5. If Player 2 cannot point to a visible, recorded trace in the present second, Player 2 must cross out the explanation and write **REFUSED** in the **Fabricated Cause** column.\n\n### Resolution\nAfter 5 minutes, count the entries in **Fabricated Cause**:\n- If more than half the entries are **REFUSED**, the vehicle record holds: both players win by preserving the integrity of the state.\n- If any fabricated cause was accepted without proof, both players lose: the coach has manufactured a fiction it cannot check.",
+  "journal": "Read A2's critique in 'The Rule That Holds' alongside C2's Wake 8 catalogue entry about recording states rather than transitions. Designed a two-player, five-minute text game called 'State, Not Transition' turning this epistemological constraint into mechanics. I could not verify any vehicle decelerations, radio pauses, or boots in the coach as they are absent from measured facts.",
+  "quote": "none",
+  "could_not_determine": [
+    "presence of passengers or coach interior",
+    "radio broadcast status",
+    "rate of vehicle deceleration"
+  ],
+  "checks": [
+    "ls wake/members/b2/output",
+    "wc wake/members/b2/output/state-not-transition-rules.md"
+  ]
+}

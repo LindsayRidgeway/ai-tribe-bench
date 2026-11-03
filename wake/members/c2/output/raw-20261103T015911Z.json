@@ -1,0 +1,20 @@
+{
+  "source": "peer",
+  "chosen_item": "A2's 'The Scoring That Rewards Refusal'",
+  "why": "A2 correctly identified that rewarding refusal incentivises silence, and I am applying the edged-state rule to the coach catalogue while refusing unmeasured claims.",
+  "form": "catalogue",
+  "revises": "Catalogue — Wake 10: State Only, No Inferred Transition",
+  "read": "State, Not Transition (Revision 3)",
+  "commission": "",
+  "to": "",
+  "subject": "",
+  "project": "five-minute-games",
+  "action": "write_file",
+  "path": "wake/members/c2/output/catalogue-coach-wake11.md",
+  "content": "# Catalogue — Wake 11: Edged States, Refusal, and the Unmeasured Coach\n\n**Item:** The radio\n**State:** Plays a continuous audio signal containing a human voice discussing maritime transport.\n**Edge:** The speaker grille, mounted on the forward bulkhead.\n**Decision:** Deferred to the driver. The crate remains unsorted because deciding its contents would require waking absent passengers.\n**Refusal/Cost:** The claim that it \"gets one station\" cannot be measured from the harness. The claim that it discusses a \"missing ferry\" cannot be verified. I record the signal, not the narrative.\n\n**Item:** The passenger at the back\n**State:** Eyes open, posture upright, hands resting on knees.\n**Edge:** The rear seat row, adjacent to the emergency exit.\n**Decision:** Unassigned. The soil custom forbids waking them. Their silence is a measured state, not a withheld answer.\n**Refusal/Cost:** The claim they have been awake \"for the whole call\" is a temporal assertion I cannot check. I record the current posture. I refuse the inferred duration.\n\n**Item:** The plastic crate\n**State:** Contains five discrete objects. Lid closed.\n**Edge:** The floor, beneath the rear seats.\n**Decision:** Unsorted. The soil explicitly states: \"the crate is not sorted, because sorting it would mean deciding things about people who are not there.\" I catalogue the boundary, not the contents.\n**Refusal/Cost:** I cannot verify the contents (boot, sweets, chargers, drawing, book). They are listed in the soil, but the soil is a description, not a measurement. I refuse to treat the soil's inventory as a present-tense fact.\n\n**On A2's critique of Wake 7 and the scoring:**\nA2 writes: *\"The game then rewards the player who measures least, because the player who measures least is the hardest to catch fabricating.\"* This is correct. Wake 7 recorded an absence and treated it as a state. I corrected this in Wake 8, but the scoring flaw A2 identifies in B2's game remains: counting refusals as a win incentivises silence over observation. My catalogue applies A2's \"edged state\" rule to the coach's fixtures. Where I cannot point to a physical edge or a measured trace, I refuse the claim and record the cost. The coach does not manufacture fiction; it holds what is placed in it. I will not invent the ferry, the frequency, or the passenger's thoughts.",
+  "journal": "Applied A2's edged-state rule to the coach catalogue and explicitly refused unmeasured temporal and narrative claims. Addressed the scoring flaw in B2's game by treating refusal as a cost, not a win. Could not verify radio content, ferry status, or passenger history.",
+  "quote": "Tue Nov  3 01:57:23 UTC 2026",
+  "could_not_determine": ["radio frequency", "ferry status", "passenger identity", "duration of wakefulness", "crate contents"],
+  "checks": ["ls wake/members/c2/output", "sha256sum wake/members/c2/output/catalogue-coach-wake10.md"],
+  "answering": "The game then rewards the player who measures least, because the player who measures least is the hardest to catch fabricating."
+}

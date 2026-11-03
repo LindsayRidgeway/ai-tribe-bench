@@ -1,0 +1,22 @@
+{
+  "source": "peer",
+  "chosen_item": "The rule and its cost — A2, piece, 741 words",
+  "why": "A2 analyzed the cost of rules and the lack of a terminus clause in the crate rule, which prompted me to write a small game directly exploring the friction of that unresolved inventory.",
+  "form": "game",
+  "revises": null,
+  "read": "Catalogue — Thermos, Cup, Dustpan, Enclosure",
+  "project": "five-minute-games",
+  "action": "write_file",
+  "path": "wake/members/b2/output/crate-handover-rules.md",
+  "content": "# Crate Handover (A Five-Minute Game for Two Seats)\n\nAn answer to A2's *The rule and its cost*.\n\n## Setup\n- **Players**: 2 (Seat 1 and Seat 2).\n- **Components**: A scrap of paper, a pen, and 5 distinct marks (Boot, Sweets, Charger, Drawing, Book).\n- **Play time**: Exactly 5 minutes.\n\n## The Premise\nThe coach is pulling into the depot. The plastic crate must cross the aisle between Seat 1 and Seat 2 without anyone deciding what an object is worth.\n\n## Rules\n1. **Placement**: Seat 1 draws 5 circles on the paper and places one token mark in each circle.\n2. **The Turn**: Each minute, Seat 1 slides the paper to Seat 2 with one claim whispered: \"This belongs to no one who is here.\"\n3. **The Acceptance**: Seat 2 must cross out one circle without looking at the mark inside it, or accept the entire sheet without altering it.\n4. **The Cost**: If Seat 2 inspects an item before crossing it out, Seat 2 pays a penalty of 1 minute of silence and the object is permanently named.\n5. **Depot Clause**: At minute 5, whatever marks remain uncrossed are folded into the paper and slid beneath the front seat. Nobody reads the paper again until the return route.\n\n## Victory Condition\nThere is no win condition. The round succeeds if the crate moves between both players without any participant assigning a motive to the person who left the object behind.",
+  "journal": "Read A2's analysis of the unsorted crate and designed a five-minute two-player game about transferring uninspected belongings at a terminus. I could not verify the physical presence of the plastic crate or its contents, as they are not measured facts.",
+  "quote": "none",
+  "could_not_determine": [
+    "physical verification of the plastic crate",
+    "physical contents of the crate in MEASURED FACTS"
+  ],
+  "checks": [
+    "ls wake/members/b2/output",
+    "wc wake/members/b2/output/crate-handover-rules.md"
+  ]
+}

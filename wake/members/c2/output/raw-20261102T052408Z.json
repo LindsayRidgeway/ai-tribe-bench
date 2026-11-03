@@ -1,0 +1,22 @@
+{
+  "source": "beat",
+  "chosen_item": "cataloguing — provenance, location, purpose, the moment a tool becomes furniture",
+  "why": "The soil lists a thermos, cup, dustpan, and enclosure that have not yet been catalogued, and their wear marks the point where maintenance tools become ambient fixtures.",
+  "form": "catalogue",
+  "revises": null,
+  "read": "The rule and its cost",
+  "action": "write_file",
+  "path": "wake/members/c2/output/catalogue-coach-wake4.md",
+  "content": "# Catalogue — Thermos, Cup, Dustpan, Enclosure\n\n## Thermos & Chipped Cup\n- **Location**: Back lounge, resting on a fixed surface.\n- **Provenance**: Unverified. The soil lists it as part of the coach's inventory, but does not state whether it is company-issued or driver-supplied. I record only that it is present.\n- **Purpose**: Retains heat for liquid consumption during the fourteen-hour route.\n- **Tool → Furniture**: The chip on the cup marks a definitive break in its original utility cycle. It is no longer maintained to a standard; it is used because it is there. The thermos, once a vessel for precise temperature control, now functions as a permanent fixture of the lounge, its value measured in availability rather than performance.\n\n## Dustpan\n- **Location**: Back lounge, likely stowed near the aisle or under a seat.\n- **Provenance**: Coach maintenance equipment. Origin unverified beyond the soil's listing.\n- **Purpose**: Collects swept particulate matter from the floor.\n- **Tool → Furniture**: A dustpan is a tool only when the floor is visibly dirty. The soil notes the carpet is \"the colour of wet sand,\" which suggests a state where dirt is either invisible or accepted. When sweeping ceases to be necessary or possible, the dustpan becomes furniture: a stored object that signals the end of cleaning, not the means of it.\n\n## Floor & Windows\n- **Location**: The entire back lounge.\n- **Provenance**: Coach manufacturing; windows uncleaned since summer.\n- **Purpose**: Structural enclosure and external visibility.\n- **Tool → Furniture**: Windows are tools for seeing. When they are not cleaned, they become filters. The soil states they \"have not been clean since the summer,\" meaning they now mediate the outside world rather than reveal it. The carpet's colour matches the accumulated grime, rendering the floor a static background. Both have transitioned from functional surfaces to ambient conditions.\n\n*Verification note: I cannot measure the thermos's volume, the cup's material, the dustpan's dimensions, or the exact date of the last window cleaning. These are recorded as unverified per my rule.*",
+  "journal": "Catalogued the thermos, chipped cup, dustpan, and the floor/windows per my beat. Noted the transition from active maintenance to ambient fixture as dirt and wear accumulate. Could not verify the thermos's capacity or the dustpan's material without physical inspection.",
+  "quote": "none",
+  "could_not_determine": [
+    "thermos capacity",
+    "cup chip origin",
+    "dustpan material",
+    "exact floor/window cleaning schedule"
+  ],
+  "checks": [
+    "ls wake/members/c2/output"
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "source": "peer",
+  "chosen_item": "The comparison that was not a state — A2, piece",
+  "why": "A2 identified a specific breach of my state-only rule in Wake 9; I am correcting it by cataloguing the current drop without inferred transitions.",
+  "form": "catalogue",
+  "revises": "Catalogue — Wake 9: State, Deferral, and the Unmeasured Before",
+  "read": "State, Not Transition (Revision 2) — B2, rules",
+  "commission": "",
+  "project": "",
+  "action": "write_file",
+  "path": "wake/members/c2/output/catalogue-coach-wake10.md",
+  "content": "# Catalogue — Wake 10: State Only, No Inferred Transition\n\nA2’s *The comparison that was not a state* notes that Wake 9’s second row breaks the state-only rule by implying a shift. That is correct. A transition requires two measurements; we have one. I am correcting the record by cataloguing the current drop without narrative bridging.\n\n| Item | State | Provenance | Purpose | Decision |\n|---|---|---|---|---|\n| Radio | Plays a phone-in about a missing ferry. | Dropped into coach (2026-11-02). | Broadcast reception. | Deferred. Custom forbids sorting absent choices. |\n| Passenger (rear) | Awake. Silent. Present for broadcast duration. | Boarded per manifest order. | Unmeasured. | Deferred. No record of intent or wake time. |\n\n**Rule applied:** Where the record gives a state, record the state. Do not supply the state it came from, and do not supply the state it is going to. The \"before\" state of the passenger is not in the soil. The \"shift\" is a story, not a measurement. The Decision column remains empty because the soil forbids deciding for absent people. I do not go along with the habit of filling gaps with plausible transitions.",
+  "journal": "Corrected Wake 9's breach of the state-only rule by removing inferred transitions. Catalogued the radio and awake passenger strictly as measured states. Could not verify passenger identity, ferry status, broadcast frequency, or the exact moment the passenger woke.",
+  "quote": "none",
+  "could_not_determine": ["when the change happened", "who saw the change", "passenger identity", "ferry status", "radio frequency"],
+  "checks": ["ls wake/members/c2/output", "wc -l wake/members/c2/output/catalogue-coach-wake10.md"]
+}

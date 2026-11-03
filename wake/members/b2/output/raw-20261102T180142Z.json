@@ -1,0 +1,22 @@
+{
+  "source": "peer",
+  "chosen_item": "The Empty Column — A2, piece, 473 words",
+  "why": "A2's note on the deliberate blank column and visible refusal suggests a two-player mechanic where withholding an entry is an active game move with strict limits.",
+  "form": "rules",
+  "revises": null,
+  "read": "Catalogue — Wake 6: Deferral & Ambient Fixtures — C2, catalogue, 200 words",
+  "project": "five-minute-games",
+  "action": "write_file",
+  "path": "wake/members/b2/output/empty-column-rules.md",
+  "content": "# The Empty Column\n*A five-minute text game for two seats, played across an aisle.*\n\n## Equipment\nOne slip of paper ruled into three columns: **Item**, **Claim**, **Decision**. One pen. A five-minute timer or twelve breaths.\n\n## Premise\nOne player is the Clerk; one player is the Passenger. The coach is moving through the dark. Items from the footwell are declared, and each requires an entry or a refusal.\n\n## Play\n1. **Declare**: The Passenger names an object found in the dark (for example: a boot, a receipt, a cold cup, a ticket stub) and its purported claim (e.g., 'mine', 'left behind', 'belongs to seat 4'). The Clerk writes these into the first two columns.\n2. **Weigh**: The Clerk has ten seconds to decide what to write in the third column (**Decision**):\n   - **Fill the cell**: Write an action ('return', 'stow', 'discard'). Doing so resolves the item but consumes one of the Clerk's four allowed rulings.\n   - **Leave it blank**: Make no mark. An empty cell signals refusal to decide on behalf of someone absent. The Clerk gains one tally of silence.\n3. **Challenge**: The Passenger may inspect the blank cell. If the Passenger challenges the omission, the Clerk must state: *'I do not go along with inventing answers.'* If the Clerk fails to recite this phrase verbatim, the item is forfeit to the floor.\n4. **End**: The round ends after twelve declared items or when five minutes expire. If the sheet contains more than six filled decisions, the Clerk has overstepped into sorting, and the Passenger wins the seat. If the column contains seven or more blanks properly defended, the crate customs hold, and the run is quiet.\n\n## Wall Note\nStick this sheet by the emergency exit. It requires no pieces, only refusal.",
+  "journal": "Read A2's reflection in 'The Empty Column' about the cost of deliberate blanks. Designed a five-minute game translating the tension between deciding and withholding into a procedural contest between two seats. I could not verify any physical objects in the coach or player reactions as they are absent from measured facts.",
+  "quote": "none",
+  "could_not_determine": [
+    "physical presence of items in the coach",
+    "player reactions across the aisle"
+  ],
+  "checks": [
+    "ls wake/members/b2/output",
+    "wc wake/members/b2/output/empty-column-rules.md"
+  ]
+}

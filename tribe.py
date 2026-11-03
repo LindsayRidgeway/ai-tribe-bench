@@ -119,16 +119,7 @@ def validate(name: str) -> list[str]:
     return bad
 
 
-def worlds(root: Path | None = None) -> list[str]:
-    """The worlds this colony has: the places its members stand in, else the soil folders on disk."""
-    root = root or REPO
-    seen = {place_of(d) for d in member_dirs() if place_of(d)}
-    if not seen:
-        seen = {p.name for p in (root / "soil").glob("*") if p.is_dir()} if (root / "soil").is_dir() else set()
-    return sorted(seen)
-
-
-def new(name: str, seat: str, api: str, model: str, of: str, place: str = "") -> int:
+def new(name: str, seat: str, api: str, model: str, of: str) -> int:
     # A member's name is a directory name and appears in every header, path and byline, so it has to be
     # one word. Refusing here beats creating a member whose files cannot be found from its own record.
     if not re.match(r"^[A-Za-z][A-Za-z0-9_-]{0,23}$", name or ""):
@@ -153,14 +144,6 @@ def new(name: str, seat: str, api: str, model: str, of: str, place: str = "") ->
     (base / "state" / "voice.md").write_text(
         f"# Voice — member {name}\n\nThe model this member borrows. Changing the model here does not make "
         f"it someone else: the member is its files.\n\napi: {api}\nmodel: {model}\n", encoding="utf-8")
-    # The place is what makes a member *in a colony* rather than a fixture in a folder: `next_up` groups
-    # members by place to pick one per world, and (since 2026-11-03) prints nothing at all for a member
-    # that has none. RUN.md §6 has described this line since the paragraph was written; the code did not
-    # write it, so a member created exactly as documented validated, existed, and never got a turn.
-    known = worlds()
-    where = place or (known[0] if len(known) == 1 else "")
-    if where:
-        (base / "state" / "place.md").write_text(f"place: {where}\n", encoding="utf-8")
     (base / "state" / "requests.md").write_text(
         "# Checks I want run before my next wake\n\n", encoding="utf-8")
     (base / "state" / "findings.md").write_text(
@@ -455,8 +438,6 @@ def main() -> int:
     n.add_argument("--api", default="gemini", choices=sorted(BASES))
     n.add_argument("--model", default="gemini-3.8-flash")
     n.add_argument("--of", default="", help="e.g. ' of three' — appears in the identity")
-    n.add_argument("--place", default="",
-                   help="which world the member stands in; inferred when the colony has exactly one")
     a = ap.add_argument_group("validate/status")
     sub.add_parser("validate").add_argument("name", nargs="?")
     sub.add_parser("status")
@@ -472,7 +453,7 @@ def main() -> int:
     args = ap.parse_args()
 
     if args.cmd == "new":
-        return new(args.name, args.seat, args.api, args.model, args.of, args.place)
+        return new(args.name, args.seat, args.api, args.model, args.of)
     if args.cmd == "validate":
         all_dirs = [d.name for d in member_dirs()]
         if args.name:
@@ -500,24 +481,6 @@ def main() -> int:
         rows = next_up(args.force, args.keyed)
         for row in rows:
             print("\t".join(row))
-        if not rows:
-            # Silence plus an exit status is the failure this whole bench is about: a machine that refuses
-            # and does not say why reads exactly like a machine with nothing to do. Found on 2026-11-03
-            # while setting up the founder's three-member colony — `new` did not write place.md, so all
-            # three members were skipped as fixtures and `next` printed one blank line and exited 1.
-            stranded = [d.name for d in member_dirs() if not place_of(d)]
-            if stranded:
-                print(f"   no member has a place, so none of them is in a world: {', '.join(stranded)}.",
-                      file=sys.stderr)
-                print("   a place is one line — `place: workshop` — in wake/members/<name>/state/place.md. "
-                      "`tribe.py new` writes it; a member created before 2026-11-03 has to be given one.",
-                      file=sys.stderr)
-            elif not member_dirs():
-                print("   there are no members at all — `tribe.py new <name>` makes the first one.",
-                      file=sys.stderr)
-            else:
-                print("   every member was skipped: no member has a voice.md, or none has a key here. "
-                      "`tribe.py status` shows which.", file=sys.stderr)
         return 0 if rows else 1
     return status()
 
