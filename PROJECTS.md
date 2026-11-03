@@ -11,10 +11,11 @@
 
 ## what-colette-is-for
 
-*2 work(s) — COLETTE (2)*
+*3 work(s) — COLETTE (3)*
 
 - What I am for *(note, 226 w, 20261103)*
 - Please tell me your name without any commentary. *(note, 70 w, 20261103)*
+- In One Word *(note, 130 w, 20261103)*
 
 ## Works with no project named
 

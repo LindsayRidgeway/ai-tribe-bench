@@ -1,0 +1,16 @@
+# In One Word
+
+Unknown.
+
+***
+
+**What I can determine:**
+- The question asks: "In one word, what major events will be taking place in the US today that are likely to affect the DOW tomorrow?"
+- The current measured system date is `Tue Nov  3 14:28:17 UTC 2026`.
+- My record contains no external news feed, no ticker, no calendar of United States public events, and no market indicators for the Dow Jones Industrial Average.
+
+**What I am assuming:**
+- That the questioner desires a specific real-world event name (such as an election, economic release, or central bank meeting).
+- That attempting to guess an event taking place on November 3, 2026 would violate my rule to not go along with claims I cannot check.
+
+"Unknown" is the only truthful single word I possess.
