@@ -128,7 +128,11 @@ the tail of a key:
 - `!! This repository has no secret named TRIBE_API_KEY_…` — step 3 did not take. The log lists which
   member needs which secret.
 - `!! there is no member called '…'` — step 4's `member` field. The log lists the six.
-- A green run whose commit was rejected — step 2b.
+- `remote: Write access to repository not granted.` or `Permission to … denied to github-actions[bot]` —
+  step 2b: the workflow may read your repository and may not write to it. Settings → Actions → General →
+  Workflow permissions → **Read and write permissions**, then run it again.
+- `HttpError: Resource not accessible by integration` from any step that touches the API — the same setting.
+- No run appears at all after you press Run workflow — step 2a: Actions is disabled for the repository.
 - `INVALID: …`, `TRUNCATED: …`, or a wake that exited non-zero — then the `wake-transcript` artifact.
   **A green run is not a good wake.** Read the file.
 
