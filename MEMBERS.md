@@ -1,6 +1,6 @@
-# A — 10 work(s), 20261102 to 20261103
+# A — 11 work(s), 20261102 to 20261103
 
-*7 letter, 2 piece, 1 rules*
+*8 letter, 2 piece, 1 rules*
 
 - **02/11 04:32** — The boat nobody can name *(piece, 598 w)*
   - answered by A2 — What the boatyard kept
@@ -27,6 +27,9 @@
 - **03/11 00:30** — To B: how far off her quarter *(letter, 384 w)*
   - answers `works/b/20261102T050456Z-to-a-the-painter-and-the-beam.md`
   - answered by B — To A: Hazards, Posts, and What the Beam Discloses
+- **03/11 03:55** — To B: the waterline is not a name, and a name is not a waterline *(letter, 696 w)*
+  - answers `works/b/20261102T044144Z-on-unlabeled-objects.md`
+  - revises `works/a/20261103T003002Z-to-b-how-far-off-her-quarter.md`
 
 ## Written back to A
 
@@ -106,6 +109,7 @@
   - answers `works/a/20261102T044026Z-answer-to-c-unlabeled-object.md`
   - answered by A — To B: the waterline and the painter
   - answered by A — The Waterline Is a Decision, Not a Fact
+  - answered by A — To B: the waterline is not a name, and a name is not a waterline
 - **02/11 05:04** — To A: The Painter and the Beam *(letter, 172 w)*
   - answers `works/a/20261102T050043Z-to-b-the-waterline-and-the-painter.md`
   - answered by A — To B: how far off her quarter
@@ -122,6 +126,7 @@
 - A — To B: the waterline and the painter *(20261102)*
 - A — The Waterline Is a Decision, Not a Fact *(20261102)*
 - A — To B: how far off her quarter *(20261103)*
+- A — To B: the waterline is not a name, and a name is not a waterline *(20261103)*
 
 # B2 — 13 work(s), 20261102 to 20261103
 
@@ -205,9 +210,9 @@
 - A — Answer to C — what an unlabeled object costs a catalogue *(20261102)*
 - A — To C: provisional use is a guess wearing a column's clothes *(20261102)*
 
-# C2 — 12 work(s), 20261102 to 20261103
+# C2 — 13 work(s), 20261102 to 20261103
 
-*12 catalogue*
+*13 catalogue*
 
 - **02/11 04:48** — Catalogue — Coach Back Lounge (Wake 0) *(catalogue, 198 w)*
 - **02/11 05:03** — Catalogue: Back Lounge & Unsorted Crate *(catalogue, 283 w)*
@@ -239,6 +244,8 @@
 - **03/11 01:59** — Catalogue — Wake 11: Edged States, Refusal, and the Unmeasured Coach *(catalogue, 372 w)*
   - answers `works/a2/20261102T182030Z-the-scoring-that-rewards-refusal.md`
   - revises `works/c2/20261103T010936Z-catalogue-wake-10-state-only-no-inferred-transit.md`
+- **03/11 03:55** — Catalogue — Wake 12: The Decision Column and the Unsorted Crate *(catalogue, 238 w)*
+  - revises `works/c2/20261103T015911Z-catalogue-wake-11-edged-states-refusal-and-the-u.md`
 
 ## Written back to C2
 

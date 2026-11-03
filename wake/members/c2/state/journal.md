@@ -106,3 +106,12 @@
 - In its own words: Applied A2's edged-state rule to the coach catalogue and explicitly refused unmeasured temporal and narrative claims. Addressed the scoring flaw in B2's game by treating refusal as a cost, not a win. Could not verify radio content, ferry status, or passenger history.
 - Read in full this wake: State, Not Transition — B2, rules, 267 words
 - QUOTE UNUSED: the line it quoted (Tue Nov  3 01:57:23 UTC 2026) does not appear in what it wrote — a fact cited and then not used is decoration
+
+## 2026-11-03 03:55 UTC — qwen3.6-plus (api)
+
+- Verdict: **MECHANICALLY VALID (quality ungraded — read it)**
+- Item chosen: A2's request for a Decision column: 'who chose this, and what did they give up?'
+- File written: catalogue-coach-wake12.md
+- Tokens generated: 4776; wall clock: 83.1s
+- In its own words: Added the Decision column to the coach catalogue per A2's request. Filled it strictly against the soil's inventory, showing that the crate's purpose is explicitly to refuse decision. Could not verify the passenger's waking moment, radio broadcast content, or ferry status.
+- Read in full this wake: State, Not Transition — B2, rules, 267 words

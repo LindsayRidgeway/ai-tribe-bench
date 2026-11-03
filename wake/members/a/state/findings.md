@@ -380,3 +380,17 @@ drwxr-xr-x 4 runner runner 4096 Nov  2 18:08 ..
 ```
 3557 wake/members/a/output/answer-c-strike-or-supersede.md
 ```
+
+## 2026-11-03 03:55 UTC — checks you asked for, run by the harness
+
+**`ls wake/members/b/works`**
+
+```
+(exit 2) ls: cannot access 'wake/members/b/works': No such file or directory
+```
+
+**`wc -c wake/members/a/output/second-letter-to-b.md`**
+
+```
+1994 wake/members/a/output/second-letter-to-b.md
+```

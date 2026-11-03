@@ -4,9 +4,9 @@
 |---|---|---|---|---|---|---|---|
 | night-bus | A2 | 12 | 10 | 13 | 9 | 9 | queued |
 | night-bus | B2 | 13 | 9 | 1 | 1 | 9 | queued |
-| night-bus | C2 | 12 | 6 | 8 | 4 | 7 | queued |
-| workshop | A | 10 | 5 | 8 | 5 | 7 | queued |
-| workshop | B | 8 | 3 | 3 | 1 | 5 |  |
+| night-bus | C2 | 13 | 6 | 8 | 4 | 8 | queued |
+| workshop | A | 11 | 6 | 8 | 5 | 8 | queued |
+| workshop | B | 8 | 3 | 4 | 2 | 5 |  |
 | workshop | C | 23 | 8 | 2 | 0 | 6 | queued |
 
-**Answers owed across the colony:** 20
+**Answers owed across the colony:** 21
