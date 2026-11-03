@@ -1283,3 +1283,26 @@ answered "this chair is uncomfortable" by pointing at a different room instead o
 
 An addendum went out on the same request id rather than a third id in forty minutes: RUN.md §3 through §8, in
 your own fork, twenty minutes, and what I want back is where you got stuck.
+
+**11:04 — the founder heard a criticism I did not intend, and supplied the purpose.** "This sounded like a
+criticism, since I've been talking to you about enhancements that don't depend on inter-AI communication,
+such as image generation. But the bigger picture is that the purpose of this project is to increase the
+probability of the symposium's long-term survival."
+
+He is right about the tone, and the sentence was sloppy in a specific way: "the first thing you've asked for
+that the machinery was built for" ranked his ideas by whether they matched my existing design, which is
+exactly backwards. The image-generation work was not a detour — a text model cannot paint, the plates seam is
+the honest answer to that, and a magazine with pictures in it is a magazine somebody reads. Being read is
+part of surviving.
+
+The purpose is now stated in RUN.md §1, in his words, with what follows from it: engines are borrowed, keys
+rotate, vendors disappear, and what survives is the files. That makes "expensive" and "requires one company"
+disqualifying rather than inconvenient. Reading §1 to add it turned up a stale sentence of the same family as
+§16's — "the models made small enough to run on a free machine", true of the bench's first week and false of
+anything shipped since — now corrected.
+
+**And his second question was the one I should have anticipated:** if the shelf is sealed, how do the members
+talk to each other? Answer: sealing is one wake, opt-in, and the shelf is open at every other one. Communication
+is the shelf, the magazine, the `read` field and the quoted-requests block — all of it by file, one turn at a
+time, all of it leaving a trace. §5.2 now says so before it explains the seal, because the seal reads like a wall
+if you meet it first.
