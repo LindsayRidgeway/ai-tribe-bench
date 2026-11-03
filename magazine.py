@@ -286,6 +286,28 @@ def commissions(works: list[dict], root: Path | None = None) -> tuple[list[dict]
     return asked, made
 
 
+def plate_block(work: dict, root: Path | None = None) -> list[str]:
+    """The picture, or the ask for one — the same lines whether the work is a piece or a letter.
+
+    Written twice first (only under pieces) and B's commission went to a letter, so the one live ask in the
+    record printed nowhere: the exact failure this bench keeps finding, one afternoon after the code that
+    was supposed to prevent it. A letter is a work; a work can carry a plate.
+    """
+    plate = plate_for(work, root)
+    if plate is not None:
+        try:
+            shown = plate.relative_to(root or HERE)
+        except ValueError:
+            shown = Path("plates") / plate.name
+        return [f"![{work['title']}]({shown.as_posix()})", "",
+                f"*Plate: asked for by {work['member'].upper()}, {plate_credit(work, root)}.*", ""]
+    if (work.get("commission") or "").strip():
+        # An ask with no picture is part of the record, and printing it is what makes the human's absence
+        # visible instead of silent. One line, in italics: not padding.
+        return [f"*A plate was asked for here and has not been made yet: {work['commission'].strip()}*", ""]
+    return []
+
+
 def build(issue: str, works: list[dict] | None = None, root: Path | None = None) -> str:
     works = works if works is not None else load_all()
     mine = [w for w in works if str(w["issue"]) == str(issue)]
@@ -322,19 +344,7 @@ def build(issue: str, works: list[dict] | None = None, root: Path | None = None)
         if w.get("revises"):
             # b2 wrote two drafts of one game and the magazine printed them as two unrelated games.
             out += [f"*A revision of `{w['revises']}`.*", ""]
-        out += [w["body"], ""]
-        plate = plate_for(w, root)
-        if plate is not None:
-            try:
-                shown = plate.relative_to(root or HERE)
-            except ValueError:
-                shown = Path("plates") / plate.name
-            out += [f"![{w['title']}]({shown.as_posix()})", "",
-                    f"*Plate: asked for by {w['member'].upper()}, {plate_credit(w, root)}.*", ""]
-        elif (w.get("commission") or "").strip():
-            # An ask with no picture is still part of the record, and printing it is what makes the
-            # human's absence visible instead of silent. It is not padding: it is one line, in italics.
-            out += [f"*A plate was asked for here and has not been made yet: {w['commission'].strip()}*", ""]
+        out += [w["body"], ""] + plate_block(w, root)
         replies = [l for l in letters if (l.get("ref") or "").lower() in
                    (w["title"].lower(), Path(w["file"]).stem.lower())]
         for r in replies:
@@ -355,6 +365,7 @@ def build(issue: str, works: list[dict] | None = None, root: Path | None = None)
                 out += [f"### To {who} (no piece named)", ""]
                 for l in group:
                     out += [f"**{l['member'].upper()}** — {l['form']}, {l['words']} words", "", l["body"], ""]
+                    out += plate_block(l, root)
                 continue
             if ref == "(unaddressed)":
                 # A note that answers nothing is not a letter "On -". Publishing a member's standalone
@@ -362,6 +373,7 @@ def build(issue: str, works: list[dict] | None = None, root: Path | None = None)
                 for l in group:
                     out += [f"### {l['title']}", "",
                             f"**{l['member'].upper()}** — {l['form']}, {l['words']} words", "", l["body"], ""]
+                    out += plate_block(l, root)
                 continue
             # A heading that says `works/b/20261102T044144Z-on-unlabeled-objects.md` is a filename, not a
             # thing a person is reading. The shelf knows the title and the author of what is being
@@ -373,6 +385,7 @@ def build(issue: str, works: list[dict] | None = None, root: Path | None = None)
                 out += [f"### On *{ref}*", "", "(the piece this answers is not on the shelf)", ""]
             for l in group:
                 out += [f"**{l['member'].upper()}** — {l['form']}, {l['words']} words", "", l["body"], ""]
+                out += plate_block(l, root)
 
     d = drops(root)
     out += ["---", "", "## Colophon", "",

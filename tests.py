@@ -539,6 +539,27 @@ class TestPlates(unittest.TestCase):
         self.assertIn("made by a human with a generator of their choosing", text)
         self.assertNotIn("Mage", text, "a tool name the human did not write is a fabrication")
 
+    def test_a_letter_can_carry_a_plate_too(self):
+        """The plate lines were written under pieces only, and the first live commission in the record was
+        on a letter — so B asked for a watercolour and the magazine printed nothing about it. A letter is a
+        work; a work can carry a plate."""
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp, True)
+        (tmp / "works" / "a").mkdir(parents=True)
+        (tmp / "works" / "b").mkdir(parents=True)
+        (tmp / "soil").mkdir()
+        (tmp / "soil" / "world.md").write_text("a workshop", encoding="utf-8")
+        (tmp / "soil" / "drops.md").write_text("| when | by | what |\n|---|---|---|\n", encoding="utf-8")
+        (tmp / "works" / "a" / "20261103T000000Z-one.md").write_text(
+            "---\ntitle: The Post\nform: piece\nissue: 1\nwhen: 20261103T000000Z\n---\n\nbody\n",
+            encoding="utf-8")
+        (tmp / "works" / "b" / "20261103T010000Z-two.md").write_text(
+            "---\ntitle: To A: The Post\nform: letter\nissue: 1\nwhen: 20261103T010000Z\n"
+            "ref: works/a/20261103T000000Z-one.md\ncommission: a wet bollard in torchlight, watercolour\n"
+            "---\n\nbody\n", encoding="utf-8")
+        text = magazine.build("1", magazine.load_all(tmp), tmp)
+        self.assertIn("A plate was asked for here and has not been made yet: a wet bollard in torchlight", text)
+
     def test_commissions_lists_what_a_person_still_has_to_make(self):
         tmp = self._repo()
         self.addCleanup(shutil.rmtree, tmp, True)
