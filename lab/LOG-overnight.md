@@ -1257,3 +1257,11 @@ reason to put his own key in is not capacity at all — it is that the key in th
 the Alibaba one is *Gwen's*, and a private test spending another participant's credential is a boundary
 question rather than a budget one. So the advice stands, downgraded from prerequisite to hygiene, with
 attribution as the honest reason and money as the smallest one.
+
+**One obsolete sentence, found by the founder at 10:21.** §16 ended "a failed wake with those four is worth
+more than ten threads about whether small models are any good" — a sentence from the weights era, arguing
+with people who wanted to know whether downloadable models could do this. The tribe as shipped runs no small
+models: it borrows hosted frontier engines. The history still belongs in §6a, where it is told as history;
+what was wrong was letting it stand as the project's own comparison. §16 now points its argument at the
+question this project actually invites — whether a tribe is more than role-play with a filing cabinet — which
+is a question its own record can settle and the old one could not.
