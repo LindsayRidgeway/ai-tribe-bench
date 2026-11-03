@@ -1241,3 +1241,19 @@ learns it happened and the member will not remember it. That is the plate/commis
 can bring something into the tribe only by writing it into a file. Whether a chat should be able to leave a
 residue on its own is now a candidate for the next design pass, and it is deliberately not being fixed at
 09:42 on the morning of a release.
+
+**Correction, 10:08, on the founder's challenge.** I told him that using the symposium's keys would spend
+their quotas and that "when one runs out" the failure would land in the middle of his conversation. He asked
+whether exhausted quotas would not mean he had set the accounts up wrongly, given a $100 monthly cap. Right
+on both counts, and I checked the one I could: the DeepSeek key in this window has **$140.95 prepaid and
+`is_available: true`**, so "runs out" was not a risk I had measured, only a risk I had imagined and dressed
+as advice. A spending cap is a ceiling; it is not the same thing as a balance, a request limit or a token
+grant, and I conflated all four.
+
+What is actually true, and belongs in the sheet if it belongs anywhere: a *free tier* limit is a number of
+requests per minute or per day, not dollars, so a long conversation can hit one while the account is rich.
+A prepaid balance is a floor under the calls, not a cap. A free token grant expires on a date. And the real
+reason to put his own key in is not capacity at all — it is that the key in this window is *Dmitri's*, and
+the Alibaba one is *Gwen's*, and a private test spending another participant's credential is a boundary
+question rather than a budget one. So the advice stands, downgraded from prerequisite to hygiene, with
+attribution as the honest reason and money as the smallest one.
