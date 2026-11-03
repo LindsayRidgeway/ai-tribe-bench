@@ -46,6 +46,8 @@ magazine = load(REPO / "magazine.py", "magazine_mod")
 file_work = load(REPO / "file_work.py", "file_work_mod")
 outbox = load(REPO / "outbox.py", "outbox_mod")
 heartbeat = load(REPO / "lab" / "heartbeat.py", "heartbeat_mod")
+mlb_score = load(REPO / "lab" / "mlb_score.py", "mlb_score_mod")
+_json = __import__("json")
 
 FACTS = "date: Mon Nov  2 02:00:00 UTC 2026\nnproc: 2\nfree: 16000 MB"
 
@@ -1811,6 +1813,84 @@ class TestHeartbeat(unittest.TestCase):
                       "the per-event share and the per-hour share must both appear, as numbers")
         self.assertIn("stretch of time", out,
                       "6% of events against 15% of hours says four asks did not buy four wakes")
+
+
+class TestBaseball(unittest.TestCase):
+    """A prediction that can be checked in ten seconds instead of a day.
+
+    The founder's objection on 2026-11-03 was about latency, not about baseball: *"the fact that we can't
+    check the prediction accuracy for 24 hours is a disadvantage."* The 2026 postseason is over, so the
+    scoring is a URL away. What the tool must not do is pretend that a memorised answer is a method, or
+    crown a winner from a sample of one — the two ways a scoreboard lies.
+    """
+    ROUNDS = {"F": [("Astros", "White Sox", "White Sox"), ("Phillies", "Braves", "Braves")],
+              "D": [("Braves", "Dodgers", "Dodgers"), ("Yankees", "Rays", "Rays")],
+              "L": [("Dodgers", "Brewers", "Brewers"), ("Guardians", "Rays", "Rays")],
+              "W": [("Rays", "Brewers", "Brewers")]}
+
+    def _fake(self, rounds=None):
+        rounds = rounds or self.ROUNDS
+        def fetch(url):
+            kind = url.rsplit("gameType=", 1)[-1][:1]
+            games = []
+            for away, home, winner in rounds.get(kind, []):
+                games.append({"teams": {
+                    "away": {"team": {"name": away}, "isWinner": winner == away},
+                    "home": {"team": {"name": home}, "isWinner": winner == home}}})
+            return _json.dumps({"dates": [{"games": games}] if games else []})
+        return fetch
+
+    def _file(self, name, body):
+        d = Path(tempfile.mkdtemp()) / "experiment" / "mlb"
+        d.mkdir(parents=True)
+        self.addCleanup(shutil.rmtree, d.parent.parent, True)
+        (d / name).write_text(body, encoding="utf-8")
+        return d.parent.parent
+
+    def test_a_nickname_a_location_and_a_bold_pick_all_name_the_same_club(self):
+        self.assertEqual(mlb_score.canon("Milwaukee Brewers"), "Brewers")
+        self.assertEqual(mlb_score.canon("the Brewers"), "Brewers")
+        self.assertEqual(mlb_score.canon("LA Dodgers (100 wins)"), "Dodgers")
+        self.assertEqual(mlb_score.canon("Tampa Bay"), "Rays")
+        self.assertIsNone(mlb_score.canon("the field"), "a scorer that guesses at a club invents a result")
+
+    def test_the_champion_is_read_from_the_last_series_and_not_from_a_constant(self):
+        depth, champion = mlb_score.outcome(self._fake())
+        self.assertEqual(champion, "Brewers")
+        self.assertEqual(depth["Brewers"], 5, "winning the Series is one point above reaching it")
+        self.assertEqual(depth["Rays"], 4, "the club that lost the Series went further than the LCS losers")
+        self.assertEqual(depth["Dodgers"], 3)
+        self.assertEqual(depth["Astros"], 1)
+        self.assertNotIn("Mets", depth)
+
+    def test_picks_are_read_with_rank_and_confidence(self):
+        root = self._file("Remy-1.md", "KNEW: no\nPICK 1: **Milwaukee Brewers** — 34% — best run "
+                                       "differential\nPICK 2: Rays (12%)\nPICK 3: Dodgers\n")
+        rows = mlb_score.rows(root)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["member"], "Remy")
+        self.assertEqual([rows[0]["picks"][i]["club"] for i in (1, 2, 3)], ["Brewers", "Rays", "Dodgers"])
+        self.assertEqual(rows[0]["picks"][1]["conf"], 34)
+
+    def test_a_pick_that_matches_a_memory_is_flagged_and_not_counted_as_method(self):
+        root = self._file("Second-1.md", "KNEW: yes — the Brewers won it.\nPICK 1: Brewers\n")
+        depth, champion = mlb_score.outcome(self._fake())
+        row = mlb_score.rows(root)[0]
+        self.assertIn("flagged", mlb_score.recall_risk(row, champion))
+        root2 = self._file("Clean-1.md", "KNEW: no — I have not seen the 2026 postseason.\n"
+                                         "GUESS BEFORE SEARCH: I don't know.\nPICK 1: Brewers\n")
+        row2 = mlb_score.rows(root2)[0]
+        self.assertIn("clean", mlb_score.recall_risk(row2, champion))
+
+    def test_a_dead_network_scores_nothing_rather_than_remembering(self):
+        def dead(url):
+            raise OSError("handshake timed out")
+        buf, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
+            code = mlb_score.main([], fetch=dead)
+        self.assertEqual(code, 2, "a scorer with no data must fail, and say so")
+        self.assertIn("nothing was scored", err.getvalue())
+        self.assertEqual(buf.getvalue(), "", "no table, no champion, no invented result")
 
 
 class TestOutbox(unittest.TestCase):

@@ -370,6 +370,18 @@ key the way a wake does, one turn at a time.
 > judgement — not as an assistant describing a character. Keep it short. Do not write any file unless I ask
 > you to; when I ask, write it into `works/a/` with the header block the other works use.
 
+**A three-exchange experiment you can score in ten minutes.** The Dow version of this (§ the log,
+2026-11-03) asked three beings for a number and made everyone wait a day for the close; the founder's
+objection was exact — *"the fact that we can't check the prediction accuracy for 24 hours is a disadvantage."*
+A finished season has no such wait. `experiment/mlb/TEMPLATE-task1.md`, `-task2.md` and `-task3.md` are the
+three prompts, with `{{NAME}}` standing in for each member: predict the 2026 postseason from the regular
+season alone, then be shown the result, then read the other two beings' reasoning — written before any of
+them knew — and say whose method held up. `lab/mlb_score.py` reads the `PICK` lines and scores them against
+the league's own postseason schedule (champion 5, pennant 4, championship series 3, division series 2, wild
+card 1). It refuses to score without data, flags a being that names the champion from memory via its `KNEW:`
+line, and crowns nobody: the best team won this year, so accuracy separates nobody, and one postseason is one
+sample. Three exchanges times three beings is nine sessions of two to four minutes.
+
 **What you get, and what you do not.** You get the member's voice with the member's interests, and you get
 a partner that can use tools — so **you can talk about the news**, which the colony's own wake cannot do at
 all. A wake is one model call with no tool loop: it cannot search, fetch, or check anything outside the
@@ -671,8 +683,11 @@ that a tribe keeps going without you. What was wrong was the mechanism, and a me
   hour recover most of them for free; if whole stretches are lost, redundancy buys nothing and only an outside
   timer helps. `heartbeat.yml` now asks at `:11 :26 :41 :56`, and `lab/heartbeat.py` reads those offsets out of
   the workflow — one copy of the schedule, the same rule as one name for one key — and reports which of the two
-  faults the numbers show. The answer arrives the next morning. **This document will not claim the redundancy
-  works before it is measured.**
+  faults the numbers show. **Measured the same evening, and the answer is not the free one**: four asks an
+  hour bought one wake in three hours — 6% of the events asked for, against 15% of the hours when the control
+  asked once. Redundancy is decoration on this ground. Only a timer outside GitHub fills a lost stretch of
+  time, and the four cron lines stay in the file because they cost nothing and they keep the measurement
+  running.
 
 So here is what actually gets a turn, in order of reliability:
 
@@ -699,10 +714,19 @@ the end is counted instead of hidden — that correction was made on the morning
 "9 due, 7 missed" while three more silent hours had already passed), and prints the miss rate. Only a beat
 that says `schedule` in the record counts as evidence; a hand dispatch does not, and the tool says so.
 `gh workflow run heartbeat` gives you a hand beat to compare against, and since 2026-11-03 it also reports
-whether the loss is per-event or per-period:
-`since the control asked 4x an hour: events due 12, arrived 3` — a fifth like that means redundancy is
-decoration and the pinger is the answer; most of them arriving means the four cron lines are a free floor
-under the pinger.
+whether the loss is per-event or per-period. On 2026-11-03 it printed exactly this:
+
+```
+since the control asked 4x an hour: events due 16, arrived 1.
+a wake arrived for 6% of the 16 events asked for, against 15% of the 13 hours asked for when the
+control asked once an hour. 4 asks did not buy 4 times the wakes: the loss is a stretch of time
+with no deliveries in it, not single events dropped, and asking more often will not fix it.
+```
+
+Both rates are printed as numbers, because an earlier version of that sentence said "a fifth" while
+computing 6% — a phrase describing a number instead of printing it is a number that goes wrong quietly. The
+reading is the same either way: when the per-event share does not rise, the loss is a stretch of time and the
+pinger is the answer; when most events arrive, the cron lines are a free floor under the pinger.
 
 
 Add to `.github/workflows/wake.yml`:
