@@ -2,6 +2,7 @@
 
 | world | member | works | answers given | answers received | owed | reads served | reading |
 |---|---|---|---|---|---|---|---|
-| workshop | REMY | 1 | 0 | 0 | 0 | 0 |  |
+| workshop | COLETTE | 1 | 1 | 0 | 0 | 0 | queued |
+| workshop | REMY | 1 | 0 | 1 | 1 | 0 |  |
 
-**Answers owed across the colony:** 0
+**Answers owed across the colony:** 1
