@@ -1056,8 +1056,20 @@ line is the exact `export` to type.
 
 **Two names for one thing.** RUN.md tells the tester the key is `TRIBE_API_KEY_GEMINI`; the tool accepted
 `GEMINI_API_KEY` and `TRIBE_API_KEY`. So a person who had done §3 correctly — the secret is in the
-repository and the runner uses it happily — reached the window and was told `no API key`. Both names are
-accepted now, and the error lists them, and RUN.md has a table of what each member's shell reads.
+repository and the runner uses it happily — reached the window and was told `no API key`.
+
+My first fix was to accept both names, and the founder asked the obvious question: why not use one name?
+He is right, and the answer is embarrassing. Both names existed because five workflows did this:
+
+    GEMINI_API_KEY: ${{ secrets.TRIBE_API_KEY_GEMINI }}
+
+The secret is named one thing and is handed to the tool under another, in five files, invisibly, and the
+tool then derived `GEMINI_API_KEY` from the vendor's URL. Accepting both would have left that translation in
+place and taught nobody. The rename is gone: `TRIBE_API_KEY_<VENDOR>` is the secret, the shell variable, and
+what the tool looks for, and a workflow that renames a key on arrival now fails a test. The vendor's own
+name is still read, because a person may already have one exported — but it prints `note: key read from
+GEMINI_API_KEY — the name this project uses is TRIBE_API_KEY_GEMINI`, so grace is announced instead of being
+mistaken for a second name. 146 assertions.
 
 **The answer went somewhere no reader could read it.** `talk.sh` printed the reply, committed `output/` and
 the state diffs, and never filed the work: the shelf did not grow, the magazine printed nothing, and

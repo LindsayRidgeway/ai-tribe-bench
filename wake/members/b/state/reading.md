@@ -1,1 +1,1 @@
-Catalogue Entry: Painter’s Box (Long Table Drop)
+(nothing — served and cleared)

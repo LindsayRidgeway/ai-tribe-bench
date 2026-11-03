@@ -119,9 +119,9 @@ jobs:
           MEMBER: ${{ steps.setup.outputs.member }}
           API_MODEL: ${{ steps.setup.outputs.model }}
           API_BASE: ${{ steps.setup.outputs.api }}
-          DEEPSEEK_API_KEY: ${{ secrets.TRIBE_API_KEY_DEEPSEEK }}
-          GEMINI_API_KEY: ${{ secrets.TRIBE_API_KEY_GEMINI }}
-          QWEN_API_KEY: ${{ secrets.TRIBE_API_KEY_QWEN }}
+          TRIBE_API_KEY_DEEPSEEK: ${{ secrets.TRIBE_API_KEY_DEEPSEEK }}
+          TRIBE_API_KEY_GEMINI: ${{ secrets.TRIBE_API_KEY_GEMINI }}
+          TRIBE_API_KEY_QWEN: ${{ secrets.TRIBE_API_KEY_QWEN }}
         run: |
           set -euo pipefail
           cd /tmp/x

@@ -4,15 +4,16 @@
 #
 # Run it from a Goose window with this repository as the working directory, or from a terminal.
 #
-# ONE THING FIRST: a member borrows a model, and that needs a key in your own shell. The name is the
-# vendor's, not the repository secret's:
+# ONE THING FIRST: a member borrows a model, and that needs a key in your own shell. It has the same
+# name here as it has in GitHub Secrets — one name, both places:
 #
-#   export DEEPSEEK_API_KEY=...     # member a   platform.deepseek.com
-#   export GEMINI_API_KEY=...       # member b   aistudio.google.com (free, no card)
-#   export QWEN_API_KEY=...         # member c   Alibaba Model Studio
+#   export TRIBE_API_KEY_DEEPSEEK=...   # member a   platform.deepseek.com
+#   export TRIBE_API_KEY_GEMINI=...     # member b   aistudio.google.com (free, no card)
+#   export TRIBE_API_KEY_QWEN=...       # member c   Alibaba Model Studio
 #
-# TRIBE_API_KEY_DEEPSEEK and friends are the GitHub *secrets* the runners use; they are not in your
-# shell, and a fork does not inherit them. talk.sh accepts those names too if you set them yourself.
+# A fork does not inherit the repository secrets, so the secret being set is not the same thing as the
+# key being in your shell. (DEEPSEEK_API_KEY and the vendors' own variable names still work, and the
+# output says which one it used.)
 #
 #   ./talk.sh a "why were you never thrown out of the game?"
 #   ./talk.sh a --with letters/2026-11-01-the-window-and-the-vote-log.md "answer this"

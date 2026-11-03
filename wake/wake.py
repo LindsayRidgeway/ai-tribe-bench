@@ -1012,18 +1012,27 @@ having answered something nobody said.
         # tribe sends the same key to both vendors — found 2026-11-01, when the Gemini key went
         # to DeepSeek and came back 401. One key per member is the pattern for a reason.
         provider = (named if named in API_BASES else base.split("//")[-1].split(".")[0]).upper() + "_API_KEY"
-        # ... and the same name with the repository-secret prefix on it, because RUN.md tells a
-        # person their key is called TRIBE_API_KEY_GEMINI and the tool used to accept only
-        # GEMINI_API_KEY. Two names for one thing is a trap; accept both, print one.
-        prefixed = "TRIBE_API_KEY_" + provider.removesuffix("_API_KEY")
-        names = [n for n in (args.api_key_env,) if n] or [provider, prefixed, "TRIBE_API_KEY"]
-        key = next((os.environ[n] for n in names if os.environ.get(n)), None)
+        # ONE name for one thing: TRIBE_API_KEY_<VENDOR>. It is what a person types into GitHub
+        # Secrets, what the workflow passes through unchanged, and what this reads. The workflows used to
+        # rename it on arrival to <VENDOR>_API_KEY, so the sheet said TRIBE_API_KEY_GEMINI while the tool
+        # asked for GEMINI_API_KEY — and accepting both, which is what I did first, is not a fix: it
+        # leaves two names in the world and calls the confusion compatibility. 2026-11-03.
+        #
+        # The vendor's own name is still read, because a person may already have GEMINI_API_KEY exported
+        # from something else. It is grace, not a second name: when it is used, the line below says so and
+        # names the one this project uses.
+        canonical = "TRIBE_API_KEY_" + provider.removesuffix("_API_KEY")
+        names = [n for n in (args.api_key_env,) if n] or [canonical, provider, "TRIBE_API_KEY"]
+        used = next((n for n in names if os.environ.get(n)), None)
+        key = os.environ[used] if used else None
         if not key:
             print("!! no API key in the environment: set " + " or ".join(names))
             print(f"   this wake asks {base} for {args.api_model} as member {args.member or '(none)'}."
                   f" The repository secret of the same name is for the runner, not for your shell:")
-            print(f"   export {provider}=... and run this again")
+            print(f"   export {canonical}=... and run this again")
             return 2
+        if used != canonical:
+            print(f"note: key read from {used} — the name this project uses is {canonical}")
 
     if args.show_prompt:
         print(f"=== prompt ({len(prompt)} chars) ===")
@@ -1032,7 +1041,7 @@ having answered something nobody said.
     t0 = time.time()
     try:
         if args.api_model:
-            print(f"channel: api {base} model {args.api_model} (key from {next((n for n in names if os.environ.get(n)), names[0])})")
+            print(f"channel: api {base} model {args.api_model} (key from {used})")
             reply, payload = ask_api(base, key, args.api_model, prompt, images)
         else:
             reply, payload = ask(args.host, args.model, prompt, images)

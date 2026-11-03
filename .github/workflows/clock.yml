@@ -130,9 +130,9 @@ jobs:
       - name: Whose turn it is
         id: turn
         env:
-          DEEPSEEK_API_KEY: ${{ secrets.TRIBE_API_KEY_DEEPSEEK }}
-          GEMINI_API_KEY: ${{ secrets.TRIBE_API_KEY_GEMINI }}
-          QWEN_API_KEY: ${{ secrets.TRIBE_API_KEY_QWEN }}
+          TRIBE_API_KEY_DEEPSEEK: ${{ secrets.TRIBE_API_KEY_DEEPSEEK }}
+          TRIBE_API_KEY_GEMINI: ${{ secrets.TRIBE_API_KEY_GEMINI }}
+          TRIBE_API_KEY_QWEN: ${{ secrets.TRIBE_API_KEY_QWEN }}
         run: |
           set -euo pipefail
           # A tester following RUN.md adds ONE key. The clock wakes one member per world, so without this
@@ -141,9 +141,9 @@ jobs:
           # honest: the turn goes to somebody who can answer, and the reason is printed (on stderr, so it
           # is not read as a turn).
           KEYED=""
-          [ -n "${DEEPSEEK_API_KEY:-}" ] && KEYED="$KEYED deepseek"
-          [ -n "${GEMINI_API_KEY:-}" ] && KEYED="$KEYED gemini"
-          [ -n "${QWEN_API_KEY:-}" ] && KEYED="$KEYED qwen"
+          [ -n "${TRIBE_API_KEY_DEEPSEEK:-}" ] && KEYED="$KEYED deepseek"
+          [ -n "${TRIBE_API_KEY_GEMINI:-}" ] && KEYED="$KEYED gemini"
+          [ -n "${TRIBE_API_KEY_QWEN:-}" ] && KEYED="$KEYED qwen"
           echo "keys for:${KEYED:- none — every member will be skipped}"
           python3 tribe.py next --force "${{ inputs.force }}" --keyed "$KEYED" | tee /tmp/turn.txt
           echo "count=$(wc -l < /tmp/turn.txt)" >> "$GITHUB_OUTPUT"
@@ -151,9 +151,9 @@ jobs:
       - name: One free wake in each world
         if: steps.turn.outputs.count != '0'
         env:
-          DEEPSEEK_API_KEY: ${{ secrets.TRIBE_API_KEY_DEEPSEEK }}
-          GEMINI_API_KEY: ${{ secrets.TRIBE_API_KEY_GEMINI }}
-          QWEN_API_KEY: ${{ secrets.TRIBE_API_KEY_QWEN }}
+          TRIBE_API_KEY_DEEPSEEK: ${{ secrets.TRIBE_API_KEY_DEEPSEEK }}
+          TRIBE_API_KEY_GEMINI: ${{ secrets.TRIBE_API_KEY_GEMINI }}
+          TRIBE_API_KEY_QWEN: ${{ secrets.TRIBE_API_KEY_QWEN }}
         run: |
           set -euo pipefail
           issue="$(python3 magazine.py --current)"

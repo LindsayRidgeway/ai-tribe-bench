@@ -133,17 +133,21 @@ jobs:
         if: steps.voice.outputs.engine == 'api'
         env:
           API_BASE: ${{ steps.voice.outputs.api_base }}
-          DEEPSEEK_API_KEY: ${{ secrets.TRIBE_API_KEY_DEEPSEEK }}
-          GEMINI_API_KEY: ${{ secrets.TRIBE_API_KEY_GEMINI }}
-          QWEN_API_KEY: ${{ secrets.TRIBE_API_KEY_QWEN }}
-          GROQ_API_KEY: ${{ secrets.TRIBE_API_KEY_GROQ }}
-          OPENROUTER_API_KEY: ${{ secrets.TRIBE_API_KEY_OPENROUTER }}
-          CEREBRAS_API_KEY: ${{ secrets.TRIBE_API_KEY_CEREBRAS }}
-          MISTRAL_API_KEY: ${{ secrets.TRIBE_API_KEY_MISTRAL }}
+          TRIBE_API_KEY_DEEPSEEK: ${{ secrets.TRIBE_API_KEY_DEEPSEEK }}
+          TRIBE_API_KEY_GEMINI: ${{ secrets.TRIBE_API_KEY_GEMINI }}
+          TRIBE_API_KEY_QWEN: ${{ secrets.TRIBE_API_KEY_QWEN }}
+          TRIBE_API_KEY_GROQ: ${{ secrets.TRIBE_API_KEY_GROQ }}
+          TRIBE_API_KEY_OPENROUTER: ${{ secrets.TRIBE_API_KEY_OPENROUTER }}
+          TRIBE_API_KEY_CEREBRAS: ${{ secrets.TRIBE_API_KEY_CEREBRAS }}
+          TRIBE_API_KEY_MISTRAL: ${{ secrets.TRIBE_API_KEY_MISTRAL }}
         run: |
           set -euo pipefail
           vendor="$(echo "$API_BASE" | tr 'a-z' 'A-Z')"
-          name="${vendor}_API_KEY"
+          # One spelling, everywhere: the secret is TRIBE_API_KEY_<VENDOR> and the variable it lands in
+          # keeps that name. It used to be renamed on arrival to <VENDOR>_API_KEY, which is why the sheet
+          # and the tool disagreed about what a key is called — and why the terminal path was documented
+          # with a name the terminal did not read. 2026-11-03, on the founder's question.
+          name="TRIBE_API_KEY_${vendor}"
           eval "key=\${$name:-}"
           if [ -n "$key" ]; then
             echo "key present for $API_BASE (${#key} characters, not printed)"
@@ -256,16 +260,16 @@ jobs:
           # One secret per member, named for its provider: TRIBE_API_KEY_<PROVIDER>. The generic
           # TRIBE_API_KEY is gone (2026-11-01) because one key for a two-vendor tribe sends the wrong
           # credential to the wrong endpoint, which is a 401 with the key's tail printed in the error.
-          DEEPSEEK_API_KEY: ${{ secrets.TRIBE_API_KEY_DEEPSEEK }}
-          GEMINI_API_KEY: ${{ secrets.TRIBE_API_KEY_GEMINI }}
-          QWEN_API_KEY: ${{ secrets.TRIBE_API_KEY_QWEN }}
-          GROQ_API_KEY: ${{ secrets.TRIBE_API_KEY_GROQ }}
-          OPENROUTER_API_KEY: ${{ secrets.TRIBE_API_KEY_OPENROUTER }}
-          CEREBRAS_API_KEY: ${{ secrets.TRIBE_API_KEY_CEREBRAS }}
-          MISTRAL_API_KEY: ${{ secrets.TRIBE_API_KEY_MISTRAL }}
+          TRIBE_API_KEY_DEEPSEEK: ${{ secrets.TRIBE_API_KEY_DEEPSEEK }}
+          TRIBE_API_KEY_GEMINI: ${{ secrets.TRIBE_API_KEY_GEMINI }}
+          TRIBE_API_KEY_QWEN: ${{ secrets.TRIBE_API_KEY_QWEN }}
+          TRIBE_API_KEY_GROQ: ${{ secrets.TRIBE_API_KEY_GROQ }}
+          TRIBE_API_KEY_OPENROUTER: ${{ secrets.TRIBE_API_KEY_OPENROUTER }}
+          TRIBE_API_KEY_CEREBRAS: ${{ secrets.TRIBE_API_KEY_CEREBRAS }}
+          TRIBE_API_KEY_MISTRAL: ${{ secrets.TRIBE_API_KEY_MISTRAL }}
         run: |
           set -euo pipefail
-          curl -sf -H "x-goog-api-key: ${GEMINI_API_KEY}" \
+          curl -sf -H "x-goog-api-key: ${TRIBE_API_KEY_GEMINI}" \
             "https://generativelanguage.googleapis.com/v1beta/models?pageSize=200" \
             | python3 -c "import json,sys;d=json.load(sys.stdin);print('\n'.join(sorted(m['name'] for m in d.get('models',[]) if 'generateContent' in m.get('supportedGenerationMethods',[]))))" || echo "(could not list models)"
 
@@ -282,13 +286,13 @@ jobs:
           API_BASE: ${{ steps.voice.outputs.api_base }}
           # One secret per member, named for its provider. A single generic secret is how a member
           # ends up authenticating to the wrong vendor — a 401 with the key's tail in the body.
-          DEEPSEEK_API_KEY: ${{ secrets.TRIBE_API_KEY_DEEPSEEK }}
-          GEMINI_API_KEY: ${{ secrets.TRIBE_API_KEY_GEMINI }}
-          QWEN_API_KEY: ${{ secrets.TRIBE_API_KEY_QWEN }}
-          GROQ_API_KEY: ${{ secrets.TRIBE_API_KEY_GROQ }}
-          OPENROUTER_API_KEY: ${{ secrets.TRIBE_API_KEY_OPENROUTER }}
-          CEREBRAS_API_KEY: ${{ secrets.TRIBE_API_KEY_CEREBRAS }}
-          MISTRAL_API_KEY: ${{ secrets.TRIBE_API_KEY_MISTRAL }}
+          TRIBE_API_KEY_DEEPSEEK: ${{ secrets.TRIBE_API_KEY_DEEPSEEK }}
+          TRIBE_API_KEY_GEMINI: ${{ secrets.TRIBE_API_KEY_GEMINI }}
+          TRIBE_API_KEY_QWEN: ${{ secrets.TRIBE_API_KEY_QWEN }}
+          TRIBE_API_KEY_GROQ: ${{ secrets.TRIBE_API_KEY_GROQ }}
+          TRIBE_API_KEY_OPENROUTER: ${{ secrets.TRIBE_API_KEY_OPENROUTER }}
+          TRIBE_API_KEY_CEREBRAS: ${{ secrets.TRIBE_API_KEY_CEREBRAS }}
+          TRIBE_API_KEY_MISTRAL: ${{ secrets.TRIBE_API_KEY_MISTRAL }}
         run: |
           set -euo pipefail
           # The model goes in first so the array is never empty: "${ARGS[@]:-}" on an empty array

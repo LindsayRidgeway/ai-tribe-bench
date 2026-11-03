@@ -1682,9 +1682,33 @@ class TestWindowPath(unittest.TestCase):
 
     def test_run_md_tells_the_person_the_name_of_the_key_their_shell_reads(self):
         src = (REPO / "RUN.md").read_text(encoding="utf-8")
-        self.assertIn("export GEMINI_API_KEY", src)
-        self.assertIn("DEEPSEEK_API_KEY", src)
-        self.assertIn("A fork does not inherit them", src)
+        self.assertIn("export TRIBE_API_KEY_GEMINI", src)
+        self.assertIn("A fork does not inherit secrets", src)
+
+    def test_one_key_has_one_name_in_the_sheet_the_shell_and_the_runner(self):
+        """The founder's question, kept as a test: why two names for one thing?
+
+        The workflows used to take the secret `TRIBE_API_KEY_GEMINI` and hand it to the tool renamed as
+        `GEMINI_API_KEY`, so the sheet named one thing and the terminal read another, and there was no way
+        for a person to see the join. Accepting both names would have hidden it rather than fixed it. So:
+        every `env:` line in a workflow that reads a secret key passes it through under the same name.
+        """
+        import re as _re
+        for wf in sorted((REPO / ".github" / "workflows").glob("*.yml")):
+            for line in wf.read_text(encoding="utf-8").splitlines():
+                m = _re.match(r"\s+([A-Z_]+_API_KEY): \$\{\{ secrets\.(TRIBE_API_KEY_[A-Z]+) \}\}", line)
+                if m:
+                    self.assertEqual(m.group(1), m.group(2),
+                                     f"{wf.name} renames {m.group(2)} to {m.group(1)} on arrival")
+        talk = (REPO / "talk.sh").read_text(encoding="utf-8")
+        self.assertIn("export TRIBE_API_KEY_GEMINI", talk)
+        run = (REPO / "RUN.md").read_text(encoding="utf-8")
+        self.assertIn("| `b` | `TRIBE_API_KEY_GEMINI` |", run)
+
+    def test_a_vendor_variable_is_read_as_grace_and_says_so(self):
+        src = (REPO / "wake" / "wake.py").read_text(encoding="utf-8")
+        self.assertIn("note: key read from", src, "a borrowed name is used silently")
+        self.assertIn("the name this project uses is", src)
 
     def test_a_failed_push_is_not_reported_as_success(self):
         talk = (REPO / "talk.sh").read_text(encoding="utf-8")

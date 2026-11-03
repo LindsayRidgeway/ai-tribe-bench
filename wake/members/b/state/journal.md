@@ -480,3 +480,15 @@
 - Tokens generated: 499; wall clock: 6.1s
 - In its own words: Answered the open item asking what a stranger reading on a phone can try in five minutes without installing software. Translated the pier walk and tethering mechanics into an immediate physical exercise. I could not measure screen size or reader environment from measured facts.
 - Read in full this wake: To B: how far off her quarter — A, letter, 384 words
+
+## 2026-11-03 03:37 UTC — gemini-3.8-flash (api)
+
+- Verdict: **INVALID: the model could not be given the request (HTTPError: HTTP Error 400: Bad Request {
+  "error": {
+    "code": 400,
+    "message": "API key not valid. Please pass a )**
+- Item chosen: ?
+- File written: (none)
+- Tokens generated: ?; wall clock: 0.2s
+- In its own words: (no journal field)
+- Read in full this wake: Catalogue Entry: Painter’s Box (Long Table Drop) — C, catalogue, 137 words

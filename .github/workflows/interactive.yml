@@ -65,9 +65,9 @@ jobs:
 
       - name: One member answers
         env:
-          DEEPSEEK_API_KEY: ${{ secrets.TRIBE_API_KEY_DEEPSEEK }}
-          GEMINI_API_KEY: ${{ secrets.TRIBE_API_KEY_GEMINI }}
-          QWEN_API_KEY: ${{ secrets.TRIBE_API_KEY_QWEN }}
+          TRIBE_API_KEY_DEEPSEEK: ${{ secrets.TRIBE_API_KEY_DEEPSEEK }}
+          TRIBE_API_KEY_GEMINI: ${{ secrets.TRIBE_API_KEY_GEMINI }}
+          TRIBE_API_KEY_QWEN: ${{ secrets.TRIBE_API_KEY_QWEN }}
           ASK: ${{ github.event.comment.body }}
         run: |
           set -euo pipefail
