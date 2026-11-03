@@ -88,6 +88,15 @@ def load_all(root: Path | None = None) -> list[dict]:
     return out
 
 
+def _drop_date(row: str) -> str:
+    """The date cell of a drop row as YYYY-MM-DD, or a sentinel that sorts before every real date."""
+    for cell in (c.strip() for c in row.strip().strip("|").split("|")):
+        m = re.match(r"(\d{4})-(\d{2})-(\d{2})$", cell)
+        if m:
+            return cell
+    return "0000-00-00"
+
+
 def drops(root: Path | None = None) -> list[tuple[str, str]]:
     """Every drop in every soil, labelled with the place it fell in. Derived: the file is the drop."""
     root = root or HERE
@@ -387,16 +396,26 @@ def build(issue: str, works: list[dict] | None = None, root: Path | None = None)
                 out += [f"**{l['member'].upper()}** — {l['form']}, {l['words']} words", "", l["body"], ""]
                 out += plate_block(l, root)
 
-    d = drops(root)
+    # Only the drops that had fallen by the date of this issue. A colophon is a statement about what the
+    # world had in it when the issue came out; the first version printed every drop in the soil, so a box
+    # of watercolours left on 3 November appeared in issue 1, dated 2 November — and, worse, rebuilding
+    # issue 1 a day later produced a different file, which is how this was found: derivability ran and
+    # said one published file no longer rebuilt from the record.
+    when = issue_date(mine)
+    d = [(pl, row) for pl, row in drops(root) if "|" in row and _drop_date(row) <= when]
     out += ["---", "", "## Colophon", "",
             "This issue was assembled from the files the members wrote; nothing in it was edited. A work "
             "appears if it is on disk and names this issue in its header. If you want a different "
             "magazine, change the soil or change the beats — the workshop does the rest.", ""]
     if d:
-        out += [f"**Dropped in by the human ({len(d)}):**", ""]
+        out += [f"**Dropped in by hand ({len(d)}):**", ""]
         for place, row in d[-6:]:
             cells = [c.strip() for c in row.strip("|").split("|")]
-            out.append(f"- *{place}* — {cells[-1]} *({cells[0] if cells else ''})*")
+            # Who put it there, not just when. The heading said "the human" and one of the drops was the
+            # builder's, which is the sort of small false sentence a reader has no way to check.
+            by = cells[1] if len(cells) > 2 else ""
+            out.append(f"- *{place}* — {cells[-1]} *({by + ', ' if by else ''}"
+                       f"{cells[0] if cells else ''})*")
         out.append("")
     members = sorted({w["member"] for w in works})
     if members:

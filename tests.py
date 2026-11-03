@@ -539,6 +539,26 @@ class TestPlates(unittest.TestCase):
         self.assertIn("made by a human with a generator of their choosing", text)
         self.assertNotIn("Mage", text, "a tool name the human did not write is a fabrication")
 
+    def test_a_colophon_only_names_drops_that_had_already_fallen(self):
+        """Derivability caught this, not a reader: a box of watercolours dropped on 3 November appeared in
+        issue 1, dated 2 November, so rebuilding issue 1 a day later produced a different file. A colophon
+        is a statement about the world as it was when the issue came out."""
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp, True)
+        (tmp / "works" / "a").mkdir(parents=True)
+        (tmp / "soil").mkdir()
+        (tmp / "soil" / "world.md").write_text("a workshop", encoding="utf-8")
+        (tmp / "soil" / "drops.md").write_text(
+            "| when | by | what |\n|---|---|---|\n"
+            "| 2026-11-01 | the human | a box of tide tables |\n"
+            "| 2026-11-03 | the builder | a painter's box |\n", encoding="utf-8")
+        (tmp / "works" / "a" / "20261102T040000Z-one.md").write_text(
+            "---\ntitle: One\nform: piece\nissue: 1\nwhen: 20261102T040000Z\n---\n\nbody\n", encoding="utf-8")
+        text = magazine.build("1", magazine.load_all(tmp), tmp)
+        self.assertIn("a box of tide tables", text)
+        self.assertNotIn("a painter's box", text, "a drop from the day after the issue does not belong in it")
+        self.assertNotIn("Dropped in by the human", text, "one of the drops was not the human's")
+
     def test_a_letter_can_carry_a_plate_too(self):
         """The plate lines were written under pieces only, and the first live commission in the record was
         on a letter — so B asked for a watercolour and the magazine printed nothing about it. A letter is a
