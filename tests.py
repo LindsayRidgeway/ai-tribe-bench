@@ -18,7 +18,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from datetime import date
+from datetime import date, datetime, timezone
 import unittest
 from pathlib import Path
 
@@ -1477,7 +1477,7 @@ class TestHeartbeat(unittest.TestCase):
                          ("2026-11-03T01:46:12Z", "schedule")])
         buf = io.StringIO()
         with contextlib.redirect_stdout(buf):
-            heartbeat.main(log)
+            heartbeat.main(log, now=datetime(2026, 11, 3, 2, 30, tzinfo=timezone.utc))
         out = buf.getvalue()
         self.assertIn("hours due: 1", out)
         self.assertIn("missed: 0", out)
@@ -1490,12 +1490,37 @@ class TestHeartbeat(unittest.TestCase):
                          ("2026-11-02T13:41:00Z", "schedule"), ("2026-11-02T17:41:00Z", "schedule")])
         buf = io.StringIO()
         with contextlib.redirect_stdout(buf):
-            heartbeat.main(log)
+            heartbeat.main(log, now=datetime(2026, 11, 2, 17, 41, tzinfo=timezone.utc))
         out = buf.getvalue()
-        # 05:57 to 17:41 is 11.7 hours, so twelve hourly slots were due and four arrived
-        self.assertIn("hours due: 12", out)
-        self.assertIn("missed: 8", out)
+        # thirteen hourly slots were due, from 05:41 to 17:41, and four arrived
+        self.assertIn("hours due: 13", out)
+        self.assertIn("missed: 9", out)
         self.assertIn("a scheduled wake is a hope", out)
+
+    def test_the_silence_after_the_last_beat_is_inside_the_window(self):
+        """Found on the morning of 2026-11-03, by being wrong in the flattering direction.
+
+        Two beats eight hours apart read as "9 due, 7 missed". Three more hours had passed with nothing at
+        all by the time it was read, and the window — closed on the last beat — could not see them, because
+        a window that ends at the last observation cannot contain a silence. The worse the stall, the less
+        the tool said about it.
+        """
+        log = self._log([("2026-11-03T01:46:00Z", "schedule"), ("2026-11-03T10:01:00Z", "schedule")])
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            heartbeat.main(log, now=datetime(2026, 11, 3, 13, 20, tzinfo=timezone.utc))
+        out = buf.getvalue()
+        self.assertIn("hours due: 12", out, "the twelve hours from 01:41 to 12:41 are all in the window")
+        self.assertIn("missed: 10", out)
+        self.assertIn("closed at 2026-11-03T12:00Z", out)
+
+    def test_the_hour_that_is_not_due_yet_does_not_count(self):
+        log = self._log([("2026-11-03T01:46:00Z", "schedule")])
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            heartbeat.main(log, now=datetime(2026, 11, 3, 2, 10, tzinfo=timezone.utc))
+        self.assertIn("hours due: 1", buf.getvalue(),
+                      "02:41 has not arrived, so the 02 hour is not yet owed")
 
 
 class TestOutbox(unittest.TestCase):

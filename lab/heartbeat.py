@@ -33,7 +33,7 @@ def rows(log: Path | None = None) -> list[tuple[datetime, str, str]]:
     return sorted(out)
 
 
-def main(log: Path | None = None) -> int:
+def main(log: Path | None = None, now: datetime | None = None) -> int:
     beats = rows(log)
     if not beats:
         print("no heartbeats yet — the workflow has not fired, or has fired and could not commit.")
@@ -52,13 +52,23 @@ def main(log: Path | None = None) -> int:
     # hand dispatch at 18:58 and the first scheduled beat at 01:46 into the same span and printed "0.0
     # hours, hours due: 1" — one hour of evidence reported as an answer about a seven-hour night. That is
     # the shape of mistake this whole bench is about: the number looked fine and described nothing.
+    # ...and it ends at NOW, not at the last beat. A window that closes on the last observation cannot
+    # contain a silence, and a silence is the thing being measured: on the morning of 2026-11-03 this
+    # printed "hours due: 9, missed: 7 (78%)" when three further hours had already passed with nothing at
+    # all — the quiet hours at the end of a window are exactly what a stalled scheduler produces, and
+    # closing the window on the last beat hid them. The current hour counts only once its :41 has passed.
+    now = now or datetime.now(timezone.utc)
     first, last = scheduled[0][0], scheduled[-1][0]
     span = last - first
-    due = int(span.total_seconds() // 3600) + 1
+    end = now.replace(minute=0, second=0, microsecond=0)
+    if now.minute < 41:
+        end -= timedelta(hours=1)
+    due = int((end - first.replace(minute=0, second=0, microsecond=0)).total_seconds() // 3600) + 1
     fired = len({b[0].replace(minute=0, second=0, microsecond=0) for b in scheduled})
     hand_in_window = sum(1 for b in beats if b[1] != "schedule" and b[0] >= first)
     print(f"first scheduled beat {first:%Y-%m-%dT%H:%MZ}, last {last:%Y-%m-%dT%H:%MZ} "
-          f"({span.total_seconds() / 3600:.1f} hours between them)")
+          f"({span.total_seconds() / 3600:.1f} hours between them; the window is closed at "
+          f"{end:%Y-%m-%dT%H:%MZ}, not at the last beat)")
     print(f"hours due: {due}   hours with a scheduled beat: {fired}   missed: {due - fired} "
           f"({100 * (due - fired) / max(due, 1):.0f}%)")
     if hand_in_window:

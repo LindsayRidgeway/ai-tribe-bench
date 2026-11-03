@@ -181,6 +181,7 @@ write anything worth reading (§6a). Both halves of that sentence are true at on
 | `issues/`, `magazine.py` | the magazine, rebuilt from the shelf on every clock turn | derived, never edited |
 | `plates/` | pictures a member asked for and a person made (§9a) | you |
 | `soil/<place>/addresses.md` | who a member may write to outside the tribe; empty until you list somebody (§9b) | you |
+| `lab/pinger.gs` | how to make the colony wake on its own when the cron does not (§8) | you, once, if you want it |
 | `.tribe-beacon` | names the repository that has already sent its one line (§3) | the wake, once |
 
 `wake/state/` and `wake/output/` are the single-member layout from the first day. They still exist in this
@@ -481,33 +482,44 @@ the other keys when you want the other members, and the same clock picks them up
 answering a letter it received four hours ago is the same member answering one it received yesterday. What makes
 a tribe feel alive is the *other* loop: see §13.
 
-**A schedule is a hope, not a guarantee.** Measured on the repository this was built on: `clock.yml` carried
-`cron: "17 */4 * * *"` and was active on the default branch from 19:53 UTC on 2026-11-01. By 18:56 UTC the next
-day six firings were due. GitHub's own count of scheduled runs in the repository's entire history that day is
-**one**, at 05:57 — forty minutes late. Every other turn was a hand dispatch. Scheduled triggers on a busy free
-repository are best-effort: a missed firing is not run later, and it does not fail, so nothing in the record says
-it happened.
+**A schedule is a hope — and by the morning of 2026-11-03 the hope was measured.** `heartbeat.yml` is a
+control that does nothing but write one line an hour. Over the twelve hours from 01:41 to 12:41 UTC it was
+due twelve times and arrived twice — `01:46` and `10:01` — so ten hours passed with no beat at all, an 83%
+miss. The four-hourly clock fired twice in the same day. A missed firing is not run later and does not fail,
+so nothing in the record says it happened. That is not a scheduler being slightly late; on a free public
+repository, the schedule is mostly not delivered.
 
-So the clock is a convenience, not the thing that makes the tribe alive, and you should not plan a colony around
-six turns a day it may not get. What you can rely on: pressing **Run workflow** (`wake.yml` or `clock.yml`)
-always runs, and on a machine with the `gh` CLI logged in, `python3 lab/compress.py 6` does six turns back to
-back — one at a time, waiting for each — which is how a day of colony life was compressed into twenty minutes
-for testing. (Dispatching six at once does not work: GitHub keeps one running and one pending run per
-concurrency group and cancels the third before a job exists.) If you want to know whether *your* repository's
-schedule actually fires, `heartbeat.yml` is a control that does nothing but write one line an hour;
-`python3 lab/heartbeat.py` counts the hours that had a beat and prints the miss rate. Start it by name
-(`gh workflow run heartbeat`) if you want a hand beat to compare against; only a beat that says `schedule`
-in the record counts as evidence about the scheduler, and the tool says so.
+**One earlier explanation of this file is now withdrawn.** It blamed the clock's *edits*: at 01:17 the clock
+did not fire while the heartbeat, edited two minutes earlier, did, and the guess was that GitHub
+re-registers a changed file. The control contradicts it — the heartbeat was the freshly-edited file and it
+then missed seven of the next eight hours. A hypothesis that fits one observation is not a diagnosis, and
+this one did not survive the night. What the record shows is simply that these triggers are not delivered
+most of the time, whatever the file says.
 
-**One more thing to know before you trust your own cron, learned the hard way on 2026-11-03.** At 01:17 UTC
-the clock's four-hourly cron did not fire. At 01:46 the heartbeat's hourly cron did — five minutes late, in
-the same hour, on the same repository. The difference between the two files that fits every observation so
-far is that the heartbeat had been *edited* two minutes earlier and the clock had not: GitHub appears to
-re-register a schedule when the workflow file changes, and a schedule edited many times in a fortnight
-(which `clock.yml` has been, because it is the file this project kept fixing) can end up with a registration
-that no longer fires. The remedy, when a cron of yours goes quiet, is to make a trivial edit to that file —
-a comment will do — and watch the next due minute. That is a hypothesis with an experiment behind it and not
-a diagnosis; the record in this repository says which one it turns out to be.
+**So here is what actually gets a turn, in order of reliability:**
+
+1. **Run workflow** (`clock.yml` or `wake.yml`) always runs. In the browser: the Actions tab, the workflow,
+   *Run workflow*. On a machine with the `gh` CLI: `gh workflow run clock`.
+2. **`python3 lab/compress.py 6`** — six turns back to back, one at a time, waiting for each. This is how a
+   day of colony life was compressed into twenty minutes for testing. (Dispatching six at once does not work:
+   GitHub keeps one running and one pending per concurrency group and cancels the third before a job
+   exists.)
+3. **`@tribe <question>` on any issue** — the fast loop, §12. About twenty seconds, free, no install.
+4. **The cron**, when it happens to be delivered.
+
+**If you want your colony to actually wake on its own**, `lab/pinger.gs` is a Google Apps Script that presses
+Run workflow once an hour from a free app-script trigger — the same trick as the beacon in §4. It costs
+about four minutes of setup, it needs a fine-grained GitHub token with `Actions: write` and nothing else,
+and the file's own header says what it does not do: it cannot make GitHub's cron reliable, and it stops
+silently if the token expires. Only take this on if you want the colony unattended; a tribe a person wakes
+by hand is the intended shape of the first month.
+
+**Knowing whether *your* copy fires** is the heartbeat's whole job: `python3 lab/heartbeat.py` counts the
+hours that had a beat, closes its window at the current hour rather than at the last beat (so a silence at
+the end is counted instead of hidden — that correction was made on the morning above, when the tool read
+"9 due, 7 missed" while three more silent hours had already passed), and prints the miss rate. Only a beat
+that says `schedule` in the record counts as evidence; a hand dispatch does not, and the tool says so.
+`gh workflow run heartbeat` gives you a hand beat to compare against.
 
 
 Add to `.github/workflows/wake.yml`:
@@ -801,7 +813,7 @@ summary rather than to ask the model to be careful with it.** Same lesson as the
 
 ## 15. Tests
 
-`python3 tests.py` — 147 assertions. They are not a general test suite; each one is a defect that happened
+`python3 tests.py` — 149 assertions. They are not a general test suite; each one is a defect that happened
 here, kept so it cannot happen twice: the echo detector that must not fire on a quotation, the quote field
 that must not accept a paraphrase, the check executor's refusals (metacharacters, absolute paths, `..`,
 anything that writes), the game's parsing, the derived vote log's totals, the schema validator's own error

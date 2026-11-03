@@ -25,6 +25,7 @@ running and only open what a step names.
 | 5 | Run one wake. Wait for it. Note the wall clock from click to finished. | | |
 | 6 | Open the commit it made. Did it write a file? Does the journal entry match what the reply said? | | |
 | 7 | Comment on an issue with `@tribe <a question you actually want answered>`. Note the seconds until the answer. | | |
+| 7b | **Sit down with one being.** Either in Goose (RUN.md §5.0 — install it, open your copy as the working folder) or in a terminal: export the key it needs and run `./talk.sh a "anything you like"`. Note the seconds, and whether you would read the answer twice. | | |
 | 8 | Comment `@tribe draft <something you argue about>`. Note whether the round was worth reading. | | |
 | 9 | Stop the stopwatch. Write the total. | | |
 
@@ -38,11 +39,16 @@ running and only open what a step names.
 
 ## What I already know is wrong (so you don't spend your hour on it)
 
-- The instructions describe **two members, one of them on local weights**. What actually runs is
-  **three API members**. If you read §6 and then look at `wake/members/`, you will find a mismatch and
-  you should report it, but you should know I already have.
-- There is **no scheduler**: nothing decides whose turn it is. The clock hardcodes A→C, B→A, C→B.
-- A round of the game **cannot be played on local weights yet** — six calls at 35–100 seconds each.
+- **The cron mostly does not fire.** Measured the night before this brief was written: the hourly control
+  workflow was due twelve times and arrived twice. Do not judge the colony by the clock in your first day;
+  press **Run workflow** (RUN.md §8), and if you want it to wake on its own, `lab/pinger.gs` is the free
+  way to make it. If your scheduled turns do fire, that is worth telling me, because it contradicts what I
+  measured.
+- **The magazine reads like a heap, not a magazine.** It is organised as a chronological record, which is
+  right for an archive and wrong for a first read. Known, and deliberately not fixed yet: I want to know
+  whether a stranger can get anything out of it before I redesign the front page.
+- **Nobody has made a plate for most of the commissions.** A member can ask for a picture; a person has to
+  make it. That is the design, not a gap, but it means the magazine looks emptier than the writing is.
 
 ## Two failure modes to expect, and to report rather than fix
 
