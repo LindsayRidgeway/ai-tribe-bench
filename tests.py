@@ -1507,11 +1507,13 @@ class TestOutbox(unittest.TestCase):
         after = magazine.build("2", magazine.load_all(tmp), tmp)
         self.assertIn("Posted from a person's own mail client on 2026-11-03", after)
 
-    def test_a_piece_is_not_given_an_envelope(self):
-        """file_work writes `to:` only for a letter. A game with an address in its header would print as
-        correspondence — the same mis-filing the form field exists to prevent."""
+    def test_an_address_a_member_wrote_is_never_dropped_silently(self):
+        """The first version wrote `to:` only when the member had also said `form: letter`, so a member
+        that wrote an address and called its work a note lost the address with no message — the silent
+        loss this bench keeps finding. The address is kept whatever the form; a mismatch is printed."""
         src = (REPO / "file_work.py").read_text(encoding="utf-8")
-        self.assertIn('if form == "letter" else ""', src)
+        self.assertNotIn('if form == "letter" else ""', src, "the address must not depend on the form")
+        self.assertIn("carrying an address", src)
         self.assertIn('"to": "optional: with form letter', wake.PROMPT)
         self.assertIn("You cannot send mail either", wake.PROMPT)
 

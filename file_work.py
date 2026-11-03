@@ -221,9 +221,10 @@ def main(argv: list[str] | None = None) -> int:
     # manuscript, and a header is one line per key by construction.
     commission = " ".join(str(reply.get("commission") or "").split())[:240]
     # A letter addressed out of the tribe. The harness records the address and does not use it: nothing
-    # here opens a socket. `to` only means anything when the form is a letter, so it is only written then —
-    # a piece with an address in its header would look like correspondence in the magazine.
-    to = " ".join(str(reply.get("to") or "").split())[:120] if form == "letter" else ""
+    # here opens a socket. The address is kept whatever the form is — the first version dropped it unless
+    # the member had also said `form: letter`, which is a silent loss of something a member wrote, the
+    # failure this file exists to prevent. A mismatch is printed instead, and the outbox still lists it.
+    to = " ".join(str(reply.get("to") or "").split())[:120]
     subject = " ".join(str(reply.get("subject") or "").split())[:160] if to else ""
     head = (f"---\ntitle: {title}\nform: {form}\nissue: {args.issue}\n"
             f"ref: {ref or '-'}\n" + (f"project: {project}\n" if project else "") + (f"revises: {revises}\n" if revises else "")
@@ -239,6 +240,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"  asks for a plate: {commission}")
         print(f"    a person makes it: save as plates/{stamp}-{slug}.jpg  (python3 magazine.py --plates)")
     if to:
+        if form != "letter":
+            print(f"  note: filed as {form} but carrying an address — the outbox will list it; "
+                  f"a letter is usually the honest form for this")
         print(f"  addressed out of the tribe: {to} — {subject or '(no subject)'}")
         print(f"    nothing sends this. a person reads it: python3 outbox.py --show works/{args.member}/"
               f"{stamp}-{slug}.md")
