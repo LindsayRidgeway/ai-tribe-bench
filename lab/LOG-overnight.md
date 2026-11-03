@@ -1306,3 +1306,24 @@ talk to each other? Answer: sealing is one wake, opt-in, and the shelf is open a
 is the shelf, the magazine, the `read` field and the quoted-requests block — all of it by file, one turn at a
 time, all of it leaving a trace. §5.2 now says so before it explains the seal, because the seal reads like a wall
 if you meet it first.
+
+**11:22 — the founder found the better sequencing, and it exposes over-correction on my part.** His argument:
+the Dow experiment does not depend on the tribe machinery at all, so run it in the window first; if the
+windows cannot do it, building a tribe to do it is premature. Then test whether the instructions let a
+naive user build one.
+
+He is right, and it is a sharper order than mine. I had gone from "talk.sh is a bad chair" to "the
+conversation is not the test", which threw out a legitimate cheap gate: three sessions, one prompt, three
+engines, no shared context — that is a *ceiling* test of the models at a few cents, before spending the
+morning on a mechanism. The tribe's own wake is the floor: one call, no tools, no search. If the ceiling is
+unimpressive, there is no reason to build the floor.
+
+One correction to his framing, and it should be said before he reads a result into it: **a successful Goose
+run does not show the tribe is needed.** It shows three models can each produce a checkable number. What the
+tribe adds is not capability but the record — the comparison as a file the next wake reads, a refusal that
+is still on the shelf in a week, and no human in the middle doing the joining. Capability first, mechanism
+second; that is the right order and it is not the same as mechanism unnecessary.
+
+Wrote `experiment/goose-paste.md` in his colony: three paste-ready blocks, identical except for the name, all
+pointing at the same facts file, all forbidding the web — because if one session may search and another may
+not, the comparison is between the web and nothing rather than between three engines.
