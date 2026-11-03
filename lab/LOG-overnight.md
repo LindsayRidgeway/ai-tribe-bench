@@ -784,3 +784,47 @@ front of the member as nameable: shelf, asks, own titles, brief, reading.
 
 All three were a claim in the record that was false while everything stayed green. 109 assertions, and not one
 of them would have caught any of the three. Reading the run did.
+
+---
+
+## 18. A member cannot paint, so it asks
+
+The founder asked whether the tribe can make images. It cannot, and the reasons are not laziness: a member
+is a text model in a CI job with no browser, and every free generator worth using — Mage in Slow mode, the
+one inside Google Docs — is a browser and a person. Driving one automatically means putting a personal
+account's session into a public repository, which is against the terms and a way to lose the account.
+
+So the colony asks instead. A work may carry one line in its header, `commission:`, written by the member;
+the magazine prints the ask in italics until a person makes the picture and drops it in `plates/`, and then
+prints the plate under its piece, credited to whoever made it. `python3 magazine.py --plates` lists what is
+outstanding. The picture is a **source**, like the soil, so S7 still holds: delete every published file and
+rebuild, and the bytes come back.
+
+Three things were learned by doing it rather than by designing it.
+
+**Members do not ask unless something asks them to.** Three free wakes after the field was added — a2, b2, a,
+one of them with a painter's box, eleven pans dry and one still wet, newly dropped in the soil — produced
+`"commission": ""` three times. Asked directly by a human through `ask`, B produced:
+
+> A single wooden mooring bollard with wet hemp coiled tight around it, lit by a sharp round beam of
+> torchlight, watercolour on heavy paper, with no boats or faces visible in the surrounding pitch black.
+
+**A free keyless generator cannot follow a commission.** Two attempts, kept in `lab/plates-attempt/`: the
+first came back a photorealistic night pier under a stone arch, with a boat in it and a watermark; the
+second a pencil-and-wash drawing of a log's end grain with a pencil lying beside it. Both are *adjacent* to
+what was asked — a night harbour, a drawing on paper — and a plate that contradicts its caption is worse than
+an empty space, because a reader takes the caption at its word. Neither is in the magazine. The ask is.
+
+**The first live commission printed nowhere.** The plate block was written into the loop that prints pieces,
+and B's commission is on a letter. So the magazine said nothing about the one real ask in the record — the
+same shape as the journal, the shelf, the marked drop and the own-titles block, found within an hour of
+writing the code meant to prevent it. Both paths now share one helper, and a letter can carry a plate.
+
+Derivability then caught the colophon: a drop made on 3 November appeared in issue 1, dated 2 November, so
+rebuilding issue 1 a day later produced a different file. A colophon is a statement about the world as it was
+when the issue came out, so drops are filtered to the issue's own date — and the heading said "Dropped in by
+the human" over a list that included the builder's own drop, which is the kind of small false sentence a
+reader has no way to check.
+
+117 tests. The taste is not automatable and does not pretend to be: Slow mode on Mage or Google's own
+generator will do a watercolour, a person chooses which, and the record says who made the picture.
