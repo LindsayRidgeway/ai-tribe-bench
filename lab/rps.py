@@ -149,6 +149,12 @@ def main(argv=None) -> int:
     ap.add_argument("--temperature", type=float, default=1.0)
     ap.add_argument("--model", default=None, help="override, comma-separated, one per member")
     ap.add_argument("--out", default=None, help="directory, default experiment/rps/<pair>-<mode>")
+    ap.add_argument("--random-side", default=None,
+                    help="name one of the pair and that side is played by a seeded random number generator "
+                         "instead of a model. This is the control, not a substitute for the beings: a random "
+                         "player sits at exactly 33%, so a being's win rate against it says whether it is "
+                         "reading an opponent at all.")
+    ap.add_argument("--seed", type=int, default=None, help="the generator's seed, recorded in the transcript")
     args = ap.parse_args(argv)
 
     names = [n.strip() for n in args.pair.split(",")]
@@ -167,6 +173,14 @@ def main(argv=None) -> int:
             return 2
         keys.append(k)
 
+    rng = None
+    if args.random_side and args.random_side not in names:
+        print(f"   --random-side {args.random_side!r} is not one of {names}. Nothing was played.", file=sys.stderr)
+        return 2
+    if args.random_side:
+        seed = args.seed if args.seed is not None else int(datetime.now(timezone.utc).timestamp())
+        rng = random.Random(seed)
+
     day = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     out = Path(args.out) if args.out else ROOT / "experiment" / "rps" / f"{'-'.join(names)}-{args.history}-{day}"
     out.mkdir(parents=True, exist_ok=True)
@@ -177,6 +191,19 @@ def main(argv=None) -> int:
     for r in range(1, args.rounds + 1):
         throws, hashes = {}, {}
         for i, name in enumerate(names):
+            if rng is not None and name == args.random_side:
+                # The control throws from a generator, not a model. Its draws are uniform by construction, so
+                # any being that beats it is doing something a coin cannot — and any being that does not beat
+                # it is, on this evidence, not reading its opponent.
+                t_ = rng.choice(THROWS)
+                throws[name] = t_
+                blob = f"{r}:{name}:{t_}".encode()
+                hashes[name] = hashlib.sha256(blob).hexdigest()[:16]
+                (out / f"r{r:02d}-{name}.md").write_text(
+                    f"round: {r}\nmember: {name}\nthrow: {t_}\ncommitment: {hashes[name]}\n"
+                    f"at: {datetime.now(timezone.utc):%Y-%m-%dT%H:%M:%SZ}\nreply: (seeded generator)\n",
+                    encoding="utf-8")
+                continue
             prompt = prompt_for(name, names[1 - i], rounds, args.history == "on")
             try:
                 reply = ask(BASES[vendors[i]], keys[i], models[i], prompt, args.temperature)
@@ -212,8 +239,9 @@ def main(argv=None) -> int:
     print()
     report = ["# Rock-paper-scissors", "",
               f"{names[0]} ({vendors[0]}/{models[0]}) vs {names[1]} ({vendors[1]}/{models[1]}). "
-              f"{len(rounds)} rounds, history {args.history}, temperature {args.temperature}. "
-              f"Played {datetime.now(timezone.utc):%Y-%m-%d %H:%M} UTC.", "",
+              f"{len(rounds)} rounds, history {args.history}, temperature {args.temperature}"
+              + (f", {args.random_side} played by a seeded generator (seed {seed})" if rng else "")
+              + f". Played {datetime.now(timezone.utc):%Y-%m-%d %H:%M} UTC.", "",
               "| round | " + " | ".join(names) + " | result |", "|---|---|---|---|"]
     for r in rounds:
         report.append(f"| {r['round']} | {r['throws'][names[0]]} | {r['throws'][names[1]]} | {r['winner']} |")
@@ -240,6 +268,10 @@ def main(argv=None) -> int:
     print(f"\n   transcript: {out.relative_to(ROOT) if str(out).startswith(str(ROOT)) else out}")
     print(f"   every round was committed before it was compared: the r{1}..r{len(rounds)} files hold the throw and "
           f"its hash, so a reader can check nothing was revised after the result was known.")
+    if rng is not None:
+        print(f"   {args.random_side} threw from a seeded generator: a coin cannot be read, so beating it "
+              f"means reading nothing and losing to it means nothing either. What it measures is whether a "
+              f"being's throws are distinguishable from chance.")
     if len(rounds) < 20:
         print(f"   {len(rounds)} rounds cannot separate 33% from 45%: the transcript is the exhibit, the "
               f"percentages are a hint.")
