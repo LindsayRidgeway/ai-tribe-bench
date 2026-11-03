@@ -45,3 +45,22 @@ what-i-am-for.md
 ```
 95824cb589911b8c5afefecab26429d0ffe8ddc5  wake/members/Remy/output/my-name.md
 ```
+
+## 2026-11-03 14:27 UTC — checks you asked for, run by the harness
+
+**`shasum wake/members/Remy/output/my-name-plain.md`**
+
+```
+bed9c2c6b890243758d1ee93af13d2c3eb2c76ad  wake/members/Remy/output/my-name-plain.md
+```
+
+**`ls wake/members/Remy/output`**
+
+```
+my-name-plain.md
+my-name.md
+raw-20261103T141647Z.json
+raw-20261103T142138Z.json
+raw-20261103T142240Z.json
+what-i-am-for.md
+```

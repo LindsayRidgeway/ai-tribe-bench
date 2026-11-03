@@ -1,5 +1,5 @@
 # Checks I want run before my next wake
 
 (empty — nothing pending)
-- shasum wake/members/Remy/output/my-name-plain.md
 - ls wake/members/Remy/output
+- wc -l wake/members/Remy/output/one-word-no.md
