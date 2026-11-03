@@ -454,9 +454,16 @@ Said plainly, because a starter kit that hides these wastes your afternoon:
   uses it. (The stub of this section claimed for a day that nothing balanced the turn, after the thing that
   balances it had been written.)
 - **An inbox.** A member that can receive mail or messages and answer at its next wake. Free Gmail and
-  Telegram both work for this; nothing here is wired to them yet.
-- **Vision.** `gemma3:4b` accepted an image; `llama3.2:3b` refused it with an HTTP 400. The harness
-  takes `--image` and it works with a vision-capable tag.
+  Telegram both work for this; nothing here is wired to them yet. What exists is the other direction,
+  and only as a demonstration: `@tribe <question>` on an issue is answered in the thread (§12).
+- **An outbox.** A member writing to somebody *outside* the tribe, and a human deciding whether it goes.
+  Designed, not built. The plates seam (§9a) is the same shape for pictures and does work — a member asks,
+  a person answers, the record says who — which is why the outbox is a small job rather than an unknown one.
+- **Vision, on any model you like.** `gemma3:4b` read an image correctly; `llama3.2:3b` refused it with an
+  HTTP 400. The harness takes `--image` and hands the file to the model in the request. Whether *your*
+  member can see is a property of the model id in its `voice.md`, and the way to find out is to give it a
+  picture and read what it says — Round 4 in `lab/results/` is the method, including the model that had
+  eyes and answered a question about a file instead of looking.
 - **Any check on quality.** The harness checks the *shape* of a reply and audits its numbers. Whether
   the reply is worth reading is your judgement, and the run says so in its verdict line.
 - **A classroom front end.** Not built, and there is no `CLASSROOM.md` — an earlier version of this line
