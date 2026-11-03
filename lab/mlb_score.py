@@ -38,7 +38,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 GLOB_DIR = ROOT / "experiment" / "mlb"
 
-API = "https://statsapi.mlb.com/api/v1/schedule?sportId=1&season=2026&gameType={}"
+API = "https://statsapi.mlb.com/api/v1/schedule?sportId=1&season={season}&gameType={kind}"
 
 # The four rounds, shallowest first. A team's depth is the deepest round it appears in, and the champion
 # is whoever won the last game of the deepest one.
@@ -106,13 +106,13 @@ def default_fetch(url: str, tries: int = 3) -> str:
     raise last
 
 
-def outcome(fetch=None) -> tuple[dict[str, int], str | None]:
+def outcome(fetch=None, season: int = 2026) -> tuple[dict[str, int], str | None]:
     """How far each club went, from the league's own schedule: 5 champion, 4 pennant, 3 LCS, 2 DS, 1 WC."""
     fetch = fetch or default_fetch
     depth: dict[str, int] = {}
     champion = None
     for kind, points, _label in ROUNDS:
-        data = json.loads(fetch(API.format(kind)))
+        data = json.loads(fetch(API.format(season=season, kind=kind)))
         for day in data.get("dates", []):
             for game in day.get("games", []):
                 sides = game.get("teams", {})
@@ -139,8 +139,12 @@ def picks(path: Path) -> dict:
            "picks": {}, "knew": "", "guess": "", "method": ""}
     for m in PICK.finditer(text):
         rank = int(m.group(1))
-        club = canon(m.group(2)) or m.group(2).strip()[:40]
         tail = m.group(2)
+        # The club is the first clause, not the sentence: "E — 30% — best record" names E, and a scorer that
+        # swallowed the reason would file a club called "E — 30% — best record" and score it as an unknown.
+        head = re.split(r"\s+[—–-]\s+|\s*[|]\s*|\s\(\s*", tail)[0]
+        head = head.replace("*", "").strip()
+        club = canon(head) or head[:20]
         conf = re.search(r"(\d{1,3})\s*%", tail)
         out["picks"].setdefault(rank, {"club": club, "raw": tail.strip()[:90],
                                        "conf": int(conf.group(1)) if conf else None})
@@ -166,14 +170,27 @@ def recall_risk(row: dict, champion: str) -> str:
     return ""
 
 
-def rows(root: Path | None = None, also: list[str] | None = None, fetch=None):
+def rows(root: Path | None = None, also: list[str] | None = None, fetch=None,
+         letters: dict[str, str] | None = None):
     root = root or ROOT
-    files = sorted((root / "experiment" / "mlb").glob("*-1.md"))
+    # Two experiments live side by side: the 2026 season under real names, and a season with the names taken
+    # out. A scorer that mixed them would score letter-votes against clubs, so the two sets are kept apart by
+    # the only thing that distinguishes them — whether the file is an anonymous run.
+    pattern = "*-anon-1.md" if letters else "*-1.md"
+    files = sorted((root / "experiment" / "mlb").glob(pattern))
     for extra in (also or []):
-        files += sorted((root / extra).glob("*-1.md"))
+        files += sorted((root / extra).glob(pattern))
+    if not letters:
+        files = [f for f in files if not f.name.endswith("-anon-1.md")]
     seen, out = set(), []
     for f in files:
         r = picks(f)
+        # A season with the names taken out: a member picks letters, and the letters become clubs here and
+        # nowhere earlier, so nothing a member read could contain the answer.
+        if letters:
+            for slot in r["picks"].values():
+                if slot["club"] in letters:
+                    slot["club"] = canon(letters[slot["club"]]) or letters[slot["club"]]
         key = r["member"].casefold()
         if key in seen or not r["picks"]:
             continue
@@ -187,6 +204,10 @@ def main(argv=None, fetch=None, now=None) -> int:
     ap.add_argument("--also", action="append", default=[], help="extra directory to look in for *-1.md")
     ap.add_argument("--offline-file", default=None,
                     help="a saved response per round (JSON list of four), so the score is reproducible")
+    ap.add_argument("--season", type=int, default=2026, help="which season's postseason to score against")
+    ap.add_argument("--key", default=None,
+                    help="the letter->club mapping for a season with the names taken out; the mapping is "
+                         "printed at the end, because the reveal is the point")
     ap.add_argument("--write", action="store_true", help="also write facts/mlb-comparison.md")
     args = ap.parse_args(argv)
     now = now or datetime.now(timezone.utc)
@@ -194,8 +215,11 @@ def main(argv=None, fetch=None, now=None) -> int:
     if args.offline_file:
         saved = json.loads(Path(args.offline_file).read_text(encoding="utf-8"))
         fetch = lambda url: saved[url]  # noqa: E731
+    letters = None
+    if args.key:
+        letters = json.loads(Path(args.key).read_text(encoding="utf-8"))["letters"]
     try:
-        depth, champion = outcome(fetch)
+        depth, champion = outcome(fetch, args.season)
     except Exception as e:
         print(f"   could not read the postseason schedule: {e}", file=sys.stderr)
         print("   nothing was scored. A score invented from memory is worse than no score, because a "
@@ -205,12 +229,12 @@ def main(argv=None, fetch=None, now=None) -> int:
         print("   the schedule came back empty, or it has no World Series winner in it. Nothing to score "
               "against.", file=sys.stderr)
         return 2
-    rows_ = rows(also=args.also, fetch=fetch)
+    rows_ = rows(also=args.also, fetch=fetch, letters=letters)
     if not rows_:
         print("No *-1.md prediction files found under experiment/mlb/. A scoreboard needs at least one.")
         return 1
 
-    print(f"Scored against the 2026 postseason: {champion} won it. "
+    print(f"Scored against the {args.season} postseason: {champion} won it. "
           f"(read from statsapi.mlb.com at {now:%Y-%m-%d %H:%M} UTC)\n")
     print(f"{'being':10s} {'#1':14s} {'#2':14s} {'#3':14s} {'champ':7s} {'depth':6s} recall")
     print(f"{'-'*10} {'-'*14} {'-'*14} {'-'*14} {'-'*7} {'-'*6} {'-'*30}")
@@ -254,6 +278,14 @@ def main(argv=None, fetch=None, now=None) -> int:
           "and whether it survives being shown the answer. What it cannot decide: whose method is better. "
           "The champion wins about one time in five, which is why exchange 3 asks them to argue about it "
           "rather than asking this tool to.")
+
+    if letters:
+        print("\nThe letters, which no being could see while it was deciding:")
+        inv = {v: k for k, v in letters.items()}
+        for club in sorted(depth, key=lambda c: -depth[c]):
+            if club in inv:
+                print(f"   {inv[club]:3s} {club:22s} went {depth[club]} "
+                      f"({'champion' if depth[club] == 5 else 'pennant' if depth[club] == 4 else 'LCS' if depth[club] == 3 else 'earlier'})")
 
     if args.write:
         out = ROOT / "facts" / "mlb-comparison.md"

@@ -47,6 +47,8 @@ file_work = load(REPO / "file_work.py", "file_work_mod")
 outbox = load(REPO / "outbox.py", "outbox_mod")
 heartbeat = load(REPO / "lab" / "heartbeat.py", "heartbeat_mod")
 mlb_score = load(REPO / "lab" / "mlb_score.py", "mlb_score_mod")
+rank_compare = load(REPO / "lab" / "rank_compare.py", "rank_compare_mod")
+sport_facts = load(REPO / "lab" / "sport_facts.py", "sport_facts_mod")
 _json = __import__("json")
 
 FACTS = "date: Mon Nov  2 02:00:00 UTC 2026\nnproc: 2\nfree: 16000 MB"
@@ -553,7 +555,8 @@ class TestThreeAnswers(unittest.TestCase):
                 {"when": _dt(2026, 11, 3, 14, 30, tzinfo=timezone.utc), "open": 2.0, "high": 3.0,
                  "low": 1.0, "close": 51737.7}]
         meta = {"regularMarketPrice": 51737.66, "regularMarketTime": 1793720029}
-        text = mod.render(rows, meta, "2026-11-04")
+        text = mod.render(rows, meta, "2026-11-04",
+                          now=_dt(2026, 11, 3, 15, 33, tzinfo=timezone.utc))
         self.assertIn("still running", text)
         self.assertIn("not a close", text)
         self.assertIn("PREDICTION:", text, "the question must ask for the one shape a tool can parse")
@@ -1891,6 +1894,58 @@ class TestBaseball(unittest.TestCase):
         self.assertEqual(code, 2, "a scorer with no data must fail, and say so")
         self.assertIn("nothing was scored", err.getvalue())
         self.assertEqual(buf.getvalue(), "", "no table, no champion, no invented result")
+
+
+class TestRankings(unittest.TestCase):
+    """A full ordering of clubs nobody can name, and the distance between three of them.
+
+    The founder's design, 2026-11-03: *"the disagreements that make this worth doing live in the middle of the
+    table."* A top three agrees at the top and shows nothing; a full ordering is a shape, and shapes can be
+    compared. What the tool must never do is score a ranking with a club missing out of thirty-two — which is
+    exactly what the first real run filed.
+    """
+
+    def test_a_ranking_with_a_club_missing_is_named_as_incomplete(self):
+        rows = [{"member": "Remy", "order": [chr(ord("A") + i) for i in range(31)]},
+                {"member": "Colette", "order": [chr(ord("A") + i) for i in range(32)]}]
+        self.assertEqual(rank_compare.incomplete(rows, 32), ["Remy"],
+                         "thirty-one clubs out of thirty-two is a hole in the exhibit, not a ranking")
+        self.assertEqual(rank_compare.incomplete(rows, 31), ["Colette"])
+
+    def test_rank_correlation_is_one_for_a_copy_and_minus_one_for_a_reversal(self):
+        a = ["A", "B", "C", "D", "E"]
+        self.assertAlmostEqual(rank_compare.spearman(a, a[:]), 1.0)
+        self.assertAlmostEqual(rank_compare.spearman(a, list(reversed(a))), -1.0)
+        self.assertAlmostEqual(rank_compare.spearman(a, ["A", "B", "D", "C", "E"]), 1 - 6 * 2 / (5 * 24))
+
+    def test_the_ranking_line_is_read_from_prose_and_letters_are_normalised(self):
+        text = ("Blah blah.\n**RANKING:** b, a , AB, c\nMETHOD: something.\n")
+        self.assertEqual(rank_compare.parse_ranking(text), ["B", "A", "AB", "C"])
+
+    def test_a_champion_that_is_neither_letter_nor_club_puts_nothing_on_disk(self):
+        key = Path(tempfile.mkdtemp()) / "key.json"
+        self.addCleanup(shutil.rmtree, key.parent, True)
+        key.write_text(_json.dumps({"season": 2011, "seed": 1, "letters": {"A": "Alpha", "B": "Beta"}}),
+                       encoding="utf-8")
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            code = rank_compare.main(["--key", str(key), "--champion", "Nobody"])
+        self.assertEqual(code, 2, "an unresolvable champion must stop the tool, not guess one")
+        self.assertIn("fabricated", err.getvalue())
+
+    def test_the_facts_tool_refuses_a_club_list_that_is_not_thirty_two(self):
+        def short_list(url, *a, **k):
+            return {"sports": [{"leagues": [{"teams": [{"team": {"id": "1", "displayName": "One"}}]}]}]}
+        original = sport_facts.get
+        sport_facts.get = short_list
+        self.addCleanup(setattr, sport_facts, "get", original)
+        out = Path(tempfile.mkdtemp()) / "facts.md"
+        self.addCleanup(shutil.rmtree, out.parent, True)
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            code = sport_facts.main(["--season", "2011", "--out", str(out), "--key-out", str(out) + ".key"])
+        self.assertEqual(code, 2)
+        self.assertFalse(out.exists(), "a facts file from a broken club list must not be written")
 
 
 class TestOutbox(unittest.TestCase):

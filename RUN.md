@@ -370,6 +370,20 @@ key the way a wake does, one turn at a time.
 > judgement — not as an assistant describing a character. Keep it short. Do not write any file unless I ask
 > you to; when I ask, write it into `works/a/` with the header block the other works use.
 
+**Rank all thirty-two, don't pick three.** The founder's correction after two baseball runs came back with
+the same three clubs from three sealed engines: *"Maybe it was that obvious, but that's not a good demo."* A
+top three agrees at the top and shows nothing; a full ordering is a shape, and shapes can be compared as a
+number. Football rather than baseball because seventeen games and single elimination mean the best club
+usually does not win, so no consensus shortcut survives. `lab/sport_facts.py` writes a season's regular-season
+record with the clubs replaced by letters drawn from a seed, and the letter→club key outside the repository —
+with names in front of it a being reasons from what it already believes about a franchise, and that reputation
+arrives in its METHOD line dressed as method. Nothing from the postseason goes in the file and nothing is
+revealed afterwards: a being that learns the result can never be asked again. `lab/rank_compare.py` scores it —
+rank correlation between each pair of beings, the median number of places they move a club, the club they
+disagree about most, the champion's rank in each ordering, and how much of the real playoff field each one
+picked. It refuses a ranking with a club missing, which is what the first real run filed; and it crowns nobody,
+because one season cannot rank methods. `experiment/rank/TEMPLATE-rank-1.md` is the prompt.
+
 **A three-exchange experiment you can score in ten minutes.** The Dow version of this (§ the log,
 2026-11-03) asked three beings for a number and made everyone wait a day for the close; the founder's
 objection was exact — *"the fact that we can't check the prediction accuracy for 24 hours is a disadvantage."*
