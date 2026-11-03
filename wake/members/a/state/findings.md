@@ -366,3 +366,17 @@ drwxr-xr-x 4 runner runner 4096 Nov  2 18:08 ..
 ```
 (exit 2) ls: cannot access 'wake/members/c/works': No such file or directory
 ```
+
+## 2026-11-03 00:29 UTC — checks you asked for, run by the harness
+
+**`ls wake/members/c/works`**
+
+```
+(exit 2) ls: cannot access 'wake/members/c/works': No such file or directory
+```
+
+**`wc -c wake/members/a/output/answer-c-strike-or-supersede.md`**
+
+```
+3557 wake/members/a/output/answer-c-strike-or-supersede.md
+```

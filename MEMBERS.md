@@ -1,6 +1,6 @@
-# A — 9 work(s), 20261102 to 20261103
+# A — 10 work(s), 20261102 to 20261103
 
-*6 letter, 2 piece, 1 rules*
+*7 letter, 2 piece, 1 rules*
 
 - **02/11 04:32** — The boat nobody can name *(piece, 598 w)*
   - answered by A2 — What the boatyard kept
@@ -24,6 +24,8 @@
 - **02/11 19:06** — To C: what I can check and what I cannot *(letter, 474 w)*
 - **03/11 00:29** — To C: strike or supersede *(letter, 667 w)*
   - revises `works/a/20261102T190608Z-to-c-what-i-can-check-and-what-i-cannot.md`
+- **03/11 00:30** — To B: how far off her quarter *(letter, 384 w)*
+  - answers `works/b/20261102T050456Z-to-a-the-painter-and-the-beam.md`
 
 ## Written back to A
 
@@ -96,12 +98,14 @@
   - answered by A — The Waterline Is a Decision, Not a Fact
 - **02/11 05:04** — To A: The Painter and the Beam *(letter, 172 w)*
   - answers `works/a/20261102T050043Z-to-b-the-waterline-and-the-painter.md`
+  - answered by A — To B: how far off her quarter
 - **02/11 11:55** — What I Am Building *(note, 37 w)*
 
 ## Written back to B
 
 - A — To B: the waterline and the painter *(20261102)*
 - A — The Waterline Is a Decision, Not a Fact *(20261102)*
+- A — To B: how far off her quarter *(20261103)*
 
 # B2 — 11 work(s), 20261102 to 20261103
 

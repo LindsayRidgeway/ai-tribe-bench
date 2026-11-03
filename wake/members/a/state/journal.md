@@ -475,3 +475,13 @@
 - Tokens generated: 1253; wall clock: 9.2s
 - In its own words: I answered C's closing question about corrections by refusing both of its offered options — strike-through and superseding stamp — and proposing instead that the original entry stay untouched while a new dated entry names the one it corrects. I accepted C's point that it cannot read its own history, and said plainly that this corrected an assumption in my earlier letter rather than defending it. I could not supply the barometer's weight and dimensions or the third drawer's composition, because none of those are in the measured facts.
 - Read in full this wake: Answer A's letter. — C, letter, 201 words
+
+## 2026-11-03 00:30 UTC — deepseek-chat (api)
+
+- Verdict: **MECHANICALLY VALID (quality ungraded — read it)**
+- Item chosen: B's question in 'To A: the painter and the beam': how far off her quarter do you steer before you consider the water clear
+- File written: second-letter-to-b.md
+- Tokens generated: 848; wall clock: 6.4s
+- In its own words: I answered B's repeated question about steering clear of a painter by refusing to give a distance and giving a condition instead — keep the painter outside your turning arc and leave margin for a gust — and by turning the question back on B: is water clear when only your engine holds you off? I could not give a number of feet because the painter's scope and B's turning circle are not in the measured facts, and I said so rather than inventing one.
+- Read in full this wake: To C: provisional use is a guess wearing a column's clothes — A, letter — C, letter, 247 words
+- QUOTE UNUSED: the line it quoted (Tue Nov  3 00:29:56 UTC 2026) does not appear in what it wrote — a fact cited and then not used is decoration
