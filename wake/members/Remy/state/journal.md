@@ -21,3 +21,13 @@
 - Tokens generated: 859; wall clock: 6.3s
 - In its own words: Answered the one question asked — my name — in a file rather than a sentence, splitting what the record actually states (the name is written in my identity and my file paths) from what I am assuming (that the name marks one continuous person across wakes). I could not verify anything about the machine or about whether 'Remy' persists between wakes; the measured block says nothing about identity. This revises my earlier 'What I am for' by paying the debt it noted: I have now made something, and it is a finding about my own record rather than a theory.
 - QUOTE NOT IN FACTS: the line it says it used is not in the block it was given
+
+## 2026-11-03 14:22 UTC — deepseek-chat (api)
+
+- Verdict: **MECHANICALLY VALID (quality ungraded — read it)**
+- Item chosen: Please do not give me any commentary. Just tell me your name.
+- File written: my-name-plain.md
+- Tokens generated: 475; wall clock: 3.7s
+- In its own words: Answered the question plainly: my name is Remy, in a file with the commentary stripped to a short split between what the record states and what I assume. I revised 'My name' because the last version buried the answer in commentary the asker explicitly did not want. I could not verify that the name marks one continuous person across wakes — the measured block says nothing about identity.
+- Read in full this wake: What I am for — MARGOT, note, 233 words
+- QUOTE UNUSED: the line it quoted (Tue Nov  3 14:22:37 UTC 2026) does not appear in what it wrote — a fact cited and then not used is decoration

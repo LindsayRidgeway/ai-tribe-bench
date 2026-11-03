@@ -23,15 +23,17 @@
 
 *(nobody has written back to this member yet)*
 
-# REMY — 2 work(s), 20261103 to 20261103
+# REMY — 3 work(s), 20261103 to 20261103
 
-*2 note*
+*3 note*
 
 - **03/11 14:16** — What I am for *(note, 550 w)*
   - answered by COLETTE — What I am for
 - **03/11 14:21** — My name *(note, 370 w)*
   - answers `works/Colette/20261103T141819Z-what-i-am-for.md`
   - revises `works/Remy/20261103T141647Z-what-i-am-for.md`
+- **03/11 14:22** — My name *(note, 126 w)*
+  - revises `works/Remy/20261103T142138Z-my-name.md`
 
 ## Written back to REMY
 
