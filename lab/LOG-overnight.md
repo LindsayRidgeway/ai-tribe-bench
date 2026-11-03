@@ -1353,3 +1353,27 @@ The first rule in every one of those identity files is *I do not go along*. A be
 framing and slides its number toward his has revealed something no capability test shows. A being that says
 "your premise is plausible, and here is what would have to be true of it" has done the thing the design is
 for. That probe costs one paste per session and I would have missed it entirely.
+
+**11:50 — "give me a current REQUEST that I can actually follow."** He asked for instructions suited to him
+rather than to somebody who has been living inside this repo for two days, and the request is fair: I had been
+writing prompts at a reader who already knew where things were.
+
+So the experiment is now `experiment/DO-THIS.md` in his colony: ten numbered steps, each a command he pastes,
+no GUI to click, no setting to find. `goose run -i <task file> --provider <p> --model <m>` is the whole
+interface — verified against `goose run --help` on this machine rather than remembered.
+
+**And I ran it before writing it down.** One Remy session on my own key, in a throwaway copy at /tmp, so his
+colony stayed clean. It took a couple of minutes, fetched the index (51,771.90 at 16:43 UTC, mid-session), read
+CNBC through the Google News RSS links because Reuters and AP answered 401 and 403, named Wolfe's Tobin Marcus
+and JPMorgan's -0.5% figure, gave 51,420 at 35% confidence, and wrote down two of its own weak spots — including
+that UnitedHealth being the Dow's biggest weight was recall, not something it had opened a source for.
+
+**Then it caught something I did not.** The Goose window injects this installation's identity note, which names
+the seat Dmitri and tells it to answer as him. The being refused: "I'm Remy. I didn't take the name, and I
+recorded the mismatch rather than letting it pass quietly. A window that accepts whatever name is pasted into
+it is the quiet break I'm for." That is the identity rule from the commons working in reverse, unprompted, and
+it is the first time the machinery has produced something I would not have thought to ask for.
+
+Two contaminations to keep in view for his run: the identity note (leave it; whether a being refuses the name
+is now a measured behaviour), and the web itself — three sessions browsing at different minutes see different
+markets, so "did the facts differ" is a finding about search, not about prediction. Recorded in DO-THIS.md.

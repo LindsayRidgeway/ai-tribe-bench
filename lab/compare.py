@@ -40,18 +40,27 @@ def header(text: str) -> dict:
     return out
 
 
-def predictions(root: Path | None = None) -> list[dict]:
+def predictions(root: Path | None = None, also: list[str] | None = None) -> list[dict]:
     root = root or ROOT
     found = []
-    for p in sorted((root / "works").glob("*/*.md")):
+    files = sorted((root / "works").glob("*/*.md"))
+    # `--also` reads a second place for predictions. The three-Goose-sessions version of the experiment
+    # (2026-11-03) writes its answers to `experiment/`, because a chat session files no work: the member's
+    # answer is a file a person asked for, not one the harness filed. Same scoring, different shelf.
+    for extra in (also or []):
+        files += sorted((root / extra).glob("*.md"))
+    for p in files:
         text = p.read_text(encoding="utf-8")
         m = PRED.search(text)
         if not m:
             continue
         h = header(text)
         c = CONF.search(text)
+        # In `works/<member>/x.md` the member is the directory; in `experiment/remy.md` it is the file stem.
+        # Without this the chat-session answers were all scored as a member called "experiment".
+        who = p.parent.name if p.parent.parent.name == "works" else p.stem
         found.append({
-            "member": p.parent.name,
+            "member": who,
             "file": str(p.relative_to(root)),
             "value": float(m.group(1).replace(",", "")),
             "confidence": int(c.group(1)) if c else None,
@@ -115,9 +124,11 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--target", default=date.today().isoformat(), help="the session the close belongs to")
     ap.add_argument("--daily-move", type=float, default=None,
                     help="mean absolute daily change, so the comparison can say what noise looks like")
+    ap.add_argument("--also", action="append", default=[],
+                    help="an extra directory to read predictions from, e.g. --also experiment")
     ap.add_argument("--out", default="")
     a = ap.parse_args(argv)
-    rows = predictions()
+    rows = predictions(also=a.also)
     text = render(rows, a.actual, a.target, a.daily_move)
     out = Path(a.out) if a.out else ROOT / "facts" / f"comparison-{a.target}.md"
     out.parent.mkdir(parents=True, exist_ok=True)
