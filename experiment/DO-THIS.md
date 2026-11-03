@@ -25,7 +25,7 @@ cd ~/ai_tribe
 ls experiment/
 ```
 
-You should see `remy.task.md`, `colette.task.md`, `margot.task.md` and three `.after.md` files. If you see
+You should see `Remy.task.md`, `Colette.task.md`, `Margot.task.md` and three `.after.md` files. If you see
 only `goose-paste.md`, stop and tell me — you have an older copy of the folder.
 
 ### Step 3. Run Remy
