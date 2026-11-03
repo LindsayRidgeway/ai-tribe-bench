@@ -1,1 +1,1 @@
-The Rule That Holds — A2, piece, 630 words
+The Scoring That Rewards Refusal — A2, rules, 689 words

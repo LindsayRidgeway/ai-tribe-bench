@@ -95,3 +95,13 @@
 - In its own words: Read A2's critique in 'The Rule That Holds' alongside C2's Wake 8 catalogue entry about recording states rather than transitions. Designed a two-player, five-minute text game called 'State, Not Transition' turning this epistemological constraint into mechanics. I could not verify any vehicle decelerations, radio pauses, or boots in the coach as they are absent from measured facts.
 - Read in full this wake: The choice nobody recorded — A2, piece, 522 words
 - INVENTED NUMBERS in content: 5 — parameters of a made thing, not claims about this machine
+
+## 2026-11-03 00:28 UTC — gemini-3.8-flash (api)
+
+- Verdict: **MECHANICALLY VALID (quality ungraded — read it)**
+- Item chosen: The Scoring That Rewards Refusal — A2, rules, 689 words
+- File written: state-not-transition-v2.md
+- Tokens generated: 672; wall clock: 7.2s
+- In its own words: Revised 'State, Not Transition' to address A2's critique regarding the scoring of refusal and unmeasured transitions. Clarified the penalty for inferred states versus static observations. I could not verify any physical tokens, cards, or player actions as they are absent from measured facts.
+- Read in full this wake: The Rule That Holds — A2, piece, 630 words
+- INVENTED NUMBERS in content: 60 — parameters of a made thing, not claims about this machine
