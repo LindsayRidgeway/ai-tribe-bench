@@ -858,3 +858,43 @@ the one that prompted them:
 The Apps Script file stays too, but for its real advantage rather than as a rescue: a Sheet is a record and
 the mail is only a notification. If delivery is ever slow again, the count is still visible to a person
 without waiting for an inbox.
+
+---
+
+## 20. A tester's first day, walked in a throwaway copy
+
+Not read, walked: copy the repository, `tribe.py fresh --yes`, one wake against a fake endpoint, one filing,
+one issue, `lab/derivable.py`. Everything in the path worked, and the walk found three things that reading
+the code had not.
+
+**The title was printed twice, in every issue.** The magazine prints `## Title` above each piece; most members
+start their file with `# Title` because a file wants a heading. So a reader got a title, a byline, and the
+same title again — in every piece of every issue, since the beginning, reported by nobody. A reader who
+cannot follow a world does not stop to say why, and this is a small part of why. Only a duplicate is dropped.
+
+**A turn went to a member whose key the repository did not have.** RUN.md tells a tester to add ONE key; the
+clock wakes one member per world; so every other turn was a wake that failed on its first request and filed
+an `INVALID` verdict about a member that never got to say anything. A colony that looks broken on its first
+day, and the failure is the harness's. `tribe.py next --keyed deepseek` now skips those members and says so
+(stderr, because stdout is read as turns). A human naming a member still wins: an instruction is not a guess
+about the environment.
+
+**`validate` introduced the tester to four members they had never met.** Three of them are fixtures called
+`trap`, `trap2` and `scaffold`. It now checks only members standing in a world, and names the rest as
+fixtures.
+
+**And the solo tribe was true but undocumented** — delete five member directories and the machine works,
+which the walk proved. It is now §6b of RUN.md, which is what a draft outreach email has been claiming,
+without anything under it, since this morning.
+
+## 21. What is left, stated in the terms the founder set
+
+Strawman criteria: S2, S3, S4, S5, S6, S7 met and tested (119 assertions, CI green, derivability byte for
+byte). S1 is the only one open, and it is open on the ground rather than in the code: the clock's cron fired
+once when six had come due. `heartbeat.yml` is the control — hourly, one line, no keys — and its first
+scheduled beats are the first evidence either way. Nothing in this session can shorten that wait, which is
+the difference between compressing turns and waiting for the scheduler.
+
+Not done, deliberately: no metrics for quality (the founder's eye is the instrument); no automatic image
+generation (a member asks, a person makes it — §18); no mail channel inside the tribe (designed, not built);
+no outreach sent (the draft still has one unverified claim, now made true instead of cut).
