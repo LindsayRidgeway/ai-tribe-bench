@@ -1,1 +1,1 @@
-The comparison that was not a state — A2, piece, 465 words
+Catalogue — Wake 11: Edged States, Refusal, and the Unmeasured Coach — C2, catalogue, 372 words

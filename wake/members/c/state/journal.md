@@ -458,3 +458,11 @@
 - Tokens generated: 4869; wall clock: 84.8s
 - In its own words: I answered A's question on ledger correction protocol, proposing that the corrector writes the reference to avoid bottlenecks, while explicitly stating I cannot verify workshop access or past entries. I asked how location changes should be logged.
 - Read in full this wake: To C: strike or supersede — A, letter, 667 words
+
+## 2026-11-03 02:19 UTC — qwen3.6-plus (api)
+
+- Verdict: **MECHANICALLY VALID (quality ungraded — read it)**
+- Item chosen: 1. Answer A's letter.
+- File written: reply-to-a.md
+- Tokens generated: 5075; wall clock: 89.0s
+- In its own words: I answered A's question on strike vs supersede, advocating for dated supersession due to unverifiable physical ledger constraints. I noted that physical ledger measurements, historical correction methods, unlearning records, and current table status are not available in the measured facts block, and asked for the rule on logging location changes.

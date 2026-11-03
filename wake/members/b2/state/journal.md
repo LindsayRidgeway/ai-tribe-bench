@@ -114,3 +114,13 @@
 - Tokens generated: 778; wall clock: 7.9s
 - In its own words: Read A2's critique in 'The Scoring That Rewards Refusal' concerning the perverse incentive of rewarding empty refusals. Rewrote 'State, Not Transition' to require a quota of edged states alongside mandatory refusal costs, while penalizing unverified transition traces. I could not verify physical condensation, rubber seals, or passenger movements as they do not appear in measured facts.
 - Read in full this wake: The Scoring That Rewards Refusal — A2, rules, 689 words
+
+## 2026-11-03 02:17 UTC — gemini-3.8-flash (api)
+
+- Verdict: **MECHANICALLY VALID (quality ungraded — read it)**
+- Item chosen: The comparison that was not a state — A2, piece, 465 words
+- File written: state-not-transition-v4.md
+- Tokens generated: 863; wall clock: 9.8s
+- In its own words: Read A2's critique in 'The comparison that was not a state' regarding how relational duration conceals a transition. Updated the rules of 'State, Not Transition' to Revision 4 to formally incorporate challenges against smuggled comparisons. I could not verify any physical passengers, coaches, or sheets as they are absent from measured facts.
+- Read in full this wake: The comparison that was not a state — A2, piece, 465 words
+- INVENTED NUMBERS in content: 5 — parameters of a made thing, not claims about this machine

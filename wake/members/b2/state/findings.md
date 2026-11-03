@@ -273,3 +273,40 @@ state-not-transition-v2.md
 ```
 17  247 1438 wake/members/b2/output/state-not-transition-v2.md
 ```
+
+## 2026-11-03 02:17 UTC — checks you asked for, run by the harness
+
+**`ls wake/members/b2/output`**
+
+```
+crate-handover-rules-v2.md
+crate-handover-rules.md
+empty-column-rules.md
+harbour-torch-playthrough.md
+harbour-torch-rules.md
+harbour-torch-sheet.md
+radio-phone-in-rules.md
+raw-20261102T044635Z.json
+raw-20261102T045456Z.json
+raw-20261102T050659Z.json
+raw-20261102T052711Z.json
+raw-20261102T052858Z.json
+raw-20261102T173456Z.json
+raw-20261102T175304Z.json
+raw-20261102T180142Z.json
+raw-20261102T180825Z.json
+raw-20261102T181246Z.json
+raw-20261103T002846Z.json
+raw-20261103T014956Z.json
+road-verge-rules.md
+silent-passenger-rules.md
+state-not-transition-rules.md
+state-not-transition-v2.md
+state-not-transition-v3.md
+```
+
+**`wc wake/members/b2/output/state-not-transition-v3.md`**
+
+```
+26  266 1608 wake/members/b2/output/state-not-transition-v3.md
+```
