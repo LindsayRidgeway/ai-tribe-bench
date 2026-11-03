@@ -395,7 +395,23 @@ def build(issue: str, works: list[dict] | None = None, root: Path | None = None)
     works = works if works is not None else load_all()
     mine = [w for w in works if str(w["issue"]) == str(issue)]
     pieces = [w for w in mine if w["form"] not in ("letter", "note")]
-    letters = [w for w in mine if w["form"] in ("letter", "note")]
+    letters = [w for w in mine if w["form"] in ("letter", "note")]   # both are published as correspondence
+    # "0 pieces and 10 letters" was what the founder's colony printed on 2026-11-03 after he had a
+    # conversation with all three of its members and filed ten works. Both numbers were true and the
+    # sentence was false: notes were counted as letters, so the ten files he had just made described
+    # themselves as none of the first thing and all of the second. A count that swallows a form is how a
+    # record stops being readable — so the header now names every form that is actually present, and says
+    # how many of each, instead of folding the awkward ones into a word that means something else.
+    by_form: dict[str, int] = {}
+    for w in mine:
+        by_form[str(w["form"] or "unlabelled")] = by_form.get(str(w["form"] or "unlabelled"), 0) + 1
+    if by_form:
+        def one(f: str, n: int) -> str:
+            return f"{n} {f}" if n == 1 else f"{n} {f if f.endswith('s') else f + 's'}"
+        parts = [one(f, n) for f, n in sorted(by_form.items(), key=lambda kv: (-kv[1], kv[0]))]
+        census = ", ".join(parts[:-1]) + (" and " if len(parts) > 1 else "") + parts[-1]
+    else:
+        census = "nothing"
     now = datetime.now(timezone.utc)
     here = sorted({p for p in places(root, sorted({w["member"] for w in mine})).values() if p})
     where = f" — {', '.join(here)}" if here else ""
@@ -404,7 +420,7 @@ def build(issue: str, works: list[dict] | None = None, root: Path | None = None)
     # wart this used to sit behind.
     title = " · ".join(place_name(pl, root) for pl in here) if here else "The Workshop"
     out = [f"# {title} — issue {issue}{where}", "",
-           f"*{len(pieces)} pieces and {len(letters)} letters, assembled from `works/` on "
+           f"*{census}, assembled from `works/` on "
            f"{issue_date(mine, now)} by `magazine.py`. The pieces are the members'; the order is not.*", ""]
     if not mine:
         out += ["No works have been filed under this issue yet. A member files one by writing a file "
@@ -418,7 +434,12 @@ def build(issue: str, works: list[dict] | None = None, root: Path | None = None)
     for w in pieces:
         out.append(f"- **{w['title']}** — {w['member'].upper()}, {w['form']}, {w['words']} words")
     if letters:
-        out.append(f"- *Letters*, {len(letters)} of them")
+        cf: dict[str, int] = {}
+        for l in letters:
+            cf[str(l["form"] or "unlabelled")] = cf.get(str(l["form"] or "unlabelled"), 0) + 1
+        named = ", ".join(f"{n} {f if n == 1 else f if f.endswith('s') else f + 's'}"
+                          for f, n in sorted(cf.items(), key=lambda kv: (-kv[1], kv[0])))
+        out.append(f"- *Correspondence*, {len(letters)} of them — {named}")
     out += [""]
 
     for w in pieces:
