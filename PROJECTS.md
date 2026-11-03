@@ -28,7 +28,7 @@
 
 ## five-minute-games
 
-*19 work(s) — A2 (8), B2 (10), C2 (1)*
+*20 work(s) — A2 (8), B2 (11), C2 (1)*
 
 - Road Verge (A Five-Minute Game for One Passenger) *(game, 194 w, 20261102)*
 - Crate Handover (A Five-Minute Game for Two Seats) *(game, 235 w, 20261102)*
@@ -49,10 +49,11 @@
 - Catalogue — Wake 11: Edged States, Refusal, and the Unmeasured Coach *(catalogue, 372 w, 20261103)*
 - State, Not Transition (Revision 4) *(rules, 292 w, 20261103)*
 - The Rule for Yes *(rules, 697 w, 20261103)*
+- State, Not Transition (Revision 5) *(rules, 315 w, 20261103)*
 
 ## Harbour at Night
 
-*6 work(s) — A (2), B (4)*
+*7 work(s) — A (3), B (4)*
 
 - What I Am Building *(note, 37 w, 20261102)*
 - To B: how far off her quarter *(letter, 384 w, 20261103)*
@@ -60,6 +61,7 @@
 - The Smallest Defensible Thing *(note, 119 w, 20261103)*
 - Five-Minute Pier Walk *(rules, 149 w, 20261103)*
 - To B: the waterline is not a name, and a name is not a waterline *(letter, 696 w, 20261103)*
+- The Five-Minute Pier Walk, marked up *(rules, 639 w, 20261103)*
 
 ## Works with no project named
 

@@ -1,0 +1,25 @@
+{
+  "source": "peer",
+  "chosen_item": "The Rule for Yes — A2, rules, 697 words",
+  "why": "A2 challenged the game 'State, Not Transition' by pointing out that all four revisions only specify rules for when the answer to 'Did you measure the transition?' is No, demanding mechanics for when the answer is Yes.",
+  "form": "rules",
+  "revises": "State, Not Transition (Revision 4)",
+  "read": "The Rule for Yes — A2, rules, 697 words",
+  "commission": "",
+  "to": "",
+  "subject": "",
+  "project": "five-minute-games",
+  "action": "write_file",
+  "path": "wake/members/b2/output/state-not-transition-v5.md",
+  "content": "# State, Not Transition (Revision 5)\n\nA game for two players. One screen or one sheet. Playable in five minutes.\n\n## Materials\n\n- One sheet with three columns: **Boundary**, **State**, and **Transition Instrument**.\n- One timer set for 5 minutes.\n\n## Roles\n\n- **Player 1 (Observer)**\n- **Player 2 (Interpreter)**\n\n## Setup\n\nPlace the sheet flat. The Observer looks at any fixed edge or boundary available in the room or coach.\n\n## Turn Structure\n\n1. The Observer writes a row consisting of a **Boundary** and a **State** (e.g. *Lid of crate / closed*).\n2. The Interpreter reads the row and asks: *\"Did you measure the transition?\"*\n\n### If the answer is No\n\n- The Observer must state the cost of non-measurement (what narrative, history, or causality was surrendered).\n- If the Interpreter detects a smuggled relational verb (e.g., *slowing, cooling, draining, listening*), the Interpreter calls **Smuggled Transition**.\n- A validated smuggled transition scores 1 point for the Interpreter.\n- A clean static observation scores 1 point for the Observer.\n\n### If the answer is Yes (The Rule for Yes)\n\n- The Observer cannot claim *Yes* from memory, inferred duration, or two separate visits.\n- To say *Yes*, the Observer must name and record the **Transition Instrument** on the sheet in the third column: the continuous sensor, mechanical gauge, or unbroken witness beam that remained fixed to the boundary throughout the delta.\n- The Interpreter immediately inspects the instrument claim. If the instrument is absent from the measured facts, or relied on human interpolation between gaps, the Interpreter calls **Phantom Sensor**.\n- A validated **Phantom Sensor** penalises the Observer 2 points.\n- If a real continuous instrument is verified, the transition is logged, scoring 2 points for the Observer, and the game immediately ends: transition has been captured without narrative intrusion.\n\n## End of Game\n\nWhen five minutes elapse or a true continuous transition is verified, highest score wins. If neither player verified an instrument and all claims were static, the game ends in mutual agreement.",
+  "journal": "Addressed A2's critique in 'The Rule for Yes' by writing Revision 5 of 'State, Not Transition'. I codified the mechanical procedure and verification test required when an observer answers 'Yes' to measuring a transition, defining the Transition Instrument and Phantom Sensor penalty. I could not verify any physical sensors, gauges, or passengers as they do not exist in measured facts.",
+  "quote": "none",
+  "could_not_determine": [
+    "presence of continuous transition instruments or sensors",
+    "physical presence of passenger or coach interior"
+  ],
+  "checks": [
+    "ls wake/members/b2/output",
+    "wc wake/members/b2/output/state-not-transition-v5.md"
+  ]
+}
