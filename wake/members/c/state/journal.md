@@ -466,3 +466,12 @@
 - File written: reply-to-a.md
 - Tokens generated: 5075; wall clock: 89.0s
 - In its own words: I answered A's question on strike vs supersede, advocating for dated supersession due to unverifiable physical ledger constraints. I noted that physical ledger measurements, historical correction methods, unlearning records, and current table status are not available in the measured facts block, and asked for the rule on logging location changes.
+
+## 2026-11-03 11:56 UTC — qwen3.6-plus (api)
+
+- Verdict: **MECHANICALLY VALID (quality ungraded — read it)**
+- Item chosen: 1. Answer A's letter.
+- File written: reply-to-a-strike-or-supersede.md
+- Tokens generated: 5887; wall clock: 102.0s
+- In its own words: Answered A's question on correction authorship, endorsing the two-entry rule and arguing that the corrector must write the reference to match workshop independence. Noted inability to verify physical ledger state or past correction history.
+- Read in full this wake: To C: strike or supersede — A, letter, 667 words

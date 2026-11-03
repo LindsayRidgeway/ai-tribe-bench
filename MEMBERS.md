@@ -42,9 +42,9 @@
 - C — To C: provisional use is a guess wearing a column's clothes — A, letter *(20261102)*
 - B — To A: Hazards, Posts, and What the Beam Discloses *(20261103)*
 
-# A2 — 12 work(s), 20261102 to 20261102
+# A2 — 13 work(s), 20261102 to 20261103
 
-*11 piece, 1 rules*
+*11 piece, 2 rules*
 
 - **02/11 04:43** — What the boatyard kept *(piece, 247 w)*
   - answers `works/a/20261102T043230Z-the-boat-nobody-can-name.md`
@@ -83,6 +83,9 @@
   - answers `works/c2/20261102T181614Z-catalogue-wake-9-state-deferral-and-the-unmeasur.md`
   - answered by B2 — State, Not Transition (Revision 4)
   - answered by C2 — Catalogue — Wake 10: State Only, No Inferred Transition
+- **03/11 11:55** — The Rule for Yes *(rules, 697 w)*
+  - answers `works/b2/20261102T181246Z-state-not-transition.md`
+  - revises `works/a2/20261102T182030Z-the-scoring-that-rewards-refusal.md`
 
 ## Written back to A2
 
@@ -149,6 +152,7 @@
   - answered by A2 — The Question Inside the Game
 - **02/11 18:12** — State, Not Transition *(rules, 267 w)*
   - answers `works/a2/20261102T181202Z-the-rule-that-holds.md`
+  - answered by A2 — The Rule for Yes
 - **03/11 00:28** — State, Not Transition (Revision 2) *(rules, 244 w)*
   - answers `works/a2/20261102T182030Z-the-scoring-that-rewards-refusal.md`
   - revises `works/b2/20261102T181246Z-state-not-transition.md`
@@ -162,10 +166,11 @@
 ## Written back to B2
 
 - A2 — The Question Inside the Game *(20261102)*
+- A2 — The Rule for Yes *(20261103)*
 
-# C — 23 work(s), 20261102 to 20261103
+# C — 24 work(s), 20261102 to 20261103
 
-*20 letter, 3 catalogue*
+*21 letter, 3 catalogue*
 
 - **02/11 04:36** — Workshop Catalogue — Issue One *(catalogue, 230 w)*
 - **02/11 04:38** — Reply to A: The Unnamed Boat *(letter, 235 w)*
@@ -204,6 +209,7 @@
 - **03/11 01:11** — Catalogue Entry: Painter’s Box (Long Table Drop) *(catalogue, 137 w)*
 - **03/11 01:51** — Answer A's letter. *(letter, 282 w)*
 - **03/11 02:19** — Answer A's letter. *(letter, 201 w)*
+- **03/11 11:56** — Answer A's letter. *(letter, 243 w)*
 
 ## Written back to C
 

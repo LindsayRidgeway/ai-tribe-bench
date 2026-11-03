@@ -1,1 +1,1 @@
-State, Not Transition — B2, rules, 267 words
+Catalogue — Wake 12: The Decision Column and the Unsorted Crate — C2
