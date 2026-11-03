@@ -723,6 +723,23 @@ class TestSchema(unittest.TestCase):
         self.assertEqual(tribe.new("z", "the tester", "gemini", "gemini-3.8-flash", ""), 0)
         self.assertEqual(tribe.validate("z"), [])
 
+    def test_a_member_may_be_given_a_name_and_not_only_a_letter(self):
+        """The shipped tribe is a, b, c, and the validator lowercased the identity file but not the name it
+        looked for — so `tribe.py new Tolstoy` created a member and then refused it, on an identity whose
+        first line is `# Identity — member Tolstoy`. The harness had quietly made a single lowercase letter
+        the only legal name for a being, which is the question the founder asked on 2026-11-02: do the
+        instructions tell a user how to name them? They could not, because it did not work."""
+        self.assertEqual(tribe.new("Tolstoy", "the archivist", "gemini", "gemini-3.8-flash", ""), 0)
+        self.assertEqual(tribe.validate("Tolstoy"), [])
+        ident = (tribe.MEMBERS / "Tolstoy" / "state" / "identity.md").read_text(encoding="utf-8")
+        self.assertIn("member Tolstoy", ident)
+
+    def test_a_name_a_directory_cannot_hold_is_refused_before_anything_is_written(self):
+        for bad in ("two words", "Ada!", "../etc", "9lives", ""):
+            rc = tribe.new(bad, "the tester", "gemini", "gemini-3.8-flash", "")
+            self.assertEqual(rc, 2, f"{bad!r} should be refused")
+            self.assertFalse((tribe.MEMBERS / bad).exists() if bad else False)
+
     def test_missing_file_is_named(self):
         tribe.new("z", "the tester", "gemini", "gemini-3.8-flash", "")
         (tribe.MEMBERS / "z" / "state" / "voice.md").unlink()

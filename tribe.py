@@ -85,7 +85,14 @@ def validate(name: str) -> list[str]:
         text = (state / "identity.md").read_text(encoding="utf-8")
         if len(text) < 100:
             bad.append("identity.md is under 100 characters — a member with no identity improvises one")
-        if f"member {name}" not in text.lower():
+        # Both sides lowercased. The needle kept its capitals while the haystack was lowered, so a member
+        # with any capital letter in its name could not validate — `tribe.py new Tolstoy` created a member
+        # and then told the user it "does not name this member as 'member Tolstoy'" about an identity file
+        # whose first line is `# Identity — member Tolstoy`. Every shipped member is a lowercase letter,
+        # which is why nobody had hit it: the harness had quietly made a single letter the only legal name
+        # for a being. Found 2026-11-02 21:55 by the founder's question, "do the instructions tell the user
+        # how to give names to the AI-beings?"
+        if f"member {name.lower()}" not in text.lower():
             bad.append(f"identity.md does not name this member as 'member {name}'")
     if (state / "state.md").exists():
         text = (state / "state.md").read_text(encoding="utf-8")
@@ -113,6 +120,12 @@ def validate(name: str) -> list[str]:
 
 
 def new(name: str, seat: str, api: str, model: str, of: str) -> int:
+    # A member's name is a directory name and appears in every header, path and byline, so it has to be
+    # one word. Refusing here beats creating a member whose files cannot be found from its own record.
+    if not re.match(r"^[A-Za-z][A-Za-z0-9_-]{0,23}$", name or ""):
+        print(f"!! {name!r} is not a usable name: one word, letters and digits, starting with a letter, "
+              f"up to 24 characters — 'Ada', 'Tolstoy', 'night-clerk'")
+        return 2
     base = MEMBERS / name
     if base.exists():
         print(f"!! {base} already exists — refusing to overwrite a member's record")

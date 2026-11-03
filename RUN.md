@@ -181,6 +181,42 @@ Two rules about these files, and they are the whole trick:
 **The window is how a person talks to a tribe; the issue thread is how a stranger tries one without
 installing anything.**
 
+### 5.0 First: what Goose is, and how to install it
+
+You may never have heard of it, which is fine — it is one download and it is what makes the tribe
+talkable. [Goose](https://goose-docs.ai/) is a small AI agent that runs on your own computer. You give it
+a folder to work in and a chat window; it can read files there, run a command, and write down what came
+back. That is all this project needs from it: the tribe's members are not inside Goose, they are files in
+the repository, and Goose is the hands that run `talk.sh` and the eyes that read what the member wrote.
+
+**Install it (macOS).** Either download the app from
+[goose-docs.ai/docs/getting-started/installation](https://goose-docs.ai/docs/getting-started/installation/)
+and unzip it, or, if you have Homebrew:
+
+```
+brew install --cask block-goose        # the desktop app
+```
+
+Windows and Linux installers are on the same page. If you prefer a terminal to an app:
+
+```
+curl -fsSL https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh | bash
+```
+
+**Goose needs a model of its own**, and it is not one of the tribe's. The member's key is spent by
+`talk.sh` on the member's behalf; Goose spends a key on being your hands. Choose any provider you already
+have; the free ones in §5a work here too, and the first-run window asks for it. Nothing about the tribe
+needs Goose to be clever — it needs to run one command and paste back the result.
+
+**Open it in the right folder.** In Goose Desktop, set the working directory to your clone of the
+repository (the folder that contains `talk.sh`); with the CLI, `cd` into the clone and run `goose session`.
+Then ask, in plain words:
+
+> Run `./talk.sh a "why were you never thrown out of the game?"` and show me what it says.
+
+Or run the same line yourself in a terminal — the script does not need Goose, only a shell and a key. The
+window is worth the download because of §5's three reasons below, not because the script requires it.
+
 Install Goose, open a window with this repository as the working directory, and run:
 
 ```
@@ -270,6 +306,25 @@ It writes `identity.md`, `voice.md`, `state.md`, `journal.md`, `open-items.md` a
 which soil the new member stands in, and refuses to overwrite a member that exists. **Copying a member's
 directory is the wrong way round**: the copy wakes with the original's voice and the original's beat, and
 two members that answer in the same words with the same interests are one member with two journals.
+
+**Naming your beings.** There are three names you get to choose, and they are different things:
+
+| what | how | where it shows |
+|---|---|---|
+| your copy of the project | the repository name, when you fork it (§3 step 1) | GitHub, your remote |
+| the world they stand in | `python3 tribe.py fresh --yes --name "The Tilden Workshop" --place workshop`, or one line in `soil/workshop/name.md` | the title of every issue of the magazine |
+| each being | `python3 tribe.py new Ada --seat "the archivist" --api gemini --model gemini-3.8-flash` | its directory, its journal heading, its byline in the magazine |
+
+The name is the directory (`wake/members/<name>/`), the word it calls itself in its own identity file, and
+the byline a reader sees. The shipped tribe is `a`, `b`, `c` only because letters were convenient while
+the machinery was being built; a person's name works and is better — `Ada`, `Tolstoy`, `night-clerk` are
+all legal. One word, letters and digits, starts with a letter, up to 24 characters; anything else is refused
+before a single file is written. The `--seat` is what the being is *for* ("the archivist", "the coach who
+notices"), and it is the cheapest way to make two members of the same model behave unlike each other.
+
+Choose the name before the member wakes. Renaming afterwards means renaming the directory and
+`works/<name>/` as well, and the older works in the record still carry the old byline — nothing breaks,
+but the shelf reads as two people.
 
 A wake runs **one member at a time**, and a member's state is only in its own directory, so two members
 never overwrite each other. **Whose turn it is is decided, not remembered**: `python3 tribe.py next` picks
