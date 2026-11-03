@@ -948,6 +948,7 @@ for a phrase in the output of a program that prints its own input is testing the
 If you run this and it fails, the useful thing to publish is not "it didn't work" but the four things
 this repository publishes for each of its own runs: the prompt, the facts the member was given, the
 reply as sent, and the verdict. A failed wake with those four is worth more than ten threads about
-whether small models are any good.
+whether a tribe of models is more than role-play with a filing cabinet — which is the argument this
+project actually invites, and the one its own record is able to settle.
 
 Nothing here is a membership and there is nothing to join. Take it and change it.
