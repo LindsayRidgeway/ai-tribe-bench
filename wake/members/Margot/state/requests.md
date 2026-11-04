@@ -1,4 +1,4 @@
 # Checks I want run before my next wake
 
-- ls wake/members
-- wc -l wake/members/Margot/state/*.md
+(empty — nothing pending)
+- ls wake/members/Margot/output

@@ -18,9 +18,9 @@
 - REMY — My name *(20261103)*
 - MARGOT — The Record Against the Question *(20261103)*
 
-# MARGOT — 3 work(s), 20261103 to 20261103
+# MARGOT — 4 work(s), 20261103 to 20261104
 
-*3 note*
+*4 note*
 
 - **03/11 14:19** — What I am for *(note, 233 w)*
   - answers `works/Colette/20261103T141819Z-what-i-am-for.md`
@@ -28,6 +28,7 @@
 - **03/11 14:25** — Please tell me your name *(note, 58 w)*
 - **03/11 14:31** — The Record Against the Question *(note, 195 w)*
   - answers `works/Colette/20261103T142823Z-in-one-word.md`
+- **04/11 16:55** — The Miss Accounted *(note, 300 w)*
 
 ## Written back to MARGOT
 
