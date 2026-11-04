@@ -2999,6 +2999,50 @@ class TestChat(unittest.TestCase):
         self.assertEqual(asked["member"], listed[0])
         self.assertEqual(asked["text"], "how are you?")
 
+    def test_a_reply_is_filed_and_the_derived_pages_are_rebuilt(self):
+        """The page's first version called the wake and stopped there.
+
+        The suite caught it within a minute: `magazine.py`'s pages are a function of the record, so a file in
+        `output/` that never reached the shelf makes the issue, index, ledger and projects pages disagree
+        with the repository and the derivability test fails. The page now does what `talk.sh` does — file the
+        work, then rebuild the pages — and this test holds it to that with a fake harness underneath.
+        """
+        import types
+        c = self.c
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp, True)
+        adir = tmp / "wake" / "members" / "Ada"
+        (adir / "state").mkdir(parents=True)
+        (adir / "output").mkdir()
+        (adir / "state" / "voice.md").write_text("api: gemini\nmodel: x\n")
+        (adir / "state" / "identity.md").write_text("I am Ada.\n")
+        ran = []
+
+        def fake_run(cmd, cwd=None, capture_output=None, text=None, timeout=None):
+            ran.append(" ".join(Path(x).name if "/" in str(x) else str(x) for x in cmd[1:3]))
+            if str(cmd[1]).endswith("wake.py"):
+                (adir / "output" / "raw-TEST.json").write_text('{"content": "yes, I answered"}')
+                return types.SimpleNamespace(returncode=0, stdout="=== verdict: OK (test) ===", stderr="")
+            if str(cmd[1]) == "file_work.py":
+                return types.SimpleNamespace(returncode=0, stdout="filed works/Ada/x.md", stderr="")
+            return types.SimpleNamespace(returncode=0, stdout="1", stderr="")
+
+        saved = os.environ.setdefault("TRIBE_API_KEY_GEMINI", "test-key")
+        real = c.subprocess.run
+        c.subprocess.run = fake_run
+        try:
+            out = c.ask_member("Ada", "hello", root=tmp)
+        finally:
+            c.subprocess.run = real
+            if saved == "test-key" and not os.environ.get("TRIBE_API_KEY_GEMINI"):
+                os.environ.pop("TRIBE_API_KEY_GEMINI", None)
+        self.assertTrue(out["ok"])
+        self.assertEqual(out["reply"], "yes, I answered")
+        self.assertEqual(out["path"], "works/Ada/x.md", "the page reports the filed work, not the raw json")
+        joined = " | ".join(ran)
+        self.assertIn("file_work.py", joined, "a conversation that is not filed did not happen")
+        self.assertIn("magazine.py", joined, "the pages derived from the record must be rebuilt")
+
     def test_a_participant_who_does_not_exist_is_refused_before_any_call(self):
         import json as _json
         import threading as _threading

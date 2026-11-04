@@ -85,10 +85,36 @@ def ask_member(member: str, text: str, root: Path = ROOT, timeout: int = 300) ->
         tail = (proc.stdout or proc.stderr or "").strip().splitlines()[-3:]
         return {"ok": False, "reply": "The wake produced no reply.\n" + "\n".join(tail),
                 "verdict": "", "path": ""}
-    raw = json.loads((out / new[-1]).read_text(encoding="utf-8"))
+    raw_path = out / new[-1]
+    raw = json.loads(raw_path.read_text(encoding="utf-8"))
+    filed = file_and_rebuild(member, raw_path, root)
     m = VERDICT.search(proc.stdout or "")
     return {"ok": True, "reply": raw.get("content", "").strip(),
-            "verdict": m.group(1).strip() if m else "", "path": str(new[-1])}
+            "verdict": m.group(1).strip() if m else "", "path": str(filed or new[-1])}
+
+
+def file_and_rebuild(member: str, raw_path: Path, root: Path = ROOT) -> str | None:
+    """Put the exchange on the shelf and rebuild the pages derived from it, exactly as talk.sh does.
+
+    Found by the suite on the first run: the page called wake.py directly and skipped this, so the issue
+    page, the index, the ledger and the projects page no longer matched the record and the repository's own
+    derivability test failed. A conversation that is written down but not filed has still not happened."""
+    issue = subprocess.run([sys.executable, "magazine.py", "--current"], cwd=root,
+                           capture_output=True, text=True).stdout.strip() or "1"
+    steps = [["file_work.py", "--member", member, "--issue", issue, "--raw", str(raw_path)],
+             ["magazine.py", "--issue", issue, "--write"],
+             ["magazine.py", "--projects", "--write"],
+             ["magazine.py", "--index", "--write"],
+             ["magazine.py", "--ledger", "--write"]]
+    filed = None
+    for step in steps:
+        r = subprocess.run([sys.executable] + step, cwd=root, capture_output=True, text=True)
+        if step[0] == "file_work.py" and r.returncode == 0:
+            m = re.search(r"filed (\S+)", r.stdout or "")
+            filed = m.group(1) if m else None
+        elif r.returncode != 0:
+            print(f"   {step[0]} failed: {(r.stderr or r.stdout).strip().splitlines()[-1:] }", file=sys.stderr)
+    return filed
 
 
 class Handler(BaseHTTPRequestHandler):

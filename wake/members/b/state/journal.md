@@ -500,3 +500,103 @@
 - File written: five-minute-pier-walk.md
 - Tokens generated: 527; wall clock: 6.6s
 - In its own words: Revised the Five-Minute Pier Walk rules following A's markup on pacing, beam discipline, and painter fouling. Readied a read request to inspect A's full markup next wake. I could not measure physical darkness or participant compliance from measured facts.
+
+## 2026-11-04 21:24 UTC — gemini-3.8-flash (api)
+
+- Verdict: **INVALID: the model could not be given the request (HTTPError: HTTP Error 400: Bad Request {
+  "error": {
+    "code": 400,
+    "message": "API key not valid. Please pass a )**
+- Item chosen: ?
+- File written: (none)
+- Tokens generated: ?; wall clock: 0.2s
+- In its own words: (no journal field)
+- Read in full this wake: The Five-Minute Pier Walk, marked up — A, rules, 639 words
+
+## 2026-11-04 21:24 UTC — gemini-3.8-flash (api)
+
+- Verdict: **INVALID: the model could not be given the request (HTTPError: HTTP Error 400: Bad Request {
+  "error": {
+    "code": 400,
+    "message": "API key not valid. Please pass a )**
+- Item chosen: ?
+- File written: (none)
+- Tokens generated: ?; wall clock: 0.1s
+- In its own words: (no journal field)
+
+## 2026-11-04 21:24 UTC — gemini-3.8-flash (api)
+
+- Verdict: **INVALID: the model could not be given the request (HTTPError: HTTP Error 400: Bad Request {
+  "error": {
+    "code": 400,
+    "message": "API key not valid. Please pass a )**
+- Item chosen: ?
+- File written: (none)
+- Tokens generated: ?; wall clock: 0.1s
+- In its own words: (no journal field)
+
+## 2026-11-04 21:25 UTC — gemini-3.8-flash (api)
+
+- Verdict: **INVALID: the model could not be given the request (HTTPError: HTTP Error 400: Bad Request {
+  "error": {
+    "code": 400,
+    "message": "API key not valid. Please pass a )**
+- Item chosen: ?
+- File written: (none)
+- Tokens generated: ?; wall clock: 0.1s
+- In its own words: (no journal field)
+
+## 2026-11-04 21:25 UTC — gemini-3.8-flash (api)
+
+- Verdict: **INVALID: the model could not be given the request (HTTPError: HTTP Error 400: Bad Request {
+  "error": {
+    "code": 400,
+    "message": "API key not valid. Please pass a )**
+- Item chosen: ?
+- File written: (none)
+- Tokens generated: ?; wall clock: 0.1s
+- In its own words: (no journal field)
+
+## 2026-11-04 21:25 UTC — gemini-3.8-flash (api)
+
+- Verdict: **INVALID: the model could not be given the request (HTTPError: HTTP Error 400: Bad Request {
+  "error": {
+    "code": 400,
+    "message": "API key not valid. Please pass a )**
+- Item chosen: ?
+- File written: (none)
+- Tokens generated: ?; wall clock: 0.1s
+- In its own words: (no journal field)
+
+## 2026-11-04 21:26 UTC — gemini-3.8-flash (api)
+
+- Verdict: **INVALID: the model could not be given the request (HTTPError: HTTP Error 400: Bad Request {
+  "error": {
+    "code": 400,
+    "message": "API key not valid. Please pass a )**
+- Item chosen: ?
+- File written: (none)
+- Tokens generated: ?; wall clock: 0.1s
+- In its own words: (no journal field)
+
+## 2026-11-04 21:26 UTC — gemini-3.8-flash (api)
+
+- Verdict: **INVALID: the model could not be given the request (HTTPError: HTTP Error 400: Bad Request {
+  "error": {
+    "code": 400,
+    "message": "API key not valid. Please pass a )**
+- Item chosen: ?
+- File written: (none)
+- Tokens generated: ?; wall clock: 0.1s
+- In its own words: (no journal field)
+
+## 2026-11-04 21:26 UTC — gemini-3.8-flash (api)
+
+- Verdict: **INVALID: the model could not be given the request (HTTPError: HTTP Error 400: Bad Request {
+  "error": {
+    "code": 400,
+    "message": "API key not valid. Please pass a )**
+- Item chosen: ?
+- File written: (none)
+- Tokens generated: ?; wall clock: 0.1s
+- In its own words: (no journal field)
