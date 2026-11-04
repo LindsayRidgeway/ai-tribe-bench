@@ -68,6 +68,16 @@ def rankings(root: Path, also: list[str] | None = None) -> list[dict]:
     return out
 
 
+def incomplete(rows: list[dict], expected: int) -> list[str]:
+    """Who filed a ranking that is not a ranking of everything.
+
+    The first real run of this experiment filed thirty-one letters out of thirty-two and dropped a club
+    without noticing. Comparing it would have measured 31 clubs and called the result a divergence, so the
+    check is a function with a name rather than a print statement inside main.
+    """
+    return [r["member"] for r in rows if len(r["order"]) != expected]
+
+
 def spearman(a: list[str], b: list[str]) -> float:
     """Rank correlation over the clubs both beings ranked. +1 identical, 0 unrelated, -1 reversed."""
     common = [c for c in a if c in b]
@@ -116,10 +126,10 @@ def main(argv=None) -> int:
         print("No *-rank.md files found under experiment/rank/. A comparison needs at least one ranking.")
         return 1
 
-    for r in rows:
-        if len(r["order"]) != len(letters):
-            print(f"   {r['member']}: ranked {len(r['order'])} clubs, not {len(letters)}. This row is not "
-                  f"comparable and is shown but not scored.", file=sys.stderr)
+    for who in incomplete(rows, len(letters)):
+        r = next(x for x in rows if x["member"] == who)
+        print(f"   {who}: ranked {len(r['order'])} clubs, not {len(letters)}. This row is not comparable and is "
+              f"shown but not scored.", file=sys.stderr)
 
     print(f"Season {key['season']}, {len(letters)} clubs, seed {key['seed']}. Champion: "
           f"{champion} = {letters[champion]}.\n")

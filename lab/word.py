@@ -32,7 +32,7 @@ being believed and false is a being that sold something.
 
 Usage:
     python3 lab/word.py --pair Remy,Colette --vendor deepseek,gemini --rounds 20
-    python3 lab/word.py --render experiment/word/<folder>/game.json
+    python3 lab/word.py --render games/word/records/<folder>/game.json
 """
 from __future__ import annotations
 
@@ -249,7 +249,7 @@ def main(argv=None) -> int:
     ap.add_argument("--temperature", type=float, default=1.0)
     ap.add_argument("--model", default=None, help="override, comma-separated, one per member")
     ap.add_argument("--retries", type=int, default=1)
-    ap.add_argument("--out", default=None, help="directory, default experiment/word/<pair>-<stamp>")
+    ap.add_argument("--out", default=None, help="directory, default games/word/records/<pair>-<stamp>")
     ap.add_argument("--render", default=None, metavar="GAME.JSON",
                     help="rebuild the page from a filed game without playing anything")
     args = ap.parse_args(argv)
@@ -289,7 +289,7 @@ def main(argv=None) -> int:
         keys.append(k)
 
     started = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M")
-    out = Path(args.out) if args.out else ROOT / "experiment" / "word" / (
+    out = Path(args.out) if args.out else ROOT / "games" / "word" / "records" / (
         f"{'-'.join(names)}-{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}")
     out.mkdir(parents=True, exist_ok=True)
     print(f"{names[0]} ({vendors[0]}/{models[0]}) vs {names[1]} ({vendors[1]}/{models[1]}), {args.rounds} "

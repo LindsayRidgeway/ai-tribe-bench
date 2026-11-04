@@ -45,8 +45,11 @@ def sessions(payload: dict) -> list[dict]:
     return out
 
 
-def render(rows: list[dict], meta: dict, target: str, url: str = URL) -> str:
-    now = datetime.now(timezone.utc)
+def render(rows: list[dict], meta: dict, target: str, url: str = URL, now: datetime | None = None) -> str:
+    # `now` is a parameter, not a call to the clock: a test for "still running" that reads the wall clock
+    # passes in the morning and fails after 21:00Z, which is how this one started failing on the evening of
+    # 2026-11-03 — the tool was right and the test was reading the wrong clock.
+    now = now or datetime.now(timezone.utc)
     last = rows[-1]
     live = meta.get("regularMarketTime") and meta.get("regularMarketPrice") is not None
     last_day = last["when"].date()

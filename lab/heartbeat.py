@@ -139,17 +139,34 @@ def main(log: Path | None = None, now: datetime | None = None) -> int:
               f"(The hours-due figure above asks for {per_hour}x that many events.)")
         if events_due and arrived:
             share = 100 * arrived / events_due
-            if share < 40:
-                print("a fifth of the events arriving is the same rate as when the control asked once an "
-                      "hour: the loss is not per-event, and asking more often will not fix it. An hourly "
-                      "timer outside GitHub (RUN.md §8, lab/pinger.gs) is the fix.")
+            # The number worth comparing is not "a fifth" — that was hardcoded, and the share it described
+            # was 6% the first time this printed. It is the per-event share now against the per-hour share
+            # over the stretch when the control still asked once an hour. If four asks buy four times the
+            # wakes, the loss is per-event; if they buy the same, the loss is a stretch of time, and no
+            # number of cron lines will fill it.
+            base_hours = int((since.replace(minute=0, second=0, microsecond=0)
+                              - first.replace(minute=0, second=0, microsecond=0)).total_seconds() // 3600)
+            before_arrived = sum(1 for b in scheduled if b[0] < since)
+            before = 100 * before_arrived / base_hours if base_hours > 0 else None
+            if before is None:
+                print(f"a wake arrived for {share:.0f}% of the {events_due} events asked for since the control "
+                      f"went to {per_hour} an hour, and there is no earlier hourly stretch in this window to "
+                      "compare it with. A remedy is still named rather than waiting: a lost stretch of time is "
+                      "filled by a timer this colony owns (RUN.md §8, lab/pinger.gs), not by a louder cron.")
+            elif share <= before * 1.5:
+                print(f"a wake arrived for {share:.0f}% of the {events_due} events asked for, against "
+                      f"{before:.0f}% of the {base_hours} hours asked for when the control asked once an hour. "
+                      f"{per_hour} asks did not buy {per_hour} times the wakes: the loss is a stretch of time "
+                      "with no deliveries in it, not single events dropped, and asking more often will not fix "
+                      "it. An hourly timer outside GitHub (RUN.md §8, lab/pinger.gs) is the fix.")
             elif share > 75:
-                print("most events arriving although hours went missing when the control asked once: the "
-                      "loss is per-event, so redundant cron lines are a floor — and still a floor, not a "
-                      "guarantee. lab/pinger.gs is what makes it certain.")
+                print(f"most events arriving ({share:.0f}%) although hours went missing when the control "
+                      "asked once: the loss is per-event, so redundant cron lines are a floor — and still a "
+                      "floor, not a guarantee. lab/pinger.gs is what makes it certain.")
             else:
-                print("between a fifth and three quarters of the events arrive: partial loss, so neither "
-                      "redundant crons nor a single external timer is enough on its own. Keep both.")
+                print(f"between a half again as many and three quarters of the events arrive ({share:.0f}%): "
+                      "partial loss, so neither redundant crons nor a single external timer is enough on its "
+                      "own. Keep both.")
     if fired < due:
         print("\nsome hours passed with no beat. On this ground a scheduled wake is a hope, not a "
               "guarantee. The remedy is a timer this colony owns rather than a louder cron: RUN.md §8 "

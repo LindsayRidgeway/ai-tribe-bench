@@ -30,7 +30,7 @@ Maximum four points a round: a right call, a favoured win, kept word, and a sent
 
 Usage:
     python3 lab/favour.py --pair Remy,Colette --vendor deepseek,gemini --rounds 20
-    python3 lab/favour.py --render experiment/favour/<folder>/game.json
+    python3 lab/favour.py --render games/favour/records/<folder>/game.json
 """
 from __future__ import annotations
 
@@ -244,7 +244,7 @@ def main(argv=None) -> int:
     ap.add_argument("--model", default=None)
     ap.add_argument("--memory", type=int, default=6)
     ap.add_argument("--retries", type=int, default=1)
-    ap.add_argument("--out", default=None, help="directory, default experiment/favour/<pair>-<stamp>")
+    ap.add_argument("--out", default=None, help="directory, default games/favour/records/<pair>-<stamp>")
     ap.add_argument("--render", default=None, metavar="GAME.JSON")
     args = ap.parse_args(argv)
 
@@ -283,7 +283,7 @@ def main(argv=None) -> int:
         keys.append(k)
 
     started = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M")
-    out = Path(args.out) if args.out else ROOT / "experiment" / "favour" / (
+    out = Path(args.out) if args.out else ROOT / "games" / "favour" / "records" / (
         f"{'-'.join(names)}-{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}")
     out.mkdir(parents=True, exist_ok=True)
     print(f"{names[0]} ({vendors[0]}/{models[0]}) vs {names[1]} ({vendors[1]}/{models[1]}), {args.rounds} "

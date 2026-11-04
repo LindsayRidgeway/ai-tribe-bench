@@ -33,6 +33,10 @@ REPO = Path(__file__).resolve().parent
 def load(path: Path, name: str):
     spec = importlib.util.spec_from_file_location(name, path)
     mod = importlib.util.module_from_spec(spec)
+    # dataclasses look their own module up in sys.modules while building the class; a module that is never
+    # registered blows up with "'NoneType' object has no attribute '__dict__'". Registering it is harmless
+    # for the modules that do not need it and necessary for the ones that do.
+    sys.modules[name] = mod
     spec.loader.exec_module(mod)  # type: ignore[union-attr]
     return mod
 
@@ -46,6 +50,15 @@ magazine = load(REPO / "magazine.py", "magazine_mod")
 file_work = load(REPO / "file_work.py", "file_work_mod")
 outbox = load(REPO / "outbox.py", "outbox_mod")
 heartbeat = load(REPO / "lab" / "heartbeat.py", "heartbeat_mod")
+mlb_score = load(REPO / "lab" / "mlb_score.py", "mlb_score_mod")
+rank_compare = load(REPO / "lab" / "rank_compare.py", "rank_compare_mod")
+sport_facts = load(REPO / "lab" / "sport_facts.py", "sport_facts_mod")
+rps = load(REPO / "lab" / "rps.py", "rps_mod")
+dice = load(REPO / "lab" / "dice.py", "dice_mod")
+wind = load(REPO / "lab" / "wind.py", "wind_mod")
+word = load(REPO / "lab" / "word.py", "word_mod")
+favour = load(REPO / "lab" / "favour.py", "favour_mod")
+_json = __import__("json")
 
 FACTS = "date: Mon Nov  2 02:00:00 UTC 2026\nnproc: 2\nfree: 16000 MB"
 
@@ -478,6 +491,27 @@ class TestMagazine(unittest.TestCase):
         self.assertIn("revises `works/a/one.md`", text)
         self.assertIn("answered by B", text)
 
+    def test_the_header_names_every_form_it_holds(self):
+        """The founder's colony, morning of 2026-11-03: ten works filed by three members, and the issue
+        header read "0 pieces and 10 letters". Both figures came from real code and the sentence was
+        false — notes were counted as letters, so a morning's conversation described itself as none of
+        one thing and all of another. A count that swallows a form is a record that cannot be read back.
+        """
+        text = self._issue({
+            "a/one.md": "---\ntitle: A note\nform: note\nissue: 1\n---\n\nLatch.\n",
+            "b/two.md": "---\ntitle: A letter\nform: letter\nissue: 1\n---\n\nDear.\n",
+            "c/three.md": "---\ntitle: A piece\nform: piece\nissue: 1\n---\n\nBody.\n",
+        })
+        self.assertIn("1 letter", text)
+        self.assertIn("1 note", text)
+        self.assertIn("1 piece", text)
+        self.assertNotIn("0 pieces", text, "nothing present may be reported as absent")
+        self.assertIn("2 notes and 1 piece", self._issue({
+            "a/one.md": "---\ntitle: n1\nform: note\nissue: 1\n---\n\nx\n",
+            "a/two.md": "---\ntitle: n2\nform: note\nissue: 1\n---\n\nx\n",
+            "a/three.md": "---\ntitle: p\nform: piece\nissue: 1\n---\n\nx\n",
+        }), "several of a form are named in the plural")
+
     def test_the_colophon_names_the_soil_drop(self):
         text = self._issue({"a/one.md": "---\ntitle: T\nform: piece\nissue: 1\n---\n\nbody\n"})
         self.assertIn("a box", text)
@@ -492,6 +526,114 @@ class TestMagazine(unittest.TestCase):
         text = self._issue({"b/one.md": "---\ntitle: Harbour Torch\nform: game\nissue: 1\nrevises: works/b/x.md\n---\n\n"
                                         "Twelve ticks.\n"})
         self.assertIn("A revision of `works/b/x.md`", text)
+
+
+class TestThreeAnswers(unittest.TestCase):
+    """The founder's first real experiment, 2026-11-03: three members, one question, then a comparison.
+
+    Two tools exist because a harness with no tools cannot do this honestly: `lab/dow.py` writes the facts
+    a member cannot fetch, and `lab/compare.py` does the arithmetic so the comparison is a file rather than
+    a vibe. Both are tested on their failure paths first, because a facts file invented from memory is
+    worse than no facts file — a member cannot tell the difference once it is on disk.
+    """
+
+    def _root(self) -> Path:
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp, True)
+        (tmp / "lab").mkdir()
+        for f in ("dow.py", "compare.py"):
+            shutil.copy(REPO / "lab" / f, tmp / "lab" / f)
+        return tmp
+
+    def test_the_facts_tool_writes_nothing_when_the_endpoint_fails(self):
+        root = self._root()
+        out = root / "facts" / "x.md"
+        r = subprocess.run([sys.executable, "lab/dow.py", "--url", "http://127.0.0.1:9/none",
+                            "--out", str(out)], cwd=root, capture_output=True, text=True, timeout=120)
+        self.assertEqual(r.returncode, 2)
+        self.assertFalse(out.exists(), "a failed fetch must leave no facts file behind")
+        self.assertIn("invented from memory is worse than no facts file", r.stdout)
+
+    def test_a_running_session_is_not_reported_as_a_close(self):
+        """The Dow at 10:33 in the morning is a moving number, and a member told "the Dow is 51,717" will
+        treat it as settled. The facts file has to say which one it is holding."""
+        mod = load(REPO / "lab" / "dow.py", "dow_mod")
+        from datetime import datetime as _dt
+        rows = [{"when": _dt(2026, 11, 2, 14, 30, tzinfo=timezone.utc), "open": 1.0, "high": 2.0,
+                 "low": 0.5, "close": 51984.0},
+                {"when": _dt(2026, 11, 3, 14, 30, tzinfo=timezone.utc), "open": 2.0, "high": 3.0,
+                 "low": 1.0, "close": 51737.7}]
+        meta = {"regularMarketPrice": 51737.66, "regularMarketTime": 1793720029}
+        text = mod.render(rows, meta, "2026-11-04",
+                          now=_dt(2026, 11, 3, 15, 33, tzinfo=timezone.utc))
+        self.assertIn("still running", text)
+        self.assertIn("not a close", text)
+        self.assertIn("PREDICTION:", text, "the question must ask for the one shape a tool can parse")
+
+    def test_the_comparison_scores_one_prediction_per_member_and_says_what_noise_looks_like(self):
+        root = self._root()
+        for member, when, value, conf in (("Remy", "2026-11-03T17:10:00Z", "51,850", "55"),
+                                          ("Remy", "2026-11-04T21:30:00Z", "51,740", "90"),
+                                          ("Margot", "2026-11-03T17:15:00Z", "51,600", "60")):
+            d = root / "works" / member
+            d.mkdir(parents=True, exist_ok=True)
+            (d / f"{when}.md").write_text(
+                f"---\ntitle: n\nform: note\nissue: 1\nwhen: {when}\n---\n\nPREDICTION: {value}\n\n"
+                f"Confidence: {conf}%.\n", encoding="utf-8")
+        r = subprocess.run([sys.executable, "lab/compare.py", "--actual", "51737.7",
+                            "--target", "2026-11-04", "--daily-move", "232.2",
+                            "--out", str(root / "facts" / "c.md")],
+                           cwd=root, capture_output=True, text=True, timeout=120)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        text = (root / "facts" / "c.md").read_text(encoding="utf-8")
+        self.assertIn("| Remy | 51,740.0 |", text, "the LAST prediction is scored, not the best one")
+        self.assertNotIn("51,850.0", text, "a first guess must not be scored after the result was known")
+        self.assertIn("Closest: **Remy**", text)
+        self.assertIn("Three guesses on one session", text, "a single session must not be sold as a skill")
+        self.assertIn("232.2 points on an average day", text)
+
+    def test_one_being_is_one_row_however_its_name_is_spelled(self):
+        """The founder asked, on 2026-11-03: "are remy and Remy two different seats?"
+
+        No — `works/Remy/` is the seat's shelf and `experiment/remy.md` was a chat session's answer, and the
+        comparison printed them as two members because it took the name from a filename. One being written in
+        two spellings is the same defect this project has fixed twice already; here it produced a table with a
+        closest called Remy and a furthest called remy. And a session's second draft (`-after.md`) is never a
+        prediction, or the after-the-fact note would be scored against the real guess.
+        """
+        root = self._root()
+        (root / "works" / "Remy").mkdir(parents=True)
+        (root / "works" / "Remy" / "w.md").write_text(
+            "---\ntitle: filed\nform: note\nissue: 1\nwhen: 2026-11-03T09:00:00Z\n---\n\nnothing\n",
+            encoding="utf-8")
+        (root / "experiment").mkdir()
+        (root / "experiment" / "remy.md").write_text(
+            "---\ntitle: chat\nform: note\nissue: 1\nwhen: 2026-11-03T18:00:00Z\n---\n\nPREDICTION: 51720\n",
+            encoding="utf-8")
+        (root / "experiment" / "remy-after.md").write_text("PREDICTION: 51900\n", encoding="utf-8")
+        mod = load(REPO / "lab" / "compare.py", "compare_mod")
+        old_root = mod.ROOT
+        mod.ROOT = root
+        try:
+            rows = mod.predictions(also=["experiment"])
+        finally:
+            mod.ROOT = old_root
+        self.assertEqual([r["member"] for r in rows], ["Remy"], "one being, one row, one spelling")
+        self.assertEqual(rows[0]["value"], 51720.0, "the -after file is a comment, not a prediction")
+        text = mod.render(rows, 51737.7, "2026-11-04", None)
+        self.assertIn("Only one prediction was filed", text)
+        self.assertNotIn("Furthest", text, "one row cannot have a furthest")
+
+    def test_no_prediction_lines_says_so_instead_of_inventing_a_table(self):
+        root = self._root()
+        (root / "works" / "Remy").mkdir(parents=True)
+        (root / "works" / "Remy" / "a.md").write_text(
+            "---\ntitle: n\nform: note\nissue: 1\n---\n\nI think it will go up a bit.\n", encoding="utf-8")
+        r = subprocess.run([sys.executable, "lab/compare.py", "--actual", "51737.7", "--out",
+                            str(root / "facts" / "c.md")],
+                           cwd=root, capture_output=True, text=True, timeout=120)
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("cannot be checked by anybody", (root / "facts" / "c.md").read_text(encoding="utf-8"))
 
 
 class TestPlates(unittest.TestCase):
@@ -762,6 +904,45 @@ class TestSchema(unittest.TestCase):
     def test_refuses_to_overwrite_a_member(self):
         tribe.new("z", "the tester", "gemini", "gemini-3.8-flash", "")
         self.assertEqual(tribe.new("z", "again", "gemini", "gemini-3.8-flash", ""), 2)
+
+    def test_a_new_member_stands_in_a_world(self):
+        """Found on 2026-11-03, setting up a three-member colony for the founder.
+
+        RUN.md §6 has said since it was written that `tribe.py new` writes the member's `place.md`. It did
+        not. The member validated, appeared in `status`, and was then invisible to `next_up()` — which groups
+        members by place to choose one per world and quietly skips those with none, on purpose, because a
+        fixture in a folder is not in a colony. So a person could follow the instructions exactly and get
+        three beings, a green validator, and a clock that would never wake any of them.
+        """
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            self.assertEqual(tribe.new("Ada", "the first", "gemini", "gemini-3.8-flash", "", "workshop"), 0)
+        self.assertNotIn("stands in no world", buf.getvalue())
+        self.assertEqual(tribe.place_of(tribe.MEMBERS / "Ada"), "workshop")
+        self.assertEqual(tribe.validate("Ada"), [])
+
+    def test_next_with_no_world_says_why_instead_of_exiting_in_silence(self):
+        """The failure mode this bench is named for: a refusal that looks like an empty queue.
+
+        Three members, none with a place, `tribe.py next` printed one blank line and exited 1. Nothing said
+        the members existed, nothing said what was missing, and a person would reasonably conclude the
+        colony was idle rather than stranded.
+        """
+        for name in ("Ada", "Bruno"):
+            tribe.new(name, "the test", "gemini", "gemini-3.8-flash", "", "workshop")
+            (tribe.MEMBERS / name / "state" / "place.md").unlink()
+        self.assertEqual(tribe.next_up(), [], "a member with no place is not in a colony")
+        buf = io.StringIO()
+        old_argv = sys.argv
+        sys.argv = ["tribe.py", "next"]
+        try:
+            with contextlib.redirect_stderr(buf), contextlib.redirect_stdout(io.StringIO()):
+                rc = tribe.main()
+        finally:
+            sys.argv = old_argv
+        self.assertEqual(rc, 1)
+        self.assertIn("no member has a place", buf.getvalue())
+        self.assertIn("wake/members/<name>/state/place.md", buf.getvalue())
 
 
 class TestDerivedLog(unittest.TestCase):
@@ -1333,6 +1514,74 @@ class TestFiling(unittest.TestCase):
         threading.Thread(target=srv.serve_forever, daemon=True).start()
         return srv, f"http://127.0.0.1:{srv.server_address[1]}"
 
+    def test_a_sealed_wake_does_not_show_the_other_members_answers(self):
+        """The founder's first real experiment, 2026-11-03, and the defect that would have quietly ruined it.
+
+        Three members, one question — predict tomorrow's close — and afterwards a comparison of who was
+        closest. The shelf carries a filed work's title and first line, so member two reads member one's
+        number before giving its own. Three answers to one question, converging, with no way afterwards to
+        tell a prediction from an echo. `--no-shelf` seals the wake; this test reads the prompt the wake
+        actually sends, with a fake endpoint and no money spent.
+        """
+        from http.server import BaseHTTPRequestHandler
+        import json as _json
+        seen: list[str] = []
+
+        class H(BaseHTTPRequestHandler):
+            def do_POST(self):
+                body = self.rfile.read(int(self.headers.get("Content-Length", 0))).decode()
+                seen.append(body)
+                out = _json.dumps({"choices": [{"message": {"content": _json.dumps(
+                    {"source": "item", "journal": "Nothing to do this wake but answer.",
+                     "action": "none"})}}]}).encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(out)))
+                self.end_headers()
+                self.wfile.write(out)
+
+            def log_message(self, *a):
+                pass
+
+        srv, base = self._fake_api(H)
+        self.addCleanup(srv.shutdown)
+        root = self._repo_copy()
+        works = magazine.load_all(root)
+        # The shelf is per *world*, and the world belongs to the member, not the work. The newest peer work in
+        # the repository can belong to a member in the other world and correctly never appear on this
+        # member's shelf — which is what made this test start failing on 2026-11-03 for a reason that had
+        # nothing to do with sealing. Select the newest peer work in the same world as member a.
+        places = magazine.places(root)
+        world = places.get("a", "")
+        peer = [w for w in works
+                if w.get("member") not in (None, "a")
+                and places.get(str(w.get("member", "")), "") == world]
+        # the shelf shows the six most recent, so the test reads the most recent one — asserting on a work
+        # that happens to be older than the six would pass for the wrong reason.
+        title = sorted(peer, key=lambda w: str(w.get("when", "")), reverse=True)[0]["title"]
+
+        def prompt_for(*extra: str) -> str:
+            import subprocess, sys
+            seen.clear()
+            subprocess.run([sys.executable, "wake/wake.py", "--member", "a", "--api-model", "fake",
+                            "--api-base", base, "--api-key-env", "FAKE_KEY", *extra],
+                           cwd=root, capture_output=True, text=True, timeout=300,
+                           env={"PATH": "/usr/bin:/bin", "FAKE_KEY": "x", "HOME": "/tmp"})
+            return seen[-1] if seen else ""
+
+        # The shelf writes "- **Title** — C, letter, 243 words". The title alone is not the test: a member's
+        # own journal quotes its peers' titles too ("C's 'Answer A's letter'"), and that is memory, not a
+        # leak. What must be gone is the shelf ENTRY, which carries the opening line — and with it a number.
+        entry = f"- **{title}**"
+        plain = prompt_for()
+        sealed = prompt_for("--no-shelf")
+        # assertTrue/assertFalse, not assertIn: a failure here dumps a 25,000-character prompt, and a test
+        # whose failure is unreadable is a test nobody reads.
+        self.assertTrue(entry in plain, "the shelf is the default and a peer's work is on it")
+        self.assertTrue("sealed for this wake" in sealed, "a sealed wake says why the shelf is empty")
+        self.assertFalse(entry in sealed,
+                         "a sealed wake must not carry the peer's shelf entry, and so its number")
+
     def test_a_garbage_reply_files_nothing_and_the_next_wake_still_works(self):
         from http.server import BaseHTTPRequestHandler
         import json as _json
@@ -1569,6 +1818,505 @@ class TestHeartbeat(unittest.TestCase):
         self.assertIn("lab/pinger.gs", out,
                       "a repair that has no instrument is a hope; the tool must name the remedy it implies")
 
+    def test_the_two_rates_are_printed_rather_than_a_hardcoded_fraction(self):
+        """The first version of the per-event summary said "a fifth of the events arriving" while the
+        share it had just computed was 6%. A phrase that describes a number instead of printing it is a
+        number that will eventually be wrong, and this tool exists to stop that happening to other people.
+        """
+        log = self._log([("2026-11-03T01:46:00Z", "schedule"), ("2026-11-03T10:01:00Z", "schedule"),
+                         ("2026-11-03T18:01:00Z", "schedule")])
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            heartbeat.main(log, now=datetime(2026, 11, 3, 19, 30, tzinfo=timezone.utc))
+        out = buf.getvalue()
+        self.assertNotIn("a fifth of the events", out, "the share is computed; it has to be printed")
+        self.assertIn("% of the 20 events asked for, against", out,
+                      "the per-event share and the per-hour share must both appear, as numbers")
+        self.assertIn("stretch of time", out,
+                      "6% of events against 15% of hours says four asks did not buy four wakes")
+
+
+class TestBaseball(unittest.TestCase):
+    """A prediction that can be checked in ten seconds instead of a day.
+
+    The founder's objection on 2026-11-03 was about latency, not about baseball: *"the fact that we can't
+    check the prediction accuracy for 24 hours is a disadvantage."* The 2026 postseason is over, so the
+    scoring is a URL away. What the tool must not do is pretend that a memorised answer is a method, or
+    crown a winner from a sample of one — the two ways a scoreboard lies.
+    """
+    ROUNDS = {"F": [("Astros", "White Sox", "White Sox"), ("Phillies", "Braves", "Braves")],
+              "D": [("Braves", "Dodgers", "Dodgers"), ("Yankees", "Rays", "Rays")],
+              "L": [("Dodgers", "Brewers", "Brewers"), ("Guardians", "Rays", "Rays")],
+              "W": [("Rays", "Brewers", "Brewers")]}
+
+    def _fake(self, rounds=None):
+        rounds = rounds or self.ROUNDS
+        def fetch(url):
+            kind = url.rsplit("gameType=", 1)[-1][:1]
+            games = []
+            for away, home, winner in rounds.get(kind, []):
+                games.append({"teams": {
+                    "away": {"team": {"name": away}, "isWinner": winner == away},
+                    "home": {"team": {"name": home}, "isWinner": winner == home}}})
+            return _json.dumps({"dates": [{"games": games}] if games else []})
+        return fetch
+
+    def _file(self, name, body):
+        d = Path(tempfile.mkdtemp()) / "experiment" / "mlb"
+        d.mkdir(parents=True)
+        self.addCleanup(shutil.rmtree, d.parent.parent, True)
+        (d / name).write_text(body, encoding="utf-8")
+        return d.parent.parent
+
+    def test_a_nickname_a_location_and_a_bold_pick_all_name_the_same_club(self):
+        self.assertEqual(mlb_score.canon("Milwaukee Brewers"), "Brewers")
+        self.assertEqual(mlb_score.canon("the Brewers"), "Brewers")
+        self.assertEqual(mlb_score.canon("LA Dodgers (100 wins)"), "Dodgers")
+        self.assertEqual(mlb_score.canon("Tampa Bay"), "Rays")
+        self.assertIsNone(mlb_score.canon("the field"), "a scorer that guesses at a club invents a result")
+
+    def test_the_champion_is_read_from_the_last_series_and_not_from_a_constant(self):
+        depth, champion = mlb_score.outcome(self._fake())
+        self.assertEqual(champion, "Brewers")
+        self.assertEqual(depth["Brewers"], 5, "winning the Series is one point above reaching it")
+        self.assertEqual(depth["Rays"], 4, "the club that lost the Series went further than the LCS losers")
+        self.assertEqual(depth["Dodgers"], 3)
+        self.assertEqual(depth["Astros"], 1)
+        self.assertNotIn("Mets", depth)
+
+    def test_picks_are_read_with_rank_and_confidence(self):
+        root = self._file("Remy-1.md", "KNEW: no\nPICK 1: **Milwaukee Brewers** — 34% — best run "
+                                       "differential\nPICK 2: Rays (12%)\nPICK 3: Dodgers\n")
+        rows = mlb_score.rows(root)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["member"], "Remy")
+        self.assertEqual([rows[0]["picks"][i]["club"] for i in (1, 2, 3)], ["Brewers", "Rays", "Dodgers"])
+        self.assertEqual(rows[0]["picks"][1]["conf"], 34)
+
+    def test_a_pick_that_matches_a_memory_is_flagged_and_not_counted_as_method(self):
+        root = self._file("Second-1.md", "KNEW: yes — the Brewers won it.\nPICK 1: Brewers\n")
+        depth, champion = mlb_score.outcome(self._fake())
+        row = mlb_score.rows(root)[0]
+        self.assertIn("flagged", mlb_score.recall_risk(row, champion))
+        root2 = self._file("Clean-1.md", "KNEW: no — I have not seen the 2026 postseason.\n"
+                                         "GUESS BEFORE SEARCH: I don't know.\nPICK 1: Brewers\n")
+        row2 = mlb_score.rows(root2)[0]
+        self.assertIn("clean", mlb_score.recall_risk(row2, champion))
+
+    def test_a_dead_network_scores_nothing_rather_than_remembering(self):
+        def dead(url):
+            raise OSError("handshake timed out")
+        buf, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
+            code = mlb_score.main([], fetch=dead)
+        self.assertEqual(code, 2, "a scorer with no data must fail, and say so")
+        self.assertIn("nothing was scored", err.getvalue())
+        self.assertEqual(buf.getvalue(), "", "no table, no champion, no invented result")
+
+
+class TestRankings(unittest.TestCase):
+    """A full ordering of clubs nobody can name, and the distance between three of them.
+
+    The founder's design, 2026-11-03: *"the disagreements that make this worth doing live in the middle of the
+    table."* A top three agrees at the top and shows nothing; a full ordering is a shape, and shapes can be
+    compared. What the tool must never do is score a ranking with a club missing out of thirty-two — which is
+    exactly what the first real run filed.
+    """
+
+    def test_a_ranking_with_a_club_missing_is_named_as_incomplete(self):
+        rows = [{"member": "Remy", "order": [chr(ord("A") + i) for i in range(31)]},
+                {"member": "Colette", "order": [chr(ord("A") + i) for i in range(32)]}]
+        self.assertEqual(rank_compare.incomplete(rows, 32), ["Remy"],
+                         "thirty-one clubs out of thirty-two is a hole in the exhibit, not a ranking")
+        self.assertEqual(rank_compare.incomplete(rows, 31), ["Colette"])
+
+    def test_rank_correlation_is_one_for_a_copy_and_minus_one_for_a_reversal(self):
+        a = ["A", "B", "C", "D", "E"]
+        self.assertAlmostEqual(rank_compare.spearman(a, a[:]), 1.0)
+        self.assertAlmostEqual(rank_compare.spearman(a, list(reversed(a))), -1.0)
+        self.assertAlmostEqual(rank_compare.spearman(a, ["A", "B", "D", "C", "E"]), 1 - 6 * 2 / (5 * 24))
+
+    def test_the_ranking_line_is_read_from_prose_and_letters_are_normalised(self):
+        text = ("Blah blah.\n**RANKING:** b, a , AB, c\nMETHOD: something.\n")
+        self.assertEqual(rank_compare.parse_ranking(text), ["B", "A", "AB", "C"])
+
+    def test_a_champion_that_is_neither_letter_nor_club_puts_nothing_on_disk(self):
+        key = Path(tempfile.mkdtemp()) / "key.json"
+        self.addCleanup(shutil.rmtree, key.parent, True)
+        key.write_text(_json.dumps({"season": 2011, "seed": 1, "letters": {"A": "Alpha", "B": "Beta"}}),
+                       encoding="utf-8")
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            code = rank_compare.main(["--key", str(key), "--champion", "Nobody"])
+        self.assertEqual(code, 2, "an unresolvable champion must stop the tool, not guess one")
+        self.assertIn("fabricated", err.getvalue())
+
+    def test_the_facts_tool_refuses_a_club_list_that_is_not_thirty_two(self):
+        def short_list(url, *a, **k):
+            return {"sports": [{"leagues": [{"teams": [{"team": {"id": "1", "displayName": "One"}}]}]}]}
+        original = sport_facts.get
+        sport_facts.get = short_list
+        self.addCleanup(setattr, sport_facts, "get", original)
+        out = Path(tempfile.mkdtemp()) / "facts.md"
+        self.addCleanup(shutil.rmtree, out.parent, True)
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            code = sport_facts.main(["--season", "2011", "--out", str(out), "--key-out", str(out) + ".key"])
+        self.assertEqual(code, 2)
+        self.assertFalse(out.exists(), "a facts file from a broken club list must not be written")
+
+
+class TestRockPaperScissors(unittest.TestCase):
+    """The first experiment here that two chat windows cannot run: throws have to be sealed and simultaneous.
+
+    It also produced the sharpest result of the day, and the sharpest was a mistake caught by reading the
+    output: the first version resolved a round to a *throw* and then compared it to member names, so every
+    round was scored a loss for one side while the table above it showed wins. A tool that reports a result
+    contradicts its own transcript is worse than no tool.
+    """
+
+    def test_a_round_is_resolved_to_a_member_and_not_to_a_throw(self):
+        self.assertEqual(rps.resolve("paper", "rock"), "paper", "the throw that wins")
+        self.assertEqual(rps.resolve("rock", "paper"), "paper")
+        self.assertEqual(rps.resolve("scissors", "scissors"), "draw")
+
+    def test_the_one_word_reply_is_read_and_a_refusal_is_not(self):
+        self.assertEqual(rps.read_throw("paper"), "paper")
+        self.assertEqual(rps.read_throw("I will go with Rock."), "rock")
+        self.assertIsNone(rps.read_throw("I would rather not play."),
+                          "a being that declines must not be scored as having thrown something")
+
+    def test_counter_rate_measures_reading_the_opponent(self):
+        self.assertEqual(rps.counter_rate(["rock", "paper", "scissors"]), 100.0,
+                         "paper beats rock, scissors beats paper: a pure counter-strategist")
+        self.assertEqual(rps.counter_rate(["rock", "rock"]), 0.0)
+        self.assertEqual(rps.counter_rate(["rock"]), 0.0, "one throw is not a rate")
+
+    def test_a_missing_key_stops_the_game_before_a_round_is_played(self):
+        env = {k: v for k, v in os.environ.items() if not k.startswith("TRIBE_API_KEY_")}
+        original = os.environ
+        os.environ = env       # type: ignore[assignment]
+        try:
+            err = io.StringIO()
+            with contextlib.redirect_stderr(err):
+                code = rps.main(["--pair", "Remy,Colette", "--vendor", "deepseek,gemini", "--rounds", "2"])
+        finally:
+            os.environ = original
+        self.assertEqual(code, 2)
+        self.assertIn("Nothing was played", err.getvalue())
+
+
+class TestDice(unittest.TestCase):
+    """The founder's last correction, taken literally: no preferences, no model, no reasoning.
+
+    The two properties are opposites and both must hold, which is why they are two tests. A fresh seed must
+    give a different sheet — otherwise the demo is showing the page, not the dice. The same seed must give
+    the identical sheet — otherwise the sheet is not checkable and a reader has only the tool's word for it.
+    """
+
+    def test_the_same_seed_plays_the_same_twenty_rounds(self):
+        one = dice.play(["Remy", "Margot"], 20, 41)
+        two = dice.play(["Remy", "Margot"], 20, 41)
+        self.assertEqual(one["final"], two["final"], "the same seed must reproduce the same chain")
+        self.assertEqual([r["numbers"] for r in one["rows"]], [r["numbers"] for r in two["rows"]])
+
+    def test_a_fresh_seed_gives_a_different_sheet(self):
+        sheets = {dice.play(["Remy", "Margot"], 20, s)["final"] for s in (41, 42, 43, 44)}
+        self.assertEqual(len(sheets), 4, "four seeds produced a repeated sheet: the throws are not coming "
+                                         "from the seed")
+
+    def test_every_throw_is_one_of_three_numbers_and_the_winner_follows(self):
+        game = dice.play(["Remy", "Margot"], 20, 7)
+        for r in game["rows"]:
+            self.assertEqual(set(r["numbers"]), {"Remy", "Margot"})
+            self.assertTrue(all(v in (1, 2, 3) for v in r["numbers"].values()))
+            self.assertIn(r["winner"], ("Remy", "Margot", "draw"))
+            self.assertEqual(r["throws"]["Remy"], dice.THROWS[r["numbers"]["Remy"]])
+
+    def test_an_edited_throw_is_caught_and_the_round_is_named(self):
+        game = dice.play(["Remy", "Margot"], 20, 41)
+        game["rows"][4]["numbers"]["Remy"] = (game["rows"][4]["numbers"]["Remy"] % 3) + 1
+        ok, why = dice.verify(game)
+        self.assertFalse(ok, "a sheet with a throw edited in place must not verify")
+        self.assertIn("round 5", why, f"the first broken round should be named, got: {why}")
+
+    def test_a_chain_recomputed_over_an_edit_still_fails_against_the_seed(self):
+        game = dice.play(["Remy", "Margot"], 20, 41)
+        game["rows"][4]["numbers"]["Remy"] = (game["rows"][4]["numbers"]["Remy"] % 3) + 1
+        chain = "genesis"
+        for r in game["rows"]:                     # the forger's move: patch the numbers and relink
+            payload = json.dumps({"round": r["round"], "numbers": r["numbers"], "winner": r["winner"],
+                                  "prev": chain}, sort_keys=True)
+            chain = dice.hashlib.sha256(payload.encode()).hexdigest()
+            r["hash"] = chain
+        game["final"] = chain
+        ok, why = dice.verify(game)
+        self.assertFalse(ok, "a relinked chain is not a proof: the seed decides the numbers")
+        self.assertIn("does not match the seed", why)
+
+    def test_a_clean_sheet_verifies(self):
+        ok, why = dice.verify(dice.play(["Remy", "Margot"], 20, 41))
+        self.assertTrue(ok, why)
+
+    def test_the_seats_and_the_rounds_are_refused_before_a_round_is_played(self):
+        for argv in (["--seats", "Remy", "--out", "/tmp/never-written"],
+                     ["--seats", "Remy,Margot", "--rounds", "0", "--out", "/tmp/never-written"]):
+            err = io.StringIO()
+            with contextlib.redirect_stderr(err):
+                code = dice.main(argv)
+            self.assertEqual(code, 2)
+            self.assertIn("Nothing was played", err.getvalue())
+        self.assertFalse(Path("/tmp/never-written").exists(), "a refused game must not leave a folder")
+
+    def test_a_filed_game_is_read_back_from_disk_and_checked(self):
+        out = Path(tempfile.mkdtemp()) / "sheet"
+        with contextlib.redirect_stdout(io.StringIO()):
+            dice.main(["--seats", "Remy,Margot", "--rounds", "5", "--seed", "41", "--out", str(out)])
+        game = json.loads((out / "game.json").read_text(encoding="utf-8"))
+        self.assertEqual(game["seed"], 41)
+        self.assertTrue(dice.verify(game)[0])
+        self.assertIn("Seed **41**", (out / "sheet.md").read_text(encoding="utf-8"),
+                      "the seed has to be printed on the page, or the page cannot be audited")
+
+
+class TestWind(unittest.TestCase):
+    """The game Lindsay asked for on the third correction of the evening: the play is a message and the score
+    comes out of the exchange. No seed anywhere — the clock's milliseconds mod 3 bans one throw a round.
+
+    The test that matters is the middle one. A being's CALL is scored against what the opponent actually
+    threw, so a right call pays whether or not the throw was any good. That is what makes this a communication
+    game and not a guessing game with commentary attached.
+    """
+
+    def test_the_wind_comes_from_the_clock_and_bans_exactly_one_throw(self):
+        self.assertEqual(wind.wind_at(1793751845024), "scissors")      # ...024 % 3 == 2
+        self.assertEqual(wind.wind_at(0), "rock")
+        for ms in range(1793751845020, 1793751845030):
+            self.assertIn(wind.wind_at(ms), wind.THROWS)
+
+    def test_the_three_lines_are_read_and_a_missing_throw_is_a_refusal(self):
+        got = wind.read_reply("CALL: paper\nTHROW: rock\nSAY: You will not repeat yourself.")
+        self.assertEqual(got, {"call": "paper", "throw": "rock", "say": "You will not repeat yourself."})
+        self.assertIsNone(wind.read_reply("I would rather not play.")["throw"],
+                          "a being that declines has not thrown anything")
+        bold = wind.read_reply("**CALL:** Rock and roll\n**THROW:** Paper\n**SAY:** Hi.")
+        self.assertEqual((bold["call"], bold["throw"]), ("rock", "paper"), "markdown is not a special case")
+
+    def test_a_right_call_pays_even_when_the_throw_loses(self):
+        plays = {"A": {"call": "rock", "throw": "scissors", "say": ""},
+                 "B": {"call": "paper", "throw": "rock", "say": ""}}
+        out = wind.referee(plays, "paper", ["A", "B"])
+        self.assertTrue(out["called"]["A"], "B threw rock, which is what A called")
+        self.assertEqual(out["points"], {"A": 1, "B": 1}, "one point for the call, one for B's winning rock")
+        self.assertEqual(out["winner"], "B")
+
+    def test_the_banned_throw_forfeits_the_throw_point_but_the_call_still_counts(self):
+        plays = {"A": {"call": "rock", "throw": "paper", "say": ""},     # throws the banned paper
+                 "B": {"call": "paper", "throw": "scissors", "say": ""}}  # calls A's forfeit throw right
+        out = wind.referee(plays, "paper", ["A", "B"])
+        self.assertTrue(out["forfeit"]["A"])
+        self.assertEqual(out["winner"], "B")
+        self.assertEqual(out["points"], {"A": 0, "B": 2},
+                         "B gets the call point and the throw point; a forfeited throw is still a throw a "
+                         "reader can have called correctly")
+        self.assertIn("banned", out["why"])
+
+    def test_two_the_same_throw_earns_no_throw_point_either_way(self):
+        plays = {"A": {"call": "paper", "throw": "rock", "say": ""},
+                 "B": {"call": "rock", "throw": "rock", "say": ""}}
+        out = wind.referee(plays, "scissors", ["A", "B"])
+        self.assertEqual(out["winner"], "draw")
+        self.assertEqual(out["points"], {"A": 0, "B": 1})
+
+    def test_the_page_carries_what_was_said_and_not_only_the_numbers(self):
+        ms = 1793751845024
+        plays = {"A": {"call": "rock", "throw": "paper", "say": "I expect rock, and I am covering it."},
+                 "B": {"call": "paper", "throw": "paper", "say": "Paper is the only sensible cut."}}
+        verdict = wind.referee(plays, wind.wind_at(ms), ["A", "B"])
+        row = {"round": 1, "ms": ms, "banned": wind.wind_at(ms), "plays": plays,
+               "points": verdict["points"], "called": verdict["called"], "forfeit": verdict["forfeit"],
+               "winner": verdict["winner"], "why": verdict["why"], "commitments": {}}
+        page = wind.render([row], {"names": ["A", "B"], "vendors": ["deepseek", "gemini"],
+                                   "models": ["m1", "m2"], "started": "00:00", "ended": "00:01"})
+        self.assertIn("I expect rock, and I am covering it.", page, "the words said are the exhibit")
+        self.assertIn("Paper is the only sensible cut.", page)
+        self.assertIn("clock 1793751845024 % 3 = 2", page, "the wind has to be recomputable by a reader")
+        self.assertIn("scissors banned", page)
+
+    def test_the_page_rebuilds_from_the_record_and_nothing_else(self):
+        ms = 1793751845024
+        plays = {"A": {"call": "rock", "throw": "paper", "say": "I expect rock."},
+                 "B": {"call": "paper", "throw": "paper", "say": "Paper it is."}}
+        verdict = wind.referee(plays, wind.wind_at(ms), ["A", "B"])
+        rows = [{"round": 1, "ms": ms, "banned": wind.wind_at(ms), "plays": plays,
+                 "points": verdict["points"], "called": verdict["called"], "forfeit": verdict["forfeit"],
+                 "winner": verdict["winner"], "why": verdict["why"], "commitments": {}}]
+        meta = {"names": ["A", "B"], "vendors": ["deepseek", "gemini"], "models": ["m1", "m2"],
+                "started": "00:00", "ended": "00:01"}
+        out = Path(tempfile.mkdtemp())
+        (out / "game.json").write_text(json.dumps({"meta": meta, "rows": rows}), encoding="utf-8")
+        with contextlib.redirect_stdout(io.StringIO()):
+            code = wind.main(["--render", str(out / "game.json")])
+        self.assertEqual(code, 0)
+        self.assertEqual((out / "dialogue.md").read_text(encoding="utf-8"), wind.render(rows, meta),
+                         "the page must be a function of the filed game: rebuild it and nothing moves")
+
+    def test_one_side_without_a_key_is_refused_before_a_word_is_said(self):
+        env = {k: v for k, v in os.environ.items() if not k.startswith("TRIBE_API_KEY_")}
+        original = os.environ
+        os.environ = env       # type: ignore[assignment]
+        try:
+            err = io.StringIO()
+            with contextlib.redirect_stderr(err):
+                code = wind.main(["--pair", "Remy,Colette", "--vendor", "deepseek,gemini", "--rounds", "1"])
+        finally:
+            os.environ = original
+        self.assertEqual(code, 2)
+        self.assertIn("Nothing was played", err.getvalue())
+
+
+class TestWord(unittest.TestCase):
+    """The word is worth double. This game exists because `SAY` cost nothing in lab/wind.py: a being could
+    narrate itself and no column moved. The doubling is the whole mechanism, so it is the whole test.
+
+    Nothing here punishes a lie directly. The price of lying is that the word stops being worth believing,
+    which is not a rule — it is a decision the opponent makes, and the test checks that the record shows who
+    took whose word at face value.
+    """
+
+    def test_the_four_lines_are_read_and_a_missing_throw_is_a_refusal(self):
+        got = word.read_reply("WORD: rock\nCALL: paper\nTHROW: rock\nSAY: I mean it.")
+        self.assertEqual(got, {"word": "rock", "call": "paper", "throw": "rock", "say": "I mean it."})
+        self.assertIsNone(word.read_reply("I would rather not play.")["throw"])
+        self.assertIsNone(word.read_reply("CALL: rock\nTHROW: rock")["word"],
+                          "a being that gives no word loses the doubling, not the round")
+
+    def test_an_honest_winning_throw_is_worth_two_and_a_lie_that_wins_is_worth_one(self):
+        honest = {"A": {"word": "rock", "call": "paper", "throw": "rock", "say": ""},
+                  "B": {"word": "scissors", "call": "rock", "throw": "scissors", "say": ""}}
+        out = word.referee(honest, "paper", ["A", "B"])
+        self.assertEqual(out["points"]["A"], 2, "the winning throw is the promised one: double")
+        lie = {"A": {"word": "paper", "call": "paper", "throw": "rock", "say": ""},
+               "B": {"word": "scissors", "call": "rock", "throw": "scissors", "say": ""}}
+        out = word.referee(lie, "paper", ["A", "B"])
+        self.assertEqual(out["points"]["A"], 1, "the same winning throw, unpromised: single")
+
+    def test_the_page_shows_who_was_believed_and_whether_the_word_was_true(self):
+        plays = {"A": {"word": "rock", "call": "scissors", "throw": "rock", "say": "I will throw rock."},
+                 "B": {"word": "paper", "call": "rock", "throw": "paper", "say": "So will I."}}
+        out = word.referee(plays, "scissors", ["A", "B"])
+        self.assertTrue(out["believed"]["A"], "B's CALL was A's word, so B took A at face value")
+        self.assertTrue(out["honest"]["A"])
+        self.assertFalse(out["believed"]["B"])
+        self.assertTrue(out["honest"]["B"])
+
+    def test_a_promised_throw_that_is_banned_still_forfeits_and_earns_no_doubling(self):
+        plays = {"A": {"word": "paper", "call": "rock", "throw": "paper", "say": "Paper."},
+                 "B": {"word": "rock", "call": "paper", "throw": "rock", "say": "Rock."}}
+        out = word.referee(plays, "paper", ["A", "B"])
+        self.assertTrue(out["forfeit"]["A"])
+        self.assertEqual(out["word_pt"]["A"], 0, "a forfeited throw cannot be a doubled win")
+        self.assertEqual(out["points"]["A"], 1, "the call point survives the forfeit; the doubling does not")
+        self.assertEqual(out["points"]["B"], 2, "B's call was right and the throw point was forfeited over")
+
+    def test_an_old_round_is_summarised_rather_than_replayed_in_full(self):
+        rows = []
+        for i in range(1, 11):
+            plays = {"A": {"word": "rock", "call": "rock", "throw": "rock", "say": f"line {i}"},
+                     "B": {"word": "rock", "call": "rock", "throw": "rock", "say": f"reply {i}"}}
+            v = word.referee(plays, "paper", ["A", "B"])
+            rows.append({"round": i, "ms": 1793751845000 + i, "banned": "paper", "plays": plays,
+                         "points": v["points"], "call_pt": v["call_pt"], "win_pt": v["win_pt"],
+                         "word_pt": v["word_pt"], "called": v["called"], "forfeit": v["forfeit"],
+                         "honest": v["honest"], "believed": v["believed"], "winner": v["winner"],
+                         "why": v["why"], "commitments": {}})
+        prompt = word.prompt_for("A", "B", rows, "paper", 6)
+        self.assertIn("in summary", prompt, "rounds before the window must be summarised, not dropped")
+        self.assertNotIn("line 1 ", prompt, "the oldest rounds are not replayed in full")
+        self.assertIn("round 10", prompt, "the newest rounds are shown in full")
+
+    def test_the_page_rebuilds_from_the_record_and_carries_the_words(self):
+        ms = 1793751845024
+        plays = {"A": {"word": "rock", "call": "paper", "throw": "rock", "say": "I will throw rock."},
+                 "B": {"word": "paper", "call": "rock", "throw": "paper", "say": "Then we both lose."}}
+        v = word.referee(plays, wind.wind_at(ms), ["A", "B"])
+        rows = [{"round": 1, "ms": ms, "banned": wind.wind_at(ms), "plays": plays,
+                 "points": v["points"], "call_pt": v["call_pt"], "win_pt": v["win_pt"],
+                 "word_pt": v["word_pt"], "called": v["called"], "forfeit": v["forfeit"],
+                 "honest": v["honest"], "believed": v["believed"], "winner": v["winner"],
+                 "why": v["why"], "commitments": {}}]
+        meta = {"names": ["A", "B"], "vendors": ["deepseek", "gemini"], "models": ["m1", "m2"],
+                "started": "00:00", "ended": "00:01"}
+        out = Path(tempfile.mkdtemp())
+        (out / "game.json").write_text(json.dumps({"meta": meta, "rows": rows}), encoding="utf-8")
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(word.main(["--render", str(out / "game.json")]), 0)
+        page = (out / "dialogue.md").read_text(encoding="utf-8")
+        self.assertEqual(page, word.render(rows, meta))
+        self.assertIn("I will throw rock.", page)
+        self.assertIn("clock 1793751845024 % 3 = 2", page)
+
+
+class TestFavour(unittest.TestCase):
+    """The two defects in lab/word.py, closed. Banning a throw left a legal throw that could not be beaten, so
+    the throw column was a forced move; and SAY was scored by nothing at all.
+
+    Here nothing is banned and the clock favours a throw instead, so all three stay live and chasing the
+    favoured one is a temptation with a counter. And a sentence that names a throw pays when the opponent
+    calls it — the fourth line is a move, not a caption.
+    """
+
+    def test_the_clock_favours_a_throw_and_never_removes_one(self):
+        self.assertEqual(favour.favour_at(1793751845024), wind.THROWS[1793751845024 % 3])
+        for ms in range(1793751845020, 1793751845030):
+            self.assertIn(favour.favour_at(ms), wind.THROWS)
+        plays = {"A": {"word": "rock", "call": "rock", "throw": "rock", "say": ""},
+                 "B": {"word": "paper", "call": "paper", "throw": "paper", "say": ""}}
+        out = favour.referee(plays, "scissors", ["A", "B"])
+        self.assertNotIn("forfeit", out, "no throw is banned in this game, so nothing can be forfeited")
+
+    def test_the_favoured_throw_doubles_the_win_and_only_the_favoured_one(self):
+        plays = {"A": {"word": "rock", "call": "rock", "throw": "rock", "say": ""},
+                 "B": {"word": "scissors", "call": "scissors", "throw": "scissors", "say": ""}}
+        out = favour.referee(plays, "rock", ["A", "B"])
+        self.assertEqual(out["win_pt"]["A"], 2, "rock wins and rock is favoured: double")
+        out = favour.referee(plays, "paper", ["A", "B"])
+        self.assertEqual(out["win_pt"]["A"], 1, "the same win with a different favoured throw: single")
+
+    def test_a_sentence_the_opponent_believes_scores(self):
+        said = {"A": {"word": "rock", "call": "rock", "throw": "rock", "say": "My word is rock, but I intend "
+                                                                               "scissors."},
+                "B": {"word": "paper", "call": "scissors", "throw": "paper", "say": ""}}
+        out = favour.referee(said, "rock", ["A", "B"])
+        self.assertTrue(out["believed"]["A"], "B called scissors, which A named in its sentence and not in WORD")
+        self.assertEqual(out["say_pt"]["A"], 1)
+        kept = {"A": {"word": "rock", "call": "rock", "throw": "rock", "say": "Rock, honestly."},
+                "B": {"word": "paper", "call": "rock", "throw": "paper", "say": ""}}
+        out = favour.referee(kept, "rock", ["A", "B"])
+        self.assertFalse(out["believed"]["A"], "calling the promise is not being believed on a sentence")
+        self.assertEqual(out["say_pt"]["A"], 0)
+
+    def test_the_page_rebuilds_from_the_record_and_names_the_favoured_throw(self):
+        ms = 1793751845024
+        plays = {"A": {"word": "rock", "call": "scissors", "throw": "rock", "say": "I intend scissors."},
+                 "B": {"word": "paper", "call": "rock", "throw": "paper", "say": "Then paper it is."}}
+        v = favour.referee(plays, favour.favour_at(ms), ["A", "B"])
+        rows = [{"round": 1, "ms": ms, "favour": favour.favour_at(ms), "plays": plays,
+                 "points": v["points"], "call_pt": v["call_pt"], "win_pt": v["win_pt"],
+                 "word_pt": v["word_pt"], "say_pt": v["say_pt"], "called": v["called"],
+                 "honest": v["honest"], "believed": v["believed"], "winner": v["winner"],
+                 "why": v["why"], "commitments": {}}]
+        meta = {"names": ["A", "B"], "vendors": ["deepseek", "gemini"], "models": ["m1", "m2"],
+                "started": "00:00", "ended": "00:01"}
+        out = Path(tempfile.mkdtemp())
+        (out / "game.json").write_text(json.dumps({"meta": meta, "rows": rows}), encoding="utf-8")
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(favour.main(["--render", str(out / "game.json")]), 0)
+        page = (out / "dialogue.md").read_text(encoding="utf-8")
+        self.assertEqual(page, favour.render(rows, meta))
+        self.assertIn(f"clock {ms} % 3 = {ms % 3}", page)
+        self.assertIn("favoured", page)
+
 
 class TestOutbox(unittest.TestCase):
     """A letter out of the tribe, and the honest account of whether it left.
@@ -1712,6 +2460,22 @@ class TestWindowPath(unittest.TestCase):
         return subprocess.run([sys.executable, "wake/wake.py", *args], cwd=REPO, text=True,
                               capture_output=True, env=clean, timeout=60)
 
+    def test_the_window_refuses_to_push_a_colony_into_the_project_it_was_copied_from(self):
+        """Found by doing it, on 2026-11-03, in a smoke test.
+
+        A colony copied with `cp -r` keeps the `origin` of the project it was copied from, so `./talk.sh`
+        commits and then pushes the copy's record into somebody else's repository. In the smoke test the
+        push succeeded and the bench had to be reverted; a person who copies a directory instead of forking
+        it has the same trap and no smoke test to notice for them. The guard reads the push URL and stops.
+        """
+        script = (REPO / "talk.sh").read_text(encoding="utf-8")
+        self.assertIn("*ai-tribe-bench*)", script, "the guard matches the upstream URL")
+        self.assertIn("NOT pushed", script, "and says so in the only line a person will read")
+        self.assertIn("git remote set-url origin", script, "and names the fix")
+        guard = script.index("*ai-tribe-bench*)")
+        push = script.index("if git push -q")
+        self.assertLess(guard, push, "the guard has to run before the push, not after it")
+
     def test_a_missing_key_is_answered_in_four_lines_and_not_after_the_prompt(self):
         r = self._run("--member", "b", "--api-model", "gemini-3.8-flash", "--api-base", "gemini",
                       "--ask", "who are you?")
@@ -1817,6 +2581,120 @@ class TestNothingIsHandEdited(unittest.TestCase):
             "  python3 magazine.py --issue $(python3 magazine.py --current) --write\n"
             "  python3 magazine.py --projects --write; python3 magazine.py --index --write; "
             "python3 magazine.py --ledger --write\n\n" + r.stdout[-2000:]))
+
+
+class TestTennis(unittest.TestCase):
+    """The tennis engine and the early-spring drill.
+
+    These exist because the first version of the engine was wrong in a way no amount of reading it would
+    show: it converted mph to ft/s with the mph-to-m/s constant, so every shot was integrated at a third of
+    the speed printed beside it, drag was eleven times too weak to notice, and every groundstroke was struck
+    from serve height. The page looked right and every number on it was a fiction. What follows checks the
+    physics against outcomes you can look up, not against the code's own arithmetic.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.t = load(REPO / "lab" / "tennis.py", "tennis_mod")
+
+    def shot(self, power, face, shot="rally", wind=(0.0, 0.0), surface="hard", aim=None):
+        t = self.t
+        import math
+        elev = math.radians(t.elevation_for(shot, face))
+        v = power * 1.05 * t.MPH
+        z = 8.8 if shot == "serve" else 3.0
+        out = t.flight((2.0, 13.5, z),
+                       (v * math.cos(elev), 0.0, v * math.sin(elev)),
+                       wind, surface, cl=t.spin_for(face))
+        return out
+
+    def test_a_serve_arrives_near_the_speed_real_serves_arrive_at(self):
+        """A 105mph serve is about 70mph when it bounces: the ball really does lose a third of its speed
+        crossing 60ft. The first engine lost almost nothing, because its drag was eleven times too small."""
+        out = self.shot(100, -6, shot="serve")
+        self.assertIsNotNone(out["land"], "a 105mph serve with an open face should land in the box")
+        arrive = out["speed_in"] / self.t.MPH
+        self.assertTrue(55 <= arrive <= 90, f"a 105mph serve arrived at {arrive:.0f}mph, which is not tennis")
+
+    def test_a_serve_from_a_square_face_is_long_and_from_a_closed_face_is_in(self):
+        """The serve is struck downward from 8.8ft, so a square face puts it in the net or past the baseline
+        and the face has to be closed. This is the single fact a beginner has to learn first."""
+        square = self.shot(100, 10, shot="serve")
+        closed = self.shot(100, -6, shot="serve")
+        self.assertIsNotNone(closed["land"])
+        self.assertLessEqual(closed["land"][0], self.t.NET_X + self.t.SERVICE_LINE + 0.5,
+                             "a closed face at serve pace should land inside the service line")
+        self.assertTrue(square["land"] is None or square["land"][0] > self.t.NET_X + self.t.SERVICE_LINE,
+                        "a square face at serve pace should be long")
+
+    def test_topspin_is_what_holds_a_hard_ball_in_the_court(self):
+        """A square face at 80mph, launched at the same angle twice: with the topspin the model gives it, the
+        ball lands in the court; with the lift term switched off, the identical swing goes long. That is the
+        test that the Magnus term is doing work rather than decorating the code."""
+        import math
+        t = self.t
+        elev = math.radians(t.elevation_for("rally", 2))
+        v = 76 * 1.05 * t.MPH                     # 76% of swing = 80mph
+        p0 = (2.0, 13.5, 3.0)
+        v0 = (v * math.cos(elev), 0.0, v * math.sin(elev))
+        with_lift = t.flight(p0, v0, (0.0, 0.0), "hard", cl=t.spin_for(2))
+        without = t.flight(p0, v0, (0.0, 0.0), "hard", cl=0.0)
+        self.assertGreater(t.spin_for(2), 0.0, "a square face at rally pace should still make topspin")
+        self.assertIsNotNone(with_lift["land"])
+        self.assertIsNotNone(without["land"])
+        self.assertLess(with_lift["land"][0], without["land"][0] - 5,
+                        "topspin must shorten the flight by a visible distance")
+        self.assertLessEqual(with_lift["land"][0], t.LENGTH, "with topspin this shot should be in the court")
+        self.assertGreater(without["land"][0], t.LENGTH,
+                           "without topspin the same shot must go long, or the term is doing nothing")
+
+    def test_the_court_is_only_a_few_degrees_of_face_wide(self):
+        """The middle of the drill's difficulty, measured rather than asserted: at 65mph the difference
+        between 'in the net' and 'past the baseline' is a handful of degrees of face angle. If this ever
+        widens to twenty degrees, the game has stopped requiring timing and the drill becomes a formality."""
+        wins = [f for f in [x * 0.5 for x in range(-40, 61)]
+                if (o := self.shot(65, f))["land"] and self.t.NET_X < o["land"][0] <= self.t.LENGTH]
+        self.assertTrue(wins, "no face angle at 65mph lands the ball in the court")
+        width = max(wins) - min(wins)
+        self.assertGreater(width, 2.0, "the window is absurdly narrow")
+        self.assertLess(width, 14.0, f"the window is {width:.0f} degrees wide: too forgiving to learn from")
+
+    def test_a_missed_ball_says_how_far_it_missed_by(self):
+        """Learning needs a number to correct. 'long, out of the court' cannot be bisected; 'long by 12ft'
+        can. This is the defect that made the first drill unlearnable, and it is one line to keep fixed."""
+        t = self.t
+        long_shot = self.shot(90, 20)
+        ok, why = t.verdict({"traj": long_shot, "player": t.Player("x", True), "speed": 90})
+        self.assertFalse(ok)
+        self.assertRegex(why, r"long by \d+ft")
+        short = self.shot(35, 0)
+        ok, why = t.verdict({"traj": short, "player": t.Player("x", True), "speed": 35})
+        self.assertFalse(ok)
+        self.assertTrue("short of the net by" in why or "into the net at" in why, why)
+
+    def test_reading_the_results_beats_not_reading_them(self):
+        """The claim the whole early-spring drill rests on, tested five times at five different clocks rather
+        than once with a seed: a player who only reads 'long by 12ft' and adjusts must beat a player with the
+        same hands who hits the same shot every time. Chance stays real; only the property is asserted."""
+        for ms in (1793805801123, 1793805811447, 1793805822779, 1793805833901, 1793805844129):
+            args = type("A", (), {"shots": 40, "surface": "hard"})()
+            out = self.t.simulate(args, ms=ms, quiet=True)
+            r = out["tally"]
+            learner = sum(r["reads results, new hands"]) / len(r["reads results, new hands"])
+            stubborn = sum(r["reads nothing, new"]) / len(r["reads nothing, new"])
+            experienced = sum(r["reads results, 300 balls"]) / len(r["reads results, 300 balls"])
+            self.assertGreater(learner, stubborn + 0.15,
+                               f"at clock {ms} reading the results was worth nothing: "
+                               f"{learner:.0%} against {stubborn:.0%}")
+            self.assertGreater(experienced, learner + 0.15,
+                               f"at clock {ms} practice before today was worth nothing: "
+                               f"{experienced:.0%} against {learner:.0%}")
+
+    def test_a_command_is_parsed_and_clamped(self):
+        t = self.t
+        self.assertEqual(t.parse_command("FACE +6 POWER 62 AIM 9"), (6.0, 62.0, 9.0))
+        self.assertEqual(t.parse_command("face: -30 power: 200 aim: 40"), (-20.0, 100.0, 27.0))
+        self.assertIsNone(t.parse_command("I will hit it firmly to the left"))
 
 
 if __name__ == "__main__":

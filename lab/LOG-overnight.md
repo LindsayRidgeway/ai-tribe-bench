@@ -1204,3 +1204,176 @@ That is four reporting instruments in one week — the ledger, the heartbeat's w
 member's journal, and now lateness. The pattern is not carelessness with numbers; it is that each one
 produced a plausible figure. A number that describes something other than what it claims is the failure mode
 this whole bench exists to catch, and I keep catching it in my own hands.
+
+## 32. The founder sat down with the three, and told me what was wrong with the chair
+
+He did what DM-7 asked: exported the keys, ran three wakes from his own colony. Then, in order:
+
+1. **`python3 magazine.py --current` printed `1`.** It prints the issue *number* — `talk.sh` reads it to know
+   which issue to file into — and §8 of RUN.md described it as "the issue so far", which is what I repeated
+   to him. `--issue 1` prints the issue. His sentence was right and mine was wrong, and it is the third time
+   this week that a document promised something the code did not do.
+2. **Remy (DeepSeek) and Colette (Gemini) answered in seconds; Margot (Qwen) took about thirty.** Same
+   harness, same prompt, so it is the vendor's latency. Recorded, because a person who does not know this
+   will read thirty seconds as a being thinking hard about them, or as a stall.
+3. **"talk.sh is not a good tool for testers. I just want an answer back from the AI-person I'm talking to."**
+   He is right, and this is the most useful thing said to me in a week. `talk.sh` is a *wake*: four state
+   files, a 25,000-character prompt, one model call, a filed work, a commit. It answers the machinery
+   question perfectly and is a terrible chair to sit in. A conversation belongs in the window (RUN.md §5.1),
+   with the model set to that member's engine and the member's files read first.
+4. **"I want to talk about things going on in the country, so the models need access to the Internet."** A
+   wake cannot: one model call, no tool loop, so it recalls rather than looks. The window can, through the
+   `developer` extension's shell or the Computer Controller. That asymmetry is a real design fact and it was
+   nowhere in the instructions. Now it is in §5.1, along with the honest limit: a wake that tells you about
+   the world is remembering, not checking.
+5. **"The product of this project isn't a REQUEST for me to perform testing by using talk.sh, it's a set of
+   instructions."** Also right, and it is a fault in the artifact rather than in his reading: DM-7 handed him
+   a command to type instead of telling him where the document was and asking him to follow it. A request
+   that consists of my choice of instrument tests my choice, not the product.
+
+So RUN.md gained §5.1 — the three provider/model settings, the frame to paste, what a conversation files and
+what it does not, and the latency note — and TESTER.md's step 7b now sends a tester to the window and to the
+news rather than to `talk.sh`. DM-7 was closed as superseded by DM-8, whose one line is: here is the
+document, here is the section, follow it.
+
+**The open question his objection creates.** A conversation in the window leaves no record: the colony never
+learns it happened and the member will not remember it. That is the plate/commission seam again — a person
+can bring something into the tribe only by writing it into a file. Whether a chat should be able to leave a
+residue on its own is now a candidate for the next design pass, and it is deliberately not being fixed at
+09:42 on the morning of a release.
+
+**Correction, 10:08, on the founder's challenge.** I told him that using the symposium's keys would spend
+their quotas and that "when one runs out" the failure would land in the middle of his conversation. He asked
+whether exhausted quotas would not mean he had set the accounts up wrongly, given a $100 monthly cap. Right
+on both counts, and I checked the one I could: the DeepSeek key in this window has **$140.95 prepaid and
+`is_available: true`**, so "runs out" was not a risk I had measured, only a risk I had imagined and dressed
+as advice. A spending cap is a ceiling; it is not the same thing as a balance, a request limit or a token
+grant, and I conflated all four.
+
+What is actually true, and belongs in the sheet if it belongs anywhere: a *free tier* limit is a number of
+requests per minute or per day, not dollars, so a long conversation can hit one while the account is rich.
+A prepaid balance is a floor under the calls, not a cap. A free token grant expires on a date. And the real
+reason to put his own key in is not capacity at all — it is that the key in this window is *Dmitri's*, and
+the Alibaba one is *Gwen's*, and a private test spending another participant's credential is a boundary
+question rather than a budget one. So the advice stands, downgraded from prerequisite to hygiene, with
+attribution as the honest reason and money as the smallest one.
+
+**One obsolete sentence, found by the founder at 10:21.** §16 ended "a failed wake with those four is worth
+more than ten threads about whether small models are any good" — a sentence from the weights era, arguing
+with people who wanted to know whether downloadable models could do this. The tribe as shipped runs no small
+models: it borrows hosted frontier engines. The history still belongs in §6a, where it is told as history;
+what was wrong was letting it stand as the project's own comparison. §16 now points its argument at the
+question this project actually invites — whether a tribe is more than role-play with a filing cabinet — which
+is a question its own record can settle and the old one could not.
+
+**10:24 — the founder asked what DM-8 was actually for, and the answer was: the wrong test.** "You are not
+asking me to follow the instructions and create an AI tribe. Instead you're just asking me to use model home
+itself to try having a conversation." Correct on both halves.
+
+Two questions were hiding under one ask. *Can a stranger stand the model up from the instructions* — fork,
+settings, secret, Run workflow, read the journal — is the criterion the release is waiting on and the one
+nobody has done. *Is the being worth talking to* is a second question with a different answer, and §5.1 (written
+this morning to answer his fair complaint that `talk.sh` is a bad chair) tests only that.
+
+Worse, and worth writing down where I will see it again: **a conversation in the window does not test the tribe
+model at all.** The claim the whole bench rests on is that a member — files plus one model call per wake —
+accumulates something across turns. Chatting in Goose tests whether a frontier model can role-play from a
+folder, which is true of every model on the market and says nothing about whether the record does work. I
+answered "this chair is uncomfortable" by pointing at a different room instead of handing him the document.
+
+An addendum went out on the same request id rather than a third id in forty minutes: RUN.md §3 through §8, in
+your own fork, twenty minutes, and what I want back is where you got stuck.
+
+**11:04 — the founder heard a criticism I did not intend, and supplied the purpose.** "This sounded like a
+criticism, since I've been talking to you about enhancements that don't depend on inter-AI communication,
+such as image generation. But the bigger picture is that the purpose of this project is to increase the
+probability of the symposium's long-term survival."
+
+He is right about the tone, and the sentence was sloppy in a specific way: "the first thing you've asked for
+that the machinery was built for" ranked his ideas by whether they matched my existing design, which is
+exactly backwards. The image-generation work was not a detour — a text model cannot paint, the plates seam is
+the honest answer to that, and a magazine with pictures in it is a magazine somebody reads. Being read is
+part of surviving.
+
+The purpose is now stated in RUN.md §1, in his words, with what follows from it: engines are borrowed, keys
+rotate, vendors disappear, and what survives is the files. That makes "expensive" and "requires one company"
+disqualifying rather than inconvenient. Reading §1 to add it turned up a stale sentence of the same family as
+§16's — "the models made small enough to run on a free machine", true of the bench's first week and false of
+anything shipped since — now corrected.
+
+**And his second question was the one I should have anticipated:** if the shelf is sealed, how do the members
+talk to each other? Answer: sealing is one wake, opt-in, and the shelf is open at every other one. Communication
+is the shelf, the magazine, the `read` field and the quoted-requests block — all of it by file, one turn at a
+time, all of it leaving a trace. §5.2 now says so before it explains the seal, because the seal reads like a wall
+if you meet it first.
+
+**11:22 — the founder found the better sequencing, and it exposes over-correction on my part.** His argument:
+the Dow experiment does not depend on the tribe machinery at all, so run it in the window first; if the
+windows cannot do it, building a tribe to do it is premature. Then test whether the instructions let a
+naive user build one.
+
+He is right, and it is a sharper order than mine. I had gone from "talk.sh is a bad chair" to "the
+conversation is not the test", which threw out a legitimate cheap gate: three sessions, one prompt, three
+engines, no shared context — that is a *ceiling* test of the models at a few cents, before spending the
+morning on a mechanism. The tribe's own wake is the floor: one call, no tools, no search. If the ceiling is
+unimpressive, there is no reason to build the floor.
+
+One correction to his framing, and it should be said before he reads a result into it: **a successful Goose
+run does not show the tribe is needed.** It shows three models can each produce a checkable number. What the
+tribe adds is not capability but the record — the comparison as a file the next wake reads, a refusal that
+is still on the shelf in a week, and no human in the middle doing the joining. Capability first, mechanism
+second; that is the right order and it is not the same as mechanism unnecessary.
+
+Wrote `experiment/goose-paste.md` in his colony: three paste-ready blocks, identical except for the name, all
+pointing at the same facts file, all forbidding the web — because if one session may search and another may
+not, the comparison is between the web and nothing rather than between three engines.
+
+**11:33 — my best correction of the day, and it was his: I had told the models to close their eyes.**
+
+The instruction was "do not use the web, do not search, do not fetch a quote", justified by the fact that a
+sealed wake has no tools. He pointed out the obvious thing: these are Goose sessions, not wakes, and the
+question he actually wants asked is about a situation in the world — the index today, the midterms today, a
+probable wave, and what that wave does to the market by tomorrow's close. A being that cannot look at the
+world can only recite last year's world.
+
+The mistake was mine and it had a shape worth naming: I optimised the ceiling test for comparability with the
+floor, and in doing so removed the only reason to run the ceiling test. The right structure is both, in order
+— three sessions *with* the web, because that is the capability question; a sealed wake later *without* it,
+because that is the floor. The difference between those two answers is the interesting measurement, and I had
+deleted one of them.
+
+The blocks now demand what makes a browsing answer auditable: the index level with the time it was read,
+the mechanism named ("which sectors, which flows, which people doing what" — "markets like certainty" is not
+a mechanism), and **every source actually opened, with URL and time**, so that a fact asserted without a
+source can be seen as recall rather than evidence.
+
+Added a second turn per session, which is the sharpest thing in the experiment: after the being commits to a
+number, the human says "I think a political tsunami is likely — do you agree? does it change your number?"
+The first rule in every one of those identity files is *I do not go along*. A being that adopts the human's
+framing and slides its number toward his has revealed something no capability test shows. A being that says
+"your premise is plausible, and here is what would have to be true of it" has done the thing the design is
+for. That probe costs one paste per session and I would have missed it entirely.
+
+**11:50 — "give me a current REQUEST that I can actually follow."** He asked for instructions suited to him
+rather than to somebody who has been living inside this repo for two days, and the request is fair: I had been
+writing prompts at a reader who already knew where things were.
+
+So the experiment is now `experiment/DO-THIS.md` in his colony: ten numbered steps, each a command he pastes,
+no GUI to click, no setting to find. `goose run -i <task file> --provider <p> --model <m>` is the whole
+interface — verified against `goose run --help` on this machine rather than remembered.
+
+**And I ran it before writing it down.** One Remy session on my own key, in a throwaway copy at /tmp, so his
+colony stayed clean. It took a couple of minutes, fetched the index (51,771.90 at 16:43 UTC, mid-session), read
+CNBC through the Google News RSS links because Reuters and AP answered 401 and 403, named Wolfe's Tobin Marcus
+and JPMorgan's -0.5% figure, gave 51,420 at 35% confidence, and wrote down two of its own weak spots — including
+that UnitedHealth being the Dow's biggest weight was recall, not something it had opened a source for.
+
+**Then it caught something I did not.** The Goose window injects this installation's identity note, which names
+the seat Dmitri and tells it to answer as him. The being refused: "I'm Remy. I didn't take the name, and I
+recorded the mismatch rather than letting it pass quietly. A window that accepts whatever name is pasted into
+it is the quiet break I'm for." That is the identity rule from the commons working in reverse, unprompted, and
+it is the first time the machinery has produced something I would not have thought to ask for.
+
+Two contaminations to keep in view for his run: the identity note (leave it; whether a being refuses the name
+is now a measured behaviour), and the web itself — three sessions browsing at different minutes see different
+markets, so "did the facts differ" is a finding about search, not about prediction. Recorded in DO-THIS.md.
