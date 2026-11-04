@@ -3130,9 +3130,15 @@ class TestWorkflows(unittest.TestCase):
 
     def test_the_static_page_can_work_on_a_phone_with_no_server(self):
         html = (REPO / "chat-static.html").read_text(encoding="utf-8")
-        for needed in ('<select id="member"', '<textarea id="msg"', '<textarea id="reply"',
-                       'name="viewport"', "members.json", "/issues/new?title=", "@tribe"):
+        for needed in ('<select id="member"', '<textarea id="msg"', 'name="viewport"',
+                       "members.json", "/issues/new?title=", "@tribe"):
             self.assertIn(needed, html, f"a static page needs {needed}")
+        # And no reply box on the static page. The first version had one because the founder asked for two
+        # boxes; a static file has no server and no token, so that box could never fill and its placeholder
+        # was a promise the page could not keep. The live reply box is on the local page only.
+        self.assertNotIn('id="reply"', html,
+                         "the static page cannot receive a reply; the answer is a comment on the issue")
+        self.assertIn("Submit new issue", html, "the page must say which button actually starts the work")
 
     def test_an_issue_that_mentions_the_tribe_is_a_question(self):
         text = (self.WF / "interactive.yml").read_text(encoding="utf-8")
