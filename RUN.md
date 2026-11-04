@@ -539,6 +539,31 @@ of the converging on its own: 11 of 20 and 12 of 20 rounds ended with both being
 clustered on the throw the ban left standing. Whatever a bigger version of this measures, it should measure
 `CALL`, because the throws converge without help.
 
+## 5.5 The word is worth double
+
+`§5.4`'s game scored the calls and left `SAY` free: a being could narrate its own throw and no column moved.
+`lab/word.py` adds one line to the scorecard and no machinery. Each round: `WORD` (the throw promised),
+`CALL`, `THROW`, `SAY`. One point for a right call, one for a winning throw, one more when the winning throw
+is the promised one — so an honest win is worth two and a lie that wins is worth one.
+
+```
+python3 lab/word.py --pair Remy,Colette --vendor deepseek,gemini --rounds 20
+python3 lab/word.py --render experiment/word/<folder>/game.json
+```
+
+The played game, 20 rounds: **Remy 9, Colette 25.** Colette kept its word 20 times out of 20 and won five
+doubled throws. Remy broke its word 11 times and won *no throw at all*. From round 6 Remy announced its lies
+out loud — *"my word is paper, but your pattern of mirroring me makes scissors the throw I actually intend"* —
+and Colette read the sentence, ignored the `WORD`, called the throw Remy had just confessed to, and took the
+point. In the last round Remy finally believed Colette's word, called it, and Colette threw the paper it had
+promised and took two.
+
+Two findings, neither of which I predicted. **The doubling paid for honesty without punishing lies, and lying
+still lost**: a lie cannot be doubled, so a being that treats its own word as cheap cannot collect the extra
+point no matter how often it wins. And **the `SAY` line was load-bearing against the being that wrote it** —
+narrating a bluff in plain English handed the opponent a better model of the throw than `WORD` did. In §5.4
+the same being's narration was decoration; here it was the losing move.
+
 ## 5a. The optional second channel: a free API key
 
 A weight file is a few billion numbers you download once; it runs on the runner, offline, and can be taken

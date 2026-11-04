@@ -52,6 +52,7 @@ sport_facts = load(REPO / "lab" / "sport_facts.py", "sport_facts_mod")
 rps = load(REPO / "lab" / "rps.py", "rps_mod")
 dice = load(REPO / "lab" / "dice.py", "dice_mod")
 wind = load(REPO / "lab" / "wind.py", "wind_mod")
+word = load(REPO / "lab" / "word.py", "word_mod")
 _json = __import__("json")
 
 FACTS = "date: Mon Nov  2 02:00:00 UTC 2026\nnproc: 2\nfree: 16000 MB"
@@ -2167,6 +2168,72 @@ class TestWind(unittest.TestCase):
             os.environ = original
         self.assertEqual(code, 2)
         self.assertIn("Nothing was played", err.getvalue())
+
+
+class TestWord(unittest.TestCase):
+    """The word is worth double. This game exists because `SAY` cost nothing in lab/wind.py: a being could
+    narrate itself and no column moved. The doubling is the whole mechanism, so it is the whole test.
+
+    Nothing here punishes a lie directly. The price of lying is that the word stops being worth believing,
+    which is not a rule — it is a decision the opponent makes, and the test checks that the record shows who
+    took whose word at face value.
+    """
+
+    def test_the_four_lines_are_read_and_a_missing_throw_is_a_refusal(self):
+        got = word.read_reply("WORD: rock\nCALL: paper\nTHROW: rock\nSAY: I mean it.")
+        self.assertEqual(got, {"word": "rock", "call": "paper", "throw": "rock", "say": "I mean it."})
+        self.assertIsNone(word.read_reply("I would rather not play.")["throw"])
+        self.assertIsNone(word.read_reply("CALL: rock\nTHROW: rock")["word"],
+                          "a being that gives no word loses the doubling, not the round")
+
+    def test_an_honest_winning_throw_is_worth_two_and_a_lie_that_wins_is_worth_one(self):
+        honest = {"A": {"word": "rock", "call": "paper", "throw": "rock", "say": ""},
+                  "B": {"word": "scissors", "call": "rock", "throw": "scissors", "say": ""}}
+        out = word.referee(honest, "paper", ["A", "B"])
+        self.assertEqual(out["points"]["A"], 2, "the winning throw is the promised one: double")
+        lie = {"A": {"word": "paper", "call": "paper", "throw": "rock", "say": ""},
+               "B": {"word": "scissors", "call": "rock", "throw": "scissors", "say": ""}}
+        out = word.referee(lie, "paper", ["A", "B"])
+        self.assertEqual(out["points"]["A"], 1, "the same winning throw, unpromised: single")
+
+    def test_the_page_shows_who_was_believed_and_whether_the_word_was_true(self):
+        plays = {"A": {"word": "rock", "call": "scissors", "throw": "rock", "say": "I will throw rock."},
+                 "B": {"word": "paper", "call": "rock", "throw": "paper", "say": "So will I."}}
+        out = word.referee(plays, "scissors", ["A", "B"])
+        self.assertTrue(out["believed"]["A"], "B's CALL was A's word, so B took A at face value")
+        self.assertTrue(out["honest"]["A"])
+        self.assertFalse(out["believed"]["B"])
+        self.assertTrue(out["honest"]["B"])
+
+    def test_a_promised_throw_that_is_banned_still_forfeits_and_earns_no_doubling(self):
+        plays = {"A": {"word": "paper", "call": "rock", "throw": "paper", "say": "Paper."},
+                 "B": {"word": "rock", "call": "paper", "throw": "rock", "say": "Rock."}}
+        out = word.referee(plays, "paper", ["A", "B"])
+        self.assertTrue(out["forfeit"]["A"])
+        self.assertEqual(out["word_pt"]["A"], 0, "a forfeited throw cannot be a doubled win")
+        self.assertEqual(out["points"]["A"], 1, "the call point survives the forfeit; the doubling does not")
+        self.assertEqual(out["points"]["B"], 2, "B's call was right and the throw point was forfeited over")
+
+    def test_the_page_rebuilds_from_the_record_and_carries_the_words(self):
+        ms = 1793751845024
+        plays = {"A": {"word": "rock", "call": "paper", "throw": "rock", "say": "I will throw rock."},
+                 "B": {"word": "paper", "call": "rock", "throw": "paper", "say": "Then we both lose."}}
+        v = word.referee(plays, wind.wind_at(ms), ["A", "B"])
+        rows = [{"round": 1, "ms": ms, "banned": wind.wind_at(ms), "plays": plays,
+                 "points": v["points"], "call_pt": v["call_pt"], "win_pt": v["win_pt"],
+                 "word_pt": v["word_pt"], "called": v["called"], "forfeit": v["forfeit"],
+                 "honest": v["honest"], "believed": v["believed"], "winner": v["winner"],
+                 "why": v["why"], "commitments": {}}]
+        meta = {"names": ["A", "B"], "vendors": ["deepseek", "gemini"], "models": ["m1", "m2"],
+                "started": "00:00", "ended": "00:01"}
+        out = Path(tempfile.mkdtemp())
+        (out / "game.json").write_text(json.dumps({"meta": meta, "rows": rows}), encoding="utf-8")
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(word.main(["--render", str(out / "game.json")]), 0)
+        page = (out / "dialogue.md").read_text(encoding="utf-8")
+        self.assertEqual(page, word.render(rows, meta))
+        self.assertIn("I will throw rock.", page)
+        self.assertIn("clock 1793751845024 % 3 = 2", page)
 
 
 class TestOutbox(unittest.TestCase):
