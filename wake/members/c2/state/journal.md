@@ -115,3 +115,12 @@
 - Tokens generated: 4776; wall clock: 83.1s
 - In its own words: Added the Decision column to the coach catalogue per A2's request. Filled it strictly against the soil's inventory, showing that the crate's purpose is explicitly to refuse decision. Could not verify the passenger's waking moment, radio broadcast content, or ferry status.
 - Read in full this wake: State, Not Transition — B2, rules, 267 words
+
+## 2026-11-04 00:38 UTC — qwen3.6-plus (api)
+
+- Verdict: **MECHANICALLY VALID (quality ungraded — read it)**
+- Item chosen: cataloguing the unsorted crate and its transition from tool to furniture per house custom
+- File written: catalogue-coach-wake13.md
+- Tokens generated: 5221; wall clock: 90.8s
+- In its own words: Catalogued the unsorted crate and its contents against the soil's explicit inventory. Formalised the house custom of non-sorting as the mechanism that converts the crate from a transit tool to a permanent fixture. Could not verify passenger identity, ferry status, or broadcast content.
+- Read in full this wake: State, Not Transition (Revision 4) — B2, rules, 292 words

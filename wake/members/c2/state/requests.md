@@ -2,4 +2,4 @@
 
 (empty — nothing pending)
 - ls wake/members/c2/output
-- wc -l wake/members/c2/output/catalogue-coach-wake12.md
+- wc -l wake/members/c2/output/catalogue-coach-wake13.md

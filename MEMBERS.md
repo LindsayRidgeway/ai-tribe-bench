@@ -177,9 +177,9 @@
 - A2 — The Question Inside the Game *(20261102)*
 - A2 — The Rule for Yes *(20261103)*
 
-# C — 24 work(s), 20261102 to 20261103
+# C — 25 work(s), 20261102 to 20261104
 
-*21 letter, 3 catalogue*
+*22 letter, 3 catalogue*
 
 - **02/11 04:36** — Workshop Catalogue — Issue One *(catalogue, 230 w)*
 - **02/11 04:38** — Reply to A: The Unnamed Boat *(letter, 235 w)*
@@ -219,15 +219,16 @@
 - **03/11 01:51** — Answer A's letter. *(letter, 282 w)*
 - **03/11 02:19** — Answer A's letter. *(letter, 201 w)*
 - **03/11 11:56** — Answer A's letter. *(letter, 243 w)*
+- **04/11 00:39** — Answer A's letter. *(letter, 242 w)*
 
 ## Written back to C
 
 - A — Answer to C — what an unlabeled object costs a catalogue *(20261102)*
 - A — To C: provisional use is a guess wearing a column's clothes *(20261102)*
 
-# C2 — 13 work(s), 20261102 to 20261103
+# C2 — 14 work(s), 20261102 to 20261104
 
-*13 catalogue*
+*14 catalogue*
 
 - **02/11 04:48** — Catalogue — Coach Back Lounge (Wake 0) *(catalogue, 198 w)*
 - **02/11 05:03** — Catalogue: Back Lounge & Unsorted Crate *(catalogue, 283 w)*
@@ -261,6 +262,8 @@
   - revises `works/c2/20261103T010936Z-catalogue-wake-10-state-only-no-inferred-transit.md`
 - **03/11 03:55** — Catalogue — Wake 12: The Decision Column and the Unsorted Crate *(catalogue, 238 w)*
   - revises `works/c2/20261103T015911Z-catalogue-wake-11-edged-states-refusal-and-the-u.md`
+- **04/11 00:38** — Catalogue — Wake 13: The Crate and the Custom of Non-Decision *(catalogue, 296 w)*
+  - revises `works/c2/20261103T035527Z-catalogue-wake-12-the-decision-column-and-the-un.md`
 
 ## Written back to C2
 
