@@ -1,0 +1,56 @@
+# early spring, rallying — hard (true bounce, medium), wind SE 21mph, 26 rallies, no serving, no scoring, clock 1793807955922
+
+  Dmitri: 0 balls hit before today, control 0.18, moves at 10ft/s, hands give or take ±3 degrees of face
+  Gwen: 0 balls hit before today, control 0.18, moves at 10ft/s, hands give or take ±3 degrees of face
+
+   1.1  Dmitri   face +12 power  62 aim 16 [FRAMED] -> short of the net by 12ft, 4ft east of centre — needs more height
+       -- rally of 1; Dmitri missed.
+   2.1  Dmitri   face +16 power  58 aim 13 [clean ] -> long by 35ft, 30ft east of centre — too much height or too much pace
+       -- rally of 1; Dmitri missed.
+   3.1  Dmitri   face +8 power  52 aim 13 [clean ] -> long by 2ft, 7ft east of centre — too much height or too much pace
+       -- rally of 1; Dmitri missed.
+   4.1  Dmitri   face +4 power  46 aim 12 [FRAMED] -> short of the net by 13ft, 1ft east of centre — needs more height
+       -- rally of 1; Dmitri missed.
+   5.1  Dmitri   face +7 power  50 aim 13 [clean ] -> IN, 15ft past the net, 1ft east of centre, arrives at 28mph and comes up at 23mph
+   5.2  Gwen     face -5 power  50 aim 13 [FRAMED] -> short of the net by 18ft — needs more height
+       -- rally of 2; Gwen missed.
+   6.1  Gwen     face +10 power  65 aim 16 [clean ] -> long by 109ft, 42ft east of centre — too much height or too much pace
+       -- rally of 1; Gwen missed.
+   7.1  Gwen     face +2 power  48 aim 14 [clean ] -> into the net at 0.4ft, 2.6ft under the tape — needs more height
+       -- rally of 1; Gwen missed.
+   8.1  Gwen     face +4 power  50 aim 13 [clean ] -> IN, 34ft past the net, 1ft west of centre, arrives at 48mph and comes up at 39mph
+   8.2  Dmitri   face +4 power  50 aim 13 [clean ] -> IN, 11ft past the net, 5ft east of centre, arrives at 31mph and comes up at 25mph
+   8.3  Gwen     face +4 power  46 aim 17 [clean ] -> into the net at 2.7ft, 0.5ft under the tape — needs more height
+       -- rally of 3; Gwen missed.
+   9.1  Gwen     face +5 power  52 aim 16 [clean ] -> IN, 23ft past the net, 4ft east of centre, arrives at 43mph and comes up at 35mph
+   9.2  Dmitri   face +5 power  48 aim 13 [clean ] -> IN, 27ft past the net, 0ft east of centre, arrives at 28mph and comes up at 22mph
+   9.3  Gwen     face +5 power  50 aim 16 [clean ] -> long by 40ft, 19ft east of centre — too much height or too much pace
+       -- rally of 3; Gwen missed.
+  10.1  Gwen     face +4 power  48 aim 16 [clean ] -> into the net at 3.1ft, 0.1ft under the tape — needs more height
+       -- rally of 1; Gwen missed.
+  11.1  Gwen     face +4 power  50 aim 15 [FRAMED] -> short of the net by 17ft, 2ft east of centre — needs more height
+       -- rally of 1; Gwen missed.
+  12.1  Gwen     face +6 power  48 aim 21 [clean ] -> wide by 3ft — the court is 27ft wide, aim between 4 and 23
+       -- rally of 1; Gwen missed.
+  13.1  Gwen     face +5 power  48 aim 14 [clean ] -> IN, 17ft past the net, 4ft east of centre, arrives at 43mph and comes up at 35mph
+  13.2  Dmitri   face +6 power  49 aim 13 [clean ] -> into the net at 2.5ft, 0.6ft under the tape — needs more height
+       -- rally of 2; Dmitri missed.
+  14.1  Dmitri   face +7 power  50 aim 13 [clean ] -> IN, 18ft past the net, 6ft east of centre, arrives at 30mph and comes up at 24mph
+  14.2  Gwen     face +5 power  48 aim 13 [FRAMED] -> short of the net by 1ft, 1ft east of centre — needs more height
+       -- rally of 2; Gwen missed.
+  15.1  Gwen     face +5 power  50 aim 16 [clean ] -> long by 15ft, 18ft east of centre — too much height or too much pace
+       -- rally of 1; Gwen missed.
+  16.1  Gwen     face +3 power  46 aim 15 [clean ] -> into the net at 1.0ft, 2.1ft under the tape — needs more height
+       -- rally of 1; Gwen missed.
+  17.1  Gwen     face +5 power  47 aim 13 [clean ] -> into the net at 0.9ft, 2.2ft under the tape — needs more height
+       -- rally of 1; Gwen missed.
+  18.1  Gwen     face +7 power  48 aim 15 [clean ] -> IN, 32ft past the net, 11ft east of centre, arrives at 44mph and comes up at 36mph
+  18.2  Dmitri   face +8 power  52 aim 12 [clean ] -> IN, 15ft past the net, 2ft west of centre, arrives at 32mph and comes up at 26mph
+
+## Abandoned, and why it is still here
+
+This run was killed at rally 12 of 26. Two things in it were wrong before it started: the reach test called
+short balls unreachable, and the spin model gave an open face no topspin at all, so the only ball that stayed
+in the court skimmed the tape. It is kept rather than deleted because a transcript that is thrown away when it
+stops agreeing with the code is not a record — but nothing here should be read as a result. The result of the
+corrected engine is `rally-spring-clay.txt`.

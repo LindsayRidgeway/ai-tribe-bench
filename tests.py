@@ -2605,13 +2605,13 @@ class TestTennis(unittest.TestCase):
         z = 8.8 if shot == "serve" else 3.0
         out = t.flight((2.0, 13.5, z),
                        (v * math.cos(elev), 0.0, v * math.sin(elev)),
-                       wind, surface, cl=t.spin_for(face))
+                       wind, surface, cl=t.spin_for(shot, face, power))
         return out
 
     def test_a_serve_arrives_near_the_speed_real_serves_arrive_at(self):
         """A 105mph serve is about 70mph when it bounces: the ball really does lose a third of its speed
         crossing 60ft. The first engine lost almost nothing, because its drag was eleven times too small."""
-        out = self.shot(100, -6, shot="serve")
+        out = self.shot(100, -2, shot="serve")
         self.assertIsNotNone(out["land"], "a 105mph serve with an open face should land in the box")
         arrive = out["speed_in"] / self.t.MPH
         self.assertTrue(55 <= arrive <= 90, f"a 105mph serve arrived at {arrive:.0f}mph, which is not tennis")
@@ -2620,10 +2620,11 @@ class TestTennis(unittest.TestCase):
         """The serve is struck downward from 8.8ft, so a square face puts it in the net or past the baseline
         and the face has to be closed. This is the single fact a beginner has to learn first."""
         square = self.shot(100, 10, shot="serve")
-        closed = self.shot(100, -6, shot="serve")
+        closed = self.shot(100, -2, shot="serve")
         self.assertIsNotNone(closed["land"])
-        self.assertLessEqual(closed["land"][0], self.t.NET_X + self.t.SERVICE_LINE + 0.5,
-                             "a closed face at serve pace should land inside the service line")
+        self.assertTrue(self.t.NET_X < closed["land"][0] <= self.t.NET_X + self.t.SERVICE_LINE + 0.5,
+                        f"a closed face at serve pace should land inside the service box, not "
+                        f"{closed['land'][0] - self.t.NET_X:.0f}ft past the net")
         self.assertTrue(square["land"] is None or square["land"][0] > self.t.NET_X + self.t.SERVICE_LINE,
                         "a square face at serve pace should be long")
 
@@ -2633,13 +2634,14 @@ class TestTennis(unittest.TestCase):
         test that the Magnus term is doing work rather than decorating the code."""
         import math
         t = self.t
-        elev = math.radians(t.elevation_for("rally", 2))
+        elev = math.radians(t.elevation_for("rally", 6))
         v = 76 * 1.05 * t.MPH                     # 76% of swing = 80mph
         p0 = (2.0, 13.5, 3.0)
         v0 = (v * math.cos(elev), 0.0, v * math.sin(elev))
-        with_lift = t.flight(p0, v0, (0.0, 0.0), "hard", cl=t.spin_for(2))
+        with_lift = t.flight(p0, v0, (0.0, 0.0), "hard", cl=t.spin_for("rally", 6, 76))
         without = t.flight(p0, v0, (0.0, 0.0), "hard", cl=0.0)
-        self.assertGreater(t.spin_for(2), 0.0, "a square face at rally pace should still make topspin")
+        self.assertGreater(t.spin_for("rally", 6, 76), 0.15,
+                           "an 80mph swing should make real topspin whatever the face is doing")
         self.assertIsNotNone(with_lift["land"])
         self.assertIsNotNone(without["land"])
         self.assertLess(with_lift["land"][0], without["land"][0] - 5,
@@ -2689,6 +2691,89 @@ class TestTennis(unittest.TestCase):
             self.assertGreater(experienced, learner + 0.15,
                                f"at clock {ms} practice before today was worth nothing: "
                                f"{experienced:.0%} against {learner:.0%}")
+
+    def test_aim_at_works_from_both_ends_of_the_court(self):
+        """Symmetry is not a nicety here: a search that bisects in the north player's direction for both players
+        sends every south-end shot the wrong way. It made Remy fault on serves that landed exactly where he
+        aimed, and it made a scripted south player unable to find the court at all — which then read as
+        'steady hands do not lengthen a rally'."""
+        import random
+        t = self.t
+        wv = t.wind_vector("W", 18.0)
+        for north in (True, False):
+            p = t.Player("x", north, 300, rng=random.Random(3))
+            target = t.NET_X + 20.0 if north else t.NET_X - 20.0
+            face, _ = t.aim_at(p, (target, t.WIDTH / 2), "rally", "hard", wv, power=55)
+            self.assertLess(face, 20.0, "the search ran to the top of the range instead of converging")
+            depths = []
+            for _ in range(15):
+                land = t.strike(p, None, face=face, power=55, aim=t.WIDTH / 2, shot="rally",
+                                surface="hard", wind=wv)["traj"].get("land")
+                if land:
+                    depths.append(abs(land[0] - t.NET_X))
+            self.assertTrue(depths, "the player could not land a single ball")
+            depths.sort()
+            median = depths[len(depths) // 2]
+            self.assertAlmostEqual(median, 20.0, delta=5.0,
+                                   msg=f"a {'north' if north else 'south'} player aimed 20ft past the net "
+                                       f"and the median ball landed {median:.0f}ft past it")
+
+    def test_a_rally_ends_only_for_a_reason_a_player_can_see(self):
+        """The complaint the rally mode exists to answer: if rallies die because of a rule, lengthening them is
+        programming. Every way a rally can end must be one of four things — netted, long, wide, or out of reach
+        — and the out-of-reach one must say by how many feet, because a player has to be able to learn from it.
+        The old test, a radius that grew with skill, could fail a player for nothing they had done."""
+        import random
+        t = self.t
+        p = t.Player("beginner", True, 0, rng=random.Random(5))
+        # a ball landed at the far corner, arriving quickly: unarguably unreachable for a beginner
+        ok, why = t.reachable(p, (t.NET_X - 2.0, 1.0), 0.5,
+                              {"v": (60.0, 20.0, -10.0), "speed_out": 90.0}, "hard")
+        self.assertFalse(ok)
+        self.assertRegex(why, r"\d+ft short of it")
+        # and one hit deep and slowly, which for a player standing on the baseline is a step and a half
+        ok, _ = t.reachable(p, (t.NET_X - 25.0, t.WIDTH / 2), 2.0,
+                            {"v": (10.0, 0.0, -8.0), "speed_out": 20.0}, "hard")
+        self.assertTrue(ok)
+        self.assertGreaterEqual(t.RALLY_CAP, 40,
+                                "a low ceiling would make rally length a constant of the record, not a result")
+        self.assertEqual(t.movement_speed(t.Player("n", True, 300)), 
+                         5.0 + 15.0 * (t.Player("n", True, 300).skill("reach")),
+                         "movement is not a skill any more")
+
+    def test_rally_length_responds_to_hands_and_to_learning(self):
+        """The founder's claim, made checkable: rallies should get longer as the players develop, and not
+        because the code lengthens them. Five scripted pairs, same court, same wind, same clock, and *nobody is
+        told the right face* — being told is a separate arm, because a game where the answer is handed over is
+        not measuring learning.
+
+        What comes out is an interaction, not two separate effects: reading the miss with nothing but your hands
+        is worth almost nothing (1.0 to 2.2), steady hands that never read anything are worth nothing at all
+        (1.0), and together they are worth a ninefold rally (9.8) that is still growing when the session ends.
+        That last number is the founder's sentence, and it is the one worth defending."""
+        pooled = {}
+        for ms in (1793807600121, 1793807611347, 1793807622571):
+            args = type("A", (), {"rallies": 24, "surface": "hard"})()
+            for arm, L in self.t.simulate_rally(args, ms=ms, quiet=True).items():
+                pooled.setdefault(arm, []).extend(L)
+        m = lambda k: sum(pooled[k]) / len(pooled[k])
+        self.assertLess(m("new hands, never reads"), 2.0,
+                        "a player who neither has hands nor reads results built rallies, which cannot be right")
+        self.assertLess(m("300 balls, never reads"), 2.0,
+                        "steady hands with no idea where to hit built rallies; the number must be the thing")
+        self.assertLess(m("new hands, reads the miss"), 4.0,
+                        "reading the miss without the hands to act on it built long rallies")
+        self.assertGreater(m("300 balls, reads the miss"), m("new hands, reads the miss") * 2.5,
+                           "learning was worth as much with unsteady hands as with steady ones")
+        self.assertGreater(m("300 balls, reads the miss"), 6.0,
+                           "a developed player did not rally materially longer than a beginner")
+        self.assertGreaterEqual(m("300 balls, was told the face") + 2.0, m("300 balls, reads the miss"),
+                                "learning did not approach what being told the answer is worth")
+        # the founder's actual sentence: the rallies get longer *during* the session
+        L = pooled["300 balls, reads the miss"]
+        third = len(L) // 3
+        self.assertGreater(sum(L[-third:]) / third, sum(L[:third]) / third,
+                           "the rallies did not lengthen from the start of the session to the end")
 
     def test_a_command_is_parsed_and_clamped(self):
         t = self.t
