@@ -1,4 +1,8 @@
-# RUN.md — how to stand up a tribe
+# RUN.md — the reference behind the instruction sheet
+
+**If you want to build a tribe, read [BUILD.md](BUILD.md) first.** It is one page, it assumes no terminal,
+and it is the document this one is the background for: what the files are, what a wake does, why it is
+built this way, and what it refuses to claim.
 
 ## What this is
 

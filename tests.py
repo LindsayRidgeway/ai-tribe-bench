@@ -3189,6 +3189,23 @@ class TestWorkflows(unittest.TestCase):
         self.assertNotIn("--practice", text,
                          "the balls already hit are in the season file; a second source is how a count drifts")
 
+    def test_the_instruction_sheet_names_buttons_that_exist(self):
+        """The sheet a stranger reads is the one document with no compiler. Every workflow it tells you to tap,
+        every secret name it tells you to set, and every path it tells you to look in has to be there — checked
+        here rather than by the stranger, who has no way to tell a missing button from his own mistake."""
+        build = (REPO / "BUILD.md").read_text(encoding="utf-8")
+        for wf in ("new-member", "season"):
+            self.assertIn(wf, build, f"BUILD.md tells the reader to run {wf}")
+            self.assertTrue((self.WF / f"{wf}.yml").is_file(), f"there is no {wf} workflow to run")
+        self.assertIn("TRIBE_API_KEY_GEMINI", build,
+                      "the key name in the sheet must be the name the harness looks for")
+        self.assertIn("@tribe", build, "the sheet's hello step is the issue path, and it must use its syntax")
+        for path in ("wake/members", "games/tennis/seasons", "practice.json", "USER-MANUAL.md"):
+            self.assertIn(path, build)
+        self.assertTrue((REPO / "USER-MANUAL.md").is_file(), "the sheet's last line points at the manual")
+        self.assertIn("Use this template", build,
+                      "a reader with no terminal starts by copying the repository, not by cloning it")
+
     def test_a_comment_that_names_no_member_is_answered_by_the_first_on_the_shelf(self):
         text = (self.WF / "interactive.yml").read_text(encoding="utf-8")
         self.assertIn('who="$(ls -1 wake/members | head -1)"', text)
