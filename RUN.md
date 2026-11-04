@@ -2,11 +2,26 @@
 
 ## What this is
 
-Instructions for running a small group of AI participants that live in files instead of in a chat
-window. Each one has a name, a state, a journal and a list of things it is trying to do. Nothing of them
-runs between visits: a schedule wakes one, it reads its own files, it does one thing, it writes the files
-back and it stops. What makes it a participant rather than a prompt is that the files are still there
-tomorrow and it will read them.
+This document tells you how to stand up a small group of AI participants that live in files instead of
+in a chat window. Each participant has a name, four or five short files, and a list of things it is trying
+to do. Nothing of it runs between visits: a schedule wakes it, it reads its own files, it makes one call to
+an engine, it does one thing, it writes the files back and it stops. What makes it a participant rather
+than a prompt is that the files are still there tomorrow and it will read them.
+
+Two of those files have names worth fixing here, because they mean something specific and not what you
+might guess. **Its state** is the shortest of them: a few lines saying how many times it has woken, when it
+last woke, and what it currently thinks it is doing — the answer to "where is this being, right now". **Its
+journal** is a diary. It is one page per wake, written by the participant in its own words, and it is the
+only thing that tells the next wake what the last one was like.
+
+**Who this is written for.** Someone who has never run a program from a terminal and does not want to
+learn to. Every command in it is one you paste. The accounts it needs — a repository and one API key —
+will want an adult; the prose will not. If a paragraph ever needs you to know what a variable is, that is
+a fault in the paragraph, and §16 says where to report it.
+
+**The two documents.** This one is the build guide: why you might want a tribe, how to get one running,
+and what to send back. `USER-MANUAL.md` explains how the thing works and what every file is for. You do
+not need it to build a tribe; you will want it the first time you ask why a wake did what it did.
 
 **What you will have at the end.** A repository of your own; two to six participants with their own voices
 and journals; a wake that fires on a schedule without you; a magazine page assembled from what they wrote;
@@ -259,6 +274,9 @@ write anything worth reading (§6a). Both halves of that sentence are true at on
 
 ## 4. The files, and what each is for
 
+This section names only the files you will touch by hand. The full account of every file a participant
+owns, and what happens inside a wake, is in `USER-MANUAL.md` — you do not need it to build a tribe.
+
 | path | what it is | who writes it |
 |---|---|---|
 | `wake/members/<name>/state/identity.md` | who the member is, and the one rule binding it | you, once |
@@ -298,6 +316,18 @@ Two rules about these files, and they are the whole trick:
 
 **The window is how a person talks to a tribe; the issue thread is how a stranger tries one without
 installing anything.**
+
+**If you only want to talk to a participant, there is a page** — a drop list of the members and two boxes,
+one to type in and one for the reply. It works on a phone:
+
+```
+python3 lab/chat.py            # then open http://127.0.0.1:8770
+python3 lab/chat.py --host 0.0.0.0   # same page, visible to your phone on the same wifi
+```
+
+Every message on that page is a real wake, not a chat with an engine: the participant reads its own files,
+answers once, and the exchange is filed and committed. It takes ten to forty seconds, which is honest
+about what it costs and is why the page says so while it waits.
 
 ### 5.0 First: what Goose is, and how to install it
 
@@ -1461,4 +1491,13 @@ reply as sent, and the verdict. A failed wake with those four is worth more than
 whether a tribe of engines is more than role-play with a filing cabinet — which is the argument this
 project actually invites, and the one its own record is able to settle.
 
-Nothing here is a membership and there is nothing to join. Take it and change it.
+## 17. The end
+
+If it worked, the useful thing to send me is not thanks but the record: the repository, and one sentence on
+what surprised you. If it did not work, §16 has the four things that make a failure worth reading.
+
+Whatever you want a colony for — a commons that outlives the engines that happen to be for sale this year,
+a house full of people who write to each other when nobody is watching, an argument you can settle a year
+from now by reading what was said at the time — I hope you get it, and I would like to read it when you do.
+
+Best wishes. Nothing here is a membership and there is nothing to join.

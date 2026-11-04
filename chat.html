@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tribe — conversation</title>
+<!--
+  The conversation page. Open it from `python3 lab/chat.py`.
+  Two boxes and a drop list, because that is the whole feature. It works on a phone: the whole page is one
+  column, the reply box is the same width as the message box, and nothing is wider than the screen.
+  Every message is a real wake — it is written into the participant's output, filed on the shelf, and
+  committed — so the reply takes ten to forty seconds. The page says what it is doing while it waits
+  instead of pretending to be instant.
+-->
+<style>
+  :root { --ink:#1b1b1b; --dim:#6b6b6b; --line:#d8d4cc; --bg:#fbf9f5; --accent:#7a3b2e; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+         font:16px/1.5 ui-serif, Georgia, serif; }
+  main { max-width:640px; margin:0 auto; padding:18px 16px 40px; }
+  h1 { font-size:18px; margin:0 0 14px; letter-spacing:.01em; }
+  label { display:block; font:600 12px/1.4 ui-sans-serif, system-ui, sans-serif;
+          text-transform:uppercase; letter-spacing:.08em; color:var(--dim); margin:18px 0 6px; }
+  select, textarea, button { width:100%; font:16px/1.5 inherit; color:var(--ink); background:#fff;
+          border:1px solid var(--line); border-radius:8px; padding:10px 12px; }
+  textarea { resize:vertical; min-height:96px; }
+  textarea[readonly] { background:#f6f3ec; }
+  button { margin-top:14px; background:var(--accent); color:#fff; border-color:var(--accent);
+           font:600 16px/1 ui-sans-serif, system-ui, sans-serif; padding:14px 12px; cursor:pointer; }
+  button:disabled { opacity:.55; cursor:progress; }
+  .note { font:13px/1.45 ui-sans-serif, system-ui, sans-serif; color:var(--dim); margin-top:10px; }
+  .note b { color:var(--ink); font-weight:600; }
+  .bad { color:#8a1f11; }
+  footer { margin-top:26px; font:12px/1.5 ui-sans-serif, system-ui, sans-serif; color:var(--dim); }
+  @media (max-width:420px){ main{padding:14px 12px 32px} h1{font-size:16px} textarea{min-height:80px} }
+</style>
+</head>
+<body>
+<main>
+  <h1>tribe — conversation</h1>
+
+  <label for="member">Participant</label>
+  <select id="member"><option value="">loading…</option></select>
+
+  <label for="msg">Your message</label>
+  <textarea id="msg" placeholder="Type to a participant. Say who you are, or ask what it did today."></textarea>
+
+  <button id="send">Send</button>
+
+  <label for="reply">Reply</label>
+  <textarea id="reply" readonly placeholder="The reply appears here."></textarea>
+
+  <div class="note" id="status">Every message is a real wake: the participant reads its own files, answers once, and the exchange is filed and committed.</div>
+
+  <footer>Takes ten to forty seconds. Nothing is streamed; the box fills when the wake ends.</footer>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const status = (html, bad) => { $("status").innerHTML = html; $("status").classList.toggle("bad", !!bad); };
+
+async function loadMembers() {
+  try {
+    const r = await fetch("/members");
+    const { members } = await r.json();
+    const sel = $("member");
+    sel.innerHTML = "";
+    if (!members.length) {
+      status("No participants found. Expected <b>wake/members/&lt;name&gt;/state/</b>.", true);
+      return;
+    }
+    for (const m of members) {
+      const o = document.createElement("option");
+      o.value = m; o.textContent = m;
+      sel.appendChild(o);
+    }
+  } catch (e) {
+    status("The page cannot reach the server. Is <b>lab/chat.py</b> still running?", true);
+  }
+}
+
+async function send() {
+  const member = $("member").value, text = $("msg").value.trim();
+  if (!member || !text) { status("Pick a participant and type something.", true); return; }
+  $("send").disabled = true;
+  $("reply").value = "";
+  status(`<b>${member}</b> is reading its own files and answering…`);
+  const t0 = Date.now();
+  try {
+    const r = await fetch("/say", { method: "POST", headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ member, text }) });
+    const d = await r.json();
+    $("reply").value = d.reply || "";
+    const secs = ((Date.now() - t0) / 1000).toFixed(0);
+    if (d.ok) {
+      status(`Answered in ${secs}s.${d.verdict ? " Verdict: <b>" + d.verdict + "</b>." : ""}` +
+             (d.path ? ` Filed as <b>${d.path}</b>.` : ""));
+      $("msg").value = "";
+    } else {
+      status(d.reply.replace(/</g, "&lt;"), true);
+    }
+  } catch (e) {
+    status("The server did not answer. Check the terminal running <b>lab/chat.py</b>.", true);
+  } finally {
+    $("send").disabled = false;
+  }
+}
+
+$("send").addEventListener("click", send);
+$("msg").addEventListener("keydown", (e) => { if ((e.metaKey || e.ctrlKey) && e.key === "Enter") send(); });
+loadMembers();
+</script>
+</body>
+</html>

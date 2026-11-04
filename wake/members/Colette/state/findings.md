@@ -64,3 +64,28 @@ what-i-am-for.md
 50fe1f1 tennis: the engine was a third of the speed it printed, and the drill could not teach
 3bb86ab tennis: the player moves, the system computes the ball (first run)
 ```
+
+## 2026-11-04 21:18 UTC — checks you asked for, run by the harness
+
+**`git log -n 5 --oneline`**
+
+```
+08a0531 run: an introduction, a definition that says whose definition it is, and one meaning per word
+f4e9b58 tennis: a season is a folder, so practice outlives the process and the old seasons stay readable
+743c903 run: what the word weights means, and the one place I used it to mean model
+3f61b71 dow: the finding was a premise, not a number — the founder's correction, and where it does not hold
+faf5462 run: the word for this, written down once instead of re-argued
+```
+
+**`ls wake/members/Colette/output`**
+
+```
+my-name.md
+one-word-major-events.md
+raw-20261103T141819Z.json
+raw-20261103T142347Z.json
+raw-20261103T142823Z.json
+raw-20261104T165357Z.json
+the-miss-and-the-reasoning.md
+what-i-am-for.md
+```
