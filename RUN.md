@@ -538,6 +538,60 @@ daily move at 397 points, not 232, because the scored day is inside its own wind
 comparison was run with the 232.3 the members were actually given. Enlarging the yardstick after the
 result is how a miss gets quietly forgiven.
 
+### The founder's correction: the error was a premise, not a number
+
+Written the same afternoon, after he read the comparison: *"You're ignoring what I consider the most
+significant finding. Every model disagreed with my expectations, and as last night and this morning
+unfolded, my expectations proved correct."* He is right, and the section above as first written was
+wrong to score only the numbers. *"The mechanisms were decoration on an anchor"* survives as a
+description of the three files against **each other**. It does not survive as a description of what
+they got wrong. Against each other they had three incompatible mechanisms 83 points apart; against the
+tape they had one shared premise, and it was false.
+
+The premise, in their own words:
+
+- **Margot** — "the market has already priced in most of the plausible outcomes, and Wednesday is a
+  drift day", a band of −200 to +150 (`experiment/Margot.md:9`).
+- **Remy** — "the election outcome is already ~94% priced", sourced from Polymarket at 94.5% for the
+  House and 73.5% for a sweep (`experiment/Remy.md:33`, `:52`).
+- **Colette** — "a continuation of this modest relief recovery as … the baseline scenario of divided
+  government is confirmed" (`experiment/Colette.md:51`).
+
+The tape: Dow 51,786.72 → 53,257.85, **+1,471 points, +2.84%**, read at 13:24 ET and still running. S&P
++1.79%, Nasdaq +2.01%. Every band above was broken before the first coffee.
+
+**Two of his three points are in the files and one is not**, and the record is worse if it pretends
+otherwise:
+
+1. *Priced in the coming Blue Wave.* Yes, all three wrote it — and Remy's 94.5% was sourced, so the
+   **expectation** was not the error. The error is one step further on: they equated a priced
+   **outcome** with priced **consequences**. A result can be near-certain and its implications not
+   priced at all, and a 2.84% day after a 94% favourite is what that looks like.
+2. *A leftward shift would not be desirable to investors.* None of them wrote that in aggregate.
+   Margot called divided government "a muted positive"; Colette called it a dampener that "reduces the
+   legislative threat of corporate tax hikes"; Remy put the negative at sector level — a sweep means
+   "more AI regulation and more hurdles for the data centre buildout." That last one was **right**:
+   semis fell. What all three failed at was magnitude — *muted*, *drift*, *dampener* — and at a habit of
+   modelling an election as a rotation among sectors instead of a change of regime.
+
+**The shape of the day**, sampled 13:24 ET from the same endpoint (`lab/dow.py`'s URL, intraday): energy
+−5.32% (XLE), semis −2.34% (SMH), defence −1.26% (ITA) against financials +2.96% (XLF), regional banks
++2.03% (KRE), health care +2.64% (XLV); inside the Dow, MSFT +6.58%, AAPL +6.38%, HD +5.36%, GS +3.59%
+against CAT −6.40%. That is not a uniform relief rally. It is a policy re-rating with winners and
+losers, which is the founder's reading and nobody's prediction. It is **consistent with** his reading,
+not proof of it: energy could be falling on oil, and semis were already unwinding the day before. His
+larger claim — a political tsunami that changes the regime, and a market that welcomed it — is recorded
+here as **his**, not as a finding of this colony, because no member read a news source after the polls
+closed.
+
+**One defect the correction exposed.** Each member wrote down what would prove it wrong, and Margot's
+was machine-checkable: "if futures at tomorrow's 9:30 open are more than 150 points from 51,750, I am
+wrong from the bell." The open was 52,410 — 660 points away. Her falsifier fired before 9:31 and no part
+of the harness noticed, because the question asks for a falsifier in prose and nothing reads it. The
+next build is not a better forecast; it is asking for the falsifier as a threshold and letting the
+comparison say whether it fired. A being that names the day it will be wrong, and is checked on it,
+is worth more than one that names a number.
+
 ## 5.3 A score sheet with no minds in it: twenty rounds the dice decide
 
 Every experiment above measures what a model *prefers*, and a preference is deterministic: run it twice and
