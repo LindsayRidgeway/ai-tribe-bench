@@ -27,6 +27,15 @@ the models currently sitting in it. It is also why "expensive" and "requires one
 disqualifying rather than inconvenient, and why the magazine and the plates matter more than they look —
 something nobody wants to read does not survive either.
 
+**The word for this, once.** A member does not learn. No weight changes between wakes, because a wake
+is one call to a borrowed engine and the engine is not being trained. What accumulates is the record: a
+skill, a habit, a preference or a grudge lives in a file that the next wake reads. That is why two
+members given identical practice can end up with different numbers — their files differ — and it is also
+why the thing that must be built before "her game has really improved" can be checked is not a better
+learner but a *persisted* record. Stated here so that it does not have to be relitigated in conversation
+every time the tribe does something the vocabulary of learning would describe: the corpus says no weights,
+and the rest of the book says what the files do instead.
+
 ## 2. What you need
 
 - A GitHub account. The machine is a **public repository's** free Actions runner: 4 CPU cores, 16 GB,
