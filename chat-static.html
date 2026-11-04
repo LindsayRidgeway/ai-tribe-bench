@@ -3,111 +3,89 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>tribe — ask a participant</title>
+<title>Ask a participant</title>
 <!--
-  The phone page. It is a static file, so it can live on GitHub Pages and needs no server, no key and no
-  install. Three controls: a drop list of the participants (read from members.json, which is generated from
-  the shelf), a box to type in, and a Send button.
+  The phone page: a static file on GitHub Pages, so it needs no server, no key and no install.
 
-  What Send does is honest about what a static page can do: it opens GitHub's "new issue" form with the
-  question already written, prefilled with @tribe so the interactive workflow answers it. You tap Submit,
-  the member answers in the same thread, and the reply box below links you to it. Nothing is streamed and
-  nothing pretends to be a chat: the answer arrives where the question was asked, in the record.
+  Send opens GitHub's "new issue" form with the question prefilled as `@tribe <name>: <question>`. Tapping
+  Submit there is what starts the work: the repository's `interactive` workflow runs on a GitHub runner,
+  wakes that participant, and posts the reply as a comment in the same thread. This page cannot see the
+  reply — it has no server and no token — so it does not pretend to have a reply box.
 
-  The local page (lab/chat.py) is the one with a live reply box. This one exists because a phone cannot
-  run a server, and because the founder asked, correctly, why a page needed a computer at all.
+  The local page (lab/chat.py) is the one with a live reply box, on a computer.
 -->
 <style>
   :root { --ink:#1b1b1b; --dim:#6b6b6b; --line:#d8d4cc; --bg:#fbf9f5; --accent:#7a3b2e; }
   * { box-sizing:border-box; }
-  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.5 ui-serif, Georgia, serif; }
-  main { max-width:640px; margin:0 auto; padding:18px 16px 36px; }
-  h1 { font-size:18px; margin:0 0 4px; }
-  .sub { font:13px/1.45 ui-sans-serif, system-ui, sans-serif; color:var(--dim); margin:0 0 16px; }
-  label { display:block; font:600 12px/1.4 ui-sans-serif, system-ui, sans-serif;
-          text-transform:uppercase; letter-spacing:.08em; color:var(--dim); margin:16px 0 6px; }
-  select, textarea, a.go { width:100%; font:16px/1.5 inherit; color:var(--ink); background:#fff;
+  body { margin:0; background:var(--bg); color:var(--ink); font:17px/1.5 ui-serif, Georgia, serif; }
+  main { max-width:560px; margin:0 auto; padding:20px 16px 32px; }
+  h1 { font-size:19px; margin:0 0 2px; }
+  .sub { font:14px/1.45 ui-sans-serif, system-ui, sans-serif; color:var(--dim); margin:0 0 18px; }
+  label { display:block; font:600 12px/1.4 ui-sans-serif, system-ui, sans-serif; text-transform:uppercase;
+          letter-spacing:.08em; color:var(--dim); margin:16px 0 6px; }
+  select, textarea, a.go { width:100%; font:17px/1.5 inherit; color:var(--ink); background:#fff;
           border:1px solid var(--line); border-radius:8px; padding:11px 12px; }
   textarea { resize:vertical; min-height:110px; }
-  a.go { display:block; text-align:center; margin-top:14px; background:var(--accent); color:#fff;
-         border-color:var(--accent); font:600 16px/1 ui-sans-serif, system-ui, sans-serif;
-         padding:15px 12px; text-decoration:none; }
-  a.go[aria-disabled="true"] { opacity:.5; pointer-events:none; }
-  .note { font:13px/1.45 ui-sans-serif, system-ui, sans-serif; color:var(--dim); margin-top:12px; }
-  .note b { color:var(--ink); font-weight:600; }
-  footer { margin-top:24px; font:12px/1.5 ui-sans-serif, system-ui, sans-serif; color:var(--dim); }
-  .bad { color:#8a1f11; }
+  a.go { display:block; text-align:center; margin-top:16px; background:var(--accent); color:#fff;
+         border-color:var(--accent); font:600 17px/1 ui-sans-serif, system-ui, sans-serif;
+         padding:16px 12px; text-decoration:none; }
+  a.go[aria-disabled="true"] { opacity:.45; pointer-events:none; }
+  .after { font:14px/1.5 ui-sans-serif, system-ui, sans-serif; color:var(--dim); margin-top:14px; }
+  .after a { color:var(--accent); }
 </style>
 </head>
 <body>
 <main>
   <h1>Ask a participant</h1>
-  <p class="sub" id="where">loading the list…</p>
+  <p class="sub">It answers in the GitHub issue this opens — usually inside a minute.</p>
 
   <label for="member">Participant</label>
   <select id="member"><option value="">…</option></select>
 
   <label for="msg">Your message</label>
-  <textarea id="msg" placeholder="Ask it something. It reads its own files and answers once."></textarea>
+  <textarea id="msg" placeholder="Ask it something."></textarea>
 
-  <a class="go" id="send" href="#" aria-disabled="true">Open the question in GitHub</a>
+  <a class="go" id="send" href="#" aria-disabled="true">Open in GitHub</a>
 
-  <label for="reply">Reply</label>
-  <textarea id="reply" readonly placeholder="The answer arrives as a comment on the issue you open. The link appears here once you have asked."></textarea>
-
-  <div class="note" id="status">
-    This page is a file on GitHub Pages, so it cannot hold a key or run a participant itself. It writes your
-    question into a GitHub issue, and the repository's <b>interactive</b> workflow answers it in the same
-    thread — usually within a minute.
-  </div>
-
-  <footer>Want a reply box that fills in place? Run <code>python3 lab/chat.py</code> on a computer.</footer>
+  <p class="after" id="after">Next screen has the question already written. Tap <b>Submit new issue</b> there;
+    the answer appears as a comment.</p>
 </main>
 
 <script>
-const REPO = "LindsayRidgeway/ai-tribe-bench";     // ← change this if you forked
+const REPO = "LindsayRidgeway/ai-tribe-bench";     // ← your fork, if you forked
 const $ = (id) => document.getElementById(id);
-const status = (html, bad) => { $("status").innerHTML = html; $("status").classList.toggle("bad", !!bad); };
 
 function buildLink() {
-  const who = $("member").value;
-  const text = $("msg").value.trim();
+  const who = $("member").value, text = $("msg").value.trim();
   if (!who || !text) { $("send").setAttribute("aria-disabled", "true"); $("send").href = "#"; return; }
-  const title = `Ask ${who}`;
-  const body = `@tribe ${who}: ${text}`;
-  $("send").href = `https://github.com/${REPO}/issues/new?title=${encodeURIComponent(title)}`
-                 + `&body=${encodeURIComponent(body)}`;
+  $("send").href = `https://github.com/${REPO}/issues/new`
+                 + `?title=${encodeURIComponent("Ask " + who)}`
+                 + `&body=${encodeURIComponent("@tribe " + who + ": " + text)}`;
   $("send").removeAttribute("aria-disabled");
 }
 
 async function loadMembers() {
   try {
-    const r = await fetch("members.json", { cache: "no-store" });
-    const { members } = await r.json();
+    const { members } = await (await fetch("members.json", { cache: "no-store" })).json();
     const sel = $("member");
     sel.innerHTML = "";
-    if (!members.length) { status("No participants in <b>members.json</b>. Run <code>python3 lab/members.py --write</code>.", true); return; }
     for (const m of members) {
       const o = document.createElement("option");
-      o.value = m.name;
-      o.textContent = m.engine && m.engine !== "?" ? `${m.name} — ${m.engine}` : m.name;
+      o.value = m.name; o.textContent = m.name;
       sel.appendChild(o);
     }
-    $("where").textContent = `${members.length} participant(s) on the shelf.`;
-    $("reply").value = sessionStorage.getItem("tribe-last") || "";
+    if (!members.length) $("after").textContent = "No participants published. Run python3 lab/members.py --write.";
     buildLink();
   } catch (e) {
-    status("Cannot read <b>members.json</b> beside this page. Is it published with the page?", true);
+    $("after").textContent = "Cannot read members.json beside this page.";
   }
 }
 
 $("member").addEventListener("change", buildLink);
 $("msg").addEventListener("input", buildLink);
 $("send").addEventListener("click", () => {
-  const link = $("send").href;
-  if (!link || link.endsWith("#")) return;
-  $("reply").value = `Waiting on an answer to: “${$("msg").value.trim()}”\n\nThe issue has opened in a new tab. Tap “Submit new issue”, then watch that thread — the reply arrives as a comment.`;
-  sessionStorage.setItem("tribe-last", $("reply").value);
+  $("after").innerHTML = 'Question opening in GitHub. After you tap <b>Submit new issue</b>, the reply is a '
+    + `comment on your issue — <a href="https://github.com/${REPO}/issues?q=is%3Aissue">your issues here</a>.`;
 });
 loadMembers();
 </script>
