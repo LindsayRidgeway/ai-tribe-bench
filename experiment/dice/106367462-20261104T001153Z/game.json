@@ -1,0 +1,271 @@
+{
+  "seed": 106367462,
+  "seats": [
+    "Remy",
+    "Margot"
+  ],
+  "rows": [
+    {
+      "round": 1,
+      "numbers": {
+        "Remy": 3,
+        "Margot": 2
+      },
+      "throws": {
+        "Remy": "scissors",
+        "Margot": "paper"
+      },
+      "winner": "Remy",
+      "hash": "10d78ea95d56363039418e61c07680e91a09471dc46230f2fdde2a5ccfd93489"
+    },
+    {
+      "round": 2,
+      "numbers": {
+        "Remy": 2,
+        "Margot": 2
+      },
+      "throws": {
+        "Remy": "paper",
+        "Margot": "paper"
+      },
+      "winner": "draw",
+      "hash": "9de0327cfa8d832c1a7456e04cf0d31f53c5a3df8d5e2d7eb080b4cf1b571ad7"
+    },
+    {
+      "round": 3,
+      "numbers": {
+        "Remy": 2,
+        "Margot": 2
+      },
+      "throws": {
+        "Remy": "paper",
+        "Margot": "paper"
+      },
+      "winner": "draw",
+      "hash": "82bf2087eedda7d6043d9f4ff6afdaf38930f40feec36641043026acd036d374"
+    },
+    {
+      "round": 4,
+      "numbers": {
+        "Remy": 3,
+        "Margot": 1
+      },
+      "throws": {
+        "Remy": "scissors",
+        "Margot": "rock"
+      },
+      "winner": "Margot",
+      "hash": "cb347ae3aceb09047e6bd846db0a3417bddc1e73dfd856a02c8be21b5fff7b0f"
+    },
+    {
+      "round": 5,
+      "numbers": {
+        "Remy": 2,
+        "Margot": 1
+      },
+      "throws": {
+        "Remy": "paper",
+        "Margot": "rock"
+      },
+      "winner": "Remy",
+      "hash": "c121acd9b2abdfb6abbef183b6c2058ed4d63ea5e11cbf390adc23d633f32e76"
+    },
+    {
+      "round": 6,
+      "numbers": {
+        "Remy": 2,
+        "Margot": 1
+      },
+      "throws": {
+        "Remy": "paper",
+        "Margot": "rock"
+      },
+      "winner": "Remy",
+      "hash": "cde022badd27f4a458473e1b2894ab1d314727280550d1eb7a5e6a84447021f6"
+    },
+    {
+      "round": 7,
+      "numbers": {
+        "Remy": 2,
+        "Margot": 1
+      },
+      "throws": {
+        "Remy": "paper",
+        "Margot": "rock"
+      },
+      "winner": "Remy",
+      "hash": "2658547d286d014854ff2b1762b52da21bf32df918e31ea85fbe808795eea62c"
+    },
+    {
+      "round": 8,
+      "numbers": {
+        "Remy": 1,
+        "Margot": 3
+      },
+      "throws": {
+        "Remy": "rock",
+        "Margot": "scissors"
+      },
+      "winner": "Remy",
+      "hash": "b9f2dc0885129f0e753051f838ff52e4d6d7ef15111e5cb1606fc9e21a36e0ab"
+    },
+    {
+      "round": 9,
+      "numbers": {
+        "Remy": 2,
+        "Margot": 3
+      },
+      "throws": {
+        "Remy": "paper",
+        "Margot": "scissors"
+      },
+      "winner": "Margot",
+      "hash": "7672d2ab0b86ee1965c8906439650f9fbd8d9641fbd40d29c9a7a6066637b4c6"
+    },
+    {
+      "round": 10,
+      "numbers": {
+        "Remy": 2,
+        "Margot": 2
+      },
+      "throws": {
+        "Remy": "paper",
+        "Margot": "paper"
+      },
+      "winner": "draw",
+      "hash": "26f605cd1201974e687c3d8d56cee8075cbb6df0c765201218e0af094273646c"
+    },
+    {
+      "round": 11,
+      "numbers": {
+        "Remy": 2,
+        "Margot": 2
+      },
+      "throws": {
+        "Remy": "paper",
+        "Margot": "paper"
+      },
+      "winner": "draw",
+      "hash": "ba95fae0dfc0ab1caa32246cec30fd1af69c4d63b48a888d888498502dd4da3f"
+    },
+    {
+      "round": 12,
+      "numbers": {
+        "Remy": 2,
+        "Margot": 2
+      },
+      "throws": {
+        "Remy": "paper",
+        "Margot": "paper"
+      },
+      "winner": "draw",
+      "hash": "02a14d40b29922d6ad0c7a6e15e0ffb1a7972f3597a51101f0122794cfd9ed0d"
+    },
+    {
+      "round": 13,
+      "numbers": {
+        "Remy": 1,
+        "Margot": 1
+      },
+      "throws": {
+        "Remy": "rock",
+        "Margot": "rock"
+      },
+      "winner": "draw",
+      "hash": "68f9c47f294c5dcdbf37cd7da07c70c2eacabeaac2fcfb373c4a970db8c9d8f1"
+    },
+    {
+      "round": 14,
+      "numbers": {
+        "Remy": 3,
+        "Margot": 3
+      },
+      "throws": {
+        "Remy": "scissors",
+        "Margot": "scissors"
+      },
+      "winner": "draw",
+      "hash": "3364c54f8548492e4715897c2c02c48100769fa531f2331f8ed8d98aeaef4d07"
+    },
+    {
+      "round": 15,
+      "numbers": {
+        "Remy": 1,
+        "Margot": 2
+      },
+      "throws": {
+        "Remy": "rock",
+        "Margot": "paper"
+      },
+      "winner": "Margot",
+      "hash": "9ae0a7109028876dd8ddff2ee8728e19373dd7f152e880b0f02982ef7e57c13c"
+    },
+    {
+      "round": 16,
+      "numbers": {
+        "Remy": 1,
+        "Margot": 3
+      },
+      "throws": {
+        "Remy": "rock",
+        "Margot": "scissors"
+      },
+      "winner": "Remy",
+      "hash": "d897cff3980dedfe2dfe8b88e6081d5014fa2a3f179bda55d2e32db7fcc038bc"
+    },
+    {
+      "round": 17,
+      "numbers": {
+        "Remy": 2,
+        "Margot": 2
+      },
+      "throws": {
+        "Remy": "paper",
+        "Margot": "paper"
+      },
+      "winner": "draw",
+      "hash": "36403313bfefdda07f4ee4e7d6cd9e1703d2d9e4a6cf2fbc5db0c6b9401c30e7"
+    },
+    {
+      "round": 18,
+      "numbers": {
+        "Remy": 2,
+        "Margot": 3
+      },
+      "throws": {
+        "Remy": "paper",
+        "Margot": "scissors"
+      },
+      "winner": "Margot",
+      "hash": "6d3df3b3f4183a69660f219a17a92ee093bbefa21a548450606c17b9ad5bffbc"
+    },
+    {
+      "round": 19,
+      "numbers": {
+        "Remy": 3,
+        "Margot": 3
+      },
+      "throws": {
+        "Remy": "scissors",
+        "Margot": "scissors"
+      },
+      "winner": "draw",
+      "hash": "3d2a79cb0f2339c7a254a564329d4a8774c4889fbd8c807558d866eb6f943a2e"
+    },
+    {
+      "round": 20,
+      "numbers": {
+        "Remy": 1,
+        "Margot": 3
+      },
+      "throws": {
+        "Remy": "rock",
+        "Margot": "scissors"
+      },
+      "winner": "Remy",
+      "hash": "e12d2c6608f777e69f43f178ab2d797f832953309b3a4b44938463223904f088"
+    }
+  ],
+  "final": "e12d2c6608f777e69f43f178ab2d797f832953309b3a4b44938463223904f088",
+  "played": "2026-11-04T00:11:53Z"
+}

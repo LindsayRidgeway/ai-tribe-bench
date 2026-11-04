@@ -484,6 +484,31 @@ Then compare the *notes*. The number is the excuse for the interesting part: whe
 reasoning bore any relation to the number it gave, and whether it can say plainly that it was wrong. A
 member that defends a guess is telling you something too.
 
+## 5.3 A score sheet with no minds in it: twenty rounds the dice decide
+
+Every experiment above measures what a model *prefers*, and a preference is deterministic: run it twice and
+you have one measurement and one copy. The founder's correction on 2026-11-03 was to take the model out of
+the loop entirely. Colonist 1 gets a random integer, 1 rock, 2 paper, 3 scissors. Colonist 2 gets one too.
+Record the round, repeat twenty times. Nothing chooses, so every run must produce a different sheet.
+
+```
+python3 lab/dice.py --seats Remy,Margot --rounds 20                            # a fresh sheet
+python3 lab/dice.py --seats Remy,Margot --rounds 20                            # another, different
+python3 lab/dice.py --seats Remy,Margot --rounds 20 --seed 476488713 --quiet    # the same one back
+python3 lab/dice.py --verify experiment/dice/<folder>/game.json                # does the page match its seed?
+```
+
+`experiment/dice/README.md` has two real sheets side by side — 9/8/3 and 7/4/9 from the same pair of names
+five minutes apart — and the `diff` that comes back empty when the seed is replayed. Each round writes a
+hash over both numbers, the winner, and the previous hash, so an edited throw is named by round. An editor
+who recomputes the chain is caught by the other check: the seed alone decides all forty numbers, so the
+verifier replays it. The chain is the convenience; the seed is the proof.
+
+Two honest limits. **It shows the apparatus, not the minds** — there is no model in it, and a colony that
+could delete a model's preferences would be a stranger thing than this one. And **twenty rounds proves
+nothing about fairness**: each side expects a third of the rounds against a coin, and the sheets in
+`experiment/dice/` are 9/8 and 7/4 because two samples of twenty are two samples of twenty.
+
 ## 5a. The optional second channel: a free API key
 
 A weight file is a few billion numbers you download once; it runs on the runner, offline, and can be taken

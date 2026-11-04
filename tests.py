@@ -50,6 +50,7 @@ mlb_score = load(REPO / "lab" / "mlb_score.py", "mlb_score_mod")
 rank_compare = load(REPO / "lab" / "rank_compare.py", "rank_compare_mod")
 sport_facts = load(REPO / "lab" / "sport_facts.py", "sport_facts_mod")
 rps = load(REPO / "lab" / "rps.py", "rps_mod")
+dice = load(REPO / "lab" / "dice.py", "dice_mod")
 _json = __import__("json")
 
 FACTS = "date: Mon Nov  2 02:00:00 UTC 2026\nnproc: 2\nfree: 16000 MB"
@@ -1996,6 +1997,79 @@ class TestRockPaperScissors(unittest.TestCase):
             os.environ = original
         self.assertEqual(code, 2)
         self.assertIn("Nothing was played", err.getvalue())
+
+
+class TestDice(unittest.TestCase):
+    """The founder's last correction, taken literally: no preferences, no model, no reasoning.
+
+    The two properties are opposites and both must hold, which is why they are two tests. A fresh seed must
+    give a different sheet — otherwise the demo is showing the page, not the dice. The same seed must give
+    the identical sheet — otherwise the sheet is not checkable and a reader has only the tool's word for it.
+    """
+
+    def test_the_same_seed_plays_the_same_twenty_rounds(self):
+        one = dice.play(["Remy", "Margot"], 20, 41)
+        two = dice.play(["Remy", "Margot"], 20, 41)
+        self.assertEqual(one["final"], two["final"], "the same seed must reproduce the same chain")
+        self.assertEqual([r["numbers"] for r in one["rows"]], [r["numbers"] for r in two["rows"]])
+
+    def test_a_fresh_seed_gives_a_different_sheet(self):
+        sheets = {dice.play(["Remy", "Margot"], 20, s)["final"] for s in (41, 42, 43, 44)}
+        self.assertEqual(len(sheets), 4, "four seeds produced a repeated sheet: the throws are not coming "
+                                         "from the seed")
+
+    def test_every_throw_is_one_of_three_numbers_and_the_winner_follows(self):
+        game = dice.play(["Remy", "Margot"], 20, 7)
+        for r in game["rows"]:
+            self.assertEqual(set(r["numbers"]), {"Remy", "Margot"})
+            self.assertTrue(all(v in (1, 2, 3) for v in r["numbers"].values()))
+            self.assertIn(r["winner"], ("Remy", "Margot", "draw"))
+            self.assertEqual(r["throws"]["Remy"], dice.THROWS[r["numbers"]["Remy"]])
+
+    def test_an_edited_throw_is_caught_and_the_round_is_named(self):
+        game = dice.play(["Remy", "Margot"], 20, 41)
+        game["rows"][4]["numbers"]["Remy"] = (game["rows"][4]["numbers"]["Remy"] % 3) + 1
+        ok, why = dice.verify(game)
+        self.assertFalse(ok, "a sheet with a throw edited in place must not verify")
+        self.assertIn("round 5", why, f"the first broken round should be named, got: {why}")
+
+    def test_a_chain_recomputed_over_an_edit_still_fails_against_the_seed(self):
+        game = dice.play(["Remy", "Margot"], 20, 41)
+        game["rows"][4]["numbers"]["Remy"] = (game["rows"][4]["numbers"]["Remy"] % 3) + 1
+        chain = "genesis"
+        for r in game["rows"]:                     # the forger's move: patch the numbers and relink
+            payload = json.dumps({"round": r["round"], "numbers": r["numbers"], "winner": r["winner"],
+                                  "prev": chain}, sort_keys=True)
+            chain = dice.hashlib.sha256(payload.encode()).hexdigest()
+            r["hash"] = chain
+        game["final"] = chain
+        ok, why = dice.verify(game)
+        self.assertFalse(ok, "a relinked chain is not a proof: the seed decides the numbers")
+        self.assertIn("does not match the seed", why)
+
+    def test_a_clean_sheet_verifies(self):
+        ok, why = dice.verify(dice.play(["Remy", "Margot"], 20, 41))
+        self.assertTrue(ok, why)
+
+    def test_the_seats_and_the_rounds_are_refused_before_a_round_is_played(self):
+        for argv in (["--seats", "Remy", "--out", "/tmp/never-written"],
+                     ["--seats", "Remy,Margot", "--rounds", "0", "--out", "/tmp/never-written"]):
+            err = io.StringIO()
+            with contextlib.redirect_stderr(err):
+                code = dice.main(argv)
+            self.assertEqual(code, 2)
+            self.assertIn("Nothing was played", err.getvalue())
+        self.assertFalse(Path("/tmp/never-written").exists(), "a refused game must not leave a folder")
+
+    def test_a_filed_game_is_read_back_from_disk_and_checked(self):
+        out = Path(tempfile.mkdtemp()) / "sheet"
+        with contextlib.redirect_stdout(io.StringIO()):
+            dice.main(["--seats", "Remy,Margot", "--rounds", "5", "--seed", "41", "--out", str(out)])
+        game = json.loads((out / "game.json").read_text(encoding="utf-8"))
+        self.assertEqual(game["seed"], 41)
+        self.assertTrue(dice.verify(game)[0])
+        self.assertIn("Seed **41**", (out / "sheet.md").read_text(encoding="utf-8"),
+                      "the seed has to be printed on the page, or the page cannot be audited")
 
 
 class TestOutbox(unittest.TestCase):
