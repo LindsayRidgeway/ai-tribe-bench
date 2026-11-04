@@ -40,6 +40,7 @@ import sys
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from pathlib import Path
 
 sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parent))
 from rps import BASES, DEFAULT_MODEL, ask          # noqa: E402  one vendor table, not two
@@ -359,6 +360,135 @@ def reachable(p: Player, land, flight_time: float, bounce: dict, surface: str) -
     short = (t_meet - available) * movement_speed(p)      # the ground they would have covered with more time
     return False, (f"{short:.0f}ft short of it, beaten by the "
                    f"{'wide' if abs(dy) > abs(dx) else 'deep'} ball")
+
+
+# ---- the season: practice that outlives the process ------------------------------------------------
+# Until 2026-11-04 practice was a Python variable: every run started everyone at zero, so the founder's
+# sentence — "Margot and I played tennis this afternoon. She's been practicing with Remy and her game has
+# really improved" — was something a person would have to write. It is now something a report can print
+# from a file, and the file is the only thing that carries between sessions.
+#
+# The founder's dilemma, stated with the design: a user wants the record of past beginner-to-skilled
+# seasons AND wants a season to run for months. So a season is a DIRECTORY. Nothing is ever reset and
+# nothing is ever overwritten; starting over is opening a new directory, which is why last spring stays
+# readable while this one keeps going. The reset to beginners is not a wipe — it is the absence of a file.
+ROOT = Path(__file__).resolve().parent.parent
+SEASONS = ROOT / "games" / "tennis" / "seasons"
+SEASON = "2026-spring"                    # the first season; the year the colony started playing
+
+
+def season_paths(season: str, override: str | None = None) -> tuple[Path, Path]:
+    d = Path(override) if override else SEASONS / season
+    return d, d / "practice.json"
+
+
+def load_season(season: str, override: str | None = None) -> dict:
+    d, f = season_paths(season, override)
+    if not f.exists():
+        return {"season": season, "opened": None, "note": "", "members": {}}
+    return json.loads(f.read_text(encoding="utf-8"))
+
+
+def save_season(book: dict, season: str, override: str | None = None) -> Path:
+    d, f = season_paths(season, override)
+    d.mkdir(parents=True, exist_ok=True)
+    f.write_text(json.dumps(book, indent=1, sort_keys=True) + "\n", encoding="utf-8")
+    return f
+
+
+def record_session(book: dict, *, when: str, surface: str, clock: int, players, results, lengths,
+                   partners: dict, mode: str = "rally") -> None:
+    """Add one session to the book. The balls are the ones the ENGINE counted, not the ones a member
+    claims — a being that inflates its own practice should be findable in the record, and here it cannot
+    inflate it at all."""
+    book["opened"] = book.get("opened") or when
+    for p in players:
+        r = results[p.name]
+        m = book["members"].setdefault(p.name, {"balls": 0, "sessions": []})
+        m["sessions"].append({
+            "when": when, "surface": surface, "clock": clock, "mode": mode,
+            "with": partners.get(p.name, []),
+            "shots": p.shots, "in_play": sum(r), "of": len(r),
+            "mean_rally": round(sum(lengths) / len(lengths), 2) if lengths else 0.0,
+            "longest": max(lengths) if lengths else 0,
+            "control": round(p.skill("control"), 3),
+            "reach": round(p.skill("reach"), 3),
+        })
+        m["balls"] += p.shots
+
+
+def practice_of(book: dict, name: str) -> int:
+    return int(book.get("members", {}).get(name, {}).get("balls", 0))
+
+
+def season_report(season: str, override: str | None = None) -> str:
+    """The sentence the founder asked for, printed only when the numbers support it.
+
+    Every claim below carries the file it came from and the sessions it was computed over. The guard that
+    matters is the one on the middle case: with two sessions and a rate that did not move, this prints
+    that it cannot say the game improved. A report generator that congratulates a player who did not
+    improve is a fiction generator with a citation bolted on."""
+    book = load_season(season, override)
+    d, f = season_paths(season, override)
+    try:
+        shown = f.relative_to(ROOT)
+    except ValueError:
+        shown = f
+    if not book.get("members"):
+        return (f"No season at {shown}. Nobody has hit a ball in {season} yet, so there is nothing to "
+                f"report and nothing to cite.")
+    out = [f"# {season} — what the record says", "",
+           f"From `{shown}`, opened {book.get('opened') or 'unknown'}. Every number below is computed from "
+           f"the sessions listed in that file; nothing here is written from memory.", ""]
+    for name in sorted(book["members"]):
+        m = book["members"][name]
+        ss = m["sessions"]
+        partners: dict[str, int] = {}
+        for s in ss:
+            for other in s.get("with", []):
+                partners[other] = partners.get(other, 0) + 1
+        who = ", ".join(f"{o} ({n}x)" for o, n in sorted(partners.items(), key=lambda kv: -kv[1]))
+        out.append(f"## {name}")
+        out.append("")
+        out.append(f"- {m['balls']} balls hit this season, over {len(ss)} session"
+                   f"{'' if len(ss) == 1 else 's'}" + (f"; most often with {who}" if who else "") + ".")
+        if len(ss) == 1:
+            s = ss[0]
+            out.append(f"- One session only ({s['surface']}, {s['in_play']}/{s['of']} balls in play, "
+                       f"mean rally {s['mean_rally']} shots). **Nothing can be said about improvement "
+                       f"from one session** — a second one is needed before the word is used.")
+            out.append("")
+            continue
+        first, last = ss[0], ss[-1]
+        r0 = 100 * first["in_play"] / max(1, first["of"])
+        r1 = 100 * last["in_play"] / max(1, last["of"])
+        moved = r1 - r0
+        out.append(f"- First session {first['when'][:10]} ({first['surface']}): {first['in_play']}/"
+                   f"{first['of']} in play = {r0:.0f}%, mean rally {first['mean_rally']} shots.")
+        out.append(f"- Latest session {last['when'][:10]} ({last['surface']}): {last['in_play']}/"
+                   f"{last['of']} in play = {r1:.0f}%, mean rally {last['mean_rally']} shots.")
+        # Two guards, because the first one alone was wrong on the day it was written. It asked for a gap
+        # wider than the ~8 points this game scatters between sessions, and the first real season then
+        # reported "the game got worse" for Colette on 5/7 -> 4/7: one ball, fourteen points. A percentage
+        # built on seven balls cannot carry a verdict in either direction, so a session must have at least
+        # twelve balls in it before any claim is made about it.
+        thin = [s for s in (first, last) if s["of"] < 12]
+        if thin:
+            out.append(f"- **Not a sample**: sessions of {', '.join(str(s['of']) + ' balls' for s in thin)} "
+                       f"cannot carry a verdict in either direction. The rates above are printed; the word "
+                       f"improved is withheld until a session has twelve balls in it.")
+        elif moved >= 8.0:
+            out.append(f"- **The game improved**: {r0:.0f}% -> {r1:.0f}% in play over {len(ss)} sessions, "
+                       f"{m['balls']} balls.")
+        elif moved <= -8.0:
+            out.append(f"- **The game got worse**: {r0:.0f}% -> {r1:.0f}% in play. The record says so and "
+                       f"the report does not soften it.")
+        else:
+            out.append(f"- **No claim**: in-play moved {moved:+.0f} points ({r0:.0f}% -> {r1:.0f}%), inside "
+                       f"the +/-8 points this game scatters between sessions. More practice, or the word "
+                       f"does not apply.")
+        out.append("")
+    return "\n".join(out)
 
 
 # ---- the match ------------------------------------------------------------------------------------
@@ -731,6 +861,15 @@ def run_rally(args) -> int:
     names = [n.strip() for n in args.names.split(",")]
     vendors = [v.strip().lower() for v in args.vendor.split(",")]
     practice = [int(x) for x in args.practice.split(",")]
+    # The season wins over `--practice`, and says so. Two sources for one number is the defect this
+    # project has fixed twice; here the file is the record and the flag is a test hook.
+    book = load_season(args.season, args.season_dir) if args.season else None
+    if book is not None:
+        from_file = [practice_of(book, n) for n in names]
+        print(f"  season {args.season}: practice read from the file - "
+              + ", ".join(f"{n} {b} balls" for n, b in zip(names, from_file))
+              + f" (--practice {args.practice} ignored)")
+        practice = from_file
     models = ([m.strip() for m in args.model.split(",")] if args.model
               else [DEFAULT_MODEL[v] for v in vendors])
     keys = []
@@ -824,6 +963,21 @@ def run_rally(args) -> int:
     print(f"  first third mean {mean(lengths[:third]):.1f}   last third mean {mean(lengths[-third:]):.1f}")
     print(f"  the lengths, in order: {' '.join(str(x) for x in lengths)}")
     print(f"  unparsed replies: {fell_back}")
+
+    if book is not None:
+        when = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        record_session(book, when=when, surface=surface, clock=ms, players=players, results=results,
+                       lengths=lengths,
+                       partners={a.name: [b.name] for a, b in ((players[0], players[1]),
+                                                              (players[1], players[0]))})
+        f = save_season(book, args.season, args.season_dir)
+        try:
+            shown = f.relative_to(ROOT)
+        except ValueError:
+            shown = f
+        print(f"\n  season {args.season}: written to {shown} - "
+              + ", ".join(f"{p.name} {practice_of(book, p.name)} balls this season" for p in players))
+        print(f"  next: python3 lab/tennis.py --report {args.season}")
     return 0
 
 
@@ -953,9 +1107,17 @@ def main(argv=None) -> int:
     ap.add_argument("--rallies", type=int, default=20, help="for --rally: how many rallies to play")
     ap.add_argument("--simulate-rally", action="store_true",
                     help="four scripted pairs rally, to test whether rally length responds to hands or learning")
+    ap.add_argument("--season", default=None,
+                    help="carry practice in a file: games/tennis/seasons/<season>/practice.json")
+    ap.add_argument("--season-dir", default=None, help="where that folder is, for a test or a fork")
+    ap.add_argument("--report", default=None, metavar="SEASON",
+                    help="print what the season file says, with its own citations, and claim nothing more")
     ap.add_argument("--simulate", action="store_true",
                     help="two scripted learners, to test whether the drill's feedback is learnable at all")
     args = ap.parse_args(argv)
+    if args.report:
+        print(season_report(args.report, args.season_dir))
+        return 0
     if args.simulate_rally:
         simulate_rally(args)
         return 0

@@ -1,0 +1,42 @@
+  season 2026-spring: practice read from the file - Colette 7 balls, Remy 10 balls (--practice 400,20 ignored)
+# early spring, rallying — clay (high bounce, slow), wind E 18mph, 8 rallies, no serving, no scoring, clock 1793817273990
+
+  Colette: 7 balls hit before today, control 0.22, moves at 11ft/s, hands give or take ±3 degrees of face
+  Remy: 10 balls hit before today, control 0.24, moves at 11ft/s, hands give or take ±3 degrees of face
+
+   1.1  Colette  face +12 power  54 aim 16 [clean ] -> IN, 30ft past the net, 10ft east of centre, arrives at 38mph and comes up at 27mph
+   1.2  Remy     face +5 power  62 aim  9 [clean ] -> into the net at 3.0ft, 0.1ft under the tape — needs more height
+       -- rally of 2; Remy missed.
+   2.1  Remy     face +12 power  58 aim 13 [clean ] -> long by 2ft, 8ft east of centre — too much height or too much pace
+       -- rally of 1; Remy missed.
+   3.1  Remy     face +8 power  55 aim 13 [clean ] -> IN, 22ft past the net, 4ft east of centre, arrives at 51mph and comes up at 37mph
+   3.2  Colette  face +10 power  55 aim  9 [FRAMED] -> short of the net by 7ft, 2ft west of centre — needs more height
+       -- rally of 2; Colette missed.
+   4.1  Colette  face +12 power  52 aim  9 [FRAMED] -> short of the net by 22ft — needs more height
+       -- rally of 1; Colette missed.
+   5.1  Colette  face +13 power  53 aim 11 [FRAMED] -> IN, 16ft past the net, 1ft east of centre, arrives at 28mph and comes up at 20mph
+   5.2  Remy     face +4 power  60 aim 12 [clean ] -> IN, 25ft past the net, 3ft east of centre, arrives at 48mph and comes up at 34mph
+   5.3  Colette  face +14 power  56 aim  9 [FRAMED] -> IN, 29ft past the net, 4ft east of centre, arrives at 27mph and comes up at 20mph
+   5.4  Remy     face +9 power  52 aim 13 [clean ] -> IN, 37ft past the net, 6ft east of centre, arrives at 40mph and comes up at 29mph
+   5.5  Colette  face +13 power  54 aim  8 [clean ] -> long by 2ft — too much height or too much pace
+       -- rally of 5; Colette missed.
+   6.1  Colette  face +12 power  53 aim 10 [clean ] -> IN, 22ft past the net, 3ft west of centre, arrives at 34mph and comes up at 25mph
+   6.2  Remy     face +6 power  58 aim 12 [FRAMED] -> short of the net by 5ft, 1ft east of centre — needs more height
+       -- rally of 2; Remy missed.
+   7.1  Remy     face +7 power  54 aim 13 [clean ] -> into the net at 0.0ft, 3.0ft under the tape — needs more height
+       -- rally of 1; Remy missed.
+   8.1  Remy     face +10 power  54 aim 13 [FRAMED] -> short of the net by 18ft — needs more height
+       -- rally of 1; Remy missed.
+
+## After the session
+
+  Colette: 7 shots, in play 4/7 = 57%, control 0.26, sweet spot 0.75
+  Remy: 8 shots, in play 3/8 = 38%, control 0.28, sweet spot 0.76
+
+  rallies: 8   mean 1.9   median 2   longest 5
+  first third mean 1.5   last third mean 1.0
+  the lengths, in order: 2 1 2 1 5 2 1 1
+  unparsed replies: 0
+
+  season 2026-spring: written to games/tennis/seasons/2026-spring/practice.json - Colette 14 balls this season, Remy 18 balls this season
+  next: python3 lab/tennis.py --report 2026-spring

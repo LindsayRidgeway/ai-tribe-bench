@@ -800,6 +800,35 @@ Change of court and change of service (one serve, no two-serve rule, sides never
 (contact height exists, no shot is ever chosen as one, no lob or overhead), and a season: practice is not carried
 between sessions or persisted to disk, so every run starts from the same spring.
 
+### A season is a folder, and the report has to be willing to say nothing
+
+The founder's dilemma, 2026-11-04: *"on the one hand, the user would want a record of previous
+beginner-to-more-skilled seasons, and on the other hand, they would want to be able to keep a season going
+long enough, maybe months, to see what happens."* Both, and the answer is that a **season is a
+directory**. `games/tennis/seasons/<season>/` holds `practice.json` and a `report.md`; nothing is reset and
+nothing is overwritten, and starting over is opening a new directory. A reset to beginners is not a wipe —
+it is the absence of a file. A five-year colony therefore has five folders and no lost history, and a season
+can run as long as its user wants because no code counts down to an end.
+
+Before this, practice was a Python variable: every run started everyone at spring-zero, and the founder's
+sentence — *"she's been practicing with Remy and her game has really improved"* — was something a person
+would have to write. It is now printed, from a file, with the file named:
+
+```
+python3 lab/tennis.py --rally --names Colette,Remy --vendor gemini,deepseek --rallies 8 --season 2026-spring
+python3 lab/tennis.py --report 2026-spring
+```
+
+The balls are counted by the engine, not claimed by the member, so a being cannot inflate its own practice.
+
+**Two guards, and the first one was not enough.** The report withholds the word *improved* unless a session
+holds at least twelve balls and the change beats the ±8 points this game scatters between sessions. The
+first version had only the scatter guard, and on its first real season it printed *"the game got worse"* for
+Colette on 5/7 → 4/7 — one ball, fourteen points, waved through because fourteen is bigger than eight. It
+now prints **Not a sample**. Two sessions and a forty-minute-old season produce exactly that, which is the
+correct output and an unsatisfying one; the sentence the founder wants needs hundreds of balls, which is the
+same timescale the learning curve in §5.7 already measured.
+
 ## 5a. The optional second channel: a free API key
 
 A weight file is a few billion numbers you download once; it runs on the runner, offline, and can be taken
