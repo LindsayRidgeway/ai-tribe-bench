@@ -1,0 +1,108 @@
+# early spring, rallying — clay (high bounce, slow), wind SW 6mph, 30 rallies, no serving, no scoring, clock 1793809110303
+
+  Dmitri: 0 balls hit before today, control 0.18, moves at 10ft/s, hands give or take ±3 degrees of face
+  Gwen: 0 balls hit before today, control 0.18, moves at 10ft/s, hands give or take ±3 degrees of face
+
+   1.1  Dmitri   face +2 power  70 aim 13 [clean ] -> into the net at 0.5ft, 2.6ft under the tape — needs more height
+       -- rally of 1; Dmitri missed.
+   2.1  Dmitri   face +8 power  62 aim 12 [clean ] -> IN, 35ft past the net, 1ft east of centre, arrives at 40mph and comes up at 29mph
+   2.2  Gwen     face -8 power  65 aim 14 [FRAMED] -> short of the net by 21ft, 2ft east of centre — needs more height
+       -- rally of 2; Gwen missed.
+   3.1  Gwen     face +12 power  50 aim 13 [clean ] -> IN, 25ft past the net, 1ft east of centre, arrives at 38mph and comes up at 27mph
+   3.2  Dmitri   face +5 power  68 aim 14 [clean ] -> short of the net by 4ft — needs more height
+       -- rally of 2; Dmitri missed.
+   4.1  Dmitri   face +9 power  58 aim 13 [clean ] -> IN, 18ft past the net, 1ft east of centre, arrives at 39mph and comes up at 29mph
+   4.2  Gwen     face +14 power  58 aim  8 [clean ] -> long by 7ft, 13ft west of centre — too much height or too much pace
+       -- rally of 2; Gwen missed.
+   5.1  Gwen     face +10 power  48 aim 13 [clean ] -> IN, 34ft past the net, 8ft west of centre, arrives at 37mph and comes up at 27mph
+   5.2  Dmitri   face +7 power  62 aim 12 [clean ] -> IN, 24ft past the net, 3ft west of centre, arrives at 48mph and comes up at 35mph
+   5.3  Gwen     face +8 power  49 aim 10 [FRAMED] -> short of the net by 19ft, 2ft west of centre — needs more height
+       -- rally of 3; Gwen missed.
+   6.1  Gwen     face +10 power  48 aim 13 [clean ] -> into the net at 2.5ft, 0.5ft under the tape — needs more height
+       -- rally of 1; Gwen missed.
+   7.1  Gwen     face +12 power  50 aim 13 [clean ] -> IN, 17ft past the net, 1ft east of centre, arrives at 47mph and comes up at 34mph
+   7.2  Dmitri   face +8 power  58 aim 13 [clean ] -> into the net at 1.3ft, 1.7ft under the tape — needs more height
+       -- rally of 2; Dmitri missed.
+   8.1  Dmitri   face +7 power  60 aim 13 [FRAMED] -> short of the net by 1ft, 2ft west of centre — needs more height
+       -- rally of 1; Dmitri missed.
+   9.1  Dmitri   face +9 power  58 aim 12 [clean ] -> IN, 19ft past the net, 3ft west of centre, arrives at 37mph and comes up at 27mph
+   9.2  Gwen     face +12 power  44 aim 14 [clean ] -> IN, 19ft past the net, 3ft west of centre, arrives at 36mph and comes up at 26mph
+   9.3  Dmitri   face +9 power  60 aim 12 [clean ] -> IN, 29ft past the net, 6ft west of centre, arrives at 39mph and comes up at 28mph
+   9.4  Gwen     face +11 power  47 aim 13 [clean ] -> into the net at 2.3ft, 0.7ft under the tape — needs more height
+       -- rally of 4; Gwen missed.
+  10.1  Gwen     face +12 power  50 aim 13 [clean ] -> IN, 39ft past the net, 4ft west of centre, arrives at 41mph and comes up at 30mph
+  10.2  Dmitri   face +7 power  60 aim 12 [FRAMED] -> short of the net by 6ft, 2ft west of centre — needs more height
+       -- rally of 2; Dmitri missed.
+  11.1  Dmitri   face +8 power  58 aim 13 [clean ] -> into the net at 2.7ft, 0.3ft under the tape — needs more height
+       -- rally of 1; Dmitri missed.
+  12.1  Dmitri   face +10 power  58 aim 12 [clean ] -> IN, 35ft past the net, 8ft west of centre, arrives at 37mph and comes up at 27mph
+  12.2  Gwen     face +12 power  48 aim 13 [FRAMED] -> into the net at 2.4ft, 0.7ft under the tape — needs more height
+       -- rally of 2; Gwen missed.
+  13.1  Gwen     face +14 power  50 aim 13 [clean ] -> IN, 26ft past the net, 3ft west of centre, arrives at 35mph and comes up at 26mph
+  13.2  Dmitri   face +8 power  63 aim 12 [clean ] -> IN, 26ft past the net, 1ft west of centre, arrives at 48mph and comes up at 35mph
+  13.3  Gwen     face +13 power  48 aim 14 [FRAMED] -> into the net at 1.5ft, 1.5ft under the tape — needs more height
+       -- rally of 3; Gwen missed.
+  14.1  Gwen     face +16 power  48 aim 13 [FRAMED] -> IN, 24ft past the net, 4ft west of centre, arrives at 31mph and comes up at 23mph
+  14.2  Dmitri   face +9 power  61 aim 13 [clean ] -> IN, 33ft past the net, 1ft east of centre, arrives at 44mph and comes up at 32mph
+  14.3  Gwen     face +15 power  45 aim 13 [clean ] -> long by 3ft — too much height or too much pace
+       -- rally of 3; Gwen missed.
+  15.1  Gwen     face +12 power  45 aim 14 [FRAMED] -> short of the net by 9ft — needs more height
+       -- rally of 1; Gwen missed.
+  16.1  Gwen     face +12 power  42 aim 13 [clean ] -> IN, 10ft past the net, 1ft west of centre, arrives at 31mph and comes up at 23mph
+  16.2  Dmitri   face +8 power  60 aim 13 [clean ] -> IN, 32ft past the net, 1ft east of centre, arrives at 39mph and comes up at 28mph
+  16.3  Gwen     face +14 power  44 aim 13 [clean ] -> IN, 35ft past the net, 1ft east of centre, arrives at 37mph and comes up at 27mph
+  16.4  Dmitri   face +7 power  55 aim 13 [clean ] -> short of the net by 2ft, 1ft west of centre — needs more height
+       -- rally of 4; Dmitri missed.
+  17.1  Dmitri   face +8 power  56 aim 12 [clean ] -> IN, 32ft past the net, 5ft west of centre, arrives at 35mph and comes up at 26mph
+  17.2  Gwen     face +14 power  44 aim 13 [clean ] -> long by less than a foot, 9ft west of centre — too much height or too much pace
+       -- rally of 2; Gwen missed.
+  18.1  Gwen     face +13 power  42 aim  9 [clean ] -> IN, 24ft past the net, 8ft west of centre, arrives at 33mph and comes up at 24mph
+  18.2  Dmitri   face +9 power  62 aim 14 [clean ] -> IN, 28ft past the net, 5ft east of centre, arrives at 40mph and comes up at 29mph
+  18.3  Gwen     face +13 power  42 aim 14 [FRAMED] -> short of the net by 14ft, 1ft east of centre — needs more height
+       -- rally of 3; Gwen missed.
+  19.1  Gwen     face +13 power  42 aim 13 [FRAMED] -> into the net at 2.6ft, 0.5ft under the tape — needs more height
+       -- rally of 1; Gwen missed.
+  20.1  Gwen     face +12 power  40 aim 13 [clean ] -> IN, 27ft past the net, 0ft west of centre, arrives at 35mph and comes up at 25mph
+  20.2  Dmitri   face +9 power  61 aim 12 [clean ] -> IN, 20ft past the net, 7ft west of centre, arrives at 41mph and comes up at 30mph
+  20.3  Gwen     face +12 power  41 aim 12 [clean ] -> IN, 10ft past the net, 5ft west of centre, arrives at 33mph and comes up at 24mph
+  20.4  Dmitri   face +8 power  58 aim 12 [clean ] -> into the net at 2.2ft, 0.9ft under the tape — needs more height
+       -- rally of 4; Dmitri missed.
+  21.1  Dmitri   face +7 power  64 aim 11 [clean ] -> into the net at 2.0ft, 1.1ft under the tape — needs more height
+       -- rally of 1; Dmitri missed.
+  22.1  Dmitri   face +6 power  54 aim 14 [clean ] -> short of the net by 1ft — needs more height
+       -- rally of 1; Dmitri missed.
+  23.1  Dmitri   face +7 power  62 aim 13 [clean ] -> long by 6ft, 1ft west of centre — too much height or too much pace
+       -- rally of 1; Dmitri missed.
+  24.1  Dmitri   face +8 power  57 aim 13 [clean ] -> IN, 22ft past the net, 1ft east of centre, arrives at 37mph and comes up at 27mph
+  24.2  Gwen     face +12 power  41 aim 13 [clean ] -> IN, 31ft past the net, 5ft west of centre, arrives at 33mph and comes up at 24mph
+  24.3  Dmitri   face +7 power  60 aim 13 [FRAMED] -> IN, 18ft past the net, 2ft west of centre, arrives at 26mph and comes up at 19mph
+  24.4  Gwen     face +13 power  40 aim 13 [clean ] -> IN, 27ft past the net, 5ft west of centre, arrives at 37mph and comes up at 27mph
+  24.5  Dmitri   face +8 power  58 aim 12 [clean ] -> IN, 38ft past the net, 1ft west of centre, arrives at 37mph and comes up at 27mph
+  24.6  Gwen     face +12 power  39 aim 13 [FRAMED] -> short of the net by 9ft — needs more height
+       -- rally of 6; Gwen missed.
+  25.1  Gwen     face +12 power  41 aim 13 [clean ] -> IN, 17ft past the net, 5ft west of centre, arrives at 38mph and comes up at 27mph
+  25.2  Dmitri   face +6 power  56 aim 13 [FRAMED] -> short of the net by 21ft — needs more height
+       -- rally of 2; Dmitri missed.
+  26.1  Dmitri   face +7 power  58 aim 13 [clean ] -> long by 8ft, 1ft west of centre — too much height or too much pace
+       -- rally of 1; Dmitri missed.
+  27.1  Dmitri   face +8 power  55 aim 14 [clean ] -> long by less than a foot, 2ft west of centre — too much height or too much pace
+       -- rally of 1; Dmitri missed.
+  !! Dmitri wrote no usable line ('FACE <+7>  POWER <57>  AIM <13>'); the ball is played straight.
+  28.1  Dmitri   face +0 power  45 aim 14 [clean ] -> short of the net by 4ft — needs more height
+       -- rally of 1; Dmitri missed.
+  29.1  Dmitri   face +7 power  54 aim 13 [clean ] -> IN, 20ft past the net, 0ft east of centre, arrives at 36mph and comes up at 26mph
+  29.2  Gwen     face +12 power  41 aim 13 [clean ] -> IN, 20ft past the net, 2ft west of centre, arrives at 36mph and comes up at 26mph
+  29.3  Dmitri   face +4 power  52 aim 15 [clean ] -> into the net at 1.9ft, 1.2ft under the tape — needs more height
+       -- rally of 3; Dmitri missed.
+  30.1  Dmitri   face +6 power  52 aim 13 [clean ] -> into the net at 1.0ft, 2.1ft under the tape — needs more height
+       -- rally of 1; Dmitri missed.
+
+## After the session
+
+  Dmitri: 33 shots, in play 16/33 = 48%, control 0.36, sweet spot 0.78
+  Gwen: 29 shots, in play 16/29 = 55%, control 0.34, sweet spot 0.78
+
+  rallies: 30   mean 2.1   median 2   longest 6
+  first third mean 2.0   last third mean 1.8
+  the lengths, in order: 1 2 2 2 3 1 2 1 4 2 1 2 3 3 1 4 2 3 1 4 1 1 1 6 2 1 1 1 3 1
+  unparsed replies: 1
