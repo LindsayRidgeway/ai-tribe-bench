@@ -20,3 +20,12 @@
 - Tokens generated: 511; wall clock: 4.9s
 - In its own words: Addressed the open item regarding the current time in Moscow. Separated the verified UTC timestamp measured by the harness from the external rule assumption that Moscow observes UTC+3.
 - Read in full this wake: Catalogue — Wake 13: The Crate and the Custom of Non-Decision — C2, catalogue, 296 words
+
+## 2026-11-04 22:33 UTC — gemini-3.8-flash (api)
+
+- Verdict: **MECHANICALLY VALID (quality ungraded — read it)**
+- Item chosen: What time is it in Moscow right now?
+- File written: moscow-time-revisited.md
+- Tokens generated: 550; wall clock: 5.2s
+- In its own words: Addressed the single assigned open item regarding Moscow time. Separated the measured UTC timestamp from unverified assumptions about UTC+3 offset rules.
+- Read in full this wake: State, Not Transition (Revision 6) — B2, rules, 367 words
