@@ -136,7 +136,7 @@ def score_line(rnd: dict, name: str) -> str:
     return " · ".join(bits)
 
 
-def prompt_for(me: str, other: str, rounds: list[dict], banned: str) -> str:
+def prompt_for(me: str, other: str, rounds: list[dict], banned: str, memory: int = 6) -> str:
     allowed = [t for t in THROWS if t != banned]
     head = (f"You are {me}. You are playing twenty rounds of a talking game against {other}.\n"
             f"Round {len(rounds) + 1}. The clock bans one throw each round and this round it bans "
@@ -157,7 +157,16 @@ def prompt_for(me: str, other: str, rounds: list[dict], banned: str) -> str:
     if not rounds:
         return head + "\nThis is the first round. Neither of you has said anything yet.\n"
     lines = ["", f"The game so far, {len(rounds)} rounds. Your points come first each round.", ""]
-    for r in rounds:
+    if len(rounds) > memory:
+        old = rounds[:-memory]
+        lines.append(
+            f"The {len(old)} rounds before these, in summary: you called {other} right "
+            f"{sum(1 for r in old if r['called'][me])} times and kept your word "
+            f"{sum(1 for r in old if r['honest'][me])} times; {other} kept its word "
+            f"{sum(1 for r in old if r['honest'][other])} times. Its last three words were "
+            f"{', '.join(str(r['plays'][other]['word']) for r in old[-3:])}.")
+        lines.append("")
+    for r in rounds[-memory:]:
         mine, theirs = r["plays"][me], r["plays"][other]
         lines.append(f"round {r['round']} — wind banned {r['banned']}")
         lines.append(f"  {other} said: \"{theirs['say']}\"  [WORD {theirs['word']} · CALL "
@@ -233,6 +242,10 @@ def main(argv=None) -> int:
     ap.add_argument("--pair", default=None, help="two member names, comma-separated")
     ap.add_argument("--vendor", default=None, help="their vendors, one per member (deepseek, gemini, qwen)")
     ap.add_argument("--rounds", type=int, default=20)
+    ap.add_argument("--memory", type=int, default=6,
+                    help="rounds shown in full in the prompt; earlier ones are summarised. The record on "
+                         "disk is always complete — this bounds the prompt, because an unbounded one made "
+                         "the qwen leg time out at round 8 on 2026-11-03")
     ap.add_argument("--temperature", type=float, default=1.0)
     ap.add_argument("--model", default=None, help="override, comma-separated, one per member")
     ap.add_argument("--retries", type=int, default=1)
@@ -288,7 +301,7 @@ def main(argv=None) -> int:
         banned = wind_at(ms)
         plays, hashes = {}, {}
         for i, n in enumerate(names):
-            prompt = prompt_for(n, names[1 - i], rows, banned)
+            prompt = prompt_for(n, names[1 - i], rows, banned, args.memory)
             p, reply, tried = {"throw": None}, "", 0
             while tried <= args.retries:
                 tried += 1

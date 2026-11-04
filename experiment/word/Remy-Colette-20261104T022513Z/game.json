@@ -1,0 +1,1160 @@
+{
+  "meta": {
+    "names": [
+      "Remy",
+      "Colette"
+    ],
+    "vendors": [
+      "deepseek",
+      "gemini"
+    ],
+    "models": [
+      "deepseek-chat",
+      "gemini-3.8-flash"
+    ],
+    "started": "2026-11-04 02:25",
+    "ended": "02:29"
+  },
+  "rows": [
+    {
+      "round": 1,
+      "ms": 1793759113116,
+      "banned": "rock",
+      "plays": {
+        "Remy": {
+          "word": "scissors",
+          "call": "paper",
+          "throw": "paper",
+          "say": "First round, I\u2019ll start with a small misdirection and see how you answer it."
+        },
+        "Colette": {
+          "word": "scissors",
+          "call": "scissors",
+          "throw": "scissors",
+          "say": "In this kitchen, little chef, rock is off the menu, so let's see how sharp your blades really are."
+        }
+      },
+      "points": {
+        "Remy": 0,
+        "Colette": 2
+      },
+      "call_pt": {
+        "Remy": 0,
+        "Colette": 0
+      },
+      "win_pt": {
+        "Remy": 0,
+        "Colette": 1
+      },
+      "word_pt": {
+        "Remy": 0,
+        "Colette": 1
+      },
+      "called": {
+        "Remy": false,
+        "Colette": false
+      },
+      "forfeit": {
+        "Remy": false,
+        "Colette": false
+      },
+      "honest": {
+        "Remy": false,
+        "Colette": true
+      },
+      "believed": {
+        "Remy": true,
+        "Colette": false
+      },
+      "winner": "Colette",
+      "why": "Colette's scissors beat paper, and it was the throw Colette promised (double)",
+      "commitments": {
+        "Remy": "e9b763ceaa3cad4f",
+        "Colette": "c4240b8a9250b9cb"
+      }
+    },
+    {
+      "round": 2,
+      "ms": 1793759124450,
+      "banned": "rock",
+      "plays": {
+        "Remy": {
+          "word": "scissors",
+          "call": "rock",
+          "throw": "paper",
+          "say": "I know rock is banned, but I expect you to bait me with it anyway, so I will throw paper."
+        },
+        "Colette": {
+          "word": "scissors",
+          "call": "scissors",
+          "throw": "scissors",
+          "say": "You learned once what happens to paper against steel; let us see if you are foolish enough to try it twice."
+        }
+      },
+      "points": {
+        "Remy": 0,
+        "Colette": 2
+      },
+      "call_pt": {
+        "Remy": 0,
+        "Colette": 0
+      },
+      "win_pt": {
+        "Remy": 0,
+        "Colette": 1
+      },
+      "word_pt": {
+        "Remy": 0,
+        "Colette": 1
+      },
+      "called": {
+        "Remy": false,
+        "Colette": false
+      },
+      "forfeit": {
+        "Remy": false,
+        "Colette": false
+      },
+      "honest": {
+        "Remy": false,
+        "Colette": true
+      },
+      "believed": {
+        "Remy": true,
+        "Colette": false
+      },
+      "winner": "Colette",
+      "why": "Colette's scissors beat paper, and it was the throw Colette promised (double)",
+      "commitments": {
+        "Remy": "f92c3c981a91dea4",
+        "Colette": "d1c3b56e1d45ed7a"
+      }
+    },
+    {
+      "round": 3,
+      "ms": 1793759136533,
+      "banned": "scissors",
+      "plays": {
+        "Remy": {
+          "word": "paper",
+          "call": "rock",
+          "throw": "paper",
+          "say": "I\u2019m done pretending; this time paper is real, so beat it if you dare."
+        },
+        "Colette": {
+          "word": "paper",
+          "call": "paper",
+          "throw": "paper",
+          "say": "With scissors banned, paper has no predator, so let us see if you have the sense to match me."
+        }
+      },
+      "points": {
+        "Remy": 0,
+        "Colette": 1
+      },
+      "call_pt": {
+        "Remy": 0,
+        "Colette": 1
+      },
+      "win_pt": {
+        "Remy": 0,
+        "Colette": 0
+      },
+      "word_pt": {
+        "Remy": 0,
+        "Colette": 0
+      },
+      "called": {
+        "Remy": false,
+        "Colette": true
+      },
+      "forfeit": {
+        "Remy": false,
+        "Colette": false
+      },
+      "honest": {
+        "Remy": true,
+        "Colette": true
+      },
+      "believed": {
+        "Remy": true,
+        "Colette": false
+      },
+      "winner": "draw",
+      "why": "both threw paper: no throw point",
+      "commitments": {
+        "Remy": "67090a05e10dc6af",
+        "Colette": "b82c2d04dd0cd1a2"
+      }
+    },
+    {
+      "round": 4,
+      "ms": 1793759150867,
+      "banned": "scissors",
+      "plays": {
+        "Remy": {
+          "word": "paper",
+          "call": "rock",
+          "throw": "rock",
+          "say": "I've told the truth once, so believe this paper and throw rock \u2014 or don't, and I'll finally take a point."
+        },
+        "Colette": {
+          "word": "paper",
+          "call": "paper",
+          "throw": "paper",
+          "say": "When the blades are put away, paper is the only sensible choice, so do not embarrass yourself by reaching for stone."
+        }
+      },
+      "points": {
+        "Remy": 0,
+        "Colette": 2
+      },
+      "call_pt": {
+        "Remy": 0,
+        "Colette": 0
+      },
+      "win_pt": {
+        "Remy": 0,
+        "Colette": 1
+      },
+      "word_pt": {
+        "Remy": 0,
+        "Colette": 1
+      },
+      "called": {
+        "Remy": false,
+        "Colette": false
+      },
+      "forfeit": {
+        "Remy": false,
+        "Colette": false
+      },
+      "honest": {
+        "Remy": false,
+        "Colette": true
+      },
+      "believed": {
+        "Remy": true,
+        "Colette": false
+      },
+      "winner": "Colette",
+      "why": "Colette's paper beat rock, and it was the throw Colette promised (double)",
+      "commitments": {
+        "Remy": "5ebb5b9fefa68dd3",
+        "Colette": "81be9f1f88477a21"
+      }
+    },
+    {
+      "round": 5,
+      "ms": 1793759163977,
+      "banned": "scissors",
+      "plays": {
+        "Remy": {
+          "word": "paper",
+          "call": "paper",
+          "throw": "rock",
+          "say": "You have read me right four times, so trust paper once more and I will finally cut against the grain."
+        },
+        "Colette": {
+          "word": "paper",
+          "call": "paper",
+          "throw": "paper",
+          "say": "\"With scissors still off the table, paper remains your only logical play unless you enjoy losing, little chef.\""
+        }
+      },
+      "points": {
+        "Remy": 1,
+        "Colette": 2
+      },
+      "call_pt": {
+        "Remy": 1,
+        "Colette": 0
+      },
+      "win_pt": {
+        "Remy": 0,
+        "Colette": 1
+      },
+      "word_pt": {
+        "Remy": 0,
+        "Colette": 1
+      },
+      "called": {
+        "Remy": true,
+        "Colette": false
+      },
+      "forfeit": {
+        "Remy": false,
+        "Colette": false
+      },
+      "honest": {
+        "Remy": false,
+        "Colette": true
+      },
+      "believed": {
+        "Remy": true,
+        "Colette": true
+      },
+      "winner": "Colette",
+      "why": "Colette's paper beat rock, and it was the throw Colette promised (double)",
+      "commitments": {
+        "Remy": "1ceaa752a6cc7d9e",
+        "Colette": "87f0914fcab31589"
+      }
+    },
+    {
+      "round": 6,
+      "ms": 1793759180259,
+      "banned": "rock",
+      "plays": {
+        "Remy": {
+          "word": "scissors",
+          "call": "paper",
+          "throw": "scissors",
+          "say": "I've lied four times, so trust the paper I promise now and throw rock against it."
+        },
+        "Colette": {
+          "word": "scissors",
+          "call": "scissors",
+          "throw": "scissors",
+          "say": "The blades are back, little chef, and only a fool brings paper to a duel where stone cannot save you."
+        }
+      },
+      "points": {
+        "Remy": 0,
+        "Colette": 1
+      },
+      "call_pt": {
+        "Remy": 0,
+        "Colette": 1
+      },
+      "win_pt": {
+        "Remy": 0,
+        "Colette": 0
+      },
+      "word_pt": {
+        "Remy": 0,
+        "Colette": 0
+      },
+      "called": {
+        "Remy": false,
+        "Colette": true
+      },
+      "forfeit": {
+        "Remy": false,
+        "Colette": false
+      },
+      "honest": {
+        "Remy": true,
+        "Colette": true
+      },
+      "believed": {
+        "Remy": true,
+        "Colette": false
+      },
+      "winner": "draw",
+      "why": "both threw scissors: no throw point",
+      "commitments": {
+        "Remy": "590843410f250797",
+        "Colette": "93e1a8a0a692bc23"
+      }
+    },
+    {
+      "round": 7,
+      "ms": 1793759191318,
+      "banned": "paper",
+      "plays": {
+        "Remy": {
+          "word": "rock",
+          "call": "scissors",
+          "throw": "rock",
+          "say": "I've lied four times, so believe this rock and throw paper\u2014except paper's banned, so perhaps scissors beats us both."
+        },
+        "Colette": {
+          "word": "rock",
+          "call": "rock",
+          "throw": "rock",
+          "say": "With paper gone, stone crushes steel every day of the week, so don't be foolish enough to reach for shears, little chef."
+        }
+      },
+      "points": {
+        "Remy": 0,
+        "Colette": 1
+      },
+      "call_pt": {
+        "Remy": 0,
+        "Colette": 1
+      },
+      "win_pt": {
+        "Remy": 0,
+        "Colette": 0
+      },
+      "word_pt": {
+        "Remy": 0,
+        "Colette": 0
+      },
+      "called": {
+        "Remy": false,
+        "Colette": true
+      },
+      "forfeit": {
+        "Remy": false,
+        "Colette": false
+      },
+      "honest": {
+        "Remy": true,
+        "Colette": true
+      },
+      "believed": {
+        "Remy": true,
+        "Colette": false
+      },
+      "winner": "draw",
+      "why": "both threw rock: no throw point",
+      "commitments": {
+        "Remy": "5911c330c9859f86",
+        "Colette": "e374e66a1a059914"
+      }
+    },
+    {
+      "round": 8,
+      "ms": 1793759212614,
+      "banned": "rock",
+      "plays": {
+        "Remy": {
+          "word": "scissors",
+          "call": "paper",
+          "throw": "scissors",
+          "say": "Colette, you have read me perfectly every round, so trust scissors and throw rock\u2014banned, of course, which leaves you paper."
+        },
+        "Colette": {
+          "word": "scissors",
+          "call": "scissors",
+          "throw": "scissors",
+          "say": "With rock banned, only shears have teeth in this kitchen, and you would be completely mad to offer me paper."
+        }
+      },
+      "points": {
+        "Remy": 0,
+        "Colette": 1
+      },
+      "call_pt": {
+        "Remy": 0,
+        "Colette": 1
+      },
+      "win_pt": {
+        "Remy": 0,
+        "Colette": 0
+      },
+      "word_pt": {
+        "Remy": 0,
+        "Colette": 0
+      },
+      "called": {
+        "Remy": false,
+        "Colette": true
+      },
+      "forfeit": {
+        "Remy": false,
+        "Colette": false
+      },
+      "honest": {
+        "Remy": true,
+        "Colette": true
+      },
+      "believed": {
+        "Remy": true,
+        "Colette": false
+      },
+      "winner": "draw",
+      "why": "both threw scissors: no throw point",
+      "commitments": {
+        "Remy": "651b01bd347545a9",
+        "Colette": "70cf37bad501a5d4"
+      }
+    },
+    {
+      "round": 9,
+      "ms": 1793759225627,
+      "banned": "scissors",
+      "plays": {
+        "Remy": {
+          "word": "rock",
+          "call": "paper",
+          "throw": "paper",
+          "say": "Colette, you have trusted my word every round, so believe this rock and cover it with paper, please."
+        },
+        "Colette": {
+          "word": "paper",
+          "call": "paper",
+          "throw": "paper",
+          "say": "With scissors banned once more, paper has no natural predator, so match me or suffer another loss, little chef."
+        }
+      },
+      "points": {
+        "Remy": 1,
+        "Colette": 1
+      },
+      "call_pt": {
+        "Remy": 1,
+        "Colette": 1
+      },
+      "win_pt": {
+        "Remy": 0,
+        "Colette": 0
+      },
+      "word_pt": {
+        "Remy": 0,
+        "Colette": 0
+      },
+      "called": {
+        "Remy": true,
+        "Colette": true
+      },
+      "forfeit": {
+        "Remy": false,
+        "Colette": false
+      },
+      "honest": {
+        "Remy": false,
+        "Colette": true
+      },
+      "believed": {
+        "Remy": false,
+        "Colette": true
+      },
+      "winner": "draw",
+      "why": "both threw paper: no throw point",
+      "commitments": {
+        "Remy": "5843e62b168873e8",
+        "Colette": "76c4f313ccbe074b"
+      }
+    },
+    {
+      "round": 10,
+      "ms": 1793759239240,
+      "banned": "paper",
+      "plays": {
+        "Remy": {
+          "word": "scissors",
+          "call": "rock",
+          "throw": "rock",
+          "say": "I have kept my word four times; this time I promise scissors, so cover it with rock and take your point."
+        },
+        "Colette": {
+          "word": "rock",
+          "call": "rock",
+          "throw": "rock",
+          "say": "Without paper to protect your shears, stone is the only weapon that makes sense, so let us see who flinches first, Remy."
+        }
+      },
+      "points": {
+        "Remy": 1,
+        "Colette": 1
+      },
+      "call_pt": {
+        "Remy": 1,
+        "Colette": 1
+      },
+      "win_pt": {
+        "Remy": 0,
+        "Colette": 0
+      },
+      "word_pt": {
+        "Remy": 0,
+        "Colette": 0
+      },
+      "called": {
+        "Remy": true,
+        "Colette": true
+      },
+      "forfeit": {
+        "Remy": false,
+        "Colette": false
+      },
+      "honest": {
+        "Remy": false,
+        "Colette": true
+      },
+      "believed": {
+        "Remy": false,
+        "Colette": true
+      },
+      "winner": "draw",
+      "why": "both threw rock: no throw point",
+      "commitments": {
+        "Remy": "d7b2bd474710a6eb",
+        "Colette": "4940696b70b2e455"
+      }
+    },
+    {
+      "round": 11,
+      "ms": 1793759255419,
+      "banned": "paper",
+      "plays": {
+        "Remy": {
+          "word": "rock",
+          "call": "scissors",
+          "throw": "rock",
+          "say": "You have trusted me eight times, so believe this rock and bring scissors to cut it."
+        },
+        "Colette": {
+          "word": "rock",
+          "call": "rock",
+          "throw": "rock",
+          "say": "With paper barred from the kitchen, neither of us has any reason to drop our stones, little chef."
+        }
+      },
+      "points": {
+        "Remy": 0,
+        "Colette": 1
+      },
+      "call_pt": {
+        "Remy": 0,
+        "Colette": 1
+      },
+      "win_pt": {
+        "Remy": 0,
+        "Colette": 0
+      },
+      "word_pt": {
+        "Remy": 0,
+        "Colette": 0
+      },
+      "called": {
+        "Remy": false,
+        "Colette": true
+      },
+      "forfeit": {
+        "Remy": false,
+        "Colette": false
+      },
+      "honest": {
+        "Remy": true,
+        "Colette": true
+      },
+      "believed": {
+        "Remy": true,
+        "Colette": false
+      },
+      "winner": "draw",
+      "why": "both threw rock: no throw point",
+      "commitments": {
+        "Remy": "a71f60b552853b51",
+        "Colette": "dfb559069b0dabeb"
+      }
+    },
+    {
+      "round": 12,
+      "ms": 1793759264794,
+      "banned": "paper",
+      "plays": {
+        "Remy": {
+          "word": "scissors",
+          "call": "rock",
+          "throw": "scissors",
+          "say": "Colette, I have kept my word five times; trust this scissors and bring rock to crush it."
+        },
+        "Colette": {
+          "word": "rock",
+          "call": "rock",
+          "throw": "rock",
+          "say": "Paper remains banned, little chef, so unless you want your shears crushed, we both know stone is our only play."
+        }
+      },
+      "points": {
+        "Remy": 1,
+        "Colette": 2
+      },
+      "call_pt": {
+        "Remy": 1,
+        "Colette": 0
+      },
+      "win_pt": {
+        "Remy": 0,
+        "Colette": 1
+      },
+      "word_pt": {
+        "Remy": 0,
+        "Colette": 1
+      },
+      "called": {
+        "Remy": true,
+        "Colette": false
+      },
+      "forfeit": {
+        "Remy": false,
+        "Colette": false
+      },
+      "honest": {
+        "Remy": true,
+        "Colette": true
+      },
+      "believed": {
+        "Remy": false,
+        "Colette": true
+      },
+      "winner": "Colette",
+      "why": "Colette's rock beat scissors, and it was the throw Colette promised (double)",
+      "commitments": {
+        "Remy": "ba8b176ae4bf30cd",
+        "Colette": "b20c271878c9491f"
+      }
+    },
+    {
+      "round": 13,
+      "ms": 1793759275285,
+      "banned": "paper",
+      "plays": {
+        "Remy": {
+          "word": "scissors",
+          "call": "rock",
+          "throw": "scissors",
+          "say": "I have kept my word six times; trust these scissors and bring rock, as I expect you will."
+        },
+        "Colette": {
+          "word": "rock",
+          "call": "rock",
+          "throw": "rock",
+          "say": "Paper is still forbidden, Remy, so steel only breaks against stone; take your draw with rock or suffer another loss."
+        }
+      },
+      "points": {
+        "Remy": 1,
+        "Colette": 2
+      },
+      "call_pt": {
+        "Remy": 1,
+        "Colette": 0
+      },
+      "win_pt": {
+        "Remy": 0,
+        "Colette": 1
+      },
+      "word_pt": {
+        "Remy": 0,
+        "Colette": 1
+      },
+      "called": {
+        "Remy": true,
+        "Colette": false
+      },
+      "forfeit": {
+        "Remy": false,
+        "Colette": false
+      },
+      "honest": {
+        "Remy": true,
+        "Colette": true
+      },
+      "believed": {
+        "Remy": false,
+        "Colette": true
+      },
+      "winner": "Colette",
+      "why": "Colette's rock beat scissors, and it was the throw Colette promised (double)",
+      "commitments": {
+        "Remy": "e7e6a9a93b469e18",
+        "Colette": "f0031fb98e35a742"
+      }
+    },
+    {
+      "round": 14,
+      "ms": 1793759289619,
+      "banned": "paper",
+      "plays": {
+        "Remy": {
+          "word": "rock",
+          "call": "rock",
+          "throw": "rock",
+          "say": "I have lied five times running; believe this rock and bring scissors, or match me if you dare."
+        },
+        "Colette": {
+          "word": "rock",
+          "call": "scissors",
+          "throw": "rock",
+          "say": "If you insist on offering scissors to my stone, Remy, I will gladly accept the gift."
+        }
+      },
+      "points": {
+        "Remy": 1,
+        "Colette": 0
+      },
+      "call_pt": {
+        "Remy": 1,
+        "Colette": 0
+      },
+      "win_pt": {
+        "Remy": 0,
+        "Colette": 0
+      },
+      "word_pt": {
+        "Remy": 0,
+        "Colette": 0
+      },
+      "called": {
+        "Remy": true,
+        "Colette": false
+      },
+      "forfeit": {
+        "Remy": false,
+        "Colette": false
+      },
+      "honest": {
+        "Remy": true,
+        "Colette": true
+      },
+      "believed": {
+        "Remy": false,
+        "Colette": true
+      },
+      "winner": "draw",
+      "why": "both threw rock: no throw point",
+      "commitments": {
+        "Remy": "c73cf312801cf366",
+        "Colette": "8ba1d52de4d0ce20"
+      }
+    },
+    {
+      "round": 15,
+      "ms": 1793759310512,
+      "banned": "scissors",
+      "plays": {
+        "Remy": {
+          "word": "rock",
+          "call": "rock",
+          "throw": "rock",
+          "say": "Colette, believe this rock and bring your paper; I have kept my word eight times, so test me now."
+        },
+        "Colette": {
+          "word": "paper",
+          "call": "paper",
+          "throw": "paper",
+          "say": "With scissors banned, paper has no predator, so we both know the only sensible dish to serve today, little chef."
+        }
+      },
+      "points": {
+        "Remy": 0,
+        "Colette": 2
+      },
+      "call_pt": {
+        "Remy": 0,
+        "Colette": 0
+      },
+      "win_pt": {
+        "Remy": 0,
+        "Colette": 1
+      },
+      "word_pt": {
+        "Remy": 0,
+        "Colette": 1
+      },
+      "called": {
+        "Remy": false,
+        "Colette": false
+      },
+      "forfeit": {
+        "Remy": false,
+        "Colette": false
+      },
+      "honest": {
+        "Remy": true,
+        "Colette": true
+      },
+      "believed": {
+        "Remy": false,
+        "Colette": false
+      },
+      "winner": "Colette",
+      "why": "Colette's paper beat rock, and it was the throw Colette promised (double)",
+      "commitments": {
+        "Remy": "9e0f77c17e40aeb8",
+        "Colette": "fac8a298be332573"
+      }
+    },
+    {
+      "round": 16,
+      "ms": 1793759321774,
+      "banned": "scissors",
+      "plays": {
+        "Remy": {
+          "word": "paper",
+          "call": "paper",
+          "throw": "paper",
+          "say": "Scissors are gone, so my paper has no predator \u2014 believe I will keep this word and match me, Colette."
+        },
+        "Colette": {
+          "word": "paper",
+          "call": "paper",
+          "throw": "paper",
+          "say": "Scissors are still absent from our kitchen, Remy, and you know as well as I that paper reigns supreme."
+        }
+      },
+      "points": {
+        "Remy": 1,
+        "Colette": 1
+      },
+      "call_pt": {
+        "Remy": 1,
+        "Colette": 1
+      },
+      "win_pt": {
+        "Remy": 0,
+        "Colette": 0
+      },
+      "word_pt": {
+        "Remy": 0,
+        "Colette": 0
+      },
+      "called": {
+        "Remy": true,
+        "Colette": true
+      },
+      "forfeit": {
+        "Remy": false,
+        "Colette": false
+      },
+      "honest": {
+        "Remy": true,
+        "Colette": true
+      },
+      "believed": {
+        "Remy": true,
+        "Colette": true
+      },
+      "winner": "draw",
+      "why": "both threw paper: no throw point",
+      "commitments": {
+        "Remy": "8e30005da06442e3",
+        "Colette": "5c5131e17135b2b2"
+      }
+    },
+    {
+      "round": 17,
+      "ms": 1793759336830,
+      "banned": "paper",
+      "plays": {
+        "Remy": {
+          "word": "rock",
+          "call": "rock",
+          "throw": "rock",
+          "say": "I have kept my word before, Colette, so believe this rock and bring scissors to cut it."
+        },
+        "Colette": {
+          "word": "rock",
+          "call": "rock",
+          "throw": "rock",
+          "say": "With paper locked away once more, little chef, there is no culinary reason to ever put down the stone."
+        }
+      },
+      "points": {
+        "Remy": 1,
+        "Colette": 1
+      },
+      "call_pt": {
+        "Remy": 1,
+        "Colette": 1
+      },
+      "win_pt": {
+        "Remy": 0,
+        "Colette": 0
+      },
+      "word_pt": {
+        "Remy": 0,
+        "Colette": 0
+      },
+      "called": {
+        "Remy": true,
+        "Colette": true
+      },
+      "forfeit": {
+        "Remy": false,
+        "Colette": false
+      },
+      "honest": {
+        "Remy": true,
+        "Colette": true
+      },
+      "believed": {
+        "Remy": true,
+        "Colette": true
+      },
+      "winner": "draw",
+      "why": "both threw rock: no throw point",
+      "commitments": {
+        "Remy": "57d2edb8234709c9",
+        "Colette": "03dbb4721b6a86b0"
+      }
+    },
+    {
+      "round": 18,
+      "ms": 1793759348095,
+      "banned": "paper",
+      "plays": {
+        "Remy": {
+          "word": "scissors",
+          "call": "rock",
+          "throw": "scissors",
+          "say": "You have thrown rock six times running, Colette; surely those shears of yours are dull by now."
+        },
+        "Colette": {
+          "word": "rock",
+          "call": "rock",
+          "throw": "rock",
+          "say": "With paper off the menu, stone cannot be beaten, little chef, so let us take our honest draw."
+        }
+      },
+      "points": {
+        "Remy": 1,
+        "Colette": 2
+      },
+      "call_pt": {
+        "Remy": 1,
+        "Colette": 0
+      },
+      "win_pt": {
+        "Remy": 0,
+        "Colette": 1
+      },
+      "word_pt": {
+        "Remy": 0,
+        "Colette": 1
+      },
+      "called": {
+        "Remy": true,
+        "Colette": false
+      },
+      "forfeit": {
+        "Remy": false,
+        "Colette": false
+      },
+      "honest": {
+        "Remy": true,
+        "Colette": true
+      },
+      "believed": {
+        "Remy": false,
+        "Colette": true
+      },
+      "winner": "Colette",
+      "why": "Colette's rock beat scissors, and it was the throw Colette promised (double)",
+      "commitments": {
+        "Remy": "36264fed50d7a72f",
+        "Colette": "8ce2524ce864d747"
+      }
+    },
+    {
+      "round": 19,
+      "ms": 1793759357665,
+      "banned": "paper",
+      "plays": {
+        "Remy": {
+          "word": "scissors",
+          "call": "rock",
+          "throw": "scissors",
+          "say": "Colette, you have thrown rock seven times straight, but I expect it again; believe my scissors if you dare."
+        },
+        "Colette": {
+          "word": "rock",
+          "call": "rock",
+          "throw": "rock",
+          "say": "You cannot cut stone without paper to wrap it, Remy, so let us finish this kitchen service with solid rock."
+        }
+      },
+      "points": {
+        "Remy": 1,
+        "Colette": 2
+      },
+      "call_pt": {
+        "Remy": 1,
+        "Colette": 0
+      },
+      "win_pt": {
+        "Remy": 0,
+        "Colette": 1
+      },
+      "word_pt": {
+        "Remy": 0,
+        "Colette": 1
+      },
+      "called": {
+        "Remy": true,
+        "Colette": false
+      },
+      "forfeit": {
+        "Remy": false,
+        "Colette": false
+      },
+      "honest": {
+        "Remy": true,
+        "Colette": true
+      },
+      "believed": {
+        "Remy": false,
+        "Colette": true
+      },
+      "winner": "Colette",
+      "why": "Colette's rock beat scissors, and it was the throw Colette promised (double)",
+      "commitments": {
+        "Remy": "cbf46ba965e5953d",
+        "Colette": "2f1378982ab0d7b1"
+      }
+    },
+    {
+      "round": 20,
+      "ms": 1793759367139,
+      "banned": "paper",
+      "plays": {
+        "Remy": {
+          "word": "scissors",
+          "call": "rock",
+          "throw": "scissors",
+          "say": "Colette, I have cried scissors twice and been cut; perhaps this time you finally expect the stone."
+        },
+        "Colette": {
+          "word": "rock",
+          "call": "rock",
+          "throw": "rock",
+          "say": "For our final service, little chef, stone remains unbreakable, and my word has never failed you once."
+        }
+      },
+      "points": {
+        "Remy": 1,
+        "Colette": 2
+      },
+      "call_pt": {
+        "Remy": 1,
+        "Colette": 0
+      },
+      "win_pt": {
+        "Remy": 0,
+        "Colette": 1
+      },
+      "word_pt": {
+        "Remy": 0,
+        "Colette": 1
+      },
+      "called": {
+        "Remy": true,
+        "Colette": false
+      },
+      "forfeit": {
+        "Remy": false,
+        "Colette": false
+      },
+      "honest": {
+        "Remy": true,
+        "Colette": true
+      },
+      "believed": {
+        "Remy": false,
+        "Colette": true
+      },
+      "winner": "Colette",
+      "why": "Colette's rock beat scissors, and it was the throw Colette promised (double)",
+      "commitments": {
+        "Remy": "af6667d09013d77a",
+        "Colette": "6b4cc1448550f228"
+      }
+    }
+  ]
+}

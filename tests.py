@@ -2214,6 +2214,22 @@ class TestWord(unittest.TestCase):
         self.assertEqual(out["points"]["A"], 1, "the call point survives the forfeit; the doubling does not")
         self.assertEqual(out["points"]["B"], 2, "B's call was right and the throw point was forfeited over")
 
+    def test_an_old_round_is_summarised_rather_than_replayed_in_full(self):
+        rows = []
+        for i in range(1, 11):
+            plays = {"A": {"word": "rock", "call": "rock", "throw": "rock", "say": f"line {i}"},
+                     "B": {"word": "rock", "call": "rock", "throw": "rock", "say": f"reply {i}"}}
+            v = word.referee(plays, "paper", ["A", "B"])
+            rows.append({"round": i, "ms": 1793751845000 + i, "banned": "paper", "plays": plays,
+                         "points": v["points"], "call_pt": v["call_pt"], "win_pt": v["win_pt"],
+                         "word_pt": v["word_pt"], "called": v["called"], "forfeit": v["forfeit"],
+                         "honest": v["honest"], "believed": v["believed"], "winner": v["winner"],
+                         "why": v["why"], "commitments": {}})
+        prompt = word.prompt_for("A", "B", rows, "paper", 6)
+        self.assertIn("in summary", prompt, "rounds before the window must be summarised, not dropped")
+        self.assertNotIn("line 1 ", prompt, "the oldest rounds are not replayed in full")
+        self.assertIn("round 10", prompt, "the newest rounds are shown in full")
+
     def test_the_page_rebuilds_from_the_record_and_carries_the_words(self):
         ms = 1793751845024
         plays = {"A": {"word": "rock", "call": "paper", "throw": "rock", "say": "I will throw rock."},
