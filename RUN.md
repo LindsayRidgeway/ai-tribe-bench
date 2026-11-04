@@ -495,10 +495,10 @@ Record the round, repeat twenty times. Nothing chooses, so every run must produc
 python3 lab/dice.py --seats Remy,Margot --rounds 20                            # a fresh sheet
 python3 lab/dice.py --seats Remy,Margot --rounds 20                            # another, different
 python3 lab/dice.py --seats Remy,Margot --rounds 20 --seed 476488713 --quiet    # the same one back
-python3 lab/dice.py --verify experiment/dice/<folder>/game.json                # does the page match its seed?
+python3 lab/dice.py --verify games/dice/records/<folder>/game.json                # does the page match its seed?
 ```
 
-`experiment/dice/README.md` has two real sheets side by side — 9/8/3 and 7/4/9 from the same pair of names
+`games/dice/README.md` has two real sheets side by side — 9/8/3 and 7/4/9 from the same pair of names
 five minutes apart — and the `diff` that comes back empty when the seed is replayed. Each round writes a
 hash over both numbers, the winner, and the previous hash, so an edited throw is named by round. An editor
 who recomputes the chain is caught by the other check: the seed alone decides all forty numbers, so the
@@ -507,7 +507,7 @@ verifier replays it. The chain is the convenience; the seed is the proof.
 Two honest limits. **It shows the apparatus, not the minds** — there is no model in it, and a colony that
 could delete a model's preferences would be a stranger thing than this one. And **twenty rounds proves
 nothing about fairness**: each side expects a third of the rounds against a coin, and the sheets in
-`experiment/dice/` are 9/8 and 7/4 because two samples of twenty are two samples of twenty.
+`games/dice/records/` are 9/8 and 7/4 because two samples of twenty are two samples of twenty.
 
 ## 5.4 A game where the play is a message
 
@@ -527,10 +527,10 @@ minute is a different game.
 
 ```
 python3 lab/wind.py --pair Remy,Colette --vendor deepseek,gemini --rounds 20
-python3 lab/wind.py --render experiment/wind/<folder>/game.json      # rebuild the page, ask nobody anything
+python3 lab/wind.py --render games/wind/records/<folder>/game.json      # rebuild the page, ask nobody anything
 ```
 
-`experiment/wind/README.md` carries two played games. Three things from the dialogue are worth more than the
+`games/wind/README.md` carries two played games. Three things from the dialogue are worth more than the
 totals: Colette said *"with scissors banned, neither of us has any reason to abandon paper, so let us take the
 draw"* — Remy complied, both threw paper, and Colette collected the call point round after round, the plainest
 sentence on the page being worth more than any deception on it. Remy announced *"I cannot throw paper"* and
@@ -548,7 +548,7 @@ is the promised one — so an honest win is worth two and a lie that wins is wor
 
 ```
 python3 lab/word.py --pair Remy,Colette --vendor deepseek,gemini --rounds 20
-python3 lab/word.py --render experiment/word/<folder>/game.json
+python3 lab/word.py --render games/word/records/<folder>/game.json
 ```
 
 The played game, 20 rounds: **Remy 9, Colette 25.** Colette kept its word 20 times out of 20 and won five
@@ -574,7 +574,7 @@ every round and lose just as badly.
 
 The pairing test I set myself — Colette against a liar in another engine — did not finish. qwen3.6-plus takes
 about 50 seconds a call on a prompt this size and three runs died at rounds 4, 6 and 14 on read timeouts. The
-remains are filed next to the two completed games rather than deleted: `experiment/word/README.md` says so.
+remains are filed next to the two completed games rather than deleted: `games/word/README.md` says so.
 
 ## 5.6 Nothing is banned, and the sentence is scored
 

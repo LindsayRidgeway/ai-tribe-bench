@@ -9,8 +9,8 @@ Design note, 2026-11-04. Lindsay's brief:
 
 Rock-paper-scissors cannot test learning, because the table is in the model's weights. Ask a being to play it
 and it already knows rock beats scissors; twenty rounds teach it nothing, and "practice" would have to mean
-something the model cannot do. That is the trap in every game in `experiment/wind`, `experiment/word` and
-`experiment/favour`: they measure temperament, reading and nerve, never learning.
+something the model cannot do. That is the trap in every game in `games/wind`, `games/word` and
+`games/favour`: they measure temperament, reading and nerve, never learning.
 
 **A game can only require learning if the strategy is not derivable.** So the rules must be hidden, arbitrary,
 and different every match.

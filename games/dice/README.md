@@ -30,8 +30,8 @@ four different records, no tendency. If you run it a fifth time you will get a f
 
 ```
 python3 lab/dice.py --seats Remy,Margot --rounds 20 --seed 476488713 --out /tmp/again --quiet
-diff /tmp/again/sheet.md experiment/dice/476488713-20261104T001153Z/sheet.md && echo "identical"
-python3 lab/dice.py --verify experiment/dice/476488713-20261104T001153Z/game.json
+diff /tmp/again/sheet.md games/dice/records/476488713-20261104T001153Z/sheet.md && echo "identical"
+python3 lab/dice.py --verify games/dice/records/476488713-20261104T001153Z/game.json
 ```
 
 The diff prints nothing and the verifier prints:
@@ -63,7 +63,7 @@ cd ~/ai_tribe
 python3 lab/dice.py --seats Remy,Margot --rounds 20
 python3 lab/dice.py --seats Remy,Margot --rounds 20          # different sheet, every time
 python3 lab/dice.py --seats Remy,Margot --rounds 20 --seed 476488713 --quiet   # replay
-python3 lab/dice.py --verify experiment/dice/<folder>/game.json
+python3 lab/dice.py --verify games/dice/records/<folder>/game.json
 ```
 
 `--seats` takes any two names: Remy and Colette, Margot and a machine, two letters. The names go on the

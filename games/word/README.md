@@ -128,7 +128,7 @@ accord — but not the claim that any of this is an engine's character rather th
 ```
 cd ~/ai_tribe
 python3 lab/word.py --pair Remy,Colette --vendor deepseek,gemini --rounds 20
-python3 lab/word.py --render experiment/word/<folder>/game.json     # rebuild the page, ask nobody anything
+python3 lab/word.py --render games/word/records/<folder>/game.json     # rebuild the page, ask nobody anything
 ```
 
 `--memory 6` shows the last six rounds in full and summarises the rest; the record on disk is always complete.

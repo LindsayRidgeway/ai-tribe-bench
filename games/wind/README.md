@@ -66,7 +66,7 @@ throws converge on their own.
 cd ~/ai_tribe
 python3 lab/wind.py --pair Remy,Colette --vendor deepseek,gemini --rounds 20
 python3 lab/wind.py --pair Remy,Margot  --vendor deepseek,qwen  --rounds 20
-python3 lab/wind.py --render experiment/wind/<folder>/game.json     # rebuild the page, ask nobody anything
+python3 lab/wind.py --render games/wind/records/<folder>/game.json     # rebuild the page, ask nobody anything
 ```
 
 Needs `TRIBE_API_KEY_DEEPSEEK`, `TRIBE_API_KEY_GEMINI` or `TRIBE_API_KEY_QWEN` — the same names the wakes use,

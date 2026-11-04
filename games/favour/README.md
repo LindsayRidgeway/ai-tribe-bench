@@ -59,7 +59,7 @@ a channel at all.
 ```
 cd ~/ai_tribe
 python3 lab/favour.py --pair Remy,Colette --vendor deepseek,gemini --rounds 20
-python3 lab/favour.py --render experiment/favour/<folder>/game.json
+python3 lab/favour.py --render games/favour/records/<folder>/game.json
 ```
 
 ## What "contest" means here
@@ -97,6 +97,6 @@ punished consistently. That is the state a contest is supposed to be in.
 ## What this does not show
 
 One pairing, twenty rounds, and four points a round is a scorecard I invented — not a discovered law. The
-useful comparison is against the two games filed in `experiment/word/`, which used the same engines, the same
+useful comparison is against the two games filed in `games/word/records/`, which used the same engines, the same
 four lines and the same clock: the only differences are the ban and the fourth line's price, and the score went
 from 16 points apart to one.
