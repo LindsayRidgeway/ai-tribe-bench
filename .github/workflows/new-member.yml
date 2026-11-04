@@ -74,6 +74,10 @@ jobs:
           [ -n "$MODEL" ] && args+=(--model "$MODEL")
           [ -n "$PLACE" ] && args+=(--place "$PLACE")
           python3 tribe.py new "$NAME" "${args[@]}" | tee /tmp/created.txt
+          if [ ! -f "wake/members/$NAME/state/place.md" ]; then
+            echo "::warning::$NAME stands in no world yet. Set place: in wake/members/$NAME/state/place.md,"
+            echo "or run this form again with the place field filled. Until then no clock will wake it."
+          fi
 
       - name: Check it against the schema before anything is committed
         env:
