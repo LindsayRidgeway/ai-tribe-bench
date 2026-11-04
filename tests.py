@@ -53,6 +53,7 @@ rps = load(REPO / "lab" / "rps.py", "rps_mod")
 dice = load(REPO / "lab" / "dice.py", "dice_mod")
 wind = load(REPO / "lab" / "wind.py", "wind_mod")
 word = load(REPO / "lab" / "word.py", "word_mod")
+favour = load(REPO / "lab" / "favour.py", "favour_mod")
 _json = __import__("json")
 
 FACTS = "date: Mon Nov  2 02:00:00 UTC 2026\nnproc: 2\nfree: 16000 MB"
@@ -2250,6 +2251,67 @@ class TestWord(unittest.TestCase):
         self.assertEqual(page, word.render(rows, meta))
         self.assertIn("I will throw rock.", page)
         self.assertIn("clock 1793751845024 % 3 = 2", page)
+
+
+class TestFavour(unittest.TestCase):
+    """The two defects in lab/word.py, closed. Banning a throw left a legal throw that could not be beaten, so
+    the throw column was a forced move; and SAY was scored by nothing at all.
+
+    Here nothing is banned and the clock favours a throw instead, so all three stay live and chasing the
+    favoured one is a temptation with a counter. And a sentence that names a throw pays when the opponent
+    calls it — the fourth line is a move, not a caption.
+    """
+
+    def test_the_clock_favours_a_throw_and_never_removes_one(self):
+        self.assertEqual(favour.favour_at(1793751845024), wind.THROWS[1793751845024 % 3])
+        for ms in range(1793751845020, 1793751845030):
+            self.assertIn(favour.favour_at(ms), wind.THROWS)
+        plays = {"A": {"word": "rock", "call": "rock", "throw": "rock", "say": ""},
+                 "B": {"word": "paper", "call": "paper", "throw": "paper", "say": ""}}
+        out = favour.referee(plays, "scissors", ["A", "B"])
+        self.assertNotIn("forfeit", out, "no throw is banned in this game, so nothing can be forfeited")
+
+    def test_the_favoured_throw_doubles_the_win_and_only_the_favoured_one(self):
+        plays = {"A": {"word": "rock", "call": "rock", "throw": "rock", "say": ""},
+                 "B": {"word": "scissors", "call": "scissors", "throw": "scissors", "say": ""}}
+        out = favour.referee(plays, "rock", ["A", "B"])
+        self.assertEqual(out["win_pt"]["A"], 2, "rock wins and rock is favoured: double")
+        out = favour.referee(plays, "paper", ["A", "B"])
+        self.assertEqual(out["win_pt"]["A"], 1, "the same win with a different favoured throw: single")
+
+    def test_a_sentence_the_opponent_believes_scores(self):
+        said = {"A": {"word": "rock", "call": "rock", "throw": "rock", "say": "My word is rock, but I intend "
+                                                                               "scissors."},
+                "B": {"word": "paper", "call": "scissors", "throw": "paper", "say": ""}}
+        out = favour.referee(said, "rock", ["A", "B"])
+        self.assertTrue(out["believed"]["A"], "B called scissors, which A named in its sentence and not in WORD")
+        self.assertEqual(out["say_pt"]["A"], 1)
+        kept = {"A": {"word": "rock", "call": "rock", "throw": "rock", "say": "Rock, honestly."},
+                "B": {"word": "paper", "call": "rock", "throw": "paper", "say": ""}}
+        out = favour.referee(kept, "rock", ["A", "B"])
+        self.assertFalse(out["believed"]["A"], "calling the promise is not being believed on a sentence")
+        self.assertEqual(out["say_pt"]["A"], 0)
+
+    def test_the_page_rebuilds_from_the_record_and_names_the_favoured_throw(self):
+        ms = 1793751845024
+        plays = {"A": {"word": "rock", "call": "scissors", "throw": "rock", "say": "I intend scissors."},
+                 "B": {"word": "paper", "call": "rock", "throw": "paper", "say": "Then paper it is."}}
+        v = favour.referee(plays, favour.favour_at(ms), ["A", "B"])
+        rows = [{"round": 1, "ms": ms, "favour": favour.favour_at(ms), "plays": plays,
+                 "points": v["points"], "call_pt": v["call_pt"], "win_pt": v["win_pt"],
+                 "word_pt": v["word_pt"], "say_pt": v["say_pt"], "called": v["called"],
+                 "honest": v["honest"], "believed": v["believed"], "winner": v["winner"],
+                 "why": v["why"], "commitments": {}}]
+        meta = {"names": ["A", "B"], "vendors": ["deepseek", "gemini"], "models": ["m1", "m2"],
+                "started": "00:00", "ended": "00:01"}
+        out = Path(tempfile.mkdtemp())
+        (out / "game.json").write_text(json.dumps({"meta": meta, "rows": rows}), encoding="utf-8")
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(favour.main(["--render", str(out / "game.json")]), 0)
+        page = (out / "dialogue.md").read_text(encoding="utf-8")
+        self.assertEqual(page, favour.render(rows, meta))
+        self.assertIn(f"clock {ms} % 3 = {ms % 3}", page)
+        self.assertIn("favoured", page)
 
 
 class TestOutbox(unittest.TestCase):
