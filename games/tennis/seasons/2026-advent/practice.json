@@ -1,0 +1,49 @@
+{
+ "members": {
+  "Ada": {
+   "balls": 4,
+   "sessions": [
+    {
+     "clock": 1793834935765,
+     "control": 0.204,
+     "in_play": 2,
+     "longest": 3,
+     "mean_rally": 2.0,
+     "mode": "rally",
+     "of": 4,
+     "reach": 0.37,
+     "shots": 4,
+     "surface": "clay",
+     "when": "2026-11-04T23:29:47Z",
+     "with": [
+      "Bo"
+     ]
+    }
+   ]
+  },
+  "Bo": {
+   "balls": 2,
+   "sessions": [
+    {
+     "clock": 1793834935765,
+     "control": 0.192,
+     "in_play": 1,
+     "longest": 3,
+     "mean_rally": 2.0,
+     "mode": "rally",
+     "of": 2,
+     "reach": 0.36,
+     "shots": 2,
+     "surface": "clay",
+     "when": "2026-11-04T23:29:47Z",
+     "with": [
+      "Ada"
+     ]
+    }
+   ]
+  }
+ },
+ "note": "",
+ "opened": "2026-11-04T23:29:47Z",
+ "season": "2026-advent"
+}
