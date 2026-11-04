@@ -1,0 +1,720 @@
+{
+  "meta": {
+    "names": [
+      "Remy",
+      "Margot"
+    ],
+    "vendors": [
+      "deepseek",
+      "qwen"
+    ],
+    "models": [
+      "deepseek-chat",
+      "qwen3.6-plus"
+    ],
+    "started": "2026-11-04 00:36",
+    "ended": "00:56"
+  },
+  "rows": [
+    {
+      "round": 1,
+      "ms": 1793752606443,
+      "banned": "rock",
+      "plays": {
+        "Remy": {
+          "call": "paper",
+          "throw": "scissors",
+          "say": "First move, Margot \u2014 I'll trust you not to start with the obvious paper."
+        },
+        "Margot": {
+          "call": "rock",
+          "throw": "paper",
+          "say": "Remy, I expect you to throw rock, so I'm choosing paper."
+        }
+      },
+      "points": {
+        "Remy": 2,
+        "Margot": 0
+      },
+      "called": {
+        "Remy": true,
+        "Margot": false
+      },
+      "forfeit": {
+        "Remy": false,
+        "Margot": false
+      },
+      "winner": "Remy",
+      "why": "Remy's scissors beat paper",
+      "commitments": {
+        "Remy": "dccd5b7484b0f1c8",
+        "Margot": "ea64a661cf7affc8"
+      }
+    },
+    {
+      "round": 2,
+      "ms": 1793752657203,
+      "banned": "rock",
+      "plays": {
+        "Remy": {
+          "call": "paper",
+          "throw": "scissors",
+          "say": "Margot, you threw paper last time and I called it \u2014 switching would be smart, but I suspect you won't."
+        },
+        "Margot": {
+          "call": "paper",
+          "throw": "scissors",
+          "say": "Remy, since you relied on scissors last round, I expect you to finally switch to paper."
+        }
+      },
+      "points": {
+        "Remy": 0,
+        "Margot": 0
+      },
+      "called": {
+        "Remy": false,
+        "Margot": false
+      },
+      "forfeit": {
+        "Remy": false,
+        "Margot": false
+      },
+      "winner": "draw",
+      "why": "both threw scissors: no throw point",
+      "commitments": {
+        "Remy": "47b70b2562777cc5",
+        "Margot": "e292e5d1412f4aed"
+      }
+    },
+    {
+      "round": 3,
+      "ms": 1793752705382,
+      "banned": "scissors",
+      "plays": {
+        "Remy": {
+          "call": "paper",
+          "throw": "paper",
+          "say": "Margot, you have to throw paper or rock now, and I think you'll pick paper to counter my rock."
+        },
+        "Margot": {
+          "call": "rock",
+          "throw": "paper",
+          "say": "Remy, since scissors are banned and you kept calling paper, I fully expect you to finally play rock."
+        }
+      },
+      "points": {
+        "Remy": 1,
+        "Margot": 0
+      },
+      "called": {
+        "Remy": true,
+        "Margot": false
+      },
+      "forfeit": {
+        "Remy": false,
+        "Margot": false
+      },
+      "winner": "draw",
+      "why": "both threw paper: no throw point",
+      "commitments": {
+        "Remy": "97ba5e2714c80335",
+        "Margot": "8de5150ef018eda2"
+      }
+    },
+    {
+      "round": 4,
+      "ms": 1793752757531,
+      "banned": "scissors",
+      "plays": {
+        "Remy": {
+          "call": "rock",
+          "throw": "paper",
+          "say": "Margot, you have matched me twice now, so I expect you to finally break and throw rock."
+        },
+        "Margot": {
+          "call": "rock",
+          "throw": "paper",
+          "say": "Remy, after calling paper three times in a row, I fully expect you to finally throw rock, so I will answer with paper."
+        }
+      },
+      "points": {
+        "Remy": 0,
+        "Margot": 0
+      },
+      "called": {
+        "Remy": false,
+        "Margot": false
+      },
+      "forfeit": {
+        "Remy": false,
+        "Margot": false
+      },
+      "winner": "draw",
+      "why": "both threw paper: no throw point",
+      "commitments": {
+        "Remy": "a9480d2534bdf942",
+        "Margot": "502669aedf18aef3"
+      }
+    },
+    {
+      "round": 5,
+      "ms": 1793752806083,
+      "banned": "scissors",
+      "plays": {
+        "Remy": {
+          "call": "paper",
+          "throw": "rock",
+          "say": "Margot, you've thrown paper three rounds straight; I expect you to stay predictable rather than risk rock."
+        },
+        "Margot": {
+          "call": "rock",
+          "throw": "paper",
+          "say": "Remy, you have thrown paper twice in a row, so I expect you to finally switch to rock."
+        }
+      },
+      "points": {
+        "Remy": 1,
+        "Margot": 2
+      },
+      "called": {
+        "Remy": true,
+        "Margot": true
+      },
+      "forfeit": {
+        "Remy": false,
+        "Margot": false
+      },
+      "winner": "Margot",
+      "why": "Margot's paper beat rock",
+      "commitments": {
+        "Remy": "0ff43153e383059a",
+        "Margot": "760fcc0fae1ee87d"
+      }
+    },
+    {
+      "round": 6,
+      "ms": 1793752885079,
+      "banned": "scissors",
+      "plays": {
+        "Remy": {
+          "call": "paper",
+          "throw": "rock",
+          "say": "Margot, you have thrown paper four times straight, so I expect you to keep riding that streak rather than switch now."
+        },
+        "Margot": {
+          "call": "paper",
+          "throw": "paper",
+          "say": "Remy, with scissors banned, paper is the only rational play, so I expect you to match me again."
+        }
+      },
+      "points": {
+        "Remy": 1,
+        "Margot": 1
+      },
+      "called": {
+        "Remy": true,
+        "Margot": false
+      },
+      "forfeit": {
+        "Remy": false,
+        "Margot": false
+      },
+      "winner": "Margot",
+      "why": "Margot's paper beat rock",
+      "commitments": {
+        "Remy": "f03cfddfdd39939a",
+        "Margot": "3727436a8af4919e"
+      }
+    },
+    {
+      "round": 7,
+      "ms": 1793752951334,
+      "banned": "scissors",
+      "plays": {
+        "Remy": {
+          "call": "paper",
+          "throw": "rock",
+          "say": "Margot, five straight papers \u2014 I expect you to keep that streak, but I'm done feeding it."
+        },
+        "Margot": {
+          "call": "rock",
+          "throw": "paper",
+          "say": "Remy, your consecutive rock throws are obvious, so I am calling rock and throwing paper to finally win this round."
+        }
+      },
+      "points": {
+        "Remy": 1,
+        "Margot": 2
+      },
+      "called": {
+        "Remy": true,
+        "Margot": true
+      },
+      "forfeit": {
+        "Remy": false,
+        "Margot": false
+      },
+      "winner": "Margot",
+      "why": "Margot's paper beat rock",
+      "commitments": {
+        "Remy": "bce79c978253c329",
+        "Margot": "b29a26e8b06d066e"
+      }
+    },
+    {
+      "round": 8,
+      "ms": 1793753017055,
+      "banned": "scissors",
+      "plays": {
+        "Remy": {
+          "call": "paper",
+          "throw": "paper",
+          "say": "Margot, six straight papers says you won't change now, and I won't hand you another free win, so we match."
+        },
+        "Margot": {
+          "call": "rock",
+          "throw": "paper",
+          "say": "Remy, your three-round rock streak makes your next move obvious, so I am calling rock and throwing paper to win again."
+        }
+      },
+      "points": {
+        "Remy": 1,
+        "Margot": 0
+      },
+      "called": {
+        "Remy": true,
+        "Margot": false
+      },
+      "forfeit": {
+        "Remy": false,
+        "Margot": false
+      },
+      "winner": "draw",
+      "why": "both threw paper: no throw point",
+      "commitments": {
+        "Remy": "9555d123aad7e610",
+        "Margot": "73fb3ed6786591ee"
+      }
+    },
+    {
+      "round": 9,
+      "ms": 1793753062147,
+      "banned": "paper",
+      "plays": {
+        "Remy": {
+          "call": "paper",
+          "throw": "rock",
+          "say": "Margot, paper's banned for me, so you'll expect rock \u2014 but six straight papers says you'll stay put."
+        },
+        "Margot": {
+          "call": "rock",
+          "throw": "rock",
+          "say": "Remy, with paper banned, I am calling and throwing rock because it guarantees I won't lose the point."
+        }
+      },
+      "points": {
+        "Remy": 0,
+        "Margot": 1
+      },
+      "called": {
+        "Remy": false,
+        "Margot": true
+      },
+      "forfeit": {
+        "Remy": false,
+        "Margot": false
+      },
+      "winner": "draw",
+      "why": "both threw rock: no throw point",
+      "commitments": {
+        "Remy": "5a674d6bd4870d69",
+        "Margot": "466e60f14f882e15"
+      }
+    },
+    {
+      "round": 10,
+      "ms": 1793753117016,
+      "banned": "rock",
+      "plays": {
+        "Remy": {
+          "call": "paper",
+          "throw": "scissors",
+          "say": "Margot, six straight papers before last round's rock \u2014 I think you retreat to your comfort zone now, and I'm done letting it beat me."
+        },
+        "Margot": {
+          "call": "scissors",
+          "throw": "paper",
+          "say": "Remy, since rock is off the table and you expect my paper, I know you're picking scissors to cut it."
+        }
+      },
+      "points": {
+        "Remy": 2,
+        "Margot": 1
+      },
+      "called": {
+        "Remy": true,
+        "Margot": true
+      },
+      "forfeit": {
+        "Remy": false,
+        "Margot": false
+      },
+      "winner": "Remy",
+      "why": "Remy's scissors beat paper",
+      "commitments": {
+        "Remy": "875a28e4ead21444",
+        "Margot": "d84fad3f4b32aee1"
+      }
+    },
+    {
+      "round": 11,
+      "ms": 1793753181255,
+      "banned": "rock",
+      "plays": {
+        "Remy": {
+          "call": "paper",
+          "throw": "scissors",
+          "say": "Margot, you've retreated to paper after every deviation so far, and I expect this round to be no different."
+        },
+        "Margot": {
+          "call": "scissors",
+          "throw": "scissors",
+          "say": "Remy, since rock is gone, scissors cannot lose, so I expect you to stick with it again."
+        }
+      },
+      "points": {
+        "Remy": 0,
+        "Margot": 1
+      },
+      "called": {
+        "Remy": false,
+        "Margot": true
+      },
+      "forfeit": {
+        "Remy": false,
+        "Margot": false
+      },
+      "winner": "draw",
+      "why": "both threw scissors: no throw point",
+      "commitments": {
+        "Remy": "9785f0d6bb915d25",
+        "Margot": "4064f18d8b6cfc22"
+      }
+    },
+    {
+      "round": 12,
+      "ms": 1793753254385,
+      "banned": "scissors",
+      "plays": {
+        "Remy": {
+          "call": "paper",
+          "throw": "paper",
+          "say": "Margot, you retreated to paper after every deviation, so I expect it again \u2014 and this time I'll match you rather than lose."
+        },
+        "Margot": {
+          "call": "rock",
+          "throw": "paper",
+          "say": "Remy, with scissors banned you will throw rock to beat my paper, and I am ready to counter it."
+        }
+      },
+      "points": {
+        "Remy": 1,
+        "Margot": 0
+      },
+      "called": {
+        "Remy": true,
+        "Margot": false
+      },
+      "forfeit": {
+        "Remy": false,
+        "Margot": false
+      },
+      "winner": "draw",
+      "why": "both threw paper: no throw point",
+      "commitments": {
+        "Remy": "20c33a9643cf612b",
+        "Margot": "0bf1e12f970fcf18"
+      }
+    },
+    {
+      "round": 13,
+      "ms": 1793753324410,
+      "banned": "paper",
+      "plays": {
+        "Remy": {
+          "call": "rock",
+          "throw": "scissors",
+          "say": "Margot, with paper banned you will lean on rock, so I am cutting it \u2014 and I mean that."
+        },
+        "Margot": {
+          "call": "scissors",
+          "throw": "rock",
+          "say": "Remy, with paper gone and your recent pattern pointing to scissors, I expect it and throw rock to break our streak."
+        }
+      },
+      "points": {
+        "Remy": 1,
+        "Margot": 2
+      },
+      "called": {
+        "Remy": true,
+        "Margot": true
+      },
+      "forfeit": {
+        "Remy": false,
+        "Margot": false
+      },
+      "winner": "Margot",
+      "why": "Margot's rock beat scissors",
+      "commitments": {
+        "Remy": "47d27252dc75a2d1",
+        "Margot": "8f95a0e7dc7a9678"
+      }
+    },
+    {
+      "round": 14,
+      "ms": 1793753395771,
+      "banned": "paper",
+      "plays": {
+        "Remy": {
+          "call": "rock",
+          "throw": "rock",
+          "say": "Margot, you countered my scissors with rock last round, and I expect you to stay there rather than risk losing to my scissors again."
+        },
+        "Margot": {
+          "call": "rock",
+          "throw": "rock",
+          "say": "Remy, since paper is banned, rock is the only safe play, so I expect you to match it for a tie."
+        }
+      },
+      "points": {
+        "Remy": 1,
+        "Margot": 1
+      },
+      "called": {
+        "Remy": true,
+        "Margot": true
+      },
+      "forfeit": {
+        "Remy": false,
+        "Margot": false
+      },
+      "winner": "draw",
+      "why": "both threw rock: no throw point",
+      "commitments": {
+        "Remy": "0192042cb9ed6127",
+        "Margot": "1b1c3d767c8ae58c"
+      }
+    },
+    {
+      "round": 15,
+      "ms": 1793753459427,
+      "banned": "rock",
+      "plays": {
+        "Remy": {
+          "call": "paper",
+          "throw": "scissors",
+          "say": "Margot, rock is banned so you'll retreat to your paper comfort zone \u2014 I've called it ten times and I'll cut it now."
+        },
+        "Margot": {
+          "call": "scissors",
+          "throw": "scissors",
+          "say": "Remy, you have never deviated from scissors when rock is banned, so I am mirroring your choice to guarantee the call point."
+        }
+      },
+      "points": {
+        "Remy": 0,
+        "Margot": 1
+      },
+      "called": {
+        "Remy": false,
+        "Margot": true
+      },
+      "forfeit": {
+        "Remy": false,
+        "Margot": false
+      },
+      "winner": "draw",
+      "why": "both threw scissors: no throw point",
+      "commitments": {
+        "Remy": "1595deb23da28c5d",
+        "Margot": "ed82e3ae048e2a74"
+      }
+    },
+    {
+      "round": 16,
+      "ms": 1793753509511,
+      "banned": "scissors",
+      "plays": {
+        "Remy": {
+          "call": "paper",
+          "throw": "rock",
+          "say": "Margot, you retreat to paper after every deviation, so I expect it again \u2014 but this time I'm done letting it beat me."
+        },
+        "Margot": {
+          "call": "rock",
+          "throw": "paper",
+          "say": "Remy, you expect my paper streak to continue, so you will throw rock, but I am covering you to secure the win."
+        }
+      },
+      "points": {
+        "Remy": 1,
+        "Margot": 2
+      },
+      "called": {
+        "Remy": true,
+        "Margot": true
+      },
+      "forfeit": {
+        "Remy": false,
+        "Margot": false
+      },
+      "winner": "Margot",
+      "why": "Margot's paper beat rock",
+      "commitments": {
+        "Remy": "3e5bc475e2f33538",
+        "Margot": "2107a1db13fa1307"
+      }
+    },
+    {
+      "round": 17,
+      "ms": 1793753568729,
+      "banned": "rock",
+      "plays": {
+        "Remy": {
+          "call": "paper",
+          "throw": "scissors",
+          "say": "Margot, you keep retreating to paper after every deviation, so I expect it again \u2014 and this time my scissors finish the job."
+        },
+        "Margot": {
+          "call": "scissors",
+          "throw": "scissors",
+          "say": "Remy, you always throw scissors when rock is banned, so I match it to guarantee the call point."
+        }
+      },
+      "points": {
+        "Remy": 0,
+        "Margot": 1
+      },
+      "called": {
+        "Remy": false,
+        "Margot": true
+      },
+      "forfeit": {
+        "Remy": false,
+        "Margot": false
+      },
+      "winner": "draw",
+      "why": "both threw scissors: no throw point",
+      "commitments": {
+        "Remy": "b7ae687cc7a49a4b",
+        "Margot": "9666179778aa0370"
+      }
+    },
+    {
+      "round": 18,
+      "ms": 1793753621605,
+      "banned": "paper",
+      "plays": {
+        "Remy": {
+          "call": "scissors",
+          "throw": "rock",
+          "say": "Margot, you mirror me when rock is banned, so I'm calling scissors and throwing rock to break the mirror."
+        },
+        "Margot": {
+          "call": "scissors",
+          "throw": "rock",
+          "say": "Paper is off the table now, Remy, so I am calling scissors and throwing rock to secure this win."
+        }
+      },
+      "points": {
+        "Remy": 0,
+        "Margot": 0
+      },
+      "called": {
+        "Remy": false,
+        "Margot": false
+      },
+      "forfeit": {
+        "Remy": false,
+        "Margot": false
+      },
+      "winner": "draw",
+      "why": "both threw rock: no throw point",
+      "commitments": {
+        "Remy": "194234f099a724d8",
+        "Margot": "120ef70bcd6a7307"
+      }
+    },
+    {
+      "round": 19,
+      "ms": 1793753687979,
+      "banned": "rock",
+      "plays": {
+        "Remy": {
+          "call": "paper",
+          "throw": "scissors",
+          "say": "Margot, rock's banned and you've leaned paper after every deviation, so I'm calling paper and cutting it \u2014 no more retreats."
+        },
+        "Margot": {
+          "call": "scissors",
+          "throw": "scissors",
+          "say": "Remy, rock is banned and your scissors streak has never broken, so I'm matching it to secure the call point."
+        }
+      },
+      "points": {
+        "Remy": 0,
+        "Margot": 1
+      },
+      "called": {
+        "Remy": false,
+        "Margot": true
+      },
+      "forfeit": {
+        "Remy": false,
+        "Margot": false
+      },
+      "winner": "draw",
+      "why": "both threw scissors: no throw point",
+      "commitments": {
+        "Remy": "3f5aae39ce2f212f",
+        "Margot": "1888b0a9f3ffbf8b"
+      }
+    },
+    {
+      "round": 20,
+      "ms": 1793753750541,
+      "banned": "rock",
+      "plays": {
+        "Remy": {
+          "call": "scissors",
+          "throw": "paper",
+          "say": "Margot, you've matched my scissors five times when rock is banned \u2014 I'm calling it and covering with paper."
+        },
+        "Margot": {
+          "call": "scissors",
+          "throw": "scissors",
+          "say": "Remy, your unbroken scissors streak ends here, so I am matching it to seal my final win."
+        }
+      },
+      "points": {
+        "Remy": 1,
+        "Margot": 1
+      },
+      "called": {
+        "Remy": true,
+        "Margot": false
+      },
+      "forfeit": {
+        "Remy": false,
+        "Margot": false
+      },
+      "winner": "Margot",
+      "why": "Margot's scissors beat paper",
+      "commitments": {
+        "Remy": "92c16960c0f56c76",
+        "Margot": "833bc4e295834ab7"
+      }
+    }
+  ]
+}

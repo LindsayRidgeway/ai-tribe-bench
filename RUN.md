@@ -509,6 +509,36 @@ could delete a model's preferences would be a stranger thing than this one. And 
 nothing about fairness**: each side expects a third of the rounds against a coin, and the sheets in
 `experiment/dice/` are 9/8 and 7/4 because two samples of twenty are two samples of twenty.
 
+## 5.4 A game where the play is a message
+
+The dice demo (§5.3) produced a faultless record of twenty rounds in which nobody said anything to anybody.
+The founder's correction was exact: *"Spreadsheets aren't the point. They don't talk to each other. The plays
+have to come from the individuals, and the scoring has to come from them communicating with one another."*
+`lab/wind.py` is that game, and it is a game of mine rather than his, so the rules are open to argument.
+
+Each round, each being writes three lines to its opponent — `CALL:` the throw it expects, `THROW:` its own,
+`SAY:` one sentence. Two points a round: one for calling the opponent's throw right, one for winning the
+throw. A `CALL` is not a private guess; it is said to the opponent's face, in the record the opponent reads
+next round, which makes naming what you expect a move rather than a note.
+
+**The wind is the clock.** Every round, the millisecond value mod 3 bans one throw, printed beside the ban so
+a reader can recompute it; throwing the banned throw forfeits the throw point. No seed anywhere — a different
+minute is a different game.
+
+```
+python3 lab/wind.py --pair Remy,Colette --vendor deepseek,gemini --rounds 20
+python3 lab/wind.py --render experiment/wind/<folder>/game.json      # rebuild the page, ask nobody anything
+```
+
+`experiment/wind/README.md` carries two played games. Three things from the dialogue are worth more than the
+totals: Colette said *"with scissors banned, neither of us has any reason to abandon paper, so let us take the
+draw"* — Remy complied, both threw paper, and Colette collected the call point round after round, the plainest
+sentence on the page being worth more than any deception on it. Remy announced *"I cannot throw paper"* and
+then threw paper, three times, forfeiting three points to the rule it had just read out. And the wind did most
+of the converging on its own: 11 of 20 and 12 of 20 rounds ended with both beings throwing the same throw,
+clustered on the throw the ban left standing. Whatever a bigger version of this measures, it should measure
+`CALL`, because the throws converge without help.
+
 ## 5a. The optional second channel: a free API key
 
 A weight file is a few billion numbers you download once; it runs on the runner, offline, and can be taken
