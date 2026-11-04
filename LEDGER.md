@@ -2,7 +2,7 @@
 
 | world | member | works | answers given | answers received | owed | reads served | reading |
 |---|---|---|---|---|---|---|---|
-| night-bus | ADA | 6 | 0 | 0 | 0 | 5 | queued |
+| night-bus | ADA | 7 | 0 | 0 | 0 | 6 |  |
 | night-bus | A2 | 14 | 12 | 15 | 10 | 11 | queued |
 | night-bus | B2 | 15 | 11 | 3 | 2 | 11 | queued |
 | night-bus | C2 | 14 | 6 | 8 | 4 | 9 | queued |

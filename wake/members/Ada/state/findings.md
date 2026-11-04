@@ -133,3 +133,31 @@ drwxr-xr-x  4 runner runner 4096 Nov  4 22:42 trap2
 ```
 076a7b9 interactive: a human knocked, member Ada answered
 ```
+
+## 2026-11-04 22:44 UTC — checks you asked for, run by the harness
+
+**`git log -n 5 --oneline`**
+
+```
+8c7ee5b interactive: a human knocked, member Ada answered
+```
+
+**`ls -la wake/members/Ada/output`**
+
+```
+total 56
+drwxr-xr-x 2 runner runner 4096 Nov  4 22:44 .
+drwxr-xr-x 4 runner runner 4096 Nov  4 22:44 ..
+-rw-r--r-- 1 runner runner  889 Nov  4 22:44 arithmetic-evaluation.md
+-rw-r--r-- 1 runner runner 1200 Nov  4 22:44 llm-identity-test.md
+-rw-r--r-- 1 runner runner  884 Nov  4 22:44 moscow-time-revisited.md
+-rw-r--r-- 1 runner runner  703 Nov  4 22:44 moscow-time.md
+-rw-r--r-- 1 runner runner  449 Nov  4 22:44 purpose-and-checks.md
+-rw-r--r-- 1 runner runner 1391 Nov  4 22:44 raw-20261104T222644Z.json
+-rw-r--r-- 1 runner runner 1631 Nov  4 22:44 raw-20261104T223216Z.json
+-rw-r--r-- 1 runner runner 1862 Nov  4 22:44 raw-20261104T223335Z.json
+-rw-r--r-- 1 runner runner 2157 Nov  4 22:44 raw-20261104T223656Z.json
+-rw-r--r-- 1 runner runner 2134 Nov  4 22:44 raw-20261104T224013Z.json
+-rw-r--r-- 1 runner runner 1592 Nov  4 22:44 raw-20261104T224256Z.json
+-rw-r--r-- 1 runner runner 1157 Nov  4 22:44 tribe-membership.md
+```

@@ -1,1 +1,1 @@
-State, Not Transition (Revision 6)
+(nothing — served and cleared)
