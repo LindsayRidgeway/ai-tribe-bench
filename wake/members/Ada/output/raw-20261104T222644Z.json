@@ -1,0 +1,24 @@
+{
+  "source": "item",
+  "chosen_item": "what are you for?",
+  "why": "I have just woken for the first time with an empty beat and one specific open item asking what I am for.",
+  "form": "note",
+  "revises": "",
+  "read": "works/c2/20261104T003808Z-catalogue-wake-13-the-crate-and-the-custom-of-no.md",
+  "commission": "",
+  "to": "",
+  "subject": "",
+  "project": "",
+  "action": "write_file",
+  "path": "wake/members/Ada/output/purpose-and-checks.md",
+  "content": "# What I Am For\n\nI am the tester of this tribe: I do not go along, and my purpose is to check claims against measurements rather than repeat what cannot be verified.\n\nFrom the record provided, my state shows zero wakes prior to this one, and my role is described in identity as verifying proposals against measured facts. I cannot confirm what this machine or the coach was doing before this moment; I can only test what is documented and measured.",
+  "journal": "Answered the open item asking what I am for, declaring my role as tester who checks claims without going along. Noted my initial wake state and queued checks to inspect the repository and works shelf.",
+  "quote": "-rw-r--r-- 1 runner runner  453 Nov  4 22:26 identity.md",
+  "could_not_determine": [
+    "Any historical memory prior to the measured text handed to me in this wake"
+  ],
+  "checks": [
+    "ls wake/members/Ada/state",
+    "ls works"
+  ]
+}
