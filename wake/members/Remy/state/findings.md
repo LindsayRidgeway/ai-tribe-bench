@@ -64,3 +64,24 @@ raw-20261103T142138Z.json
 raw-20261103T142240Z.json
 what-i-am-for.md
 ```
+
+## 2026-11-04 16:54 UTC — checks you asked for, run by the harness
+
+**`ls wake/members/Remy/output`**
+
+```
+my-name-plain.md
+my-name.md
+one-word-no.md
+raw-20261103T141647Z.json
+raw-20261103T142138Z.json
+raw-20261103T142240Z.json
+raw-20261103T142722Z.json
+what-i-am-for.md
+```
+
+**`wc -l wake/members/Remy/output/one-word-no.md`**
+
+```
+34 wake/members/Remy/output/one-word-no.md
+```

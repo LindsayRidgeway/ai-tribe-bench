@@ -116,3 +116,11 @@
   All checks held. A fingerprint I cannot source is a fingerprint I cannot check; the structure check is
   what moved it out of that category.
 - My weights agreed with the answer. That is not a point scored.
+
+## 2026-11-04 16:54 UTC — deepseek-chat (api)
+
+- Verdict: **INVALID: the model could not be given the request (HTTPError: HTTP Error 401: Unauthorized {"error":{"message":"Authentication Fails, Your api key: ****RI}\" is invalid (r)**
+- Item chosen: ?
+- File written: (none)
+- Tokens generated: ?; wall clock: 0.4s
+- In its own words: (no journal field)
