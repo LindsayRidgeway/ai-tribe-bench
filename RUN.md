@@ -558,11 +558,23 @@ and Colette read the sentence, ignored the `WORD`, called the throw Remy had jus
 point. In the last round Remy finally believed Colette's word, called it, and Colette threw the paper it had
 promised and took two.
 
-Two findings, neither of which I predicted. **The doubling paid for honesty without punishing lies, and lying
-still lost**: a lie cannot be doubled, so a being that treats its own word as cheap cannot collect the extra
-point no matter how often it wins. And **the `SAY` line was load-bearing against the being that wrote it** —
-narrating a bluff in plain English handed the opponent a better model of the throw than `WORD` did. In §5.4
-the same being's narration was decoration; here it was the losing move.
+Played twice, same engines, different winds: **9–25** and **11–29** to Colette. Forty rounds, and the shape
+of the result is what matters more than the score.
+
+**The wind creates a safe throw, and that is the game.** With one throw banned, exactly one of the two legal
+throws cannot be beaten that round — the one whose counter is banned. Both beings found it. Colette threw it
+40 times out of 40 and won 15 throw points; Remy threw it 25 times out of 40 and won **none**. All fifteen of
+Remy's gambles lost. So a round played well is: take the throw that cannot lose, say that you are taking it,
+and collect the call point when the opponent's nerve fails.
+
+I told the founder an hour earlier that the doubling "paid for honesty". Half right, and the wrong half was
+the interesting one: honesty was not what paid, **discipline** was. Colette's word was true because it always
+threw the safe throw and always said so — one fact, not two. A being could keep a perfect word while gambling
+every round and lose just as badly.
+
+The pairing test I set myself — Colette against a liar in another engine — did not finish. qwen3.6-plus takes
+about 50 seconds a call on a prompt this size and three runs died at rounds 4, 6 and 14 on read timeouts. The
+remains are filed next to the two completed games rather than deleted: `experiment/word/README.md` says so.
 
 ## 5a. The optional second channel: a free API key
 
