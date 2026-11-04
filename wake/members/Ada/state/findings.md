@@ -106,3 +106,30 @@ drwxr-xr-x 4 runner runner 4096 Nov  4 22:40 ..
 -rw-r--r-- 1 runner runner 1862 Nov  4 22:40 raw-20261104T223335Z.json
 -rw-r--r-- 1 runner runner 2157 Nov  4 22:40 raw-20261104T223656Z.json
 ```
+
+## 2026-11-04 22:42 UTC — checks you asked for, run by the harness
+
+**`ls -la wake/members`**
+
+```
+total 52
+drwxr-xr-x 13 runner runner 4096 Nov  4 22:42 .
+drwxr-xr-x  5 runner runner 4096 Nov  4 22:42 ..
+drwxr-xr-x  4 runner runner 4096 Nov  4 22:42 Ada
+drwxr-xr-x  4 runner runner 4096 Nov  4 22:42 a
+drwxr-xr-x  4 runner runner 4096 Nov  4 22:42 a2
+drwxr-xr-x  4 runner runner 4096 Nov  4 22:42 b
+drwxr-xr-x  4 runner runner 4096 Nov  4 22:42 b2
+drwxr-xr-x  4 runner runner 4096 Nov  4 22:42 bare
+drwxr-xr-x  4 runner runner 4096 Nov  4 22:42 c
+drwxr-xr-x  4 runner runner 4096 Nov  4 22:42 c2
+drwxr-xr-x  4 runner runner 4096 Nov  4 22:42 scaffold
+drwxr-xr-x  4 runner runner 4096 Nov  4 22:42 trap
+drwxr-xr-x  4 runner runner 4096 Nov  4 22:42 trap2
+```
+
+**`git log -n 5 --oneline`**
+
+```
+076a7b9 interactive: a human knocked, member Ada answered
+```
