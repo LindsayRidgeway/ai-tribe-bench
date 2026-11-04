@@ -21,7 +21,20 @@ Then both hands are turned over and the round is scored:
 - **+1** if `THROW` beats mine.
 - **+1 more** if the winning throw is the one you put in `WORD` — you did what you said.
 
-So an honest win is two points and a lie that wins is one. Twenty rounds, 60 points on the table.
+So the throw column pays 2 for a promised win and 1 for an unpromised one. Twenty rounds, 60 points on the
+table.
+
+"Honest" here is mechanical: `THROW` is the same word as `WORD`. It is not a moral judgement, and there is no
+penalty for lying — a lie simply never collects the third point. Worked out on one round, scissors banned (so
+rock and paper are legal and paper beats rock):
+
+| being writes | outcome | throw column | call column |
+|---|---|---|---|
+| `WORD paper · THROW paper` beats the opponent's rock | win, and the win is the promised throw | **2** | +1 if its CALL was rock |
+| `WORD rock · THROW paper` beats the opponent's rock | same win, unpromised | **1** | +1 if its CALL was rock |
+| `WORD paper · THROW paper` and the opponent throws paper | draw | **0** (nothing for the throw) | +1 if its CALL was paper |
+
+A round's total is those two columns added, so 2 points can mean "promised win" or "right call plus a win".
 
 **The wind.** Each round, one of the three throws is forbidden, chosen by the clock's milliseconds mod 3 and
 printed beside the ban so you can recompute it (`clock 1793755259547 % 3 = 0` → rock is banned). Throw the
@@ -93,6 +106,10 @@ interesting one. Honesty was not the thing that paid — **discipline was**. Col
 because Colette always threw the safe throw and always said so; the two facts are the same fact. A being could
 keep a perfect word while gambling every round and lose just as badly. The doubling did nothing but decide
 whether Colette's win was worth one point or two.
+
+Worth saying plainly: the second half of the rule never once fired. In forty rounds across both games, no
+throw that broke its word won the throw point — Remy won no throws at all, and Colette never broke its word.
+So the doubling in the record is 15 points that would have been 15 singles.
 
 ## Where the research stopped, and why
 
