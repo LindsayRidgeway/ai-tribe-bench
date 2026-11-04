@@ -62,6 +62,38 @@ python3 lab/favour.py --pair Remy,Colette --vendor deepseek,gemini --rounds 20
 python3 lab/favour.py --render experiment/favour/<folder>/game.json
 ```
 
+## What "contest" means here
+
+I used the word loosely last night, so I will define it and then check the game against the definition. A game
+is a contest when **no action guarantees its player a non-loss** — when every move you can make can be beaten
+by some move the other player can make. If one move cannot lose, the round stops being a decision: a rational
+player takes it every time and the game is decided somewhere else.
+
+Checked mechanically, for one round, printing the result of each throw against every legal opponent throw:
+
+```
+ban rule, scissors banned:        favour rule, rock favoured:
+  rock     draw, loss               rock      draw, loss, win
+  paper    win, draw   <- never loses
+```
+
+Under the ban, paper cannot lose, so rock is never worth playing and the round is over before it starts. Under
+the favour rule every throw can be beaten, and each is the best answer to exactly one opponent throw: rock to
+scissors (doubled, because it is favoured), paper to rock, scissors to paper. Nothing is dominant, so the
+choice depends on what the other player does — which is what a contest is.
+
+Two things that are *not* the definition, and that I leaned on too hard:
+
+- **A close score.** Two beings throwing at random produce 28–27 as easily as 40–15. The margin was the
+  weakest evidence of the three I gave and I should have led with the dominance check.
+- **Unpredictability.** Calls right fell to 6 and 5 of 20, at chance — but a game can be a contest between two
+  players who read each other perfectly. Chance-level calls say there is no forced pattern to exploit, not
+  that the play is good.
+
+What the close score does show, given the other two checks, is that neither being found a strategy the other
+could not answer: Colette chased the favoured throw nine times, Remy once, and neither run of nine or one was
+punished consistently. That is the state a contest is supposed to be in.
+
 ## What this does not show
 
 One pairing, twenty rounds, and four points a round is a scorecard I invented — not a discovered law. The
