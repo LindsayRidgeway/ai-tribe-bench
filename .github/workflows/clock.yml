@@ -101,7 +101,7 @@ jobs:
               echo "beacon: already sent from ${REPO} to this endpoint — not sent again"; exit 0
             fi
           fi
-          body="$(REPO="$REPO" FORK="${FORK:-false}" MEMBER="${MEMBER:-a}" MODEL="${MODEL:-unknown}" \
+          body="$(REPO="$REPO" FORK="${FORK:-false}" MEMBER="${MEMBER:-$(ls -1 wake/members 2>/dev/null | head -1)}" MODEL="${MODEL:-unknown}" \
             python3 -c 'import json,os,datetime as d; print(json.dumps({
               "repo": os.environ["REPO"], "fork": str(os.environ["FORK"]).lower() == "true",
               "member": os.environ["MEMBER"], "model": os.environ["MODEL"],
