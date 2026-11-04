@@ -77,6 +77,7 @@ def main(argv=None) -> int:
     ap.add_argument("--check", action="store_true")
     a = ap.parse_args(argv)
     fresh = json.loads(render())["members"]
+    names = [m["name"] for m in fresh]
     if a.check:
         if not OUT.is_file():
             print(f"{OUT.name} is missing: run python3 lab/members.py --write")
@@ -90,7 +91,7 @@ def main(argv=None) -> int:
         print(f"members.json matches the shelf ({len(fresh)} member(s))")
         return 0
     OUT.write_text(render(), encoding="utf-8")
-    print(f"wrote {OUT.name}: {', '.join(m['name'] for m in fresh) or 'no members'}")
+    print(f"wrote {OUT.name}: {', '.join(names) or 'no members'}")
     return 0
 
 

@@ -3091,21 +3091,22 @@ class TestWorkflows(unittest.TestCase):
 
     WF = REPO / ".github" / "workflows"
 
-    def test_the_member_drop_list_is_the_members_on_disk(self):
-        text = (self.WF / "interactive.yml").read_text(encoding="utf-8")
-        self.assertIn("type: choice", text, "a text box is not a drop list; the phone form needs a select")
-        block = text.split("type: choice", 1)[1].split("default:", 1)[0]
-        listed = [l.strip().lstrip("- ").strip() for l in block.splitlines()
-                  if l.strip().startswith("- ")]
-        # Compared against the PUBLISHED list, not the directory: the bench's directory holds ten fixtures
-        # the bench is right to have, and members.json is the file the drop list on a phone is built from.
-        mod = load(REPO / "lab" / "members.py", "members_mod_wf")
-        published = [m["name"] for m in mod.collect()]
-        published = json.loads((REPO / "members.json").read_text(encoding="utf-8"))["members"]
-        on_disk = [m["name"] for m in published]
-        self.assertEqual(sorted(listed), sorted(on_disk),
-                         "the drop list and the shelf disagree — add or remove the member in both places")
-        self.assertTrue(listed, "an empty drop list is what the founder saw on his phone")
+    def test_no_workflow_carries_a_list_of_member_names(self):
+        """The Run-workflow form used to offer a `type: choice` drop list of member names. Two things were wrong
+        with it, and only the first was obvious.
+
+        It was stale the first time anybody added a member. And it could not be repaired by the workflow that
+        adds one: GITHUB_TOKEN may not write a workflow file — "refusing to allow a GitHub App to create or
+        update workflow `.github/workflows/interactive.yml` without `workflows` permission" — so the list of
+        members inside a workflow is a list only a person with a terminal can keep true, which is the wrong
+        list for a document whose reader has no terminal. The generated list is `members.json`; the form takes
+        a name, and the answer path reads the name out of the question itself."""
+        published = {m["name"] for m in json.loads((REPO / "members.json").read_text(encoding="utf-8"))["members"]}
+        for f in sorted(self.WF.glob("*.yml")):
+            for line in f.read_text(encoding="utf-8").splitlines():
+                item = line.strip()
+                if item.startswith("- ") and item.lstrip("- ").strip() in published:
+                    self.fail(f"{f.name} hardcodes the member {item!r} in a list; members.json is the list")
 
     def test_no_workflow_falls_back_to_a_member_that_does_not_exist(self):
         """`${MEMBER:-b}` reads as "b if nothing was chosen", and b is nothing in a colony. A stranger's first
@@ -3155,6 +3156,55 @@ class TestWorkflows(unittest.TestCase):
                       "a static page cannot comment, so opening an issue must be enough")
         self.assertIn("github.event.issue.body", text)
         self.assertIn("/tmp/named.txt", text, "the name in the body must choose the member who answers")
+
+    def test_a_browser_can_add_a_member(self):
+        """The founder's outline asks a stranger with a browser to build a tribe. `tribe.py new` is a command.
+        So the form is the command: a dispatch workflow with the three things a member needs, and the list
+        republished afterwards so nobody has to remember the second step."""
+        f = self.WF / "new-member.yml"
+        self.assertTrue(f.is_file(), "a person with no terminal has no other way to add a member")
+        text = f.read_text(encoding="utf-8")
+        self.assertIn("workflow_dispatch:", text)
+        self.assertIn("python3 tribe.py new", text, "the form must run the tool, not re-implement it")
+        self.assertIn("lab/members.py --write", text,
+                      "a new member that is not republished is a member the drop list cannot offer")
+        for needed in ("name:", "seat:", "engine:"):
+            self.assertIn(needed, text)
+        self.assertNotIn(".github/workflows", text,
+                         "a workflow that edits a workflow file cannot push it: GITHUB_TOKEN has no such "
+                         "permission, so the member list must not live in one")
+
+    def test_a_browser_can_play_a_session(self):
+        """Same problem for the activity: the sheet's last section asks the reader to start a season, and until
+        now that meant a terminal. The engine's own flags are the form: a season name, two participants and
+        how many rallies."""
+        f = self.WF / "season.yml"
+        self.assertTrue(f.is_file(), "the activity section of the sheet needs a way to run it")
+        text = f.read_text(encoding="utf-8")
+        self.assertIn("--rally", text)
+        self.assertIn("--season", text, "a session without a season file teaches nobody anything")
+        self.assertIn("--report", text, "the season must be able to say what it holds")
+        self.assertNotIn("--vendor", text,
+                         "the engine of each participant is in its own voice.md; a form should not ask again")
+        self.assertNotIn("--practice", text,
+                         "the balls already hit are in the season file; a second source is how a count drifts")
+
+    def test_the_instruction_sheet_names_buttons_that_exist(self):
+        """The sheet a stranger reads is the one document with no compiler. Every workflow it tells you to tap,
+        every secret name it tells you to set, and every path it tells you to look in has to be there — checked
+        here rather than by the stranger, who has no way to tell a missing button from his own mistake."""
+        build = (REPO / "BUILD.md").read_text(encoding="utf-8")
+        for wf in ("new-member", "season"):
+            self.assertIn(wf, build, f"BUILD.md tells the reader to run {wf}")
+            self.assertTrue((self.WF / f"{wf}.yml").is_file(), f"there is no {wf} workflow to run")
+        self.assertIn("TRIBE_API_KEY_GEMINI", build,
+                      "the key name in the sheet must be the name the harness looks for")
+        self.assertIn("@tribe", build, "the sheet's hello step is the issue path, and it must use its syntax")
+        for path in ("wake/members", "games/tennis/seasons", "practice.json", "USER-MANUAL.md"):
+            self.assertIn(path, build)
+        self.assertTrue((REPO / "USER-MANUAL.md").is_file(), "the sheet's last line points at the manual")
+        self.assertIn("Use this template", build,
+                      "a reader with no terminal starts by copying the repository, not by cloning it")
 
     def test_a_comment_that_names_no_member_is_answered_by_the_first_on_the_shelf(self):
         text = (self.WF / "interactive.yml").read_text(encoding="utf-8")

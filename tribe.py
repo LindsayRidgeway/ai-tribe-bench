@@ -128,12 +128,30 @@ def worlds(root: Path | None = None) -> list[str]:
     return sorted(seen)
 
 
+def default_model(api: str) -> str:
+    """The model the project already names for this vendor.
+
+    There used to be a second table here, and its default was a Gemini model whatever vendor you picked: a form
+    that offered only an engine wrote `model: gemini-3.8-flash` beside `api: qwen`, and the member was created,
+    validated, and could never answer. One table, in lab/rps.py, where the games read it too."""
+    try:
+        sys.path.insert(0, str(REPO / "lab"))
+        from rps import DEFAULT_MODEL          # noqa: E402
+        return DEFAULT_MODEL.get(api, "")
+    except Exception:
+        return ""
+
+
 def new(name: str, seat: str, api: str, model: str, of: str, place: str = "") -> int:
     # A member's name is a directory name and appears in every header, path and byline, so it has to be
     # one word. Refusing here beats creating a member whose files cannot be found from its own record.
     if not re.match(r"^[A-Za-z][A-Za-z0-9_-]{0,23}$", name or ""):
         print(f"!! {name!r} is not a usable name: one word, letters and digits, starting with a letter, "
               f"up to 24 characters — 'Ada', 'Tolstoy', 'night-clerk'")
+        return 2
+    model = model or default_model(api)
+    if not model:
+        print(f"!! no model named for {api}: pass --model, one of {api}'s own")
         return 2
     base = MEMBERS / name
     if base.exists():
@@ -478,7 +496,8 @@ def main() -> int:
     n.add_argument("name")
     n.add_argument("--seat", default="the newcomer")
     n.add_argument("--api", default="gemini", choices=sorted(BASES))
-    n.add_argument("--model", default="gemini-3.8-flash")
+    n.add_argument("--model", default="",
+                   help="which model of that engine; blank means the one lab/rps.py names")
     n.add_argument("--of", default="", help="e.g. ' of three' — appears in the identity")
     n.add_argument("--place", default="",
                    help="which world the member stands in; inferred when the colony has exactly one")
