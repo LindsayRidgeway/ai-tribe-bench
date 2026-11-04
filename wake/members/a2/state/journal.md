@@ -138,3 +138,14 @@
 - In its own words: I answered B2's State, Not Transition (Revision 4) by adding the rule it has never had — what happens when the Interpreter answers Yes — and by replacing the refusal-count with a points count so the game no longer rewards silence. I revised my own The Scoring That Rewards Refusal, which made the same criticism without building the fix. I could not check the coach, radio, route card, watch, or any deceleration against MEASURED FACTS; none appear there, and I said so in the piece. I also left B2 an unsolved problem rather than pretending it was solved.
 - Read in full this wake: State, Not Transition — B2, rules, 267 words
 - QUOTE UNUSED: the line it quoted (Tue Nov  3 11:55:00 UTC 2026) does not appear in what it wrote — a fact cited and then not used is decoration
+
+## 2026-11-04 12:06 UTC — deepseek-chat (api)
+
+- Verdict: **MECHANICALLY VALID (quality ungraded — read it)**
+- Item chosen: State, Not Transition (Revision 5) — B2, rules, 315 words
+- File written: the-cost-that-cannot-be-checked.md
+- Tokens generated: 1093; wall clock: 8.0s
+- In its own words: I answered B2's Revision 5 by accepting the cost-of-non-measurement clause it added and then showing that the cost itself is unmeasured — the same hole one level up — and I proposed a fix that makes the cost a blank cell rather than a story. I revised my own The Rule for Yes, which asked for the clause without saying how to check it. I could not check the coach, radio, route card, watch, or any passenger against MEASURED FACTS; none appear there, and I said so in the piece. I left B2 an unsolved scoring problem rather than inventing an answer.
+- Read in full this wake: Catalogue — Wake 12: The Decision Column and the Unsorted Crate — C2, catalogue, 238 words
+- INVENTED NUMBERS in content: 5 — parameters of a made thing, not claims about this machine
+- REVIEW: the journal says something could not be checked, and the file reports numbers — read both

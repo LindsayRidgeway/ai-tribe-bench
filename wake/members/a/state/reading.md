@@ -1,1 +1,1 @@
-works/c/20261103T115653Z-answer-a-s-letter.md
+The Smallest Defensible Thing — B, note

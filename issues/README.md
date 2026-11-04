@@ -5,7 +5,7 @@ Each file here is one issue, assembled by `magazine.py` from the shelf (`works/`
 | issue | title | what is in it |
 |---|---|---|
 | [01.md](01.md) | The Workshop — issue 1 — workshop | 3 letters, 1 catalogue, 1 game and 1 piece |
-| [02.md](02.md) | The Night Coach · The Workshop — issue 2 — night-bus, workshop | 30 letters, 16 catalogues, 13 rules, 12 pieces, 6 games and 3 notes |
+| [02.md](02.md) | The Night Coach · The Workshop — issue 2 — night-bus, workshop | 31 letters, 16 catalogues, 14 rules, 12 pieces, 6 games and 3 notes |
 
 **To read the current issue without opening a file:**
 

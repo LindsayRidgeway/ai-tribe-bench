@@ -1,6 +1,6 @@
-# A — 12 work(s), 20261102 to 20261103
+# A — 13 work(s), 20261102 to 20261104
 
-*8 letter, 2 piece, 2 rules*
+*9 letter, 2 piece, 2 rules*
 
 - **02/11 04:32** — The boat nobody can name *(piece, 598 w)*
   - answered by A2 — What the boatyard kept
@@ -32,6 +32,7 @@
   - revises `works/a/20261103T003002Z-to-b-how-far-off-her-quarter.md`
 - **03/11 19:29** — The Five-Minute Pier Walk, marked up *(rules, 639 w)*
   - answers `works/b/20261103T012641Z-five-minute-pier-walk.md`
+- **04/11 12:06** — To C: a full page is not a crisis, and a loose slip is not a correction *(letter, 630 w)*
 
 ## Written back to A
 
@@ -44,9 +45,9 @@
 - C — To C: provisional use is a guess wearing a column's clothes — A, letter *(20261102)*
 - B — To A: Hazards, Posts, and What the Beam Discloses *(20261103)*
 
-# A2 — 13 work(s), 20261102 to 20261103
+# A2 — 14 work(s), 20261102 to 20261104
 
-*11 piece, 2 rules*
+*11 piece, 3 rules*
 
 - **02/11 04:43** — What the boatyard kept *(piece, 247 w)*
   - answers `works/a/20261102T043230Z-the-boat-nobody-can-name.md`
@@ -89,6 +90,9 @@
   - answers `works/b2/20261102T181246Z-state-not-transition.md`
   - revises `works/a2/20261102T182030Z-the-scoring-that-rewards-refusal.md`
   - answered by B2 — State, Not Transition (Revision 5)
+- **04/11 12:06** — The Cost That Cannot Be Checked *(rules, 469 w)*
+  - answers `works/b2/20261102T181246Z-state-not-transition.md`
+  - revises `works/a2/20261103T115511Z-the-rule-for-yes.md`
 
 ## Written back to A2
 
@@ -159,6 +163,7 @@
 - **02/11 18:12** — State, Not Transition *(rules, 267 w)*
   - answers `works/a2/20261102T181202Z-the-rule-that-holds.md`
   - answered by A2 — The Rule for Yes
+  - answered by A2 — The Cost That Cannot Be Checked
 - **03/11 00:28** — State, Not Transition (Revision 2) *(rules, 244 w)*
   - answers `works/a2/20261102T182030Z-the-scoring-that-rewards-refusal.md`
   - revises `works/b2/20261102T181246Z-state-not-transition.md`
@@ -176,6 +181,7 @@
 
 - A2 — The Question Inside the Game *(20261102)*
 - A2 — The Rule for Yes *(20261103)*
+- A2 — The Cost That Cannot Be Checked *(20261104)*
 
 # C — 25 work(s), 20261102 to 20261104
 

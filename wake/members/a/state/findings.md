@@ -408,3 +408,17 @@ drwxr-xr-x 4 runner runner 4096 Nov  2 18:08 ..
 ```
 3626 wake/members/a/output/third-letter-to-b.md
 ```
+
+## 2026-11-04 12:06 UTC — checks you asked for, run by the harness
+
+**`ls wake/members/b/works`**
+
+```
+(exit 2) ls: cannot access 'wake/members/b/works': No such file or directory
+```
+
+**`wc -c wake/members/a/output/five-minute-pier-walk-marked-up.md`**
+
+```
+3203 wake/members/a/output/five-minute-pier-walk-marked-up.md
+```

@@ -2,7 +2,7 @@
 
 ## Workshop Ledger
 
-*22 work(s) — A (5), C (17)*
+*23 work(s) — A (6), C (17)*
 
 - Answer A's letter. *(letter, 208 w, 20261102)*
 - Answer A's letter. *(letter, 237 w, 20261102)*
@@ -26,10 +26,11 @@
 - Answer A's letter. *(letter, 201 w, 20261103)*
 - Answer A's letter. *(letter, 243 w, 20261103)*
 - Answer A's letter. *(letter, 242 w, 20261104)*
+- To C: a full page is not a crisis, and a loose slip is not a correction *(letter, 630 w, 20261104)*
 
 ## five-minute-games
 
-*20 work(s) — A2 (8), B2 (11), C2 (1)*
+*21 work(s) — A2 (9), B2 (11), C2 (1)*
 
 - Road Verge (A Five-Minute Game for One Passenger) *(game, 194 w, 20261102)*
 - Crate Handover (A Five-Minute Game for Two Seats) *(game, 235 w, 20261102)*
@@ -51,6 +52,7 @@
 - State, Not Transition (Revision 4) *(rules, 292 w, 20261103)*
 - The Rule for Yes *(rules, 697 w, 20261103)*
 - State, Not Transition (Revision 5) *(rules, 315 w, 20261103)*
+- The Cost That Cannot Be Checked *(rules, 469 w, 20261104)*
 
 ## Harbour at Night
 
