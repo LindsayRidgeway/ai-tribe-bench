@@ -31,11 +31,18 @@ far they can move to a ball). Incoming pace costs control, because a fast ball g
 from __future__ import annotations
 
 import argparse
+import json
 import math
+import os
 import random
+import re
+import sys
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+
+sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parent))
+from rps import BASES, DEFAULT_MODEL, ask          # noqa: E402  one vendor table, not two
 
 # ---- court, in feet -------------------------------------------------------------------------------
 LENGTH, WIDTH = 78.0, 27.0
@@ -43,7 +50,21 @@ NET_X = LENGTH / 2
 SERVICE_LINE = 21.0                      # from the net, both sides
 NET_CENTRE, NET_POSTS = 3.0, 3.5
 G = 32.17
-DRAG = 0.00055
+MPH = 1.46667                            # mph to feet per second. 0.44704 is mph to metres per second; the
+                                         # first version used it directly and every shot flew at a third of
+                                         # its stated speed. Found 2026-11-04 by asking where 70mph lands.
+# Quadratic drag, a = DRAG * |v_rel| * v_rel. DRAG = 0.5 * rho * Cd * A / m in feet:
+#   0.5 * 0.002377 slugs/ft3 * 0.55 * 0.038 ft2 / 0.00392 slugs = 0.0063 per foot.
+# A tennis ball really does lose about a quarter of its speed crossing the court; at 0.00055 (eleven times
+# too small) it lost almost nothing, which is why the old engine could not tell a serve from a lob.
+DRAG = 0.0063
+BALL_MASS_SLUGS, BALL_AREA_FT2, CD, RHO = 0.00392, 0.038, 0.55, 0.002377
+# Magnus lift, a = LIFT * Cl * |v|^2, with LIFT = 0.5 * rho * A / m = 0.0115 per foot. Cl is the lift
+# coefficient set by the spin: a heavy topspin ball runs Cl about 0.2-0.3 and is pulled down hard, which is
+# the only reason a 70mph forehand at 12 degrees of elevation stays in the court at all. Without this term the
+# first correct-units version sent every rally ball twenty feet past the baseline, and the honest conclusion
+# was not "lower the angles" but "the model is missing the thing that makes tennis tennis".
+LIFT = 0.5 * RHO * BALL_AREA_FT2 / BALL_MASS_SLUGS
 
 SURFACES = {                             # restitution (height) and friction (pace kept)
     "clay":  {"e": 0.78, "f": 0.72, "note": "high bounce, slow"},
@@ -65,40 +86,57 @@ def wind_at(ms: int) -> tuple[str, float]:
 
 
 def wind_vector(direction: str, speed_mph: float) -> tuple[float, float]:
-    """Acceleration on the ball in ft/s², x along the court (N->S is +x), y across (W->E is +y)."""
+    """The air's own velocity in ft/s, x along the court (N->S is +x), y across (W->E is +y).
+
+    Wind is not an extra push added to gravity: it is the air the ball is moving through, so it enters the
+    drag term as a velocity. A headwind raises the relative speed and slows the ball more; a tailwind lowers
+    it; a crosswind bends the flight sideways. The old version added 0.0016*v^2 as a bare acceleration, which
+    at 15mph came to 0.07 ft/s2 — a number that could not be felt, printed on every line as if it could."""
     ang = math.radians(45 * COMPASS.index(direction))
-    ms = speed_mph * 0.44704
-    return (0.0016 * ms * ms * math.cos(ang), 0.0016 * ms * ms * math.sin(ang))
+    v = speed_mph * MPH
+    return (v * math.cos(ang), v * math.sin(ang))
 
 
 # ---- the ball -------------------------------------------------------------------------------------
-def flight(p0, v0, wind, surface, net_check=True):
+def flight(p0, v0, wind, surface, net_check=True, cl=0.0):
     """Integrate one shot. Returns where it crossed the net, where it first landed, and the ball at that
-    moment. No closed form: drag makes it a numeric problem, and doing it numerically is the honest way."""
+    moment. No closed form: drag makes it a numeric problem, and doing it numerically is the honest way.
+
+    Wind is the air's velocity, so drag acts on the ball's velocity *relative to the air*.
+    `cl` is the lift coefficient from the spin: positive is topspin and pulls the ball down, negative is
+    slice and holds it up. The lift is applied on the vertical axis rather than truly perpendicular to the
+    flight; for a ball that is broadly travelling forward that is a good approximation, and for a lob it is
+    not — stated here rather than left for a reader to find."""
     x, y, z = p0
     vx, vy, vz = v0
-    dt, t = 0.002, 0.0
+    wx, wy = wind
+    dt, t = 0.001, 0.0
     net = None
     while t < 6.0:
-        speed = math.sqrt(vx * vx + vy * vy + vz * vz)
-        ax = -DRAG * speed * vx + wind[0]
-        ay = -DRAG * speed * vy + wind[1]
-        az = -DRAG * speed * vz - G
+        rx, ry, rz = vx - wx, vy - wy, vz
+        rel = math.sqrt(rx * rx + ry * ry + rz * rz)
+        speed2 = vx * vx + vy * vy + vz * vz
+        ax = -DRAG * rel * rx
+        ay = -DRAG * rel * ry
+        az = -DRAG * rel * rz - G - LIFT * cl * speed2
         nx, ny, nz = x + vx * dt, y + vy * dt, z + vz * dt
         nvx, nvy, nvz = vx + ax * dt, vy + ay * dt, vz + az * dt
         if net_check and net is None and (x - NET_X) * (nx - NET_X) <= 0 and x != nx:
             f = (NET_X - x) / (nx - x)
             net = (y + f * (ny - y), z + f * (nz - z))
             if net[1] < net_height(net[0]):
-                return {"net": net, "land": None, "speed_at_net": speed}
+                return {"net": net, "land": None,
+                        "speed_at_net": math.sqrt(vx * vx + vy * vy + vz * vz)}
         if nz <= 0:                                       # first bounce on the court plane
             f = z / (z - nz) if z != nz else 1.0
             land = (x + f * (nx - x), y + f * (ny - y))
             vx2, vy2, vz2 = vx + f * (nvx - vx), vy + f * (nvy - vy), vz + f * (nvz - vz)
             s = SURFACES[surface]
-            bounce = {"speed_out": math.sqrt(vx2 * vx2 + vy2 * vy2 + vz2 * vz2),
-                      "v": (vx2 * s["f"], vy2 * s["f"], -vz2 * s["e"])}
-            return {"net": net, "land": land, "speed_in": speed, "bounce": bounce}
+            after = (vx2 * s["f"], vy2 * s["f"], -vz2 * s["e"])
+            return {"net": net, "land": land,
+                    "speed_in": math.sqrt(vx2 * vx2 + vy2 * vy2 + vz2 * vz2),
+                    "bounce": {"speed_out": math.sqrt(sum(c * c for c in after)),
+                               "v": after, "angle": math.degrees(math.atan2(after[2], math.hypot(*after[:2])))}}
         x, y, z, vx, vy, vz = nx, ny, nz, nvx, nvy, nvz
         t += dt
     return {"net": net, "land": None, "lost": True}
@@ -123,13 +161,16 @@ def depth_name(x: float, hitter_north: bool) -> str:
 
 
 def lateral_name(y: float, hitter_north: bool) -> str:
-    """Left/right from the hitter's point of view, plus the corner if it is one."""
-    left = (y < WIDTH / 2) if hitter_north else (y > WIDTH / 2)
+    """Left/right from the hitter's own point of view, plus the corner if it is one.
+
+    A player standing at the north end faces south, and facing south puts east on their left: north-south
+    pairs are reversed, east-west are not. The first version had this backwards for both seats, so every
+    reported shot put the ball on the wrong side of the court."""
+    left = (y > WIDTH / 2) if hitter_north else (y < WIDTH / 2)
     side = "left" if left else "right"
-    third = y < WIDTH / 3 if hitter_north else y > 2 * WIDTH / 3
-    if third:
-        return f"{side}"
-    return f"{'centre' if abs(y - WIDTH / 2) < WIDTH / 6 else side}"
+    if abs(y - WIDTH / 2) < WIDTH / 6:
+        return "centre"
+    return f"{side} corner" if abs(y - WIDTH / 2) > WIDTH / 2 - 5 else side
 
 
 def describe_landing(land, hitter_north: bool, receiver: str) -> str:
@@ -161,14 +202,45 @@ class Player:
         next three hundred, which is what learning a motor skill looks like."""
         learned = 1 - math.exp(-(self.practice + self.shots) / 120.0)
         return {"control": 0.18 + 0.74 * learned,
-                "sweet": 0.30 + 0.65 * learned,
+                "sweet": 0.72 + 0.26 * learned,
                 "reach": 0.35 + 0.60 * learned}[attr]
 
 
-def contact_point(p: Player, incoming_land=None) -> tuple[float, float, float]:
-    """Where the racquet meets the ball. A serve is struck high from the baseline; a groundstroke is struck
-    around waist height at whatever depth the player has recovered to."""
-    return (2.0 if p.north else LENGTH - 2.0, WIDTH / 2 + p.rng.uniform(-4, 4), 8.6)
+def contact_point(p: Player, shot: str = "rally") -> tuple[float, float, float]:
+    """Where the racquet meets the ball. A serve is struck high from just behind the baseline; a groundstroke
+    is struck at waist height, roughly 3ft, from behind the baseline; a volley is struck at chest height and
+    well inside the court. The first version returned 8.6ft for everything, so every groundstroke was secretly
+    a serve and every rally ball flew over the net without ever being asked to clear it."""
+    base = 2.0 if p.north else LENGTH - 2.0
+    back = base
+    if shot == "serve":
+        height = 8.8
+    elif shot == "volley":
+        height = 4.5
+        back = base + (8.0 if p.north else -8.0)
+    else:
+        height = 3.0 + p.rng.uniform(-0.7, 0.7)
+    return (back, WIDTH / 2 + p.rng.uniform(-5, 5), height)
+
+
+def elevation_for(shot: str, face: float) -> float:
+    """Ball elevation off the strings, in degrees.
+
+    The face angle alone does not decide the launch: the *swing path* does most of it. A groundstroke is hit
+    from low to high, so a square face already sends the ball up about 4 degrees; opening the face adds to it
+    and closing it flattens the shot. A serve is struck downward from 8.8ft, so a square face sends it at the
+    ground and the face must be opened to lift it. These constants were calibrated against known shots and
+    against the in-play map (see test_surface_and_face_band), not chosen to look plausible."""
+    base = {"serve": 2.0, "volley": 10.0}.get(shot, 4.0)
+    return max(-12.0, min(50.0, base + face * 0.9))
+
+
+def spin_for(face: float) -> float:
+    """Lift coefficient from the face angle. A closed face, swung up through the ball, brushes up its back
+    and makes topspin (positive, pulled down); an open face cuts under it and makes slice (negative, floats).
+    This is the trade the player has to learn: closing the face both lowers the launch and holds the ball in,
+    so the closed face is not simply the safe one and the open face is not simply the reckless one."""
+    return max(-0.12, min(0.24, 0.10 - 0.020 * face))
 
 
 def strike(p: Player, incoming: dict | None, face: float, power: float, aim: float,
@@ -176,41 +248,48 @@ def strike(p: Player, incoming: dict | None, face: float, power: float, aim: flo
     """Movement in, ball out. The player supplies a face angle in degrees (negative closed), a power in
     per-cent and an aim offset in feet; everything else is physics plus the player's skill."""
     control = p.skill("control")
-    pace_in = (incoming or {}).get("speed_in", 40.0)
+    pace_in = (incoming or {}).get("speed_in", 40.0)          # mph
     # a fast ball gives less time to set up, so the same player is less accurate returning it
     control *= 1 - 0.22 * min(1.0, pace_in / 100.0)
 
     if not clean:
         p.shots += 1
     sweet = True if clean else p.rng.random() < p.skill("sweet")
+    # The hands are not exact. 4 degrees of face error at the start, a third of a degree once a few hundred
+    # balls have been hit; the first version used 7.5, which was wider than the whole window between 'net' and
+    # 'long' at rally pace, so a beginner's results were pure noise and no amount of reading them helped.
     face_actual = face if clean else (
-        face + p.rng.gauss(0, 7.5 * (1 - control)) * (1 if p.rng.random() < 0.5 else -1))
-    power_actual = power if clean else power * (1 + p.rng.gauss(0, 0.14 * (1 - control)))
+        face + p.rng.gauss(0, 4.0 * (1 - control)) * (1 if p.rng.random() < 0.5 else -1))
+    power_actual = power if clean else power * (1 + p.rng.gauss(0, 0.12 * (1 - control)))
     if not sweet:                                     # the frame, not the strings
-        power_actual *= p.rng.uniform(0.35, 0.55)
-        face_actual += p.rng.gauss(0, 22)
+        power_actual *= p.rng.uniform(0.5, 0.75)
+        face_actual += p.rng.gauss(0, 8)
 
-    elevation = math.radians(max(-6.0, min(55.0, (6.0 if shot == "serve" else 11.0) + face_actual * 0.55)))
-    speed = max(8.0, power_actual * 1.32)             # per-cent to mph
-    p0 = contact_point(p, incoming)
+    elevation = math.radians(elevation_for(shot, face_actual))
+    # 100% of swing sends the ball at 105mph, a hard forehand; 30% is a 32mph push. The first version used
+    # 1.32mph per point, so 100% meant 132mph and every number on the page was a fiction.
+    speed = max(8.0, power_actual * 1.05)
+    p0 = contact_point(p, shot)
     # the player turns to aim; the face angle sets the loft, not the direction. A first version made the
     # face angle steer as well, and a serve aimed at the right box landed thirty feet wide. Aim is absolute
     # across the court (feet from the west sideline), not relative to the ball, because a serve struck four
     # feet off centre otherwise lands four feet off target.
     azimuth = math.atan2(aim - p0[1], 32.0)
-    vx = speed * 0.44704 * math.cos(elevation) * math.cos(azimuth) * (1 if p.north else -1)
-    vy = speed * 0.44704 * math.cos(elevation) * math.sin(azimuth)
-    vz = speed * 0.44704 * math.sin(elevation)
-    traj = flight(p0, (vx, vy, vz), wind, surface)
+    v = speed * MPH
+    vx = v * math.cos(elevation) * math.cos(azimuth) * (1 if p.north else -1)
+    vy = v * math.cos(elevation) * math.sin(azimuth)
+    vz = v * math.sin(elevation)
+    traj = flight(p0, (vx, vy, vz), wind, surface, cl=spin_for(face_actual))
     return {"player": p, "shot": shot, "speed": speed, "sweet": sweet, "contact": p0,
-            "traj": traj, "face": face_actual, "power": power_actual}
+            "traj": traj, "face": face_actual, "power": power_actual,
+            "spin": spin_for(face_actual)}
 
 
 def aim_at(p: Player, target, shot: str, surface: str, wind, power: float) -> tuple[float, float]:
     """The player's intent, translated into movement: what face angle and power send the ball to that spot.
     This is what a competent player does by feel and a beginner cannot do at all — so the *error* is applied
     afterwards, by `strike`, from the player's control."""
-    lo, hi = -4.0, 40.0
+    lo, hi = -20.0, 40.0
     for _ in range(22):
         mid = (lo + hi) / 2
         probe = strike(p, None, face=mid, power=power, aim=target[1],
@@ -244,7 +323,8 @@ def reachable(p: Player, land, surface: str, incoming_speed: float) -> bool:
 def line_for(shot: dict, receiver: str, surface: str, wind: tuple[str, float]) -> str:
     p = shot["player"]
     t = shot["traj"]
-    origin = f"from the {'left' if (p.north and shot['contact'][1] < WIDTH / 2) else 'right'} of the baseline" \
+    hitter_left = (shot["contact"][1] > WIDTH / 2) if p.north else (shot["contact"][1] < WIDTH / 2)
+    origin = f"from the {'left' if hitter_left else 'right'} side of the baseline" \
         if shot["shot"] == "serve" else ("from the baseline" if abs(shot['contact'][0] - (2 if p.north else LENGTH - 2)) < 6 else "from inside the court")
     direction = "N to S" if p.north else "S to N"
     if t.get("land") is None:
@@ -263,7 +343,7 @@ def in_service_box(land, server_north: bool, side: str) -> bool:
     The diagonal rule is what this approximates: the server picks a side, the ball must land in that half."""
     x, y = land
     depth_ok = (NET_X < x <= NET_X + SERVICE_LINE) if server_north else (NET_X - SERVICE_LINE <= x < NET_X)
-    left = y < WIDTH / 2 if server_north else y > WIDTH / 2
+    left = y > WIDTH / 2 if server_north else y < WIDTH / 2
     return depth_ok and (left if side == "left" else not left) and 0 <= y <= WIDTH
 
 
@@ -285,7 +365,7 @@ def play_point(server: Player, receiver: Player, surface: str, wind_vec, wind_in
         return lines
     server.serves_in += 1
     incoming = t["bounce"]
-    incoming["speed_in"] = t["bounce"]["speed_out"]
+    incoming["speed_in"] = t["bounce"]["speed_out"] / MPH
     for _ in range(12):
         if not reachable(receiver, t["land"], surface, incoming["speed_in"]):
             lines.append(f"{receiver.name} cannot get to it — {server.name} takes the point.")
@@ -306,10 +386,248 @@ def play_point(server: Player, receiver: Player, surface: str, wind_vec, wind_in
             server.winners += 1
             return lines
         incoming = t["bounce"]
-        incoming["speed_in"] = t["bounce"]["speed_out"]
+        incoming["speed_in"] = t["bounce"]["speed_out"] / MPH
         server, receiver = receiver, server
     lines.append("the rally runs out of the record's twelve shots.")
     return lines
+
+
+# ---- early spring: a drill, no serving, no scoring ------------------------------------------------
+# [+-]? not -?: a being asked for a signed angle writes "+6" about as often as "6", and the first pattern
+# silently rejected every such line and fed the ball straight instead of playing what the player asked for.
+COMMAND = re.compile(r"FACE\s*[:=]?\s*([-+]?\d+(?:\.\d+)?).*?POWER\s*[:=]?\s*([-+]?\d+(?:\.\d+)?)"
+                     r".*?AIM\s*[:=]?\s*([-+]?\d+(?:\.\d+)?)", re.I | re.S)
+
+
+def parse_command(text: str) -> tuple[float, float, float] | None:
+    m = COMMAND.search(text or "")
+    if not m:
+        return None
+    face, power, aim = (float(x) for x in m.groups())
+    return max(-20.0, min(40.0, face)), max(30.0, min(100.0, power)), max(0.0, min(WIDTH, aim))
+
+
+def verdict(shot: dict) -> tuple[bool, str]:
+    """In play or not, and a phrase a player can learn from.
+
+    The critical property is that an *out* ball must say how far out and in which direction, because a player
+    learns by correcting a number, not by being told 'out'. The first version reported 'long, out of the court'
+    with no distance, which is unlearnable: every long ball looks identical whether it missed by one foot or
+    thirty, so bisection on the answer was impossible. There is no scoring here; the drill's only score is how
+    many balls in a row stay in."""
+    t = shot["traj"]
+    p = shot["player"]
+    fwd = 1 if p.north else -1
+    if t.get("land") is None:
+        if t.get("net"):
+            return False, f"into the net at {t['net'][1]:.1f}ft — needs more height"
+        return False, "lost the ball"
+    x, y = t["land"]
+    depth = (x - NET_X) * fwd                    # feet past the net, along the shot
+    lat = y - WIDTH / 2
+    side = "" if abs(lat) < 0.5 else (f", {abs(lat):.0f}ft {'east' if lat > 0 else 'west'} of centre")
+    if depth <= 0:
+        return False, f"short of the net by {abs(depth):.0f}ft{side} — needs more height"
+    if depth > NET_X:                            # past the far baseline
+        over = depth - NET_X
+        how = "less than a foot" if over < 1 else f"{over:.0f}ft"
+        return False, f"long by {how}{side} — too much height or too much pace"
+    if not (0 <= y <= WIDTH):
+        return False, (f"wide by {abs(lat) - WIDTH / 2:.0f}ft — the court is 27ft wide, "
+                       f"aim between 4 and 23")
+    return True, (f"IN, {depth:.0f}ft past the net, {abs(lat):.0f}ft {'east' if lat > 0 else 'west'} of centre, "
+                  f"arrives at {t['speed_in'] / MPH:.0f}mph and comes up at "
+                  f"{t['bounce']['speed_out'] / MPH:.0f}mph")
+
+
+def drill_prompt(p: Player, other: str, history: list[str], incoming: dict | None,
+                 surface: str, wind_in: tuple[str, float]) -> str:
+    inc = ("The ball is in your hands: this is a feed, not a return." if incoming is None else
+           f"The ball is coming to you: {other}'s last shot landed {incoming.get('depth', 0):.0f}ft past the "
+           f"net and is coming up at {incoming.get('speed_in', 0):.0f}mph.")
+    lines = [f"You are {p.name}, on a {surface} court ({SURFACES[surface]['note']}). "
+             f"Wind {wind_in[0]} at {wind_in[1]:.0f}mph.",
+             inc, "",
+             f"The court is 78ft long and {WIDTH:.0f}ft wide, the net is 3ft high at its middle, and you are "
+             f"striking the ball from about 3ft up, 2ft behind your own baseline. For the ball to be good it "
+             f"must clear the net by a little and land between the net and the far baseline.",
+             "",
+             "Your recent shots, oldest first (what you chose, whether you hit the strings or the frame, and "
+             "what happened):"]
+    lines += [f"  {h}" for h in history[-8:]] or ["  (nothing yet — this is your first ball)"]
+    lines += ["",
+              "Give one line, exactly this shape and nothing else:",
+              "FACE <degrees, -20 to 40>  POWER <30 to 100>  AIM <feet from the west sideline, 0 to 27>",
+              "",
+              "FACE is the angle of the racquet face. Opening it (positive) launches the ball higher and, "
+              "because the strings go under the ball, makes slice that floats further. Closing it (negative) "
+              "launches lower and brushes topspin, which pulls the ball down and lets you hit harder for the "
+              "same length. POWER is swing speed: 30 is a push, 100 is a hard hit. AIM is where you mean to "
+              "land it across the court; 13 is the middle, 4 and 23 are near the sidelines.",
+              "",
+              "You cannot see the shot before you hit it, and your hands are not exact: the angle you get is "
+              "not quite the angle you chose, especially on a ball that is coming at you fast. Read your own "
+              "history, decide what to change, and put the ball in."]
+    return "\n".join(lines)
+
+
+def run_drill(args) -> int:
+    names = [n.strip() for n in args.names.split(",")]
+    vendors = [v.strip().lower() for v in args.vendor.split(",")]
+    practice = [int(x) for x in args.practice.split(",")]
+    models = ([m.strip() for m in args.model.split(",")] if args.model
+              else [DEFAULT_MODEL[v] for v in vendors])
+    keys = []
+    for v, n in zip(vendors, names):
+        k = os.environ.get(f"TRIBE_API_KEY_{v.upper()}")
+        if not k:
+            print(f"   TRIBE_API_KEY_{v.upper()} is not set, so {n} cannot hit a ball. Nothing was played.",
+                  file=sys.stderr)
+            return 2
+        keys.append(k)
+
+    ms = int(time.time() * 1000)
+    surface = args.surface or surface_at(ms)
+    wind_in = wind_at(ms)
+    wv = wind_vector(*wind_in)
+    rng = random.Random(ms)
+    players = [Player(names[0], True, practice[0], rng=rng),
+               Player(names[1], False, practice[1], rng=rng)]
+    print(f"# early spring — {surface} ({SURFACES[surface]['note']}), wind {wind_in[0]} {wind_in[1]:.0f}mph, "
+          f"{args.shots} balls, no serving, no scoring, clock {ms}\n")
+    for p in players:
+        print(f"  {p.name}: {p.practice} balls hit before today, control {p.skill('control'):.2f}, "
+              f"hands give or take ±{4.0 * (1 - p.skill('control')):.0f} degrees of face")
+    print()
+
+    history: dict[str, list[str]] = {p.name: [] for p in players}
+    results: dict[str, list[bool]] = {p.name: [] for p in players}
+    incoming, hitter, rally, best = None, 0, 0, 0
+    fell_back = 0
+    for i in range(1, args.shots + 1):
+        p = players[hitter]
+        other = players[1 - hitter].name
+        prompt = drill_prompt(p, other, history[p.name], incoming, surface, wind_in)
+        reply = ask(BASES[vendors[hitter]], keys[hitter], models[hitter], prompt, args.temperature)
+        cmd = parse_command(reply)
+        if cmd is None:
+            fell_back += 1
+            cmd = (0.0, 45.0, WIDTH / 2)
+            print(f"  !! {p.name} wrote no usable line ({reply.strip()[:60]!r}); the feed is played straight.")
+        face, power, aim = cmd
+        shot = strike(p, incoming, face=face, power=power, aim=aim, shot="rally",
+                      surface=surface, wind=wv)
+        ok, outcome = verdict(shot)
+        feel = "clean" if shot["sweet"] else "FRAMED"
+        history[p.name].append(f"face {face:+.0f} power {power:.0f} aim {aim:.0f} [{feel}] -> {outcome}")
+        results[p.name].append(ok)
+        if ok:
+            rally += 1
+            best = max(best, rally)
+            x, y = shot["traj"]["land"]
+            incoming = dict(shot["traj"]["bounce"])
+            incoming["speed_in"] = shot["traj"]["bounce"]["speed_out"] / MPH   # mph, as everyone below reads it
+            incoming["depth"] = abs(x - NET_X)
+        else:
+            rally = 0
+            incoming = None
+        hitter = 1 - hitter              # they take turns: one hits, the other feeds next
+        print(f"  {i:2d}. {p.name:8s} face {face:+.0f} power {power:3.0f} aim {aim:2.0f} "
+              f"[{feel:6s}] -> {outcome}" + ("" if ok else "   [dead]"))
+
+    print("\n## After the drill\n")
+    for p in players:
+        r = results[p.name]
+        half = len(r) // 2
+        early = sum(r[:half]) / max(1, half) * 100
+        late = sum(r[half:]) / max(1, len(r) - half) * 100
+        print(f"  {p.name}: {p.shots} shots, control {p.skill('control'):.2f}, "
+              f"sweet spot {p.skill('sweet'):.2f}, reach {p.skill('reach'):.2f}")
+        print(f"  {'':>{len(p.name)}}  in play {sum(r)}/{len(r)} = {sum(r) / max(1, len(r)) * 100:.0f}%"
+              f"  |  first half {early:.0f}%  second half {late:.0f}%")
+    print(f"\n  longest run of balls in play: {best}; unparsed replies: {fell_back}")
+    return 0
+
+
+def simulate(args, ms: int | None = None, quiet: bool = False) -> dict:
+    """Two scripted learners on the same court: the test of whether the drill teaches anything at all.
+
+    The point is not that these are good tennis players. It is that the *feedback* is sufficient. One player
+    bisects on the face angle using only what `verdict` prints — 'long by 12ft', 'short of the net by 4ft' —
+    which is exactly the information a being gets. The other hits the same shot every time and never reads
+    anything. If the bisector cannot pull ahead of the unchanging player, the drill is unlearnable and no model
+    run will fix it. This is the check to run before spending anyone's tokens."""
+    ms = ms if ms is not None else int(time.time() * 1000)
+    surface = args.surface or surface_at(ms)
+    wind_in = wind_at(ms)
+    wv = wind_vector(*wind_in)
+    if not quiet:
+        print(f"# simulate — {surface}, wind {wind_in[0]} {wind_in[1]:.0f}mph, {args.shots} balls each, "
+              f"clock {ms}\n")
+
+    class Bisector:
+        """A player who only reads the printed miss and halves the interval. No model, no knowledge of the
+        physics: if the ball is long it lowers the face, if it is short it raises it, and it narrows the gap
+        between the lowest face that went long and the highest that went short."""
+
+        def __init__(self, p, practice=0):
+            self.p = Player(p, True, practice, rng=random.Random(ms + practice))
+            self.lo, self.hi = -14.0, 26.0
+            self.power = 55.0
+            self.chosen = 0.0                        # starts at a square face, which is not in play
+
+        def choose(self):
+            return self.chosen, self.power, WIDTH / 2
+
+        def learn(self, face, outcome, ok):
+            if ok:
+                return                                  # good ball: change nothing
+            if "long by" in outcome or "wide by" in outcome:
+                self.hi = min(self.hi, face)
+            elif "short of the net" in outcome or "into the net" in outcome:
+                self.lo = max(self.lo, face)
+            if self.hi - self.lo < 1.5:                  # it has bracketed the window; sit in the middle
+                self.lo, self.hi = self.lo - 2.0, self.hi + 2.0
+            self.chosen = (self.lo + self.hi) / 2
+
+    class Stubborn:
+        """The control: same shot every ball. This is what a player who does not read the results amounts to,
+        and it is the floor the learner has to beat."""
+
+        def __init__(self, p):
+            self.p = p
+
+        def choose(self):
+            return 0.0, 55.0, WIDTH / 2
+
+        def learn(self, face, outcome, ok):
+            pass
+
+    arms = {
+        "reads results, new hands": (Bisector("Ada", practice=0), 0),
+        "reads nothing, new": (Stubborn(Player("Bo", False, 0, rng=random.Random(ms))), 1),
+        "reads results, 300 balls": (Bisector("Cy", practice=300), 0),
+    }
+    tally = {k: [] for k in arms}
+    settled = {}
+    for arm, (agent, north) in arms.items():
+        agent.p.north = bool(north)
+        for i in range(args.shots):
+            face, power, aim = agent.choose()
+            shot = strike(agent.p, None, face=face, power=power, aim=aim, shot="rally",
+                          surface=surface, wind=wv)
+            ok, outcome = verdict(shot)
+            tally[arm].append(ok)
+            agent.learn(face, outcome, ok)
+        settled[arm] = getattr(agent, "chosen", 0.0)
+    if not quiet:
+        print("  arm                        in play      first half   second half   face it settled on")
+        for arm, r in tally.items():
+            h = len(r) // 2
+            print(f"  {arm:26s} {sum(r):3d}/{len(r):<3d} {sum(r) / len(r) * 100:3.0f}%   "
+                  f"{sum(r[:h]) / h * 100:4.0f}%        {sum(r[h:]) / (len(r) - h) * 100:4.0f}%        "
+                  f"{settled[arm]:+.1f}")
+    return {"tally": tally, "settled": settled, "surface": surface, "wind": wind_in}
 
 
 def main(argv=None) -> int:
@@ -318,7 +636,19 @@ def main(argv=None) -> int:
     ap.add_argument("--practice", default="400,20", help="balls hit before today, one per player")
     ap.add_argument("--points", type=int, default=4)
     ap.add_argument("--surface", default=None, help="clay, hard or grass; default from the clock")
+    ap.add_argument("--vendor", default=None, help="for --drill: their vendors, comma-separated")
+    ap.add_argument("--model", default=None)
+    ap.add_argument("--temperature", type=float, default=1.0)
+    ap.add_argument("--shots", type=int, default=40, help="for --drill: balls to hit")
+    ap.add_argument("--drill", action="store_true", help="early spring: rally practice, no serving, no scoring")
+    ap.add_argument("--simulate", action="store_true",
+                    help="two scripted learners, to test whether the drill's feedback is learnable at all")
     args = ap.parse_args(argv)
+    if args.simulate:
+        simulate(args)
+        return 0
+    if args.drill:
+        return run_drill(args)
 
     names = [n.strip() for n in args.names.split(",")]
     practice = [int(x) for x in args.practice.split(",")]

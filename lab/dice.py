@@ -30,7 +30,7 @@ That is why a sheet with no seed beside it is only a pretty table.
 Usage:
     python3 lab/dice.py --seats Remy,Margot --rounds 20
     python3 lab/dice.py --seats Remy,Margot --rounds 20 --seed 41 --quiet
-    python3 lab/dice.py --verify experiment/dice/41-20261104T000000Z/game.json
+    python3 lab/dice.py --verify games/dice/records/41-20261104T000000Z/game.json
 """
 from __future__ import annotations
 
@@ -127,7 +127,7 @@ def main(argv=None) -> int:
     ap.add_argument("--seats", default="Remy,Margot", help="two names, for the record only")
     ap.add_argument("--rounds", type=int, default=20)
     ap.add_argument("--seed", type=int, default=None, help="omit for a fresh sheet, give one to replay")
-    ap.add_argument("--out", default=None, help="directory; default experiment/dice/<seed>-<stamp>")
+    ap.add_argument("--out", default=None, help="directory; default games/dice/records/<seed>-<stamp>")
     ap.add_argument("--quiet", action="store_true", help="write the page, print only the summary line")
     ap.add_argument("--verify", default=None, metavar="GAME.JSON",
                     help="check a filed game against its own seed and chain; plays nothing")
@@ -157,7 +157,7 @@ def main(argv=None) -> int:
     game["played"] = when.strftime("%Y-%m-%dT%H:%M:%SZ")
     page = render(game)
 
-    out = Path(args.out) if args.out else ROOT / "experiment" / "dice" / f"{seed}-{when:%Y%m%dT%H%M%SZ}"
+    out = Path(args.out) if args.out else ROOT / "games" / "dice" / "records" / f"{seed}-{when:%Y%m%dT%H%M%SZ}"
     out.mkdir(parents=True, exist_ok=True)
     (out / "sheet.md").write_text(page, encoding="utf-8")
     (out / "game.json").write_text(json.dumps(game, indent=2) + "\n", encoding="utf-8")

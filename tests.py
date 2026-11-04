@@ -33,6 +33,10 @@ REPO = Path(__file__).resolve().parent
 def load(path: Path, name: str):
     spec = importlib.util.spec_from_file_location(name, path)
     mod = importlib.util.module_from_spec(spec)
+    # dataclasses look their own module up in sys.modules while building the class; a module that is never
+    # registered blows up with "'NoneType' object has no attribute '__dict__'". Registering it is harmless
+    # for the modules that do not need it and necessary for the ones that do.
+    sys.modules[name] = mod
     spec.loader.exec_module(mod)  # type: ignore[union-attr]
     return mod
 
@@ -2577,6 +2581,120 @@ class TestNothingIsHandEdited(unittest.TestCase):
             "  python3 magazine.py --issue $(python3 magazine.py --current) --write\n"
             "  python3 magazine.py --projects --write; python3 magazine.py --index --write; "
             "python3 magazine.py --ledger --write\n\n" + r.stdout[-2000:]))
+
+
+class TestTennis(unittest.TestCase):
+    """The tennis engine and the early-spring drill.
+
+    These exist because the first version of the engine was wrong in a way no amount of reading it would
+    show: it converted mph to ft/s with the mph-to-m/s constant, so every shot was integrated at a third of
+    the speed printed beside it, drag was eleven times too weak to notice, and every groundstroke was struck
+    from serve height. The page looked right and every number on it was a fiction. What follows checks the
+    physics against outcomes you can look up, not against the code's own arithmetic.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.t = load(REPO / "lab" / "tennis.py", "tennis_mod")
+
+    def shot(self, power, face, shot="rally", wind=(0.0, 0.0), surface="hard", aim=None):
+        t = self.t
+        import math
+        elev = math.radians(t.elevation_for(shot, face))
+        v = power * 1.05 * t.MPH
+        z = 8.8 if shot == "serve" else 3.0
+        out = t.flight((2.0, 13.5, z),
+                       (v * math.cos(elev), 0.0, v * math.sin(elev)),
+                       wind, surface, cl=t.spin_for(face))
+        return out
+
+    def test_a_serve_arrives_near_the_speed_real_serves_arrive_at(self):
+        """A 105mph serve is about 70mph when it bounces: the ball really does lose a third of its speed
+        crossing 60ft. The first engine lost almost nothing, because its drag was eleven times too small."""
+        out = self.shot(100, -6, shot="serve")
+        self.assertIsNotNone(out["land"], "a 105mph serve with an open face should land in the box")
+        arrive = out["speed_in"] / self.t.MPH
+        self.assertTrue(55 <= arrive <= 90, f"a 105mph serve arrived at {arrive:.0f}mph, which is not tennis")
+
+    def test_a_serve_from_a_square_face_is_long_and_from_a_closed_face_is_in(self):
+        """The serve is struck downward from 8.8ft, so a square face puts it in the net or past the baseline
+        and the face has to be closed. This is the single fact a beginner has to learn first."""
+        square = self.shot(100, 10, shot="serve")
+        closed = self.shot(100, -6, shot="serve")
+        self.assertIsNotNone(closed["land"])
+        self.assertLessEqual(closed["land"][0], self.t.NET_X + self.t.SERVICE_LINE + 0.5,
+                             "a closed face at serve pace should land inside the service line")
+        self.assertTrue(square["land"] is None or square["land"][0] > self.t.NET_X + self.t.SERVICE_LINE,
+                        "a square face at serve pace should be long")
+
+    def test_topspin_is_what_holds_a_hard_ball_in_the_court(self):
+        """A square face at 80mph, launched at the same angle twice: with the topspin the model gives it, the
+        ball lands in the court; with the lift term switched off, the identical swing goes long. That is the
+        test that the Magnus term is doing work rather than decorating the code."""
+        import math
+        t = self.t
+        elev = math.radians(t.elevation_for("rally", 2))
+        v = 76 * 1.05 * t.MPH                     # 76% of swing = 80mph
+        p0 = (2.0, 13.5, 3.0)
+        v0 = (v * math.cos(elev), 0.0, v * math.sin(elev))
+        with_lift = t.flight(p0, v0, (0.0, 0.0), "hard", cl=t.spin_for(2))
+        without = t.flight(p0, v0, (0.0, 0.0), "hard", cl=0.0)
+        self.assertGreater(t.spin_for(2), 0.0, "a square face at rally pace should still make topspin")
+        self.assertIsNotNone(with_lift["land"])
+        self.assertIsNotNone(without["land"])
+        self.assertLess(with_lift["land"][0], without["land"][0] - 5,
+                        "topspin must shorten the flight by a visible distance")
+        self.assertLessEqual(with_lift["land"][0], t.LENGTH, "with topspin this shot should be in the court")
+        self.assertGreater(without["land"][0], t.LENGTH,
+                           "without topspin the same shot must go long, or the term is doing nothing")
+
+    def test_the_court_is_only_a_few_degrees_of_face_wide(self):
+        """The middle of the drill's difficulty, measured rather than asserted: at 65mph the difference
+        between 'in the net' and 'past the baseline' is a handful of degrees of face angle. If this ever
+        widens to twenty degrees, the game has stopped requiring timing and the drill becomes a formality."""
+        wins = [f for f in [x * 0.5 for x in range(-40, 61)]
+                if (o := self.shot(65, f))["land"] and self.t.NET_X < o["land"][0] <= self.t.LENGTH]
+        self.assertTrue(wins, "no face angle at 65mph lands the ball in the court")
+        width = max(wins) - min(wins)
+        self.assertGreater(width, 2.0, "the window is absurdly narrow")
+        self.assertLess(width, 14.0, f"the window is {width:.0f} degrees wide: too forgiving to learn from")
+
+    def test_a_missed_ball_says_how_far_it_missed_by(self):
+        """Learning needs a number to correct. 'long, out of the court' cannot be bisected; 'long by 12ft'
+        can. This is the defect that made the first drill unlearnable, and it is one line to keep fixed."""
+        t = self.t
+        long_shot = self.shot(90, 20)
+        ok, why = t.verdict({"traj": long_shot, "player": t.Player("x", True), "speed": 90})
+        self.assertFalse(ok)
+        self.assertRegex(why, r"long by \d+ft")
+        short = self.shot(35, 0)
+        ok, why = t.verdict({"traj": short, "player": t.Player("x", True), "speed": 35})
+        self.assertFalse(ok)
+        self.assertTrue("short of the net by" in why or "into the net at" in why, why)
+
+    def test_reading_the_results_beats_not_reading_them(self):
+        """The claim the whole early-spring drill rests on, tested five times at five different clocks rather
+        than once with a seed: a player who only reads 'long by 12ft' and adjusts must beat a player with the
+        same hands who hits the same shot every time. Chance stays real; only the property is asserted."""
+        for ms in (1793805801123, 1793805811447, 1793805822779, 1793805833901, 1793805844129):
+            args = type("A", (), {"shots": 40, "surface": "hard"})()
+            out = self.t.simulate(args, ms=ms, quiet=True)
+            r = out["tally"]
+            learner = sum(r["reads results, new hands"]) / len(r["reads results, new hands"])
+            stubborn = sum(r["reads nothing, new"]) / len(r["reads nothing, new"])
+            experienced = sum(r["reads results, 300 balls"]) / len(r["reads results, 300 balls"])
+            self.assertGreater(learner, stubborn + 0.15,
+                               f"at clock {ms} reading the results was worth nothing: "
+                               f"{learner:.0%} against {stubborn:.0%}")
+            self.assertGreater(experienced, learner + 0.15,
+                               f"at clock {ms} practice before today was worth nothing: "
+                               f"{experienced:.0%} against {learner:.0%}")
+
+    def test_a_command_is_parsed_and_clamped(self):
+        t = self.t
+        self.assertEqual(t.parse_command("FACE +6 POWER 62 AIM 9"), (6.0, 62.0, 9.0))
+        self.assertEqual(t.parse_command("face: -30 power: 200 aim: 40"), (-20.0, 100.0, 27.0))
+        self.assertIsNone(t.parse_command("I will hit it firmly to the left"))
 
 
 if __name__ == "__main__":

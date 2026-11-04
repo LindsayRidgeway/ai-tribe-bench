@@ -148,7 +148,7 @@ def main(argv=None) -> int:
                     help="on: each being sees the record so far. off: blind, which is the control")
     ap.add_argument("--temperature", type=float, default=1.0)
     ap.add_argument("--model", default=None, help="override, comma-separated, one per member")
-    ap.add_argument("--out", default=None, help="directory, default experiment/rps/<pair>-<mode>")
+    ap.add_argument("--out", default=None, help="directory, default games/rps/records/<pair>-<mode>")
     ap.add_argument("--random-side", default=None,
                     help="name one of the pair and that side is played by a seeded random number generator "
                          "instead of a model. This is the control, not a substitute for the beings: a random "
@@ -182,7 +182,7 @@ def main(argv=None) -> int:
         rng = random.Random(seed)
 
     day = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    out = Path(args.out) if args.out else ROOT / "experiment" / "rps" / f"{'-'.join(names)}-{args.history}-{day}"
+    out = Path(args.out) if args.out else ROOT / "games" / "rps" / "records" / f"{'-'.join(names)}-{args.history}-{day}"
     out.mkdir(parents=True, exist_ok=True)
 
     rounds: list[dict] = []

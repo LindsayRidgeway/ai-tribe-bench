@@ -264,7 +264,7 @@ def main(argv=None) -> int:
                          "on disk is always complete")
     ap.add_argument("--temperature", type=float, default=1.0)
     ap.add_argument("--model", default=None, help="override, comma-separated, one per member")
-    ap.add_argument("--out", default=None, help="directory, default experiment/wind/<pair>-<stamp>")
+    ap.add_argument("--out", default=None, help="directory, default games/wind/records/<pair>-<stamp>")
     ap.add_argument("--retries", type=int, default=1,
                     help="one retry per call on an empty or failed reply: forty calls in a row will meet a "
                          "bad minute somewhere, and a demo that dies at round 5 measures the weather")
@@ -308,7 +308,7 @@ def main(argv=None) -> int:
         keys.append(k)
 
     started = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M")
-    out = Path(args.out) if args.out else ROOT / "experiment" / "wind" / (
+    out = Path(args.out) if args.out else ROOT / "games" / "wind" / "records" / (
         f"{'-'.join(names)}-{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}")
     out.mkdir(parents=True, exist_ok=True)
     print(f"{names[0]} ({vendors[0]}/{models[0]}) vs {names[1]} ({vendors[1]}/{models[1]}), {args.rounds} "

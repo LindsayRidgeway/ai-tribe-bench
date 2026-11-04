@@ -1,0 +1,56 @@
+# early spring — clay (high bounce, slow), wind S 23mph, 32 balls, no serving, no scoring, clock 1793806247364
+
+  Dmitri: 0 balls hit before today, control 0.18, aim error about ±6 degrees of face
+  Gwen: 0 balls hit before today, control 0.18, aim error about ±6 degrees of face
+
+   1. Dmitri   face +10 power  55 aim 13 [clean ] -> IN, 32ft past the net, 6ft east of centre, arrives at 20mph and comes up at 16mph
+   2. Gwen     face -10 power  55 aim 13 [FRAMED] -> short of the net by 27ft, 2ft west of centre — needs more height   [dead]
+   3. Dmitri   face +8 power  52 aim 14 [clean ] -> IN, 20ft past the net, 2ft east of centre, arrives at 29mph and comes up at 21mph
+   4. Gwen     face +15 power  65 aim 13 [clean ] -> long by 74ft, 4ft east of centre — too much height or too much pace   [dead]
+   5. Dmitri   face +6 power  58 aim 13 [clean ] -> IN, 17ft past the net, 3ft east of centre, arrives at 31mph and comes up at 22mph
+   6. Gwen     face -6 power  40 aim 13 [FRAMED] -> short of the net by 19ft — needs more height   [dead]
+   7. Dmitri   face +5 power  65 aim 15 [clean ] -> IN, 26ft past the net, 3ft east of centre, arrives at 23mph and comes up at 17mph
+   8. Gwen     face +4 power  50 aim 13 [FRAMED] -> short of the net by 26ft, 1ft east of centre — needs more height   [dead]
+   9. Dmitri   face +4 power  62 aim 14 [clean ] -> into the net at 2.5ft — needs more height   [dead]
+  10. Gwen     face +5 power  50 aim 13 [clean ] -> into the net at 2.7ft — needs more height   [dead]
+  11. Dmitri   face +3 power  60 aim 14 [clean ] -> IN, 23ft past the net, 5ft east of centre, arrives at 29mph and comes up at 21mph
+  12. Gwen     face +8 power  54 aim 13 [clean ] -> long by 15ft, 3ft west of centre — too much height or too much pace   [dead]
+  13. Dmitri   face +4 power  66 aim 14 [clean ] -> IN, 22ft past the net, 5ft east of centre, arrives at 32mph and comes up at 23mph
+  14. Gwen     face +7 power  52 aim 13 [clean ] -> long by 32ft, 6ft west of centre — too much height or too much pace   [dead]
+  15. Dmitri   face +4 power  60 aim 14 [clean ] -> IN, 16ft past the net, 2ft west of centre, arrives at 32mph and comes up at 24mph
+  16. Gwen     face +6 power  51 aim 13 [FRAMED] -> short of the net by 4ft — needs more height   [dead]
+  17. Dmitri   face +3 power  58 aim 14 [clean ] -> IN, 16ft past the net, 3ft east of centre, arrives at 30mph and comes up at 22mph
+  18. Gwen     face +5 power  46 aim 13 [FRAMED] -> into the net at 1.2ft — needs more height   [dead]
+  19. Dmitri   face +0 power  63 aim 12 [clean ] -> IN, 20ft past the net, 5ft west of centre, arrives at 32mph and comes up at 23mph
+  20. Gwen     face +6 power  50 aim 13 [clean ] -> IN, 39ft past the net, 5ft west of centre, arrives at 54mph and comes up at 39mph
+  21. Dmitri   face +3 power  61 aim 14 [clean ] -> IN, 16ft past the net, 4ft east of centre, arrives at 35mph and comes up at 26mph
+  22. Gwen     face +6 power  50 aim 13 [clean ] -> into the net at 2.9ft — needs more height   [dead]
+  23. Dmitri   face +4 power  60 aim 14 [FRAMED] -> into the net at 0.8ft — needs more height   [dead]
+  24. Gwen     face +7 power  48 aim 13 [FRAMED] -> short of the net by 16ft — needs more height   [dead]
+  25. Dmitri   face +2 power  62 aim 13 [FRAMED] -> short of the net by 14ft — needs more height   [dead]
+  26. Gwen     face +6 power  49 aim 13 [clean ] -> IN, 28ft past the net, 3ft west of centre, arrives at 44mph and comes up at 32mph
+  27. Dmitri   face +3 power  61 aim 14 [clean ] -> IN, 13ft past the net, 4ft east of centre, arrives at 29mph and comes up at 21mph
+  28. Gwen     face +5 power  48 aim 13 [clean ] -> long by 0ft, 7ft west of centre — too much height or too much pace   [dead]
+  29. Dmitri   face +2 power  64 aim 13 [FRAMED] -> short of the net by 24ft, 1ft west of centre — needs more height   [dead]
+  30. Gwen     face +5 power  47 aim 13 [clean ] -> IN, 25ft past the net, 4ft west of centre, arrives at 51mph and comes up at 37mph
+  31. Dmitri   face +3 power  60 aim 14 [clean ] -> IN, 24ft past the net, 2ft west of centre, arrives at 32mph and comes up at 24mph
+  32. Gwen     face +6 power  48 aim 13 [clean ] -> IN, 27ft past the net, 3ft east of centre, arrives at 48mph and comes up at 35mph
+
+## After the drill
+
+  Dmitri: 16 shots, control 0.27, sweet spot 0.75, reach 0.42
+          in play 12/16 = 75%  |  first half 88%  second half 62%
+  Gwen: 16 shots, control 0.27, sweet spot 0.75, reach 0.42
+        in play 4/16 = 25%  |  first half 0%  second half 50%
+
+  longest run of balls in play: 3; unparsed replies: 0
+
+## Correction to the two header lines, appended 2026-11-04
+
+The header printed "aim error about ±6 degrees of face". That line was written by the version running
+before a fix made a minute earlier in the same session: the hands give or take **±3.3 degrees** of face at
+control 0.18, which is 4.0 * (1 - control), not 7.0. The 32 shots below were played with ±3.3 degrees. The
+header is left as it was printed rather than edited, because a transcript that is corrected in place is not a
+transcript; this note is the correction.
+
+Nothing else in the run is affected: the physics, the feedback and the skill model were the fixed version.

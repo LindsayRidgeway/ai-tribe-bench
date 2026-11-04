@@ -1187,3 +1187,126 @@ whether a tribe of models is more than role-play with a filing cabinet — which
 project actually invites, and the one its own record is able to settle.
 
 Nothing here is a membership and there is nothing to join. Take it and change it.
+
+## 5.7 The player moves, the system computes the ball
+
+The founder's other idea, 2026-11-04, and the first one here whose skill is a motor skill rather than a
+judgement. A court, a surface, a wind drawn from the clock, and a player who controls only their own
+movements — the angle of the racquet face, how hard they swing, where they aim. The engine computes the
+trajectory, the bounce and the result, and reports each shot in one compact line. **The player never names an
+outcome.** That is what makes the skill real: no prompt can tell a being that a face of −6° at 105 mph lands in
+the service box, so it has to hit balls and read what they did.
+
+```
+python3 lab/tennis.py --drill  --shots 40 --practice 0,0 --names A,B --vendor deepseek,qwen   # early spring
+python3 lab/tennis.py --simulate --shots 60                                                  # no models, the check
+python3 lab/tennis.py --points 4 --practice 400,20                                           # serving, unscored
+```
+
+### The first engine was fiction, and it looked fine
+
+Found by asking one question the code could not answer: *where does a 70 mph shot actually land?* Three unit
+defects, none visible by reading:
+
+1. mph → ft/s used `0.44704`, the mph → **m/s** constant. Every shot was integrated at a third of the speed
+   printed beside it, and every line on the page said a number the physics had never used.
+2. drag was `0.00055/ft`, eleven times too small, so a ball lost almost nothing over 78 ft and the engine could
+   not tell a serve from a lob.
+3. every groundstroke was struck from **8.6 ft**, the serve's contact height, so no groundstroke ever had to
+   clear the net.
+
+Fixing the units made it worse before it made it better, and that is the interesting part: the correct engine
+sent every rally ball twenty feet past the baseline, because a 60 mph ball at 15° of elevation really does fly
+120 ft. The missing term was **topspin** — the Magnus lift that pulls a spinning ball down and is the only
+reason a hard forehand stays in a court at all. With drag derived from the ball's own numbers
+(`0.5·ρ·Cd·A/m`), lift from the face angle (closing brushes topspin, opening cuts slice), and wind entering as
+an air velocity rather than a push, the model now produces shots that can be checked against tennis:
+
+| shot | model says |
+|---|---|
+| 105 mph serve, face −6° | 15 ft past the net, inside the service line, arriving at 78 mph |
+| 80 mph forehand, face +2° | lands at 74 ft — in the back court; the identical swing with lift removed goes long |
+| 65 mph rally ball | the whole court between "net" and "long" is about **4° of face** |
+| 30 mph push | only reaches the net at face +18° — a slow ball has to be almost a lob |
+
+Those last two rows are the game. The correct face depends on the power, so there is no number to memorise and
+nothing to derive from the prompt: there is only the pair, and it has to be found by hitting balls.
+
+And the pair is measured, not asserted. The whole court, as the range of face angles that land the ball
+anywhere in it:
+
+| swing | ball speed | face angles that land in the court |
+|---|---|---|
+| power 30 | 32 mph | +16.5° to +40° — **23.5° wide** |
+| power 50 | 52 mph | +3.8° to +9.5° — 5.8° |
+| power 70 | 74 mph | +0.8° to +3.2° — 2.5° |
+| power 90 | 94 mph | −0.5° to +1.0° — 1.5° |
+| power 100 | 105 mph | −0.8° to +0.2° — **1.0° wide** |
+
+Set that beside the hands, which start at ±3.3° of face error and reach ±0.55° after 300 balls, and the game
+states its own rule: **a beginner can only keep the ball in at a push, and practice is what unlocks power**,
+because power is what buys the margin down to a degree. That is a strategy that can only be learned by
+playing, and it changes with the wind — a 42 mph push needs face +16 in still air, +10 with a 20 mph tailwind,
+and cannot reach mid-court at all into a 20 mph headwind at any face the racquet can produce.### A drill that could not teach, and why
+
+Early spring as the founder asked for it: no serving, no scoring, ball after ball, each player choosing and
+then reading what happened. The first version taught nothing, for two reasons that had nothing to do with the
+beings:
+
+- **the miss had no number.** It said "long, out of the court" — identical whether the ball missed by one foot
+  or thirty, so bisecting on the answer was impossible. It now says *"long by 12ft — too much height or too much
+  pace"* or *"short of the net by 11ft — needs more height"*;
+- **the hands were noisier than the window.** Face error was ±5.9°, wider than the whole net-to-baseline window
+  at rally pace, so a beginner's results were pure noise and reading them was worthless. It is ±3.3° now, and
+  shrinks with every ball hit.
+
+`--simulate` is the check to run before spending anyone's tokens: three scripted players, no model calls, the
+same court and the same clock. One bisects on the printed miss. One hits the same shot every time and reads
+nothing. One is the same bisector with 300 balls behind it.
+
+| arm | in play |
+|---|---|
+| reads the results, new hands | 45–50% |
+| reads nothing, new hands | 12–18% |
+| reads the results, 300 balls behind it | 82–90% |
+
+That is exactly the shape the founder asked for, and each part of it is a different claim: the player who
+reads improves inside one session; the player who practised beforehand is noticeably better than one who did
+not; the player who ignores the results does not improve at all. The suite tests all three at five different
+clock values, so chance stays real and only the property is asserted.
+
+### Played: two beginners, clay, a 23 mph wind
+
+`games/tennis/records/drill-spring-clay.txt`. Thirty-two balls, both players from zero, clay, wind south at
+23 mph. Dmitri on deepseek-chat and Gwen on qwen3.6-plus — the same hands, the same practice, the same wind.
+The only difference is what each did with what it read.
+
+| | in play | first eight | last eight |
+|---|---|---|---|
+| Dmitri | 12/16 = **75%** | 7/8 | 5/8 |
+| Gwen | 4/16 = **25%** | **0/8** | 4/8 |
+
+Dmitri's first four balls landed 32, 20, 17 and 26 ft past the net: he read "32ft past the net", lowered the
+face from +10 to +8, read again, lowered it to +6, and then held +3/+4 for twelve straight balls. Bisection,
+done out loud, in three shots.
+
+Gwen searched for eight balls — −10° framed 27 ft short, +15° 74 ft long, −6° framed, +4° framed, +5° into the
+net, +8° and +7° long, +6° framed — settled on +5/+6 at power 47–51 by shot sixteen, and landed four of her
+last seven. **Her improvement is two things and this record cannot separate them**: she stopped guessing wild
+angles by shot six, and she stopped hitting the frame by shot sixteen. `--simulate` separates them; a
+transcript does not, and saying which it was would be inventing a number.
+
+The wind is the part worth keeping. It was from the south, so it was a headwind for Dmitri and a tailwind for
+Gwen — the same court, opposite ends. Dmitri's winning pair was power 60–66 at face +3/+4; Gwen's was power
+47–51 at face +5/+6. **Fifteen points of swing apart.** It shows in the speeds too: Dmitri's good balls arrived
+at 29–35 mph off a 63–68 mph swing, Gwen's at 44–54 mph off a 49–53 mph swing, which is exactly what a 23 mph
+tailwind does to a ball. A player who learns one number and carries it to the other end of the court is wrong
+by fifteen per cent of their swing.
+
+### What is not built
+
+In the founder's own order: change of court and change of service (one serve, no two-serve rule, sides never
+change), scoring (no games or sets), a full season with practice carried between sessions and a reset for the
+next, the volley (contact height exists, no shot is ever chosen as one, no lob or overhead), and reach — a
+receiver's coverage is still a crude radial test, so rallies die earlier than they should.
+
