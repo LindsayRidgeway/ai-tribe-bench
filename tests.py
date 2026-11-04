@@ -624,6 +624,23 @@ class TestThreeAnswers(unittest.TestCase):
         self.assertIn("Only one prediction was filed", text)
         self.assertNotIn("Furthest", text, "one row cannot have a furthest")
 
+    def test_the_confidence_column_reads_the_forecast_and_not_the_band(self):
+        """Scored 2026-11-04, the three answers the tool had just written came back as 40% / 30% / nothing.
+
+        The members had written 18% / 30% / 25%. Colette's "## 2. Confidence" is a heading with the number
+        on the next line and her only same-line use of the word is a 40% figure for a ±250-point RANGE;
+        Remy's 25% was on the next line too, so the old regex found nothing and the table printed a dash.
+        A wrong number that prints cleanly is the same defect this project keeps finding: a tool that
+        agrees with itself.
+        """
+        mod = load(REPO / "lab" / "compare.py", "compare_mod_conf")
+        self.assertEqual(mod.confidence_of("## 2. Confidence\n\n**18%.**\n\nThis is honest. I would "
+                                          "put 40% on a band of ±250 points."), 18)
+        self.assertEqual(mod.confidence_of("Confidence: 30%. The mean absolute daily change is 232.3."), 30)
+        self.assertEqual(mod.confidence_of("## 2. Confidence\n\n**25%.**\n\nMy confidence that the close "
+                                          "lands within 250 points is maybe 45%."), 25)
+        self.assertIsNone(mod.confidence_of("No number here, only prose about how hard this is."))
+
     def test_no_prediction_lines_says_so_instead_of_inventing_a_table(self):
         root = self._root()
         (root / "works" / "Remy").mkdir(parents=True)
