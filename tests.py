@@ -2799,5 +2799,103 @@ class TestTennis(unittest.TestCase):
         self.assertIsNone(t.parse_command("I will hit it firmly to the left"))
 
 
+    def _session_book(self, tmp, pair=("Remy", "Gwen"), first=(8, 16), last=(12, 16), n=2):
+        """A season file written the way `run_rally` writes one, with the numbers chosen by the test.
+
+        A fixture in a temp directory: this is the only place a session's numbers are picked rather than
+        played, and it is here because the report is being tested on whether it is willing to stay quiet,
+        so the outcome has to be controllable. No real season file is ever written by a test.
+        """
+        t = self.t
+        book = t.load_season("2026-spring", tmp)
+        for i in range(n):
+            players = [t.Player(pair[0], True, t.practice_of(book, pair[0])),
+                       t.Player(pair[1], False, t.practice_of(book, pair[1]))]
+            inn, of = (first if i == 0 else last)
+            for p in players:
+                p.shots = of
+            results = {pair[0]: [True] * (inn // 2) + [False] * (of - inn // 2),
+                       pair[1]: [True] * (inn - inn // 2) + [False] * (of - (inn - inn // 2))}
+            t.record_session(book, when=f"2026-11-0{i + 4}T18:00:00Z", surface="clay", clock=1,
+                             players=players, results=results, lengths=[2, 3],
+                             partners={pair[0]: [pair[1]], pair[1]: [pair[0]]})
+        t.save_season(book, "2026-spring", tmp)
+        return book
+
+    def test_practice_outlives_the_process_that_hit_the_ball(self):
+        """Founder, 2026-11-04: "she's been practicing with Remy and her game has really improved" should be
+        a thing the record prints.
+
+        It could not be, until this file existed: practice was a Python variable, so every run started
+        everyone at spring-zero and that sentence was prose a person would have to write. The read here is
+        deliberately a second load of the file, because a second load is what the next session does.
+        """
+        t = self.t
+        tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp, True)
+        self._session_book(tmp)
+        book = t.load_season("2026-spring", tmp)          # a fresh read: the next session's view
+        self.assertEqual(t.practice_of(book, "Remy"), 32, "two 16-ball sessions: the balls belong on disk")
+        p0, p400 = t.Player("Remy", True, 0), t.Player("Remy", True, 400)
+        self.assertGreater(p400.skill("control"), p0.skill("control"),
+                           "the file is only worth keeping if practice changes the hands")
+
+    def test_a_new_season_starts_at_zero_and_does_not_touch_the_last_one(self):
+        """The founder's dilemma: keep the record of past seasons, and let a season run for months.
+
+        The answer is that a season is a directory. A reset is not a wipe — it is the absence of a file —
+        so last spring stays readable and the season that follows it cannot rewrite it.
+        """
+        t = self.t
+        tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp, True)
+        self._session_book(tmp)
+        other = Path(tmp) / "2027-spring"
+        self.assertEqual(t.practice_of(t.load_season("2027-spring", str(other)), "Remy"), 0,
+                         "a new season starts at beginners")
+        self.assertEqual(t.practice_of(t.load_season("2026-spring", tmp), "Remy"), 32,
+                         "and the old season is still there, unchanged")
+
+    def test_the_report_will_not_say_improved_unless_the_numbers_do(self):
+        t = self.t
+        one = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, one, True)
+        self._session_book(one, n=1)
+        text = t.season_report("2026-spring", one)
+        self.assertIn("Nothing can be said about improvement from one session", text)
+        self.assertNotIn("The game improved", text)
+
+        moved = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, moved, True)
+        self._session_book(moved, first=(8, 16), last=(13, 16))
+        text = t.season_report("2026-spring", moved)
+        self.assertIn("The game improved", text)
+        self.assertIn("practice.json", text, "a claim in this project carries the file it came from")
+
+        flat = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, flat, True)
+        self._session_book(flat, first=(10, 16), last=(11, 16))
+        text = t.season_report("2026-spring", flat)
+        self.assertIn("No claim", text, "a six-point wobble is inside this game's scatter")
+        self.assertNotIn("The game improved", text)
+
+        # The first real season, 2026-11-04, printed "the game got worse" for Colette on 5/7 -> 4/7.
+        # That is one ball and fourteen points, and the scatter guard waved it through because fourteen is
+        # bigger than eight. A percentage of seven balls is not a measurement.
+        thin = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, thin, True)
+        self._session_book(thin, first=(5, 7), last=(4, 7))
+        text = t.season_report("2026-spring", thin)
+        self.assertIn("Not a sample", text)
+        self.assertNotIn("got worse", text)
+
+    def test_a_season_nobody_has_played_in_reports_nothing_and_cites_nothing(self):
+        t = self.t
+        tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp, True)
+        text = t.season_report("2029-autumn", tmp)
+        self.assertIn("Nobody has hit a ball", text)
+        self.assertNotIn("improved", text)
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

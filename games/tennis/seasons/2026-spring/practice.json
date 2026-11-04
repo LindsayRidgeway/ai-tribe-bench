@@ -1,0 +1,81 @@
+{
+ "members": {
+  "Colette": {
+   "balls": 14,
+   "sessions": [
+    {
+     "clock": 1793817193205,
+     "control": 0.222,
+     "in_play": 5,
+     "longest": 7,
+     "mean_rally": 2.12,
+     "mode": "rally",
+     "of": 7,
+     "reach": 0.384,
+     "shots": 7,
+     "surface": "clay",
+     "when": "2026-11-04T18:34:30Z",
+     "with": [
+      "Remy"
+     ]
+    },
+    {
+     "clock": 1793817273990,
+     "control": 0.261,
+     "in_play": 4,
+     "longest": 5,
+     "mean_rally": 1.88,
+     "mode": "rally",
+     "of": 7,
+     "reach": 0.416,
+     "shots": 7,
+     "surface": "clay",
+     "when": "2026-11-04T18:35:48Z",
+     "with": [
+      "Remy"
+     ]
+    }
+   ]
+  },
+  "Remy": {
+   "balls": 18,
+   "sessions": [
+    {
+     "clock": 1793817193205,
+     "control": 0.239,
+     "in_play": 4,
+     "longest": 7,
+     "mean_rally": 2.12,
+     "mode": "rally",
+     "of": 10,
+     "reach": 0.398,
+     "shots": 10,
+     "surface": "clay",
+     "when": "2026-11-04T18:34:30Z",
+     "with": [
+      "Colette"
+     ]
+    },
+    {
+     "clock": 1793817273990,
+     "control": 0.283,
+     "in_play": 3,
+     "longest": 5,
+     "mean_rally": 1.88,
+     "mode": "rally",
+     "of": 8,
+     "reach": 0.434,
+     "shots": 8,
+     "surface": "clay",
+     "when": "2026-11-04T18:35:48Z",
+     "with": [
+      "Colette"
+     ]
+    }
+   ]
+  }
+ },
+ "note": "",
+ "opened": "2026-11-04T18:34:30Z",
+ "season": "2026-spring"
+}

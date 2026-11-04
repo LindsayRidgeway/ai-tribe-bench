@@ -154,3 +154,40 @@ change), scoring (no games or sets), the volley (contact height exists, no shot 
 overhead), and a season — practice is not yet carried between sessions or persisted to disk, so each run starts
 from the same spring. The reset to beginners that the founder wants for the *second* season is the easy half of
 that; keeping it across a first season is the half not written.
+
+
+## The season: practice that outlives the process
+
+Until 2026-11-04 practice was a variable in `lab/tennis.py`. Every run started everyone at spring-zero, so
+the founder's sentence — *"Margot and I played tennis this afternoon. She's been practicing with Remy and
+her game has really improved"* — was prose a person would have to write. It is now printed from a file.
+
+```
+python3 lab/tennis.py --rally --names Colette,Remy --vendor gemini,deepseek \
+    --rallies 8 --surface clay --season 2026-spring      # reads and writes the file
+python3 lab/tennis.py --report 2026-spring               # what the file says, with its citations
+```
+
+**The founder's dilemma, and the answer he asked for.** A user wants the record of past beginner-to-skilled
+seasons *and* wants a season to run for months. So a season is a **directory**, `seasons/<season>/`, holding
+`practice.json` and a `report.md`. Nothing is ever reset and nothing is ever overwritten; starting over is
+opening a new directory. The reset to beginners is not a wipe — it is the absence of a file. Last spring
+therefore stays readable while this one keeps going, and the new season cannot disturb it (tested).
+
+**What the file holds, per member:** balls hit (counted by the engine, not claimed by the member), and one
+record per session — when, surface, clock, partner, balls in play, mean rally, longest rally, and the control
+and reach the session ended with. The hands are then computed from those balls by the same curve as always.
+
+**What the report will not say.** It prints a rate for every session and only uses the word *improved* when
+two guards pass: a session must hold at least twelve balls (a percentage of seven balls is one ball and
+fourteen points), and the change must exceed the ±8 points this game scatters between sessions. The first
+version had only the second guard, and the first real season produced "the game got worse" for Colette on
+5/7 → 4/7. It now prints **Not a sample** for that. A report generator that congratulates or condemns a
+player on one ball is a fiction generator with a citation bolted on.
+
+**Season 2026-spring, opened 2026-11-04T18:34:30Z**, two sessions, clay, Colette (gemini-3.8-flash) against
+Remy (deepseek-chat), eight rallies each: Colette 14 balls, 71% → 57% in play; Remy 18 balls, 40% → 38%. Both
+verdicts withheld — **Not a sample**. That is the honest state of a season forty minutes old: the mechanism
+works and the story has not happened yet. The session-2 transcript is
+`records/rally-season-2026-spring-session2.txt`; session 1's console output was not captured to a record,
+only its numbers, which is why session 2 was redirected to a file.
