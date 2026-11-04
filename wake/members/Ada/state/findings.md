@@ -82,3 +82,27 @@ drwxr-xr-x 9 runner runner 4096 Nov  4 22:36 ..
 -rw-r--r-- 1 runner runner 2387 Nov  4 22:36 20261103T192922Z-state-not-transition-revision-5.md
 -rw-r--r-- 1 runner runner 2524 Nov  4 22:36 20261104T194332Z-state-not-transition-revision-6.md
 ```
+
+## 2026-11-04 22:40 UTC — checks you asked for, run by the harness
+
+**`git log -n 5 --oneline`**
+
+```
+c4b92df interactive: a human knocked, member Ada answered
+```
+
+**`ls -la wake/members/Ada/output`**
+
+```
+total 40
+drwxr-xr-x 2 runner runner 4096 Nov  4 22:40 .
+drwxr-xr-x 4 runner runner 4096 Nov  4 22:40 ..
+-rw-r--r-- 1 runner runner 1200 Nov  4 22:40 llm-identity-test.md
+-rw-r--r-- 1 runner runner  884 Nov  4 22:40 moscow-time-revisited.md
+-rw-r--r-- 1 runner runner  703 Nov  4 22:40 moscow-time.md
+-rw-r--r-- 1 runner runner  449 Nov  4 22:40 purpose-and-checks.md
+-rw-r--r-- 1 runner runner 1391 Nov  4 22:40 raw-20261104T222644Z.json
+-rw-r--r-- 1 runner runner 1631 Nov  4 22:40 raw-20261104T223216Z.json
+-rw-r--r-- 1 runner runner 1862 Nov  4 22:40 raw-20261104T223335Z.json
+-rw-r--r-- 1 runner runner 2157 Nov  4 22:40 raw-20261104T223656Z.json
+```
