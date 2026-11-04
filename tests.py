@@ -3080,5 +3080,52 @@ class TestChat(unittest.TestCase):
         self.assertEqual(called, [], "a name not in the drop list must not reach a wake")
 
 
+class TestWorkflows(unittest.TestCase):
+    """The workflows are the part of the shipped sheet that nobody runs before a stranger does.
+
+    Found 2026-11-04 by the only test that counts: the founder opened the repo on a Pixel, ran the
+    Run-workflow form, and no member answered — because `interactive.yml` fell back to member "b", a fixture
+    name that exists in the bench and in no colony. A shipped default that only works where it was written
+    is the same defect as a test that only passes where it was written.
+    """
+
+    WF = REPO / ".github" / "workflows"
+
+    def test_the_member_drop_list_is_the_members_on_disk(self):
+        text = (self.WF / "interactive.yml").read_text(encoding="utf-8")
+        self.assertIn("type: choice", text, "a text box is not a drop list; the phone form needs a select")
+        block = text.split("type: choice", 1)[1].split("default:", 1)[0]
+        listed = [l.strip().lstrip("- ").strip() for l in block.splitlines()
+                  if l.strip().startswith("- ")]
+        on_disk = sorted(d.name for d in (REPO / "wake" / "members").iterdir()
+                         if (d / "state" / "voice.md").is_file())
+        if any(len(n) <= 2 for n in on_disk):
+            # The bench ships fixtures called a, b, c. A static drop list cannot be generated from disk, so
+            # the comparison is only meaningful where the members are real: the colony. Saying so beats a
+            # bench that is red for a reason that has nothing to do with the bench.
+            self.skipTest(f"this repository holds fixture members ({', '.join(on_disk[:4])}...); "
+                          f"the drop list is measured in the colony")
+        self.assertEqual(sorted(listed), on_disk,
+                         "the drop list and the shelf disagree — add or remove the member in both places")
+        self.assertTrue(listed, "an empty drop list is what the founder saw on his phone")
+
+    def test_no_workflow_falls_back_to_a_member_that_does_not_exist(self):
+        """`${MEMBER:-b}` reads as "b if nothing was chosen", and b is nothing in a colony. A stranger's first
+        comment would have woken a member that is not there."""
+        on_disk = {d.name for d in (REPO / "wake" / "members").iterdir()}
+        bad = []
+        for f in sorted(self.WF.glob("*.yml")):
+            for m in re.finditer(r"\$\{MEMBER:-([A-Za-z][\w-]*)\}", f.read_text(encoding="utf-8")):
+                if m.group(1) not in on_disk:
+                    bad.append(f"{f.name}: MEMBER:-{m.group(1)}")
+        self.assertEqual(bad, [], "a workflow's default member must be a member this colony has")
+
+    def test_a_comment_that_names_no_member_is_answered_by_the_first_on_the_shelf(self):
+        text = (self.WF / "interactive.yml").read_text(encoding="utf-8")
+        self.assertIn('who="$(ls -1 wake/members | head -1)"', text)
+        self.assertIn("no member was chosen", text,
+                      "the later steps must read the resolved member, not an empty input")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -317,17 +317,27 @@ Two rules about these files, and they are the whole trick:
 **The window is how a person talks to a tribe; the issue thread is how a stranger tries one without
 installing anything.**
 
-**If you only want to talk to a participant, there is a page** — a drop list of the members and two boxes,
-one to type in and one for the reply. It works on a phone:
+**Talking to one participant: two routes, and only one of them involves your phone.**
+
+*On a computer, with the repository already on disk,* there is a page — a drop list of the members and two
+boxes, one to type in and one for the reply:
 
 ```
 python3 lab/chat.py            # then open http://127.0.0.1:8770
-python3 lab/chat.py --host 0.0.0.0   # same page, visible to your phone on the same wifi
 ```
 
-Every message on that page is a real wake, not a chat with an engine: the participant reads its own files,
-answers once, and the exchange is filed and committed. It takes ten to forty seconds, which is honest
-about what it costs and is why the page says so while it waits.
+Every message there is a real wake, not a chat with an engine: the participant reads its own files, answers
+once, and the exchange is filed and committed. Ten to forty seconds, and the page says so while it waits.
+
+*From a phone, with nothing installed,* use the repository in your mobile browser instead. **Actions →
+interactive → Run workflow** gives you a drop list of the members and a box for the question; the answer
+comes back as a new issue thread you can reply in. Or comment `@tribe …` on any issue.
+
+**The page does not work by pasting it into a phone.** Two reasons, both structural: a pasted script has no
+repository around it, so there are no members to list, and a phone has no browser pointed at a server
+running inside another app. That was tried on 2026-11-04 on a Pixel; the page is a computer thing and the
+issue thread is the phone thing. If you want the page on the phone, run it on the computer with `--host
+0.0.0.0` and open the computer's address on the phone — same wifi, the page is one column wide on purpose.
 
 ### 5.0 First: what Goose is, and how to install it
 

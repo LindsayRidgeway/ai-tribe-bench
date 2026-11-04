@@ -14,9 +14,17 @@ on:
         required: false
         default: ""
       member:
-        description: "which member answers (default: b)"
-        required: false
-        default: "b"
+        # A drop list, not a text box. On a phone this is the closest thing to the conversation page the
+        # founder asked for: GitHub's Run-workflow form renders `choice` as a select, so a person taps a name,
+        # types a question and taps Run. The list has to stay equal to the members on disk — a test compares
+        # them, because a hardcoded list drifts the first time somebody adds a member.
+        description: "which member answers"
+        type: choice
+        options:
+          - Colette
+          - Margot
+          - Remy
+        default: "Colette"
 
 permissions:
   contents: write
@@ -54,6 +62,24 @@ jobs:
           git reset --hard "origin/$ref"
           git log --oneline -1
 
+      - name: Which member answers
+        # A comment names no member, and this step used to fall back to "b" — a fixture name from the bench
+        # that exists in no colony. On 2026-11-04 the founder asked a question from a phone and the reply
+        # never came, because greet-the-first-member was never the default: a shipped workflow whose default
+        # member does not exist is broken in exactly the case a stranger meets first.
+        run: |
+          set -euo pipefail
+          who="${{ inputs.member }}"
+          if [ -z "$who" ]; then
+            who="$(ls -1 wake/members | head -1)"
+            echo "no member named in this comment, so the first on the shelf answers: $who"
+          fi
+          if [ ! -d "wake/members/$who/state" ]; then
+            echo "!! no such member: $who (members: $(ls -1 wake/members | tr '\n' ' '))"
+            exit 2
+          fi
+          echo "MEMBER=$who" >> "$GITHUB_ENV"
+
       - name: The question, as the human wrote it
         env:
           BODY: ${{ github.event.comment.body }}
@@ -73,7 +99,7 @@ jobs:
           set -euo pipefail
           touch /tmp/answer-start      # so the next step cannot hand back last week's answer
           Q="$(cat /tmp/question.txt)"
-          who="${{ inputs.member }}"; who="${who:-b}"
+          who="${MEMBER:?no member was chosen}"
           api="$(grep -E '^api:' "wake/members/$who/state/voice.md" | head -1 | awk '{print $2}')"
           model="$(grep -E '^model:' "wake/members/$who/state/voice.md" | head -1 | awk '{print $2}')"
           echo "MEMBER=$who" >> "$GITHUB_ENV"
@@ -87,7 +113,7 @@ jobs:
           ISSUE: ${{ github.event.issue.number }}
         run: |
           set -euo pipefail
-          who="${MEMBER:-b}"
+          who="${MEMBER:?no member was chosen}"
           # This wake's answer, not the newest file in the directory. A wake that failed to write one
           # leaves the previous answer sitting there, and posting it under this question's stamp is the
           # harness putting words in a member's mouth.
@@ -106,8 +132,17 @@ jobs:
             gh api "repos/${{ github.repository }}/issues/${ISSUE}/comments" -F body=@/tmp/reply.md > /dev/null
             echo "reply posted to issue ${ISSUE}"
           else
-            echo "no issue to post to (dispatched); the answer is above"
-            cat /tmp/reply.md
+            # A dispatched question had no thread, so its answer lived only in the run log — three taps
+            # deep on a phone, in a page that reloads. Open a thread and answer in it, so the phone path
+            # ends somewhere a person can read and reply to.
+            q="$(head -c 80 /tmp/question.txt 2>/dev/null || echo 'a question')"
+            num="$(gh api "repos/${{ github.repository }}/issues" \
+                     -f title="Ask ${who}: ${q}" \
+                     -f body="Asked from the Run-workflow form by ${{ github.actor }} at $(date -u +%FT%TZ)." \
+                     --jq .number)"
+            echo "opened issue ${num} for this question"
+            gh api "repos/${{ github.repository }}/issues/${num}/comments" -F body=@/tmp/reply.md > /dev/null
+            echo "reply posted to issue ${num}"
           fi
 
       # The answer reached the issue thread and stopped there: the member's own output directory is not
@@ -116,10 +151,10 @@ jobs:
       # gave B a reading that LEDGER.md never counted. Filing is the hinge; the rebuild is the rest of it.
       - name: File the answer, so the shelf and the magazine can see it
         env:
-          MEMBER: ${{ inputs.member }}
+          MEMBER: ${{ env.MEMBER }}
         run: |
           set -euo pipefail
-          m="${MEMBER:-b}"
+          m="${MEMBER:?no member was chosen}"
           if [ ! -f /tmp/answer-start ]; then echo "the answer step never started — nothing to file"; exit 0; fi
           newest="$(ls -t "wake/members/$m/output"/raw-*.json 2>/dev/null | head -1 || true)"
           if [ -z "$newest" ] || [ ! "$newest" -nt /tmp/answer-start ]; then
@@ -140,12 +175,12 @@ jobs:
       - name: Keep the exchange in the record
         if: always()
         env:
-          MEMBER: ${{ inputs.member }}
+          MEMBER: ${{ env.MEMBER }}
         run: |
           set -euo pipefail
           git config user.name "Model AI Tribe"
           git config user.email "tribe@users.noreply.github.com"
-          m="${MEMBER:-b}"
+          m="${MEMBER:?no member was chosen}"
           git add -A
           if git diff --cached --quiet; then echo "nothing to commit"; else
             git commit -m "interactive: a human knocked, member ${m} answered"

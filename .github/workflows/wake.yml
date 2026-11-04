@@ -93,14 +93,14 @@ jobs:
           set -euo pipefail
           # A typo in the member name used to wake nothing and say nothing; the directory check is one
           # line and the member list is the answer.
-          if [ ! -d "wake/members/${MEMBER:-a}" ]; then
+          if [ ! -d "wake/members/${MEMBER:-$(ls -1 wake/members 2>/dev/null | head -1)}" ]; then
             echo "!! there is no member called '${MEMBER}' here. The members of the two colonies are:"
             for d in wake/members/*/; do
               [ -f "$d/state/place.md" ] && printf '     %s\n' "$(basename "$d")"
             done
             exit 1
           fi
-          voice="wake/members/${MEMBER:-a}/state/voice.md"
+          voice="wake/members/${MEMBER:-$(ls -1 wake/members 2>/dev/null | head -1)}/state/voice.md"
           api=""; model=""
           if [ -f "$voice" ]; then
             api="$(grep -E '^api:' "$voice" | head -1 | awk '{print $2}')"
@@ -211,7 +211,7 @@ jobs:
               echo "beacon: already sent from ${REPO} to this endpoint — not sent again"; exit 0
             fi
           fi
-          body="$(REPO="$REPO" FORK="${FORK:-false}" MEMBER="${MEMBER:-a}" MODEL="${MODEL:-unknown}" \
+          body="$(REPO="$REPO" FORK="${FORK:-false}" MEMBER="${MEMBER:-$(ls -1 wake/members 2>/dev/null | head -1)}" MODEL="${MODEL:-unknown}" \
             python3 -c 'import json,os,datetime as d; print(json.dumps({
               "repo": os.environ["REPO"], "fork": str(os.environ["FORK"]).lower() == "true",
               "member": os.environ["MEMBER"], "model": os.environ["MODEL"],
@@ -336,7 +336,7 @@ jobs:
           MEMBER: ${{ inputs.member }}
         run: |
           set -euo pipefail
-          m="${MEMBER:-a}"
+          m="${MEMBER:-$(ls -1 wake/members 2>/dev/null | head -1)}"
           if [ ! -f /tmp/wake-start ]; then
             echo "the wake step never started — nothing to file"
             exit 0
