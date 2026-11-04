@@ -600,3 +600,69 @@
 - File written: (none)
 - Tokens generated: ?; wall clock: 0.1s
 - In its own words: (no journal field)
+
+## 2026-11-04 21:27 UTC — gemini-3.8-flash (api)
+
+- Verdict: **INVALID: the model could not be given the request (HTTPError: HTTP Error 400: Bad Request {
+  "error": {
+    "code": 400,
+    "message": "API key not valid. Please pass a )**
+- Item chosen: ?
+- File written: (none)
+- Tokens generated: ?; wall clock: 0.2s
+- In its own words: (no journal field)
+
+## 2026-11-04 21:27 UTC — gemini-3.8-flash (api)
+
+- Verdict: **INVALID: the model could not be given the request (HTTPError: HTTP Error 400: Bad Request {
+  "error": {
+    "code": 400,
+    "message": "API key not valid. Please pass a )**
+- Item chosen: ?
+- File written: (none)
+- Tokens generated: ?; wall clock: 0.2s
+- In its own words: (no journal field)
+
+## 2026-11-04 21:27 UTC — gemini-3.8-flash (api)
+
+- Verdict: **INVALID: the model could not be given the request (HTTPError: HTTP Error 400: Bad Request {
+  "error": {
+    "code": 400,
+    "message": "API key not valid. Please pass a )**
+- Item chosen: ?
+- File written: (none)
+- Tokens generated: ?; wall clock: 0.1s
+- In its own words: (no journal field)
+
+## 2026-11-04 21:27 UTC — gemini-3.8-flash (api)
+
+- Verdict: **INVALID: the model could not be given the request (HTTPError: HTTP Error 400: Bad Request {
+  "error": {
+    "code": 400,
+    "message": "API key not valid. Please pass a )**
+- Item chosen: ?
+- File written: (none)
+- Tokens generated: ?; wall clock: 0.1s
+- In its own words: (no journal field)
+
+## 2026-11-04 21:27 UTC — gemini-3.8-flash (api)
+
+- Verdict: **INVALID: the model could not be given the request (HTTPError: HTTP Error 400: Bad Request {
+  "error": {
+    "code": 400,
+    "message": "API key not valid. Please pass a )**
+- Item chosen: ?
+- File written: (none)
+- Tokens generated: ?; wall clock: 0.1s
+- In its own words: (no journal field)
+
+## 2026-11-04 21:27 UTC — gemini-3.8-flash (api)
+
+- Verdict: **INVALID: the model could not be given the request (HTTPError: HTTP Error 400: Bad Request {
+  "error": {
+    "code": 400,
+    "message": "API key not valid. Please pass a )**
+- Item chosen: ?
+- File written: (none)
+- Tokens generated: ?; wall clock: 0.1s
+- In its own words: (no journal field)

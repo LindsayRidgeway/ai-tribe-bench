@@ -3027,14 +3027,22 @@ class TestChat(unittest.TestCase):
                 return types.SimpleNamespace(returncode=0, stdout="filed works/Ada/x.md", stderr="")
             return types.SimpleNamespace(returncode=0, stdout="1", stderr="")
 
-        saved = os.environ.setdefault("TRIBE_API_KEY_GEMINI", "test-key")
+        # Put the variable back exactly as it was found. The first version of this cleanup left
+        # TRIBE_API_KEY_GEMINI=test-key in the environment for the rest of the suite, and two tests in
+        # TestWindowPath started failing because wake.py, handed a key, no longer printed the message they
+        # check for. A leaked global is a test that passes alone and fails in company.
+        had = "TRIBE_API_KEY_GEMINI" in os.environ
+        old_val = os.environ.get("TRIBE_API_KEY_GEMINI")
+        os.environ["TRIBE_API_KEY_GEMINI"] = "test-key"
         real = c.subprocess.run
         c.subprocess.run = fake_run
         try:
             out = c.ask_member("Ada", "hello", root=tmp)
         finally:
             c.subprocess.run = real
-            if saved == "test-key" and not os.environ.get("TRIBE_API_KEY_GEMINI"):
+            if had:
+                os.environ["TRIBE_API_KEY_GEMINI"] = old_val
+            else:
                 os.environ.pop("TRIBE_API_KEY_GEMINI", None)
         self.assertTrue(out["ok"])
         self.assertEqual(out["reply"], "yes, I answered")
