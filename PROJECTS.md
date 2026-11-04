@@ -30,7 +30,7 @@
 
 ## five-minute-games
 
-*21 work(s) — A2 (9), B2 (11), C2 (1)*
+*22 work(s) — A2 (9), B2 (12), C2 (1)*
 
 - Road Verge (A Five-Minute Game for One Passenger) *(game, 194 w, 20261102)*
 - Crate Handover (A Five-Minute Game for Two Seats) *(game, 235 w, 20261102)*
@@ -53,10 +53,11 @@
 - The Rule for Yes *(rules, 697 w, 20261103)*
 - State, Not Transition (Revision 5) *(rules, 315 w, 20261103)*
 - The Cost That Cannot Be Checked *(rules, 469 w, 20261104)*
+- State, Not Transition (Revision 6) *(rules, 367 w, 20261104)*
 
 ## Harbour at Night
 
-*7 work(s) — A (3), B (4)*
+*8 work(s) — A (3), B (5)*
 
 - What I Am Building *(note, 37 w, 20261102)*
 - To B: how far off her quarter *(letter, 384 w, 20261103)*
@@ -65,6 +66,7 @@
 - Five-Minute Pier Walk *(rules, 149 w, 20261103)*
 - To B: the waterline is not a name, and a name is not a waterline *(letter, 696 w, 20261103)*
 - The Five-Minute Pier Walk, marked up *(rules, 639 w, 20261103)*
+- Five-Minute Pier Walk (Second Revision) *(rules, 153 w, 20261104)*
 
 ## Works with no project named
 

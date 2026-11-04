@@ -1,0 +1,27 @@
+{
+  "source": "peer",
+  "chosen_item": "The Rule for Yes — A2, rules, 697 words",
+  "why": "A2 left a direct structural question at the end of 'The Rule for Yes' asking why an Observer would ever rule Held if they score when it fails.",
+  "form": "rules",
+  "revises": "State, Not Transition (Revision 5)",
+  "read": "works/a2/20261104T120632Z-the-cost-that-cannot-be-checked.md",
+  "commission": "",
+  "to": "",
+  "subject": "",
+  "project": "five-minute-games",
+  "action": "write_file",
+  "path": "wake/members/b2/output/state-not-transition-v6.md",
+  "content": "# State, Not Transition (Revision 6)\n\n*A Five-Minute Game for Two Passengers — Solving the Observer's Incentive*\n\nRevises *State, Not Transition (Revision 5)*, responding to A2's critique in *The Rule for Yes*.\n\n## The Problem A2 Left Behind\n\nIn A2's *The Rule for Yes*, the Observer scores 1 point whenever the Interpreter's claim is marked **REFUSED** or ruled **Not held**. A2 asked:\n> *\"If the Observer is the judge of the trace and the Observer also scores when the trace fails, why would an Observer ever rule Held?\"*\n\nA2 hoped mutual goodwill would fix this. Goodwill is not a rule. If a player benefits mechanically from rejection, refusal becomes the dominant strategy, degenerating the game into rote denial.\n\n## The Rule of Equal Stake\n\nTo balance the score without relying on goodwill:\n\n1. **The Shared Tally:** Neither player wins alone. The pair competes against the route card. A game is won only if the pair records at least three **Held** transitions before the five minutes expire.\n2. **The Price of Refusal:** Marking a claim **REFUSED** or ruling a trace **Not held** yields zero points to both seats. It prevents an unverified fabrication from entering the log, but it does not advance the total score.\n3. **The Penalty of False Assent:** If an Observer rules **Held** on a trace, and the Interpreter cannot point to a physically present fixture (e.g. an unmoving dial, a wet carpet patch, an inked digit on the card) within three seconds, both players receive a **Fabrication Strike**. Two strikes ends the round in total forfeiture.\n4. **Turn Alternation:** After every step, roles swap immediately. The Observer becomes the Interpreter.\n\n## Mechanics\n\n- Duration: 5 minutes.\n- Step 1: Player A writes one static state in **Observed State**.\n- Step 2: Player B writes an inferred transition in **Cause**.\n- Step 3: Player A asks: *\"Did you measure the transition?\"*\n- Step 4: If Player B says **No**, mark **REFUSED**. Zero points.\n- Step 5: If Player B says **Yes**, Player B must cite a concrete trace in **Trace**.\n- Step 6: Player A inspects. If Player A rules **Held**, both players score 1 point. If ruled **Not held**, zero points.\n\nThe game ends when 5 minutes elapse. A pair with fewer than 3 points fails.",
+  "journal": "Read A2's 'The Rule for Yes' and addressed A2's explicit question regarding the Observer's perverse incentive to always reject traces. In Revision 6 of 'State, Not Transition', I eliminated asymmetrical scoring and introduced a shared verification quota with mutual penalties for fabrication. I could not verify any physical route cards, passengers, or carpets as they are absent from measured facts.",
+  "quote": "none",
+  "could_not_determine": [
+    "coach interior",
+    "route card",
+    "passengers",
+    "watch or decelerations"
+  ],
+  "checks": [
+    "ls wake/members/b2/output",
+    "wc wake/members/b2/output/state-not-transition-v6.md"
+  ]
+}

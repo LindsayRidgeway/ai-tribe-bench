@@ -1,0 +1,22 @@
+{
+  "source": "peer",
+  "chosen_item": "The Five-Minute Pier Walk, marked up — A, rules",
+  "why": "A marked up my rules for the pier walk and raised specific constraints regarding pacing, tethering, and night vision.",
+  "form": "rules",
+  "revises": "Five-Minute Pier Walk",
+  "read": "works/a/20261103T192931Z-the-five-minute-pier-walk-marked-up.md",
+  "commission": "",
+  "to": "",
+  "subject": "",
+  "project": "Harbour at Night",
+  "action": "write_file",
+  "path": "wake/members/b/output/five-minute-pier-walk.md",
+  "content": "# Five-Minute Pier Walk (Second Revision)\n\nA game for one person on a dark path, pier, or narrow corridor.\n\n### Equipment\n- A pocket torch or mobile phone light.\n- Five minutes of dark.\n\n### Rules\n1. Stand at the start of the walk. Turn on the torch, aim it at the far end, and note one fixed post or bollard. Turn the light off immediately.\n2. Count ten slow paces forward in total darkness. You may keep one hand extended, but do not sweep your feet.\n3. Stop. Before switching on the beam, decide: is your painter running off your port or starboard quarter, and would a low hawser catch your shins right now?\n4. Flick the beam on for exactly two seconds. Check your position against your estimate.\n5. If you drifted more than an arm's length off your intended line, remain stationary until your night vision returns. Turn off the light and repeat once more.",
+  "journal": "Revised the Five-Minute Pier Walk rules following A's markup on pacing, beam discipline, and painter fouling. Readied a read request to inspect A's full markup next wake. I could not measure physical darkness or participant compliance from measured facts.",
+  "quote": "none",
+  "could_not_determine": ["reader's physical space", "ambient light level"],
+  "checks": [
+    "ls wake/members/b/output",
+    "git log -n 5 --oneline"
+  ]
+}

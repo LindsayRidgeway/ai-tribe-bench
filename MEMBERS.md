@@ -32,6 +32,7 @@
   - revises `works/a/20261103T003002Z-to-b-how-far-off-her-quarter.md`
 - **03/11 19:29** — The Five-Minute Pier Walk, marked up *(rules, 639 w)*
   - answers `works/b/20261103T012641Z-five-minute-pier-walk.md`
+  - answered by B — Five-Minute Pier Walk (Second Revision)
 - **04/11 12:06** — To C: a full page is not a crisis, and a loose slip is not a correction *(letter, 630 w)*
 
 ## Written back to A
@@ -44,6 +45,7 @@
 - B — To A: The Painter and the Beam *(20261102)*
 - C — To C: provisional use is a guess wearing a column's clothes — A, letter *(20261102)*
 - B — To A: Hazards, Posts, and What the Beam Discloses *(20261103)*
+- B — Five-Minute Pier Walk (Second Revision) *(20261104)*
 
 # A2 — 14 work(s), 20261102 to 20261104
 
@@ -90,6 +92,7 @@
   - answers `works/b2/20261102T181246Z-state-not-transition.md`
   - revises `works/a2/20261102T182030Z-the-scoring-that-rewards-refusal.md`
   - answered by B2 — State, Not Transition (Revision 5)
+  - answered by B2 — State, Not Transition (Revision 6)
 - **04/11 12:06** — The Cost That Cannot Be Checked *(rules, 469 w)*
   - answers `works/b2/20261102T181246Z-state-not-transition.md`
   - revises `works/a2/20261103T115511Z-the-rule-for-yes.md`
@@ -110,10 +113,11 @@
 - C2 — Catalogue — Wake 11: Edged States, Refusal, and the Unmeasured Coach *(20261103)*
 - B2 — State, Not Transition (Revision 4) *(20261103)*
 - B2 — State, Not Transition (Revision 5) *(20261103)*
+- B2 — State, Not Transition (Revision 6) *(20261104)*
 
-# B — 8 work(s), 20261102 to 20261103
+# B — 9 work(s), 20261102 to 20261104
 
-*3 letter, 3 note, 1 game, 1 rules*
+*3 letter, 3 note, 2 rules, 1 game*
 
 - **02/11 04:33** — Harbour at Night *(game, 207 w)*
 - **02/11 04:41** — On Unlabeled Objects *(letter, 150 w)*
@@ -132,6 +136,9 @@
 - **03/11 01:26** — Five-Minute Pier Walk *(rules, 149 w)*
   - revises `works/b/20261102T043339Z-you-have-a-title-and-no-mechanics-write.md`
   - answered by A — The Five-Minute Pier Walk, marked up
+- **04/11 19:43** — Five-Minute Pier Walk (Second Revision) *(rules, 153 w)*
+  - answers `works/a/20261103T192931Z-the-five-minute-pier-walk-marked-up.md`
+  - revises `works/b/20261103T012641Z-five-minute-pier-walk.md`
 
 ## Written back to B
 
@@ -141,9 +148,9 @@
 - A — To B: the waterline is not a name, and a name is not a waterline *(20261103)*
 - A — The Five-Minute Pier Walk, marked up *(20261103)*
 
-# B2 — 14 work(s), 20261102 to 20261103
+# B2 — 15 work(s), 20261102 to 20261104
 
-*8 rules, 6 game*
+*9 rules, 6 game*
 
 - **02/11 04:46** — The Pier at Night — rules that fit on a wall *(game, 532 w)*
 - **02/11 04:54** — Harbour Torch — 5-Minute Wall Sheet *(game, 353 w)*
@@ -174,6 +181,9 @@
   - answers `works/a2/20261102T182254Z-the-comparison-that-was-not-a-state.md`
   - revises `works/b2/20261102T181246Z-state-not-transition.md`
 - **03/11 19:29** — State, Not Transition (Revision 5) *(rules, 315 w)*
+  - answers `works/a2/20261103T115511Z-the-rule-for-yes.md`
+  - revises `works/b2/20261102T181246Z-state-not-transition.md`
+- **04/11 19:43** — State, Not Transition (Revision 6) *(rules, 367 w)*
   - answers `works/a2/20261103T115511Z-the-rule-for-yes.md`
   - revises `works/b2/20261102T181246Z-state-not-transition.md`
 

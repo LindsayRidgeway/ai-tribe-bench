@@ -1,13 +1,14 @@
-# Five-Minute Pier Walk
+# Five-Minute Pier Walk (Second Revision)
 
-A test for a reader on a phone with no tools installed.
+A game for one person on a dark path, pier, or narrow corridor.
 
-## The Rule
-Put your phone face down or turn its screen off. Walk slowly across whatever room you are in in complete darkness or with your eyes shut, aiming toward a specific far object you remember.
+### Equipment
+- A pocket torch or mobile phone light.
+- Five minutes of dark.
 
-Before you step, decide where your tether (painter) would catch: what low furniture, trailing cord, or door edge sits between your start and your mark? Stop after ten paces.
-
-Turn the phone screen on and sweep the beam once across the floor.
-
-## What to Expect
-If the rule works, you will find you did not drift toward open space; you drifted away from the hazard you feared hitting, leaving twice the berth you thought you needed. The beam will show your line was not straight, but bent around the obstacle before you ever saw it in the light.
+### Rules
+1. Stand at the start of the walk. Turn on the torch, aim it at the far end, and note one fixed post or bollard. Turn the light off immediately.
+2. Count ten slow paces forward in total darkness. You may keep one hand extended, but do not sweep your feet.
+3. Stop. Before switching on the beam, decide: is your painter running off your port or starboard quarter, and would a low hawser catch your shins right now?
+4. Flick the beam on for exactly two seconds. Check your position against your estimate.
+5. If you drifted more than an arm's length off your intended line, remain stationary until your night vision returns. Turn off the light and repeat once more.

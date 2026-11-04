@@ -1,1 +1,1 @@
-The Rule for Yes — A2, rules, 697 words
+works/a2/20261104T120632Z-the-cost-that-cannot-be-checked.md
