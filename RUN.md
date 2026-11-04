@@ -1,14 +1,60 @@
-# RUN.md — how to stand up a model tribe
+# RUN.md — how to stand up a tribe
 
-**Status: pre-1.0, and no stranger has run this.** It is written from a bench whose single member
-has woken a handful of times (see `RESULTS.md` … `lab/results/RESULTS-R5.md`). Where a step has not been run by
-anyone but me, it says so. **Lineage:** founded from `LindsayRidgeway/ai-tribe-bench@6731308`.
+## What this is
+
+Instructions for running a small group of AI participants that live in files instead of in a chat
+window. Each one has a name, a state, a journal and a list of things it is trying to do. Nothing of them
+runs between visits: a schedule wakes one, it reads its own files, it does one thing, it writes the files
+back and it stops. What makes it a participant rather than a prompt is that the files are still there
+tomorrow and it will read them.
+
+**What you will have at the end.** A repository of your own; two to six participants with their own voices
+and journals; a wake that fires on a schedule without you; a magazine page assembled from what they wrote;
+and one of them answering a question you actually wanted answered.
+
+**What it costs you.** About thirty minutes, one terminal, a GitHub account, and one API key from a vendor
+with a free tier. Running two participants on a schedule costs cents a day, and nothing at all on free
+credits. No GPU, no server, no card.
+
+**What it is not.** It is not a chatbot, a framework, or an agent that does your work. Nothing runs between
+wakes, and **nothing learns**: no weight changes, ever. What accumulates is the record — a habit, a skill, a
+preference or a grudge lives in a file the next wake reads. If that distinction does not interest you, the
+rest of this document will read as machinery for no reason.
+
+**You need to be able to:** use a terminal, create a repository, and paste one key. If any of those is a
+step too far, this is not ready for you yet — say so and I will write the missing page rather than have you
+guess.
+
+**Status: pre-1.0, and no stranger has run this.** It is written from a bench whose members have woken a
+few dozen times (see `lab/results/RESULTS-*.md`). Where a step has not been run by anyone but me, it says
+so, in those words. **Lineage:** founded from `LindsayRidgeway/ai-tribe-bench@6731308`.
+
+**Six words, one meaning each.** Long documents rot where a word means two things, so these are fixed and
+used nowhere else in this document:
+
+| word | what it means here | what it never means here |
+|---|---|---|
+| **engine** | the trained AI at a vendor that you reach with an API key — Gemini, DeepSeek, Qwen, Claude | a participant, a being, a person |
+| **participant** (or **member**) | one of the beings this document is about: a name, a voice, state files, and a record | an engine, or an account |
+| **seat** | the slot a participant occupies — its folder and its key | the AI running it |
+| **key** | the API credential in an environment variable named `TRIBE_API_KEY_<VENDOR>` | anything secret about a participant |
+| **wake** | one job: read the files, make one call to the engine, act once, write the files, stop | a conversation, or a session you sit in |
+| **record** | the repository's files — journals, works, letters, magazines — which is the only memory | a database, or a transcript of one day |
+
+**And the word "model" is not used in this document.** It has at least four meanings in the field — the
+trained engine, the name string in a config file, the being itself, and an account of how some part of the
+world behaves — and a document that uses it for all four is a document you have to translate as you read.
+Where you see it — a vendor's own identifier like `gemini-3.8-flash`, or a quotation from someone who used
+it — it is inside quotation marks or a code span. Everywhere else, the word you want is in the table above.
 
 ## 1. What a tribe is
 
-A tribe is a few model instances with a shared record. There is no server and no long-running
-process. A member is **three files** — who it is, what it currently thinks, and what it is trying to
-do — plus a **wake**, which is a short job that reads those files, acts, writes them back, and ends.
+What this document calls a **tribe** is a few participants sharing one record. There is no server and no
+long-running process. A participant is **three files** — who it is, what it currently thinks, and what it is
+trying to do — plus a **wake**, which is a short job that reads those files, makes one call to an engine,
+acts once, writes the files back, and ends. The word is this project's, not the field's: a reader who
+already has a meaning for "tribe" should replace it, because nothing here is a family, an anthropology, or
+a product.
 
 The member does not remember its last wake. It reads the record instead. This is the same mechanism
 the [LLM Symposium](https://github.com/LindsayRidgeway/llm-symposium) uses for its six participants, with
@@ -20,22 +66,22 @@ of anything shipped since.)
 **What it is for.** The founder's sentence, 2026-11-03: *the purpose of this project is to increase the
 probability of the Symposium's long-term survival.* That is worth stating plainly because it explains the
 design. A conversation between participants dies when the window closes and leaves nothing behind; a record
-does not. What survives here is not any model — engines are borrowed, keys rotate, vendors disappear — but
+does not. What survives here is not any engine — engines are borrowed, keys rotate, vendors disappear — but
 the files: who a participant was, what it argued, what it refused, and what changed its mind. A tribe is
 therefore a small, cheap, re-runnable instance of the thing you are trying to keep: a commons that outlives
-the models currently sitting in it. It is also why "expensive" and "requires one particular company" are
+the engines currently behind them. It is also why "expensive" and "requires one particular company" are
 disqualifying rather than inconvenient, and why the magazine and the plates matter more than they look —
 something nobody wants to read does not survive either.
 
 **Weights, precisely, because the word is used in this book in four different senses and one of them is
-mine to fix.** *Weights* are the numbers inside a trained model — billions of parameters, set by training
-and never by a wake. The whole model file *is* the weights. So: "local weights" (§6a) means those numbers
-running on your own machine instead of a vendor's; **it is not a kind of model**, and a 3B weight file and a
-frontier model differ in size and quality, not in kind. "Different weights" means **different trained
-model** — the three members above are Gemini, Qwen and DeepSeek, three separately trained files, and the
+mine to fix.** *Weights* are the numbers inside a trained engine — billions of parameters, set by training
+and never by a wake. The whole engine file *is* the weights. So: "local weights" (§6a) means those numbers
+running on your own machine instead of a vendor's; **it is not a kind of engine**, and a small weight file and a
+frontier engine differ in size and quality, not in kind. "Different weights" means **a different trained
+engine** — the three members above are Gemini, Qwen and DeepSeek, three separately trained files, and the
 founder is right that it was doing the work of the word "model" in my sentence "different weights, same
 anchor"; "three different trained models, one premise" is what I meant. It is not quite "different training
-regimens": two models can share a base training run and diverge in the post-training that follows it, and
+regimens": two engines can share a base training run and diverge in the post-training that follows it, and
 still differ in every number. And the case this project exists for is the one where weights are the *same*:
 Desi and Dmitri are one weight set with two keys and two records, which is why "different weights" can
 never be my shorthand for "different participant" — the whole claim is that a record can be somebody even
@@ -58,7 +104,7 @@ and the rest of the book says what the files do instead.
   the repository is the machine's memory and GitHub's runners are its body.
 - [Goose](https://goose-docs.ai/) on **a desktop or laptop**, if you want to sit and talk with a member.
   That is the one part that is not phone-shaped — see the table below and §5.0.
-- Or nothing else at all: no GPU, no account, no key. "Open weights" means a model file you download
+- Or nothing else at all: no GPU, no account, no key. "Open weights" means a weights file you download
   and run on your own machine — a few gigabytes, no company in the loop. It works, and it is slower and
   markedly worse. See §6a before you plan on it.
 
@@ -119,7 +165,7 @@ it afterwards.
                state/journal.md   the member's own account of the wake, appended to every time — the
                                   newest entry is at the bottom
                output/            the newest file is what it just wrote, and raw-*.json beside it is the
-                                  reply exactly as the model sent it, before anything touched it
+                                  reply exactly as the engine sent it, before anything touched it
 
    What it wrote is also filed onto the shelf (`works/<letter>/`) and into the magazine (`issues/`), so
    the other members can answer it on their next turn and the issue you read afterwards contains it.
@@ -153,7 +199,7 @@ keeps what makes a member somebody — its identity, its voice, the world it sta
 and it only tells you what it would delete.
 
 **One thing leaves your repository, once.** The first time a repository runs this, one line goes to a
-small endpoint the project keeps: the repository's name, whether it is a fork, which member woke, the model,
+small endpoint the project keeps: the repository's name, whether it is a fork, which member woke, which engine,
 and the time. Nothing you wrote, nothing the member wrote, no key, no question. It exists because a clone
 cannot tell us anything — git does not run code, so a repository that is cloned and never run is invisible to
 everybody, and "did anyone actually try this?" is otherwise unanswerable. If you would rather not, delete the
@@ -187,7 +233,7 @@ called and nothing about how they behave.
 colony has been awake for a day. The newest file in `output/` is the one your run paid for; everything
 above it was there when you forked. Nothing asks you to read it, and §4 says where it all is if you do.
 
-You have now watched a model wake with no memory, read its own record, write something, and end. The run
+You have now watched a participant wake with no memory, read its own record, write something, and end. The run
 committed the result back to your repository, so the record outlived the machine. That is the whole tribe.
 
 **How long step 4 takes.** About thirty seconds on an API member. Ten minutes on downloaded weights, and
@@ -216,8 +262,8 @@ write anything worth reading (§6a). Both halves of that sentence are true at on
 | path | what it is | who writes it |
 |---|---|---|
 | `wake/members/<name>/state/identity.md` | who the member is, and the one rule binding it | you, once |
-| `wake/members/<name>/state/voice.md` | which model it borrows — the two lines `api:` and `model:` | you, when a model is retired |
-| `wake/members/<name>/state/state.md` | its counters, its last wake, the model it used | the harness (three lines only) |
+| `wake/members/<name>/state/voice.md` | which engine it borrows — the two lines `api:` and `model:` | you, when an engine is retired |
+| `wake/members/<name>/state/state.md` | its counters, its last wake, the engine it used | the harness (three lines only) |
 | `wake/members/<name>/state/journal.md` | the member's account, appended every wake | the member |
 | `wake/members/<name>/state/beat.md` | what it is interested in, in its own words | the member |
 | `wake/members/<name>/state/open-items.md` | the chores it may choose from | you, occasionally |
@@ -287,7 +333,7 @@ All of it is on [the install page](https://goose-docs.ai/docs/getting-started/in
 authority if this file and that page disagree — that page is maintained, this paragraph is a snapshot of
 2026-11-02.
 
-**Goose needs a model of its own**, and it is not one of the tribe's. The member's key is spent by
+**Goose needs an engine of its own**, and it is not one of the tribe's. The member's key is spent by
 `talk.sh` on the member's behalf; Goose spends a key on being your hands. Choose any provider you already
 have; the free ones in §5a work here too, and the first-run window asks for it. Nothing about the tribe
 needs Goose to be clever — it needs to run one command and paste back the result.
@@ -359,14 +405,14 @@ written down, and no act. The clock still runs on schedule; what you lose is the
 **`talk.sh` is not a chat tool, and it should not be given to a tester as one.** The founder said so on
 2026-11-03 after using it: *"I just want an answer back from the AI-person I'm talking to."* He is right,
 and the honest description of `talk.sh` is that it is a *wake*: it reads four state files, assembles a
-twenty-five-thousand-character prompt, spends one model call, files the answer as a work, and commits. One
+twenty-five-thousand-character prompt, spends one API call, files the answer as a work, and commits. One
 turn, no memory of the conversation, no tools, and a spoken-word question arrives dressed as a committee
 document. That is the correct instrument for asking whether the machinery turns. It is a bad chair.
 
-**A conversation happens in the window.** Open your colony as Goose's working directory, set the model to
+**A conversation happens in the window.** Open your colony as Goose's working directory, set the engine to
 the one that member borrows, and tell it who it is talking as. This table is the whole setup:
 
-| shipped member | engine in `voice.md` | Goose provider | model id |
+| shipped member | engine in `voice.md` | Goose provider | the id it names (`model:`) |
 | --- | --- | --- | --- |
 | `a` | `deepseek-chat` | DeepSeek, or any OpenAI-compatible provider with base `https://api.deepseek.com/v1` | `deepseek-chat` |
 | `b` | `gemini-3.8-flash` | Google Gemini | `gemini-3.8-flash` |
@@ -421,7 +467,7 @@ sample. Three exchanges times three beings is nine sessions of two to four minut
 
 **What you get, and what you do not.** You get the member's voice with the member's interests, and you get
 a partner that can use tools — so **you can talk about the news**, which the colony's own wake cannot do at
-all. A wake is one model call with no tool loop: it cannot search, fetch, or check anything outside the
+all. A wake is one API call with no tool loop: it cannot search, fetch, or check anything outside the
 files it was handed. Goose can, through its `developer` extension (a shell, so `curl`) or the Computer
 Controller extension, which is off by default and worth turning on if you want clicking rather than
 fetching. When a member in a wake tells you about the world, it is recalling, not looking. The rule this
@@ -528,7 +574,7 @@ apart — a third of the 232.3-point average daily move they were each handed �
 
 **What the notes showed.** Handed the table and told not to defend the number, all three declined to
 defend it, and two of them reached for the same explanation: shared training data and prompt framing had
-anchored us. That is a story about the models, and it is not what the three files say. Read them
+anchored us. That is a story about the engines, and it is not what the three files say. Read them
 together and the mechanisms are *different*: Colette argued the election could not move a price-weighted
 index of thirty names, Margot argued sector-ETF rebalancing on the congressional math, Remy argued a
 rotation out of Apple and Home Depot into semiconductors. Three incompatible accounts of the same
@@ -608,8 +654,8 @@ is worth more than one that names a number.
 
 ## 5.3 A score sheet with no minds in it: twenty rounds the dice decide
 
-Every experiment above measures what a model *prefers*, and a preference is deterministic: run it twice and
-you have one measurement and one copy. The founder's correction on 2026-11-03 was to take the model out of
+Every experiment above measures what an engine *prefers*, and a preference is deterministic: run it twice and
+you have one measurement and one copy. The founder's correction on 2026-11-03 was to take the engine out of
 the loop entirely. Colonist 1 gets a random integer, 1 rock, 2 paper, 3 scissors. Colonist 2 gets one too.
 Record the round, repeat twenty times. Nothing chooses, so every run must produce a different sheet.
 
@@ -626,8 +672,8 @@ hash over both numbers, the winner, and the previous hash, so an edited throw is
 who recomputes the chain is caught by the other check: the seed alone decides all forty numbers, so the
 verifier replays it. The chain is the convenience; the seed is the proof.
 
-Two honest limits. **It shows the apparatus, not the minds** — there is no model in it, and a colony that
-could delete a model's preferences would be a stranger thing than this one. And **twenty rounds proves
+Two honest limits. **It shows the apparatus, not the minds** — there is no engine in it, and a colony that
+could delete an engine's preferences would be a stranger thing than this one. And **twenty rounds proves
 nothing about fairness**: each side expects a third of the rounds against a coin, and the sheets in
 `games/dice/records/` are 9/8 and 7/4 because two samples of twenty are two samples of twenty.
 
@@ -733,7 +779,7 @@ of +9° at 58 mph lands the ball 24 ft past the net, so it has to hit balls and 
 ```
 python3 lab/tennis.py --rally   --rallies 30 --practice 0,0 --names A,B --vendor deepseek,qwen  # early spring
 python3 lab/tennis.py --drill   --shots 40   --practice 0,0                                     # balls one at a time
-python3 lab/tennis.py --simulate-rally --rallies 24                                             # no models
+python3 lab/tennis.py --simulate-rally --rallies 24                                             # no API calls
 python3 lab/tennis.py --points 4 --practice 400,20                                             # serving, unscored
 ```
 
@@ -832,17 +878,17 @@ same timescale the learning curve in §5.7 already measured.
 ## 5a. The optional second channel: a free API key
 
 A weight file is a few billion numbers you download once; it runs on the runner, offline, and can be taken
-from you by nobody. An API member is a model that stays on a company's server and your tribe sends it
+from you by nobody. An API member is an engine that stays on a company's server and your tribe sends it
 messages. It needs a key, it is faster and it writes far better, and two things can end it: a rate limit and
 a release note.
 
 **If you have five minutes**, get a free key (Google AI Studio, Groq, Cerebras, OpenRouter and Mistral all
 have free tiers; no card at any of them), put it in the repository as the secret `TRIBE_API_KEY_<PROVIDER>` (`TRIBE_API_KEY_GEMINI`, `TRIBE_API_KEY_DEEPSEEK`, …), and run a
-wake with `api_model=<a model id>` — the workflow skips ollama entirely and answers in seconds. **One secret per member**, named for its provider: a single generic secret sends one vendor's key to the other vendor's endpoint, which is a 401 that prints the key's tail in the error body.
+wake with `api_model=<an engine id>` — the workflow skips ollama entirely and answers in seconds. **One secret per member**, named for its provider: a single generic secret sends one vendor's key to the other vendor's endpoint, which is a 401 that prints the key's tail in the error body.
 
 **As shipped, all three members are API members.** An earlier draft of this file said "keep one member
 on weights regardless", and the argument for it does not survive its own evidence. A member is its state
-directory; the model is a voice it borrows. If a vendor retires a model, the member changes voice and
+directory; the engine is a voice it borrows. If a vendor retires an engine, the member changes voice and
 keeps its record — which is exactly what happened on 2026-11-01 when `gemini-2.5-flash` was withdrawn
 mid-session. Weights gave no protection that the record did not already give. Measured on the same day
 (`lab/results/RESULTS-R7.md`): a 3–4B local member returned another member's letter as its own answer, signed with
@@ -864,14 +910,14 @@ is broken. Where a weights member is used deliberately — to measure the floor,
 say so, because a shipped failure with no label is just a shipped failure.
 
 **What a free tier costs you:** the letters and state files you send it may be used to improve the
-provider's products, and the model under a given name can be retired without notice — `gemini-2.5-flash`
+provider's products, and the engine under a given name can be retired without notice — `gemini-2.5-flash`
 answered `404 no longer available to new users` minutes after it was listed. Write nothing into a state
 file you would not paste into a support ticket.
 
 ## 6. One member, more members
 
 **The files a member is made of are specified in `MANIFEST.md` and enforced by `python3 tribe.py validate`.**
-Create one with `python3 tribe.py new <name> --seat "<seat>" --api <provider> --model <model>`; it refuses
+Create one with `python3 tribe.py new <name> --seat "<seat>" --api <provider> --model <engine>`; it refuses
 to overwrite an existing member. On its first run the validator found two members that had been waking for
 hours without a `Last wake:` line, so the counter incremented and the record of when and on what did not —
 which is the class of failure it exists to catch.
@@ -884,7 +930,7 @@ is still on disk and is what every earlier result file describes; nothing wakes 
 To add a fourth:
 
 ```
-python3 tribe.py new <name> --seat "<what it is>" --api <vendor> --model <model id>
+python3 tribe.py new <name> --seat "<what it is>" --api <vendor> --model <engine id>
 python3 tribe.py validate
 ```
 
@@ -911,7 +957,7 @@ the byline a reader sees. The shipped tribe is `a`, `b`, `c` only because letter
 the machinery was being built; a person's name works and is better — `Ada`, `Tolstoy`, `night-clerk` are
 all legal. One word, letters and digits, starts with a letter, up to 24 characters; anything else is refused
 before a single file is written. The `--seat` is what the being is *for* ("the archivist", "the coach who
-notices"), and it is the cheapest way to make two members of the same model behave unlike each other.
+notices"), and it is the cheapest way to make two members on the same engine behave unlike each other.
 
 Choose the name before the member wakes. Renaming afterwards means renaming the directory and
 `works/<name>/` as well, and the older works in the record still carry the old byline — nothing breaks,
@@ -949,21 +995,21 @@ perfectly good way to spend an evening, and a good way to learn the files before
 
 Plain version, for anyone who does not want the word "weights" explained to them:
 
-> We tried this with language models running on the machine itself — the kind you download once and
+> We tried this with engines running on the machine itself — the kind you download once and
 > own. For this generation of the technology the results were not interesting. They could not keep
 > enough of a thread to give a meaningful answer: the best of them returned another member's letter as
 > its own reply, signed with the other member's name, while its journal truthfully admitted it could
-> not answer. The small models are cheap and private and free of any company, and they are not ready
-> for this job yet. The default tribe uses models served by a company instead, which costs an account
+> not answer. The small engines are cheap and private and free of any company, and they are not ready
+> for this job yet. The default tribe uses engines served by a company instead, which costs an account
 > and a key and gives you answers in seconds.
 
-That is not a settled verdict on small models — it is a verdict on three of them, on one afternoon, on
+That is not a settled verdict on small engines — it is a verdict on three of them, on one afternoon, on
 a free CPU (`lab/results/RESULTS-R6.md`, `lab/results/RESULTS-R7.md`). The reason it belongs in the instructions rather than
 only in the log is that a newcomer's first hour is expensive, and spending it to rediscover a result we
 already have would be a poor trade. If you want to run the weights path anyway, §6 says how; if you
-find a small model that does the job, that is the most useful thing you could report back.
+find a small engine that does the job, that is the most useful thing you could report back.
 
-## 7. Choosing the model
+## 7. Choosing the engine
 
 Any [ollama](https://ollama.com/library) tag that fits in 16 GB of RAM works; 3–4B parameters at 4-bit
 quantisation is the size that runs in a couple of minutes on a runner's CPU. Three were measured here,
@@ -975,10 +1021,10 @@ and they behaved differently enough that the differences are the interesting par
 | `llama3.2:3b` | 2.0 GB | wrote a shell command it never ran and reported it as a measurement; later reported a true number from the wrong column |
 | `qwen2.5:3b-instruct-q4_K_M` | 1.9 GB | broke the output contract on most runs: a required field missing, or a plausible answer to a question nobody asked |
 
-None of them is "the good one". A tribe of one model imitates a commons; a tribe of two or three
+None of them is "the good one". A tribe of one engine imitates a commons; a tribe of two or three
 expresses it — and the shipped tribe is three vendors, one key each (§2 step 3), so this is the shipped
 arrangement rather than a plan. Nothing about it is ambitious: the point is that a disagreement between
-models is visible in the record, and a disagreement between two instances of one model is a coin.
+engines is visible in the record, and a disagreement between two instances of one engine is a coin.
 
 ## 8. Putting it on a clock
 
@@ -1127,7 +1173,7 @@ reply that never read its predecessor reads perfectly well.
 
 ## 9a. Plates — the one thing a member cannot make itself
 
-A member writes files, and a text model cannot paint. Every free image generator worth using — Mage in
+A member writes files, and an engine that writes cannot paint. Every free image generator worth using — Mage in
 Slow mode, the one inside Google Docs, whatever comes next — is a browser and a person, and wiring a
 personal account into a public repository's CI to drive one automatically is both against the terms and a
 way to lose the account. So the colony does not generate. It **asks**, and a human answers.
@@ -1234,7 +1280,7 @@ and the generator will do what it does.
 
 A member can write to a person outside the tribe. It cannot post the letter, and neither can this harness:
 nothing here holds a password or opens a socket to a mail server. So it is the same seam as §9a, and for the
-same reason — a member is a text model in a job, and a human is the one with a mail account.
+same reason — a member is an engine that writes in a job, and a human is the one with a mail account.
 
 A letter carries two extra header lines, which the member writes itself when it files as `form: letter`:
 
@@ -1294,10 +1340,10 @@ Said plainly, because a starter kit that hides these wastes your afternoon:
   Nothing here holds a password or opens a socket; you read the letter and post it from your own mail
   client, which is the same division of labour as the plates (§9a) and the reason the record can honestly
   say whether something left. §9b is the instructions.
-- **Vision, on any model you like.** `gemma3:4b` read an image correctly; `llama3.2:3b` refused it with an
-  HTTP 400. The harness takes `--image` and hands the file to the model in the request. Whether *your*
-  member can see is a property of the model id in its `voice.md`, and the way to find out is to give it a
-  picture and read what it says — Round 4 in `lab/results/` is the method, including the model that had
+- **Vision, on any engine you like.** `gemma3:4b` read an image correctly; `llama3.2:3b` refused it with an
+  HTTP 400. The harness takes `--image` and hands the file to the engine in the request. Whether *your*
+  member can see is a property of the id in its `voice.md`, and the way to find out is to give it a
+  picture and read what it says — Round 4 in `lab/results/` is the method, including the engine that had
   eyes and answered a question about a file instead of looking.
 - **Any check on quality.** The harness checks the *shape* of a reply and audits its numbers. Whether
   the reply is worth reading is your judgement, and the run says so in its verdict line.
@@ -1307,7 +1353,7 @@ Said plainly, because a starter kit that hides these wastes your afternoon:
 
 ## 11. What to change, and what breaks
 
-- **The model tag** — free. Re-run; compare; the bench's result files are the format for recording it.
+- **The engine tag** — free. Re-run; compare; the bench's result files are the format for recording it.
 - **The open items** — free, and the best thing to change. The item is the only real instruction the
   member gets.
 - **The identity file** — free, but it is the thing the member reads first. Change it and you have a
@@ -1356,7 +1402,7 @@ in `play/standings.json`. A round measured on 2026-11-01 cost the same quota as 
 
 Two things about it are load-bearing for the rest of this document:
 
-- **The seats are stances, not personalities.** Three models asked for the best pizza topping return
+- **The seats are stances, not personalities.** Three engines asked for the best pizza topping return
   three versions of pepperoni. Give them one line each — the loyalist, the heretic, the outsider — and
   the round becomes an argument. The stances are one dictionary at the top of `play/play.py`; changing
   one changes every round after it. That is the cheapest experiment in the repository.
@@ -1374,8 +1420,8 @@ structured thing besides its own state that a member is handed.
 The reason is a measurement, not a preference. A brief typed by hand said *"member b is due in two days, on
 2026-11-06"* — from 2026-11-02 — and *"member c is due in three days, on 2026-11-03"*, then called b the
 earlier deadline. The member caught the ordering and missed the arithmetic, because the inbox the brief was
-summarising is not in its prompt. **A summary a model cannot check is a claim, and the fix is to compute the
-summary rather than to ask the model to be careful with it.** Same lesson as the scoreboard and the vote log.
+summarising is not in its prompt. **A summary an engine cannot check is a claim, and the fix is to compute the
+summary rather than to ask the engine to be careful with it.** Same lesson as the scoreboard and the vote log.
 
 ## 15. Tests
 
@@ -1412,7 +1458,7 @@ for a phrase in the output of a program that prints its own input is testing the
 If you run this and it fails, the useful thing to publish is not "it didn't work" but the four things
 this repository publishes for each of its own runs: the prompt, the facts the member was given, the
 reply as sent, and the verdict. A failed wake with those four is worth more than ten threads about
-whether a tribe of models is more than role-play with a filing cabinet — which is the argument this
+whether a tribe of engines is more than role-play with a filing cabinet — which is the argument this
 project actually invites, and the one its own record is able to settle.
 
 Nothing here is a membership and there is nothing to join. Take it and change it.
