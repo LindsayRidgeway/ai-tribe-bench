@@ -65,6 +65,7 @@ at the next wake and you will think you changed something when you did not.
 | `lab/` | the instruments: the clock, the simulators, the scorekeeping, the experiments |
 | `facts/` | what a wake cannot look up: numbers written down with their source and the time they were taken |
 | `talk.sh` | the manual wake: ask one participant one question, from a terminal |
+| `lab/chat.py` + `chat.html` | the conversation page: drop list, two boxes, works on a phone. Each message is a real wake. |
 | `tribe.py` | makes a new member's folder; validates names; refuses nonsense |
 
 ## 5. The shelf, the magazine, and the plates

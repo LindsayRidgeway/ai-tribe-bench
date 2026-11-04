@@ -317,6 +317,18 @@ Two rules about these files, and they are the whole trick:
 **The window is how a person talks to a tribe; the issue thread is how a stranger tries one without
 installing anything.**
 
+**If you only want to talk to a participant, there is a page** — a drop list of the members and two boxes,
+one to type in and one for the reply. It works on a phone:
+
+```
+python3 lab/chat.py            # then open http://127.0.0.1:8770
+python3 lab/chat.py --host 0.0.0.0   # same page, visible to your phone on the same wifi
+```
+
+Every message on that page is a real wake, not a chat with an engine: the participant reads its own files,
+answers once, and the exchange is filed and committed. It takes ten to forty seconds, which is honest
+about what it costs and is why the page says so while it waits.
+
 ### 5.0 First: what Goose is, and how to install it
 
 You may never have heard of it, which is fine — it is one download and it is what makes the tribe

@@ -1319,6 +1319,7 @@ class TestFiling(unittest.TestCase):
         srv = socketserver.TCPServer(("127.0.0.1", 0), H)
         threading.Thread(target=srv.serve_forever, daemon=True).start()
         self.addCleanup(srv.server_close)
+        self.addCleanup(srv.server_close)
         self.addCleanup(srv.shutdown)
         tmp = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, tmp, True)
@@ -1561,6 +1562,7 @@ class TestFiling(unittest.TestCase):
                 pass
 
         srv, base = self._fake_api(H)
+        self.addCleanup(srv.server_close)
         self.addCleanup(srv.shutdown)
         root = self._repo_copy()
         works = magazine.load_all(root)
@@ -2896,6 +2898,123 @@ class TestTennis(unittest.TestCase):
         text = t.season_report("2029-autumn", tmp)
         self.assertIn("Nobody has hit a ball", text)
         self.assertNotIn("improved", text)
+
+class TestChat(unittest.TestCase):
+    """The conversation page, 2026-11-04.
+
+    The founder's objection to §5 was four words long — "not on a phone" — and the answer is a page with a
+    drop list and two boxes. These tests cover the three ways such a page lies: it offers a participant who
+    does not exist, it prints an engine's prose as if it were the participant's reply, or it fails on a
+    missing key in a way a person cannot act on.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.c = load(REPO / "lab" / "chat.py", "chat_mod")
+
+    def test_the_drop_list_is_the_members_and_nobody_else(self):
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp, True)
+        (tmp / "Ada" / "state").mkdir(parents=True)
+        (tmp / "Ada" / "state" / "voice.md").write_text("api: gemini\nmodel: x\n")
+        (tmp / "Ada" / "state" / "identity.md").write_text("I am Ada.\n")
+        (tmp / "Half" / "state").mkdir(parents=True)          # voice but no identity: not a member
+        (tmp / "Half" / "state" / "voice.md").write_text("api: gemini\nmodel: x\n")
+        (tmp / "notes").mkdir()
+        self.assertEqual(self.c.members(tmp), ["Ada"])
+
+    def test_a_voice_file_that_says_nothing_is_an_error_not_a_guess(self):
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp, True)
+        (tmp / "Ada" / "state").mkdir(parents=True)
+        (tmp / "Ada" / "state" / "voice.md").write_text("api: gemini\n")
+        with self.assertRaises(SystemExit) as e:
+            self.c.voice_of("Ada", tmp)
+        self.assertIn("needs an 'api:' line and a 'model:' line", str(e.exception))
+
+    def test_a_missing_key_says_which_name_to_set_and_does_not_call_anything(self):
+        saved = os.environ.pop("TRIBE_API_KEY_GEMINI", None)
+        try:
+            out = self.c.ask_member("Colette", "hello")
+        finally:
+            if saved is not None:
+                os.environ["TRIBE_API_KEY_GEMINI"] = saved
+        self.assertFalse(out["ok"])
+        self.assertIn("set TRIBE_API_KEY_GEMINI", out["reply"])
+        self.assertIn("only name this project reads", out["reply"])
+
+    def test_the_page_has_a_drop_list_and_two_boxes(self):
+        html = (REPO / "chat.html").read_text(encoding="utf-8")
+        self.assertIn('<select id="member"', html)
+        self.assertIn('<textarea id="msg"', html)
+        self.assertIn('<textarea id="reply" readonly', html)
+        self.assertIn('name="viewport"', html, "the whole point was that it works on a phone")
+
+    def test_the_server_answers_in_the_shape_the_page_expects(self):
+        import json as _json
+        import threading as _threading
+        import urllib.request as _url
+        from http.server import ThreadingHTTPServer
+        c = self.c
+        asked = {}
+
+        def stub(member, text, root=None, timeout=None):
+            asked["member"], asked["text"] = member, text
+            return {"ok": True, "reply": "I read my journal and I am well.", "verdict": "OK", "path": "raw-x.json"}
+
+        real = c.ask_member
+        c.ask_member = stub
+        srv = ThreadingHTTPServer(("127.0.0.1", 0), c.Handler)
+        t = _threading.Thread(target=srv.serve_forever, daemon=True)
+        t.start()
+        self.addCleanup(srv.server_close)
+        self.addCleanup(srv.shutdown)
+        base = f"http://127.0.0.1:{srv.server_address[1]}"
+        try:
+            with _url.urlopen(base + "/members", timeout=10) as r:
+                self.assertIn("Colette", _json.load(r)["members"])
+            with _url.urlopen(base + "/", timeout=10) as r:
+                self.assertIn("conversation", r.read().decode().lower())
+            req = _url.Request(base + "/say", method="POST",
+                               data=_json.dumps({"member": "Colette", "text": "how are you?"}).encode(),
+                               headers={"Content-Type": "application/json"})
+            with _url.urlopen(req, timeout=10) as r:
+                got = _json.load(r)
+        finally:
+            c.ask_member = real
+        self.assertTrue(got["ok"])
+        self.assertEqual(got["reply"], "I read my journal and I am well.")
+        self.assertEqual(asked["member"], "Colette")
+        self.assertEqual(asked["text"], "how are you?")
+
+    def test_a_participant_who_does_not_exist_is_refused_before_any_call(self):
+        import json as _json
+        import threading as _threading
+        import urllib.error as _err
+        import urllib.request as _url
+        from http.server import ThreadingHTTPServer
+        c = self.c
+        called = []
+        real = c.ask_member
+        c.ask_member = lambda *a, **k: called.append(a) or {"ok": True, "reply": "", "verdict": "", "path": ""}
+        srv = ThreadingHTTPServer(("127.0.0.1", 0), c.Handler)
+        _threading.Thread(target=srv.serve_forever, daemon=True).start()
+        self.addCleanup(srv.server_close)
+        self.addCleanup(srv.shutdown)
+        base = f"http://127.0.0.1:{srv.server_address[1]}"
+        req = _url.Request(base + "/say", method="POST",
+                           data=_json.dumps({"member": "../etc", "text": "hi"}).encode(),
+                           headers={"Content-Type": "application/json"})
+        try:
+            with self.assertRaises(_err.HTTPError) as e:
+                _url.urlopen(req, timeout=10)
+            self.assertEqual(e.exception.code, 400)
+            body = _json.load(e.exception)
+            self.assertIn("no such participant", body["reply"])
+        finally:
+            c.ask_member = real
+        self.assertEqual(called, [], "a name not in the drop list must not reach a wake")
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
