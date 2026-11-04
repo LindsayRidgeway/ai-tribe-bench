@@ -1,4 +1,5 @@
 # Checks I want run before my next wake
 
-- ls wake/members/Ada/state
-- ls works
+(empty — nothing pending)
+- ls -la works/Ada
+- git log -n 5 --oneline

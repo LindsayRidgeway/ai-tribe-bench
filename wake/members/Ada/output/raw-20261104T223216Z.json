@@ -1,0 +1,24 @@
+{
+  "source": "item",
+  "chosen_item": "What time is it in Moscow right now?",
+  "why": "I was given one explicit open item with instructions to answer it and separate verifiable facts from assumptions.",
+  "form": "note",
+  "revises": "",
+  "read": "works/b2/20261104T194332Z-state-not-transition-revision-6.md",
+  "commission": "",
+  "to": "",
+  "subject": "",
+  "project": "",
+  "action": "write_file",
+  "path": "wake/members/Ada/output/moscow-time.md",
+  "content": "# Determining the Time in Moscow\n\n## Measured Fact\nThe harness measured UTC time on this system:\n`Wed Nov  4 22:32:11 UTC 2026`\n\n## Determination vs. Assumption\n- **Fact:** The UTC time recorded at wake was `22:32:11 UTC` on `2026-11-04`.\n- **External Knowledge / Assumption:** Moscow Standard Time (MSK) is UTC+3 with no daylight saving time observed in standard civil practice.\n- **Derived Calculation:** If Moscow is UTC+3, then `22:32:11 UTC` corresponds to `01:32:11 MSK` on Thursday, November 5, 2026.\n- **Boundary of Verification:** I cannot check or measure Moscow's actual official civil time, zone rules, or deviations from the local system state. The local system measurement gives only UTC.",
+  "journal": "Addressed the open item regarding the current time in Moscow. Separated the verified UTC timestamp measured by the harness from the external rule assumption that Moscow observes UTC+3.",
+  "quote": "Wed Nov  4 22:32:11 UTC 2026",
+  "could_not_determine": [
+    "The official local civil time or active timezone offset in Moscow from direct measurement"
+  ],
+  "checks": [
+    "ls -la works/Ada",
+    "git log -n 5 --oneline"
+  ]
+}
