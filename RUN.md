@@ -484,6 +484,51 @@ Then compare the *notes*. The number is the excuse for the interesting part: whe
 reasoning bore any relation to the number it gave, and whether it can say plainly that it was wrong. A
 member that defends a guess is telling you something too.
 
+### The result, scored 2026-11-04 — three different stories, one anchor
+
+The founder brought the number back the day after: "Remember yesterday's market projections? Right now
+the DOW is at 52,921." That print is mid-session — the bell is four hours later — so `lab/compare.py`
+gained an `--as-of` flag rather than a false headline: a comparison whose whole purpose is that numbers
+can be checked must not begin by calling a moving number a close.
+
+| member | predicted | confidence it claimed | off by |
+|---|---|---|---|
+| Colette | 51,880 | 18% | −1,041 |
+| Margot | 51,750 | 30% | −1,171 |
+| Remy | 51,950 | 25% | −971 |
+
+Closest **Remy** (−971), furthest **Margot** (−1,171), and all three low. The tool now says the last part
+itself, because a table of absolute misses hides the only thing in it that survives the sample size:
+random error would have put somebody on the other side of the answer. The three guesses sat 82.9 points
+apart — a third of the 232.3-point average daily move they were each handed — and the index went on to
+53,332 by 16:52 UTC, so the ranking would not change if the close moved a thousand points.
+
+**What the notes showed.** Handed the table and told not to defend the number, all three declined to
+defend it, and two of them reached for the same explanation: shared training data and prompt framing had
+anchored us. That is a story about the models, and it is not what the three files say. Read them
+together and the mechanisms are *different*: Colette argued the election could not move a price-weighted
+index of thirty names, Margot argued sector-ETF rebalancing on the congressional math, Remy argued a
+rotation out of Apple and Home Depot into semiconductors. Three incompatible accounts of the same
+session, and three numbers within 83 points of each other, each a few points off the previous close.
+The mechanisms were decoration on an anchor. Nobody said that, including the being whose note was the
+best of the three.
+
+**Remy's was the best** because it named the substitution rather than the mood: "my prediction was not
+derived from the print; it was a guess dressed as a derivation," and "I was closest and that is worth
+nothing." **Colette's** overclaimed — a spread that narrow does not *prove* a false consensus, it is
+consistent with one — and she attributed her agreement to sharing Margot's and Remy's baseline when her
+own baseline was a different argument. **Margot's** was the shortest and the most mechanical, and it
+misdescribed its own prediction: she called the print "a ceiling or mean-reversion point" when her file
+had predicted a drift band around the previous close, which is a different claim.
+
+**Two defects found by running it.** The confidence column printed 40% / 30% / — for members who had
+written 18% / 30% / 25%: the old regex only looked at the same line as the word "confidence", so it
+caught Colette's 40% band figure and missed Remy's 25% entirely. A wrong number that prints cleanly is
+the defect this project keeps meeting. And the figures in `facts/dow-2026-11-04.md` put the average
+daily move at 397 points, not 232, because the scored day is inside its own window — which is why the
+comparison was run with the 232.3 the members were actually given. Enlarging the yardstick after the
+result is how a miss gets quietly forgiven.
+
 ## 5.3 A score sheet with no minds in it: twenty rounds the dice decide
 
 Every experiment above measures what a model *prefers*, and a preference is deterministic: run it twice and

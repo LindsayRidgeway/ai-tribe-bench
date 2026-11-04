@@ -51,12 +51,23 @@ if [ -n "$with" ]; then
   args+=(--read "$with")
 fi
 
+# What was already uncommitted when the wake began. The commit at the bottom stages everything, which is
+# what a member's state files need; it also means a person's work-in-progress rides along under a message
+# that says "Colette answered". Found 2026-11-04: lab/compare.py, tests.py and two facts files were
+# committed as part of Colette's answer. The changes were fine and the label was a lie, so the label now
+# says what else is in it.
+pre_dirty="$(git status --porcelain 2>/dev/null | wc -l | tr -d ' ' || echo 0)"
+
 touch /tmp/talk-start
 python3 wake/wake.py "${args[@]}"
 
 out="wake/members/$member/output"
 newest="$(ls -t "$out"/*.md 2>/dev/null | head -1 || true)"
-if [ -n "$newest" ]; then
+# `-nt` because a failed wake used to print the member's PREVIOUS file under a heading saying the member
+# wrote it. On 2026-11-04 a 401 from the API made Remy look like it had answered with a file from the day
+# before, about a different question — the verdict above said INVALID and the last thing a reader saw said
+# Remy wrote. A file older than the wake is not this wake's output.
+if [ -n "$newest" ] && [ "$newest" -nt /tmp/talk-start ]; then
   echo
   echo "=== $member wrote ${newest} ==="
   sed -n '1,120p' "$newest"
@@ -90,7 +101,12 @@ fi
 if git rev-parse --git-dir >/dev/null 2>&1; then
   git add -A
   if git diff --cached --quiet; then echo "nothing to commit"; else
-    git commit -q -m "talk: $member answered — ${question:0:70}"
+    if [ "${pre_dirty:-0}" -gt 0 ]; then
+      git commit -q -m "talk: $member answered — ${question:0:70}" \
+                     -m "also in this commit: $pre_dirty file(s) that were already uncommitted before this wake began — not the member's work."
+    else
+      git commit -q -m "talk: $member answered — ${question:0:70}"
+    fi
     # One line, and the true one. This used to print the failure and then print "committed" underneath
     # it, so the last word a person read was success about a push that had not happened.
     # Before pushing, check the push is going somewhere it is allowed to go. On 2026-11-03 a smoke test
