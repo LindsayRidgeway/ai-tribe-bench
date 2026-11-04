@@ -393,6 +393,10 @@ def save_season(book: dict, season: str, override: str | None = None) -> Path:
     d, f = season_paths(season, override)
     d.mkdir(parents=True, exist_ok=True)
     f.write_text(json.dumps(book, indent=1, sort_keys=True) + "\n", encoding="utf-8")
+    # report.md is a function of practice.json, written here and never by hand. The colony's first season had a
+    # report somebody typed, which is exactly the class of file the derivability test exists to catch: a page
+    # that can drift from the record it claims to summarise.
+    (d / "report.md").write_text(season_report(season, override), encoding="utf-8")
     return f
 
 
@@ -653,7 +657,8 @@ def drill_prompt(p: Player, other: str, history: list[str], incoming: dict | Non
 
 def run_drill(args) -> int:
     names = [n.strip() for n in args.names.split(",")]
-    vendors = [v.strip().lower() for v in args.vendor.split(",")]
+    vendors = ([v.strip().lower() for v in args.vendor.split(",")] if args.vendor
+               else vendors_of(names))
     practice = [int(x) for x in args.practice.split(",")]
     models = ([m.strip() for m in args.model.split(",")] if args.model
               else [DEFAULT_MODEL[v] for v in vendors])
@@ -851,6 +856,27 @@ def rally_prompt(p: Player, other: str, history: list[str], incoming: dict | Non
     return "\n".join(lines)
 
 
+def vendors_of(names: list[str]) -> list[str]:
+    """Which engine each named member borrows, read from its own voice.md.
+
+    A person filling a form on a phone knows the members' names, not their vendors, and the colony has already
+    written each member's engine down in one place. Two answers to one question is the defect this project
+    keeps fixing, so the shelf is the answer and a `--vendor` on the command line still overrides it."""
+    out = []
+    for n in names:
+        api = ""
+        f = ROOT / "wake" / "members" / n / "state" / "voice.md"
+        if f.is_file():
+            for line in f.read_text(encoding="utf-8").splitlines():
+                if line.strip().startswith("api:"):
+                    api = line.split(":", 1)[1].strip()
+                    break
+        if not api:
+            raise SystemExit(f"!! no engine for {n}: wake/members/{n}/state/voice.md has no api: line")
+        out.append(api)
+    return out
+
+
 def run_rally(args) -> int:
     """Early spring, as a rally rather than a drill: the ball stays alive until somebody misses.
 
@@ -859,7 +885,8 @@ def run_rally(args) -> int:
     hit long or wide, or hit where the other player cannot get to it — three things the players decide. If the
     rallies get longer over a session, it is because they got better, not because a counter was raised."""
     names = [n.strip() for n in args.names.split(",")]
-    vendors = [v.strip().lower() for v in args.vendor.split(",")]
+    vendors = ([v.strip().lower() for v in args.vendor.split(",")] if args.vendor
+               else vendors_of(names))
     practice = [int(x) for x in args.practice.split(",")]
     # The season wins over `--practice`, and says so. Two sources for one number is the defect this
     # project has fixed twice; here the file is the record and the flag is a test hook.
@@ -1098,7 +1125,8 @@ def main(argv=None) -> int:
     ap.add_argument("--practice", default="400,20", help="balls hit before today, one per player")
     ap.add_argument("--points", type=int, default=4)
     ap.add_argument("--surface", default=None, help="clay, hard or grass; default from the clock")
-    ap.add_argument("--vendor", default=None, help="for --drill: their vendors, comma-separated")
+    ap.add_argument("--vendor", default=None,
+                    help="their engines; read from each member's voice.md when blank")
     ap.add_argument("--model", default=None)
     ap.add_argument("--temperature", type=float, default=1.0)
     ap.add_argument("--shots", type=int, default=40, help="for --drill: balls to hit")

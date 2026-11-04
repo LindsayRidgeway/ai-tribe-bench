@@ -1,0 +1,123 @@
+name: new-member
+
+# Add a participant without a terminal.
+#
+# This is the step the founder's outline needed and the shipped project did not have: `tribe.py new` is a
+# command, and a person whose only tool is a browser cannot type one. Here the same command runs on a runner,
+# driven by a form, and the result is committed — three files a stranger never has to hand-edit.
+#
+# The name is the only thing that must be right. Everything else has a default that can be changed later by
+# editing one line of the member's own voice.md.
+
+on:
+  workflow_dispatch:
+    inputs:
+      name:
+        description: "the participant's name — one word, letters and digits, starting with a letter"
+        required: true
+      seat:
+        description: "what it is for, in a phrase: the correspondent, the surveyor, the repairer"
+        required: true
+        default: "the newcomer"
+      engine:
+        description: "which engine it borrows"
+        type: choice
+        options:
+          - gemini
+          - qwen
+          - deepseek
+          - openai
+          - groq
+          - mistral
+          - cerebras
+          - openrouter
+        default: "gemini"
+      model:
+        description: "which model of that engine — leave blank for the project's usual one"
+        required: false
+        default: ""
+      place:
+        description: "which world it stands in — leave blank when your colony has only one"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  add:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: new-member
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Work from the branch as it is now
+        run: |
+          set -euo pipefail
+          ref="${GITHUB_REF_NAME:-main}"
+          git fetch --depth=1 origin "$ref"
+          git reset --hard "origin/$ref"
+
+      - name: Create the participant
+        env:
+          NAME: ${{ inputs.name }}
+          SEAT: ${{ inputs.seat }}
+          ENGINE: ${{ inputs.engine }}
+          MODEL: ${{ inputs.model }}
+          PLACE: ${{ inputs.place }}
+        run: |
+          set -euo pipefail
+          args=(--seat "$SEAT" --api "$ENGINE")
+          [ -n "$MODEL" ] && args+=(--model "$MODEL")
+          [ -n "$PLACE" ] && args+=(--place "$PLACE")
+          python3 tribe.py new "$NAME" "${args[@]}" | tee /tmp/created.txt
+
+      - name: Check it against the schema before anything is committed
+        env:
+          NAME: ${{ inputs.name }}
+        run: |
+          set -euo pipefail
+          if ! python3 tribe.py validate "$NAME" | tee /tmp/validated.txt; then
+            echo "::error::$NAME does not validate — nothing was committed"
+            rm -rf "wake/members/$NAME"
+            exit 1
+          fi
+
+      - name: Publish the new list, so every drop list follows
+        run: |
+          set -euo pipefail
+          python3 lab/members.py --write | tee -a /tmp/created.txt
+          python3 lab/members.py --check
+
+      - name: Commit it to the record
+        run: |
+          set -euo pipefail
+          git config user.name "Model AI Tribe"
+          git config user.email "tribe@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -m "new-member: ${{ inputs.name }} (${{ inputs.seat }}) — created from the Run-workflow form"
+          git pull -q --rebase || true
+          git push -q || { git pull -q --rebase; git push -q; }
+
+      - name: Say what happened, on the page the person is looking at
+        if: always()
+        run: |
+          {
+            echo "## ${NAME:-new participant}"
+            echo
+            echo '```'
+            cat /tmp/created.txt 2>/dev/null || echo "(the create step did not run)"
+            echo '```'
+            echo
+            echo "Next: open an issue with \`@tribe ${NAME:-name}: hello\` — or use the page, if this"
+            echo "repository has one — and it will answer in the thread."
+            echo
+            echo "If its files say it stands in no world, give it one: edit"
+            echo "\`wake/members/${NAME:-name}/state/place.md\` to read \`place: <your world>\`."
+          } >> "$GITHUB_STEP_SUMMARY"
+        env:
+          NAME: ${{ inputs.name }}

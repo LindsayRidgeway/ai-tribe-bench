@@ -3156,6 +3156,53 @@ class TestWorkflows(unittest.TestCase):
         self.assertIn("github.event.issue.body", text)
         self.assertIn("/tmp/named.txt", text, "the name in the body must choose the member who answers")
 
+    def test_a_browser_can_add_a_member(self):
+        """The founder's outline asks a stranger with a browser to build a tribe. `tribe.py new` is a command.
+        So the form is the command: a dispatch workflow with the three things a member needs, and the list
+        republished afterwards so nobody has to remember the second step."""
+        f = self.WF / "new-member.yml"
+        self.assertTrue(f.is_file(), "a person with no terminal has no other way to add a member")
+        text = f.read_text(encoding="utf-8")
+        self.assertIn("workflow_dispatch:", text)
+        self.assertIn("python3 tribe.py new", text, "the form must run the tool, not re-implement it")
+        self.assertIn("lab/members.py --write", text,
+                      "a new member that is not republished is a member the drop list cannot offer")
+        for needed in ("name:", "seat:", "engine:"):
+            self.assertIn(needed, text)
+
+    def test_a_browser_can_play_a_session(self):
+        """Same problem for the activity: the sheet's last section asks the reader to start a season, and until
+        now that meant a terminal. The engine's own flags are the form: a season name, two participants and
+        how many rallies."""
+        f = self.WF / "season.yml"
+        self.assertTrue(f.is_file(), "the activity section of the sheet needs a way to run it")
+        text = f.read_text(encoding="utf-8")
+        self.assertIn("--rally", text)
+        self.assertIn("--season", text, "a session without a season file teaches nobody anything")
+        self.assertIn("--report", text, "the season must be able to say what it holds")
+        self.assertNotIn("--vendor", text,
+                         "the engine of each participant is in its own voice.md; a form should not ask again")
+        self.assertNotIn("--practice", text,
+                         "the balls already hit are in the season file; a second source is how a count drifts")
+
+    def test_adding_a_member_keeps_every_drop_list_in_step(self):
+        """Two lists, one shelf: members.json for the static page, and the `type: choice` block in the
+        Run-workflow form. The second one is the one that drifts, because it lives in a file nobody edits when
+        they add a member. So it is generated too."""
+        mod = load(REPO / "lab" / "members.py", "members_mod_sync")
+        tmp = Path(tempfile.mkdtemp()) / "wf.yml"
+        tmp.write_text("on:\n  workflow_dispatch:\n    inputs:\n      member:\n        type: choice\n"
+                       "        options:\n          - Ada\n        default: \"Ada\"\n", encoding="utf-8")
+        self.assertTrue(mod.sync_drop_list(["Ada", "Bo", "Cy"], tmp))
+        text = tmp.read_text(encoding="utf-8")
+        self.assertIn("- Bo\n", text)
+        self.assertIn("- Cy\n", text)
+        self.assertEqual(mod.drop_list(tmp), ["Ada", "Bo", "Cy"])
+        # A default that is no longer on the list makes the workflow file invalid; it moves with the list.
+        self.assertIn('default: "Ada"', text)
+        mod.sync_drop_list(["Bo", "Cy"], tmp)
+        self.assertIn('default: "Bo"', tmp.read_text(encoding="utf-8"))
+
     def test_a_comment_that_names_no_member_is_answered_by_the_first_on_the_shelf(self):
         text = (self.WF / "interactive.yml").read_text(encoding="utf-8")
         self.assertIn('who="$(ls -1 wake/members | head -1)"', text)
