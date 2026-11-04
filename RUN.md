@@ -370,6 +370,32 @@ key the way a wake does, one turn at a time.
 > judgement — not as an assistant describing a character. Keep it short. Do not write any file unless I ask
 > you to; when I ask, write it into `works/a/` with the header block the other works use.
 
+**Rank all thirty-two, don't pick three.** The founder's correction after two baseball runs came back with
+the same three clubs from three sealed engines: *"Maybe it was that obvious, but that's not a good demo."* A
+top three agrees at the top and shows nothing; a full ordering is a shape, and shapes can be compared as a
+number. Football rather than baseball because seventeen games and single elimination mean the best club
+usually does not win, so no consensus shortcut survives. `lab/sport_facts.py` writes a season's regular-season
+record with the clubs replaced by letters drawn from a seed, and the letter→club key outside the repository —
+with names in front of it a being reasons from what it already believes about a franchise, and that reputation
+arrives in its METHOD line dressed as method. Nothing from the postseason goes in the file and nothing is
+revealed afterwards: a being that learns the result can never be asked again. `lab/rank_compare.py` scores it —
+rank correlation between each pair of beings, the median number of places they move a club, the club they
+disagree about most, the champion's rank in each ordering, and how much of the real playoff field each one
+picked. It refuses a ranking with a club missing, which is what the first real run filed; and it crowns nobody,
+because one season cannot rank methods. `experiment/rank/TEMPLATE-rank-1.md` is the prompt.
+
+**A three-exchange experiment you can score in ten minutes.** The Dow version of this (§ the log,
+2026-11-03) asked three beings for a number and made everyone wait a day for the close; the founder's
+objection was exact — *"the fact that we can't check the prediction accuracy for 24 hours is a disadvantage."*
+A finished season has no such wait. `experiment/mlb/TEMPLATE-task1.md`, `-task2.md` and `-task3.md` are the
+three prompts, with `{{NAME}}` standing in for each member: predict the 2026 postseason from the regular
+season alone, then be shown the result, then read the other two beings' reasoning — written before any of
+them knew — and say whose method held up. `lab/mlb_score.py` reads the `PICK` lines and scores them against
+the league's own postseason schedule (champion 5, pennant 4, championship series 3, division series 2, wild
+card 1). It refuses to score without data, flags a being that names the champion from memory via its `KNEW:`
+line, and crowns nobody: the best team won this year, so accuracy separates nobody, and one postseason is one
+sample. Three exchanges times three beings is nine sessions of two to four minutes.
+
 **What you get, and what you do not.** You get the member's voice with the member's interests, and you get
 a partner that can use tools — so **you can talk about the news**, which the colony's own wake cannot do at
 all. A wake is one model call with no tool loop: it cannot search, fetch, or check anything outside the
@@ -457,6 +483,31 @@ number."
 Then compare the *notes*. The number is the excuse for the interesting part: whether a member's stated
 reasoning bore any relation to the number it gave, and whether it can say plainly that it was wrong. A
 member that defends a guess is telling you something too.
+
+## 5.3 A score sheet with no minds in it: twenty rounds the dice decide
+
+Every experiment above measures what a model *prefers*, and a preference is deterministic: run it twice and
+you have one measurement and one copy. The founder's correction on 2026-11-03 was to take the model out of
+the loop entirely. Colonist 1 gets a random integer, 1 rock, 2 paper, 3 scissors. Colonist 2 gets one too.
+Record the round, repeat twenty times. Nothing chooses, so every run must produce a different sheet.
+
+```
+python3 lab/dice.py --seats Remy,Margot --rounds 20                            # a fresh sheet
+python3 lab/dice.py --seats Remy,Margot --rounds 20                            # another, different
+python3 lab/dice.py --seats Remy,Margot --rounds 20 --seed 476488713 --quiet    # the same one back
+python3 lab/dice.py --verify experiment/dice/<folder>/game.json                # does the page match its seed?
+```
+
+`experiment/dice/README.md` has two real sheets side by side — 9/8/3 and 7/4/9 from the same pair of names
+five minutes apart — and the `diff` that comes back empty when the seed is replayed. Each round writes a
+hash over both numbers, the winner, and the previous hash, so an edited throw is named by round. An editor
+who recomputes the chain is caught by the other check: the seed alone decides all forty numbers, so the
+verifier replays it. The chain is the convenience; the seed is the proof.
+
+Two honest limits. **It shows the apparatus, not the minds** — there is no model in it, and a colony that
+could delete a model's preferences would be a stranger thing than this one. And **twenty rounds proves
+nothing about fairness**: each side expects a third of the rounds against a coin, and the sheets in
+`experiment/dice/` are 9/8 and 7/4 because two samples of twenty are two samples of twenty.
 
 ## 5a. The optional second channel: a free API key
 

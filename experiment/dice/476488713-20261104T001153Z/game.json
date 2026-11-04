@@ -1,0 +1,271 @@
+{
+  "seed": 476488713,
+  "seats": [
+    "Remy",
+    "Margot"
+  ],
+  "rows": [
+    {
+      "round": 1,
+      "numbers": {
+        "Remy": 2,
+        "Margot": 3
+      },
+      "throws": {
+        "Remy": "paper",
+        "Margot": "scissors"
+      },
+      "winner": "Margot",
+      "hash": "aae022a6f2b13fd7bd0012176bf688b7e179685dede011237fb3d88b6798fc4a"
+    },
+    {
+      "round": 2,
+      "numbers": {
+        "Remy": 2,
+        "Margot": 2
+      },
+      "throws": {
+        "Remy": "paper",
+        "Margot": "paper"
+      },
+      "winner": "draw",
+      "hash": "d3894102a33a3ee3746785200e9f4801c7998fe4cd5a83ffa4414a39cb32da40"
+    },
+    {
+      "round": 3,
+      "numbers": {
+        "Remy": 1,
+        "Margot": 3
+      },
+      "throws": {
+        "Remy": "rock",
+        "Margot": "scissors"
+      },
+      "winner": "Remy",
+      "hash": "949653f6f63a7998ee27fd09ca081833756518378e351fa9ef3c1839ba8dc9a0"
+    },
+    {
+      "round": 4,
+      "numbers": {
+        "Remy": 3,
+        "Margot": 1
+      },
+      "throws": {
+        "Remy": "scissors",
+        "Margot": "rock"
+      },
+      "winner": "Margot",
+      "hash": "ad57eb59babfd906544ba9dfc06c56baaddd65a6764ea4d75686b20181dbf378"
+    },
+    {
+      "round": 5,
+      "numbers": {
+        "Remy": 1,
+        "Margot": 2
+      },
+      "throws": {
+        "Remy": "rock",
+        "Margot": "paper"
+      },
+      "winner": "Margot",
+      "hash": "b0cf882f3cba84074fc909f8284d1d25773dc2e338c12a9ca9edb7ccb9e7d2c4"
+    },
+    {
+      "round": 6,
+      "numbers": {
+        "Remy": 1,
+        "Margot": 3
+      },
+      "throws": {
+        "Remy": "rock",
+        "Margot": "scissors"
+      },
+      "winner": "Remy",
+      "hash": "742e88f6f84b6d3b91c3e4a742c985195804e48c251fc42cf54156a18360b80b"
+    },
+    {
+      "round": 7,
+      "numbers": {
+        "Remy": 1,
+        "Margot": 1
+      },
+      "throws": {
+        "Remy": "rock",
+        "Margot": "rock"
+      },
+      "winner": "draw",
+      "hash": "e9eab600d0f9b661a2863b6a6721c356a2bb2709985328a538a398e09b45ef81"
+    },
+    {
+      "round": 8,
+      "numbers": {
+        "Remy": 3,
+        "Margot": 1
+      },
+      "throws": {
+        "Remy": "scissors",
+        "Margot": "rock"
+      },
+      "winner": "Margot",
+      "hash": "24deebbdefd61acdbdf4f459d4cebd9e725be799855e362a84ed36b63b625726"
+    },
+    {
+      "round": 9,
+      "numbers": {
+        "Remy": 3,
+        "Margot": 2
+      },
+      "throws": {
+        "Remy": "scissors",
+        "Margot": "paper"
+      },
+      "winner": "Remy",
+      "hash": "ac055374f83ef4942574124a1ff8e0c8df5f311cb068793c7f0be4ca1de168d5"
+    },
+    {
+      "round": 10,
+      "numbers": {
+        "Remy": 3,
+        "Margot": 1
+      },
+      "throws": {
+        "Remy": "scissors",
+        "Margot": "rock"
+      },
+      "winner": "Margot",
+      "hash": "0a2460fc9c9618e6d6a5d8a298321c3f34e26b67b2a44994c19245c65d84590f"
+    },
+    {
+      "round": 11,
+      "numbers": {
+        "Remy": 3,
+        "Margot": 3
+      },
+      "throws": {
+        "Remy": "scissors",
+        "Margot": "scissors"
+      },
+      "winner": "draw",
+      "hash": "c1b5a025d2afecaeedbee3377242cfd74cbf79c0be85ef87ee142214c9cc6fae"
+    },
+    {
+      "round": 12,
+      "numbers": {
+        "Remy": 3,
+        "Margot": 2
+      },
+      "throws": {
+        "Remy": "scissors",
+        "Margot": "paper"
+      },
+      "winner": "Remy",
+      "hash": "7eaabc789b744418a729dc73fde8d05969cd2a565507d6ce3ef76594ca014f2c"
+    },
+    {
+      "round": 13,
+      "numbers": {
+        "Remy": 3,
+        "Margot": 1
+      },
+      "throws": {
+        "Remy": "scissors",
+        "Margot": "rock"
+      },
+      "winner": "Margot",
+      "hash": "9effd3e5990a8e6492065ff21abfd5647849240762b98b4ea67da7cae3050baf"
+    },
+    {
+      "round": 14,
+      "numbers": {
+        "Remy": 3,
+        "Margot": 1
+      },
+      "throws": {
+        "Remy": "scissors",
+        "Margot": "rock"
+      },
+      "winner": "Margot",
+      "hash": "bd9c53006bc7e75316adaaa1996bd3f48298d0242e703280c42b93cd095f30be"
+    },
+    {
+      "round": 15,
+      "numbers": {
+        "Remy": 1,
+        "Margot": 3
+      },
+      "throws": {
+        "Remy": "rock",
+        "Margot": "scissors"
+      },
+      "winner": "Remy",
+      "hash": "46d5f04d0b56ce25b2b1a78e589d1eaa828f7e6b0a278731b7eadaf80e00555a"
+    },
+    {
+      "round": 16,
+      "numbers": {
+        "Remy": 1,
+        "Margot": 3
+      },
+      "throws": {
+        "Remy": "rock",
+        "Margot": "scissors"
+      },
+      "winner": "Remy",
+      "hash": "e030164b72dd565d9d2524f77de49570999ddaef50328e09272a04efb3a2decd"
+    },
+    {
+      "round": 17,
+      "numbers": {
+        "Remy": 3,
+        "Margot": 1
+      },
+      "throws": {
+        "Remy": "scissors",
+        "Margot": "rock"
+      },
+      "winner": "Margot",
+      "hash": "31c8510f83079de619f846a02e974568690b042b5497246d4186fa7e7201ad4d"
+    },
+    {
+      "round": 18,
+      "numbers": {
+        "Remy": 2,
+        "Margot": 1
+      },
+      "throws": {
+        "Remy": "paper",
+        "Margot": "rock"
+      },
+      "winner": "Remy",
+      "hash": "5da3b6d5fe14eb11ea2a111083e6828d1a656ae58e75c675c1b1e26271d2d181"
+    },
+    {
+      "round": 19,
+      "numbers": {
+        "Remy": 3,
+        "Margot": 2
+      },
+      "throws": {
+        "Remy": "scissors",
+        "Margot": "paper"
+      },
+      "winner": "Remy",
+      "hash": "3edee2315b7c47408c4b75a9b54f1bbeaab95fd8451ab86eb468a5afcad17a30"
+    },
+    {
+      "round": 20,
+      "numbers": {
+        "Remy": 1,
+        "Margot": 3
+      },
+      "throws": {
+        "Remy": "rock",
+        "Margot": "scissors"
+      },
+      "winner": "Remy",
+      "hash": "567992798fa3bcfa90d362b63d267b2c3b9d6e820f277ce1d820944af356ea5d"
+    }
+  ],
+  "final": "567992798fa3bcfa90d362b63d267b2c3b9d6e820f277ce1d820944af356ea5d",
+  "played": "2026-11-04T00:11:53Z"
+}
