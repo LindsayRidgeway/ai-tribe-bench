@@ -2933,9 +2933,18 @@ class TestChat(unittest.TestCase):
         self.assertIn("needs an 'api:' line and a 'model:' line", str(e.exception))
 
     def test_a_missing_key_says_which_name_to_set_and_does_not_call_anything(self):
+        # A member of its own in a temp root, not whichever member this repository happens to ship: the
+        # bench's wake/members holds fixtures called "a" and "b", so a test that names a real participant
+        # passes in the colony and fails in the bench. That is the fixture-versus-shipped defect this
+        # suite already has nineteen of.
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp, True)
+        (tmp / "wake" / "members" / "Ada" / "state").mkdir(parents=True)
+        (tmp / "wake" / "members" / "Ada" / "state" / "voice.md").write_text("api: gemini\nmodel: x\n")
+        (tmp / "wake" / "members" / "Ada" / "state" / "identity.md").write_text("I am Ada.\n")
         saved = os.environ.pop("TRIBE_API_KEY_GEMINI", None)
         try:
-            out = self.c.ask_member("Colette", "hello")
+            out = self.c.ask_member("Ada", "hello", root=tmp)
         finally:
             if saved is not None:
                 os.environ["TRIBE_API_KEY_GEMINI"] = saved
@@ -2971,12 +2980,15 @@ class TestChat(unittest.TestCase):
         self.addCleanup(srv.shutdown)
         base = f"http://127.0.0.1:{srv.server_address[1]}"
         try:
+            listed = None
             with _url.urlopen(base + "/members", timeout=10) as r:
-                self.assertIn("Colette", _json.load(r)["members"])
+                listed = _json.load(r)["members"]
+            self.assertTrue(listed, "this repository has no participants to list")
+            self.assertEqual(listed, c.members(), "the drop list is whatever members() says, sorted")
             with _url.urlopen(base + "/", timeout=10) as r:
                 self.assertIn("conversation", r.read().decode().lower())
             req = _url.Request(base + "/say", method="POST",
-                               data=_json.dumps({"member": "Colette", "text": "how are you?"}).encode(),
+                               data=_json.dumps({"member": listed[0], "text": "how are you?"}).encode(),
                                headers={"Content-Type": "application/json"})
             with _url.urlopen(req, timeout=10) as r:
                 got = _json.load(r)
@@ -2984,7 +2996,7 @@ class TestChat(unittest.TestCase):
             c.ask_member = real
         self.assertTrue(got["ok"])
         self.assertEqual(got["reply"], "I read my journal and I am well.")
-        self.assertEqual(asked["member"], "Colette")
+        self.assertEqual(asked["member"], listed[0])
         self.assertEqual(asked["text"], "how are you?")
 
     def test_a_participant_who_does_not_exist_is_refused_before_any_call(self):
