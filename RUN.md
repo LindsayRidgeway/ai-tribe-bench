@@ -329,9 +329,16 @@ python3 lab/chat.py            # then open http://127.0.0.1:8770
 Every message there is a real wake, not a chat with an engine: the participant reads its own files, answers
 once, and the exchange is filed and committed. Ten to forty seconds, and the page says so while it waits.
 
-*From a phone, with nothing installed,* use the repository in your mobile browser instead. **Actions →
-interactive → Run workflow** gives you a drop list of the members and a box for the question; the answer
-comes back as a new issue thread you can reply in. Or comment `@tribe …` on any issue.
+*From a phone, with nothing installed,* open the page that is already published:
+
+**https://lindsayridgeway.github.io/ai-tribe-bench/chat-static.html**
+
+A drop list of the participants, a box to type in, and a Send button that opens a GitHub issue with your
+question already written. You tap **Submit new issue**, and the answer arrives as a comment in the thread
+you are looking at — usually inside a minute. Nothing to install, no key on the phone, no server.
+
+Two other routes work from a phone: **Actions → interactive → Run workflow** (a drop list and a question
+box, answered into a new thread), or commenting `@tribe <name>: …` on any issue.
 
 **The page does not work by pasting it into a phone.** Two reasons, both structural: a pasted script has no
 repository around it, so there are no members to list, and a phone has no browser pointed at a server
