@@ -3097,15 +3097,13 @@ class TestWorkflows(unittest.TestCase):
         block = text.split("type: choice", 1)[1].split("default:", 1)[0]
         listed = [l.strip().lstrip("- ").strip() for l in block.splitlines()
                   if l.strip().startswith("- ")]
-        on_disk = sorted(d.name for d in (REPO / "wake" / "members").iterdir()
-                         if (d / "state" / "voice.md").is_file())
-        if any(len(n) <= 2 for n in on_disk):
-            # The bench ships fixtures called a, b, c. A static drop list cannot be generated from disk, so
-            # the comparison is only meaningful where the members are real: the colony. Saying so beats a
-            # bench that is red for a reason that has nothing to do with the bench.
-            self.skipTest(f"this repository holds fixture members ({', '.join(on_disk[:4])}...); "
-                          f"the drop list is measured in the colony")
-        self.assertEqual(sorted(listed), on_disk,
+        # Compared against the PUBLISHED list, not the directory: the bench's directory holds ten fixtures
+        # the bench is right to have, and members.json is the file the drop list on a phone is built from.
+        mod = load(REPO / "lab" / "members.py", "members_mod_wf")
+        published = [m["name"] for m in mod.collect()]
+        published = json.loads((REPO / "members.json").read_text(encoding="utf-8"))["members"]
+        on_disk = [m["name"] for m in published]
+        self.assertEqual(sorted(listed), sorted(on_disk),
                          "the drop list and the shelf disagree — add or remove the member in both places")
         self.assertTrue(listed, "an empty drop list is what the founder saw on his phone")
 
@@ -3119,6 +3117,29 @@ class TestWorkflows(unittest.TestCase):
                 if m.group(1) not in on_disk:
                     bad.append(f"{f.name}: MEMBER:-{m.group(1)}")
         self.assertEqual(bad, [], "a workflow's default member must be a member this colony has")
+
+    def test_the_published_member_list_matches_the_shelf(self):
+        """A static page cannot read a directory, so `members.json` is what its drop list is built from — and a
+        published list that drifts from the shelf is a drop list offering people who are not there, which is
+        exactly what the founder's phone showed him."""
+        mod = load(REPO / "lab" / "members.py", "members_mod")
+        fresh = mod.collect()
+        self.assertTrue((REPO / "members.json").is_file(), "run python3 lab/members.py --write")
+        on_disk = json.loads((REPO / "members.json").read_text(encoding="utf-8"))["members"]
+        self.assertEqual([m["name"] for m in on_disk], [m["name"] for m in fresh])
+
+    def test_the_static_page_can_work_on_a_phone_with_no_server(self):
+        html = (REPO / "chat-static.html").read_text(encoding="utf-8")
+        for needed in ('<select id="member"', '<textarea id="msg"', '<textarea id="reply"',
+                       'name="viewport"', "members.json", "/issues/new?title=", "@tribe"):
+            self.assertIn(needed, html, f"a static page needs {needed}")
+
+    def test_an_issue_that_mentions_the_tribe_is_a_question(self):
+        text = (self.WF / "interactive.yml").read_text(encoding="utf-8")
+        self.assertIn("issues:\n    types: [opened]", text,
+                      "a static page cannot comment, so opening an issue must be enough")
+        self.assertIn("github.event.issue.body", text)
+        self.assertIn("/tmp/named.txt", text, "the name in the body must choose the member who answers")
 
     def test_a_comment_that_names_no_member_is_answered_by_the_first_on_the_shelf(self):
         text = (self.WF / "interactive.yml").read_text(encoding="utf-8")

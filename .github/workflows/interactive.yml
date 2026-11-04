@@ -7,6 +7,11 @@ name: interactive
 on:
   issue_comment:
     types: [created]
+  # A static page on GitHub Pages cannot post a comment, but it can open an issue: that is the whole reason
+  # this trigger exists. chat-static.html prefills the body with `@tribe <name>: <question>`, the person taps
+  # Submit, and the answer lands in the thread they are already looking at.
+  issues:
+    types: [opened]
   workflow_dispatch:
     inputs:
       question:
@@ -21,10 +26,8 @@ on:
         description: "which member answers"
         type: choice
         options:
-          - Colette
-          - Margot
-          - Remy
-        default: "Colette"
+          - Ada
+        default: "Ada"
 
 permissions:
   contents: write
@@ -37,6 +40,7 @@ jobs:
     # everything else addressed to @tribe is a question and lands here.
     if: >
       (github.event_name == 'workflow_dispatch' && inputs.question != '') ||
+      (github.event_name == 'issues' && contains(github.event.issue.body, '@tribe')) ||
       (contains(github.event.comment.body, '@tribe') &&
       !contains(github.event.comment.body, '@tribe draft') &&
       !contains(github.event.comment.body, '@tribe score') &&
@@ -82,12 +86,17 @@ jobs:
 
       - name: The question, as the human wrote it
         env:
-          BODY: ${{ github.event.comment.body }}
+          BODY: ${{ github.event.comment.body || github.event.issue.body }}
           ASKED: ${{ inputs.question }}
         run: |
           set -euo pipefail
-          printf '%s' "${ASKED:-$BODY}" | sed 's/@tribe//g' > /tmp/question.txt
+          printf '%s' "${ASKED:-$BODY}" > /tmp/raw-question.txt
+          sed -n 's/.*@tribe[[:space:]]\{1,\}\([A-Za-z][A-Za-z0-9_-]*\).*/\1/p' /tmp/raw-question.txt \
+            | head -1 > /tmp/named.txt || true
+          sed 's/@tribe[[:space:]]\{1,\}[A-Za-z][A-Za-z0-9_-]*//; s/@tribe//g' /tmp/raw-question.txt \
+            > /tmp/question.txt
           echo "--- question ---"; cat /tmp/question.txt
+          echo "--- names ---"; cat /tmp/named.txt
 
       - name: One member answers
         env:
@@ -100,6 +109,15 @@ jobs:
           touch /tmp/answer-start      # so the next step cannot hand back last week's answer
           Q="$(cat /tmp/question.txt)"
           who="${MEMBER:?no member was chosen}"
+          # If the question names a participant on the shelf, that participant answers. This is how the
+          # static page's prefilled `@tribe Colette: …` reaches the right seat instead of the first one.
+          named="$(cat /tmp/named.txt 2>/dev/null || true)"
+          if [ -n "$named" ] && [ -d "wake/members/$named/state" ]; then
+            echo "the question names $named, so $named answers"
+            who="$named"
+          elif [ -n "$named" ]; then
+            echo "!! the question names $named, who is not on the shelf; ${MEMBER} answers instead"
+          fi
           api="$(grep -E '^api:' "wake/members/$who/state/voice.md" | head -1 | awk '{print $2}')"
           model="$(grep -E '^model:' "wake/members/$who/state/voice.md" | head -1 | awk '{print $2}')"
           echo "MEMBER=$who" >> "$GITHUB_ENV"
@@ -124,7 +142,7 @@ jobs:
             exit 0
           fi
           {
-            echo "**${f##*/}** — member ${who^}, ${{ github.event.comment.user.login }}, $(date -u +%FT%TZ)"
+            echo "**${f##*/}** — member ${who^}, ${{ github.actor }}, $(date -u +%FT%TZ)"
             echo
             cat "$f"
           } > /tmp/reply.md
