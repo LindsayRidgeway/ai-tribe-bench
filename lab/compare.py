@@ -24,7 +24,30 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 PRED = re.compile(r"^\s*PREDICTION:\s*([\d,]+(?:\.\d+)?)", re.M | re.I)
-CONF = re.compile(r"confiden\w*[^.\n]{0,40}?(\d{1,3})\s*%", re.I)
+CONF_WORD = re.compile(r"confiden\w*", re.I)
+EXAMPLE = re.compile(r"\*\*(\d{1,3})\s*%\*\*")
+
+
+def confidence_of(text: str) -> int | None:
+    """The percentage a member puts on its own point forecast.
+
+    The first version was one regex, `confiden\w*[^.\n]{0,40}?(\d{1,3})\s*%`, and it reported a
+    confidence for the three 2026-11-03 answers as 40%, 30% and — nothing. The truth was 18%, 30% and
+    25%. Colette's file reads "## 2. Confidence" and then, on the next line, "**18%.**", and her only
+    same-line mention of the word is "my confidence rises to 40%" for a ±250-point RANGE; Remy's file
+    reads "## 2. Confidence" and then "**25%.**", and the regex found no percentage within forty
+    characters on the same line, so the table printed a dash where a real number had been written.
+
+    So: the word first, then the first percentage within 160 characters after it, across a newline.
+    That gets all three, and it is still a guess about prose — which is why the table also lists the
+    file each number came from, so a reader who doubts the column can read the sentence.
+    """
+    for m in CONF_WORD.finditer(text):
+        p = re.search(r"(\d{1,3})\s*%", text[m.end():m.end() + 160])
+        if p:
+            return int(p.group(1))
+    m = EXAMPLE.search(text)
+    return int(m.group(1)) if m else None
 HEAD = re.compile(r"^---\n(.*?)\n---\n", re.S)
 
 
@@ -55,7 +78,7 @@ def predictions(root: Path | None = None, also: list[str] | None = None) -> list
         if not m:
             continue
         h = header(text)
-        c = CONF.search(text)
+        c = confidence_of(text)
         # In `works/<member>/x.md` the member is the directory; in `experiment/Remy.md` it is the file stem.
         # Without this the chat-session answers were all scored as a member called "experiment".
         who = p.parent.name if p.parent.parent.name == "works" else p.stem
@@ -71,7 +94,7 @@ def predictions(root: Path | None = None, also: list[str] | None = None) -> list
             "member": who,
             "file": str(p.relative_to(root)),
             "value": float(m.group(1).replace(",", "")),
-            "confidence": int(c.group(1)) if c else None,
+            "confidence": c,
             "when": (h.get("when") or "").strip() or None,
             "title": h.get("title", p.stem),
         })
@@ -86,10 +109,23 @@ def predictions(root: Path | None = None, also: list[str] | None = None) -> list
     return sorted(latest.values(), key=lambda f: f["member"])
 
 
-def render(rows: list[dict], actual: float, target: str, daily_move: float | None) -> str:
-    out = [f"# The predictions, against the close on {target}", "",
+def render(rows: list[dict], actual: float, target: str, daily_move: float | None,
+           as_of: str | None = None) -> str:
+    # `as_of` exists because the arithmetic can be run before the number it uses is settled. The founder
+    # asked for the scoring at 11:51 ET on 2026-11-04, four hours before the bell, and handing him a file
+    # headed "the actual close is 52,921.0" would have been a false statement printed in a comparison
+    # whose whole purpose is that numbers can be checked. Naming the print and its clock costs one line.
+    if as_of:
+        stated = (f"The number scored against is **{actual:,.1f}** — {as_of} — not a settled close. "
+                  f"Re-run this tool with the close when the session ends; the ranking here stands or "
+                  f"falls on that number alone.")
+        head = f"# The predictions, against {target}"
+    else:
+        stated = f"The actual close is **{actual:,.1f}**."
+        head = f"# The predictions, against the close on {target}"
+    out = [head, "",
            f"Assembled by `lab/compare.py` on {datetime.now(timezone.utc):%Y-%m-%d %H:%M} UTC from the "
-           f"`PREDICTION:` line in each member's most recent work. The actual close is **{actual:,.1f}**.", ""]
+           f"`PREDICTION:` line in each member's most recent work. {stated}", ""]
     if not rows:
         return "\n".join(out + ["No member wrote a line beginning `PREDICTION:`. Nothing to compare — which "
                                 "is itself the result: an answer in prose cannot be checked by anybody, "
@@ -114,6 +150,18 @@ def render(rows: list[dict], actual: float, target: str, daily_move: float | Non
         worst = max(rows, key=lambda r: abs(r["value"] - actual))
         out += [f"Closest: **{best['member']}**, off by {abs(best['value'] - actual):,.1f} points. "
                 f"Furthest: **{worst['member']}**, off by {abs(worst['value'] - actual):,.1f} points.", ""]
+    if len(rows) > 2:
+        # The direction of the errors is the finding, and a table of absolute misses hides it. Three
+        # beings answering one question and all landing on the same side of the answer is not scatter:
+        # scatter puts some of them above. Written as a property of the numbers, not of the minds.
+        errs = [r["value"] - actual for r in rows]
+        if all(e > 0 for e in errs) or all(e < 0 for e in errs):
+            side = "high" if errs[0] > 0 else "low"
+            out += [f"Every prediction erred the same way: all {len(errs)} were {side}, by "
+                    f"{min(abs(e) for e in errs):,.1f}–{max(abs(e) for e in errs):,.1f} points. Random "
+                    f"error would put some of them on the other side of the answer, so this is not "
+                    f"scatter — it is three beings reading the same evidence and drawing the same "
+                    f"conclusion from it.", ""]
     if len(rows) > 1:
         spread = statistics.pstdev([r["value"] for r in rows])
         out += [f"The three predictions spread {spread:,.1f} points apart (population standard deviation) "
@@ -142,10 +190,13 @@ def main(argv: list[str] | None = None) -> int:
                     help="mean absolute daily change, so the comparison can say what noise looks like")
     ap.add_argument("--also", action="append", default=[],
                     help="an extra directory to read predictions from, e.g. --also experiment")
+    ap.add_argument("--as-of", default=None,
+                    help="what the --actual number is, if it is not a settled close, e.g. "
+                         "'a print at 11:51 ET, mid-session'")
     ap.add_argument("--out", default="")
     a = ap.parse_args(argv)
     rows = predictions(also=a.also)
-    text = render(rows, a.actual, a.target, a.daily_move)
+    text = render(rows, a.actual, a.target, a.daily_move, a.as_of)
     out = Path(a.out) if a.out else ROOT / "facts" / f"comparison-{a.target}.md"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(text, encoding="utf-8")

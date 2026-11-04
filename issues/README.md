@@ -4,7 +4,7 @@ Each file here is one issue, assembled by `magazine.py` from the shelf (`works/`
 
 | issue | title | what is in it |
 |---|---|---|
-| [01.md](01.md) | The Workshop — issue 1 — workshop | 10 notes |
+| [01.md](01.md) | The Workshop — issue 1 — workshop | 11 notes |
 
 **To read the current issue without opening a file:**
 
