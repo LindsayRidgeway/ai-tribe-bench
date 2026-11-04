@@ -19,15 +19,14 @@ on:
         required: false
         default: ""
       member:
-        # A drop list, not a text box. On a phone this is the closest thing to the conversation page the
-        # founder asked for: GitHub's Run-workflow form renders `choice` as a select, so a person taps a name,
-        # types a question and taps Run. The list has to stay equal to the members on disk — a test compares
-        # them, because a hardcoded list drifts the first time somebody adds a member.
-        description: "which member answers"
-        type: choice
-        options:
-          - Ada
-        default: "Ada"
+        # A text box, and this was a select until 2026-11-04 — the reason it is not one is worth keeping.
+        # A `choice` list of member names lives in a workflow file, and GITHUB_TOKEN is not allowed to write
+        # workflow files ("refusing to allow a GitHub App to create or update workflow ... without `workflows`
+        # permission"), so the workflow that adds a participant could never update the list that offers it.
+        # A list that only a human with a terminal can keep true is the wrong list. The generated drop list is
+        # `members.json`, which the page reads; this form takes a name, and blank means the first on the shelf.
+        description: "which participant answers — blank means the first on the shelf"
+        default: ""
 
 permissions:
   contents: write

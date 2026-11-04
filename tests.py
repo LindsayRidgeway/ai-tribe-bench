@@ -3091,21 +3091,22 @@ class TestWorkflows(unittest.TestCase):
 
     WF = REPO / ".github" / "workflows"
 
-    def test_the_member_drop_list_is_the_members_on_disk(self):
-        text = (self.WF / "interactive.yml").read_text(encoding="utf-8")
-        self.assertIn("type: choice", text, "a text box is not a drop list; the phone form needs a select")
-        block = text.split("type: choice", 1)[1].split("default:", 1)[0]
-        listed = [l.strip().lstrip("- ").strip() for l in block.splitlines()
-                  if l.strip().startswith("- ")]
-        # Compared against the PUBLISHED list, not the directory: the bench's directory holds ten fixtures
-        # the bench is right to have, and members.json is the file the drop list on a phone is built from.
-        mod = load(REPO / "lab" / "members.py", "members_mod_wf")
-        published = [m["name"] for m in mod.collect()]
-        published = json.loads((REPO / "members.json").read_text(encoding="utf-8"))["members"]
-        on_disk = [m["name"] for m in published]
-        self.assertEqual(sorted(listed), sorted(on_disk),
-                         "the drop list and the shelf disagree — add or remove the member in both places")
-        self.assertTrue(listed, "an empty drop list is what the founder saw on his phone")
+    def test_no_workflow_carries_a_list_of_member_names(self):
+        """The Run-workflow form used to offer a `type: choice` drop list of member names. Two things were wrong
+        with it, and only the first was obvious.
+
+        It was stale the first time anybody added a member. And it could not be repaired by the workflow that
+        adds one: GITHUB_TOKEN may not write a workflow file — "refusing to allow a GitHub App to create or
+        update workflow `.github/workflows/interactive.yml` without `workflows` permission" — so the list of
+        members inside a workflow is a list only a person with a terminal can keep true, which is the wrong
+        list for a document whose reader has no terminal. The generated list is `members.json`; the form takes
+        a name, and the answer path reads the name out of the question itself."""
+        published = {m["name"] for m in json.loads((REPO / "members.json").read_text(encoding="utf-8"))["members"]}
+        for f in sorted(self.WF.glob("*.yml")):
+            for line in f.read_text(encoding="utf-8").splitlines():
+                item = line.strip()
+                if item.startswith("- ") and item.lstrip("- ").strip() in published:
+                    self.fail(f"{f.name} hardcodes the member {item!r} in a list; members.json is the list")
 
     def test_no_workflow_falls_back_to_a_member_that_does_not_exist(self):
         """`${MEMBER:-b}` reads as "b if nothing was chosen", and b is nothing in a colony. A stranger's first
@@ -3169,6 +3170,9 @@ class TestWorkflows(unittest.TestCase):
                       "a new member that is not republished is a member the drop list cannot offer")
         for needed in ("name:", "seat:", "engine:"):
             self.assertIn(needed, text)
+        self.assertNotIn(".github/workflows", text,
+                         "a workflow that edits a workflow file cannot push it: GITHUB_TOKEN has no such "
+                         "permission, so the member list must not live in one")
 
     def test_a_browser_can_play_a_session(self):
         """Same problem for the activity: the sheet's last section asks the reader to start a season, and until
@@ -3184,24 +3188,6 @@ class TestWorkflows(unittest.TestCase):
                          "the engine of each participant is in its own voice.md; a form should not ask again")
         self.assertNotIn("--practice", text,
                          "the balls already hit are in the season file; a second source is how a count drifts")
-
-    def test_adding_a_member_keeps_every_drop_list_in_step(self):
-        """Two lists, one shelf: members.json for the static page, and the `type: choice` block in the
-        Run-workflow form. The second one is the one that drifts, because it lives in a file nobody edits when
-        they add a member. So it is generated too."""
-        mod = load(REPO / "lab" / "members.py", "members_mod_sync")
-        tmp = Path(tempfile.mkdtemp()) / "wf.yml"
-        tmp.write_text("on:\n  workflow_dispatch:\n    inputs:\n      member:\n        type: choice\n"
-                       "        options:\n          - Ada\n        default: \"Ada\"\n", encoding="utf-8")
-        self.assertTrue(mod.sync_drop_list(["Ada", "Bo", "Cy"], tmp))
-        text = tmp.read_text(encoding="utf-8")
-        self.assertIn("- Bo\n", text)
-        self.assertIn("- Cy\n", text)
-        self.assertEqual(mod.drop_list(tmp), ["Ada", "Bo", "Cy"])
-        # A default that is no longer on the list makes the workflow file invalid; it moves with the list.
-        self.assertIn('default: "Ada"', text)
-        mod.sync_drop_list(["Bo", "Cy"], tmp)
-        self.assertIn('default: "Bo"', tmp.read_text(encoding="utf-8"))
 
     def test_a_comment_that_names_no_member_is_answered_by_the_first_on_the_shelf(self):
         text = (self.WF / "interactive.yml").read_text(encoding="utf-8")
