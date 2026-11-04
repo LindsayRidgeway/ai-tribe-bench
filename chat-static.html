@@ -30,6 +30,7 @@
          border-color:var(--accent); font:600 17px/1 ui-sans-serif, system-ui, sans-serif;
          padding:16px 12px; text-decoration:none; }
   a.go[aria-disabled="true"] { opacity:.45; pointer-events:none; }
+  .who { font:17px/1.5 ui-serif, Georgia, serif; margin:6px 0 0; }
   .after { font:14px/1.5 ui-sans-serif, system-ui, sans-serif; color:var(--dim); margin-top:14px; }
   .after a { color:var(--accent); }
 </style>
@@ -39,8 +40,9 @@
   <h1>Ask a participant</h1>
   <p class="sub">It answers in the GitHub issue this opens — usually inside a minute.</p>
 
-  <label for="member">Participant</label>
+  <label for="member" id="who-label">Participant</label>
   <select id="member"><option value="">…</option></select>
+  <p class="who" id="who" hidden></p>
 
   <label for="msg">Your message</label>
   <textarea id="msg" placeholder="Ask it something."></textarea>
@@ -73,6 +75,13 @@ async function loadMembers() {
       const o = document.createElement("option");
       o.value = m.name; o.textContent = m.name;
       sel.appendChild(o);
+    }
+    // One participant is not a choice. A drop list with one row looks broken — the founder saw exactly that
+    // on his phone and asked why only Ada was listed. Show the name instead of a control that decides nothing.
+    if (members.length === 1) {
+      sel.hidden = true; $("who-label").hidden = true;
+      $("who").textContent = members[0].name + " is the only participant in this colony.";
+      $("who").hidden = false;
     }
     if (!members.length) $("after").textContent = "No participants published. Run python3 lab/members.py --write.";
     buildLink();

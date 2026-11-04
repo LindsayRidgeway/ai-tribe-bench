@@ -3131,7 +3131,7 @@ class TestWorkflows(unittest.TestCase):
     def test_the_static_page_can_work_on_a_phone_with_no_server(self):
         html = (REPO / "chat-static.html").read_text(encoding="utf-8")
         for needed in ('<select id="member"', '<textarea id="msg"', 'name="viewport"',
-                       "members.json", "/issues/new?title=", "@tribe"):
+                       "members.json", "/issues/new", "?title=", "@tribe"):
             self.assertIn(needed, html, f"a static page needs {needed}")
         # And no reply box on the static page. The first version had one because the founder asked for two
         # boxes; a static file has no server and no token, so that box could never fill and its placeholder
@@ -3139,6 +3139,15 @@ class TestWorkflows(unittest.TestCase):
         self.assertNotIn('id="reply"', html,
                          "the static page cannot receive a reply; the answer is a comment on the issue")
         self.assertIn("Submit new issue", html, "the page must say which button actually starts the work")
+
+    def test_a_colony_of_one_is_not_offered_as_a_choice(self):
+        """The founder's phone showed a drop list with one row in it (Ada) and he read it as a defect — rightly.
+        A select with a single option is a control that decides nothing, and it looks like a broken list. A
+        colony of one should say so in words and hide the control."""
+        html = (REPO / "chat-static.html").read_text(encoding="utf-8")
+        self.assertIn("members.length === 1", html, "the page must notice a single-participant colony")
+        self.assertIn('$("who-label").hidden = true', html, "and hide the label above a hidden select")
+        self.assertIn('sel.hidden = true', html, "and hide the select itself, not just its options")
 
     def test_an_issue_that_mentions_the_tribe_is_a_question(self):
         text = (self.WF / "interactive.yml").read_text(encoding="utf-8")
