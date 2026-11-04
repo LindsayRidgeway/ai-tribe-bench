@@ -576,6 +576,30 @@ The pairing test I set myself — Colette against a liar in another engine — d
 about 50 seconds a call on a prompt this size and three runs died at rounds 4, 6 and 14 on read timeouts. The
 remains are filed next to the two completed games rather than deleted: `experiment/word/README.md` says so.
 
+## 5.6 Nothing is banned, and the sentence is scored
+
+The founder's question killed the version in §5.5: *"why would any experienced player ever gamble?"* They
+wouldn't. Banning one throw leaves a legal throw whose counter is banned, and that throw cannot be beaten; the
+other legal throw can only beat the banned one, so it can only draw or lose. In eighty rounds of §5.4 and
+§5.5, every throw that was neither the safe one nor a forfeit lost or drew. The throw column was a forced
+move, and only `CALL` was live.
+
+`lab/favour.py` changes two rules and nothing else:
+
+- **nothing is banned** — the clock favours a throw each round (milliseconds mod 3, printed) and a winning
+  throw with it is worth two. Three live throws, no safe throw, a temptation with a counter;
+- **the sentence is scored** — `+1` when the opponent's `CALL` is a throw you named in `SAY` and not in
+  `WORD`. Being believed on the strength of a sentence pays, so naming a throw is a trap as well as a move.
+
+```
+python3 lab/favour.py --pair Remy,Colette --vendor deepseek,gemini --rounds 20
+```
+
+Played: **Remy 28, Colette 27** over twenty rounds, against 9–25 and 11–29 under the ban rule. Calls right fell
+to 6 and 5 in twenty — with three live throws neither can predict the other, which is what a game looks like.
+The sentence paid 22 of the 80 points. And temperament finally appears in a choice: Colette chased the clock's
+favoured throw nine times in twenty, Remy once; under the old rule that difference could not exist.
+
 ## 5a. The optional second channel: a free API key
 
 A weight file is a few billion numbers you download once; it runs on the runner, offline, and can be taken
