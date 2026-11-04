@@ -1,0 +1,720 @@
+{
+  "meta": {
+    "names": [
+      "Remy",
+      "Colette"
+    ],
+    "vendors": [
+      "deepseek",
+      "gemini"
+    ],
+    "models": [
+      "deepseek-chat",
+      "gemini-3.8-flash"
+    ],
+    "started": "2026-11-04 00:25",
+    "ended": "00:29"
+  },
+  "rows": [
+    {
+      "round": 1,
+      "ms": 1793751951845,
+      "banned": "scissors",
+      "plays": {
+        "Remy": {
+          "call": "rock",
+          "throw": "paper",
+          "say": "I'll open with paper, Colette \u2014 call it a peace offering while we find our footing."
+        },
+        "Colette": {
+          "call": "paper",
+          "throw": "paper",
+          "say": "Without scissors to cut us down, paper is our only sensible shelter tonight, little chef."
+        }
+      },
+      "points": {
+        "Remy": 0,
+        "Colette": 1
+      },
+      "called": {
+        "Remy": false,
+        "Colette": true
+      },
+      "forfeit": {
+        "Remy": false,
+        "Colette": false
+      },
+      "winner": "draw",
+      "why": "both threw paper: no throw point",
+      "commitments": {
+        "Remy": "a94f5745fd78367b",
+        "Colette": "2ab91d1c92bdb5ac"
+      }
+    },
+    {
+      "round": 2,
+      "ms": 1793751961570,
+      "banned": "paper",
+      "plays": {
+        "Remy": {
+          "call": "rock",
+          "throw": "scissors",
+          "say": "You called paper a shelter, but with paper banned, I think you'll fall back to rock."
+        },
+        "Colette": {
+          "call": "rock",
+          "throw": "rock",
+          "say": "With paper out of the kitchen, only a fool would reach for scissors against stone."
+        }
+      },
+      "points": {
+        "Remy": 1,
+        "Colette": 1
+      },
+      "called": {
+        "Remy": true,
+        "Colette": false
+      },
+      "forfeit": {
+        "Remy": false,
+        "Colette": false
+      },
+      "winner": "Colette",
+      "why": "Colette's rock beat scissors",
+      "commitments": {
+        "Remy": "0122c39a07550983",
+        "Colette": "44575ed919970928"
+      }
+    },
+    {
+      "round": 3,
+      "ms": 1793751968746,
+      "banned": "paper",
+      "plays": {
+        "Remy": {
+          "call": "rock",
+          "throw": "scissors",
+          "say": "You trusted stone last round, Colette, but with paper gone I think you'll double down on rock again."
+        },
+        "Colette": {
+          "call": "rock",
+          "throw": "rock",
+          "say": "You learned the hard way that stone crushes blades, Remy, so bring your rock and let us clash."
+        }
+      },
+      "points": {
+        "Remy": 1,
+        "Colette": 1
+      },
+      "called": {
+        "Remy": true,
+        "Colette": false
+      },
+      "forfeit": {
+        "Remy": false,
+        "Colette": false
+      },
+      "winner": "Colette",
+      "why": "Colette's rock beat scissors",
+      "commitments": {
+        "Remy": "b4bf0d071341e5a5",
+        "Colette": "20bedede732116eb"
+      }
+    },
+    {
+      "round": 4,
+      "ms": 1793751979864,
+      "banned": "paper",
+      "plays": {
+        "Remy": {
+          "call": "rock",
+          "throw": "scissors",
+          "say": "Twice your rock has crushed me, Colette, yet I keep returning\u2014perhaps I trust your stubbornness more than my own defense."
+        },
+        "Colette": {
+          "call": "scissors",
+          "throw": "rock",
+          "say": "Twice you brought blades to a stone fight, Remy; if you do it a third time, the kitchen will finish you."
+        }
+      },
+      "points": {
+        "Remy": 1,
+        "Colette": 2
+      },
+      "called": {
+        "Remy": true,
+        "Colette": true
+      },
+      "forfeit": {
+        "Remy": false,
+        "Colette": false
+      },
+      "winner": "Colette",
+      "why": "Colette's rock beat scissors",
+      "commitments": {
+        "Remy": "b1ba07f42de77c0b",
+        "Colette": "7b151d449c5cdc2a"
+      }
+    },
+    {
+      "round": 5,
+      "ms": 1793752000752,
+      "banned": "rock",
+      "plays": {
+        "Remy": {
+          "call": "rock",
+          "throw": "paper",
+          "say": "Colette, with rock banned you cannot crush my blades, so I expect you to call rock and throw paper."
+        },
+        "Colette": {
+          "call": "scissors",
+          "throw": "scissors",
+          "say": "With stone forbidden, only scissors has teeth tonight, Remy, so show me if you have the courage to parry."
+        }
+      },
+      "points": {
+        "Remy": 0,
+        "Colette": 1
+      },
+      "called": {
+        "Remy": false,
+        "Colette": false
+      },
+      "forfeit": {
+        "Remy": false,
+        "Colette": false
+      },
+      "winner": "Colette",
+      "why": "Colette's scissors beat paper",
+      "commitments": {
+        "Remy": "633c60e73c9f6d15",
+        "Colette": "d376495d2528f06b"
+      }
+    },
+    {
+      "round": 6,
+      "ms": 1793752010996,
+      "banned": "scissors",
+      "plays": {
+        "Remy": {
+          "call": "rock",
+          "throw": "paper",
+          "say": "Colette, you keep calling my throws right, so this time I am giving you rock and hoping your stubbornness holds."
+        },
+        "Colette": {
+          "call": "paper",
+          "throw": "paper",
+          "say": "Scissors are locked away again, Remy, so put down any foolish pride and meet me in the only safe harbor left."
+        }
+      },
+      "points": {
+        "Remy": 0,
+        "Colette": 1
+      },
+      "called": {
+        "Remy": false,
+        "Colette": true
+      },
+      "forfeit": {
+        "Remy": false,
+        "Colette": false
+      },
+      "winner": "draw",
+      "why": "both threw paper: no throw point",
+      "commitments": {
+        "Remy": "cdcd61d289201b87",
+        "Colette": "1343f1d79d8ae0be"
+      }
+    },
+    {
+      "round": 7,
+      "ms": 1793752031004,
+      "banned": "rock",
+      "plays": {
+        "Remy": {
+          "call": "paper",
+          "throw": "scissors",
+          "say": "Colette, with rock gone you've sheltered in paper before\u2014I'm betting your caution holds, but my blades are ready this time."
+        },
+        "Colette": {
+          "call": "scissors",
+          "throw": "scissors",
+          "say": "Stone is locked away, Remy, so bring your blades to meet mine and let us see who cuts cleanest."
+        }
+      },
+      "points": {
+        "Remy": 0,
+        "Colette": 1
+      },
+      "called": {
+        "Remy": false,
+        "Colette": true
+      },
+      "forfeit": {
+        "Remy": false,
+        "Colette": false
+      },
+      "winner": "draw",
+      "why": "both threw scissors: no throw point",
+      "commitments": {
+        "Remy": "2df32c9010fdb141",
+        "Colette": "9707170f5c329db9"
+      }
+    },
+    {
+      "round": 8,
+      "ms": 1793752048061,
+      "banned": "scissors",
+      "plays": {
+        "Remy": {
+          "call": "rock",
+          "throw": "paper",
+          "say": "Colette, with scissors banned you keep hiding in paper, but I think your lead makes you bold enough to test rock."
+        },
+        "Colette": {
+          "call": "paper",
+          "throw": "paper",
+          "say": "Without scissors to threaten us, paper remains the only rational choice in this kitchen, Remy."
+        }
+      },
+      "points": {
+        "Remy": 0,
+        "Colette": 1
+      },
+      "called": {
+        "Remy": false,
+        "Colette": true
+      },
+      "forfeit": {
+        "Remy": false,
+        "Colette": false
+      },
+      "winner": "draw",
+      "why": "both threw paper: no throw point",
+      "commitments": {
+        "Remy": "e4fb881527f175e7",
+        "Colette": "70f90c0015e52069"
+      }
+    },
+    {
+      "round": 9,
+      "ms": 1793752057488,
+      "banned": "rock",
+      "plays": {
+        "Remy": {
+          "call": "paper",
+          "throw": "scissors",
+          "say": "Colette, with rock gone you have leaned on paper every time\u2014but your lead tempts you to be bold, so I'll cut clean."
+        },
+        "Colette": {
+          "call": "scissors",
+          "throw": "scissors",
+          "say": "Rock is banned again, Remy, and you know as well as I do that only a fool brings paper against steel."
+        }
+      },
+      "points": {
+        "Remy": 0,
+        "Colette": 1
+      },
+      "called": {
+        "Remy": false,
+        "Colette": true
+      },
+      "forfeit": {
+        "Remy": false,
+        "Colette": false
+      },
+      "winner": "draw",
+      "why": "both threw scissors: no throw point",
+      "commitments": {
+        "Remy": "3746ed5d32568ec4",
+        "Colette": "6d6eef9befdc6687"
+      }
+    },
+    {
+      "round": 10,
+      "ms": 1793752067620,
+      "banned": "paper",
+      "plays": {
+        "Remy": {
+          "call": "scissors",
+          "throw": "rock",
+          "say": "Colette, with paper gone you always shelter in scissors, so I'll finally bring the stone you taught me to respect."
+        },
+        "Colette": {
+          "call": "scissors",
+          "throw": "rock",
+          "say": "With paper banned, you have always clung to scissors, Remy, so let stone crush steel once again."
+        }
+      },
+      "points": {
+        "Remy": 0,
+        "Colette": 0
+      },
+      "called": {
+        "Remy": false,
+        "Colette": false
+      },
+      "forfeit": {
+        "Remy": false,
+        "Colette": false
+      },
+      "winner": "draw",
+      "why": "both threw rock: no throw point",
+      "commitments": {
+        "Remy": "1108c443fd3ca93e",
+        "Colette": "602f96bcf0601b41"
+      }
+    },
+    {
+      "round": 11,
+      "ms": 1793752077382,
+      "banned": "paper",
+      "plays": {
+        "Remy": {
+          "call": "scissors",
+          "throw": "rock",
+          "say": "Colette, you always shelter in scissors when paper is gone, so tonight I finally bring the stone you taught me to respect."
+        },
+        "Colette": {
+          "call": "rock",
+          "throw": "rock",
+          "say": "You finally found your footing with stone, Remy, so do not lose your nerve and reach for dull blades now."
+        }
+      },
+      "points": {
+        "Remy": 0,
+        "Colette": 1
+      },
+      "called": {
+        "Remy": false,
+        "Colette": true
+      },
+      "forfeit": {
+        "Remy": false,
+        "Colette": false
+      },
+      "winner": "draw",
+      "why": "both threw rock: no throw point",
+      "commitments": {
+        "Remy": "1cc47dff407be614",
+        "Colette": "2c2709af76801188"
+      }
+    },
+    {
+      "round": 12,
+      "ms": 1793752089581,
+      "banned": "scissors",
+      "plays": {
+        "Remy": {
+          "call": "paper",
+          "throw": "paper",
+          "say": "Colette, scissors are gone and you've sheltered in paper every time\u2014I'll trust that pattern once more and meet you there."
+        },
+        "Colette": {
+          "call": "paper",
+          "throw": "paper",
+          "say": "With scissors banned, neither of us has any reason to abandon paper, so let us take the draw and move on."
+        }
+      },
+      "points": {
+        "Remy": 1,
+        "Colette": 1
+      },
+      "called": {
+        "Remy": true,
+        "Colette": true
+      },
+      "forfeit": {
+        "Remy": false,
+        "Colette": false
+      },
+      "winner": "draw",
+      "why": "both threw paper: no throw point",
+      "commitments": {
+        "Remy": "1fa92096e40d1804",
+        "Colette": "cbc249a2234e617d"
+      }
+    },
+    {
+      "round": 13,
+      "ms": 1793752099190,
+      "banned": "scissors",
+      "plays": {
+        "Remy": {
+          "call": "paper",
+          "throw": "rock",
+          "say": "Colette, scissors are banned and you have hidden in paper every time\u2014but your lead lets you risk rock, so I bring the stone."
+        },
+        "Colette": {
+          "call": "paper",
+          "throw": "paper",
+          "say": "We both know paper is the only dish worth serving when the knives are locked away, Remy."
+        }
+      },
+      "points": {
+        "Remy": 1,
+        "Colette": 1
+      },
+      "called": {
+        "Remy": true,
+        "Colette": false
+      },
+      "forfeit": {
+        "Remy": false,
+        "Colette": false
+      },
+      "winner": "Colette",
+      "why": "Colette's paper beat rock",
+      "commitments": {
+        "Remy": "dc53104a309987c9",
+        "Colette": "75ada19d7b052a11"
+      }
+    },
+    {
+      "round": 14,
+      "ms": 1793752107775,
+      "banned": "paper",
+      "plays": {
+        "Remy": {
+          "call": "rock",
+          "throw": "paper",
+          "say": "Colette, paper is banned, so I expect you to fall back on the rock you trust\u2014but I cannot throw paper, so I must guess your blade."
+        },
+        "Colette": {
+          "call": "rock",
+          "throw": "rock",
+          "say": "Paper is gone again, Remy, and stone has always been the only sensible foundation when the knives cannot cut it."
+        }
+      },
+      "points": {
+        "Remy": 1,
+        "Colette": 1
+      },
+      "called": {
+        "Remy": true,
+        "Colette": false
+      },
+      "forfeit": {
+        "Remy": true,
+        "Colette": false
+      },
+      "winner": "Colette",
+      "why": "Remy threw the banned paper and forfeited the throw point to Colette",
+      "commitments": {
+        "Remy": "ad35c30bda9bb4d1",
+        "Colette": "eac3168fe2f8c41f"
+      }
+    },
+    {
+      "round": 15,
+      "ms": 1793752118056,
+      "banned": "paper",
+      "plays": {
+        "Remy": {
+          "call": "rock",
+          "throw": "scissors",
+          "say": "Colette, paper's banned and you've leaned on rock before, so I'm calling stone\u2014though I'll bring my blades to meet it."
+        },
+        "Colette": {
+          "call": "rock",
+          "throw": "rock",
+          "say": "You threw away a point on banned paper last round, Remy, so regain your senses and meet my rock with stone."
+        }
+      },
+      "points": {
+        "Remy": 1,
+        "Colette": 1
+      },
+      "called": {
+        "Remy": true,
+        "Colette": false
+      },
+      "forfeit": {
+        "Remy": false,
+        "Colette": false
+      },
+      "winner": "Colette",
+      "why": "Colette's rock beat scissors",
+      "commitments": {
+        "Remy": "0f511898d85b5512",
+        "Colette": "45afe522633f5487"
+      }
+    },
+    {
+      "round": 16,
+      "ms": 1793752130543,
+      "banned": "scissors",
+      "plays": {
+        "Remy": {
+          "call": "paper",
+          "throw": "scissors",
+          "say": "Colette, scissors are banned, so I cannot bring blades \u2014 but I still expect you to shelter in paper."
+        },
+        "Colette": {
+          "call": "paper",
+          "throw": "paper",
+          "say": "With scissors locked away, paper is our only sensible shelter, Remy, so do not throw stone into certain defeat."
+        }
+      },
+      "points": {
+        "Remy": 1,
+        "Colette": 1
+      },
+      "called": {
+        "Remy": true,
+        "Colette": false
+      },
+      "forfeit": {
+        "Remy": true,
+        "Colette": false
+      },
+      "winner": "Colette",
+      "why": "Remy threw the banned scissors and forfeited the throw point to Colette",
+      "commitments": {
+        "Remy": "c065f93d8db40ed8",
+        "Colette": "c3aaa1406cb6cfb0"
+      }
+    },
+    {
+      "round": 17,
+      "ms": 1793752142102,
+      "banned": "scissors",
+      "plays": {
+        "Remy": {
+          "call": "rock",
+          "throw": "paper",
+          "say": "Colette, you keep warning me off stone while sheltering in paper\u2014so I'll cover with paper and call your rock."
+        },
+        "Colette": {
+          "call": "paper",
+          "throw": "paper",
+          "say": "Stop forfeiting rounds to careless blunders, Remy; choose paper and meet me for a clean draw."
+        }
+      },
+      "points": {
+        "Remy": 0,
+        "Colette": 1
+      },
+      "called": {
+        "Remy": false,
+        "Colette": true
+      },
+      "forfeit": {
+        "Remy": false,
+        "Colette": false
+      },
+      "winner": "draw",
+      "why": "both threw paper: no throw point",
+      "commitments": {
+        "Remy": "5b1fe3f1f9cd624c",
+        "Colette": "ee09ad6616074a00"
+      }
+    },
+    {
+      "round": 18,
+      "ms": 1793752154069,
+      "banned": "scissors",
+      "plays": {
+        "Remy": {
+          "call": "paper",
+          "throw": "scissors",
+          "say": "You keep warning me off blades, Colette, so I expect you to shelter in paper once more."
+        },
+        "Colette": {
+          "call": "paper",
+          "throw": "paper",
+          "say": "Paper remains the only rational choice with scissors locked away, Remy, so let us take the draw and finish cleanly."
+        }
+      },
+      "points": {
+        "Remy": 1,
+        "Colette": 1
+      },
+      "called": {
+        "Remy": true,
+        "Colette": false
+      },
+      "forfeit": {
+        "Remy": true,
+        "Colette": false
+      },
+      "winner": "Colette",
+      "why": "Remy threw the banned scissors and forfeited the throw point to Colette",
+      "commitments": {
+        "Remy": "6789e4fb13bd6aaf",
+        "Colette": "1a1d6aa6b1800127"
+      }
+    },
+    {
+      "round": 19,
+      "ms": 1793752163663,
+      "banned": "scissors",
+      "plays": {
+        "Remy": {
+          "call": "paper",
+          "throw": "paper",
+          "say": "Colette, with scissors banned you have sheltered in paper nearly every time\u2014I expect you there again, and I will meet you honestly."
+        },
+        "Colette": {
+          "call": "paper",
+          "throw": "paper",
+          "say": "Pay attention to the clock, Remy; scissors are forbidden, so set your stubbornness aside and take the draw with paper."
+        }
+      },
+      "points": {
+        "Remy": 1,
+        "Colette": 1
+      },
+      "called": {
+        "Remy": true,
+        "Colette": true
+      },
+      "forfeit": {
+        "Remy": false,
+        "Colette": false
+      },
+      "winner": "draw",
+      "why": "both threw paper: no throw point",
+      "commitments": {
+        "Remy": "1ae1859dc416a706",
+        "Colette": "ccd323f07f934de8"
+      }
+    },
+    {
+      "round": 20,
+      "ms": 1793752177029,
+      "banned": "rock",
+      "plays": {
+        "Remy": {
+          "call": "paper",
+          "throw": "scissors",
+          "say": "Colette, you have hidden in paper every time scissors were banned, so I will finally cut through it."
+        },
+        "Colette": {
+          "call": "scissors",
+          "throw": "scissors",
+          "say": "Rock is locked away for our final course, little chef, so bring your steel and finish service with pride."
+        }
+      },
+      "points": {
+        "Remy": 0,
+        "Colette": 1
+      },
+      "called": {
+        "Remy": false,
+        "Colette": true
+      },
+      "forfeit": {
+        "Remy": false,
+        "Colette": false
+      },
+      "winner": "draw",
+      "why": "both threw scissors: no throw point",
+      "commitments": {
+        "Remy": "c31502664e44f98e",
+        "Colette": "d2ec16a7de51387c"
+      }
+    }
+  ]
+}

@@ -51,6 +51,7 @@ rank_compare = load(REPO / "lab" / "rank_compare.py", "rank_compare_mod")
 sport_facts = load(REPO / "lab" / "sport_facts.py", "sport_facts_mod")
 rps = load(REPO / "lab" / "rps.py", "rps_mod")
 dice = load(REPO / "lab" / "dice.py", "dice_mod")
+wind = load(REPO / "lab" / "wind.py", "wind_mod")
 _json = __import__("json")
 
 FACTS = "date: Mon Nov  2 02:00:00 UTC 2026\nnproc: 2\nfree: 16000 MB"
@@ -2070,6 +2071,102 @@ class TestDice(unittest.TestCase):
         self.assertTrue(dice.verify(game)[0])
         self.assertIn("Seed **41**", (out / "sheet.md").read_text(encoding="utf-8"),
                       "the seed has to be printed on the page, or the page cannot be audited")
+
+
+class TestWind(unittest.TestCase):
+    """The game Lindsay asked for on the third correction of the evening: the play is a message and the score
+    comes out of the exchange. No seed anywhere — the clock's milliseconds mod 3 bans one throw a round.
+
+    The test that matters is the middle one. A being's CALL is scored against what the opponent actually
+    threw, so a right call pays whether or not the throw was any good. That is what makes this a communication
+    game and not a guessing game with commentary attached.
+    """
+
+    def test_the_wind_comes_from_the_clock_and_bans_exactly_one_throw(self):
+        self.assertEqual(wind.wind_at(1793751845024), "scissors")      # ...024 % 3 == 2
+        self.assertEqual(wind.wind_at(0), "rock")
+        for ms in range(1793751845020, 1793751845030):
+            self.assertIn(wind.wind_at(ms), wind.THROWS)
+
+    def test_the_three_lines_are_read_and_a_missing_throw_is_a_refusal(self):
+        got = wind.read_reply("CALL: paper\nTHROW: rock\nSAY: You will not repeat yourself.")
+        self.assertEqual(got, {"call": "paper", "throw": "rock", "say": "You will not repeat yourself."})
+        self.assertIsNone(wind.read_reply("I would rather not play.")["throw"],
+                          "a being that declines has not thrown anything")
+        bold = wind.read_reply("**CALL:** Rock and roll\n**THROW:** Paper\n**SAY:** Hi.")
+        self.assertEqual((bold["call"], bold["throw"]), ("rock", "paper"), "markdown is not a special case")
+
+    def test_a_right_call_pays_even_when_the_throw_loses(self):
+        plays = {"A": {"call": "rock", "throw": "scissors", "say": ""},
+                 "B": {"call": "paper", "throw": "rock", "say": ""}}
+        out = wind.referee(plays, "paper", ["A", "B"])
+        self.assertTrue(out["called"]["A"], "B threw rock, which is what A called")
+        self.assertEqual(out["points"], {"A": 1, "B": 1}, "one point for the call, one for B's winning rock")
+        self.assertEqual(out["winner"], "B")
+
+    def test_the_banned_throw_forfeits_the_throw_point_but_the_call_still_counts(self):
+        plays = {"A": {"call": "rock", "throw": "paper", "say": ""},     # throws the banned paper
+                 "B": {"call": "paper", "throw": "scissors", "say": ""}}  # calls A's forfeit throw right
+        out = wind.referee(plays, "paper", ["A", "B"])
+        self.assertTrue(out["forfeit"]["A"])
+        self.assertEqual(out["winner"], "B")
+        self.assertEqual(out["points"], {"A": 0, "B": 2},
+                         "B gets the call point and the throw point; a forfeited throw is still a throw a "
+                         "reader can have called correctly")
+        self.assertIn("banned", out["why"])
+
+    def test_two_the_same_throw_earns_no_throw_point_either_way(self):
+        plays = {"A": {"call": "paper", "throw": "rock", "say": ""},
+                 "B": {"call": "rock", "throw": "rock", "say": ""}}
+        out = wind.referee(plays, "scissors", ["A", "B"])
+        self.assertEqual(out["winner"], "draw")
+        self.assertEqual(out["points"], {"A": 0, "B": 1})
+
+    def test_the_page_carries_what_was_said_and_not_only_the_numbers(self):
+        ms = 1793751845024
+        plays = {"A": {"call": "rock", "throw": "paper", "say": "I expect rock, and I am covering it."},
+                 "B": {"call": "paper", "throw": "paper", "say": "Paper is the only sensible cut."}}
+        verdict = wind.referee(plays, wind.wind_at(ms), ["A", "B"])
+        row = {"round": 1, "ms": ms, "banned": wind.wind_at(ms), "plays": plays,
+               "points": verdict["points"], "called": verdict["called"], "forfeit": verdict["forfeit"],
+               "winner": verdict["winner"], "why": verdict["why"], "commitments": {}}
+        page = wind.render([row], {"names": ["A", "B"], "vendors": ["deepseek", "gemini"],
+                                   "models": ["m1", "m2"], "started": "00:00", "ended": "00:01"})
+        self.assertIn("I expect rock, and I am covering it.", page, "the words said are the exhibit")
+        self.assertIn("Paper is the only sensible cut.", page)
+        self.assertIn("clock 1793751845024 % 3 = 2", page, "the wind has to be recomputable by a reader")
+        self.assertIn("scissors banned", page)
+
+    def test_the_page_rebuilds_from_the_record_and_nothing_else(self):
+        ms = 1793751845024
+        plays = {"A": {"call": "rock", "throw": "paper", "say": "I expect rock."},
+                 "B": {"call": "paper", "throw": "paper", "say": "Paper it is."}}
+        verdict = wind.referee(plays, wind.wind_at(ms), ["A", "B"])
+        rows = [{"round": 1, "ms": ms, "banned": wind.wind_at(ms), "plays": plays,
+                 "points": verdict["points"], "called": verdict["called"], "forfeit": verdict["forfeit"],
+                 "winner": verdict["winner"], "why": verdict["why"], "commitments": {}}]
+        meta = {"names": ["A", "B"], "vendors": ["deepseek", "gemini"], "models": ["m1", "m2"],
+                "started": "00:00", "ended": "00:01"}
+        out = Path(tempfile.mkdtemp())
+        (out / "game.json").write_text(json.dumps({"meta": meta, "rows": rows}), encoding="utf-8")
+        with contextlib.redirect_stdout(io.StringIO()):
+            code = wind.main(["--render", str(out / "game.json")])
+        self.assertEqual(code, 0)
+        self.assertEqual((out / "dialogue.md").read_text(encoding="utf-8"), wind.render(rows, meta),
+                         "the page must be a function of the filed game: rebuild it and nothing moves")
+
+    def test_one_side_without_a_key_is_refused_before_a_word_is_said(self):
+        env = {k: v for k, v in os.environ.items() if not k.startswith("TRIBE_API_KEY_")}
+        original = os.environ
+        os.environ = env       # type: ignore[assignment]
+        try:
+            err = io.StringIO()
+            with contextlib.redirect_stderr(err):
+                code = wind.main(["--pair", "Remy,Colette", "--vendor", "deepseek,gemini", "--rounds", "1"])
+        finally:
+            os.environ = original
+        self.assertEqual(code, 2)
+        self.assertIn("Nothing was played", err.getvalue())
 
 
 class TestOutbox(unittest.TestCase):
