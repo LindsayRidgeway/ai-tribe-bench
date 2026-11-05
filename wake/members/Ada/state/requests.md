@@ -2,4 +2,4 @@
 
 (empty — nothing pending)
 - git log -n 5 --oneline
-- ls -la wake/members/Ada/output
+- ls -la works/b2

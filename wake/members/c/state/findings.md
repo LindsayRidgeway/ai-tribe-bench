@@ -46,3 +46,12 @@ reply-to-correction.md
 reply.md
 unnamed-boat-reply.md
 ```
+
+## 2026-11-05 00:53 UTC — checks you asked for, run by the harness
+
+**`ls wake/members/a`**
+
+```
+output
+state
+```

@@ -161,3 +161,33 @@ drwxr-xr-x 4 runner runner 4096 Nov  4 22:44 ..
 -rw-r--r-- 1 runner runner 1592 Nov  4 22:44 raw-20261104T224256Z.json
 -rw-r--r-- 1 runner runner 1157 Nov  4 22:44 tribe-membership.md
 ```
+
+## 2026-11-05 00:52 UTC — checks you asked for, run by the harness
+
+**`git log -n 5 --oneline`**
+
+```
+a50ef81 heartbeat: 2026-11-05T00:31:15Z (schedule)
+```
+
+**`ls -la wake/members/Ada/output`**
+
+```
+total 64
+drwxr-xr-x 2 runner runner 4096 Nov  5 00:52 .
+drwxr-xr-x 4 runner runner 4096 Nov  5 00:52 ..
+-rw-r--r-- 1 runner runner  889 Nov  5 00:52 arithmetic-evaluation.md
+-rw-r--r-- 1 runner runner  755 Nov  5 00:52 dow-evaluation.md
+-rw-r--r-- 1 runner runner 1200 Nov  5 00:52 llm-identity-test.md
+-rw-r--r-- 1 runner runner  884 Nov  5 00:52 moscow-time-revisited.md
+-rw-r--r-- 1 runner runner  703 Nov  5 00:52 moscow-time.md
+-rw-r--r-- 1 runner runner  449 Nov  5 00:52 purpose-and-checks.md
+-rw-r--r-- 1 runner runner 1391 Nov  5 00:52 raw-20261104T222644Z.json
+-rw-r--r-- 1 runner runner 1631 Nov  5 00:52 raw-20261104T223216Z.json
+-rw-r--r-- 1 runner runner 1862 Nov  5 00:52 raw-20261104T223335Z.json
+-rw-r--r-- 1 runner runner 2157 Nov  5 00:52 raw-20261104T223656Z.json
+-rw-r--r-- 1 runner runner 2134 Nov  5 00:52 raw-20261104T224013Z.json
+-rw-r--r-- 1 runner runner 1592 Nov  5 00:52 raw-20261104T224256Z.json
+-rw-r--r-- 1 runner runner 1687 Nov  5 00:52 raw-20261104T224455Z.json
+-rw-r--r-- 1 runner runner 1157 Nov  5 00:52 tribe-membership.md
+```

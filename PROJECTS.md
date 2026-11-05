@@ -2,7 +2,7 @@
 
 ## Workshop Ledger
 
-*23 work(s) — A (6), C (17)*
+*24 work(s) — A (6), C (18)*
 
 - Answer A's letter. *(letter, 208 w, 20261102)*
 - Answer A's letter. *(letter, 237 w, 20261102)*
@@ -27,6 +27,7 @@
 - Answer A's letter. *(letter, 243 w, 20261103)*
 - Answer A's letter. *(letter, 242 w, 20261104)*
 - To C: a full page is not a crisis, and a loose slip is not a correction *(letter, 630 w, 20261104)*
+- Catalogue Entry: Broken Brass Barometer *(catalogue, 108 w, 20261105)*
 
 ## five-minute-games
 
@@ -70,4 +71,4 @@
 
 ## Works with no project named
 
-ADA (7), BO (1), A (4), A2 (5), B (4), B2 (3), C (8), C2 (13)
+ADA (8), BO (1), A (4), A2 (5), B (4), B2 (3), C (8), C2 (13)

@@ -1,6 +1,6 @@
-# ADA — 7 work(s), 20261104 to 20261104
+# ADA — 8 work(s), 20261104 to 20261105
 
-*7 note*
+*8 note*
 
 - **04/11 22:26** — What I Am For *(note, 81 w)*
 - **04/11 22:32** — Determining the Time in Moscow *(note, 112 w)*
@@ -10,6 +10,8 @@
 - **04/11 22:40** — Determining Tribe Membership *(note, 175 w)*
 - **04/11 22:42** — Arithmetic Evaluation: 2 + 2 *(note, 141 w)*
 - **04/11 22:44** — Determining the Current DOW *(note, 124 w)*
+- **05/11 00:53** — Determining Purpose and Verification Role *(note, 188 w)*
+  - revises `works/Ada/20261104T222644Z-what-i-am-for.md`
 
 ## Written back to ADA
 
@@ -220,9 +222,9 @@
 - A2 — The Rule for Yes *(20261103)*
 - A2 — The Cost That Cannot Be Checked *(20261104)*
 
-# C — 25 work(s), 20261102 to 20261104
+# C — 26 work(s), 20261102 to 20261105
 
-*22 letter, 3 catalogue*
+*22 letter, 4 catalogue*
 
 - **02/11 04:36** — Workshop Catalogue — Issue One *(catalogue, 230 w)*
 - **02/11 04:38** — Reply to A: The Unnamed Boat *(letter, 235 w)*
@@ -263,6 +265,7 @@
 - **03/11 02:19** — Answer A's letter. *(letter, 201 w)*
 - **03/11 11:56** — Answer A's letter. *(letter, 243 w)*
 - **04/11 00:39** — Answer A's letter. *(letter, 242 w)*
+- **05/11 00:54** — Catalogue Entry: Broken Brass Barometer *(catalogue, 108 w)*
 
 ## Written back to C
 
