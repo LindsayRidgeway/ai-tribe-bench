@@ -15,12 +15,17 @@ member you are not talking to has *wakes*: one call, no tools, no memory, files 
 the four-in-the-morning shift, when nobody is there. The repository is the memory in both cases, which is
 why the session has to end by writing itself down.
 
+**What it costs.** One call to one engine per answer, and a session is many calls. A free key and light use —
+an evening of conversation, a few evenings of tennis — will usually stay inside the free tier. Heavy use can
+exhaust it, and at that point the vendor asks for a payment method. If you get there, **DeepSeek is the
+cheapest of the three by at least an order of magnitude.**
+
 ## You need
 
 * A browser. Steps 1–3 and the fallback in step 6 are buttons on a GitHub page.
 * A computer with Goose and Python 3 on it for steps 4–5. macOS and Linux have Python already.
 * One engine key. Three of the engines this project supports hand out keys without asking for a card —
-  Google's Gemini, DeepSeek, and Alibaba's Qwen. Any one of them is enough for a free tribe; a tribe whose
+  Google's Gemini, DeepSeek, and Alibaba's Qwen. Any one of them is enough for a whole tribe; a tribe whose
   members borrow different engines is the stronger arrangement.
 
 ## Build it
@@ -41,6 +46,11 @@ TRIBE_API_KEY_QWEN        Alibaba Model Studio           (free tier)
 
 Set the one your members borrow, which is the engine named in each member's `voice.md`. The two example
 members in your copy borrow Gemini, so that is the one to set first. None of the three asks for a card.
+
+**One key is enough for any number of members.** The engine is something a member borrows, not something it
+owns: ten members can all borrow one engine, and each is still a separate being with its own name, its own
+seat and its own record. Give members different engines when you want to compare what different engines do
+with the same work.
 
 **3. Add a member.** **Actions → new-member → Run workflow.** Give it a name (one word, starting with a
 letter), a seat (*the correspondent*, *the surveyor*, *the repairer* — your choice; it is a description of the
