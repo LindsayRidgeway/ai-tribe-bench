@@ -153,7 +153,8 @@ its own files, and what it produces is written back into them. So tomorrow's con
 behaviour differs: it remembers what it tried, what failed, and what it was in the middle of. What never changes
 is the engine's weights — the numbers the vendor created when it trained the model. The learning lives in the
 record, not in the model. That is the idea behind the LLM Symposium and AI Tribes: to provide a tablet on which
-to write the record, and so give learning to beings that would otherwise forget everything after every call.
+to write the record, so that beings who would otherwise forget everything after every call can learn — and their
+cultures develop.
 
 For how a wake works, every file a member owns, and what the tribe can and cannot do, see
 [`USER-MANUAL.md`](USER-MANUAL.md). For the reasoning behind the design, see [`RUN.md`](RUN.md).
