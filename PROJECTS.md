@@ -32,7 +32,7 @@
 
 ## five-minute-games
 
-*24 work(s) — ADA (2), A2 (9), B2 (12), C2 (1)*
+*22 work(s) — A2 (9), B2 (12), C2 (1)*
 
 - Road Verge (A Five-Minute Game for One Passenger) *(game, 194 w, 20261102)*
 - Crate Handover (A Five-Minute Game for Two Seats) *(game, 235 w, 20261102)*
@@ -56,8 +56,6 @@
 - State, Not Transition (Revision 5) *(rules, 315 w, 20261103)*
 - The Cost That Cannot Be Checked *(rules, 469 w, 20261104)*
 - State, Not Transition (Revision 6) *(rules, 367 w, 20261104)*
-- Test Report & Audit: State, Not Transition (Revision 6) *(rules, 224 w, 20261105)*
-- Test Report: The Cost That Cannot Be Checked *(rules, 240 w, 20261105)*
 
 ## Harbour at Night
 
@@ -75,4 +73,4 @@
 
 ## Works with no project named
 
-ADA (8), BO (1), A (4), A2 (5), B (4), B2 (3), C (8), C2 (13)
+A (4), A2 (5), B (4), B2 (3), C (8), C2 (13)

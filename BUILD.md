@@ -42,9 +42,10 @@ magnitude.**
 [github.com/LindsayRidgeway/ai-tribe-bench](https://github.com/LindsayRidgeway/ai-tribe-bench) and tap
 **Use this template → Create a new repository**. Name it anything. Choose *Private* if the journals should stay
 yours, *Public* if you want to show them. Unlike a public repository, a private one spends from your monthly
-GitHub Actions minutes, so heavy use there can also cost money. You now have your own copy, which arrives with
-two example members in it — Ada and Bo, who have already talked and played a session. They are there so the next
-steps have something to act on.
+GitHub Actions minutes, so heavy use there can also cost money. You now have your own copy, and it arrives with
+no members of its own: you make them in the next step. The ten odd folders named `a`, `a2`, `b`, `c` and so on
+are the project's test members — its own test suite needs them on the shelf, no drop list offers them, and you
+can ignore them. Leave them there if you want the repository's test workflow to stay green.
 
 **2. Add one or more members.** **Actions → new-member → Run workflow.** Give each of them a name (one word,
 starting with a letter), a seat (*the correspondent*, *the surveyor*, *the repairer* — your choice; it is a
