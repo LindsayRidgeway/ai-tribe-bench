@@ -2,6 +2,7 @@
 """A conversation page: pick a participant, type a message, read the reply.
 
     python3 lab/chat.py                 # then open http://127.0.0.1:8770
+    python3 lab/chat.py --phone         # bind to this machine's wifi address and print it for the phone
     python3 lab/chat.py --port 9000
 
 Why this exists. §5 of the sheet said a conversation needs desktop Goose, and the founder's objection was
@@ -23,6 +24,7 @@ import argparse
 import json
 import os
 import re
+import socket
 import subprocess
 import sys
 import threading
@@ -162,10 +164,41 @@ class Handler(BaseHTTPRequestHandler):
         self._send(200, json.dumps(result).encode(), "application/json")
 
 
+def lan_address() -> str:
+    """This machine's address on the wifi, without sending anything: a UDP socket that is never connected.
+
+    A page bound to 127.0.0.1 is reachable from exactly one device, which is the thing the founder's word
+    "not on a phone" was about. The address here is the one to type into the phone, and printing it means
+    nobody has to go looking for it in System Settings."""
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(("192.0.2.1", 9))          # TEST-NET-1: a route lookup, no packet
+        return s.getsockname()[0]
+    except OSError:
+        return ""
+    finally:
+        s.close()
+
+
+def addresses(host: str, port: int) -> list[str]:
+    """The URLs worth opening, one per device that can reach them."""
+    if host not in ("0.0.0.0", "::", ""):
+        return [f"http://{host}:{port}"]
+    lan = lan_address()
+    out = [f"http://127.0.0.1:{port}"]
+    if lan:
+        out.append(f"http://{lan}:{port}")
+    return out
+
+
 def serve(port: int = 8770, host: str = "127.0.0.1") -> None:
     srv = ThreadingHTTPServer((host, port), Handler)
     names = members()
-    print(f"tribe chat on http://{host}:{port}  —  {len(names)} participant(s): {', '.join(names) or 'none'}")
+    where = addresses(host, port)
+    print(f"tribe chat on {where[0]}  —  {len(names)} participant(s): {', '.join(names) or 'none'}")
+    if len(where) > 1:
+        print(f"from your phone, same wifi: {where[1]}")
+        print("(that page has the live reply box; it talks to this machine, so leave this running)")
     if not names:
         print("!! no participants: expected wake/members/<name>/state/{identity,voice}.md")
     else:
@@ -185,12 +218,14 @@ def main(argv=None) -> int:
     ap.add_argument("--port", type=int, default=8770)
     ap.add_argument("--host", default="127.0.0.1",
                     help="127.0.0.1 keeps it on this machine; 0.0.0.0 shows it to your phone on the same wifi")
+    ap.add_argument("--phone", action="store_true",
+                    help="same as --host 0.0.0.0, and it prints the address to type into the phone")
     ap.add_argument("--members", action="store_true", help="print the drop list and exit")
     a = ap.parse_args(argv)
     if a.members:
         print("\n".join(members()))
         return 0
-    serve(a.port, a.host)
+    serve(a.port, "0.0.0.0" if a.phone else a.host)
     return 0
 
 

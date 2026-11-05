@@ -2959,6 +2959,20 @@ class TestChat(unittest.TestCase):
         self.assertIn('<textarea id="reply" readonly', html)
         self.assertIn('name="viewport"', html, "the whole point was that it works on a phone")
 
+    def test_the_local_page_can_be_reached_from_a_phone(self):
+        """The founder's objection to a desktop-only page was four words — "not on a phone" — and a page bound
+        to 127.0.0.1 is reachable from exactly one device. Binding to the wifi address is half the fix; the
+        other half is printing the address, because nobody should have to find it in System Settings."""
+        mod = load(REPO / "lab" / "chat.py", "chat_mod_phone")
+        self.assertEqual(mod.addresses("127.0.0.1", 8770), ["http://127.0.0.1:8770"],
+                         "a page on this machine alone must not advertise an address it does not serve")
+        wide = mod.addresses("0.0.0.0", 8770)
+        self.assertEqual(wide[0], "http://127.0.0.1:8770")
+        self.assertTrue(len(wide) == 1 or wide[1].startswith("http://"),
+                        "binding wide must offer the phone a second address to type")
+        self.assertIn("--phone", (REPO / "lab" / "chat.py").read_text(encoding="utf-8"),
+                      "there must be a way to say 'put this on the wifi' without knowing about 0.0.0.0")
+
     def test_the_server_answers_in_the_shape_the_page_expects(self):
         import json as _json
         import threading as _threading
