@@ -3190,6 +3190,16 @@ class TestWorkflows(unittest.TestCase):
                          "a workflow that edits a workflow file cannot push it: GITHUB_TOKEN has no such "
                          "permission, so the member list must not live in one")
 
+    def test_the_engine_drop_list_is_the_engines_the_tool_accepts(self):
+        """A form that offers an engine the tool refuses is the same defect as a drop list of members who are not
+        on the shelf: the stranger picks it, taps Run, and is told no. One table, or a test that says so."""
+        tribe = load(REPO / "tribe.py", "tribe_mod_engines")
+        text = (self.WF / "new-member.yml").read_text(encoding="utf-8")
+        block = text.split("engine:", 1)[1].split("default:", 1)[0]
+        offered = [l.strip().lstrip("- ").strip() for l in block.splitlines() if l.strip().startswith("- ")]
+        self.assertEqual(sorted(offered), sorted(tribe.BASES),
+                         "new-member.yml offers an engine the tool does not accept, or hides one it does")
+
     def test_a_browser_can_play_a_session(self):
         """Same problem for the activity: the sheet's last section asks the reader to start a season, and until
         now that meant a terminal. The engine's own flags are the form: a season name, two participants and
@@ -3216,6 +3226,11 @@ class TestWorkflows(unittest.TestCase):
         self.assertIn("TRIBE_API_KEY_GEMINI", build,
                       "the key name in the sheet must be the name the harness looks for")
         self.assertIn("@tribe", build, "the sheet's hello step is the issue path, and it must use its syntax")
+        self.assertIn("ENGINES.md", build, "the sheet names engines and must point at the table that lists them")
+        self.assertTrue((REPO / "ENGINES.md").is_file(), "that table has to exist")
+        engines = (REPO / "ENGINES.md").read_text(encoding="utf-8")
+        for api in ("gemini", "deepseek", "qwen"):
+            self.assertIn(f"TRIBE_API_KEY_{api.upper()}", engines)
         self.assertIn("lab/session.py", build, "the standard way to talk is a session, and this is how one is made")
         self.assertIn("--interactive", build, "a one-shot run is not a conversation")
         for path in ("wake/members", "games/tennis/seasons", "practice.json", "USER-MANUAL.md"):

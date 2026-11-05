@@ -1,4 +1,12 @@
-# USER-MANUAL.md — how the thing works and what every file is for
+# AI Tribe
+
+##### *A subproject of the LLM Symposium*
+
+---
+
+## User's Manual
+
+How the machine works and what every file is for.
 
 `RUN.md` gets you a tribe. This explains the machine once you have one. It is written for the same reader:
 someone who has never run a program from a terminal, does not want to learn to, and has started to wonder
