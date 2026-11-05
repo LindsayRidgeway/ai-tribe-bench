@@ -185,9 +185,8 @@ def addresses(host: str, port: int) -> list[str]:
     if host not in ("0.0.0.0", "::", ""):
         return [f"http://{host}:{port}"]
     lan = lan_address()
-    out = [f"http://127.0.0.1:{port}"]
-    if lan:
-        out.append(f"http://{lan}:{port}")
+    out = [f"http://{lan}:{port}"] if lan else []
+    out.append(f"http://127.0.0.1:{port}")
     return out
 
 
@@ -195,10 +194,17 @@ def serve(port: int = 8770, host: str = "127.0.0.1") -> None:
     srv = ThreadingHTTPServer((host, port), Handler)
     names = members()
     where = addresses(host, port)
-    print(f"tribe chat on {where[0]}  —  {len(names)} member(s): {', '.join(names) or 'none'}")
+    print(f"tribe chat  —  {len(names)} member(s): {', '.join(names) or 'none'}", flush=True)
     if len(where) > 1:
-        print(f"from your phone, same wifi: {where[1]}")
-        print("(that page has the live reply box; it talks to this machine, so leave this running)")
+        print(flush=True)
+        print(f"   OPEN THIS ON YOUR PHONE:  {where[0]}", flush=True)
+        print(f"   (on this laptop only:     {where[1]})", flush=True)
+        print(flush=True)
+        print("   Same wifi as this laptop. Leave this running: the page talks to it.", flush=True)
+        print("   127.0.0.1 on a phone means the phone, and will refuse the connection.", flush=True)
+    else:
+        print(f"   open http://{host}:{port} on this machine"
+              f"  (run with --phone to reach it from a phone)", flush=True)
     if not names:
         print("!! no members: expected wake/members/<name>/state/{identity,voice}.md")
     else:
