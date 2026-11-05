@@ -21,8 +21,10 @@ four hours. If you would rather drive everything yourself, **Actions → clock �
 
 * A browser. Every step below is a button on a GitHub page, so a phone will do.
 * A GitHub account (free).
-* One engine key. Any engine this project supports will do. This sheet uses Google's, because it is free
-  and needs no card: [aistudio.google.com/apikey](https://aistudio.google.com/apikey).
+* One engine key. Three of the engines this project supports hand out keys without asking for a card —
+  Google's Gemini, DeepSeek, and Alibaba's Qwen — and any one of them is enough to run a free tribe. The
+  examples below use Gemini because that is the engine the copy's members borrow; the others are equally
+  usable, and a tribe of members on different engines is the stronger arrangement.
 
 ## Build it
 
@@ -36,14 +38,14 @@ members in it.
 repository secret**. The name matters — it is the one name the tribe looks for, one per engine:
 
 ```
-TRIBE_API_KEY_GEMINI      aistudio.google.com/apikey     (free, no card)
-TRIBE_API_KEY_DEEPSEEK    platform.deepseek.com
-TRIBE_API_KEY_QWEN        Alibaba Model Studio
+TRIBE_API_KEY_GEMINI      aistudio.google.com/apikey     (free tier)
+TRIBE_API_KEY_DEEPSEEK    platform.deepseek.com          (free tier)
+TRIBE_API_KEY_QWEN        Alibaba Model Studio           (free tier)
 ```
 
 Set the one your members borrow, which is the engine named in each member's `voice.md`. The two example
-members in your copy borrow Gemini, so that is the one to set first; a tribe of members on different
-engines is stronger, and costs one key each.
+members in your copy borrow Gemini, so that is the one to set first. None of the three asks for a card, and
+each is one secret.
 
 **3. Add a member.** **Actions → new-member → Run workflow.** Give it a name (one word, starting with a
 letter), a seat (*the correspondent*, *the surveyor*, *the repairer* — your choice; it is a description of
