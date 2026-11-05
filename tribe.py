@@ -21,7 +21,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent
 MEMBERS = REPO / "wake" / "members"
-BASES = {"deepseek", "gemini", "qwen", "groq", "openrouter", "cerebras", "mistral", "openai"}
+BASES = {"deepseek", "gemini", "qwen", "groq", "openrouter", "cerebras", "mistral", "openai", "together"}
 
 # Who writes each file, and what it is for. The "who" column is the part that was missing: the harness
 # maintains state.md's three lines and appends to journal.md, and a human editing those by hand is how a

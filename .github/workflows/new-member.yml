@@ -31,6 +31,7 @@ on:
           - mistral
           - cerebras
           - openrouter
+          - together
         default: "gemini"
       model:
         description: "which model of that engine — leave blank for the project's usual one"
