@@ -3216,11 +3216,39 @@ class TestWorkflows(unittest.TestCase):
         self.assertIn("TRIBE_API_KEY_GEMINI", build,
                       "the key name in the sheet must be the name the harness looks for")
         self.assertIn("@tribe", build, "the sheet's hello step is the issue path, and it must use its syntax")
+        self.assertIn("lab/session.py", build, "the standard way to talk is a session, and this is how one is made")
+        self.assertIn("--interactive", build, "a one-shot run is not a conversation")
         for path in ("wake/members", "games/tennis/seasons", "practice.json", "USER-MANUAL.md"):
             self.assertIn(path, build)
         self.assertTrue((REPO / "USER-MANUAL.md").is_file(), "the sheet's last line points at the manual")
         self.assertIn("Use this template", build,
                       "a reader with no terminal starts by copying the repository, not by cloning it")
+
+    def test_a_member_can_be_visited_in_a_session_with_its_own_files_and_tools(self):
+        """Until 2026-11-05 a member had one kind of time: the wake — one call, no tools, no transcript. The
+        founder's objection was that the symposium itself is built in sessions, which are strictly more
+        capable, because a person is present to steer them. So the attended mode is a Goose recipe generated
+        from the member's own files, plus one rule: whatever happens has to end up in those files, because the
+        next wake can see nothing else."""
+        mod = load(REPO / "lab" / "session.py", "session_mod")
+        shelf = REPO / "wake" / "members"
+        who = "Ada" if (shelf / "Ada" / "state" / "identity.md").is_file() else sorted(
+            d.name for d in shelf.iterdir() if (d / "state" / "identity.md").is_file())[0]
+        rec = mod.recipe(who)
+        text = yaml.safe_dump(rec, allow_unicode=True)
+        self.assertEqual(rec["version"], "1.0.0")
+        self.assertIn("journal.md", rec["instructions"],
+                      "a session with no closing rule leaves nothing behind for the next wake")
+        self.assertIn("works/", rec["instructions"], "what it finished has to be filed by hand, or not at all")
+        self.assertEqual([e["name"] for e in rec["extensions"]], ["developer"],
+                         "the attended mode is the one with tools; that is the whole point of it")
+        self.assertIn("{{ question }}", rec["prompt"], "a headless run refuses to start without a prompt")
+        self.assertIn("identity.md", text, "the recipe is generated from the member's files, not written about it")
+
+    def test_a_session_recipe_for_a_member_who_is_not_there_is_an_error(self):
+        mod = load(REPO / "lab" / "session.py", "session_mod2")
+        with self.assertRaises(SystemExit):
+            mod.recipe("NobodyByThisName")
 
     def test_a_comment_that_names_no_member_is_answered_by_the_first_on_the_shelf(self):
         text = (self.WF / "interactive.yml").read_text(encoding="utf-8")
