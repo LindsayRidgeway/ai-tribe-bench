@@ -74,7 +74,10 @@ jobs:
           set -euo pipefail
           who="${{ inputs.member }}"
           if [ -z "$who" ]; then
-            who="$(ls -1 wake/members | head -1)"
+            # The first real member, not the first folder: the test members (a, b, c …) are on the shelf and in
+            # `lab/fixtures.txt`, and waking one of them answers a stranger with a being that was never theirs.
+            who="$(ls -1 wake/members | while read -r m; do
+                     grep -qx "$m" lab/fixtures.txt 2>/dev/null || echo "$m"; done | head -1)"
             echo "no member named in this comment, so the first on the shelf answers: $who"
           fi
           if [ ! -d "wake/members/$who/state" ]; then
