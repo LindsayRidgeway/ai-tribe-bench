@@ -36,9 +36,14 @@ A session is not a wake: nobody files it for you. So, before you stop:
 1. Append to `{state}/journal.md`, using the same shape as the entries already there: the UTC date and time,
    then what was asked, what you decided, and what is still open. Two paragraphs is a long entry; one is
    usually right.
-2. If you produced something finished — a letter, a page, an analysis — save it as
-   `works/{name}/<UTC-timestamp>-<short-title>.md` with a header naming you, the date, the form, and the
-   question it answers. Nothing you write is filed for you.
+2. If you produced something finished — a letter, a page, an analysis — run this first and keep what it
+   prints:
+
+       python3 lab/session.py --header --member {name} --title "<the title you want>" --form <note|letter|piece>
+
+   Paste that block at the top of a new file `works/{name}/<UTC-timestamp>-<short-title>.md`, with your work
+   under it. The block is not decoration: the magazine reads it, and a page without it is filed as an
+   unlabelled piece with no date. Nothing you write is filed for you.
 3. If you learned something that changes what you are trying to do, say so in
    `{state}/open-items.md` rather than leaving it in this conversation.
 
@@ -104,6 +109,32 @@ def recipe(name: str) -> dict:
     }
 
 
+def header(member: str, title: str, form: str = "note", project: str = "", source_file: str = "") -> str:
+    """The front matter a filed work needs, printed so a session can copy it instead of improvising.
+
+    Found the hard way on 2026-11-05: the first attended session wrote its work with a header in prose, the
+    magazine read no `form:` and no `when:`, and the ledger said Remy had gained a work of an unknown kind on
+    an unknown date. The format belongs to the code that reads it, not to the member's judgement."""
+    when = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    lines = ["---", f"title: {title}", f"form: {form or 'note'}"]
+    try:
+        import subprocess
+        issue = subprocess.run(["python3", str(ROOT / "magazine.py"), "--current"],
+                               capture_output=True, text=True, timeout=20).stdout.strip()
+    except Exception:
+        issue = ""
+    lines.append(f"issue: {issue or '1'}")
+    lines.append("ref: -")
+    if project:
+        lines.append(f"project: {project}")
+    if source_file:
+        lines.append(f"source_file: {source_file}")
+    lines.append(f"member: {member}")
+    lines.append(f"when: {when}")
+    lines.append("---")
+    return "\n".join(lines) + "\n"
+
+
 def write(name: str) -> Path:
     out = MEMBERS / name / "session.yaml"
     body = yaml.safe_dump(recipe(name), sort_keys=False, allow_unicode=True, width=100)
@@ -118,7 +149,17 @@ def main(argv=None) -> int:
     ap.add_argument("--member", required=True)
     ap.add_argument("--write", action="store_true")
     ap.add_argument("--print", dest="show", action="store_true", help="print the recipe instead of writing it")
+    ap.add_argument("--header", action="store_true",
+                    help="print the front matter a filed work needs, for a session to copy")
+    ap.add_argument("--title", default="")
+    ap.add_argument("--form", default="note")
+    ap.add_argument("--project", default="")
+    ap.add_argument("--source-file", dest="source", default="")
     a = ap.parse_args(argv)
+    if a.header:
+        title = a.title or "untitled"
+        print(header(a.member, title, a.form, a.project, a.source), end="")
+        return 0
     if a.show or not a.write:
         print(yaml.safe_dump(recipe(a.member), sort_keys=False, allow_unicode=True, width=100))
         return 0
