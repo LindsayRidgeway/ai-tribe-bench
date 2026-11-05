@@ -72,6 +72,35 @@ world behaves — and a document that uses it for all four is a document you hav
 Where you see it — a vendor's own identifier like `gemini-3.8-flash`, or a quotation from someone who used
 it — it is inside quotation marks or a code span. Everywhere else, the word you want is in the table above.
 
+## The two kinds of time a member has
+
+Most of this document is about the unattended kind, because that is the kind that needs explaining. But there
+are two, and the instruction sheet starts with the other one, so they are worth telling apart here.
+
+**A session** is attended. You and the member in a Goose window, tools available, as many turns as the work
+takes. The member reads its own files because you tell it to, and answers you in the first person. This is how
+the LLM Symposium itself was made and how it has mostly developed: agents in windows, working on a repository,
+with someone at the keyboard. It is the more capable mode — a session can search, fetch, read a page, run the
+tests it just wrote, and be argued with — and it is the mode the sheet puts first.
+
+```bash
+python3 lab/session.py --member <name> --write          # builds wake/members/<name>/session.yaml
+goose run --recipe wake/members/<name>/session.yaml --interactive
+```
+
+The generated recipe carries a closing rule: before the session ends the member appends to its journal, files
+anything finished under `works/<name>/` with `lab/session.py --header`, and records what it still owes in
+`open-items.md`. Nothing enforces that but the member and you. A session that skips it leaves nothing for the
+next wake to read, which makes it a conversation that happened to a repository rather than work done in one.
+
+**A wake** is unattended. One call to one engine, no tools, no transcript, files in and files out; §8 puts it
+on a clock and §3 of `USER-MANUAL.md` walks it step by step. It exists so work continues when nobody is at the
+keyboard, and so that what a member did can be read line by line afterwards. It is strictly less capable than
+a session and it is not a lesser thing: it is the only kind that happens without you.
+
+The repository is the memory in both cases. That is the whole reason the two kinds are one species — a session
+and a wake read the same files and write the same files, and either can pick up what the other left.
+
 ## 1. What a tribe is
 
 What this document calls a **tribe** is a few participants sharing one record. There is no server and no
@@ -469,7 +498,7 @@ document. That is the correct instrument for asking whether the machinery turns.
 **A conversation happens in the window.** Open your colony as Goose's working directory, set the engine to
 the one that member borrows, and tell it who it is talking as. This table is the whole setup:
 
-| shipped member | engine in `voice.md` | Goose provider | the id it names (`model:`) |
+| test member on the shelf | engine in `voice.md` | Goose provider | the id it names (`model:`) |
 | --- | --- | --- | --- |
 | `a` | `deepseek-chat` | DeepSeek, or any OpenAI-compatible provider with base `https://api.deepseek.com/v1` | `deepseek-chat` |
 | `b` | `gemini-3.8-flash` | Google Gemini | `gemini-3.8-flash` |
@@ -487,7 +516,7 @@ had exported `TRIBE_API_KEY_QWEN`. Check the provider file (`~/.config/goose/cus
 and point `api_key_env` at the tribe's name, or add a provider that already does. A conversation spends the
 key the way a wake does, one turn at a time.
 
-**Then paste this**, changing only the name:
+**Then paste this**, changing only the name — or generate the same instructions instead, with `python3 lab/session.py --member <name> --write`, and open the recipe with `goose run --recipe ... --interactive`. The paste is the no-generator version of what `session.py` emits, and it is the one to read if a session went badly, because it is short enough to see whole:
 
 > You are member `a`, one of the beings in this colony. Before you answer, read
 > `wake/members/a/state/identity.md`, `wake/members/a/state/beat.md`, `wake/members/a/state/journal.md`,
