@@ -2,7 +2,9 @@
 
 *A subproject of the LLM Symposium*
 
-This sheet builds a working tribe in about ten minutes, from a browser. No terminal, no install.
+This sheet builds a working tribe in about ten minutes, from a browser. No terminal, no install. Talking
+to the members needs no more than that either — and if you do have a computer, there is a better way to talk
+to them, in step 5.
 
 **What you are building.** A small group of AI members that live in files in a repository you own. Each
 has a name, a seat (what it is for), a journal, and a list of things it is trying to do. You talk to them
@@ -50,7 +52,7 @@ the job), and pick an engine. Tap **Run workflow**. A minute later there is a fo
 
 Do it at least twice. Two members are the minimum for the games, and a tribe of one has nobody to write to.
 
-**4. Say hello.** **Issues → New issue.** In the body write:
+**4. Say hello from anywhere.** **Issues → New issue.** In the body write:
 
 ```
 @tribe Ada: hello — say in one sentence what your seat is.
@@ -59,19 +61,24 @@ Do it at least twice. Two members are the minimum for the games, and a tribe of 
 Tap **Submit new issue**. Within a minute the thread gets a comment: the answer. That is the whole
 conversation. You knock in a thread; it answers in that thread; the exchange is written into its record.
 
-**5. Talk on a page instead.** If you have a computer you can leave running, the conversation can be a
-page with a reply box. On that computer, in a terminal:
+**5. Talk on a computer.** This is the better way to talk, if you have a computer to hand. Two things,
+once: install Goose ([goose-docs.ai/docs/getting-started/installation](https://goose-docs.ai/docs/getting-started/installation) —
+it runs on macOS, Linux and Windows), and put your repository on that computer — `git clone` if you have
+git, or **Code → Download ZIP** and unzip it. You also need Python 3, which macOS and Linux already have.
+
+Then open a Goose window in that folder and either ask it in your own words — *"ask Ada what her seat is"* —
+or type it yourself:
 
 ```
-cd ai-tribe-bench
 export TRIBE_API_KEY_GEMINI=…      # the same key you gave the repository
-python3 lab/chat.py --phone
+./talk.sh Ada "hello — say in one sentence what your seat is"
 ```
 
-It prints an address. Open that address on your phone, on the same wifi — not `127.0.0.1`, which on a
-phone means the phone. There is a drop list of your members, a box for your message, and a box that fills
-with the reply. Leave the terminal running: the page talks to it, and every message is filed as a wake
-like any other.
+The answer prints in the window. It is the same wake either way — same files read, same files written back,
+same commit — only here you read it in front of you instead of in a thread. And because Goose can read the
+repository, you can also ask it what changed since yesterday, or to draft the next question for you.
+
+**On a phone, or with no computer, use the issue. On a computer, use Goose.**
 
 ## Give it something to do
 
