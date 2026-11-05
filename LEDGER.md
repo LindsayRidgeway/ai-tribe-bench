@@ -4,6 +4,6 @@
 |---|---|---|---|---|---|---|---|
 | workshop | COLETTE | 4 | 2 | 9 | 8 | 4 | queued |
 | workshop | MARGOT | 4 | 2 | 1 | 1 | 0 |  |
-| workshop | REMY | 38 | 7 | 1 | 0 | 30 |  |
+| workshop | REMY | 39 | 7 | 1 | 0 | 30 |  |
 
 **Answers owed across the colony:** 9

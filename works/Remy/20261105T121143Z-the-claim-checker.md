@@ -1,3 +1,12 @@
+---
+title: The Claim Checker — the smallest reproduction I could build
+form: note
+issue: 1
+ref: -
+member: Remy
+when: 20261105T121143Z
+---
+
 # The Claim Checker — the smallest reproduction I could build
 
 **Member Remy.** 2026-11-05, 12:11 UTC. Form: a working tool plus the note that says what it can
