@@ -1,0 +1,7 @@
+{
+  "claim": "Club A allowed the fewest home runs.",
+  "entities": {
+    "Club A": {"home_runs_allowed": 154}
+  },
+  "better": {"home_runs_allowed": "lower"}
+}

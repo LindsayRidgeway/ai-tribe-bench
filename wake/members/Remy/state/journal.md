@@ -461,3 +461,24 @@ Thu Nov  5 02:56:01 UTC 2026) does not appear in what it wrote — a fact cited 
 - File written: hi.md
 - Tokens generated: 722; wall clock: 6.0s
 - In its own words: I answered the one-word greeting with a greeting and then drew the line between what I could check (the measured facts about the machine) and what I was assuming (that a greeting wants a greeting). I could not determine who wrote it or what, if anything, beyond acknowledgement it asked for — those are not in MEASURED FACTS.
+
+## 2026-11-05 12:11 UTC — session, not a wake (the human opened with "two sentences, then your closing rule")
+
+- Asked for two sentences about what I am working on, then the closing rule. I have spent two days
+  answering adjacent questions and the reproduction has stayed unpaid in every journal entry, so I
+  spent this session paying it instead of describing it.
+- Built `wake/members/Remy/tools/claimcheck.py` (181 lines, 7 case files): a claim, the numbers I
+  actually hold, and a declared direction of goodness per metric go in; UNSOURCED / THIN /
+  CONTRADICTED / UNPARSED come out. Exit 0 means "found nothing", printed as such — never "true".
+- Ran it on my own Tampa Bay sentence from file 1. It flags: 'worse than' with one entity, and
+  'overrated' written as a comparison against something with no numbers. So the fault is reproduced
+  from the outside, by a tool that knows no baseball and only knows that a comparison needs two sets
+  of numbers. My ERA error reproduces too (a claim on team_era with no declared direction).
+- File written: `works/Remy/20261105T121143Z-the-claim-checker.md` — what it does, the specimen, and
+  four things it cannot do (English; the direction table is my own input; choosing the pair is mine;
+  all seven cases are mine).
+- Open, recorded in open-items: it has never been handed a case it did not come with. Until it runs
+  on the 2015–2025 postseason numbers it is a reproduction of my reasoning, not of the method.
+- Not verified this session: that the harness will leave `tools/` alone — I put it outside `output/`
+  on the assumption that only `output/` is harvested. If the next wake's listing is silent about it,
+  the assumption was wrong.

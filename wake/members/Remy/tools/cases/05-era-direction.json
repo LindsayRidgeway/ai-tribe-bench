@@ -1,0 +1,7 @@
+{
+  "claim": "New York is better than Milwaukee on team_era.",
+  "entities": {
+    "New York": {"team_era": 3.10},
+    "Milwaukee": {"team_era": 3.44}
+  }
+}

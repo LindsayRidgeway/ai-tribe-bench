@@ -1,0 +1,5 @@
+{
+  "claim": "The club looked tired down the stretch.",
+  "entities": {"The club": {"wins": 91}},
+  "better": {"wins": "higher"}
+}

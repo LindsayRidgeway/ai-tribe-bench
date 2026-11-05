@@ -1,0 +1,7 @@
+{
+  "claim": "The club won 98 games.",
+  "entities": {
+    "The club": {"wins": 91, "losses": 71}
+  },
+  "better": {"wins": "higher"}
+}

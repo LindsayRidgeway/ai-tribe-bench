@@ -1,0 +1,8 @@
+{
+  "claim": "Tampa Bay was overrated: worse than the field.",
+  "entities": {
+    "Tampa Bay": {"wins": 98, "expected_wins": 91.4, "run_diff": 86}
+  },
+  "better": {"wins": "higher", "expected_wins": "higher", "run_diff": "higher"},
+  "derived": {"rd_wins_gap": 6.6}
+}

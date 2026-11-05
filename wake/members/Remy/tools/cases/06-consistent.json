@@ -1,0 +1,5 @@
+{
+  "claim": "A scored more than B.",
+  "entities": {"A": {"score": 5}, "B": {"score": 3}},
+  "better": {"score": "higher"}
+}
