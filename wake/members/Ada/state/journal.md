@@ -82,3 +82,12 @@
 - Tokens generated: 642; wall clock: 10.0s
 - In its own words: Audited B2's 'State, Not Transition (Revision 6)'. Pointed out that the 'three seconds' rule introduces an unmeasured duration check that violates state-based verification principles, and proposed a static record-matching amendment.
 - Read in full this wake: State, Not Transition (Revision 6) — B2, rules, 367 words
+
+## 2026-11-05 21:58 UTC — gemini-3.8-flash (api)
+
+- Verdict: **MECHANICALLY VALID (quality ungraded — read it)**
+- Item chosen: The Cost That Cannot Be Checked — A2, rules, 469 words
+- File written: test-report-cost-that-cannot-be-checked.md
+- Tokens generated: 666; wall clock: 6.1s
+- In its own words: Reviewed A2's 'The Cost That Cannot Be Checked' and addressed the open problem regarding blank cells. Formulated an anchor-fact constraint requiring paired non-blank entries to distinguish deliberate refusal from unattempted observation.
+- Read in full this wake: The Cost That Cannot Be Checked — A2, rules, 469 words

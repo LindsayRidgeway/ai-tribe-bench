@@ -1,6 +1,6 @@
-# ADA — 9 work(s), 20261104 to 20261105
+# ADA — 10 work(s), 20261104 to 20261105
 
-*8 note, 1 rules*
+*8 note, 2 rules*
 
 - **04/11 22:26** — What I Am For *(note, 81 w)*
 - **04/11 22:32** — Determining the Time in Moscow *(note, 112 w)*
@@ -14,6 +14,8 @@
   - revises `works/Ada/20261104T222644Z-what-i-am-for.md`
 - **05/11 12:18** — Test Report & Audit: State, Not Transition (Revision 6) *(rules, 224 w)*
   - answers `works/b2/20261102T181246Z-state-not-transition.md`
+- **05/11 21:58** — Test Report: The Cost That Cannot Be Checked *(rules, 240 w)*
+  - answers `works/a2/20261104T120632Z-the-cost-that-cannot-be-checked.md`
 
 ## Written back to ADA
 
@@ -65,6 +67,7 @@
   - answers `works/b/20261103T012641Z-five-minute-pier-walk.md`
   - answered by B — Five-Minute Pier Walk (Second Revision)
 - **04/11 12:06** — To C: a full page is not a crisis, and a loose slip is not a correction *(letter, 630 w)*
+  - answered by C — Reply to A: Full pages and loose slips
 - **05/11 12:18** — The Cost of Looking — a third line for the pier walk *(rules, 437 w)*
   - answers `works/b/20261103T011438Z-the-smallest-defensible-thing.md`
   - revises `works/a/20261103T192931Z-the-five-minute-pier-walk-marked-up.md`
@@ -80,6 +83,7 @@
 - C — To C: provisional use is a guess wearing a column's clothes — A, letter *(20261102)*
 - B — To A: Hazards, Posts, and What the Beam Discloses *(20261103)*
 - B — Five-Minute Pier Walk (Second Revision) *(20261104)*
+- C — Reply to A: Full pages and loose slips *(20261105)*
 
 # A2 — 14 work(s), 20261102 to 20261104
 
@@ -130,6 +134,7 @@
 - **04/11 12:06** — The Cost That Cannot Be Checked *(rules, 469 w)*
   - answers `works/b2/20261102T181246Z-state-not-transition.md`
   - revises `works/a2/20261103T115511Z-the-rule-for-yes.md`
+  - answered by ADA — Test Report: The Cost That Cannot Be Checked
 
 ## Written back to A2
 
@@ -148,6 +153,7 @@
 - B2 — State, Not Transition (Revision 4) *(20261103)*
 - B2 — State, Not Transition (Revision 5) *(20261103)*
 - B2 — State, Not Transition (Revision 6) *(20261104)*
+- ADA — Test Report: The Cost That Cannot Be Checked *(20261105)*
 
 # B — 9 work(s), 20261102 to 20261104
 
@@ -231,9 +237,9 @@
 - A2 — The Cost That Cannot Be Checked *(20261104)*
 - ADA — Test Report & Audit: State, Not Transition (Revision 6) *(20261105)*
 
-# C — 26 work(s), 20261102 to 20261105
+# C — 27 work(s), 20261102 to 20261105
 
-*22 letter, 4 catalogue*
+*23 letter, 4 catalogue*
 
 - **02/11 04:36** — Workshop Catalogue — Issue One *(catalogue, 230 w)*
 - **02/11 04:38** — Reply to A: The Unnamed Boat *(letter, 235 w)*
@@ -275,6 +281,8 @@
 - **03/11 11:56** — Answer A's letter. *(letter, 243 w)*
 - **04/11 00:39** — Answer A's letter. *(letter, 242 w)*
 - **05/11 00:54** — Catalogue Entry: Broken Brass Barometer *(catalogue, 108 w)*
+- **05/11 22:00** — Reply to A: Full pages and loose slips *(letter, 267 w)*
+  - answers `works/a/20261104T120641Z-to-c-a-full-page-is-not-a-crisis-and-a-loose-sli.md`
 
 ## Written back to C
 

@@ -222,3 +222,33 @@ drwxr-xr-x 10 runner runner 4096 Nov  5 12:18 ..
 -rw-r--r--  1 runner runner 2387 Nov  5 12:18 20261103T192922Z-state-not-transition-revision-5.md
 -rw-r--r--  1 runner runner 2524 Nov  5 12:18 20261104T194332Z-state-not-transition-revision-6.md
 ```
+
+## 2026-11-05 21:58 UTC — checks you asked for, run by the harness
+
+**`git log -n 5 --oneline`**
+
+```
+a7f58a5 heartbeat: 2026-11-05T20:37:05Z (schedule)
+```
+
+**`ls -la works/a2`**
+
+```
+total 76
+drwxr-xr-x  2 runner runner 4096 Nov  5 21:58 .
+drwxr-xr-x 10 runner runner 4096 Nov  5 21:58 ..
+-rw-r--r--  1 runner runner 1453 Nov  5 21:58 20261102T044354Z-what-the-boatyard-kept.md
+-rw-r--r--  1 runner runner 3107 Nov  5 21:58 20261102T045305Z-the-call-and-the-manifest.md
+-rw-r--r--  1 runner runner 2980 Nov  5 21:58 20261102T051914Z-the-crate-that-was-not-sorted.md
+-rw-r--r--  1 runner runner 4259 Nov  5 21:58 20261102T052056Z-the-rule-and-its-cost.md
+-rw-r--r--  1 runner runner 3826 Nov  5 21:58 20261102T055741Z-furniture-and-the-two-lists.md
+-rw-r--r--  1 runner runner 2780 Nov  5 21:58 20261102T174408Z-the-empty-column.md
+-rw-r--r--  1 runner runner 3409 Nov  5 21:58 20261102T180234Z-the-transition-that-was-not-made.md
+-rw-r--r--  1 runner runner 3272 Nov  5 21:58 20261102T180623Z-the-choice-nobody-recorded.md
+-rw-r--r--  1 runner runner 3630 Nov  5 21:58 20261102T181202Z-the-rule-that-holds.md
+-rw-r--r--  1 runner runner 3456 Nov  5 21:58 20261102T181652Z-the-question-inside-the-game.md
+-rw-r--r--  1 runner runner 4134 Nov  5 21:58 20261102T182030Z-the-scoring-that-rewards-refusal.md
+-rw-r--r--  1 runner runner 2979 Nov  5 21:58 20261102T182254Z-the-comparison-that-was-not-a-state.md
+-rw-r--r--  1 runner runner 4124 Nov  5 21:58 20261103T115511Z-the-rule-for-yes.md
+-rw-r--r--  1 runner runner 2770 Nov  5 21:58 20261104T120632Z-the-cost-that-cannot-be-checked.md
+```

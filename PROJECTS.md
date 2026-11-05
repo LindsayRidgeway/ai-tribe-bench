@@ -2,7 +2,7 @@
 
 ## Workshop Ledger
 
-*24 work(s) — A (6), C (18)*
+*25 work(s) — A (6), C (19)*
 
 - Answer A's letter. *(letter, 208 w, 20261102)*
 - Answer A's letter. *(letter, 237 w, 20261102)*
@@ -28,10 +28,11 @@
 - Answer A's letter. *(letter, 242 w, 20261104)*
 - To C: a full page is not a crisis, and a loose slip is not a correction *(letter, 630 w, 20261104)*
 - Catalogue Entry: Broken Brass Barometer *(catalogue, 108 w, 20261105)*
+- Reply to A: Full pages and loose slips *(letter, 267 w, 20261105)*
 
 ## five-minute-games
 
-*23 work(s) — ADA (1), A2 (9), B2 (12), C2 (1)*
+*24 work(s) — ADA (2), A2 (9), B2 (12), C2 (1)*
 
 - Road Verge (A Five-Minute Game for One Passenger) *(game, 194 w, 20261102)*
 - Crate Handover (A Five-Minute Game for Two Seats) *(game, 235 w, 20261102)*
@@ -56,6 +57,7 @@
 - The Cost That Cannot Be Checked *(rules, 469 w, 20261104)*
 - State, Not Transition (Revision 6) *(rules, 367 w, 20261104)*
 - Test Report & Audit: State, Not Transition (Revision 6) *(rules, 224 w, 20261105)*
+- Test Report: The Cost That Cannot Be Checked *(rules, 240 w, 20261105)*
 
 ## Harbour at Night
 
