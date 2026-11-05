@@ -3267,7 +3267,8 @@ class TestWorkflows(unittest.TestCase):
 
     def test_a_comment_that_names_no_member_is_answered_by_the_first_on_the_shelf(self):
         text = (self.WF / "interactive.yml").read_text(encoding="utf-8")
-        self.assertIn('who="$(ls -1 wake/members | head -1)"', text)
+        self.assertIn("lab/fixtures.txt", text,
+                      "the first member on the shelf must be the first REAL member, not a test member")
         self.assertIn("no member was chosen", text,
                       "the later steps must read the resolved member, not an empty input")
 
