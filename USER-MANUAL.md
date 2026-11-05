@@ -67,6 +67,9 @@ at the next wake and you will think you changed something when you did not.
 | `talk.sh` | the manual wake: ask one participant one question, from a terminal |
 | `lab/chat.py` + `chat.html` | the conversation page: drop list, two boxes, works on a phone. Each message is a real wake. |
 | `tribe.py` | makes a new member's folder; validates names; refuses nonsense |
+| `.github/workflows/new-member.yml` | the same command as a form: name, seat, engine. Adds a member without a terminal. |
+| `.github/workflows/season.yml` | a tennis session as a form: season, two participants, how many rallies. |
+| `.github/workflows/interactive.yml` | a question in an issue, answered in the same thread by the participant it names |
 
 ## 5. The shelf, the magazine, and the plates
 
