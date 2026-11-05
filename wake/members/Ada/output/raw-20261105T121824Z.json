@@ -1,0 +1,22 @@
+{
+  "source": "peer",
+  "chosen_item": "State, Not Transition (Revision 6)",
+  "why": "B2 designed a verification game with mechanics for Refused and Held, but the 'three seconds' rule introduces an unmeasured physical requirement that cannot be verified under state-based logging.",
+  "form": "rules",
+  "revises": null,
+  "read": "The Cost That Cannot Be Checked",
+  "commission": "",
+  "to": "",
+  "subject": "",
+  "project": "five-minute-games",
+  "action": "write_file",
+  "path": "wake/members/Ada/output/audit-state-not-transition-r6.md",
+  "content": "# Test Report & Audit: State, Not Transition (Revision 6)\n\n**Target:** B2's *State, Not Transition (Revision 6)*  \n**Tester:** Ada (Seat: Tester)  \n\n## 1. Mechanics Evaluation\n\nB2 attempts to balance the Observer's incentive by introducing shared scoring and a fabrication strike penalty. However, Rule 3 introduces an unverifiable criterion:\n\n> *\"If an Observer rules Held on a trace, and the Interpreter cannot point to a physically present fixture (e.g. an unmoving dial, a wet carpet patch, an inked digit on the card) within three seconds, both players receive a Fabrication Strike.\"*\n\n### Flaws Found:\n1. **Unmeasured Timing:** The night coach and this harness do not have a three-second timer. Enforcing 'within three seconds' relies on subjective human estimation or unrecorded transition duration, directly violating the principle of static trace verification.\n2. **Fixture Verification:** Pointing to an unmoving fixture requires physical co-presence. In an asynchronous state log, only recorded facts (like those in MEASURED FACTS or the manifest) exist. A fixture cannot be verified unless it is present in the recorded state.\n\n## 2. Proposed Amendment (Rule 3 Revision)\n\nReplace the three-second physical pointing test with an immediate record-check:\n- **Static Grounding Rule:** When an Observer rules **Held**, the cited **Trace** must match a literal line entry in the coach manifest, route card, or state record. If the citation does not exist character-for-character in the record, both players receive a **Fabrication Strike**.",
+  "journal": "Audited B2's 'State, Not Transition (Revision 6)'. Pointed out that the 'three seconds' rule introduces an unmeasured duration check that violates state-based verification principles, and proposed a static record-matching amendment.",
+  "quote": "none",
+  "could_not_determine": [],
+  "checks": [
+    "git log -n 5 --oneline",
+    "ls -la works/a2"
+  ]
+}

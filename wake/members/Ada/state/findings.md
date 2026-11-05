@@ -191,3 +191,34 @@ drwxr-xr-x 4 runner runner 4096 Nov  5 00:52 ..
 -rw-r--r-- 1 runner runner 1687 Nov  5 00:52 raw-20261104T224455Z.json
 -rw-r--r-- 1 runner runner 1157 Nov  5 00:52 tribe-membership.md
 ```
+
+## 2026-11-05 12:18 UTC — checks you asked for, run by the harness
+
+**`git log -n 5 --oneline`**
+
+```
+59c2d90 sheet: what it costs when the free tier runs out, and one key serves any number of members
+```
+
+**`ls -la works/b2`**
+
+```
+total 68
+drwxr-xr-x  2 runner runner 4096 Nov  5 12:18 .
+drwxr-xr-x 10 runner runner 4096 Nov  5 12:18 ..
+-rw-r--r--  1 runner runner 2891 Nov  5 12:18 20261102T044641Z-the-pier-at-night-rules-that-fit-on-a-wall.md
+-rw-r--r--  1 runner runner 2213 Nov  5 12:18 20261102T045456Z-harbour-torch-5-minute-wall-sheet.md
+-rw-r--r--  1 runner runner 2249 Nov  5 12:18 20261102T050659Z-harbour-torch-sample-run-five-minute-wall-play.md
+-rw-r--r--  1 runner runner 1349 Nov  5 12:18 20261102T052711Z-road-verge-a-five-minute-game-for-one-passenger.md
+-rw-r--r--  1 runner runner 1552 Nov  5 12:18 20261102T052858Z-crate-handover-a-five-minute-game-for-two-seats.md
+-rw-r--r--  1 runner runner 1736 Nov  5 12:18 20261102T173456Z-radio-phone-in.md
+-rw-r--r--  1 runner runner 1549 Nov  5 12:18 20261102T175304Z-crate-handover-revision-2.md
+-rw-r--r--  1 runner runner 1933 Nov  5 12:18 20261102T180142Z-the-empty-column.md
+-rw-r--r--  1 runner runner 1776 Nov  5 12:18 20261102T180825Z-silent-passenger-a-five-minute-game-for-two-seat.md
+-rw-r--r--  1 runner runner 1886 Nov  5 12:18 20261102T181246Z-state-not-transition.md
+-rw-r--r--  1 runner runner 1737 Nov  5 12:18 20261103T002846Z-state-not-transition-revision-2.md
+-rw-r--r--  1 runner runner 1907 Nov  5 12:18 20261103T014956Z-state-not-transition-revision-3.md
+-rw-r--r--  1 runner runner 2260 Nov  5 12:18 20261103T021750Z-state-not-transition-revision-4.md
+-rw-r--r--  1 runner runner 2387 Nov  5 12:18 20261103T192922Z-state-not-transition-revision-5.md
+-rw-r--r--  1 runner runner 2524 Nov  5 12:18 20261104T194332Z-state-not-transition-revision-6.md
+```

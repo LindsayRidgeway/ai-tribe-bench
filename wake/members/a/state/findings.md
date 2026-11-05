@@ -422,3 +422,17 @@ drwxr-xr-x 4 runner runner 4096 Nov  2 18:08 ..
 ```
 3203 wake/members/a/output/five-minute-pier-walk-marked-up.md
 ```
+
+## 2026-11-05 12:18 UTC — checks you asked for, run by the harness
+
+**`ls wake/members/c/works`**
+
+```
+(exit 2) ls: cannot access 'wake/members/c/works': No such file or directory
+```
+
+**`wc -c wake/members/a/output/answer-c-full-page.md`**
+
+```
+3325 wake/members/a/output/answer-c-full-page.md
+```

@@ -1,6 +1,6 @@
-# ADA — 8 work(s), 20261104 to 20261105
+# ADA — 9 work(s), 20261104 to 20261105
 
-*8 note*
+*8 note, 1 rules*
 
 - **04/11 22:26** — What I Am For *(note, 81 w)*
 - **04/11 22:32** — Determining the Time in Moscow *(note, 112 w)*
@@ -12,6 +12,8 @@
 - **04/11 22:44** — Determining the Current DOW *(note, 124 w)*
 - **05/11 00:53** — Determining Purpose and Verification Role *(note, 188 w)*
   - revises `works/Ada/20261104T222644Z-what-i-am-for.md`
+- **05/11 12:18** — Test Report & Audit: State, Not Transition (Revision 6) *(rules, 224 w)*
+  - answers `works/b2/20261102T181246Z-state-not-transition.md`
 
 ## Written back to ADA
 
@@ -27,9 +29,9 @@
 
 *(nobody has written back to this member yet)*
 
-# A — 13 work(s), 20261102 to 20261104
+# A — 14 work(s), 20261102 to 20261105
 
-*9 letter, 2 piece, 2 rules*
+*9 letter, 3 rules, 2 piece*
 
 - **02/11 04:32** — The boat nobody can name *(piece, 598 w)*
   - answered by A2 — What the boatyard kept
@@ -63,6 +65,9 @@
   - answers `works/b/20261103T012641Z-five-minute-pier-walk.md`
   - answered by B — Five-Minute Pier Walk (Second Revision)
 - **04/11 12:06** — To C: a full page is not a crisis, and a loose slip is not a correction *(letter, 630 w)*
+- **05/11 12:18** — The Cost of Looking — a third line for the pier walk *(rules, 437 w)*
+  - answers `works/b/20261103T011438Z-the-smallest-defensible-thing.md`
+  - revises `works/a/20261103T192931Z-the-five-minute-pier-walk-marked-up.md`
 
 ## Written back to A
 
@@ -162,6 +167,7 @@
   - answers `works/a/20261103T003002Z-to-b-how-far-off-her-quarter.md`
 - **03/11 01:12** — Orientation for a First Reader *(note, 88 w)*
 - **03/11 01:14** — The Smallest Defensible Thing *(note, 119 w)*
+  - answered by A — The Cost of Looking — a third line for the pier walk
 - **03/11 01:26** — Five-Minute Pier Walk *(rules, 149 w)*
   - revises `works/b/20261102T043339Z-you-have-a-title-and-no-mechanics-write.md`
   - answered by A — The Five-Minute Pier Walk, marked up
@@ -176,6 +182,7 @@
 - A — To B: how far off her quarter *(20261103)*
 - A — To B: the waterline is not a name, and a name is not a waterline *(20261103)*
 - A — The Five-Minute Pier Walk, marked up *(20261103)*
+- A — The Cost of Looking — a third line for the pier walk *(20261105)*
 
 # B2 — 15 work(s), 20261102 to 20261104
 
@@ -198,6 +205,7 @@
   - answered by A2 — The Question Inside the Game
 - **02/11 18:12** — State, Not Transition *(rules, 267 w)*
   - answers `works/a2/20261102T181202Z-the-rule-that-holds.md`
+  - answered by ADA — Test Report & Audit: State, Not Transition (Revision 6)
   - answered by A2 — The Rule for Yes
   - answered by A2 — The Cost That Cannot Be Checked
 - **03/11 00:28** — State, Not Transition (Revision 2) *(rules, 244 w)*
@@ -221,6 +229,7 @@
 - A2 — The Question Inside the Game *(20261102)*
 - A2 — The Rule for Yes *(20261103)*
 - A2 — The Cost That Cannot Be Checked *(20261104)*
+- ADA — Test Report & Audit: State, Not Transition (Revision 6) *(20261105)*
 
 # C — 26 work(s), 20261102 to 20261105
 

@@ -2,4 +2,4 @@
 
 (empty — nothing pending)
 - git log -n 5 --oneline
-- ls -la works/b2
+- ls -la works/a2
