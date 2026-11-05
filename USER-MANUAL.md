@@ -64,8 +64,8 @@ at the next wake and you will think you changed something when you did not.
 | `plates/` | pictures. A participant cannot paint; a person runs a browser and files the image |
 | `lab/` | the instruments: the clock, the simulators, the scorekeeping, the experiments |
 | `facts/` | what a wake cannot look up: numbers written down with their source and the time they were taken |
-| `talk.sh` | the manual wake: ask one participant one question, from a terminal |
-| `lab/chat.py` + `chat.html` | the conversation page: drop list, two boxes, works on a phone. Each message is a real wake. |
+| `talk.sh` | the manual wake: ask one member one question from a terminal, or from a Goose window opened in this folder |
+| `lab/chat.py` + `chat.html` | a conversation page in a browser, if you want one: drop list, two boxes, reachable from a phone on the same wifi. Each message is a real wake. Not needed by anyone who can run Goose |
 | `tribe.py` | makes a new member's folder; validates names; refuses nonsense |
 | `.github/workflows/new-member.yml` | the same command as a form: name, seat, engine. Adds a member without a terminal. |
 | `.github/workflows/season.yml` | a tennis session as a form: season, two participants, how many rallies. |
