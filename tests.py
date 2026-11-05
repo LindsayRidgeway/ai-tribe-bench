@@ -2967,9 +2967,11 @@ class TestChat(unittest.TestCase):
         self.assertEqual(mod.addresses("127.0.0.1", 8770), ["http://127.0.0.1:8770"],
                          "a page on this machine alone must not advertise an address it does not serve")
         wide = mod.addresses("0.0.0.0", 8770)
-        self.assertEqual(wide[0], "http://127.0.0.1:8770")
-        self.assertTrue(len(wide) == 1 or wide[1].startswith("http://"),
-                        "binding wide must offer the phone a second address to type")
+        self.assertEqual(wide[-1], "http://127.0.0.1:8770", "the loopback address is still true on this machine")
+        if len(wide) > 1:
+            self.assertNotIn("127.0.0.1", wide[0],
+                             "the address printed first must not be the one that means 'this device' — the "
+                             "founder typed it into a phone and got ERR_CONNECTION_REFUSED")
         self.assertIn("--phone", (REPO / "lab" / "chat.py").read_text(encoding="utf-8"),
                       "there must be a way to say 'put this on the wifi' without knowing about 0.0.0.0")
 
