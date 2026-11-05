@@ -22,10 +22,10 @@ on:
         # A text box, and this was a select until 2026-11-04 — the reason it is not one is worth keeping.
         # A `choice` list of member names lives in a workflow file, and GITHUB_TOKEN is not allowed to write
         # workflow files ("refusing to allow a GitHub App to create or update workflow ... without `workflows`
-        # permission"), so the workflow that adds a participant could never update the list that offers it.
+        # permission"), so the workflow that adds a member could never update the list that offers it.
         # A list that only a human with a terminal can keep true is the wrong list. The generated drop list is
         # `members.json`, which the page reads; this form takes a name, and blank means the first on the shelf.
-        description: "which participant answers — blank means the first on the shelf"
+        description: "which member answers — blank means the first on the shelf"
         default: ""
 
 permissions:
@@ -108,7 +108,7 @@ jobs:
           touch /tmp/answer-start      # so the next step cannot hand back last week's answer
           Q="$(cat /tmp/question.txt)"
           who="${MEMBER:?no member was chosen}"
-          # If the question names a participant on the shelf, that participant answers. This is how the
+          # If the question names a member on the shelf, that member answers. This is how the
           # static page's prefilled `@tribe Colette: …` reaches the right seat instead of the first one.
           named="$(cat /tmp/named.txt 2>/dev/null || true)"
           if [ -n "$named" ] && [ -d "wake/members/$named/state" ]; then

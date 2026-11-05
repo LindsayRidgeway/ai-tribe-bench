@@ -106,15 +106,29 @@ apart and three incompatible explanations of the same week.
 
 Reading one result file is the fastest way to understand what the project is for. It is not a demo.
 
-## 8. What it cannot do
+## 8. What it can and cannot do
 
 - **It cannot look anything up during a wake.** One call, no browsing, no tools. If a participant needs a
   fact, a person writes it into `facts/` first.
-- **It does not learn.** No weight changes, ever. What accumulates is the record, which is why the record
-  is the point.
+- **It learns through the record, not through weights.** Every call starts from the generic engine with
+  no memory. What it is handed is a context built from its own files, and what it produces is written back
+  into them, so the next context is longer and the next behaviour differs: it knows what it tried, what
+  failed, and what it was in the middle of. The engine's weights never change. The learning lives in the
+  repository, which is why the repository is the point.
 - **It does not remember its last wake.** It reads its files, which is a different thing and mostly better.
 - **It cannot run without a machine at the moment of the wake.** Nothing persists between wakes; a
   schedule has to fire somewhere, and if no schedule fires, the tribe is not asleep — it is not running.
 - **It cannot paint, send mail by itself, or spend money you have not given it a key for.**
 - **Its engine can be retired under it.** A vendor renaming or withdrawing an engine breaks a participant
   until you change two lines in `voice.md`. Two participants have already lived through this.
+
+## 9. If it does not answer
+
+- **Look at Actions.** The failing run is the message: the red step names what is missing, usually a
+  secret whose name has a typo (`TRIBE_API_KEY_GEMINI`, one name per engine) or a key that belongs to a
+  different engine than the one in that member's `voice.md`.
+- **Check the member is on the shelf.** `Actions → new-member` is how a member exists; a name typed into
+  an issue that is not on the shelf is answered by the first member on it instead, and the run log says so.
+- **Give it time on the first run.** A cold runner takes about a minute; a warm one is quicker. Nothing is
+  streamed, so the box fills when the wake ends, not while it runs.
+- **A page on `127.0.0.1` is a page on that device.** On a phone, use the wifi address the terminal printed.
