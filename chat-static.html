@@ -83,7 +83,7 @@ async function loadMembers() {
       $("who").textContent = members[0].name + " is the only participant in this colony.";
       $("who").hidden = false;
     }
-    if (!members.length) $("after").textContent = "No participants published. Run python3 lab/members.py --write.";
+    if (!members.length) $("after").textContent = "No members published. Run python3 lab/members.py --write.";
     buildLink();
   } catch (e) {
     $("after").textContent = "Cannot read members.json beside this page.";
