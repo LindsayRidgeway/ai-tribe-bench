@@ -3088,7 +3088,7 @@ class TestChat(unittest.TestCase):
                 _url.urlopen(req, timeout=10)
             self.assertEqual(e.exception.code, 400)
             body = _json.load(e.exception)
-            self.assertIn("no such participant", body["reply"])
+            self.assertIn("no such member", body["reply"])
         finally:
             c.ask_member = real
         self.assertEqual(called, [], "a name not in the drop list must not reach a wake")

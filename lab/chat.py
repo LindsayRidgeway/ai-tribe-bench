@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""A conversation page: pick a participant, type a message, read the reply.
+"""A conversation page: pick a member, type a message, read the reply.
 
     python3 lab/chat.py                 # then open http://127.0.0.1:8770
     python3 lab/chat.py --phone         # bind to this machine's wifi address and print it for the phone
@@ -10,7 +10,7 @@ the smallest and most useful one in the whole review: "not on a phone". A page w
 boxes is the whole feature, and it works on a phone because it is a page.
 
 What it is NOT. It is not a chat with an engine. Every message is a real wake through `wake/wake.py --ask`:
-the participant reads its own identity, state and journal, one call is made, the reply is written into its
+the member reads its own identity, state and journal, one call is made, the reply is written into its
 output and filed on the shelf, and a `talk:` commit lands. That is slower and more expensive than a chat
 box, and it is the point — a conversation here is part of the record, so the next wake can read it.
 
@@ -154,10 +154,10 @@ class Handler(BaseHTTPRequestHandler):
         who = str(req.get("member") or "").strip()
         text = str(req.get("text") or "").strip()
         if not who or not text:
-            return self._send(400, json.dumps({"ok": False, "reply": "pick a participant and type something"}).encode(),
+            return self._send(400, json.dumps({"ok": False, "reply": "pick a member and type something"}).encode(),
                               "application/json")
         if who not in members():
-            return self._send(400, json.dumps({"ok": False, "reply": f"no such participant: {who}"}).encode(),
+            return self._send(400, json.dumps({"ok": False, "reply": f"no such member: {who}"}).encode(),
                               "application/json")
         result = ask_member(who, text)
         result["when"] = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
@@ -195,12 +195,12 @@ def serve(port: int = 8770, host: str = "127.0.0.1") -> None:
     srv = ThreadingHTTPServer((host, port), Handler)
     names = members()
     where = addresses(host, port)
-    print(f"tribe chat on {where[0]}  —  {len(names)} participant(s): {', '.join(names) or 'none'}")
+    print(f"tribe chat on {where[0]}  —  {len(names)} member(s): {', '.join(names) or 'none'}")
     if len(where) > 1:
         print(f"from your phone, same wifi: {where[1]}")
         print("(that page has the live reply box; it talks to this machine, so leave this running)")
     if not names:
-        print("!! no participants: expected wake/members/<name>/state/{identity,voice}.md")
+        print("!! no members: expected wake/members/<name>/state/{identity,voice}.md")
     else:
         for n in names:
             api, _ = voice_of(n)

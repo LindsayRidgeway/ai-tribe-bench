@@ -2,7 +2,7 @@ name: season
 
 # Play an evening of tennis from a form, and keep the season in the record.
 #
-# The founder's outline ends with an activity rather than a test: invite the participants to play a season and
+# The founder's outline ends with an activity rather than a test: invite the members to play a season and
 # start practising. This is that, for a person with no terminal — the same engine `lab/tennis.py`, run on a
 # runner, writing into `games/tennis/seasons/<season>/`.
 #
@@ -18,7 +18,7 @@ on:
         required: true
         default: "2026-spring"
       players:
-        description: "two participants, comma-separated — leave blank for the first two on the shelf"
+        description: "two members, comma-separated — leave blank for the first two on the shelf"
         required: false
         default: ""
       rallies:
@@ -77,9 +77,9 @@ jobs:
             echo "no players named, so the first two on the shelf play: $who"
           fi
           n="$(printf '%s' "$who" | awk -F, '{print NF}')"
-          if [ "$n" -ne 2 ]; then echo "::error::two participants, comma-separated — got '$who'"; exit 2; fi
+          if [ "$n" -ne 2 ]; then echo "::error::two members, comma-separated — got '$who'"; exit 2; fi
           for p in $(printf '%s' "$who" | tr ',' ' '); do
-            [ -d "wake/members/$p/state" ] || { echo "::error::no such participant: $p"; exit 2; }
+            [ -d "wake/members/$p/state" ] || { echo "::error::no such member: $p"; exit 2; }
           done
           echo "PLAYERS=$who" >> "$GITHUB_ENV"
 
@@ -98,7 +98,7 @@ jobs:
           args=(--rally --season "$SEASON" --names "$PLAYERS" --rallies "$RALLIES" --temperature "$TEMPERATURE")
           [ "$SURFACE" != "auto" ] && [ -n "$SURFACE" ] && args+=(--surface "$SURFACE")
           true
-          # No vendor flag and no practice flag: each participant's engine is in its own voice.md, and the count of
+          # No vendor flag and no practice flag: each member's engine is in its own voice.md, and the count of
           # balls it has already hit is in the season file. One source for each, and neither is a form field.
           python3 lab/tennis.py "${args[@]}" | tee /tmp/session.txt
 

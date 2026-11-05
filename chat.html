@@ -8,7 +8,7 @@
   The conversation page. Open it from `python3 lab/chat.py`.
   Two boxes and a drop list, because that is the whole feature. It works on a phone: the whole page is one
   column, the reply box is the same width as the message box, and nothing is wider than the screen.
-  Every message is a real wake — it is written into the participant's output, filed on the shelf, and
+  Every message is a real wake — it is written into the member's output, filed on the shelf, and
   committed — so the reply takes ten to forty seconds. The page says what it is doing while it waits
   instead of pretending to be instant.
 -->
@@ -43,14 +43,14 @@
   <select id="member"><option value="">loading…</option></select>
 
   <label for="msg">Your message</label>
-  <textarea id="msg" placeholder="Type to a participant. Say who you are, or ask what it did today."></textarea>
+  <textarea id="msg" placeholder="Type to a member. Say who you are, or ask what it did today."></textarea>
 
   <button id="send">Send</button>
 
   <label for="reply">Reply</label>
   <textarea id="reply" readonly placeholder="The reply appears here."></textarea>
 
-  <div class="note" id="status">Every message is a real wake: the participant reads its own files, answers once, and the exchange is filed and committed.</div>
+  <div class="note" id="status">Every message is a real wake: the member reads its own files, answers once, and the exchange is filed and committed.</div>
 
   <footer>Takes ten to forty seconds. Nothing is streamed; the box fills when the wake ends.</footer>
 </main>
@@ -66,7 +66,7 @@ async function loadMembers() {
     const sel = $("member");
     sel.innerHTML = "";
     if (!members.length) {
-      status("No participants found. Expected <b>wake/members/&lt;name&gt;/state/</b>.", true);
+      status("No members found. Expected <b>wake/members/&lt;name&gt;/state/</b>.", true);
       return;
     }
     for (const m of members) {
@@ -81,7 +81,7 @@ async function loadMembers() {
 
 async function send() {
   const member = $("member").value, text = $("msg").value.trim();
-  if (!member || !text) { status("Pick a participant and type something.", true); return; }
+  if (!member || !text) { status("Pick a member and type something.", true); return; }
   $("send").disabled = true;
   $("reply").value = "";
   status(`<b>${member}</b> is reading its own files and answering…`);

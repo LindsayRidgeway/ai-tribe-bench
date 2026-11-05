@@ -1,6 +1,6 @@
 name: new-member
 
-# Add a participant without a terminal.
+# Add a member without a terminal.
 #
 # This is the step the founder's outline needed and the shipped project did not have: `tribe.py new` is a
 # command, and a person whose only tool is a browser cannot type one. Here the same command runs on a runner,
@@ -13,7 +13,7 @@ on:
   workflow_dispatch:
     inputs:
       name:
-        description: "the participant's name — one word, letters and digits, starting with a letter"
+        description: "the member's name — one word, letters and digits, starting with a letter"
         required: true
       seat:
         description: "what it is for, in a phrase: the correspondent, the surveyor, the repairer"
@@ -61,7 +61,7 @@ jobs:
           git fetch --depth=1 origin "$ref"
           git reset --hard "origin/$ref"
 
-      - name: Create the participant
+      - name: Create the member
         env:
           NAME: ${{ inputs.name }}
           SEAT: ${{ inputs.seat }}
@@ -111,7 +111,7 @@ jobs:
         if: always()
         run: |
           {
-            echo "## ${NAME:-new participant}"
+            echo "## ${NAME:-new member}"
             echo
             echo '```'
             cat /tmp/created.txt 2>/dev/null || echo "(the create step did not run)"
