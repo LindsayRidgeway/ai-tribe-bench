@@ -43,7 +43,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parent))
-from rps import BASES, DEFAULT_MODEL, ask, spread  # noqa: E402  one vendor table, not two
+from rps import BASES, DEFAULT_MODEL, ask, default_model, spread  # noqa: E402  one vendor table, not two
 
 # ---- court, in feet -------------------------------------------------------------------------------
 LENGTH, WIDTH = 78.0, 27.0
@@ -661,7 +661,7 @@ def run_drill(args) -> int:
                       else vendors_of(names)), len(names), "--vendor")
     practice = [int(x) for x in args.practice.split(",")]
     models = spread(([m.strip() for m in args.model.split(",")] if args.model
-                     else [DEFAULT_MODEL[v] for v in vendors]), len(names), "--model")
+                     else [default_model(v) for v in vendors]), len(names), "--model")
     keys = []
     for v, n in zip(vendors, names):
         k = os.environ.get(f"TRIBE_API_KEY_{v.upper()}")
@@ -898,7 +898,7 @@ def run_rally(args) -> int:
               + f" (--practice {args.practice} ignored)")
         practice = from_file
     models = spread(([m.strip() for m in args.model.split(",")] if args.model
-                     else [DEFAULT_MODEL[v] for v in vendors]), len(names), "--model")
+                     else [default_model(v) for v in vendors]), len(names), "--model")
     keys = []
     for v, n in zip(vendors, names):
         k = os.environ.get(f"TRIBE_API_KEY_{v.upper()}")
