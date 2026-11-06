@@ -53,6 +53,12 @@ holding everything that member is. Do it at least twice: all of the preconfigure
 Leave the model field blank unless you have a reason not to: the system then uses the default model for that
 engine, and ENGINES.md lists the defaults.
 
+If the form has a **place** field, it is asking which world the member stands in. The copy you are holding ships
+two worlds, `night-bus` and `workshop`, so it cannot be guessed for you: type one of those names, or rename the
+world in `soil/` and use the new name. A member with no place is created and never woken, because a member
+belongs to a world the way it belongs to a tribe — and the run page will say so if this happens, in a warning
+rather than in a failure.
+
 **3. Give your repository one or more API keys.** In your new repository: **Settings → Secrets and variables →
 Actions → New repository secret.** Get a key from the website of each engine your members use — ENGINES.md has the
 links — and store each one under the name the tribe looks for:
