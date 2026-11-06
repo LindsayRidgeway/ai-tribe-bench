@@ -91,8 +91,9 @@ the model named when you make the member, because the defaults above are the onl
 | `openrouter` | `TRIBE_API_KEY_OPENROUTER` | `openrouter.ai` |
 | `together` | `TRIBE_API_KEY_TOGETHER` | `api.together.xyz` |
 
-**Groq is the one engine in that table worth a second look**, because it is the only other one that is already in
-Goose's own provider list: a Groq member opens in a session with no custom provider to create at all. It is not
+**Groq is the one engine in that table worth a second look** — Groq the inference company of 2016, which is not
+Grok the chatbot and not a model house at all: it runs other people's open-weight models on its own chips. It is
+the only other engine in that table already in Goose's own provider list: a Groq member opens in a session with no custom provider to create at all. It is not
 recommended here only because this project holds no default model for it — the `new-member` form will refuse the
 job until you name one — and because its catalogue is open-weight models, which hold a long instruction and a
 strict reply format less reliably than the flash models of Gemini and DeepSeek. If you want to try it, name the
