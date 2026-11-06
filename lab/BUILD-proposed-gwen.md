@@ -20,7 +20,7 @@ the four-in-the-morning shift, when you are not present. The repository is the m
 A free key and light use — an evening of conversation, a few evenings of tennis — will usually stay inside the free tier.
 Heavy use can exhaust the free tier, and at that point, you will need to go to the vendor's billing webpage and establish a payment method
 and an initial credit balance.
-If you get there, **DeepSeek is the cheaper of the two.**
+If you get there, **DeepSeek is the cheaper of the two by at least an order of magnitude.**
 
 ## You need
 
