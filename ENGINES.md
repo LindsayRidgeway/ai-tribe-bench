@@ -33,9 +33,11 @@ a problem with the tribe rather than with a model name.
 who wants to check this project against the vendor's documentation has the address to check. (Engineers call
 this an *endpoint*, and this document used to say only that.)
 
-### The three this project recommends
+### The two the sheet recommends, and a third that also works
 
-All three issue a key without asking for a payment method, and a light tribe stays inside the free tier.
+All three issue a key without asking for a payment method, and a light tribe stays inside the free tier. The build
+instructions use the first two, because two is enough to build a tribe and every extra engine is another key to
+keep. Qwen is here because it works the same way and some readers will want it.
 
 | engine | secret name | model | key from |
 |---|---|---|---|
@@ -45,9 +47,10 @@ All three issue a key without asking for a payment method, and a light tribe sta
 
 ### What Goose calls them, if you are using a computer
 
-The sheet's step 4 sets all three up once, in Goose, before any of them is named. Only one of the three is in
+The sheet's step 4 sets up the two engines it uses, once, before either is named. Only one of the three is in
 Goose's own provider list — the other two are OpenAI-compatible services reachable through a custom provider —
-and the words differ in one place only:
+and the words differ in one place only. (Tested on Goose 1.57: `--provider deepseek` answers `Unknown provider:
+deepseek`, while a built-in one such as `groq` answers that it wants its key.)
 
 | the member's `api:` line | in Goose | how to set it up there |
 |---|---|---|
@@ -56,13 +59,15 @@ and the words differ in one place only:
 | `qwen` | not built in | the same, address `https://dashscope-intl.aliyuncs.com/compatible-mode/v1` |
 
 Name the custom ones `deepseek` and `qwen`, exactly as the tribe spells them, and then `--provider deepseek`
-means what it says. Set up all three rather than the one a first member happened to use: Goose answers
+means what it says. Set up every engine a member of yours stands on, not only the one the first member happened
+to use: Goose answers
 `Unknown provider: deepseek` for an engine it has not been told about, and that error arrives at the moment a
 reader is trying to talk to a member, which is the worst possible moment to be sent back to a settings screen.
 
 Where those three live, if you want to check them: `generativelanguage.googleapis.com` (Gemini),
 `api.deepseek.com` (DeepSeek), `dashscope-intl.aliyuncs.com` (Qwen). If a free tier runs out, DeepSeek is the
-cheapest of the three by at least an order of magnitude.
+cheapest of the three by at least an order of magnitude — measured at this writing at 16× Gemini's price per
+million tokens.
 
 **DeepSeek's model name changes under you, so it is worth one line.** The id this project shipped with was
 `deepseek-chat`; on 2026-11-05 DeepSeek's own catalogue answered with two ids, `deepseek-flash` and
