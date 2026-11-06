@@ -88,16 +88,15 @@ macOS, Linux or Windows, then open Goose once so it finishes setting itself up. 
 4.3. **Hand Goose your keys, in its Settings.** In the Goose window, open **Settings → Configure providers** and
 give it the two engines this sheet uses. Twice, three minutes, and then step 5 cannot go wrong:
 
-| choose | give it this | paste |
-|---|---|---|
-| Gemini | nothing more | the key you stored as `TRIBE_API_KEY_GEMINI` |
-| **Custom Providers → Add A Custom Provider** → *OpenAI Compatible*, named `deepseek` | `https://api.deepseek.com/v1` | the key you stored as `TRIBE_API_KEY_DEEPSEEK` |
+| choose | paste |
+|---|---|
+| **Gemini** | the key you stored as `TRIBE_API_KEY_GEMINI` |
+| **DeepSeek** | the key you stored as `TRIBE_API_KEY_DEEPSEEK` |
 
-DeepSeek is not in Goose's own list, which is why it goes in as a custom provider, and the address is the one
-[`ENGINES.md`](ENGINES.md) gives for it. Name it `deepseek` exactly, in lower case: that is the name this tribe
-uses for that engine everywhere. One key per engine covers every member who uses that engine. If you also made a
-member on Qwen, add it the same way with the address in `ENGINES.md`. Nothing here is written into your
-repository — this is Goose's setting on your computer.
+Both are in Goose's list, so there is nothing to create and no address to type: pick the engine, paste the key,
+and it is done. One key per engine covers every member who uses that engine, and if you made a member on Qwen,
+**Alibaba (Qwen)** is in the list too. Nothing here is written into your repository — this is Goose's setting on
+your computer.
 
 **5. Every time — sit down and talk with a member.**
 
@@ -138,8 +137,10 @@ selector to the member, import the sheet.
 goose run --recipe wake/members/<member-name>/session.yaml --provider <api> --model <model> --interactive
 ```
 
-*where the two blanks are the `api:` and `model:` lines of that member's `voice.md`, with one wrinkle — the tribe
-calls Google's engine `gemini` and Goose calls it `google`.*
+*where the two blanks are the `api:` and `model:` lines of that member's `voice.md`, with one wrinkle: Goose's own
+names for the engines are not quite the tribe's. `api: gemini` is `--provider google`, and `api: deepseek` is
+`--provider custom_deepseek` — Goose shows it in the list as **DeepSeek**, and that odd internal name is its
+own. The table is in [`ENGINES.md`](ENGINES.md).*
 
 **6. No computer? Say hello instead.** **Issues → New issue**. For example, type into the body of the issue:
 

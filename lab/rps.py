@@ -49,7 +49,10 @@ BASES = {
 # DeepSeek retired the deepseek-chat id: their catalogue on 2026-11-05 answers with deepseek-flash and
 # deepseek-v4-pro, and deepseek-flash is the one with vision. A stale default here is not a cosmetic bug
 # — it is every new member made on that engine failing on its first wake with "model not found".
-DEFAULT_MODEL = {"deepseek": "deepseek-flash", "gemini": "gemini-3.8-flash", "qwen": "qwen3.6-plus"}
+# Groq's model ids are namespaced by whoever trained the weights, and the names are not stable for long — the id
+# is the vendor's business, so it is written down here once rather than guessed at in a form.
+DEFAULT_MODEL = {"deepseek": "deepseek-flash", "gemini": "gemini-3.8-flash", "qwen": "qwen3.6-plus",
+                 "groq": "openai/gpt-oss-120b"}
 
 
 def ask(base: str, key: str, model: str, prompt: str, temperature: float = 1.0) -> str:

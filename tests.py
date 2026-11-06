@@ -3031,6 +3031,16 @@ class TestChat(unittest.TestCase):
         self.assertIn('<textarea id="reply" readonly', html)
         self.assertIn('name="viewport"', html, "the whole point was that it works on a phone")
 
+    def test_every_engine_with_a_default_model_is_an_engine_the_tool_accepts(self):
+        """A default model for an engine nobody can pick is a line that never runs; an engine with a default the
+        tool does not accept is worse, because the member is created and fails on its first wake. Groq was added
+        to the defaults after the founder asked why it should not be: the answer was that nothing stops it, and
+        its ids are namespaced by whoever trained the weights — the id is Groq's business, written down once."""
+        self.assertTrue(set(rps.DEFAULT_MODEL) <= set(tribe.BASES),
+                        f"a default model for an engine the tool refuses: {set(rps.DEFAULT_MODEL) - set(tribe.BASES)}")
+        self.assertEqual(rps.DEFAULT_MODEL["groq"], "openai/gpt-oss-120b",
+                         "Groq names its models by training house; the prefix is not a typo")
+
     def test_the_local_page_can_be_reached_from_a_phone(self):
         """The founder's objection to a desktop-only page was four words — "not on a phone" — and a page bound
         to 127.0.0.1 is reachable from exactly one device. Binding to the wifi address is half the fix; the
@@ -3346,13 +3356,17 @@ class TestWorkflows(unittest.TestCase):
         # exactly like a wrong key and fails the same way.
         self.assertIn("Configure providers", re.sub(r"\s+", " ", build),
                       "the app's route to the same menus is Settings → Configure providers")
-        self.assertIn("Custom Providers", build, "DeepSeek is not in Goose's provider list")
+        self.assertNotIn("Custom Providers", build,
+                         "every engine the sheet uses is already in Goose's provider list; a reader who is sent "
+                         "to build a custom provider has been sent to do work that does not exist")
+        self.assertIn("custom_deepseek", build,
+                      "DeepSeek's internal name is not its display name, and the terminal fallback must use it")
         self.assertIn("Import Recipe", build, "importing a recipe is only possible in the desktop app")
-        self.assertIn("built in, under the name **google**", engines,
-                      "the one word that differs must be written down in the engine sheet")
-        base = wake.API_BASES["deepseek"]
-        self.assertIn(base, build, f"the address the sheet gives Goose for deepseek must be {base}")
-        self.assertIn("`deepseek`", build, "the custom provider's name is the word step 5 will type unless it matches")
+        self.assertIn("`google`", engines, "Gemini's internal name must be written down in the engine sheet")
+        self.assertIn("| `deepseek` | **DeepSeek** | `custom_deepseek` |", engines,
+                      "a terminal user typing --provider deepseek would be sent to an unknown provider")
+        self.assertIn("api.deepseek.com", engines,
+                      "the engine sheet says where DeepSeek lives, even though nobody has to type it")
         self.assertIn("lab/session.py", build, "the standard way to talk is a session, and this is how one is made")
         self.assertIn("--interactive", build, "a one-shot run is not a conversation")
         for path in ("wake/members", "games/tennis/seasons", "practice.json", "USER-MANUAL.md"):

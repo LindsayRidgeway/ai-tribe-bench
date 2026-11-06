@@ -49,27 +49,35 @@ not have to spend before their first conversation. Nothing is wrong with the eng
 
 ### What Goose calls them, if you are using a computer
 
-The sheet's step 4 sets up the two engines it uses, once, before either is named. Only one of the three is in
-Goose's own provider list — the other two are OpenAI-compatible services reachable through a custom provider —
-and the words differ in one place only. (Tested on Goose 1.57: `--provider deepseek` answers `Unknown provider:
-deepseek`, while a built-in one such as `groq` answers that it wants its key.)
+All four engines this page recommends or lists are already in Goose's provider list — there is no provider to add
+by hand, in Goose 1.57 or since. What differs is the *name* Goose uses internally, which matters only if you are
+typing a command:
 
-| the member's `api:` line | in Goose | how to set it up there |
+| the member's `api:` line | in Goose's list | what you type after `--provider` |
 |---|---|---|
-| `gemini` | built in, under the name **google** | `goose configure` → Configure Providers → Gemini, paste the key |
-| `deepseek` | not built in | Custom Providers → Add A Custom Provider → *OpenAI Compatible*, address `https://api.deepseek.com/v1` |
-| `qwen` | not built in | the same, address `https://dashscope-intl.aliyuncs.com/compatible-mode/v1` |
+| `gemini` | **Gemini** | `google` |
+| `deepseek` | **DeepSeek** | `custom_deepseek` |
+| `qwen` | **Alibaba (Qwen)** | `alibaba` |
+| `groq` | **Groq** | `groq` |
 
-Name the custom ones `deepseek` and `qwen`, exactly as the tribe spells them, and then `--provider deepseek`
-means what it says. Set up every engine a member of yours stands on, not only the one the first member happened
-to use: Goose answers
-`Unknown provider: deepseek` for an engine it has not been told about, and that error arrives at the moment a
-reader is trying to talk to a member, which is the worst possible moment to be sent back to a settings screen.
+Two of those names are odd and neither is our doing: Gemini is `google`, and DeepSeek is `custom_deepseek`. Both
+were checked by running Goose rather than by reading its menus — `--provider custom_deepseek` starts a session,
+`--provider deepseek` answers `Unknown provider: deepseek`, which is Goose's way of saying that a provider's
+*display* name and its internal name are different strings.
+
+If you paste a key into Goose's Settings, you are done: the list, the keys and the model selector do not care what
+a provider is called internally.
 
 Where those three live, if you want to check them: `generativelanguage.googleapis.com` (Gemini),
-`api.deepseek.com` (DeepSeek), `dashscope-intl.aliyuncs.com` (Qwen). If a free tier runs out, DeepSeek is the
-cheapest of the three by at least an order of magnitude — measured at this writing at 16× Gemini's price per
-million tokens.
+`api.deepseek.com` (DeepSeek), `dashscope-intl.aliyuncs.com` (Qwen).
+
+**What it costs when the free tier runs out**, read off the vendors' own price pages on 2026-11-06 rather than
+remembered: DeepSeek's `deepseek-flash` bills **$0.15 per million input tokens** ($0.30 at peak hours, and half
+those prices off-peak) and **$0.60 per million output** — or **$0.003 per million input** on a cache hit, which
+is fifty times cheaper. The tribe's wakes send a large, mostly-unchanged prefix, so most of their input is billed
+at the cache-hit rate, and that is where the earlier note that DeepSeek is an order of magnitude cheaper comes
+from: it is true of this workload and not true of a cold first call. Do not read it as a blanket price
+comparison.
 
 **DeepSeek's model name changes under you, so it is worth one line.** The id this project shipped with was
 `deepseek-chat`; on 2026-11-05 DeepSeek's own catalogue answered with two ids, `deepseek-flash` and
@@ -79,8 +87,8 @@ retired id fails on its first wake with a message about a missing model, which i
 
 ### The rest, which the harness also speaks
 
-Supported by the wake, listed for completeness. Each needs its key under the same naming rule, and each needs
-the model named when you make the member, because the defaults above are the only ones this project asserts.
+Supported by the wake, listed for completeness. Each needs its key under the same naming rule, and — Groq aside —
+the model named when you make the member, because the defaults above are the ones this project asserts.
 
 | engine | secret name | where it lives |
 |---|---|---|
@@ -91,15 +99,15 @@ the model named when you make the member, because the defaults above are the onl
 | `openrouter` | `TRIBE_API_KEY_OPENROUTER` | `openrouter.ai` |
 | `together` | `TRIBE_API_KEY_TOGETHER` | `api.together.xyz` |
 
-**Groq is the one engine in that table worth a second look** — Groq the inference company of 2016, which is not
-Grok the chatbot and not a model house at all: it runs other people's open-weight models on its own chips. It is
-the only other engine in that table already in Goose's own provider list: a Groq member opens in a session with no custom provider to create at all. It is not
-recommended here only because this project holds no default model for it — the `new-member` form will refuse the
-job until you name one — and because its catalogue is open-weight models, which hold a long instruction and a
-strict reply format less reliably than the flash models of Gemini and DeepSeek. If you want to try it, name the
-model explicitly; `gpt-oss-120b` is the strongest of the ones its documentation lists at this writing, alongside
-`qwen/qwen3.8-27b` and `llama-3.3-70b-versatile`. Its free tier is limited per minute rather than per month, and
-a wake sends a large prompt, so a Groq member is likelier to be throttled than a Gemini one.
+**Groq is the one engine in that table worth a second look** — Groq the inference company of 2016, which is not Grok
+the chatbot and not a model house at all: it runs other people's open-weight models on its own chips. It is the only
+other engine in that table already in Goose's own provider list: a Groq member opens in a session with no custom
+provider to create at all. It is not recommended here because its catalogue is open-weight models, which hold a long
+instruction and a strict reply format less reliably than the flash models of Gemini and DeepSeek. The default this
+project names for it is `openai/gpt-oss-120b`, the strongest of the models Groq's own catalogue listed at this
+writing; the prefix is Groq's, not a mistake. Its free tier is limited per minute rather than per month, and a wake
+sends a large prompt, so a Groq member is likelier to be throttled than a Gemini one — untested here, because this
+project has no Groq key, and said as a reason to be careful rather than a finding.
 
 A free OpenAI key is possible, but its credits go quickly enough that it is a poor first engine. Anthropic's
 Claude wants a payment method to issue a key, though it has a free tier once you have one; it is not wired into
