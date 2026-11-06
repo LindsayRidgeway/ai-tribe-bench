@@ -56,7 +56,8 @@ If you leave the model field blank on that form, the system uses the default mod
 which model it defaults to.
 
 **3. Give your repository one or more API keys.** **Settings → Secrets and variables → Actions → New repository
-secret.** The name matters — it is the name the tribe looks for from a workflow, one per engine:
+secret.** The name matters — it is the name the tribe looks for, one per engine. Get all three: they are free,
+and none of these three vendors asks for a payment method.
 
 ```
 TRIBE_API_KEY_GEMINI      aistudio.google.com/apikey     (free tier)
@@ -64,8 +65,8 @@ TRIBE_API_KEY_DEEPSEEK    platform.deepseek.com          (free tier)
 TRIBE_API_KEY_QWEN        Alibaba Model Studio           (free tier)
 ```
 
-Supply keys for every engine your members use, as named in each member's `voice.md`. None of these three
-vendors requires a payment method to give you the key.
+All three because a member's engine is a choice you may want to change later, and because step 4 sets up three
+engines. If one vendor will not give you a key, carry on with the ones you have — step 4 says what to do.
 
 **One key is enough for any number of members.** The engine is something a member uses, not something it owns:
 ten members can all use one engine, and each is still a separate AI-being with its own name, its own seat and
@@ -89,19 +90,23 @@ session down before it stops:
 python3 lab/session.py --member <member-name> --write
 ```
 
-**Then tell Goose about the engines.** A tribe has no engine of its own — each member has one, chosen in step 2 —
-and Goose will only speak to engines it has been told about:
+**First, one time, start Goose with nothing specified.** A tribe has no engine of its own: each member has one,
+and Goose will only speak to an engine it has been told about. So before you name one, set up all three. Start
+Goose bare — `goose session` in that folder, or just open the Goose app — and go to **Settings → Configure
+providers**. (In a terminal, `goose configure` opens the same menus.) Configure the three, one at a time:
 
-```
-goose configure
-```
+| choose | give it this | paste |
+|---|---|---|
+| Gemini | nothing more | `TRIBE_API_KEY_GEMINI` |
+| **Custom Providers → Add A Custom Provider** → *OpenAI Compatible*, named `deepseek` | `https://api.deepseek.com/v1` | `TRIBE_API_KEY_DEEPSEEK` |
+| the same, named `qwen` | `https://dashscope-intl.aliyuncs.com/compatible-mode/v1` | `TRIBE_API_KEY_QWEN` |
 
-Gemini is already in Goose's list; pick it and paste the key. DeepSeek and Qwen are not in it, so pick
-**Custom Providers → Add A Custom Provider**, *OpenAI Compatible*, name it `deepseek` or `qwen`, and give it the
-address from [`ENGINES.md`](ENGINES.md) and a model name. It asks for a key once and keeps it. Paste the key of an engine
-you actually made a member on — that member's `wake/members/<name>/state/voice.md` names it, because you chose it
-in step 2 — and if the whole tribe shares one engine, that is one key and one minute. Nothing here is written into
-your repository: this is Goose's setting on your computer.
+Three times, three minutes, once on this computer — and then step 5 cannot go wrong, whatever engine a member
+stands on. Configuring only the engine you happened to use first is how people meet the error below. Nothing here
+is written into your repository: this is Goose's setting on your computer.
+
+If one vendor would not give you a key, configure the other two and make no members on the missing one: the `api:`
+line in a member's `voice.md` says which engine it stands on, and you can change it once you have the key.
 
 Then open the session. The last two arguments are the two lines in that member's `voice.md`, `api:` and `model:` —
 with one wrinkle: the tribe calls Google's engine `gemini` and Goose calls it `google`.

@@ -45,7 +45,7 @@ All three issue a key without asking for a payment method, and a light tribe sta
 
 ### What Goose calls them, if you are using a computer
 
-The sheet's step 4 sets these up once, in Goose, at the point where you open a session. Only one of the three is in
+The sheet's step 4 sets all three up once, in Goose, before any of them is named. Only one of the three is in
 Goose's own provider list — the other two are OpenAI-compatible services reachable through a custom provider —
 and the words differ in one place only:
 
@@ -56,9 +56,9 @@ and the words differ in one place only:
 | `qwen` | not built in | the same, address `https://dashscope-intl.aliyuncs.com/compatible-mode/v1` |
 
 Name the custom ones `deepseek` and `qwen`, exactly as the tribe spells them, and then `--provider deepseek`
-means what it says. That is also the reason the sheet has a table of three rows there and not a paragraph:
-a reader who made members on all three engines needs all three words, and a reader who made them on one needs
-one.
+means what it says. Set up all three rather than the one a first member happened to use: Goose answers
+`Unknown provider: deepseek` for an engine it has not been told about, and that error arrives at the moment a
+reader is trying to talk to a member, which is the worst possible moment to be sent back to a settings screen.
 
 Where those three live, if you want to check them: `generativelanguage.googleapis.com` (Gemini),
 `api.deepseek.com` (DeepSeek), `dashscope-intl.aliyuncs.com` (Qwen). If a free tier runs out, DeepSeek is the
