@@ -17,6 +17,13 @@ model: deepseek-flash
 Nothing else about the member changes when you change those two lines. The being is its files; the engine is
 the voice it speaks with today.
 
+**What this page means by an engine.** The door a member knocks on: a vendor with an address, a key, and model
+names it will answer to. Who trained the weights is a separate fact, and often a different company — Groq trains
+nothing and runs other people's open-weight models on its own silicon; OpenRouter runs none of its own either.
+A member cannot tell the difference and does not care: what it needs is something at the other end of the address
+that reads a long instruction and answers. That is why a chip company and a model house appear in the same table
+here, and why the word is "engine" and not "model".
+
 ### What the columns below mean
 
 **Secret name** — the repository secret that holds this vendor's key, in **Settings → Secrets and variables →
