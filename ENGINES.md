@@ -40,21 +40,39 @@ a problem with the tribe rather than with a model name.
 who wants to check this project against the vendor's documentation has the address to check. (Engineers call
 this an *endpoint*, and this document used to say only that.)
 
-### The four engines this page recommends
+### The three engines this page recommends
 
-All four issue a key without asking for a payment method, and a light tribe stays inside the free tier. The build
-instructions use the first two, because two is enough to build a tribe and every extra engine is another key to
-keep; the other two work and are here for anyone who wants them. Qwen's engine is fine but its door is heavy:
-obtaining a usable Alibaba key took this project an evening of signup, region and console work that a first-time
-tribe owner should not have to spend before their first conversation. Groq's door is the lightest of the four and
-its engine is the newest to this list — read the section below it for the two sentences that come attached.
+**What earns a place here** is not which company is best. It is three things a stranger can check: a key you can
+obtain in a few minutes without handing over a card, a default model this project names and tests, and a member
+that actually wakes on it. Three engines pass all three.
 
 | engine | secret name | model | key from |
 |---|---|---|---|
 | `gemini` | `TRIBE_API_KEY_GEMINI` | `gemini-3.8-flash` | [aistudio.google.com/apikey](https://aistudio.google.com/apikey) |
 | `deepseek` | `TRIBE_API_KEY_DEEPSEEK` | `deepseek-flash` | [platform.deepseek.com](https://platform.deepseek.com) |
-| `qwen` | `TRIBE_API_KEY_QWEN` | `qwen3.6-plus` | Alibaba Model Studio |
 | `groq` | `TRIBE_API_KEY_GROQ` | `openai/gpt-oss-120b` | [console.groq.com/keys](https://console.groq.com/keys) |
+
+The build instructions use the first two, because two is enough to build a tribe and every extra engine is
+another key to keep. Any of the three will do; members may share one engine or be spread across all three.
+
+### One more that works, and one that does not work here at all
+
+**Qwen works and is not recommended**, and the reason is the door rather than the engine. Obtaining a usable
+Alibaba key took this project an evening of signup, region and console work. A recommendation is a promise that
+the first thirty minutes will not be spent on paperwork, and this page cannot make that promise for Alibaba. If
+you already have the key — and the founder does, having paid that evening — the engine is fine: a member on
+`qwen3.6-plus` wakes, plays and files like any other.
+
+| engine | secret name | model | key from |
+|---|---|---|---|
+| `qwen` | `TRIBE_API_KEY_QWEN` | `qwen3.6-plus` | Alibaba Model Studio |
+
+**Anthropic's Claude does not work here at all, and this is not a money problem.** Claude's API is not the
+OpenAI-shaped one this harness speaks: the wake and every game send `messages` to `/chat/completions`, and
+Claude answers at `/v1/messages` in a different shape. No key and no budget changes that; a member on Claude needs
+code — one more adapter in `wake/wake.py` and in `lab/rps.py`, plus a default model in the table they both read.
+Anyone with money to burn can build a tribe on OpenAI's engines today (see the list below) but not on Claude's
+until somebody writes that adapter, and "somebody" is a task in this project, not a purchase.
 
 ### What Goose calls them, if you are using a computer
 
@@ -156,9 +174,10 @@ houses' names and they change hands. `deepseek-chat` was retired out from under 
 happen to `openai/gpt-oss-120b`. A member's `voice.md` names its model, so the repair is one line in one file
 when it happens — but it will happen.
 
-A free OpenAI key is possible, but its credits go quickly enough that it is a poor first engine. Anthropic's
-Claude wants a payment method to issue a key, though it has a free tier once you have one; it is not wired into
-this harness, and a member on it would need the `api:` line changed by hand.
+A free OpenAI key is possible, but its credits go quickly enough that it is a poor first engine — and at list
+prices a seat on OpenAI's own models costs ten to fifty times what the same work costs on any engine above, which
+is a fact worth having before you put a member on one. Claude is a different matter: see above, it needs an
+adapter before a key is even interesting.
 
 ### The naming rule
 
