@@ -3344,22 +3344,22 @@ class TestWorkflows(unittest.TestCase):
         # talk to somebody. All three are configured up front, and the addresses have to be the addresses the
         # harness itself uses — checked against wake.API_BASES, because a wrong base URL in the sheet looks
         # exactly like a wrong key and fails the same way.
-        self.assertIn("goose configure", build, "the engines are set up in Goose's own configuration")
         self.assertIn("Configure providers", re.sub(r"\s+", " ", build),
-                      "the app's own route to the same menus is Settings → Configure providers")
-        self.assertIn("Custom Providers", build, "DeepSeek and Qwen are not in Goose's provider list")
-        self.assertIn("| `api: gemini` | `google` |", build, "the one word that differs must be written down")
-        for api in ("deepseek", "qwen"):
-            base = wake.API_BASES[api]
-            self.assertIn(base, build, f"the address the sheet gives Goose for {api} must be {base}")
-            self.assertIn(f"`{api}`", build, "the custom provider's name is the word step 5 will type")
+                      "the app's route to the same menus is Settings → Configure providers")
+        self.assertIn("Custom Providers", build, "DeepSeek is not in Goose's provider list")
+        self.assertIn("Import Recipe", build, "importing a recipe is only possible in the desktop app")
+        self.assertIn("built in, under the name **google**", engines,
+                      "the one word that differs must be written down in the engine sheet")
+        base = wake.API_BASES["deepseek"]
+        self.assertIn(base, build, f"the address the sheet gives Goose for deepseek must be {base}")
+        self.assertIn("`deepseek`", build, "the custom provider's name is the word step 5 will type unless it matches")
         self.assertIn("lab/session.py", build, "the standard way to talk is a session, and this is how one is made")
         self.assertIn("--interactive", build, "a one-shot run is not a conversation")
         for path in ("wake/members", "games/tennis/seasons", "practice.json", "USER-MANUAL.md"):
             self.assertIn(path, build)
         self.assertTrue((REPO / "USER-MANUAL.md").is_file(), "the sheet's last line points at the manual")
 
-    def test_the_build_steps_are_numbered_1_to_5_with_no_gaps(self):
+    def test_the_build_steps_are_numbered_1_to_6_with_no_gaps(self):
         """A numbered step that stops being necessary must come out and the rest close up.
 
         The sheet used to have a step 4 whose whole content was "put the tribe on your computer" and a step 5
@@ -3370,8 +3370,8 @@ class TestWorkflows(unittest.TestCase):
         build = (REPO / "BUILD.md").read_text(encoding="utf-8")
         head = build.split("## Give your tribe something to do")[0]
         numbered = re.findall(r"^\*\*(\d+)\. ", head, flags=re.M)
-        self.assertEqual(numbered, ["1", "2", "3", "4", "5"],
-                         "the build steps are one to five, in order, with nothing skipped")
+        self.assertEqual(numbered, ["1", "2", "3", "4", "5", "6"],
+                         "the build steps are one to six, in order, with nothing skipped")
         self.assertIn("Use this template", build,
                       "a reader with no terminal starts by copying the repository, not by cloning it")
 
