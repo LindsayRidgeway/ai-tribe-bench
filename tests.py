@@ -3196,19 +3196,28 @@ class TestWorkflows(unittest.TestCase):
                 if item.startswith("- ") and item.lstrip("- ").strip() in published:
                     self.fail(f"{f.name} hardcodes the member {item!r} in a list; members.json is the list")
 
-    def test_the_template_ships_with_no_members_on_the_shelf(self):
-        """A copy of this repository must arrive empty. What is committed under `wake/members/` is what a
-        stranger opens in step 2 and has to tell apart from their own members, so the answer has to be
-        nothing. Asked of git rather than of the working tree, because the suite shelves its own fixtures
-        while it runs and would otherwise be checking its own homework."""
+    def test_no_test_member_is_ever_committed(self):
+        """A copy of this repository must arrive without the suite's own members in it.
+
+        Two things went wrong with the shelf before this: the template shipped ten folders named `a`, `a2`,
+        `b`, `trap` and the instruction sheet had to apologise for them; and the published magazine was built
+        out of their works, so a stranger's ledger was a record of members who do not exist. What is committed
+        under `wake/members/` and `works/` is what a stranger opens in step 2, so a name from
+        `lab/fixtures.txt` may never appear there — asked of git rather than of the working tree, because the
+        suite shelves its own fixtures while it runs and would otherwise be checking its own homework. A
+        colony with members of its own passes: those are not fixtures.
+        """
         if not shutil.which("git"):
             self.skipTest("no git here")
         out = subprocess.run(["git", "ls-files", "--", "wake/members", "works"],
                              cwd=REPO, capture_output=True, text=True)
         if out.returncode != 0:
             self.skipTest("not a git checkout")
-        committed = [p for p in out.stdout.splitlines() if p.count("/") > 1]
-        self.assertEqual(committed, [], "the template's shelf must be empty; test members live in lab/fixtures")
+        named = {line.strip() for line in (REPO / "lab" / "fixtures.txt").read_text(encoding="utf-8").splitlines()
+                 if line.strip() and not line.strip().startswith("#")}
+        committed = {p.split("/")[1] for p in out.stdout.splitlines() if p.count("/") > 1}
+        self.assertEqual(committed & named, set(),
+                         "a test member is committed to the shelf; it belongs in lab/fixtures/")
 
     def test_the_suite_puts_its_members_back_when_it_is_done(self):
         """The suite needs ten members to break and a stranger needs none, so the suite borrows them from
