@@ -29,7 +29,11 @@ cheapest.
 ## You need
 
 * A browser. Steps 1–3 and the fallback in step 6 are buttons on a GitHub page.
-* A computer with Goose and Python 3 on it for steps 4–5. macOS and Linux have Python already.
+* A computer with Goose and Python 3 on it for steps 4–5. Recent macOS and most Linux machines answer
+  `python3 --version` already. An older Mac may not: typing `python3` there offers to install Apple's
+  command-line tools, which is a dialog and a few minutes, and it is the one thing to do before step 5 rather
+  than during it. (Measured on an old Mac in the house that has never had Goose on it, 2026-11-06 — this line
+  used to say "macOS and Linux have Python already" and that is not true of every macOS still in service.)
 * At least one engine key, from one of the engines listed in [`ENGINES.md`](ENGINES.md). That page is your
   reference for them: which ones this project recommends, where to get a key, what each costs, and what model
   names to use. One key is enough for a whole tribe; members on different engines add variety.
