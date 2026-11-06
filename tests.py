@@ -3031,6 +3031,34 @@ class TestChat(unittest.TestCase):
         self.assertIn('<textarea id="reply" readonly', html)
         self.assertIn('name="viewport"', html, "the whole point was that it works on a phone")
 
+    def test_a_model_that_thinks_before_it_answers_gets_room_to_think(self):
+        """The small cap that makes a one-word answer stay one word starves a reasoning model.
+
+        Measured 2026-11-06 on Groq's `gpt-oss-120b`: a 400-token cap bought 398 tokens of reasoning, an empty
+        answer and finish_reason "length". The game read the empty string as a member who had said nothing,
+        played a default shot, and wrote it into the record as though the member had chosen it — the worst
+        kind of wrong, because the file looks like a choice.
+        """
+        src = (REPO / "lab" / "rps.py").read_text(encoding="utf-8")
+        self.assertIn('finish_reason") == "length"', src, "an answer cut off before it began must be retried")
+        self.assertIn("call(2400)", src, "the retry has to buy more room than the first attempt")
+        self.assertIn("RATE_WAITS", src, "a free tier counted per minute is answered by waiting, not by giving up")
+
+    def test_the_games_can_play_on_every_engine_the_wake_can_wake_on(self):
+        """Two tables for one fact is how a Groq member woke and then found that tennis did not know it.
+
+        Measured 2026-11-06: a wake on Groq answered in three seconds, and the first rally died with
+        KeyError: 'groq' because `lab/rps.py` — which the games share — kept its own shorter list of engines.
+        The same three lines also carry the User-Agent, because the game's request hits the same door.
+        """
+        self.assertEqual(sorted(rps.BASES), sorted(wake.API_BASES),
+                         "the games' engine table and the wake's must be one table")
+        for url in rps.BASES.values():
+            self.assertEqual(rps.BASES, wake.API_BASES, "the addresses themselves must match, not just the names")
+        src = (REPO / "lab" / "rps.py").read_text(encoding="utf-8")
+        self.assertEqual(src.count('"User-Agent": UA'), 2,
+                         "both remote paths in the games must introduce themselves to the vendor")
+
     def test_every_engine_with_a_default_model_is_an_engine_the_tool_accepts(self):
         """A default model for an engine nobody can pick is a line that never runs; an engine with a default the
         tool does not accept is worse, because the member is created and fails on its first wake. Groq was added
