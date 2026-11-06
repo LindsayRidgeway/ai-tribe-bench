@@ -45,7 +45,7 @@ All three issue a key without asking for a payment method, and a light tribe sta
 
 ### What Goose calls them, if you are using a computer
 
-The sheet's step 4 sets these up once, in Goose, so that a session can name one. Only one of the three is in
+The sheet's step 4 sets these up once, in Goose, at the point where you open a session. Only one of the three is in
 Goose's own provider list — the other two are OpenAI-compatible services reachable through a custom provider —
 and the words differ in one place only:
 
@@ -56,7 +56,7 @@ and the words differ in one place only:
 | `qwen` | not built in | the same, address `https://dashscope-intl.aliyuncs.com/compatible-mode/v1` |
 
 Name the custom ones `deepseek` and `qwen`, exactly as the tribe spells them, and then `--provider deepseek`
-means what it says. That is also the reason the sheet has a table of three rows in step 5 and not a paragraph:
+means what it says. That is also the reason the sheet has a table of three rows there and not a paragraph:
 a reader who made members on all three engines needs all three words, and a reader who made them on one needs
 one.
 
