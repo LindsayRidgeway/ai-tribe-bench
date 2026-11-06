@@ -31,11 +31,11 @@ Actions**. One name, everywhere: `TRIBE_API_KEY_<ENGINE>`, upper-case, the same 
 shell where a wake runs, and in the message a member prints when its key is missing.
 
 **Model** — the name of one model in that vendor's catalogue, exactly as the vendor writes it. Every vendor
-publishes several and has one it treats as the default; this project names a tested default for five vendors — the three it
-recommends and the two paid engines in *Other possibilities* — and for the rest you name the model and it is
-recorded in the member's `voice.md`. The harness will
-not guess at another vendor's catalogue: a guess that is wrong fails on that member's first wake, and looks like
-a problem with the tribe rather than with a model name.
+publishes several and has one it treats as the default; this project names a tested default for five vendors —
+the three it recommends and the two paid engines in *Other possibilities* — and for the rest you name the
+model and it is recorded in the member's `voice.md`. The harness will not guess at another vendor's catalogue:
+a guess that is wrong fails on that member's first wake, and looks like a problem with the tribe rather than
+with a model name.
 
 **Where it lives** — the web address the tribe sends to. Nobody has to type it; it is here so that a reader
 who wants to check this project against the vendor's documentation has the address to check. (Engineers call
@@ -59,9 +59,9 @@ another key to keep. Any of the three will do; members may share one engine or b
 ### Groq, and why it is on that list
 
 It got there by being measured rather than by being liked. Groq is an inference company of 2016, not a model
-house: it runs other people's open-weight models on its own chips. It is
-not Grok the chatbot and the name is older than it. It is also the only engine on this page that needs no custom
-provider in Goose at all — a key from one website and a member answers.
+house: it runs other people's open-weight models on its own chips. It is not Grok the chatbot and the name is
+older than it. It is also the only engine on this page that needs no custom provider in Goose at all — a key
+from one website and a member answers.
 
 Until 2026-11-06 this page said it was *not* recommended, on the ground that open-weight models hold a long
 instruction and a strict reply format less reliably than the flash models of Gemini and DeepSeek. That was a
@@ -162,14 +162,15 @@ named when you make the member, because the defaults above are the ones this pro
 
 ### What it costs when the free tier runs out
 
-Read off the vendors' own price pages on 2026-11-06 rather than remembered. DeepSeek's `deepseek-flash` bills **$0.15 per million input tokens** ($0.30 at peak hours, and half
-those prices off-peak) and **$0.60 per million output** — or **$0.003 per million input** on a cache hit, which
-is fifty times cheaper. The tribe's wakes send a large, mostly-unchanged prefix, so most of their input is billed
-at the cache-hit rate, and that is where the earlier note that DeepSeek is an order of magnitude cheaper comes
-from: it is true of this workload and not true of a cold first call. Do not read it as a blanket price
-comparison. Anthropic publishes the same shape of rate — `claude-haiku-5-5` bills **$0.01 per million** on a cache
-hit, an order below its $0.10 list — which is worth knowing before anybody repeats the folklore that the cheap
-engines are the caching ones.
+Read off the vendors' own price pages on 2026-11-06 rather than remembered. DeepSeek's `deepseek-flash` bills
+**$0.15 per million input tokens** ($0.30 at peak hours, and half those prices off-peak) and **$0.60 per
+million output** — or **$0.003 per million input** on a cache hit, which is fifty times cheaper. The tribe's
+wakes send a large, mostly-unchanged prefix, so most of their input is billed at the cache-hit rate, and that
+is where the earlier note that DeepSeek is an order of magnitude cheaper comes from: it is true of this
+workload and not true of a cold first call. Do not read it as a blanket price comparison. Anthropic publishes
+the same shape of rate — `claude-haiku-5-5` bills **$0.01 per million** on a cache hit, an order below its
+$0.10 list — which is worth knowing before anybody repeats the folklore that the cheap engines are the caching
+ones.
 
 **DeepSeek's model name changes under you, so it is worth one line.** The id this project shipped with was
 `deepseek-chat`; on 2026-11-05 DeepSeek's own catalogue answered with two ids, `deepseek-flash` and
