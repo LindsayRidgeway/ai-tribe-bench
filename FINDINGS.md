@@ -205,6 +205,56 @@ a long unattended season will feel. Recommended as a third engine, with those tw
 earlier reason this page gave for excluding it — that open-weight models hold a format less reliably — was a
 guess, and the test did not support it.
 
+## 7. The two vendors this page said were out of reach were both reached in an afternoon
+
+Written 2026-11-06, the day the founder bought an OpenAI key and an Anthropic key and asked whether they belonged
+on the engine sheet as "other possibilities". The honest starting position was that one of the two had been
+declared impossible in writing: *"Claude does not work here at all"*, because its API is not the OpenAI-shaped one
+the harness speaks. That sentence was true about the code and never about the vendor.
+
+**Claude.** The adapter was written in both places that build a request — `wake/wake.py` and `lab/rps.py` — for
+the reason §6 already gives about Groq: a fact that lives in two files and is fixed in one is a member that can
+wake and cannot play. It was written from documentation, and the documentation was not enough. The first live
+wake came back:
+
+```
+HTTP 400 {"type":"error","error":{"type":"invalid_request_error",
+  "message":"`temperature` is deprecated for this model."}}
+```
+
+Docs do not tell you what a vendor has just deprecated. The wake now reads that refusal and repeats the request
+without the field. The second call returned **mechanically valid**, wrote its file, and queued its checks; four
+rounds of the game ran on `claude-haiku-5-5` with every throw readable. Claude's real cost, measured off its own
+price page the same day: $0.10 in / $0.50 out per million for Haiku 5.5, $0.01 on a cache hit — a fifth of
+Groq's input price. The bill was never the obstacle. Prepaid credits bought with a card were.
+
+**OpenAI.** It speaks the common shape, so it needed no adapter, and it still refused three things in a row,
+each refusal naming the field: `max_tokens` on models that want `max_completion_tokens` (and the reverse on older
+ones), a `temperature` of 0.4 on a model that supports only the default, and `response_format: json_object` on a
+model that demands the word "json" appear in the messages. The harness now tries the call, reads the complaint,
+changes that one field, and tries again — up to six times — instead of encoding a table of model names.
+
+Then the first wake came back `TRUNCATED`: 2,400 tokens of reasoning and no answer at 23.2 seconds. That was the
+harness's fault, and §6 had already recorded the same defect under a different vendor. The wake now triples the
+allowance to 20,000 when a reply is cut off, and says so each time. The next call was **mechanically valid**.
+
+`gpt-6-luna`, the model this project now names, woke in 6.8 seconds and played eight readable throws out of eight,
+at $0.05 in / $0.25 out. `gpt-5-mini` — the first OpenAI model ever called here — still answers and has dropped
+off the vendor's published price sheet, which is precisely the `deepseek-chat` failure mode recorded in §6, one
+day early. That is why the default moved.
+
+**The finding that outlives both vendors.** This page's criterion for a recommendation is three things a stranger
+can check, and the middle one — *a default model this project names and tests* — is now met by five engines, not
+three. What separates the recommended three from these two is only the door: no card, no prepaid balance, no
+evening in a console. The price argument that used to sit in this document ("ten to fifty times what the same
+work costs") is true at the top of both vendors' ranges and false at the bottom, and it is now written that way.
+A reader who already pays one of these vendors should put a member on their cheapest model and will spend less
+than one on DeepSeek; a reader who does not should not be sent to a checkout page and told it is a recommendation.
+
+The suite went from 250 tests to 254 for this round; the four it gained pin the two-engine default table, the
+translation that must exist in both places, the "other possibilities" heading and its three facts, and the
+refusal to keep claiming that Claude does not work here.
+
 ## Limits, stated once and not buried
 
 Every result here is n=1 to n=5 per condition. One category per condition. Three engines that are also
