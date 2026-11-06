@@ -3338,6 +3338,13 @@ class TestWorkflows(unittest.TestCase):
         engines = (REPO / "ENGINES.md").read_text(encoding="utf-8")
         for api in ("gemini", "deepseek", "qwen"):
             self.assertIn(f"TRIBE_API_KEY_{api.upper()}", engines)
+        # Step 4 teaches Goose the engines, and step 5 names one. Goose has no provider called "gemini": it
+        # calls Google's engine "google", and it has no DeepSeek or Qwen provider at all, so those two have to
+        # be added as custom providers. Checked against the sheet because a reader with no terminal cannot
+        # tell a missing provider from a wrong word.
+        self.assertIn("goose configure", build, "the engines are set up in Goose's own configuration")
+        self.assertIn("Custom Providers", build, "DeepSeek and Qwen are not in Goose's provider list")
+        self.assertIn("| `api: gemini` | `google` |", build, "the one word that differs must be written down")
         self.assertIn("lab/session.py", build, "the standard way to talk is a session, and this is how one is made")
         self.assertIn("--interactive", build, "a one-shot run is not a conversation")
         for path in ("wake/members", "games/tennis/seasons", "practice.json", "USER-MANUAL.md"):
