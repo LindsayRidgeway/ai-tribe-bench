@@ -46,7 +46,10 @@ BASES = {
     "gemini": "https://generativelanguage.googleapis.com/v1beta",
     "qwen": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
 }
-DEFAULT_MODEL = {"deepseek": "deepseek-chat", "gemini": "gemini-3.8-flash", "qwen": "qwen3.6-plus"}
+# DeepSeek retired the deepseek-chat id: their catalogue on 2026-11-05 answers with deepseek-flash and
+# deepseek-v4-pro, and deepseek-flash is the one with vision. A stale default here is not a cosmetic bug
+# — it is every new member made on that engine failing on its first wake with "model not found".
+DEFAULT_MODEL = {"deepseek": "deepseek-flash", "gemini": "gemini-3.8-flash", "qwen": "qwen3.6-plus"}
 
 
 def ask(base: str, key: str, model: str, prompt: str, temperature: float = 1.0) -> str:

@@ -5,4 +5,4 @@ changed without the member becoming someone else. Replacing the vendor's model i
 survive a release note.
 
 api: deepseek
-model: deepseek-chat
+model: deepseek-flash

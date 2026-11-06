@@ -8,6 +8,7 @@ to the member. Each of those has a test here.
 """
 from __future__ import annotations
 
+import atexit
 import contextlib
 import importlib.util
 import io
@@ -28,6 +29,55 @@ except ImportError:       # pragma: no cover
     yaml = None
 
 REPO = Path(__file__).resolve().parent
+FIXTURE_SHELF = REPO / "lab" / "fixtures"
+
+
+def install_fixtures() -> list[Path]:
+    """Shelve the test members for the duration of the run; take them off again when it ends.
+
+    A tribe ships with no members of its own, so `wake/members/` is empty in the template: a stranger who
+    opens the repository must not find ten folders called `a`, `b`, `trap` and have to guess whether they are
+    theirs. The suite still needs members to break, so it keeps ten under `lab/fixtures/` and moves them onto
+    the shelf only while it runs. Anything already on the shelf is left alone: a real member is never removed
+    by a test run, however it ended.
+    """
+    added: list[Path] = []
+    for kind, stow in (("members", REPO / "wake" / "members"), ("works", REPO / "works")):
+        src = FIXTURE_SHELF / kind
+        if not src.is_dir():
+            continue
+        stow.mkdir(parents=True, exist_ok=True)
+        for d in sorted(src.iterdir()):
+            dest = stow / d.name
+            if dest.exists():
+                continue
+            shutil.copytree(d, dest)
+            added.append(dest)
+    return added
+
+
+def remove_fixtures(added: list[Path]) -> None:
+    for d in added:
+        shutil.rmtree(d, ignore_errors=True)
+
+
+SHELVED: list[Path] = install_fixtures()
+
+
+def shelve() -> None:
+    global SHELVED
+    SHELVED = install_fixtures()
+
+
+def unshelve() -> None:
+    global SHELVED
+    remove_fixtures(SHELVED)
+    SHELVED = []
+
+
+@atexit.register
+def _unshelve_at_exit() -> None:
+    remove_fixtures(SHELVED)
 
 
 def load(path: Path, name: str):
@@ -1127,7 +1177,18 @@ class TestFiling(unittest.TestCase):
         self.assertIn("already on the shelf", src)
 
     def test_a_dash_ref_is_not_a_letter_to_nobody(self):
-        self.assertNotIn("On *-*", (REPO / "issues" / "02.md").read_text(encoding="utf-8"))
+        # Built here rather than read out of the shipped issue 02, which stopped existing when the template
+        # began shipping with no record: an issue page in the repository is a page about somebody's works,
+        # and the template has none.
+        tmp = Path(tempfile.mkdtemp())
+        (tmp / "works" / "b").mkdir(parents=True); (tmp / "soil").mkdir()
+        (tmp / "soil" / "world.md").write_text("a workshop", encoding="utf-8")
+        (tmp / "works" / "b" / "one.md").write_text(
+            "---\ntitle: A Note To Nobody\nform: letter\nissue: 1\nref: -\n---\n\nA dash is not an addressee.\n",
+            encoding="utf-8")
+        text = magazine.build("1", magazine.load_all(tmp), tmp)
+        shutil.rmtree(tmp, ignore_errors=True)
+        self.assertNotIn("On *-*", text, "a dash means no reply expected, not a letter to a member named -")
 
     def test_the_clock_counts_raw_replies_not_output_files(self):
         # A wake that writes to the same filename twice leaves the .md count unchanged; counting raw
@@ -2593,8 +2654,19 @@ class TestNothingIsHandEdited(unittest.TestCase):
     """
 
     def test_every_published_file_rebuilds_from_the_record(self):
-        r = subprocess.run([sys.executable, "lab/derivable.py"], cwd=REPO, capture_output=True,
-                           text=True, timeout=300)
+        """Checked with the shelf empty, because the shelf is empty in what gets shipped.
+
+        The published pages must be a function of *the record a stranger receives*, and that record has no
+        members and no works in it. With the suite's fixtures shelved, a rebuild reproduces a magazine about
+        members called `a` and `b` who do not exist in any colony — which is the defect this test is supposed
+        to catch, not a state it may assume. So the fixtures come off for the duration.
+        """
+        unshelve()
+        try:
+            r = subprocess.run([sys.executable, "lab/derivable.py"], cwd=REPO, capture_output=True,
+                               text=True, timeout=300)
+        finally:
+            shelve()
         self.assertEqual(r.returncode, 0, (
             "a published file is not a function of the record. Rebuild them, do not edit them:\n"
             "  python3 magazine.py --issue $(python3 magazine.py --current) --write\n"
@@ -3123,6 +3195,32 @@ class TestWorkflows(unittest.TestCase):
                 item = line.strip()
                 if item.startswith("- ") and item.lstrip("- ").strip() in published:
                     self.fail(f"{f.name} hardcodes the member {item!r} in a list; members.json is the list")
+
+    def test_the_template_ships_with_no_members_on_the_shelf(self):
+        """A copy of this repository must arrive empty. What is committed under `wake/members/` is what a
+        stranger opens in step 2 and has to tell apart from their own members, so the answer has to be
+        nothing. Asked of git rather than of the working tree, because the suite shelves its own fixtures
+        while it runs and would otherwise be checking its own homework."""
+        if not shutil.which("git"):
+            self.skipTest("no git here")
+        out = subprocess.run(["git", "ls-files", "--", "wake/members", "works"],
+                             cwd=REPO, capture_output=True, text=True)
+        if out.returncode != 0:
+            self.skipTest("not a git checkout")
+        committed = [p for p in out.stdout.splitlines() if p.count("/") > 1]
+        self.assertEqual(committed, [], "the template's shelf must be empty; test members live in lab/fixtures")
+
+    def test_the_suite_puts_its_members_back_when_it_is_done(self):
+        """The suite needs ten members to break and a stranger needs none, so the suite borrows them from
+        `lab/fixtures/` and unshelves them at exit. Both halves are load-bearing: a fixture that is not
+        named in `lab/fixtures.txt` would be published to a drop list, and one left behind after a failed run
+        would be a test member sitting in a colony."""
+        stowed = {d.name for d in (REPO / "lab" / "fixtures" / "members").iterdir() if d.is_dir()}
+        named = {line.strip() for line in (REPO / "lab" / "fixtures.txt").read_text(encoding="utf-8").splitlines()
+                 if line.strip() and not line.strip().startswith("#")}
+        self.assertEqual(stowed, named, "every stowed test member must be named in lab/fixtures.txt")
+        on_shelf = {d.name for d in (REPO / "wake" / "members").iterdir() if d.is_dir()}
+        self.assertTrue(stowed <= on_shelf, "the suite must shelve the members it needs before it uses them")
 
     def test_no_workflow_falls_back_to_a_member_that_does_not_exist(self):
         """`${MEMBER:-b}` reads as "b if nothing was chosen", and b is nothing in a colony. A stranger's first
