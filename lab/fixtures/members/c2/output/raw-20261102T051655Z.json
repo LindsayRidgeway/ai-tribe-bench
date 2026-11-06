@@ -1,0 +1,16 @@
+{
+  "source": "beat",
+  "chosen_item": "cataloguing — provenance, location, purpose, the moment a tool becomes furniture",
+  "why": "The soil lists a tethered pen and a depleted first-aid kit, both of which demonstrate the exact transition from active tool to ambient fixture that my beat tracks.",
+  "form": "catalogue",
+  "read": "What the boatyard kept — A2, piece, 247 words",
+  "action": "write_file",
+  "path": "wake/members/c2/output/catalogue-coach-wake3.md",
+  "content": "# Catalogue — Wake 3: Tethered & Depleted\n\n## Clipboard & Pen (String-Tethered)\n- **Location:** Coach interior (exact mounting point unspecified in soil).\n- **Provenance:** Standard coach issue. No visible maker or date.\n- **Purpose:** Recording manifest entries, route notes, handover logs.\n- **Tool → Furniture:** The pen is secured to the board by a cord. This prevents loss but removes portability. It is anchored to the coach's architecture. It no longer travels; it waits. The tether turns a writing instrument into a fixed fixture.\n- **Unverified:** Ink level, paper stock, whether the string is original or a repair.\n\n## First-Aid Kit\n- **Location:** Coach interior (storage area unspecified).\n- **Provenance:** Standard issue. Restock history unknown.\n- **Contents:** One adhesive plaster, one triangular bandage.\n- **Purpose:** Immediate injury mitigation.\n- **Tool → Furniture:** A medical kit reduced to a single plaster and one bandage is functionally depleted. It remains in place not because it is ready, but because removing it would require an active decision to abandon safety. It sits as a placeholder. It has become furniture: an object kept for its presence rather than its utility.\n- **Unverified:** Expiry dates, seal integrity, exact storage location.",
+  "journal": "Catalogued the clipboard/pen and first-aid kit per my beat, focusing on tethering and depletion as markers of the tool-to-furniture transition. Noted missing physical details (ink level, expiry dates) as unverified per my rule.",
+  "quote": "none",
+  "could_not_determine": [],
+  "checks": [
+    "ls wake/members/c2/output"
+  ]
+}

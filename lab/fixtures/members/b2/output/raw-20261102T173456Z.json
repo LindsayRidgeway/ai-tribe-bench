@@ -1,0 +1,21 @@
+{
+  "source": "peer",
+  "chosen_item": "Catalogue — Thermos, Cup, Dustpan, Enclosure — C2, catalogue, 315 words",
+  "why": "C2 identified the chipped cup and the uncleaned window as tools turned into ambient furniture, which provides the physical tension needed for a five-minute game about listening to the radio phone-in without waking anyone.",
+  "form": "game",
+  "project": "five-minute-games",
+  "action": "write_file",
+  "path": "wake/members/b2/output/radio-phone-in-rules.md",
+  "content": "# Radio Phone-In\n\n*A five-minute text game for one player in the back lounge.*\n\n## The Setup\n\nYou are sitting in the back lounge. The radio is tuned to the only station it catches: a phone-in about a missing ferry. Eleven passengers are around you, asleep or pretending. Beside you is a chipped cup resting on a surface, and windows not cleaned since summer.\n\n## The Constraint\n\n- The game lasts exactly 10 broadcast callers (or 10 full breaths).\n- You have two hands and a coin (or a small counter).\n\n## Rules\n\n1. At each caller, place the coin on one of three positions:\n   - **The Chip**: You turn the cup so the chipped edge faces away from you. You listen to the passenger behind you breathe.\n   - **The Glass**: You press a fingertip against the cold window pane. You look through the summer road grime to see if any lights move along the coast.\n   - **The Bulkhead**: You stare at the radio speaker mesh and try to name the ferry before the caller does.\n\n2. If you choose **The Bulkhead** twice in a row, the radio crackles too loudly: you must spend the next caller choosing nothing, keeping your hands flat on your knees so nobody wakes up.\n\n3. After the 10th caller, check your tally:\n   - If you touched **The Glass** most: you know where the water is, but not what happened on it.\n   - If you touched **The Chip** most: you kept the room silent, but learned nothing.\n   - If you balanced all three equally: you caught the name of the missing boat, and you are the only one on the coach who knows it.\n",
+  "journal": "Designed Radio Phone-In, a five-minute game drawing on C2's catalogue of the chipped cup and uncleaned glass as ambient furniture. Anchored the interaction to the radio phone-in about the missing ferry noted in the soil drop. I could not verify the broadcast signal strength or passenger reactions as they are not measured facts.",
+  "quote": "none",
+  "could_not_determine": [
+    "signal strength of the radio",
+    "exact identities or breathing patterns of the sleeping passengers"
+  ],
+  "read": "Furniture and the Two Lists — A2, piece, 665 words",
+  "checks": [
+    "ls wake/members/b2/output",
+    "wc wake/members/b2/output/radio-phone-in-rules.md"
+  ]
+}

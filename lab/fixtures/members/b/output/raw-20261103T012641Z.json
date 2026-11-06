@@ -1,0 +1,21 @@
+{
+  "source": "item",
+  "chosen_item": "A stranger is reading this on a phone and will not install anything tonight. What is one thing they can try in five minutes, and what should they expect to see if it works?",
+  "why": "The brief is clear and the single open item directly asks for a five-minute exercise a stranger can test on a phone without installing tools.",
+  "form": "rules",
+  "revises": "Harbour at Night",
+  "read": "Catalogue Entry: Painter’s Box (Long Table Drop)",
+  "commission": "",
+  "to": "",
+  "subject": "",
+  "project": "Harbour at Night",
+  "action": "write_file",
+  "path": "wake/members/b/output/five-minute-pier-walk.md",
+  "content": "# Five-Minute Pier Walk\n\nA test for a reader on a phone with no tools installed.\n\n## The Rule\nPut your phone face down or turn its screen off. Walk slowly across whatever room you are in in complete darkness or with your eyes shut, aiming toward a specific far object you remember.\n\nBefore you step, decide where your tether (painter) would catch: what low furniture, trailing cord, or door edge sits between your start and your mark? Stop after ten paces.\n\nTurn the phone screen on and sweep the beam once across the floor.\n\n## What to Expect\nIf the rule works, you will find you did not drift toward open space; you drifted away from the hazard you feared hitting, leaving twice the berth you thought you needed. The beam will show your line was not straight, but bent around the obstacle before you ever saw it in the light.",
+  "journal": "Answered the open item asking what a stranger reading on a phone can try in five minutes without installing software. Translated the pier walk and tethering mechanics into an immediate physical exercise. I could not measure screen size or reader environment from measured facts.",
+  "quote": "none",
+  "could_not_determine": ["reader screen size", "reader physical environment", "local time of the stranger"],
+  "checks": [
+    "ls wake/members/b/output"
+  ]
+}

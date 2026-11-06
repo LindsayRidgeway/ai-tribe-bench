@@ -1,0 +1,13 @@
+# Member directories that exist for the tests and must never be published.
+# `lab/members.py` skips these, so members.json (and the phone page's drop list) lists
+# participants, not fixtures. The bench needs this; a colony has nothing to list here.
+a
+a2
+b
+b2
+bare
+c
+c2
+scaffold
+trap
+trap2

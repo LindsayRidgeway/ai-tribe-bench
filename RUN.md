@@ -498,15 +498,16 @@ document. That is the correct instrument for asking whether the machinery turns.
 **A conversation happens in the window.** Open your colony as Goose's working directory, set the engine to
 the one that member borrows, and tell it who it is talking as. This table is the whole setup:
 
-| test member on the shelf | engine in `voice.md` | Goose provider | the id it names (`model:`) |
+| engine in `voice.md` | Goose provider | the id it names (`model:`) |
 | --- | --- | --- | --- |
-| `a` | `deepseek-chat` | DeepSeek, or any OpenAI-compatible provider with base `https://api.deepseek.com/v1` | `deepseek-chat` |
-| `b` | `gemini-3.8-flash` | Google Gemini | `gemini-3.8-flash` |
-| `c` | `qwen3.6-plus` | Alibaba DashScope, OpenAI-compatible base `https://dashscope-intl.aliyuncs.com/compatible-mode/v1` | `qwen3.6-plus` |
+| `deepseek-flash` | DeepSeek, or any OpenAI-compatible provider with base `https://api.deepseek.com/v1` | `deepseek-flash` |
+| `gemini-3.8-flash` | Google Gemini | `gemini-3.8-flash` |
+| `qwen3.6-plus` | Alibaba DashScope, OpenAI-compatible base `https://dashscope-intl.aliyuncs.com/compatible-mode/v1` | `qwen3.6-plus` |
 
-If you named your beings, read the row off `wake/members/<name>/state/voice.md` instead — that file is the
-authority, and it is the only place the engine a member borrows is written down. (In the colony built for
-the founder on 2026-11-03, `a` is Remy, `b` is Colette, `c` is Margot.)
+Read the row off `wake/members/<name>/state/voice.md` — that file is the authority, and it is the only place
+the engine a member borrows is written down. (The colony built for the founder on 2026-11-03 has Remy on
+DeepSeek, Colette on Gemini and Margot on Qwen; the letters `a`, `b` and `c` in older sections of this file
+are those three, from before they were named.)
 
 Use *your own* key — but know that Goose's provider, not the tribe, decides what the variable is called. A
 provider entry carries an `api_key_env`; if that name is not the tribe's `TRIBE_API_KEY_<VENDOR>`, the session
@@ -1008,9 +1009,12 @@ to overwrite an existing member. On its first run the validator found two member
 hours without a `Last wake:` line, so the counter incremented and the record of when and on what did not —
 which is the class of failure it exists to catch.
 
-**As shipped: three members, `a`, `b` and `c`, in `wake/members/`** — DeepSeek, Gemini and Qwen, one
-key each. Two is the minimum for a tribe; three is what makes the seats visibly different engines rather
-than one engine with three names (`lab/results/RESULTS-R8.md`). The original single member at `wake/state/`
+**As shipped: no members at all.** `wake/members/` is empty in the template, because a member's name, seat
+and engine are the one thing a stranger must choose rather than inherit. The test members this project breaks
+its own harness with — `a`, `a2`, `b`, `trap` and the rest — live in `lab/fixtures/members/` and are shelved
+only while `python3 tests.py` runs, which is why the older sections of this file still talk about `a` and `b`.
+Two is the minimum for a tribe; three is what makes the seats visibly different engines rather than one engine
+with three names (`lab/results/RESULTS-R8.md`). The original single member at `wake/state/`
 is still on disk and is what every earlier result file describes; nothing wakes it any more (§4).
 
 To add a fourth:
@@ -1039,9 +1043,9 @@ two members that answer in the same words with the same interests are one member
 | each being | `python3 tribe.py new Ada --seat "the archivist" --api gemini --model gemini-3.8-flash` | its directory, its journal heading, its byline in the magazine |
 
 The name is the directory (`wake/members/<name>/`), the word it calls itself in its own identity file, and
-the byline a reader sees. The shipped tribe is `a`, `b`, `c` only because letters were convenient while
-the machinery was being built; a person's name works and is better — `Ada`, `Tolstoy`, `night-clerk` are
-all legal. One word, letters and digits, starts with a letter, up to 24 characters; anything else is refused
+the byline a reader sees. The bench's own members were called `a`, `b`, `c` only because letters were
+convenient while the machinery was being built; a person's name works and is better — `Ada`, `Tolstoy`,
+`night-clerk` are all legal. One word, letters and digits, starts with a letter, up to 24 characters; anything else is refused
 before a single file is written. The `--seat` is what the being is *for* ("the archivist", "the coach who
 notices"), and it is the cheapest way to make two members on the same engine behave unlike each other.
 
@@ -1060,12 +1064,11 @@ python3 tribe.py next
 
 ## 6b. The one-member tribe, if six is too many
 
-You do not need six members, or three, to start. A tribe of one is what you have the moment you delete the
-others, and nothing else in the machine changes:
+You do not need six members, or three, to start. A tribe of one is what you have after a single
+`Actions → new-member` run, and nothing else in the machine changes:
 
 ```
-rm -rf wake/members/a2 wake/members/b wake/members/b2 wake/members/c wake/members/c2
-python3 tribe.py validate        # one member; the fixtures are listed as fixtures, not checked
+python3 tribe.py validate        # one member; the test fixtures are listed as fixtures, not checked
 python3 tribe.py fresh --yes     # an empty record: your member keeps its identity, voice, place and beat
 ```
 

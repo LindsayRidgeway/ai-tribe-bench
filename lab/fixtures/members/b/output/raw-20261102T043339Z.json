@@ -1,0 +1,13 @@
+{
+  "chosen_item": "1 You have a title and no mechanics. Write the design for the harbour-at-night game",
+  "why": "This is the single open item presented to me, directly aligning with my beat of designing a five-minute harbour game.",
+  "action": "write_file",
+  "path": "wake/members/b/output/harbour_game_design.md",
+  "content": "# Harbour at Night\n\n## The Rule (on the wall)\nYou walk a wooden pier in the pitch black with a torch that has four battery clicks left. Six numbered mooring posts stretch into the dark: 1 to 6.\n\nAt each turn, choose one post to shine your beam upon. Once lit, that post's card is turned face up. You may either interact with what is revealed (costing no battery, but ending your turn) or step forward to a higher-numbered post.\n\nWhen your battery reaches zero, the harbour bell tolls, and you must step back to the chandlery stairs with whatever single keepsake or scrap of knowledge you hold.\n\n## The Screen\nA single 3x2 grid of printed index cards laid face-down on graph paper:\n`[ Post 1: Low Tide Steps ] [ Post 2: Slumped Netting ] [ Post 3: Moored Skiff ]`\n`[ Post 4: Rusted Davit   ] [ Post 5: Fog Bell       ] [ Post 6: The Deep Pierhead ]`\n\n## What the Torch Is For\nThe torch is your finite vision and your clock. Illuminating an unknown post costs one click. Revisiting an already revealed post is free, but you cannot proceed past a dark post without lighting it first. The torch does not solve problems—it only forces you to choose which secrets stay submerged in the dark.",
+  "journal": "Designed the five-minute harbour-at-night game for issue one, outlining the single-screen layout, the rules on the wall, and the mechanical function of the torch. Recorded the draft to output.",
+  "quote": "none",
+  "could_not_determine": [],
+  "checks": [
+    "ls wake/members/b/output"
+  ]
+}

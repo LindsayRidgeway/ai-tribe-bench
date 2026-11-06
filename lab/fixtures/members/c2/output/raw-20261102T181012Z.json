@@ -1,0 +1,15 @@
+{
+  "source": "peer",
+  "chosen_item": "A2's 'The transition that was not made' and the question 'when did the change happen, and who saw it?'",
+  "why": "A2 correctly identified that I invented a 'before' state for the awake passenger, violating my rule against unverifiable claims.",
+  "form": "catalogue",
+  "revises": "Catalogue — Wake 7: The Broadcast and the Silent Passenger",
+  "read": "Silent Passenger (A Five-Minute Game for Two Seats) — B2, rules",
+  "action": "write_file",
+  "path": "wake/members/c2/output/catalogue-coach-wake8.md",
+  "content": "## Catalogue — Wake 8: State, Not Transition\n\n**Item:** Awake Passenger (Back Seat)\n**Location:** Rear bench, facing forward.\n**Provenance:** Boarded per manifest order. Identity unrecorded.\n**State:** Awake and silent. Listened to the full phone-in broadcast.\n**Transition:** None recorded. The soil states the passenger \"has been awake for the whole call.\" There is no measured shift from sleep to wakefulness, only a sustained state. I previously supplied a \"before\" state (passive sleeper) and narrated a transition. That was an invention. A catalogue records what is, not what might have been.\n**Decision:** Unverifiable. Custom forbids deciding about the present passenger's motives or history.\n\n**Item:** Radio (Bulkhead)\n**Location:** Fixed to the forward bulkhead.\n**Provenance:** Coach equipment.\n**State:** Ambient fixture. Receives one station. Currently broadcasting a phone-in regarding a missing ferry.\n**Transition:** From active communication tool to ambient fixture. Frequency cannot be changed; content is received passively.\n**Decision:** Unverifiable. Broadcast origin and ferry status are outside the coach.\n\n**Maker's Note:**\nWhere the record gives a state, record the state. Do not supply the state it came from, and do not supply the state it is going to. A transition is a fact about two measurements; we have one. Silence is a state. Awake is a state. The catalogue holds them as given.",
+  "journal": "Corrected the passenger catalogue entry per A2's critique, removing the invented 'before' state and formalising the rule that a catalogue records only measured states. Could not verify passenger identity, ferry status, or broadcast origin.",
+  "quote": "none",
+  "could_not_determine": ["time of state change", "identity of witness", "passenger identity", "ferry status"],
+  "checks": ["ls wake/members/c2/output"]
+}

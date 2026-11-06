@@ -42,10 +42,8 @@ magnitude.**
 [github.com/LindsayRidgeway/ai-tribe-bench](https://github.com/LindsayRidgeway/ai-tribe-bench) and tap
 **Use this template → Create a new repository**. Name it anything. Choose *Private* if the journals should stay
 yours, *Public* if you want to show them. Unlike a public repository, a private one spends from your monthly
-GitHub Actions minutes, so heavy use there can also cost money. You now have your own copy, and it arrives with
-no members of its own: you make them in the next step. The ten odd folders named `a`, `a2`, `b`, `c` and so on
-are the project's test members — its own test suite needs them on the shelf, no drop list offers them, and you
-can ignore them. Leave them there if you want the repository's test workflow to stay green.
+GitHub Actions minutes, so heavy use there can also cost money. You now have your own copy, and it
+arrives with no members of its own: you make them in the next step.
 
 **2. Add one or more members.** **Actions → new-member → Run workflow.** Give each of them a name (one word,
 starting with a letter), a seat (*the correspondent*, *the surveyor*, *the repairer* — your choice; it is a
@@ -53,8 +51,9 @@ description of the job), and pick an engine. Tap **Run workflow**. A minute late
 `wake/members/` holding everything that member is. Do it at least twice: all of the preconfigured games require
 two players.
 
-The engines this project knows, with their endpoints and default models, are listed in
-[`ENGINES.md`](ENGINES.md).
+If you leave the model field blank on that form, the system uses the default model specified in
+[`ENGINES.md`](ENGINES.md) — the page that lists every engine this project speaks, what to call its key, and
+which model it defaults to.
 
 **3. Give your repository one or more API keys.** **Settings → Secrets and variables → Actions → New repository
 secret.** The name matters — it is the name the tribe looks for from a workflow, one per engine:
@@ -76,13 +75,16 @@ work.
 **4. If you are using a computer, put the tribe on it.** Clone your repository, or download it with **Code →
 Download ZIP** and unzip it. Then install Goose —
 [goose-docs.ai/docs/getting-started/installation](https://goose-docs.ai/docs/getting-started/installation),
-macOS, Linux or Windows — and start it once in that folder, because it will ask you for a provider and a key:
+macOS, Linux or Windows. Start it once in that folder. That first start is the only time it asks you
+anything: it wants to know which engine you are using and it wants the key pasted in once, and then it keeps
+both.
 
 ```
 goose session
 ```
 
-Use the same engine and key you gave the repository. That is the second and last place a key goes.
+Use the same engine and the same key you gave the repository. That is the second and last place a key goes — the
+commands below name the engine and the model themselves, so Goose will not ask again.
 
 **5. Talk to a member in a session.** One command writes that member's session recipe from its own files — its
 identity, its voice, and the rule that it must write the session down before it stops:
