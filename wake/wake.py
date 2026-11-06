@@ -647,6 +647,8 @@ def ask(host: str, model: str, prompt: str, images: list[str] | None = None) -> 
     return payload.get("response", ""), payload
 
 
+UA = "ai-tribe/1.0 (+https://github.com/LindsayRidgeway/ai-tribe-bench)"
+
 API_BASES = {
     "deepseek": "https://api.deepseek.com/v1",
     "groq": "https://api.groq.com/openai/v1",
@@ -678,7 +680,8 @@ def ask_gemini(base: str, key: str, model: str, prompt: str, images: list[str] |
         body = json.dumps({"contents": [{"role": "user", "parts": parts}], "generationConfig": cfg}).encode()
         req = urllib.request.Request(
             f"{base.rstrip('/')}/models/{model}:generateContent",
-            data=body, headers={"Content-Type": "application/json", "x-goog-api-key": key})
+            data=body, headers={"Content-Type": "application/json", "x-goog-api-key": key,
+                                "User-Agent": UA})
         with urllib.request.urlopen(req, timeout=600) as r:
             return json.loads(r.read().decode())
 
@@ -727,10 +730,15 @@ def ask_api(base: str, key: str, model: str, prompt: str, images: list[str] | No
         "stream": False,
     }
     body = json.dumps(payload_obj).encode()
+    # A User-Agent, because Python's default one is refused at the door by some vendors before the key is
+    # even read. Measured 2026-11-06: Groq's edge answers `Python-urllib/3.9` with HTTP 403 "error code:
+    # 1010" — a Cloudflare browser check, not an authentication failure — and answers any other string with
+    # a clean 401 for a bad key. Nothing in the request was wrong except the introduction.
     req = urllib.request.Request(
         f"{base.rstrip('/')}/chat/completions",
         data=body,
-        headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"},
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}",
+                 "User-Agent": UA},
     )
     with urllib.request.urlopen(req, timeout=600) as r:
         payload = json.loads(r.read().decode())

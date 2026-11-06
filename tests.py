@@ -3307,6 +3307,19 @@ class TestWorkflows(unittest.TestCase):
                          "a workflow that edits a workflow file cannot push it: GITHUB_TOKEN has no such "
                          "permission, so the member list must not live in one")
 
+    def test_the_request_says_who_it_is(self):
+        """Python's default User-Agent is refused at the door by at least one vendor before the key is read.
+
+        Measured 2026-11-06 against Groq: `Python-urllib/3.9` got HTTP 403 "error code: 1010" — a Cloudflare
+        browser check — while the same request with any other User-Agent got a clean 401 for a bad key. A
+        member on that engine could not have woken at all, and the failure would have looked like a key
+        problem. Same class of fault as a shipped workflow defaulting to a member that only exists on the
+        bench: the request was fine and the introduction was wrong."""
+        src = (REPO / "wake" / "wake.py").read_text(encoding="utf-8")
+        self.assertIn("User-Agent", src)
+        self.assertEqual(src.count('"User-Agent": UA'), 2,
+                         "both remote paths — the OpenAI-compatible one and Gemini's — must introduce themselves")
+
     def test_the_engine_drop_list_is_the_engines_the_tool_accepts(self):
         """A form that offers an engine the tool refuses is the same defect as a drop list of members who are not
         on the shelf: the stranger picks it, taps Run, and is told no. One table, or a test that says so."""
