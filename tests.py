@@ -3338,13 +3338,21 @@ class TestWorkflows(unittest.TestCase):
         engines = (REPO / "ENGINES.md").read_text(encoding="utf-8")
         for api in ("gemini", "deepseek", "qwen"):
             self.assertIn(f"TRIBE_API_KEY_{api.upper()}", engines)
-        # Step 4 both sets the engines up and names one, which is the point: Goose has no provider called
-        # "gemini" (it calls Google's engine "google") and no DeepSeek or Qwen provider at all, so a separate
-        # "set up Goose" step was a step whose purpose a reader could not see. Checked against the sheet
-        # because a reader with no terminal cannot tell a missing provider from a wrong word.
+        # Step 4 both sets the three engines up and names one, which is the point: Goose has no provider called
+        # "gemini" (it calls Google's engine "google") and no DeepSeek or Qwen provider at all, so a reader who
+        # configures only the engine of their first member meets "Unknown provider" in the middle of trying to
+        # talk to somebody. All three are configured up front, and the addresses have to be the addresses the
+        # harness itself uses — checked against wake.API_BASES, because a wrong base URL in the sheet looks
+        # exactly like a wrong key and fails the same way.
         self.assertIn("goose configure", build, "the engines are set up in Goose's own configuration")
+        self.assertIn("Configure providers", re.sub(r"\s+", " ", build),
+                      "the app's own route to the same menus is Settings → Configure providers")
         self.assertIn("Custom Providers", build, "DeepSeek and Qwen are not in Goose's provider list")
         self.assertIn("| `api: gemini` | `google` |", build, "the one word that differs must be written down")
+        for api in ("deepseek", "qwen"):
+            base = wake.API_BASES[api]
+            self.assertIn(base, build, f"the address the sheet gives Goose for {api} must be {base}")
+            self.assertIn(f"`{api}`", build, "the custom provider's name is the word step 5 will type")
         self.assertIn("lab/session.py", build, "the standard way to talk is a session, and this is how one is made")
         self.assertIn("--interactive", build, "a one-shot run is not a conversation")
         for path in ("wake/members", "games/tennis/seasons", "practice.json", "USER-MANUAL.md"):
