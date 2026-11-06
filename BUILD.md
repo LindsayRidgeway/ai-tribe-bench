@@ -22,16 +22,17 @@ built for the four-in-the-morning shift, when you are not present. The repositor
 **What it costs.** For a session, one call to one engine per answer. For a wake, just one call to one engine. A
 free key and light use — an evening of conversation, a few evenings of tennis — will usually stay inside the free
 tier. Heavy use can exhaust the free tier, and at that point you will need to go to the vendor's billing webpage
-and establish a payment method and an initial credit balance. If you get there, **DeepSeek is the cheaper of the
-two by at least an order of magnitude.**
+and establish a payment method and an initial credit balance. If you get there, the engines differ in price by more
+than an order of magnitude on this kind of work: [`ENGINES.md`](ENGINES.md) gives the numbers and names the
+cheapest.
 
 ## You need
 
 * A browser. Steps 1–3 and the fallback in step 6 are buttons on a GitHub page.
 * A computer with Goose and Python 3 on it for steps 4–5. macOS and Linux have Python already.
-* At least one engine key. Both of the engines this project recommends hand out keys without asking for a card —
-  Google's Gemini and DeepSeek. Either one is enough for a whole tribe, though a tribe whose members use
-  different engines introduces more variety into the tribe's behaviour.
+* At least one engine key, from one of the engines listed in [`ENGINES.md`](ENGINES.md). That page is your
+  reference for them: which ones this project recommends, where to get a key, what each costs, and what model
+  names to use. One key is enough for a whole tribe; members on different engines add variety.
 
 ## Build it
 
@@ -44,26 +45,26 @@ members in it.
 
 **2. Add two or more members.** **Actions → new-member → Run workflow.** Give each member a name of your own
 choosing (one word, starting with a letter), a seat (*the correspondent*, *the surveyor*, *the repairer* — your
-choice; it is a description of the job), and pick an engine for each: either of the recommended engines, with as
-many members on one engine as you like. All of your members may share a single engine. For each member, tap
-**Run workflow**. A minute later there is a folder under `wake/members/` holding everything that member is. Do it
-at least twice: all of the preconfigured games require two players.
+choice; it is a description of the job), and pick an engine for each — the drop list offers the engines this
+project speaks, and [`ENGINES.md`](ENGINES.md) says which are recommended and why. All of your members may share a
+single engine. For each member, tap **Run workflow**. A minute later there is a folder under `wake/members/`
+holding everything that member is. Do it at least twice: all of the preconfigured games require two players.
 
-If you leave the model field blank, the system uses the default model for that engine — the whole table of
-engines, keys and models is in [`ENGINES.md`](ENGINES.md) in your new repository. It also lists a third engine,
-Alibaba's Qwen, which works here and is not part of these instructions.
+Leave the model field blank unless you have a reason not to: the system then uses the default model for that
+engine, and ENGINES.md lists the defaults.
 
 **3. Give your repository one or more API keys.** In your new repository: **Settings → Secrets and variables →
-Actions → New repository secret.** The name matters — it is the name the tribe looks for from a workflow, one per
-engine:
+Actions → New repository secret.** Get a key from the website of each engine your members use — ENGINES.md has the
+links — and store each one under the name the tribe looks for:
 
 ```
-TRIBE_API_KEY_GEMINI      aistudio.google.com/apikey     (free tier)
-TRIBE_API_KEY_DEEPSEEK    platform.deepseek.com          (free tier)
+TRIBE_API_KEY_<ENGINE>       TRIBE_API_KEY_GEMINI, TRIBE_API_KEY_DEEPSEEK, ...
 ```
 
-Supply API keys for all the engines your members use, as specified in the engine named in each member's
-`voice.md`. Neither of these vendors requires a payment method to provide an API key.
+Upper case, one secret per engine, and the engine's own name in the middle: that is the whole rule, and it is the
+same name in the repository, on your computer, and in the message a member prints when its key is missing. The
+engines this project recommends give out keys without asking for a payment method; ENGINES.md says which, and
+which are not recommended for a first tribe.
 
 **One key is enough for any number of members.** The engine is something a member uses, not something it owns:
 ten members can all use one engine, and each is still a separate AI-being with its own name, its own seat, and
@@ -86,17 +87,11 @@ macOS, Linux or Windows, then open Goose once so it finishes setting itself up. 
 5 imports a file through its window, and only the desktop app can do that.
 
 4.3. **Hand Goose your keys, in its Settings.** In the Goose window, open **Settings → Configure providers** and
-give it the two engines this sheet uses. Twice, three minutes, and then step 5 cannot go wrong:
-
-| choose | paste |
-|---|---|
-| **Gemini** | the key you stored as `TRIBE_API_KEY_GEMINI` |
-| **DeepSeek** | the key you stored as `TRIBE_API_KEY_DEEPSEEK` |
-
-Both are in Goose's list, so there is nothing to create and no address to type: pick the engine, paste the key,
-and it is done. One key per engine covers every member who uses that engine, and if you made a member on Qwen,
-**Alibaba (Qwen)** is in the list too. Nothing here is written into your repository — this is Goose's setting on
-your computer.
+give it every engine your members use. All of them are already in Goose's list — there is nothing to create and no
+address to type: pick the engine, paste the key you stored in step 3, and it is done. One key per engine covers
+every member who uses that engine. ENGINES.md gives the name each engine appears under in that list, and the odd
+internal name two of them use if you are typing commands. Nothing here is written into your repository — this is
+Goose's setting on your computer.
 
 **5. Every time — sit down and talk with a member.**
 
@@ -116,10 +111,9 @@ script writes it from the member's identity, its voice, and the rule that it mus
 stops, and you never edit it.
 
 5.2. **Choose the member's engine in Goose.** In the Goose window, use the model selector at the bottom of the
-screen. [`ENGINES.md`](ENGINES.md) lists the provider and model names for each engine; at this writing the
-recommended pairs are **DeepSeek with `deepseek-flash`** and **Gemini with `gemini-3.8-flash`**. Which engine a
-member uses is written in that member's own file `wake/members/<member-name>/state/voice.md`, so match the
-selection to the member you are about to visit. If the model name is not in the selector's list, choose its
+screen. Which engine and which model a member uses is written in that member's own file
+`wake/members/<member-name>/state/voice.md`; [`ENGINES.md`](ENGINES.md) says what Goose calls that engine and that
+model, so match the selection to the member you are about to visit. If the model name is not in the selector's list, choose its
 *enter a model not listed* option and type the name exactly as the engine sheet writes it.
 
 5.3. **Import the sheet and talk.** In the Goose window, open **Recipes → Import Recipe → Recipe File**, choose
@@ -137,10 +131,10 @@ selector to the member, import the sheet.
 goose run --recipe wake/members/<member-name>/session.yaml --provider <api> --model <model> --interactive
 ```
 
-*where the two blanks are the `api:` and `model:` lines of that member's `voice.md`, with one wrinkle: Goose's own
-names for the engines are not quite the tribe's. `api: gemini` is `--provider google`, and `api: deepseek` is
-`--provider custom_deepseek` — Goose shows it in the list as **DeepSeek**, and that odd internal name is its
-own. The table is in [`ENGINES.md`](ENGINES.md).*
+*where the two blanks are the `api:` and `model:` lines of that member's `voice.md`, with one wrinkle: Goose's
+internal names for the engines are not always the tribe's, and the two must match or Goose will answer that it
+never heard of that provider. [`ENGINES.md`](ENGINES.md) has the table — for instance `api: gemini` is
+`--provider google`, and `api: deepseek` is `--provider custom_deepseek`.*
 
 **6. No computer? Say hello instead.** **Issues → New issue**. For example, type into the body of the issue:
 
