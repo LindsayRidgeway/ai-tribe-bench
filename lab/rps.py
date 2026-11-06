@@ -34,6 +34,7 @@ import os
 import random
 import re
 import sys
+import time
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
@@ -41,11 +42,24 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 THROWS = ("rock", "paper", "scissors")
 BEATS = {"rock": "scissors", "paper": "rock", "scissors": "paper"}   # key beats value
+# Every engine the harness speaks, so that the games are not limited to the three the sheet recommends. Kept
+# identical to wake.API_BASES by a test: two tables for one fact is how a game ends up unable to play on an
+# engine that a member can wake on.
 BASES = {
     "deepseek": "https://api.deepseek.com/v1",
     "gemini": "https://generativelanguage.googleapis.com/v1beta",
     "qwen": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+    "groq": "https://api.groq.com/openai/v1",
+    "openrouter": "https://openrouter.ai/api/v1",
+    "cerebras": "https://api.cerebras.ai/v1",
+    "together": "https://api.together.xyz/v1",
+    "mistral": "https://api.mistral.ai/v1",
+    "openai": "https://api.openai.com/v1",
 }
+
+# Some vendors refuse Python's default User-Agent at the door before they read the key (measured against Groq
+# on 2026-11-06: 403 "error code: 1010" for `Python-urllib/3.9`, an honest 401 for anything else).
+UA = "ai-tribe/1.0 (+https://github.com/LindsayRidgeway/ai-tribe-bench)"
 # DeepSeek retired the deepseek-chat id: their catalogue on 2026-11-05 answers with deepseek-flash and
 # deepseek-v4-pro, and deepseek-flash is the one with vision. A stale default here is not a cosmetic bug
 # — it is every new member made on that engine failing on its first wake with "model not found".
@@ -53,6 +67,28 @@ BASES = {
 # is the vendor's business, so it is written down here once rather than guessed at in a form.
 DEFAULT_MODEL = {"deepseek": "deepseek-flash", "gemini": "gemini-3.8-flash", "qwen": "qwen3.6-plus",
                  "groq": "openai/gpt-oss-120b"}
+
+
+# A free tier is counted per minute, so the remedy for a refusal is to wait, not to give up and not to play
+# a default shot as though the member had chosen it. Measured 2026-11-06 on Groq's free tier: three calls of a
+# thousand-token prompt in one minute, then HTTP 429 for every call until the window rolled over.
+RATE_WAITS = (20, 45, 90)
+
+
+def post(req, timeout: int = 120):
+    """Send a request; if the vendor says we are over its free-tier rate, wait and send it again."""
+    for attempt, wait in enumerate((0,) + RATE_WAITS):
+        if wait:
+            print(f"   the vendor's rate limit refused that call; waiting {wait}s and trying again "
+                  f"(attempt {attempt} of {len(RATE_WAITS)})", file=sys.stderr)
+            time.sleep(wait)
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                return r.read().decode()
+        except urllib.error.HTTPError as e:
+            if e.code in (429, 503) and attempt < len(RATE_WAITS):
+                continue
+            raise
 
 
 def ask(base: str, key: str, model: str, prompt: str, temperature: float = 1.0) -> str:
@@ -64,26 +100,39 @@ def ask(base: str, key: str, model: str, prompt: str, temperature: float = 1.0) 
             "generationConfig": {"temperature": temperature, "maxOutputTokens": 2000},
         }).encode()
         url = f"{base.rstrip('/')}/models/{model}:generateContent?key={key}"
-        req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"})
-        with urllib.request.urlopen(req, timeout=120) as r:
-            payload = json.loads(r.read().decode())
+        req = urllib.request.Request(url, data=body,
+                                     headers={"Content-Type": "application/json", "User-Agent": UA})
+        payload = json.loads(post(req))
         try:
             parts = payload["candidates"][0]["content"]["parts"]
             return " ".join(p.get("text", "") for p in parts)
         except (KeyError, IndexError):
             return ""
-    body = json.dumps({
-        "model": model,
-        "messages": [{"role": "user", "content": prompt}],
-        "temperature": temperature,
-        "max_tokens": 400,
-        "stream": False,
-    }).encode()
-    req = urllib.request.Request(
-        f"{base.rstrip('/')}/chat/completions", data=body,
-        headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"})
-    with urllib.request.urlopen(req, timeout=120) as r:
-        payload = json.loads(r.read().decode())
+    def call(cap: int) -> dict:
+        body = json.dumps({
+            "model": model,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": temperature,
+            "max_tokens": cap,
+            "stream": False,
+        }).encode()
+        req = urllib.request.Request(
+            f"{base.rstrip('/')}/chat/completions", data=body,
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}",
+                     "User-Agent": UA})
+        return json.loads(post(req))
+
+    # A small cap is right for a being asked for one word, and wrong for a model that thinks before it speaks:
+    # `gpt-oss` on Groq spent 398 of a 400-token budget on reasoning, returned an empty answer with
+    # finish_reason "length", and the game played a default shot as though the member had chosen it. Measured
+    # 2026-11-06. So: if the answer was cut off before any of it arrived, ask again with room for the thinking.
+    payload = call(400)
+    try:
+        choice = payload["choices"][0]
+        if not choice["message"].get("content") and choice.get("finish_reason") == "length":
+            payload = call(2400)
+    except (KeyError, IndexError):
+        pass
     try:
         return payload["choices"][0]["message"]["content"]
     except (KeyError, IndexError):
