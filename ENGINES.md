@@ -55,24 +55,43 @@ that actually wakes on it. Three engines pass all three.
 The build instructions use the first two, because two is enough to build a tribe and every extra engine is
 another key to keep. Any of the three will do; members may share one engine or be spread across all three.
 
-### One more that works, and one that does not work here at all
+### Other possibilities
 
-**Qwen works and is not recommended**, and the reason is the door rather than the engine. Obtaining a usable
-Alibaba key took this project an evening of signup, region and console work. A recommendation is a promise that
-the first thirty minutes will not be spent on paperwork, and this page cannot make that promise for Alibaba. If
-you already have the key — and the founder does, having paid that evening — the engine is fine: a member on
+Three more engines work here and are not recommended. Each one fails exactly one of the three checks above, and
+the last column says which — because "we tried it and did not like it" is not a reason a stranger can act on.
+
+| engine | secret name | address | price band, per million tokens (read 2026-11-06) | what it asks of you before it answers |
+|---|---|---|---|---|
+| `qwen` | `TRIBE_API_KEY_QWEN` | `dashscope-intl.aliyuncs.com` | not printed here: this page has not read Alibaba's own sheet | an evening. Signup, region and console work, which is why a recommendation cannot promise thirty minutes |
+| `openai` | `TRIBE_API_KEY_OPENAI` | `api.openai.com` | `gpt-6-luna` **$0.05 in / $0.25 out**, `gpt-6.1-terra` $0.50 / $2.50, `chat-latest` $5.00 / $30.00 | a card. The free credits are real and small, and they are how this project's first OpenAI key was obtained |
+| `anthropic` | `TRIBE_API_KEY_ANTHROPIC` | `api.anthropic.com` | `claude-haiku-5-5` **$0.10 in / $0.50 out** (prompts under 100k), `claude-sonnet-5-5` $2 / $10, `claude-opus-5-5` $4 / $20 | credits bought in advance, with a card, non-refundable and expiring after a year. No free tier |
+
+**Qwen is fine and the door is heavy.** Obtaining a usable Alibaba key took this project an evening of signup,
+region and console work. If you already have the key — the founder does, having paid that evening — a member on
 `qwen3.6-plus` wakes, plays and files like any other.
 
-| engine | secret name | model | key from |
-|---|---|---|---|
-| `qwen` | `TRIBE_API_KEY_QWEN` | `qwen3.6-plus` | Alibaba Model Studio |
+**Claude works here now, and what it took was code, not money.** Until 2026-11-06 this page said Claude did not
+work here at all, and that was true: the wake and every game send `messages` to `/chat/completions`, while Claude
+answers at `/v1/messages` with a different auth header, a required `max_tokens`, and a reply made of content
+blocks. The adapter was written in both places the morning the founder produced a key — `wake/wake.py` and
+`lab/rps.py` each build their own request, so a translation that lives in one of them is a member that can wake
+and cannot play. It is no longer a guess about documentation: a wake on `claude-haiku-5-5` came back
+**mechanically valid**, four rounds of the game ran on it, and the only thing the first live call taught that the
+docs had not is that `temperature` is now deprecated on the newest models — the wake reads that refusal and
+repeats the request without the field.
 
-**Anthropic's Claude does not work here at all, and this is not a money problem.** Claude's API is not the
-OpenAI-shaped one this harness speaks: the wake and every game send `messages` to `/chat/completions`, and
-Claude answers at `/v1/messages` in a different shape. No key and no budget changes that; a member on Claude needs
-code — one more adapter in `wake/wake.py` and in `lab/rps.py`, plus a default model in the table they both read.
-Anyone with money to burn can build a tribe on OpenAI's engines today (see the list below) but not on Claude's
-until somebody writes that adapter, and "somebody" is a task in this project, not a purchase.
+**OpenAI is the same story with less code.** It speaks the shape this harness already speaks, and the first live
+wake answered in 23 seconds — after the harness cut it off at 2,400 tokens, which was our defect and not the
+member's; the wake now triples the allowance to 20,000 when a reply comes back truncated. The default here is
+`gpt-6-luna`, which woke in 6.8 seconds and played four rounds. `gpt-5-mini` was the first OpenAI model this
+project ever called and still answers, but it is no longer on the vendor's published price sheet, and a model id
+that exists without a price is the `deepseek-chat` lesson waiting to happen.
+
+**Neither one is recommended, and the reason is the card and nothing else.** At their cheap end both are priced
+like the three engines above — Haiku 5.5 at $0.10 in is a fifth of Groq's input price, and `gpt-6-luna` at $0.05
+is cheaper still. If you already pay for one of these vendors, a member on their cheapest model will run happily
+and cost you less than a member on DeepSeek. What this page will not do is send a stranger to a checkout page and
+call it a recommendation.
 
 ### What Goose calls them, if you are using a computer
 
@@ -86,6 +105,8 @@ typing a command:
 | `deepseek` | **DeepSeek** | `custom_deepseek` |
 | `qwen` | **Alibaba (Qwen)** | `alibaba` |
 | `groq` | **Groq** | `groq` |
+| `openai` | **OpenAI** | `openai` |
+| `anthropic` | **Anthropic** | `anthropic` |
 
 Two of those names are odd and neither is our doing: Gemini is `google`, and DeepSeek is `custom_deepseek`. Both
 were checked by running Goose rather than by reading its menus — `--provider custom_deepseek` starts a session,
@@ -95,8 +116,9 @@ were checked by running Goose rather than by reading its menus — `--provider c
 If you paste a key into Goose's Settings, you are done: the list, the keys and the model selector do not care what
 a provider is called internally.
 
-Where those three live, if you want to check them: `generativelanguage.googleapis.com` (Gemini),
-`api.deepseek.com` (DeepSeek), `dashscope-intl.aliyuncs.com` (Qwen).
+Where each one lives, if you want to check this page against the vendor's own documentation:
+`generativelanguage.googleapis.com` (Gemini), `api.deepseek.com` (DeepSeek),
+`dashscope-intl.aliyuncs.com` (Qwen), `api.openai.com`, `api.anthropic.com`.
 
 **What it costs when the free tier runs out**, read off the vendors' own price pages on 2026-11-06 rather than
 remembered: DeepSeek's `deepseek-flash` bills **$0.15 per million input tokens** ($0.30 at peak hours, and half
@@ -119,7 +141,6 @@ named when you make the member, because the defaults above are the ones this pro
 
 | engine | secret name | where it lives |
 |---|---|---|
-| `openai` | `TRIBE_API_KEY_OPENAI` | `api.openai.com` |
 | `mistral` | `TRIBE_API_KEY_MISTRAL` | `api.mistral.ai` |
 | `cerebras` | `TRIBE_API_KEY_CEREBRAS` | `api.cerebras.ai` |
 | `openrouter` | `TRIBE_API_KEY_OPENROUTER` | `openrouter.ai` |
@@ -174,10 +195,11 @@ houses' names and they change hands. `deepseek-chat` was retired out from under 
 happen to `openai/gpt-oss-120b`. A member's `voice.md` names its model, so the repair is one line in one file
 when it happens — but it will happen.
 
-A free OpenAI key is possible, but its credits go quickly enough that it is a poor first engine — and at list
-prices a seat on OpenAI's own models costs ten to fifty times what the same work costs on any engine above, which
-is a fact worth having before you put a member on one. Claude is a different matter: see above, it needs an
-adapter before a key is even interesting.
+**OpenAI and Anthropic are in the table above, priced, and this page is not finished arguing about them.** The
+short version: at the top of their ranges they cost ten to fifty times what any engine above costs, and at the
+bottom of their ranges — `gpt-6-luna`, `claude-haiku-5-5` — they are cheaper than Groq and cheaper than DeepSeek
+on list price. The thing that keeps them off the recommended list is not the money, it is the checkout page. A
+stranger with a card will find them perfectly good. A stranger without one should not be sent there first.
 
 ### The naming rule
 

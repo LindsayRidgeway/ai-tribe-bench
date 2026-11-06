@@ -69,7 +69,13 @@ UA = "ai-tribe/1.0 (+https://github.com/LindsayRidgeway/ai-tribe-bench)"
 # Groq's model ids are namespaced by whoever trained the weights, and the names are not stable for long — the id
 # is the vendor's business, so it is written down here once rather than guessed at in a form.
 DEFAULT_MODEL = {"deepseek": "deepseek-flash", "gemini": "gemini-3.8-flash", "qwen": "qwen3.6-plus",
-                 "groq": "openai/gpt-oss-120b"}
+                 "groq": "openai/gpt-oss-120b",
+                 # Both verified 2026-11-06 by waking a member and playing a game on each, and both named from
+                 # the vendor's published price sheet rather than from memory. `gpt-5-mini` was the first OpenAI
+                 # model this project ever called and it still answers, but it has since dropped off that
+                 # sheet — and an id that exists without a price is the `deepseek-chat` lesson waiting to
+                 # happen, so the default is the cheap model the vendor currently lists.
+                 "openai": "gpt-6-luna", "anthropic": "claude-haiku-5-5"}
 
 
 def default_model(vendor: str) -> str:
@@ -170,18 +176,32 @@ def ask(base: str, key: str, model: str, prompt: str, temperature: float = 1.0) 
             return " ".join(p.get("text", "") for p in parts)
         except (KeyError, IndexError):
             return ""
-    def call(cap: int) -> dict:
+    def _send(cap: int, field: str) -> dict:
         if "api.anthropic.com" in base:
             # Claude's shape, translated into the one the ladder below already understands: `content` blocks
             # in, a single text out, and stop_reason "max_tokens" read as finish_reason "length" so that a
             # reply cut off before it began is retried with more room exactly as it is elsewhere.
-            body = json.dumps({"model": model, "messages": [{"role": "user", "content": prompt}],
-                               "temperature": temperature, "max_tokens": cap}).encode()
+            body_obj = {"model": model, "messages": [{"role": "user", "content": prompt}],
+                        "max_tokens": cap}
+            if temperature is not None:
+                body_obj["temperature"] = temperature
             req = urllib.request.Request(
-                f"{base.rstrip('/')}/messages", data=body,
+                f"{base.rstrip('/')}/messages", data=json.dumps(body_obj).encode(),
                 headers={"Content-Type": "application/json", "x-api-key": key,
                          "anthropic-version": "2023-06-01", "User-Agent": UA})
-            d = json.loads(post(req))
+            try:
+                d = json.loads(post(req))
+            except urllib.error.HTTPError as e:
+                said = e.read().decode()[:400] if hasattr(e, "read") else ""
+                if e.code == 400 and "temperature" in said:
+                    body_obj.pop("temperature", None)
+                    req = urllib.request.Request(
+                        f"{base.rstrip('/')}/messages", data=json.dumps(body_obj).encode(),
+                        headers={"Content-Type": "application/json", "x-api-key": key,
+                                 "anthropic-version": "2023-06-01", "User-Agent": UA})
+                    d = json.loads(post(req))
+                else:
+                    raise
             text = "".join(b.get("text", "") for b in d.get("content", []) if b.get("type") == "text")
             stopped = d.get("stop_reason")
             return {"choices": [{"message": {"content": text},
@@ -191,7 +211,7 @@ def ask(base: str, key: str, model: str, prompt: str, temperature: float = 1.0) 
             "model": model,
             "messages": [{"role": "user", "content": prompt}],
             "temperature": temperature,
-            "max_tokens": cap,
+            field: cap,
             "stream": False,
             **next((extra for host, extra in ANSWER_ONLY.items() if host in base), {}),
         }).encode()
@@ -200,6 +220,29 @@ def ask(base: str, key: str, model: str, prompt: str, temperature: float = 1.0) 
             headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}",
                      "User-Agent": UA})
         return json.loads(post(req))
+
+    def call(cap: int) -> dict:
+        """Ask, and if the vendor rejects the name of the budget field, ask again with the other name.
+
+        Measured 2026-11-06, the first day this project called OpenAI: `gpt-5-mini` answers 400
+        "Unsupported parameter: 'max_tokens' is not supported with this model. Use 'max_completion_tokens'
+        instead" — and older OpenAI models are the reverse. So the answer decides, not the address: try one,
+        and if the complaint names the field, try the other. A 400 that is about something else is raised.
+        """
+        fields = ["max_completion_tokens", "max_tokens"] if "api.openai.com" in base else ["max_tokens"]
+        last: tuple[urllib.error.HTTPError, str] | None = None
+        for field in fields:
+            try:
+                return _send(cap, field)
+            except urllib.error.HTTPError as e:
+                text = e.read().decode()[:400] if hasattr(e, "read") else ""
+                if e.code == 400 and "max_tokens" in text:
+                    last = (e, text)
+                    continue
+                raise
+        if last:
+            raise urllib.error.HTTPError(last[0].url, last[0].code, last[1], last[0].headers, None)
+        raise RuntimeError("no request was attempted")
 
     # A small cap is right for a being asked for one word, and wrong for a model that thinks before it speaks.
     # Two measurements, same day, two engines:

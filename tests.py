@@ -3090,9 +3090,14 @@ class TestChat(unittest.TestCase):
         for url in rps.BASES.values():
             self.assertEqual(rps.BASES, wake.API_BASES, "the addresses themselves must match, not just the names")
         src = (REPO / "lab" / "rps.py").read_text(encoding="utf-8")
-        self.assertEqual(src.count('"User-Agent": UA'), 3,
-                         "every remote path in the games — the common one, Gemini's and Claude's — must introduce "
-                         "itself to the vendor")
+        # Counted by walking the requests rather than by counting the header: the number of paths is not a fact
+        # anybody should have to remember. It was 3 (common, Gemini, Claude) until 2026-11-06, when Claude's
+        # temperature retry added a fourth request inside the same path.
+        paths = src.split("urllib.request.Request(")[1:]
+        self.assertTrue(paths, "the games must actually make a request")
+        for n, chunk in enumerate(paths, 1):
+            self.assertIn('"User-Agent": UA', chunk[:300],
+                          f"remote path #{n} in the games must introduce itself to the vendor")
 
     def test_one_vendor_named_for_a_field_is_given_to_every_player(self):
         """Found 2026-11-06 in a live Groq season, two shots in.
@@ -3488,14 +3493,34 @@ class TestWorkflows(unittest.TestCase):
                           f"{name} must send the dated version header this API requires")
         self.assertIn('stopped == "max_tokens"', games,
                       "a reply cut off before it began must read as finish_reason length, or the retry never fires")
-        self.assertIn('"max_tokens": 2400', wake,
+        # The literal was `2400` until the truncation ladder landed: three times 2,400 tokens of reasoning with no
+        # answer, and the wake now buys room instead of filing half an object. So the assertion follows the
+        # ladder — a budget variable, a first ask of 2,400, and a ceiling — because pinning one number would
+        # have made the fix look like a regression.
+        self.assertIn('"max_tokens": budget', wake,
                       "max_tokens is required by this API; it is not the same request without it")
+        self.assertIn("budget: int) -> dict", wake,
+                      "the allowance has to be a parameter, or the ladder has nothing to climb")
+        self.assertIn("send(0.4, 2400)", wake, "the first ask is 2,400, the size that was measured on the day")
 
     def test_an_engine_with_no_default_model_says_so_instead_of_raising_a_key_error(self):
+        """Naming a vendor the project has not chosen a model for is a question, not a crash.
+
+        Amended 2026-11-06: this used to point at `anthropic`, which has since been given a measured default
+        (`claude-haiku-5-5`). The point of the test was never Anthropic — it was that the list and the lookup
+        agree, so an engine can be in the address table without pretending to have a default.
+        """
         self.assertEqual(rps.default_model("deepseek"), "deepseek-flash")
-        with self.assertRaises(SystemExit) as caught:
-            rps.default_model("anthropic")
-        self.assertIn("name one with --model", str(caught.exception))
+        self.assertEqual(rps.default_model("anthropic"), "claude-haiku-5-5")
+        self.assertEqual(rps.default_model("openai"), "gpt-6-luna",
+                         "the default must be a model the vendor currently prices; gpt-5-mini answers but has "
+                         "dropped off the sheet, which is how a default turns into a first-wake failure")
+        for engine in sorted(set(rps.BASES) - set(rps.DEFAULT_MODEL)):
+            with self.assertRaises(SystemExit) as caught:
+                rps.default_model(engine)
+            self.assertIn("name one with --model", str(caught.exception))
+        self.assertIn("mistral", rps.BASES,
+                      "the engine with no default has to be a real engine, or this test proves nothing")
 
     def test_the_recommended_engines_are_the_ones_a_stranger_can_actually_reach(self):
         """A recommendation is a promise about the first thirty minutes, so it has to be a short list.
@@ -3505,13 +3530,25 @@ class TestWorkflows(unittest.TestCase):
         measured; Qwen keeps its row and loses the word, because the engine is fine and the door is not.
         """
         engines = (REPO / "ENGINES.md").read_text(encoding="utf-8")
-        head = engines[engines.index("### The three engines this page recommends"):engines.index("### One more that works")]
+        head = engines[engines.index("### The three engines this page recommends"):engines.index("### Other possibilities")]
         for good in ("`gemini`", "`deepseek`", "`groq`"):
             self.assertIn(good, head, f"{good} is recommended and must be in that table")
         self.assertNotIn("`qwen`", head, "Qwen's door costs an evening; it is not a recommendation")
         self.assertIn("`qwen`", engines, "and it must still be listed, with the reason")
-        self.assertIn("does not work here at all", engines,
-                      "Claude needs an adapter, not a budget; a reader with money deserves to know that")
+        other = engines[engines.index("### Other possibilities"):engines.index("### What Goose calls them")]
+        for engine in ("`qwen`", "`openai`", "`anthropic`"):
+            self.assertIn(engine, other,
+                          f"{engine} works here and must be listed, under the heading the founder asked for")
+        for address in ("api.openai.com", "api.anthropic.com"):
+            self.assertIn(address, other, f"{address} is the address, and it is one of the three facts")
+        self.assertIn("$0.10", other, "Anthropic's price band, read off its own sheet rather than guessed")
+        self.assertIn("$0.05", other, "OpenAI's price band, likewise")
+        self.assertIn("claude-haiku-5-5", other, "the recommended default for that engine, named in the table")
+        self.assertNotIn("does not work here at all", engines,
+                         "the adapter landed 2026-11-06 and a live wake came back valid; the page cannot keep "
+                         "saying Claude does not work here — that was true and is now false")
+        self.assertIn("mechanically valid", engines.lower(),
+                      "the claim that Claude now works must rest on the wake that proved it")
 
     def test_the_sheet_names_the_place_field_when_the_copy_ships_more_than_one_world(self):
         """Found 2026-11-06 by walking the sheet in a fresh clone, which is the only way this was going to be found.

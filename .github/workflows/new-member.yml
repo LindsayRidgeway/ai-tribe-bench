@@ -32,6 +32,7 @@ on:
           - cerebras
           - openrouter
           - together
+          - anthropic
         default: "gemini"
       model:
         description: "which model of that engine — leave blank for the project's usual one"
