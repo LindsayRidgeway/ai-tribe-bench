@@ -3469,6 +3469,25 @@ class TestWorkflows(unittest.TestCase):
             self.assertIn(path, build)
         self.assertTrue((REPO / "USER-MANUAL.md").is_file(), "the sheet's last line points at the manual")
 
+    def test_the_sheet_names_the_place_field_when_the_copy_ships_more_than_one_world(self):
+        """Found 2026-11-06 by walking the sheet in a fresh clone, which is the only way this was going to be found.
+
+        The shipped copy has two worlds, `soil/night-bus` and `soil/workshop`, so `tribe.py new` cannot infer a
+        place, so a member created through the form stands in none — created, never woken, with the only notice in
+        a workflow warning under the run log. Step 2 told the reader nothing about the field. A sheet that leaves
+        the first member unwakeable is worse than one that leaves a field blank: the failure arrives days later,
+        when nothing happens.
+        """
+        worlds = [d.name for d in sorted((REPO / "soil").iterdir()) if d.is_dir()]
+        if len(worlds) < 2:
+            return
+        build = (REPO / "BUILD.md").read_text(encoding="utf-8")
+        step_two = build[build.index("**2. Add two or more members.**"):build.index("**3. Give your repository")]
+        self.assertIn("place", step_two.lower(),
+                      "the form has a place field and the shipped copy has several worlds, so the sheet must say so")
+        for world in worlds:
+            self.assertIn(world, step_two, f"the sheet must name the shipped world {world!r} the reader is to type")
+
     def test_the_sheet_does_not_keep_a_second_copy_of_the_engine_list(self):
         """The engines are listed once, in ENGINES.md, and the sheet points at it.
 
