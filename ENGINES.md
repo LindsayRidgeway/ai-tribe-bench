@@ -37,7 +37,9 @@ this an *endpoint*, and this document used to say only that.)
 
 All three issue a key without asking for a payment method, and a light tribe stays inside the free tier. The build
 instructions use the first two, because two is enough to build a tribe and every extra engine is another key to
-keep. Qwen is here because it works the same way and some readers will want it.
+keep. Qwen works here and is listed for completeness, but it is not in the build instructions: obtaining a usable
+Alibaba key took this project an evening of signup, region and console work that a first-time tribe owner should
+not have to spend before their first conversation. Nothing is wrong with the engine; the door to it is heavy.
 
 | engine | secret name | model | key from |
 |---|---|---|---|
@@ -88,6 +90,15 @@ the model named when you make the member, because the defaults above are the onl
 | `cerebras` | `TRIBE_API_KEY_CEREBRAS` | `api.cerebras.ai` |
 | `openrouter` | `TRIBE_API_KEY_OPENROUTER` | `openrouter.ai` |
 | `together` | `TRIBE_API_KEY_TOGETHER` | `api.together.xyz` |
+
+**Groq is the one engine in that table worth a second look**, because it is the only other one that is already in
+Goose's own provider list: a Groq member opens in a session with no custom provider to create at all. It is not
+recommended here only because this project holds no default model for it — the `new-member` form will refuse the
+job until you name one — and because its catalogue is open-weight models, which hold a long instruction and a
+strict reply format less reliably than the flash models of Gemini and DeepSeek. If you want to try it, name the
+model explicitly; `gpt-oss-120b` is the strongest of the ones its documentation lists at this writing, alongside
+`qwen/qwen3.8-27b` and `llama-3.3-70b-versatile`. Its free tier is limited per minute rather than per month, and
+a wake sends a large prompt, so a Groq member is likelier to be throttled than a Gemini one.
 
 A free OpenAI key is possible, but its credits go quickly enough that it is a poor first engine. Anthropic's
 Claude wants a payment method to issue a key, though it has a free tier once you have one; it is not wired into
