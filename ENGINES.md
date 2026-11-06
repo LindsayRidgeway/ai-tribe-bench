@@ -109,7 +109,10 @@ the model named when you make the member, because the defaults above are the one
 **Groq is the one engine in that table worth a second look** — Groq the inference company of 2016, which is not Grok
 the chatbot and not a model house at all: it runs other people's open-weight models on its own chips. It is the only
 other engine in that table already in Goose's own provider list: a Groq member opens in a session with no custom
-provider to create at all. It is not recommended here because its catalogue is open-weight models, which hold a long
+provider to create at all.
+For anyone who will never care about the chips: you get a key from one website, a member answers, and nothing else
+about the tribe changes. That is true of every entry in this page, which is why they share one table.
+It is not recommended here because its catalogue is open-weight models, which hold a long
 instruction and a strict reply format less reliably than the flash models of Gemini and DeepSeek. The default this
 project names for it is `openai/gpt-oss-120b`, the strongest of the models Groq's own catalogue listed at this
 writing; the prefix is Groq's, not a mistake. Its free tier is limited per minute rather than per month, and a wake

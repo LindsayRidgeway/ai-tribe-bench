@@ -3373,6 +3373,20 @@ class TestWorkflows(unittest.TestCase):
             self.assertIn(path, build)
         self.assertTrue((REPO / "USER-MANUAL.md").is_file(), "the sheet's last line points at the manual")
 
+    def test_the_sheet_does_not_keep_a_second_copy_of_the_engine_list(self):
+        """The engines are listed once, in ENGINES.md, and the sheet points at it.
+
+        Keeping the list in two places is how this sheet has been wrong three times in two days: Qwen was cut
+        from the recommendations, deepseek-chat was retired by its vendor, and a provider that was in Goose's
+        list was written up as one you had to add by hand. Each time the fix was to edit two documents and hope.
+        The sheet may name an engine in passing — a terminal user needs the internal name at the moment they
+        type it — but the key pages and the model ids belong to the engine sheet alone."""
+        build = (REPO / "BUILD.md").read_text(encoding="utf-8")
+        for page in ("aistudio.google.com", "platform.deepseek.com"):
+            self.assertNotIn(page, build, f"{page} is a key page; the sheet points at ENGINES.md for those")
+        for model in ("gemini-3.8-flash", "deepseek-flash", "qwen3.6-plus", "gpt-oss"):
+            self.assertNotIn(model, build, f"{model} is a model id; those live in ENGINES.md")
+
     def test_the_build_steps_are_numbered_1_to_6_with_no_gaps(self):
         """A numbered step that stops being necessary must come out and the rest close up.
 
