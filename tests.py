@@ -2688,6 +2688,18 @@ class TestTennis(unittest.TestCase):
     def setUpClass(cls):
         cls.t = load(REPO / "lab" / "tennis.py", "tennis_mod")
 
+    def test_a_match_nobody_plays_refuses_the_engines_it_would_ignore(self):
+        """Found 2026-11-06, at the cost of two runs: `--names Greta,Hans --vendor groq --points 6` finished in
+        0.08 seconds and printed a match. The default path plays the physics; it never asks a member for a shot,
+        and it accepted the engine flags without saying so. Silent acceptance is how a page becomes a fiction.
+        """
+        import contextlib, io
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
+            code = self.t.main(["--names", "Greta,Hans", "--vendor", "groq", "--points", "2"])
+        self.assertEqual(code, 2, "a match that cannot use an engine must refuse it, not ignore it")
+        self.assertIn("never asks a member", err.getvalue())
+
     def shot(self, power, face, shot="rally", wind=(0.0, 0.0), surface="hard", aim=None):
         t = self.t
         import math
@@ -3040,9 +3052,31 @@ class TestChat(unittest.TestCase):
         kind of wrong, because the file looks like a choice.
         """
         src = (REPO / "lab" / "rps.py").read_text(encoding="utf-8")
-        self.assertIn('finish_reason") == "length"', src, "an answer cut off before it began must be retried")
-        self.assertIn("call(2400)", src, "the retry has to buy more room than the first attempt")
+        self.assertIn('finish_reason") != "length"', src, "an answer cut off before it began must be retried")
+        self.assertIn("ANSWER_CAPS = (400, 2400, 8000)", src,
+                      "the retry ladder must end above 2,400: deepseek-flash spent 2,400 of 2,400 on reasoning and "
+                      "answered only at 4,000, and every silent give-up is a default shot filed as a choice")
         self.assertIn("RATE_WAITS", src, "a free tier counted per minute is answered by waiting, not by giving up")
+        self.assertIn("x-ratelimit-reset-tokens", src,
+                      "the wait must be the vendor's own number: a fixed 20s wait is shorter than the 60s window "
+                      "it is waiting for, which is how a live season spent two and a half minutes being refused")
+
+    def test_a_game_asks_for_an_answer_and_not_for_a_deliberation(self):
+        """Measured 2026-11-06: deepseek-flash spent 600 of 600 tokens thinking about a racquet angle and returned
+        nothing, four times in six shots; the same question with thinking disabled came back in 11 tokens.
+
+        The games ask for one line, so the line is the measurement. A vendor that thinks past its allowance gives
+        the game an empty string, and the game then plays a default shot. Only listed vendors get the field: an
+        unknown key is a 400 on a strict API, and a 400 on every shot is a worse defect than the one being fixed.
+        """
+        src = (REPO / "lab" / "rps.py").read_text(encoding="utf-8")
+        self.assertIn('"api.deepseek.com": {"thinking": {"type": "disabled"}}', src,
+                      "the games must ask the vendor that deliberates to answer instead")
+        self.assertIn('"api.groq.com": {"reasoning_effort": "low"}', src,
+                      "the open-weight model has the same knob under a different name: 436 reasoning tokens to "
+                      "choose a racquet angle became 51, and 'medium' spent the whole allowance and answered nothing")
+        self.assertIn('for host, extra in ANSWER_ONLY.items() if host in base', src,
+                      "the field must be sent only to the vendor that accepts it")
 
     def test_the_games_can_play_on_every_engine_the_wake_can_wake_on(self):
         """Two tables for one fact is how a Groq member woke and then found that tennis did not know it.
@@ -3058,6 +3092,27 @@ class TestChat(unittest.TestCase):
         src = (REPO / "lab" / "rps.py").read_text(encoding="utf-8")
         self.assertEqual(src.count('"User-Agent": UA'), 2,
                          "both remote paths in the games must introduce themselves to the vendor")
+
+    def test_one_vendor_named_for_a_field_is_given_to_every_player(self):
+        """Found 2026-11-06 in a live Groq season, two shots in.
+
+            --names Greta,Hans --vendor groq
+            IndexError: list index out of range   (lab/tennis.py:937, keys[hitter])
+
+        Naming one engine for a field is the ordinary way to say "both of these players run on it", and
+        tennis accepted the flag without saying anything and then crashed when the second player's turn came.
+        A one-element list is spread over the field; a mismatched list is refused out loud rather than
+        indexed into.
+        """
+        self.assertEqual(rps.spread(["groq"], 2, "--vendor"), ["groq", "groq"])
+        self.assertEqual(rps.spread(["groq", "deepseek"], 2, "--vendor"), ["groq", "deepseek"])
+        self.assertEqual(rps.spread(["gemini", "deepseek", "qwen"], 3, "--vendor"),
+                         ["gemini", "deepseek", "qwen"])
+        with self.assertRaises(SystemExit):
+            rps.spread(["groq", "deepseek", "qwen"], 2, "--vendor")
+        for game in ("tennis.py", "rps.py", "favour.py", "wind.py", "word.py"):
+            src = (REPO / "lab" / game).read_text(encoding="utf-8")
+            self.assertIn("spread(", src, f"{game} must accept one engine named for the field")
 
     def test_every_engine_with_a_default_model_is_an_engine_the_tool_accepts(self):
         """A default model for an engine nobody can pick is a line that never runs; an engine with a default the

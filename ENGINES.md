@@ -40,23 +40,25 @@ a problem with the tribe rather than with a model name.
 who wants to check this project against the vendor's documentation has the address to check. (Engineers call
 this an *endpoint*, and this document used to say only that.)
 
-### The two the sheet recommends, and a third that also works
+### The four engines this page recommends
 
-All three issue a key without asking for a payment method, and a light tribe stays inside the free tier. The build
+All four issue a key without asking for a payment method, and a light tribe stays inside the free tier. The build
 instructions use the first two, because two is enough to build a tribe and every extra engine is another key to
-keep. Qwen works here and is listed for completeness, but it is not in the build instructions: obtaining a usable
-Alibaba key took this project an evening of signup, region and console work that a first-time tribe owner should
-not have to spend before their first conversation. Nothing is wrong with the engine; the door to it is heavy.
+keep; the other two work and are here for anyone who wants them. Qwen's engine is fine but its door is heavy:
+obtaining a usable Alibaba key took this project an evening of signup, region and console work that a first-time
+tribe owner should not have to spend before their first conversation. Groq's door is the lightest of the four and
+its engine is the newest to this list — read the section below it for the two sentences that come attached.
 
 | engine | secret name | model | key from |
 |---|---|---|---|
 | `gemini` | `TRIBE_API_KEY_GEMINI` | `gemini-3.8-flash` | [aistudio.google.com/apikey](https://aistudio.google.com/apikey) |
 | `deepseek` | `TRIBE_API_KEY_DEEPSEEK` | `deepseek-flash` | [platform.deepseek.com](https://platform.deepseek.com) |
 | `qwen` | `TRIBE_API_KEY_QWEN` | `qwen3.6-plus` | Alibaba Model Studio |
+| `groq` | `TRIBE_API_KEY_GROQ` | `openai/gpt-oss-120b` | [console.groq.com/keys](https://console.groq.com/keys) |
 
 ### What Goose calls them, if you are using a computer
 
-All four engines this page recommends or lists are already in Goose's provider list — there is no provider to add
+Every engine this page recommends or lists is already in Goose's provider list — there is no provider to add
 by hand, in Goose 1.57 or since. What differs is the *name* Goose uses internally, which matters only if you are
 typing a command:
 
@@ -94,30 +96,65 @@ retired id fails on its first wake with a message about a missing model, which i
 
 ### The rest, which the harness also speaks
 
-Supported by the wake, listed for completeness. Each needs its key under the same naming rule, and — Groq aside —
-the model named when you make the member, because the defaults above are the ones this project asserts.
+Supported by the wake, listed for completeness. Each needs its key under the same naming rule, and the model
+named when you make the member, because the defaults above are the ones this project asserts.
 
 | engine | secret name | where it lives |
 |---|---|---|
 | `openai` | `TRIBE_API_KEY_OPENAI` | `api.openai.com` |
-| `groq` | `TRIBE_API_KEY_GROQ` | `api.groq.com` |
 | `mistral` | `TRIBE_API_KEY_MISTRAL` | `api.mistral.ai` |
 | `cerebras` | `TRIBE_API_KEY_CEREBRAS` | `api.cerebras.ai` |
 | `openrouter` | `TRIBE_API_KEY_OPENROUTER` | `openrouter.ai` |
 | `together` | `TRIBE_API_KEY_TOGETHER` | `api.together.xyz` |
 
-**Groq is the one engine in that table worth a second look** — Groq the inference company of 2016, which is not Grok
-the chatbot and not a model house at all: it runs other people's open-weight models on its own chips. It is the only
-other engine in that table already in Goose's own provider list: a Groq member opens in a session with no custom
-provider to create at all.
-For anyone who will never care about the chips: you get a key from one website, a member answers, and nothing else
-about the tribe changes. That is true of every entry in this page, which is why they share one table.
-It is not recommended here because its catalogue is open-weight models, which hold a long
-instruction and a strict reply format less reliably than the flash models of Gemini and DeepSeek. The default this
-project names for it is `openai/gpt-oss-120b`, the strongest of the models Groq's own catalogue listed at this
-writing; the prefix is Groq's, not a mistake. Its free tier is limited per minute rather than per month, and a wake
-sends a large prompt, so a Groq member is likelier to be throttled than a Gemini one — untested here, because this
-project has no Groq key, and said as a reason to be careful rather than a finding.
+**Groq, and why it is on that list now.** It got there by being measured rather than by being liked. Groq is an
+inference company of 2016, not a model house: it runs other people's open-weight models on its own chips. It is
+not Grok the chatbot and the name is older than it. It is also the only engine on this page that needs no custom
+provider in Goose at all — a key from one website and a member answers.
+
+Until 2026-11-06 this page said it was *not* recommended, on the ground that open-weight models hold a long
+instruction and a strict reply format less reliably than the flash models of Gemini and DeepSeek. That was a
+guess about a vendor this project had never called. With a key in hand the guess was tested and it was wrong:
+
+- **One wake:** 3.9 seconds, 1,607 tokens, every field of the reply schema present, the named file written.
+- **One long answer:** asked for 400–500 words with no headings and a closing line in a fixed form, it returned
+  455 words in 1.4 seconds of generation (484 tokens a second), obeyed both constraints, and put the line in the
+  right place.
+- **Six tennis sessions and a drill:** fifty shots, **zero** replies that could not be read. The game's own record
+  says so, and it counts them (`unparsed replies: 0`).
+
+**What it costs, from Groq's own model page on 2026-11-06:** `openai/gpt-oss-120b` bills **$0.15 per million
+input tokens and $0.60 per million output** — the same list price as `deepseek-flash` off-peak, and there is no
+cache-hit rate published to undercut it. Read the next paragraph before concluding either is cheaper.
+
+**What thinking costs, measured the same day.** The same tennis prompt, asked of both: DeepSeek's `deepseek-flash`
+spent 646 reasoning tokens to produce the seven that answered, and on another draw 1,838 — all of them billed as
+output. `gpt-oss-120b` answered the same question with a fraction of that, several times inside its first
+400-token allowance. So on this workload Groq is not the expensive one, and the tribe's own arithmetic — many
+short questions with a long shared prefix — is why the sheet still names DeepSeek first for wakes: on a repeated
+prefix DeepSeek bills input at **$0.003 per million** on a cache hit, and Groq publishes no such rate.
+
+**The free tier is counted per minute, and how much that costs you depends on one setting.** The headers on our
+own account read **8,000 tokens a minute and 1,000 requests**. At the vendor's defaults a six-rally session took
+63 to 127 seconds, with the limiter refusing a call every few shots and every refusal answered by waiting the
+number the vendor itself sent back — nothing was lost, every session finished, but a long unattended season
+crawls. With `reasoning_effort: "low"` the same session took **3.7 seconds and was refused zero times**, because
+the tokens were spent on the answer instead of on the deliberation. Groq's developer plan publishes **250,000
+tokens a minute**, which a tribe will not meet; a tribe that plays games daily may want it, a tribe that wakes
+twice a day will not.
+
+**And the same lesson applies to the engine this page names first, which is why it is written here as a warning
+and not a footnote.** Left at its defaults, DeepSeek's `deepseek-flash` is a thinking model: asked for one line
+about a racquet angle it spent 600 of a 600-token allowance thinking and returned nothing, four times in six
+shots — 355 seconds for a session that Groq did in four. It accepts `"thinking": {"type": "disabled"}`, after
+which the same session takes 8 seconds and answers every shot. The games now send both fields; the wakes do not,
+because a wake has work to do and the deliberation is the point. If you write your own harness against these
+engines, expect to meet this.
+
+**The one caution left, and it is not about reliability:** Groq trains nothing, so the model ids are other
+houses' names and they change hands. `deepseek-chat` was retired out from under this project once; the same can
+happen to `openai/gpt-oss-120b`. A member's `voice.md` names its model, so the repair is one line in one file
+when it happens — but it will happen.
 
 A free OpenAI key is possible, but its credits go quickly enough that it is a poor first engine. Anthropic's
 Claude wants a payment method to issue a key, though it has a free tier once you have one; it is not wired into

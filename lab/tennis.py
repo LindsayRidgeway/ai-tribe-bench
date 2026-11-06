@@ -43,7 +43,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parent))
-from rps import BASES, DEFAULT_MODEL, ask          # noqa: E402  one vendor table, not two
+from rps import BASES, DEFAULT_MODEL, ask, spread  # noqa: E402  one vendor table, not two
 
 # ---- court, in feet -------------------------------------------------------------------------------
 LENGTH, WIDTH = 78.0, 27.0
@@ -657,11 +657,11 @@ def drill_prompt(p: Player, other: str, history: list[str], incoming: dict | Non
 
 def run_drill(args) -> int:
     names = [n.strip() for n in args.names.split(",")]
-    vendors = ([v.strip().lower() for v in args.vendor.split(",")] if args.vendor
-               else vendors_of(names))
+    vendors = spread(([v.strip().lower() for v in args.vendor.split(",")] if args.vendor
+                      else vendors_of(names)), len(names), "--vendor")
     practice = [int(x) for x in args.practice.split(",")]
-    models = ([m.strip() for m in args.model.split(",")] if args.model
-              else [DEFAULT_MODEL[v] for v in vendors])
+    models = spread(([m.strip() for m in args.model.split(",")] if args.model
+                     else [DEFAULT_MODEL[v] for v in vendors]), len(names), "--model")
     keys = []
     for v, n in zip(vendors, names):
         k = os.environ.get(f"TRIBE_API_KEY_{v.upper()}")
@@ -885,8 +885,8 @@ def run_rally(args) -> int:
     hit long or wide, or hit where the other player cannot get to it — three things the players decide. If the
     rallies get longer over a session, it is because they got better, not because a counter was raised."""
     names = [n.strip() for n in args.names.split(",")]
-    vendors = ([v.strip().lower() for v in args.vendor.split(",")] if args.vendor
-               else vendors_of(names))
+    vendors = spread(([v.strip().lower() for v in args.vendor.split(",")] if args.vendor
+                      else vendors_of(names)), len(names), "--vendor")
     practice = [int(x) for x in args.practice.split(",")]
     # The season wins over `--practice`, and says so. Two sources for one number is the defect this
     # project has fixed twice; here the file is the record and the flag is a test hook.
@@ -897,8 +897,8 @@ def run_rally(args) -> int:
               + ", ".join(f"{n} {b} balls" for n, b in zip(names, from_file))
               + f" (--practice {args.practice} ignored)")
         practice = from_file
-    models = ([m.strip() for m in args.model.split(",")] if args.model
-              else [DEFAULT_MODEL[v] for v in vendors])
+    models = spread(([m.strip() for m in args.model.split(",")] if args.model
+                     else [DEFAULT_MODEL[v] for v in vendors]), len(names), "--model")
     keys = []
     for v, n in zip(vendors, names):
         k = os.environ.get(f"TRIBE_API_KEY_{v.upper()}")
@@ -1157,6 +1157,14 @@ def main(argv=None) -> int:
     if args.drill:
         return run_drill(args)
 
+    # Found 2026-11-06 while testing an engine: this path plays the physics, not the members. Nothing here
+    # asks anybody for a shot. Two runs with `--vendor groq` were spent learning that, because the flags were
+    # accepted and silently ignored, and the page read like a match the members had played.
+    if args.vendor or args.model:
+        print("   --vendor and --model mean nothing on this path: a match of the physics never asks a member. "
+              "Add --rally (rallies the players choose) or --drill (balls fed one at a time), or drop the "
+              "flags. Nothing was played.", file=sys.stderr)
+        return 2
     names = [n.strip() for n in args.names.split(",")]
     practice = [int(x) for x in args.practice.split(",")]
     ms = int(time.time() * 1000)
@@ -1167,7 +1175,8 @@ def main(argv=None) -> int:
     players = [Player(names[0], True, practice[0], rng=rng),
                Player(names[1], False, practice[1], rng=rng)]
 
-    print(f"# {players[0].name} and {players[1].name}, {surface} ({SURFACES[surface]['note']}), "
+    print(f"# a match of the physics, not of the members: {players[0].name} and {players[1].name} are on the "
+          f"court and nobody is choosing a shot. {surface} ({SURFACES[surface]['note']}), "
           f"wind {wind_in[0]} {wind_in[1]:.0f}mph, clock {ms}\n")
     for n, p in zip(names, practice):
         print(f"  {n}: {p} balls hit before today")
