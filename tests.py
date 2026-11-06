@@ -3469,6 +3469,22 @@ class TestWorkflows(unittest.TestCase):
             self.assertIn(path, build)
         self.assertTrue((REPO / "USER-MANUAL.md").is_file(), "the sheet's last line points at the manual")
 
+    def test_the_recommended_engines_are_the_ones_a_stranger_can_actually_reach(self):
+        """A recommendation is a promise about the first thirty minutes, so it has to be a short list.
+
+        Corrected 2026-11-06 on the founder's question: Qwen sat in the recommended table while the prose said
+        its door cost an evening of signup, which is two answers to one question. Groq earned the place by being
+        measured; Qwen keeps its row and loses the word, because the engine is fine and the door is not.
+        """
+        engines = (REPO / "ENGINES.md").read_text(encoding="utf-8")
+        head = engines[engines.index("### The three engines this page recommends"):engines.index("### One more that works")]
+        for good in ("`gemini`", "`deepseek`", "`groq`"):
+            self.assertIn(good, head, f"{good} is recommended and must be in that table")
+        self.assertNotIn("`qwen`", head, "Qwen's door costs an evening; it is not a recommendation")
+        self.assertIn("`qwen`", engines, "and it must still be listed, with the reason")
+        self.assertIn("does not work here at all", engines,
+                      "Claude needs an adapter, not a budget; a reader with money deserves to know that")
+
     def test_the_sheet_names_the_place_field_when_the_copy_ships_more_than_one_world(self):
         """Found 2026-11-06 by walking the sheet in a fresh clone, which is the only way this was going to be found.
 
