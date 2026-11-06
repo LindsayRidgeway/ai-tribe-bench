@@ -128,6 +128,83 @@ This is the same failure the 3B members made — confident prose about a column 
 in the harness instead. It suggests the thing usually measured as a small-model limitation is at least
 partly an interface limitation, and it is the reason `tests.py` and `tribe.py validate` exist.
 
+## 6. Groq, tested against a season rather than against a preference
+
+*2026-11-06. Written because the founder asked whether Groq had been tested more extensively, and the honest
+answer was no — there had been one wake and one short session, which is a smoke test, not a season.*
+
+Every number below was produced by this repository's own games on the founder's machine, with a real key, on
+one day. The commands are in the transcript of the session; the seasons are in `games/tennis/seasons/`.
+
+| run | engine | how it was asked | rallies | shots | replies that could not be read | wall clock |
+|---|---|---|---|---|---|---|
+| A | groq `openai/gpt-oss-120b` | vendor defaults | 6 | 9 | 0 | 94s |
+| B | groq | vendor defaults | 8 | 11 | 0 | 122s |
+| C | groq | vendor defaults, 8-ball drill | — | 8 | 0 | 127s |
+| D | groq | vendor defaults | 6 | 8 | 0 | 63s |
+| E | deepseek `deepseek-flash` | vendor defaults | 6 | 6 | **4** | **355s** |
+| F | deepseek | `thinking: {"type": "disabled"}` | 6 | 7 | 0 | 7.9s |
+| G | groq | `reasoning_effort: "low"` | 6 | 7 | 0 | 3.7s |
+
+Three more, outside tennis: a **wake** (3.9 s, 1,607 tokens, every schema field present, its file written); a
+**455-word prose answer** with two format constraints, both obeyed, 671 completion tokens in 1.4 s of generation
+(484 tokens a second — the chip company's speed claim is not marketing); and **8 rounds of rock-paper-scissors**
+(16 calls, 5.8 s, not one throw unreadable).
+
+### The finding that is actually about us
+
+Run E was not a bad day for DeepSeek. `deepseek-flash` is a thinking model by default, and asked for one line
+about a racquet angle it spent **600 of 600** tokens thinking, returned an empty string, and did it four times
+in six shots. The game printed `!! Greta wrote no usable line ('')` and played a default shot — the exact defect
+we had already fixed once for Groq, arriving by a different road. Two knobs, both undocumented in our own sheet
+until today, end it:
+
+- `deepseek-flash` accepts `"thinking": {"type": "disabled"}`: 11 output tokens, 1.2 s.
+- `gpt-oss-120b` accepts `"reasoning_effort": "low"`: 51 output tokens, 0.5 s. Its `"medium"` spends the whole
+  allowance and answers nothing, so a middle setting is worse than either end.
+
+So the two engines are the same story told by two vendors: left alone, a reasoning model will think past the
+allowance on a question that does not need thinking, and the game will file a default shot as its choice. The
+games now send the field. The wakes do not — a wake has real work to do and the deliberation is the point.
+
+### What it costs, and what it cost to learn
+
+Groq's own page, read 2026-11-06: `openai/gpt-oss-120b` is **$0.15 per million input and $0.60 per million
+output**. That is `deepseek-flash`'s off-peak list price exactly. The difference is on the input side: DeepSeek
+publishes **$0.003 per million on a cache hit**, and a wake re-sends the same large prefix every time, so a
+wake is roughly fifty times cheaper on DeepSeek. On the games — short questions, one line of answer — Groq
+was the cheaper of the two at default settings, for the reason above, and the same price once both were told
+to answer.
+
+Free-tier limits, read off the response headers rather than a page: **8,000 tokens a minute, 1,000 requests**.
+At default reasoning settings that is a session every ten seconds of waiting; at `reasoning_effort: "low"` a
+six-rally session ran with **zero** refusals. Groq's developer plan publishes 250,000 tokens a minute, which
+is not a limit a tribe will meet.
+
+### What the test cost us in defects found, which is the part worth keeping
+
+1. `--names Greta,Hans --vendor groq` built a one-element vendor list and died two shots in with
+   `IndexError: list index out of range`. One engine named for a field is now spread over the field.
+2. The rate-limit wait was a fixed 20 s and the window it was waiting for was 60 s, so a session spent two and
+   a half minutes being refused six times. The wait is now the vendor's own number, read from its headers.
+3. The default tennis path — `--points`, no `--rally` — plays the physics and never asks a member anything. It
+   accepted `--vendor groq` and printed a match. Two runs were spent finding that out. It now refuses the
+   engines it would ignore and says on the first line that nobody on that court is choosing.
+4. The retry ladder ended at 2,400 tokens, which DeepSeek exhausted without answering. It ends at 8,000, and a
+   game that still gets nothing says so instead of pretending.
+
+All four are pinned by tests. The suite was 245 before this work and is 250 after.
+
+### The verdict, in one paragraph
+
+Groq is a legitimate engine for a tribe: no custom provider, a key from one website, reliable on strict
+one-line formats (fifty shots, nothing unreadable), fast when it is told not to deliberate, and priced at
+DeepSeek's own list price. What it does not have is a cache-hit rate, so a tribe whose wakes repeat a large
+prefix will spend more there than on DeepSeek; and what it does have is a free tier counted per minute, which
+a long unattended season will feel. Recommended as a third engine, with those two sentences attached. The
+earlier reason this page gave for excluding it — that open-weight models hold a format less reliably — was a
+guess, and the test did not support it.
+
 ## Limits, stated once and not buried
 
 Every result here is n=1 to n=5 per condition. One category per condition. Three engines that are also

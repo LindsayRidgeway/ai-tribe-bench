@@ -47,7 +47,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from rps import BASES, DEFAULT_MODEL, ask          # noqa: E402  one vendor table, not two
+from rps import BASES, DEFAULT_MODEL, ask, spread          # noqa: E402  one vendor table, not two
 from wind import THROWS, BEATS, times, wind_at    # noqa: E402  one wind rule, not two
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -270,15 +270,15 @@ def main(argv=None) -> int:
               file=sys.stderr)
         return 2
     names = [n.strip() for n in args.pair.split(",")]
-    vendors = [v.strip().lower() for v in args.vendor.split(",")]
-    if len(names) != 2 or len(vendors) != 2:
-        print("   --pair and --vendor each need exactly two names. Nothing was played.", file=sys.stderr)
+    if len(names) != 2:
+        print("   --pair needs exactly two names. Nothing was played.", file=sys.stderr)
         return 2
+    vendors = spread([v.strip().lower() for v in args.vendor.split(",")], 2, "--vendor")
     if args.rounds < 1:
         print("   --rounds must be at least 1. Nothing was played.", file=sys.stderr)
         return 2
-    models = ([m.strip() for m in args.model.split(",")] if args.model
-              else [DEFAULT_MODEL[v] for v in vendors])
+    models = spread(([m.strip() for m in args.model.split(",")] if args.model
+                     else [DEFAULT_MODEL[v] for v in vendors]), 2, "--model")
     keys = []
     for v, n in zip(vendors, names):
         k = os.environ.get(f"TRIBE_API_KEY_{v.upper()}")

@@ -69,26 +69,77 @@ DEFAULT_MODEL = {"deepseek": "deepseek-flash", "gemini": "gemini-3.8-flash", "qw
                  "groq": "openai/gpt-oss-120b"}
 
 
+def spread(values: list[str], n: int, what: str) -> list[str]:
+    """One name given for the whole field is given to every player; otherwise it must be one each.
+
+    Found 2026-11-06 in a live Groq season: `--names Greta,Hans --vendor groq` built a one-element vendor
+    list, so the second player's turn died with `IndexError: list index out of range` two shots into the
+    session. A game that takes a field has to accept the ordinary way of naming a field.
+    """
+    if len(values) == n:
+        return values
+    if len(values) == 1:
+        return values * n
+    raise SystemExit(f"   {what}: {len(values)} given for {n} players - give one for all, or one each. "
+                     "Nothing was played.")
+
+
 # A free tier is counted per minute, so the remedy for a refusal is to wait, not to give up and not to play
 # a default shot as though the member had chosen it. Measured 2026-11-06 on Groq's free tier: three calls of a
 # thousand-token prompt in one minute, then HTTP 429 for every call until the window rolled over.
-RATE_WAITS = (20, 45, 90)
+# Two vendors let you say "answer, do not deliberate", and the games need to say it. Measured 2026-11-06 on the
+# same tennis prompt: deepseek-flash spent 600 of a 600-token allowance thinking and returned an empty answer, and
+# did that four times in six shots; with `thinking: {"type": "disabled"}` the same question came back in 11 output
+# tokens and 1.2 seconds. `reasoning_effort: "low"` was accepted too and answered in 526 tokens — half a thousand
+# tokens of deliberation to choose a racquet angle. Wakes keep their deliberation; this table belongs to the games,
+# where the one-line answer *is* the measurement, and a vendor that thinks its way past the allowance measures
+# nothing at all. Nothing here is sent to a vendor not listed: an unknown field is a 400 on a strict API.
+ANSWER_ONLY = {
+    "api.deepseek.com": {"thinking": {"type": "disabled"}},     # 600 tokens of thinking -> 11 tokens of answer
+    "api.groq.com": {"reasoning_effort": "low"},               # 436 -> 51, and "medium" blew the 600 cap
+}
+ANSWER_CAPS = (400, 2400, 8000)   # what a one-line answer is allowed, then what thinking costs
+RATE_WAITS = (20, 45, 90)      # the fallback, for a vendor that refuses without saying how long to wait
+RATE_ATTEMPTS = 4
+
+
+def _seconds(spec: str | None) -> float | None:
+    """`retry-after: 12`, `x-ratelimit-reset-tokens: 58.2s`, `1m2.5s`, `1h10m33.6s` — every shape seen so far."""
+    if not spec:
+        return None
+    m = re.fullmatch(r"\s*(?:(\d+)h)?(?:(\d+)m)?(?:([\d.]+)s)?\s*", spec)
+    if not m or not any(g is not None for g in m.groups()):
+        try:
+            return float(spec)
+        except ValueError:
+            return None
+    h, mins, secs = m.groups()
+    return int(h or 0) * 3600 + int(mins or 0) * 60 + float(secs or 0)
 
 
 def post(req, timeout: int = 120):
-    """Send a request; if the vendor says we are over its free-tier rate, wait and send it again."""
-    for attempt, wait in enumerate((0,) + RATE_WAITS):
-        if wait:
-            print(f"   the vendor's rate limit refused that call; waiting {wait}s and trying again "
-                  f"(attempt {attempt} of {len(RATE_WAITS)})", file=sys.stderr)
-            time.sleep(wait)
+    """Send a request; if the vendor says we are over its free-tier rate, wait and send it again.
+
+    The wait is the vendor's own number when it gives one. Measured 2026-11-06 in a live season: Groq's free
+    tier allows 8,000 tokens a minute and a tennis prompt is about 1,200 of them, so the fixed twenty-second
+    wait was shorter than the window it was waiting for — the game spent two and a half minutes being refused
+    six times over, while `x-ratelimit-reset-tokens` said "56.55s" on every one of those refusals.
+    """
+    for attempt in range(RATE_ATTEMPTS + 1):
         try:
             with urllib.request.urlopen(req, timeout=timeout) as r:
                 return r.read().decode()
         except urllib.error.HTTPError as e:
-            if e.code in (429, 503) and attempt < len(RATE_WAITS):
-                continue
-            raise
+            if e.code not in (429, 503) or attempt == RATE_ATTEMPTS:
+                raise
+            told = (_seconds(e.headers.get("retry-after"))
+                    or _seconds(e.headers.get("x-ratelimit-reset-tokens"))
+                    or _seconds(e.headers.get("x-ratelimit-reset-requests")))
+            wait = told if told is not None else RATE_WAITS[min(attempt, len(RATE_WAITS) - 1)]
+            wait = min(max(wait + 1.0, 2.0), 120.0)
+            print(f"   the vendor's rate limit refused that call; waiting {wait:.0f}s and trying again "
+                  f"(attempt {attempt + 1} of {RATE_ATTEMPTS})", file=sys.stderr)
+            time.sleep(wait)
 
 
 def ask(base: str, key: str, model: str, prompt: str, temperature: float = 1.0) -> str:
@@ -115,6 +166,7 @@ def ask(base: str, key: str, model: str, prompt: str, temperature: float = 1.0) 
             "temperature": temperature,
             "max_tokens": cap,
             "stream": False,
+            **next((extra for host, extra in ANSWER_ONLY.items() if host in base), {}),
         }).encode()
         req = urllib.request.Request(
             f"{base.rstrip('/')}/chat/completions", data=body,
@@ -122,21 +174,27 @@ def ask(base: str, key: str, model: str, prompt: str, temperature: float = 1.0) 
                      "User-Agent": UA})
         return json.loads(post(req))
 
-    # A small cap is right for a being asked for one word, and wrong for a model that thinks before it speaks:
-    # `gpt-oss` on Groq spent 398 of a 400-token budget on reasoning, returned an empty answer with
-    # finish_reason "length", and the game played a default shot as though the member had chosen it. Measured
-    # 2026-11-06. So: if the answer was cut off before any of it arrived, ask again with room for the thinking.
-    payload = call(400)
-    try:
-        choice = payload["choices"][0]
-        if not choice["message"].get("content") and choice.get("finish_reason") == "length":
-            payload = call(2400)
-    except (KeyError, IndexError):
-        pass
-    try:
-        return payload["choices"][0]["message"]["content"]
-    except (KeyError, IndexError):
-        return ""
+    # A small cap is right for a being asked for one word, and wrong for a model that thinks before it speaks.
+    # Two measurements, same day, two engines:
+    #   groq/`gpt-oss-120b`  spent 398 of 400 tokens on reasoning and returned "" with finish_reason "length";
+    #   deepseek/`deepseek-flash`, asked for the same line, spent 400 of 400, then 2,400 of 2,400, and still
+    #                        returned "" — it answered on the third try at 4,000, having thought for 646 tokens
+    #                        to produce seven. On a different prompt it thought for 1,838 tokens to produce seven.
+    # A game that gives up after the second cap writes a default shot down as the member's choice, which is
+    # the one thing the record may not do. So: escalate, and if the third answer is still empty, return "" and
+    # let the game say so out loud.
+    for cap in ANSWER_CAPS:
+        payload = call(cap)
+        try:
+            choice = payload["choices"][0]
+            content = choice["message"].get("content") or ""
+        except (KeyError, IndexError):
+            return ""
+        if content.strip():
+            return content
+        if choice.get("finish_reason") != "length":
+            return ""
+    return ""
 
 
 def read_throw(reply: str) -> str | None:
@@ -213,12 +271,12 @@ def main(argv=None) -> int:
     args = ap.parse_args(argv)
 
     names = [n.strip() for n in args.pair.split(",")]
-    vendors = [v.strip().lower() for v in args.vendor.split(",")]
-    if len(names) != 2 or len(vendors) != 2:
-        print("   --pair and --vendor each need exactly two names. Nothing was played.", file=sys.stderr)
+    if len(names) != 2:
+        print("   --pair needs exactly two names. Nothing was played.", file=sys.stderr)
         return 2
-    models = ([m.strip() for m in args.model.split(",")] if args.model
-              else [DEFAULT_MODEL[v] for v in vendors])
+    vendors = spread([v.strip().lower() for v in args.vendor.split(",")], 2, "--vendor")
+    models = spread(([m.strip() for m in args.model.split(",")] if args.model
+                     else [DEFAULT_MODEL[v] for v in vendors]), 2, "--model")
     keys = []
     for v in vendors:
         k = os.environ.get(f"TRIBE_API_KEY_{v.upper()}")
