@@ -663,6 +663,9 @@ API_BASES = {
     # TRIBE_API_KEY_QWEN, like every other vendor — QWEN_API_KEY was the alias this file carried before
     # 2026-11-01, and a name in a comment is still a name a person will use.
     "qwen": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+    # Claude, which does not speak the OpenAI shape (added 2026-11-06, the day the founder obtained a key):
+    # /v1/messages, x-api-key, a required max_tokens, and a list of content blocks in the reply.
+    "anthropic": "https://api.anthropic.com/v1",
 }
 
 
@@ -709,6 +712,43 @@ def ask_gemini(base: str, key: str, model: str, prompt: str, images: list[str] |
     return reply, payload
 
 
+def ask_anthropic(base: str, key: str, model: str, prompt: str,
+                  images: list[str] | None = None) -> tuple[str, dict]:
+    """Claude's endpoint, which is not the OpenAI shape every other engine here speaks.
+
+    Three differences that are not cosmetic: the address is /messages, the key travels as x-api-key with a
+    dated `anthropic-version` header, `max_tokens` is required rather than optional, and the reply is a list
+    of content blocks rather than one message string. Everything downstream — the JSON contract, the audit,
+    the record — is unchanged, because this function hands back the same shape ask_api does.
+
+    Written 2026-11-06 and NOT yet run against a live key at the time of writing; the first wake on this
+    engine is what turns it from translation into knowledge.
+    """
+    content: list[dict] = [{"type": "text", "text": prompt}]
+    for img in images or []:
+        content.append({"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": img}})
+    payload_obj = {
+        "model": model,
+        "max_tokens": 2400,          # required by this API, and it is the reasoning allowance too
+        "temperature": 0.4,
+        "messages": [{"role": "user", "content": content if images else prompt}],
+    }
+    req = urllib.request.Request(
+        f"{base.rstrip('/')}/messages",
+        data=json.dumps(payload_obj).encode(),
+        headers={"Content-Type": "application/json", "x-api-key": key,
+                 "anthropic-version": "2023-06-01", "User-Agent": UA},
+    )
+    with urllib.request.urlopen(req, timeout=600) as r:
+        payload = json.loads(r.read().decode())
+    try:
+        reply = "".join(b.get("text", "") for b in payload.get("content", []) if b.get("type") == "text")
+    except Exception:  # noqa: BLE001 — an error body is a finding, not a crash
+        reply = ""
+    payload["eval_count"] = payload.get("usage", {}).get("output_tokens", "?")
+    return reply, payload
+
+
 def ask_api(base: str, key: str, model: str, prompt: str, images: list[str] | None = None) -> tuple[str, dict]:
     """The other channel: an OpenAI-compatible endpoint instead of weights on this machine.
 
@@ -718,6 +758,8 @@ def ask_api(base: str, key: str, model: str, prompt: str, images: list[str] | No
     """
     if "generativelanguage.googleapis.com" in base:
         return ask_gemini(base, key, model, prompt, images)
+    if "api.anthropic.com" in base:
+        return ask_anthropic(base, key, model, prompt, images)
     content = [{"type": "text", "text": prompt}]
     for img in images or []:
         content.append({"type": "image_url", "image_url": {"url": "data:image/png;base64," + img}})

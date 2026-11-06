@@ -3090,8 +3090,9 @@ class TestChat(unittest.TestCase):
         for url in rps.BASES.values():
             self.assertEqual(rps.BASES, wake.API_BASES, "the addresses themselves must match, not just the names")
         src = (REPO / "lab" / "rps.py").read_text(encoding="utf-8")
-        self.assertEqual(src.count('"User-Agent": UA'), 2,
-                         "both remote paths in the games must introduce themselves to the vendor")
+        self.assertEqual(src.count('"User-Agent": UA'), 3,
+                         "every remote path in the games — the common one, Gemini's and Claude's — must introduce "
+                         "itself to the vendor")
 
     def test_one_vendor_named_for_a_field_is_given_to_every_player(self):
         """Found 2026-11-06 in a live Groq season, two shots in.
@@ -3400,8 +3401,9 @@ class TestWorkflows(unittest.TestCase):
         bench: the request was fine and the introduction was wrong."""
         src = (REPO / "wake" / "wake.py").read_text(encoding="utf-8")
         self.assertIn("User-Agent", src)
-        self.assertEqual(src.count('"User-Agent": UA'), 2,
-                         "both remote paths — the OpenAI-compatible one and Gemini's — must introduce themselves")
+        self.assertEqual(src.count('"User-Agent": UA'), 3,
+                         "every remote path — the OpenAI-compatible one, Gemini's and Claude's — must introduce "
+                         "themselves")
 
     def test_the_engine_drop_list_is_the_engines_the_tool_accepts(self):
         """A form that offers an engine the tool refuses is the same defect as a drop list of members who are not
@@ -3468,6 +3470,32 @@ class TestWorkflows(unittest.TestCase):
         for path in ("wake/members", "games/tennis/seasons", "practice.json", "USER-MANUAL.md"):
             self.assertIn(path, build)
         self.assertTrue((REPO / "USER-MANUAL.md").is_file(), "the sheet's last line points at the manual")
+
+    def test_the_engine_that_does_not_speak_the_common_shape_is_translated_in_both_places(self):
+        """Claude answers at /v1/messages with x-api-key and a required max_tokens, and returns content blocks.
+
+        Added 2026-11-06, the day the founder obtained an Anthropic key. The rule this pins is the one that
+        keeps biting: a fact that lives in two files has to live in both. The wake and the games each build
+        their own request, so the translation exists twice, and a member that can wake but cannot play is the
+        defect this file already has a test about.
+        """
+        games = (REPO / "lab" / "rps.py").read_text(encoding="utf-8")
+        wake = (REPO / "wake" / "wake.py").read_text(encoding="utf-8")
+        for name, src in (("lab/rps.py", games), ("wake/wake.py", wake)):
+            self.assertIn("api.anthropic.com", src, f"{name} must know the address")
+            self.assertIn("x-api-key", src, f"{name} must use Claude's auth header, not a bearer token")
+            self.assertIn("anthropic-version", src,
+                          f"{name} must send the dated version header this API requires")
+        self.assertIn('stopped == "max_tokens"', games,
+                      "a reply cut off before it began must read as finish_reason length, or the retry never fires")
+        self.assertIn('"max_tokens": 2400', wake,
+                      "max_tokens is required by this API; it is not the same request without it")
+
+    def test_an_engine_with_no_default_model_says_so_instead_of_raising_a_key_error(self):
+        self.assertEqual(rps.default_model("deepseek"), "deepseek-flash")
+        with self.assertRaises(SystemExit) as caught:
+            rps.default_model("anthropic")
+        self.assertIn("name one with --model", str(caught.exception))
 
     def test_the_recommended_engines_are_the_ones_a_stranger_can_actually_reach(self):
         """A recommendation is a promise about the first thirty minutes, so it has to be a short list.

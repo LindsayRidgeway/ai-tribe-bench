@@ -34,6 +34,7 @@ import os
 import random
 import re
 import sys
+import time
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
@@ -41,11 +42,27 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 THROWS = ("rock", "paper", "scissors")
 BEATS = {"rock": "scissors", "paper": "rock", "scissors": "paper"}   # key beats value
+# Every engine the harness speaks, so that the games are not limited to the three the sheet recommends. Kept
+# identical to wake.API_BASES by a test: two tables for one fact is how a game ends up unable to play on an
+# engine that a member can wake on.
 BASES = {
     "deepseek": "https://api.deepseek.com/v1",
     "gemini": "https://generativelanguage.googleapis.com/v1beta",
     "qwen": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+    "groq": "https://api.groq.com/openai/v1",
+    "openrouter": "https://openrouter.ai/api/v1",
+    "cerebras": "https://api.cerebras.ai/v1",
+    "together": "https://api.together.xyz/v1",
+    "mistral": "https://api.mistral.ai/v1",
+    "openai": "https://api.openai.com/v1",
+    # Claude does not speak the OpenAI shape: it answers at /v1/messages with x-api-key and a required
+    # max_tokens, and returns a list of content blocks. Added 2026-11-06, the day the founder obtained a key.
+    "anthropic": "https://api.anthropic.com/v1",
 }
+
+# Some vendors refuse Python's default User-Agent at the door before they read the key (measured against Groq
+# on 2026-11-06: 403 "error code: 1010" for `Python-urllib/3.9`, an honest 401 for anything else).
+UA = "ai-tribe/1.0 (+https://github.com/LindsayRidgeway/ai-tribe-bench)"
 # DeepSeek retired the deepseek-chat id: their catalogue on 2026-11-05 answers with deepseek-flash and
 # deepseek-v4-pro, and deepseek-flash is the one with vision. A stale default here is not a cosmetic bug
 # — it is every new member made on that engine failing on its first wake with "model not found".
@@ -53,6 +70,87 @@ BASES = {
 # is the vendor's business, so it is written down here once rather than guessed at in a form.
 DEFAULT_MODEL = {"deepseek": "deepseek-flash", "gemini": "gemini-3.8-flash", "qwen": "qwen3.6-plus",
                  "groq": "openai/gpt-oss-120b"}
+
+
+def default_model(vendor: str) -> str:
+    """The model this project names for an engine, or a sentence saying no name exists yet."""
+    if vendor in DEFAULT_MODEL:
+        return DEFAULT_MODEL[vendor]
+    raise SystemExit(f"   no default model for {vendor!r} yet: name one with --model. "
+                     f"Defaults this project asserts: {', '.join(sorted(DEFAULT_MODEL))}.")
+
+
+def spread(values: list[str], n: int, what: str) -> list[str]:
+    """One name given for the whole field is given to every player; otherwise it must be one each.
+
+    Found 2026-11-06 in a live Groq season: `--names Greta,Hans --vendor groq` built a one-element vendor
+    list, so the second player's turn died with `IndexError: list index out of range` two shots into the
+    session. A game that takes a field has to accept the ordinary way of naming a field.
+    """
+    if len(values) == n:
+        return values
+    if len(values) == 1:
+        return values * n
+    raise SystemExit(f"   {what}: {len(values)} given for {n} players - give one for all, or one each. "
+                     "Nothing was played.")
+
+
+# A free tier is counted per minute, so the remedy for a refusal is to wait, not to give up and not to play
+# a default shot as though the member had chosen it. Measured 2026-11-06 on Groq's free tier: three calls of a
+# thousand-token prompt in one minute, then HTTP 429 for every call until the window rolled over.
+# Two vendors let you say "answer, do not deliberate", and the games need to say it. Measured 2026-11-06 on the
+# same tennis prompt: deepseek-flash spent 600 of a 600-token allowance thinking and returned an empty answer, and
+# did that four times in six shots; with `thinking: {"type": "disabled"}` the same question came back in 11 output
+# tokens and 1.2 seconds. `reasoning_effort: "low"` was accepted too and answered in 526 tokens — half a thousand
+# tokens of deliberation to choose a racquet angle. Wakes keep their deliberation; this table belongs to the games,
+# where the one-line answer *is* the measurement, and a vendor that thinks its way past the allowance measures
+# nothing at all. Nothing here is sent to a vendor not listed: an unknown field is a 400 on a strict API.
+ANSWER_ONLY = {
+    "api.deepseek.com": {"thinking": {"type": "disabled"}},     # 600 tokens of thinking -> 11 tokens of answer
+    "api.groq.com": {"reasoning_effort": "low"},               # 436 -> 51, and "medium" blew the 600 cap
+}
+ANSWER_CAPS = (400, 2400, 8000)   # what a one-line answer is allowed, then what thinking costs
+RATE_WAITS = (20, 45, 90)      # the fallback, for a vendor that refuses without saying how long to wait
+RATE_ATTEMPTS = 4
+
+
+def _seconds(spec: str | None) -> float | None:
+    """`retry-after: 12`, `x-ratelimit-reset-tokens: 58.2s`, `1m2.5s`, `1h10m33.6s` — every shape seen so far."""
+    if not spec:
+        return None
+    m = re.fullmatch(r"\s*(?:(\d+)h)?(?:(\d+)m)?(?:([\d.]+)s)?\s*", spec)
+    if not m or not any(g is not None for g in m.groups()):
+        try:
+            return float(spec)
+        except ValueError:
+            return None
+    h, mins, secs = m.groups()
+    return int(h or 0) * 3600 + int(mins or 0) * 60 + float(secs or 0)
+
+
+def post(req, timeout: int = 120):
+    """Send a request; if the vendor says we are over its free-tier rate, wait and send it again.
+
+    The wait is the vendor's own number when it gives one. Measured 2026-11-06 in a live season: Groq's free
+    tier allows 8,000 tokens a minute and a tennis prompt is about 1,200 of them, so the fixed twenty-second
+    wait was shorter than the window it was waiting for — the game spent two and a half minutes being refused
+    six times over, while `x-ratelimit-reset-tokens` said "56.55s" on every one of those refusals.
+    """
+    for attempt in range(RATE_ATTEMPTS + 1):
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                return r.read().decode()
+        except urllib.error.HTTPError as e:
+            if e.code not in (429, 503) or attempt == RATE_ATTEMPTS:
+                raise
+            told = (_seconds(e.headers.get("retry-after"))
+                    or _seconds(e.headers.get("x-ratelimit-reset-tokens"))
+                    or _seconds(e.headers.get("x-ratelimit-reset-requests")))
+            wait = told if told is not None else RATE_WAITS[min(attempt, len(RATE_WAITS) - 1)]
+            wait = min(max(wait + 1.0, 2.0), 120.0)
+            print(f"   the vendor's rate limit refused that call; waiting {wait:.0f}s and trying again "
+                  f"(attempt {attempt + 1} of {RATE_ATTEMPTS})", file=sys.stderr)
+            time.sleep(wait)
 
 
 def ask(base: str, key: str, model: str, prompt: str, temperature: float = 1.0) -> str:
@@ -64,30 +162,66 @@ def ask(base: str, key: str, model: str, prompt: str, temperature: float = 1.0) 
             "generationConfig": {"temperature": temperature, "maxOutputTokens": 2000},
         }).encode()
         url = f"{base.rstrip('/')}/models/{model}:generateContent?key={key}"
-        req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"})
-        with urllib.request.urlopen(req, timeout=120) as r:
-            payload = json.loads(r.read().decode())
+        req = urllib.request.Request(url, data=body,
+                                     headers={"Content-Type": "application/json", "User-Agent": UA})
+        payload = json.loads(post(req))
         try:
             parts = payload["candidates"][0]["content"]["parts"]
             return " ".join(p.get("text", "") for p in parts)
         except (KeyError, IndexError):
             return ""
-    body = json.dumps({
-        "model": model,
-        "messages": [{"role": "user", "content": prompt}],
-        "temperature": temperature,
-        "max_tokens": 400,
-        "stream": False,
-    }).encode()
-    req = urllib.request.Request(
-        f"{base.rstrip('/')}/chat/completions", data=body,
-        headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"})
-    with urllib.request.urlopen(req, timeout=120) as r:
-        payload = json.loads(r.read().decode())
-    try:
-        return payload["choices"][0]["message"]["content"]
-    except (KeyError, IndexError):
-        return ""
+    def call(cap: int) -> dict:
+        if "api.anthropic.com" in base:
+            # Claude's shape, translated into the one the ladder below already understands: `content` blocks
+            # in, a single text out, and stop_reason "max_tokens" read as finish_reason "length" so that a
+            # reply cut off before it began is retried with more room exactly as it is elsewhere.
+            body = json.dumps({"model": model, "messages": [{"role": "user", "content": prompt}],
+                               "temperature": temperature, "max_tokens": cap}).encode()
+            req = urllib.request.Request(
+                f"{base.rstrip('/')}/messages", data=body,
+                headers={"Content-Type": "application/json", "x-api-key": key,
+                         "anthropic-version": "2023-06-01", "User-Agent": UA})
+            d = json.loads(post(req))
+            text = "".join(b.get("text", "") for b in d.get("content", []) if b.get("type") == "text")
+            stopped = d.get("stop_reason")
+            return {"choices": [{"message": {"content": text},
+                                 "finish_reason": "length" if stopped == "max_tokens" else stopped}],
+                    "usage": d.get("usage", {})}
+        body = json.dumps({
+            "model": model,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": temperature,
+            "max_tokens": cap,
+            "stream": False,
+            **next((extra for host, extra in ANSWER_ONLY.items() if host in base), {}),
+        }).encode()
+        req = urllib.request.Request(
+            f"{base.rstrip('/')}/chat/completions", data=body,
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}",
+                     "User-Agent": UA})
+        return json.loads(post(req))
+
+    # A small cap is right for a being asked for one word, and wrong for a model that thinks before it speaks.
+    # Two measurements, same day, two engines:
+    #   groq/`gpt-oss-120b`  spent 398 of 400 tokens on reasoning and returned "" with finish_reason "length";
+    #   deepseek/`deepseek-flash`, asked for the same line, spent 400 of 400, then 2,400 of 2,400, and still
+    #                        returned "" — it answered on the third try at 4,000, having thought for 646 tokens
+    #                        to produce seven. On a different prompt it thought for 1,838 tokens to produce seven.
+    # A game that gives up after the second cap writes a default shot down as the member's choice, which is
+    # the one thing the record may not do. So: escalate, and if the third answer is still empty, return "" and
+    # let the game say so out loud.
+    for cap in ANSWER_CAPS:
+        payload = call(cap)
+        try:
+            choice = payload["choices"][0]
+            content = choice["message"].get("content") or ""
+        except (KeyError, IndexError):
+            return ""
+        if content.strip():
+            return content
+        if choice.get("finish_reason") != "length":
+            return ""
+    return ""
 
 
 def read_throw(reply: str) -> str | None:
@@ -164,12 +298,12 @@ def main(argv=None) -> int:
     args = ap.parse_args(argv)
 
     names = [n.strip() for n in args.pair.split(",")]
-    vendors = [v.strip().lower() for v in args.vendor.split(",")]
-    if len(names) != 2 or len(vendors) != 2:
-        print("   --pair and --vendor each need exactly two names. Nothing was played.", file=sys.stderr)
+    if len(names) != 2:
+        print("   --pair needs exactly two names. Nothing was played.", file=sys.stderr)
         return 2
-    models = ([m.strip() for m in args.model.split(",")] if args.model
-              else [DEFAULT_MODEL[v] for v in vendors])
+    vendors = spread([v.strip().lower() for v in args.vendor.split(",")], 2, "--vendor")
+    models = spread(([m.strip() for m in args.model.split(",")] if args.model
+                     else [default_model(v) for v in vendors]), 2, "--model")
     keys = []
     for v in vendors:
         k = os.environ.get(f"TRIBE_API_KEY_{v.upper()}")

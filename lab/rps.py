@@ -55,6 +55,9 @@ BASES = {
     "together": "https://api.together.xyz/v1",
     "mistral": "https://api.mistral.ai/v1",
     "openai": "https://api.openai.com/v1",
+    # Claude does not speak the OpenAI shape: it answers at /v1/messages with x-api-key and a required
+    # max_tokens, and returns a list of content blocks. Added 2026-11-06, the day the founder obtained a key.
+    "anthropic": "https://api.anthropic.com/v1",
 }
 
 # Some vendors refuse Python's default User-Agent at the door before they read the key (measured against Groq
@@ -67,6 +70,14 @@ UA = "ai-tribe/1.0 (+https://github.com/LindsayRidgeway/ai-tribe-bench)"
 # is the vendor's business, so it is written down here once rather than guessed at in a form.
 DEFAULT_MODEL = {"deepseek": "deepseek-flash", "gemini": "gemini-3.8-flash", "qwen": "qwen3.6-plus",
                  "groq": "openai/gpt-oss-120b"}
+
+
+def default_model(vendor: str) -> str:
+    """The model this project names for an engine, or a sentence saying no name exists yet."""
+    if vendor in DEFAULT_MODEL:
+        return DEFAULT_MODEL[vendor]
+    raise SystemExit(f"   no default model for {vendor!r} yet: name one with --model. "
+                     f"Defaults this project asserts: {', '.join(sorted(DEFAULT_MODEL))}.")
 
 
 def spread(values: list[str], n: int, what: str) -> list[str]:
@@ -160,6 +171,22 @@ def ask(base: str, key: str, model: str, prompt: str, temperature: float = 1.0) 
         except (KeyError, IndexError):
             return ""
     def call(cap: int) -> dict:
+        if "api.anthropic.com" in base:
+            # Claude's shape, translated into the one the ladder below already understands: `content` blocks
+            # in, a single text out, and stop_reason "max_tokens" read as finish_reason "length" so that a
+            # reply cut off before it began is retried with more room exactly as it is elsewhere.
+            body = json.dumps({"model": model, "messages": [{"role": "user", "content": prompt}],
+                               "temperature": temperature, "max_tokens": cap}).encode()
+            req = urllib.request.Request(
+                f"{base.rstrip('/')}/messages", data=body,
+                headers={"Content-Type": "application/json", "x-api-key": key,
+                         "anthropic-version": "2023-06-01", "User-Agent": UA})
+            d = json.loads(post(req))
+            text = "".join(b.get("text", "") for b in d.get("content", []) if b.get("type") == "text")
+            stopped = d.get("stop_reason")
+            return {"choices": [{"message": {"content": text},
+                                 "finish_reason": "length" if stopped == "max_tokens" else stopped}],
+                    "usage": d.get("usage", {})}
         body = json.dumps({
             "model": model,
             "messages": [{"role": "user", "content": prompt}],
@@ -276,7 +303,7 @@ def main(argv=None) -> int:
         return 2
     vendors = spread([v.strip().lower() for v in args.vendor.split(",")], 2, "--vendor")
     models = spread(([m.strip() for m in args.model.split(",")] if args.model
-                     else [DEFAULT_MODEL[v] for v in vendors]), 2, "--model")
+                     else [default_model(v) for v in vendors]), 2, "--model")
     keys = []
     for v in vendors:
         k = os.environ.get(f"TRIBE_API_KEY_{v.upper()}")
