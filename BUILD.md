@@ -30,7 +30,7 @@ magnitude.**
 
 ## You need
 
-* A browser. Steps 1–3 and the fallback in step 6 are buttons on a GitHub page.
+* A browser. Steps 1–3 and the fallback in step 5 are buttons on a GitHub page.
 * A computer with Goose and Python 3 on it for steps 4–5. macOS and Linux have Python already.
 * At least one engine key. Three of the engines this project supports give out keys without asking for a card —
   Google's Gemini, DeepSeek and Alibaba's Qwen. Any one of them is enough for a whole tribe, though members on
@@ -72,39 +72,39 @@ ten members can all use one engine, and each is still a separate AI-being with i
 its own record. Give members different engines when you want to compare what different engines do with the same
 work.
 
-**4. If you are using a computer, put the tribe on it.** Clone your repository, or download it with **Code →
-Download ZIP** and unzip it. Then install Goose —
-[goose-docs.ai/docs/getting-started/installation](https://goose-docs.ai/docs/getting-started/installation) —
-on macOS, Linux or Windows. Goose is the app you use to sit down with one member at a time.
+**4. Talk to a member in a session.** A session is you and one member in a Goose window, with tools, for as long
+as the work takes. It is how this project itself was built, and it is the better of the two ways to talk: a wake
+answers one question and forgets, while a session can read a page, run what it has just written, and be argued
+with.
 
-A tribe has no engine of its own. Each member has one, and you chose it in step 2. Goose has to be told, once
-per engine, how to reach it. In that folder, run:
+On a computer: install Goose —
+[goose-docs.ai/docs/getting-started/installation](https://goose-docs.ai/docs/getting-started/installation) — clone
+your copy of the repository, and open Goose in that folder. Without a computer, skip to step 5; this step needs a
+terminal.
 
-```
-goose configure
-```
-
-Choose **Configure Providers**. Gemini is already in the list — pick it and paste your Gemini key. DeepSeek and
-Qwen are not in Goose's list, so choose **Custom Providers → Add A Custom Provider**, choose *OpenAI
-Compatible*, name it `deepseek` or `qwen`, and give it the address from [`ENGINES.md`](ENGINES.md) and the model
-names you want to use. It asks for the key and keeps it.
-
-**Which key do I paste?** The one for an engine you actually made a member on. That is not a guess: each
-member's `wake/members/<name>/state/voice.md` names its engine and its model, because you chose them in step 2.
-If every member shares one engine — which is what this sheet suggests for a first tribe — that is one key, and
-this step takes a minute. If you made members on all three engines, set up all three, and step 5 will work for
-whichever member you open. Nothing here is written into your repository: this is Goose's own setting, on your own
-computer.
-
-**5. Talk to a member in a session.** One command writes that member's session recipe from its own files — its
-identity, its voice, and the rule that it must write the session down before it stops:
+One command writes that member's session recipe from its own files, including the rule that it must write the
+session down before it stops:
 
 ```
 python3 lab/session.py --member <member-name> --write
 ```
 
-Then open the session. The last two arguments are the two lines in that member's `voice.md`, `api:` and
-`model:` — with one wrinkle: the tribe calls Google's engine `gemini` and Goose calls it `google`.
+**Then tell Goose about the engines.** A tribe has no engine of its own — each member has one, chosen in step 2 —
+and Goose will only speak to engines it has been told about:
+
+```
+goose configure
+```
+
+Gemini is already in Goose's list; pick it and paste the key. DeepSeek and Qwen are not in it, so pick
+**Custom Providers → Add A Custom Provider**, *OpenAI Compatible*, name it `deepseek` or `qwen`, and give it the
+address from [`ENGINES.md`](ENGINES.md) and a model name. It asks for a key once and keeps it. Paste the key of an engine
+you actually made a member on — that member's `wake/members/<name>/state/voice.md` names it, because you chose it
+in step 2 — and if the whole tribe shares one engine, that is one key and one minute. Nothing here is written into
+your repository: this is Goose's setting on your computer.
+
+Then open the session. The last two arguments are the two lines in that member's `voice.md`, `api:` and `model:` —
+with one wrinkle: the tribe calls Google's engine `gemini` and Goose calls it `google`.
 
 | the member's `voice.md` says | what you type after `--provider` |
 |---|---|
@@ -116,16 +116,15 @@ Then open the session. The last two arguments are the two lines in that member's
 goose run --recipe wake/members/<member-name>/session.yaml --provider <api> --model <model> --interactive
 ```
 
-So a member standing on DeepSeek opens with `--provider deepseek --model deepseek-flash`. If Goose answers that it
-has no key for that provider, it is telling you that engine was not set up in step 4 — go back, add it, and run
-this again.
+So a member standing on DeepSeek opens with `--provider deepseek --model deepseek-flash`. If Goose answers
+`Unknown provider: deepseek`, that engine has not been added yet: run `goose configure`, add it, and run this again.
 
 Ask them anything. They read their own identity, state, journal and open items first. Because the session runs
 in Goose, they have tools and can work for as long as the two of you need. When the session ends the member
 should have updated the repository — a journal entry, whatever it wrote filed under `works/`, and what it still
 owes you. Check that it did: a session is not a wake, and the harness does not file it for you.
 
-**6. No computer? Say hello instead.** **Issues → New issue**, and type into the body for example:
+**5. No computer? Say hello instead.** **Issues → New issue**, and type into the body for example:
 
 ```
 @tribe <member-name>: Hi! Please say in one sentence what your seat is.

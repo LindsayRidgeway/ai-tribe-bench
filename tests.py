@@ -3338,10 +3338,10 @@ class TestWorkflows(unittest.TestCase):
         engines = (REPO / "ENGINES.md").read_text(encoding="utf-8")
         for api in ("gemini", "deepseek", "qwen"):
             self.assertIn(f"TRIBE_API_KEY_{api.upper()}", engines)
-        # Step 4 teaches Goose the engines, and step 5 names one. Goose has no provider called "gemini": it
-        # calls Google's engine "google", and it has no DeepSeek or Qwen provider at all, so those two have to
-        # be added as custom providers. Checked against the sheet because a reader with no terminal cannot
-        # tell a missing provider from a wrong word.
+        # Step 4 both sets the engines up and names one, which is the point: Goose has no provider called
+        # "gemini" (it calls Google's engine "google") and no DeepSeek or Qwen provider at all, so a separate
+        # "set up Goose" step was a step whose purpose a reader could not see. Checked against the sheet
+        # because a reader with no terminal cannot tell a missing provider from a wrong word.
         self.assertIn("goose configure", build, "the engines are set up in Goose's own configuration")
         self.assertIn("Custom Providers", build, "DeepSeek and Qwen are not in Goose's provider list")
         self.assertIn("| `api: gemini` | `google` |", build, "the one word that differs must be written down")
@@ -3350,6 +3350,20 @@ class TestWorkflows(unittest.TestCase):
         for path in ("wake/members", "games/tennis/seasons", "practice.json", "USER-MANUAL.md"):
             self.assertIn(path, build)
         self.assertTrue((REPO / "USER-MANUAL.md").is_file(), "the sheet's last line points at the manual")
+
+    def test_the_build_steps_are_numbered_1_to_5_with_no_gaps(self):
+        """A numbered step that stops being necessary must come out and the rest close up.
+
+        The sheet used to have a step 4 whose whole content was "put the tribe on your computer" and a step 5
+        that assumed it. A reader could not see why the step was there, and a reader with no computer had a
+        numbered step they were told to skip. Its two facts — install Goose, tell Goose the engines — now sit in
+        the step that uses them. This test is the small guard against the numbering drifting again.
+        """
+        build = (REPO / "BUILD.md").read_text(encoding="utf-8")
+        head = build.split("## Give your tribe something to do")[0]
+        numbered = re.findall(r"^\*\*(\d+)\. ", head, flags=re.M)
+        self.assertEqual(numbered, ["1", "2", "3", "4", "5"],
+                         "the build steps are one to five, in order, with nothing skipped")
         self.assertIn("Use this template", build,
                       "a reader with no terminal starts by copying the repository, not by cloning it")
 
