@@ -57,8 +57,9 @@ another key to keep. Any of the three will do; members may share one engine or b
 
 ### Other possibilities
 
-Three more engines work here and are not recommended. Each one fails exactly one of the three checks above, and
-the last column says which — because "we tried it and did not like it" is not a reason a stranger can act on.
+Three more engines work here and are not recommended. Each one fails the *first* of the three checks above — the
+key — and none of them fails the other two any more. The last column says what the door costs, because "we tried it
+and did not like it" is not a reason a stranger can act on.
 
 | engine | secret name | address | price band, per million tokens (read 2026-11-06) | what it asks of you before it answers |
 |---|---|---|---|---|
