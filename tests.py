@@ -3412,13 +3412,22 @@ class TestWorkflows(unittest.TestCase):
 
     def test_the_engine_drop_list_is_the_engines_the_tool_accepts(self):
         """A form that offers an engine the tool refuses is the same defect as a drop list of members who are not
-        on the shelf: the stranger picks it, taps Run, and is told no. One table, or a test that says so."""
+        on the shelf: the stranger picks it, taps Run, and is told no. One table, or a test that says so.
+
+        Amended 2026-11-06 with the engine that runs weights on the machine doing the waking: a GitHub runner has
+        no weights, so the form withholds exactly that one and says why in the file. The assertion is a union
+        rather than a subtraction so that withholding any *other* engine still fails, loudly.
+        """
         tribe = load(REPO / "tribe.py", "tribe_mod_engines")
         text = (self.WF / "new-member.yml").read_text(encoding="utf-8")
         block = text.split("engine:", 1)[1].split("default:", 1)[0]
         offered = [l.strip().lstrip("- ").strip() for l in block.splitlines() if l.strip().startswith("- ")]
-        self.assertEqual(sorted(offered), sorted(tribe.BASES),
+        self.assertNotIn("local", offered,
+                         "a runner has no port to call: offering this engine would be a button that cannot work")
+        self.assertIn("local", tribe.BASES, "and a member on weights in this room is still a member")
+        self.assertEqual(sorted(set(offered) | {"local"}), sorted(tribe.BASES),
                          "new-member.yml offers an engine the tool does not accept, or hides one it does")
+        self.assertIn("local", text.lower(), "the form's silence about the one engine it withholds is not a note")
 
     def test_a_browser_can_play_a_session(self):
         """Same problem for the activity: the sheet's last section asks the reader to start a season, and until
@@ -3521,6 +3530,43 @@ class TestWorkflows(unittest.TestCase):
             self.assertIn("name one with --model", str(caught.exception))
         self.assertIn("mistral", rps.BASES,
                       "the engine with no default has to be a real engine, or this test proves nothing")
+
+    def test_weights_on_this_machine_need_no_key_and_the_wake_says_so(self):
+        """The one engine here that asks nobody for anything was being told it was missing a credential.
+
+        Measured 2026-11-06 on the M4 Pro: 20B of open weights behind `llama-server`, and the first wake was
+        refused before the prompt was printed — `!! no API key in the environment` — because every engine in
+        this file was assumed to be a vendor. That is the harness's own rule misread: it exists so a missing
+        *purchase* is answered in one line, and weights in the next room are not a purchase. The rule is now a
+        function with a test, in both tables, because a member who can wake on those weights but cannot enter a
+        game is the two-tables fault this suite already fails once.
+        """
+        for e in ("local",):
+            self.assertIn(e, rps.BASES, "the games must know the engine, or a wake works and a game refuses")
+            self.assertIn(e, wake.API_BASES, "so must the wake")
+            self.assertNotIn(e, rps.DEFAULT_MODEL,
+                             "there is no default: the model is whatever the person downloaded, and a guess here "
+                             "is a first-wake failure on somebody else's file")
+        self.assertTrue(rps.BASES["local"], "an engine with an empty address is not an engine")
+        for loopback in ("http://127.0.0.1:8080/v1", "http://localhost:11434/v1", "http://[::1]:8080/v1"):
+            self.assertTrue(wake.needs_no_key(loopback), f"{loopback} is this machine and has no vendor")
+            self.assertTrue(rps.needs_no_key(loopback), "the games' copy of the rule must agree, character for character")
+        for remote in ("https://api.groq.com/openai/v1", "http://127.0.0.1.evil.example/v1", ""):
+            self.assertFalse(wake.needs_no_key(remote),
+                             f"{remote!r} is not this machine; a hostname that merely starts with 127.0.0.1 is a "
+                             "stranger, and the rule has to be an equality rather than a prefix for that reason")
+            self.assertFalse(rps.needs_no_key(remote), "the games agree here too")
+        self.assertIn("needs_no_key(base)", (REPO / "wake" / "wake.py").read_text(encoding="utf-8"),
+                      "the wake must consult the rule before it declares a key missing")
+        self.assertEqual(rps.key_for("local"), "local",
+                         "the games must hand a loopback engine a placeholder rather than refuse it")
+        saved = os.environ.pop("TRIBE_API_KEY_MISTRAL", None)
+        try:
+            self.assertIsNone(rps.key_for("mistral"),
+                              "a real vendor with no key must still be refused, or this fix has cost the check")
+        finally:
+            if saved:
+                os.environ["TRIBE_API_KEY_MISTRAL"] = saved
 
     def test_the_recommended_engines_are_the_ones_a_stranger_can_actually_reach(self):
         """A recommendation is a promise about the first thirty minutes, so it has to be a short list.

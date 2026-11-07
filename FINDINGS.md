@@ -255,6 +255,68 @@ The suite went from 250 tests to 254 for this round; the four it gained pin the 
 translation that must exist in both places, the "other possibilities" heading and its three facts, and the
 refusal to keep claiming that Claude does not work here.
 
+## 8. Weights on his own laptop: mechanically valid on the first wake, and unwilling to look on the second
+
+Run 2026-11-06, 21:30–22:10 local, on the machine this project is written on: Apple M4 Pro, 24 GB unified memory,
+16 GPU cores, macOS. The founder removed Ollama months ago for the disk and the disappointment, and reinstalled a
+runner this evening on the grounds that the alternative was continuing to argue from a measurement of somebody
+else's hardware.
+
+**What was installed.** `llama.cpp` from Homebrew — `llama-server` alone answers in the OpenAI shape, so the
+harness needed an address and three lines of code rather than an adapter, which is why this took an evening and not
+a week. Weights: `gpt-oss-20b` at MXFP4, 12.1 GB, chosen for two reasons — it is the same model family the page
+recommends on Groq, so the comparison is weights-against-plumbing rather than one model against another, and its
+mixture-of-experts shape keeps generation fast with only a fraction of the parameters active per token.
+
+| | measured |
+|---|---|
+| download | 12.1 GB in about two and a half minutes (86 MB/s) |
+| server start to healthy | 18 s |
+| context | 16,384 tokens — a wake's prompt ran to 3,398 |
+| prompt read | 660 tokens/s |
+| generation | 65–67 tokens/s |
+| first wake | 1,577 tokens, 28.7 s, **MECHANICALLY VALID** |
+| game | 4 rounds, 8 asks, 11.9 s |
+| second wake | **REFUSED with a reason** — the reason was false |
+
+**The finding that matters is the second wake.** Asked to quote a line out of its own `state.md`, the model
+answered that the harness did not allow it to read files, and did nothing. The file was on its disk. The wake's own
+fields are how a member reads. Nothing about the harness was in its way, and it did not test the belief — it
+reported a limitation that did not exist, in a well-formed JSON object, with every required field filled in.
+
+That is a sharper version of what this document has been circling since §1. The small models on the cloud runner
+failed by *not looking and claiming they had* — `llama3.2:3b` printing `$(free -m)` into a report of a measurement.
+This 20B model failed by *not looking and claiming it could not*. The first is a lie about the past, the second is a
+lie about the present, and both are the same defect: a record produced without the act. **Every mechanical check
+this project has ever written passes both.** The verdict line said `REFUSED with a reason`, which is the honest
+outcome the harness already knows how to name, and the reason was still false — so the verdict field does not catch
+it either. What catches it is a reader who knows the file existed.
+
+**In the game it played well and read nothing.** Both sides threw rock in all four rounds; the transcript has the
+shape of a tournament and the content of a coin that always lands the same way. Compare §6, where Groq's 120B model
+was tested against a season rather than a preference: this is why the games exist, and why a wake alone is not
+evidence of a correspondent.
+
+**What it changes, and what it does not.** `local` is now an engine in both tables — `wake.API_BASES` and
+`lab/rps.py`'s `BASES` — with one rule attached: a loopback address is not a vendor, so it is not asked for a key.
+That rule was a real bug, found by being refused: the harness's first answer to weights in the next room was
+`!! no API key in the environment`, which is its own promise misapplied — the promise exists so a missing
+*purchase* is answered in one line, and this asks nobody for anything. The same fix landed in the five game files
+that had each grown their own copy of the key lookup, because five copies of one rule is how a member who can wake
+on his laptop cannot enter a tournament. Two tests hold it: one that the two tables agree about loopback, character
+for character, and one that the workflow still withholds this engine, because a GitHub runner has no weights and a
+button that cannot work is worse than a missing button.
+
+**What it does not change** is the recommended table. A recommendation on this page is advice to a stranger about
+their first thirty minutes, and this row needs a 12.1 GB download, a terminal, and a model name the stranger picked.
+The fairest sentence is the one in ENGINES.md: if what you want is a tribe that never asks a vendor's permission,
+this is the row — narrow correspondent, no key, no card, no network, and the second wake above is what you are
+buying.
+
+The suite went from 254 tests to 255 for this round, and the one it gained checks the rule in both tables, the
+three spellings of a loopback address, the hostname that merely *starts* with `127.0.0.1` and is therefore a
+stranger, and that a real vendor with no key is still refused.
+
 ## Limits, stated once and not buried
 
 Every result here is n=1 to n=5 per condition. One category per condition. Three engines that are also

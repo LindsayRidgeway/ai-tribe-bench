@@ -1098,6 +1098,15 @@ only in the log is that a newcomer's first hour is expensive, and spending it to
 already have would be a poor trade. If you want to run the weights path anyway, §6 says how; if you
 find a small engine that does the job, that is the most useful thing you could report back.
 
+**The same question, asked again on better silicon.** On 2026-11-06 the same question was put to a
+20B model (open weights, 12.1 GB) on an Apple M4 Pro with 24 GB, and the answer moved but did not
+change sides. Its first wake was mechanically valid in 28.7 seconds and wrote its file; asked next to
+quote one line out of its own state file, it replied that it was not allowed to read files — a
+limitation that did not exist — and did nothing. In four rounds of the game both sides threw rock. So:
+bigger weights make a better *shape* and still not a correspondent, and the honest sentence is that
+this path is worth trying if you specifically want no company in the loop, not if you want a good
+member. The measurements are in `ENGINES.md` note 17 and `FINDINGS.md` §8.
+
 ## 7. Choosing the engine
 
 Any [ollama](https://ollama.com/library) tag that fits in 16 GB of RAM works; 3–4B parameters at 4-bit

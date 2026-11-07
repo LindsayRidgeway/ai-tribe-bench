@@ -58,7 +58,35 @@ BASES = {
     # Claude does not speak the OpenAI shape: it answers at /v1/messages with x-api-key and a required
     # max_tokens, and returns a list of content blocks. Added 2026-11-06, the day the founder obtained a key.
     "anthropic": "https://api.anthropic.com/v1",
+    # Weights on this machine: llama.cpp's server or ollama, in the OpenAI shape on a loopback port. No
+    # adapter, no vendor, no key. Port 8080 is llama-server's; ollama's is 11434 and the address is the
+    # parameter. Added 2026-11-06 with the wake's copy of this row.
+    "local": "http://127.0.0.1:8080/v1",
 }
+
+# A loopback address is not a vendor, and only a vendor has a key to obtain. Mirrors wake.needs_no_key,
+# and a test holds the two together: the day they disagree, a member who can wake on weights in the next
+# room cannot enter a tournament. Same fix, same evening, same reason as the row above.
+LOOPBACK_HOSTS = ("127.0.0.1", "localhost", "::1", "[::1]", "0.0.0.0")
+
+
+def needs_no_key(base: str) -> bool:
+    """True when the address is this machine."""
+    host = base.split("//", 1)[-1].split("/", 1)[0]
+    host = host.rsplit(":", 1)[0] if not host.startswith("[") else host.split("]", 1)[0] + "]"
+    return host in LOOPBACK_HOSTS
+
+
+def key_for(vendor: str) -> str | None:
+    """The key for one engine, or None when it needs one and has none. One rule for six games.
+
+    Before this existed, five files each asked `os.environ.get("TRIBE_API_KEY_" + vendor)` and refused,
+    which meant a local engine was refused five times over for lacking a thing it does not have.
+    """
+    k = os.environ.get(f"TRIBE_API_KEY_{vendor.upper()}")
+    if k:
+        return k
+    return "local" if needs_no_key(BASES.get(vendor, "")) else None
 
 # Some vendors refuse Python's default User-Agent at the door before they read the key (measured against Groq
 # on 2026-11-06: 403 "error code: 1010" for `Python-urllib/3.9`, an honest 401 for anything else).
@@ -349,7 +377,7 @@ def main(argv=None) -> int:
                      else [default_model(v) for v in vendors]), 2, "--model")
     keys = []
     for v in vendors:
-        k = os.environ.get(f"TRIBE_API_KEY_{v.upper()}")
+        k = key_for(v)
         if not k:
             print(f"   TRIBE_API_KEY_{v.upper()} is not set, so {names[vendors.index(v)]} cannot throw. "
                   f"Nothing was played — a transcript with one side missing measures nothing.", file=sys.stderr)
