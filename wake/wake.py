@@ -688,12 +688,32 @@ def needs_no_key(base: str) -> bool:
     return host in LOOPBACK_HOSTS
 
 
+def image_mime(b64: str) -> str:
+    """An image's type from its first bytes, not from what the caller hoped it was.
+
+    Found 2026-11-07 by sending a JPEG to nine engines: three places in this file declared `image/png` for
+    whatever bytes arrived. Gemini and OpenAI accepted the lie without comment; Anthropic answered 400 and
+    named nothing a reader could act on, so the finding read as "Claude cannot see" when the truth was "we
+    mislabelled the file". A member handed a photograph would have concluded the same wrong thing.
+    """
+    head = base64.b64decode(b64[:24] + "=" * (-len(b64[:24]) % 4))
+    if head.startswith(b"\x89PNG"):
+        return "image/png"
+    if head.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if head.startswith(b"GIF8"):
+        return "image/gif"
+    if head[:4] == b"RIFF" and head[8:12] == b"WEBP":
+        return "image/webp"
+    return "image/jpeg"
+
+
 def ask_gemini(base: str, key: str, model: str, prompt: str, images: list[str] | None = None) -> tuple[str, dict]:
     """Google's native surface. The OpenAI-compatible one answered 404 for this key's models
     (key length 53, native listing fine, compat listing empty) — so the channel is the native one."""
     parts: list[dict] = [{"text": prompt}]
     for img in images or []:
-        parts.append({"inline_data": {"mime_type": "image/png", "data": img}})
+        parts.append({"inline_data": {"mime_type": image_mime(img), "data": img}})
     # Two truncations in a row (415 and 660 characters, cut mid-string) taught the shape of this
     # surface: thinking tokens are billed against the same output budget, so a cap that is generous
     # for prose is thin for a model that thinks first. Ask for the budget to be spent on the answer,
@@ -747,7 +767,8 @@ def ask_anthropic(base: str, key: str, model: str, prompt: str,
     """
     content: list[dict] = [{"type": "text", "text": prompt}]
     for img in images or []:
-        content.append({"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": img}})
+        content.append({"type": "image",
+                        "source": {"type": "base64", "media_type": image_mime(img), "data": img}})
     def send(temperature, budget: int) -> dict:
         payload_obj = {
             "model": model,
@@ -803,7 +824,8 @@ def ask_api(base: str, key: str, model: str, prompt: str, images: list[str] | No
         return ask_anthropic(base, key, model, prompt, images)
     content = [{"type": "text", "text": prompt}]
     for img in images or []:
-        content.append({"type": "image_url", "image_url": {"url": "data:image/png;base64," + img}})
+        content.append({"type": "image_url",
+                        "image_url": {"url": f"data:{image_mime(img)};base64,{img}"}})
 
     # The budget field's name is the vendor's business, and two vendors disagree. Measured 2026-11-06: OpenAI's
     # `gpt-5-mini` answers 400 "Unsupported parameter: 'max_tokens' ... Use 'max_completion_tokens' instead",

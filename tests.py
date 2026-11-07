@@ -9,6 +9,7 @@ to the member. Each of those has a test here.
 from __future__ import annotations
 
 import atexit
+import base64
 import contextlib
 import importlib.util
 import io
@@ -3576,6 +3577,27 @@ class TestWorkflows(unittest.TestCase):
         finally:
             if saved:
                 os.environ["TRIBE_API_KEY_MISTRAL"] = saved
+
+    def test_an_image_is_labelled_from_its_bytes_not_from_our_hope(self):
+        """Found 2026-11-07 by sending a JPEG to ten engines and reading the refusals.
+
+        Three places in wake.py wrote `media_type: image/png` for whatever arrived. Gemini and OpenAI swallowed it;
+        Anthropic answered 400 and named nothing useful, so the first conclusion was "Claude cannot see" — wrong, and
+        about the model rather than about the request. A tribe member handed a photograph would have drawn the same
+        wrong conclusion from the same silence, which is why this is a test and not a comment.
+        """
+        w = load(REPO / "wake" / "wake.py", "wake_mod_mime")
+        self.assertEqual(w.image_mime(base64.b64encode(b"\x89PNG\r\n\x1a\n" + b"0" * 32).decode()), "image/png")
+        self.assertEqual(w.image_mime(base64.b64encode(b"\xff\xd8\xff\xe0" + b"0" * 32).decode()), "image/jpeg")
+        self.assertEqual(w.image_mime(base64.b64encode(b"GIF89a" + b"0" * 32).decode()), "image/gif")
+        webp = b"RIFF" + b"0" * 4 + b"WEBP" + b"0" * 24
+        self.assertEqual(w.image_mime(base64.b64encode(webp).decode()), "image/webp")
+        self.assertEqual(w.image_mime(base64.b64encode(b"????" * 8).decode()), "image/jpeg",
+                         "an unrecognised header must still produce a real type; a guess that is sometimes wrong "
+                         "beats a refusal that says nothing")
+        src = (REPO / "wake" / "wake.py").read_text(encoding="utf-8")
+        self.assertEqual(src.count('"image/png"'), 1,
+                         "the only place allowed to say image/png is the function that sniffs it")
 
     def test_the_page_can_be_edited_by_someone_who_is_not_me(self):
         """The founder asked how to edit ENGINES.md without breaking it, which is a fair question with an unfair
