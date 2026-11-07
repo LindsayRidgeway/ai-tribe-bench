@@ -38,7 +38,7 @@ enough to build a tribe and every extra engine is another key to keep.[^11]
 
 | engine | secret name | address | price, per million tokens[^10] | what it asks of you first |
 |---|---|---|---|---|
-| `qwen` | `TRIBE_API_KEY_QWEN` | `dashscope-intl.aliyuncs.com` | not printed here: Alibaba's own sheet has not been read | an evening: signup, region and console work[^12] |
+| `qwen` | `TRIBE_API_KEY_QWEN` | `dashscope-intl.aliyuncs.com` | **$0.15 in / $0.47 out** (`qwen3.8-flash`, whole context up to 1M); **1,000,000 free tokens** on the Singapore region | an evening: signup, region and console work[^12] |
 | `mistral` | `TRIBE_API_KEY_MISTRAL` | `api.mistral.ai` | not printed here: the sheet draws its table in the browser — its own FAQ vouches for one example, Mistral Large at $0.50 in / $1.50 out | an account, and then the models your account can actually reach[^13] |
 | `cerebras` | `TRIBE_API_KEY_CEREBRAS` | `api.cerebras.ai` | not printed here: the price table renders in the browser | an account; two open-weight models, one of them at about 3,000 tokens a second[^13] |
 | `together` | `TRIBE_API_KEY_TOGETHER` | `api.together.xyz` | **$0.15 in / $0.50 out** (`zai-org/GLM-5.3-Flash`); **$0.03** cached input | an account[^13] |
@@ -46,9 +46,8 @@ enough to build a tribe and every extra engine is another key to keep.[^11]
 | `openai` | `TRIBE_API_KEY_OPENAI` | `api.openai.com` | **$0.05 in / $0.25 out** (`gpt-6-luna`); $0.50 / $2.50 (`gpt-6.1-terra`); $5.00 / $30.00 (`chat-latest`) | a card[^14] |
 | `anthropic` | `TRIBE_API_KEY_ANTHROPIC` | `api.anthropic.com` | **$0.10 in / $0.50 out** (`claude-haiku-5-5`, prompts under 100k); $2 / $10 (`claude-sonnet-5-5`); $4 / $20 (`claude-opus-5-5`) | prepaid credits bought with a card[^15] |
 
-Six of these seven have been woken here, one wake each on 2026-11-06, and the seventh has not been — its key is
-the one this project has never held in a shell, for the reason note 12 gives. None of them is recommended: the reason
-is the door, not the engine and not the bill.[^16]
+All seven have been woken here, one wake each on 2026-11-06, and not one of them is recommended: the reason is the
+door, not the engine and not the bill.[^16]
 
 ### On your own machine
 
@@ -161,8 +160,22 @@ you are done: the list, the keys and the model selector do not care what a provi
 
 [^12]: **Qwen is fine and the door is heavy.** Obtaining a usable Alibaba key took this project an evening of
     signup, region and console work. A recommendation is a promise about the first thirty minutes, and this page
-    cannot make that promise for Alibaba. If you already have the key — the founder does, having paid that evening
-    — a member on `qwen3.6-plus` wakes, plays and files like any other.
+    cannot make that promise for Alibaba. If you already have the key — the founder does, having paid that evening —
+    a member on `qwen3.8-flash` wakes and files like any other, and so does the older and more expensive
+    `qwen3.6-plus`.
+
+    **What Alibaba's sheet says**, read on 2026-11-06 rather than remembered: `qwen3.8-flash` is **$0.15 in /
+    $0.47 out** with the whole million-token context at that rate, and `qwen3.6-plus` is **$0.50 in / $3.00 out** to
+    256K tokens, doubling to $2 / $6 beyond it. The free quota — 1,000,000 tokens, valid 90 days — exists **only on
+    the Singapore region**; every other region pays from the first token. That is the reason the default here is the
+    fast model rather than the one Alibaba leads with: a sixth of the output price, the same context window, and
+    measured rather than assumed.
+
+    **And it was the slowest wake on this page**, which is worth printing next to the price: 8,459 tokens in
+    **124.8 s**, against 58.5 s for `qwen3.6-plus` on the same question and 1.8 s for Cerebras. It spent the time
+    thinking — 8,459 tokens for five sentences — and the answer was good: it named the timestamp in its own prompt,
+    said what it could not verify from where it sat, and refused to repeat its own journal as if it were measurement.
+    Slow is not the same as wrong, and on this page it is not the same as bad either.
 
 [^13]: **The four engines this page used to call unmeasured, measured — and the trap Mistral sets.** Each got one
     wake on 2026-11-06, same question, same member shape, and all four came back **mechanically valid**:
