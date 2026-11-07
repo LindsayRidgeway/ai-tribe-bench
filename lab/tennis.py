@@ -671,11 +671,19 @@ def run_drill(args) -> int:
             return 2
         keys.append(k)
 
-    ms = int(time.time() * 1000)
+    # The clock is pinned only when someone is deliberately replaying a match. Everything a player cannot
+    # control — surface, wind, the hands they were born with — comes from this number, so holding it fixed is
+    # the only way to ask what a *different opponent* does to the same player. A player's in-play fraction is
+    # not theirs alone: it is theirs against whoever is across the net, and a match with no control for that
+    # measures the pairing and calls it skill. 2026-11-07.
+    ms = args.clock if args.clock is not None else int(time.time() * 1000)
     surface = args.surface or surface_at(ms)
     wind_in = wind_at(ms)
     wv = wind_vector(*wind_in)
     rng = random.Random(ms)
+    if args.clock is not None:
+        print(f"  the clock is pinned at {ms}: same surface, same wind, same hands. "
+              f"Only the player can differ from the match this replays.")
     players = [Player(names[0], True, practice[0], rng=rng),
                Player(names[1], False, practice[1], rng=rng)]
     print(f"# early spring — {surface} ({SURFACES[surface]['note']}), wind {wind_in[0]} {wind_in[1]:.0f}mph, "
@@ -908,11 +916,19 @@ def run_rally(args) -> int:
             return 2
         keys.append(k)
 
-    ms = int(time.time() * 1000)
+    # The clock is pinned only when someone is deliberately replaying a match. Everything a player cannot
+    # control — surface, wind, the hands they were born with — comes from this number, so holding it fixed is
+    # the only way to ask what a *different opponent* does to the same player. A player's in-play fraction is
+    # not theirs alone: it is theirs against whoever is across the net, and a match with no control for that
+    # measures the pairing and calls it skill. 2026-11-07.
+    ms = args.clock if args.clock is not None else int(time.time() * 1000)
     surface = args.surface or surface_at(ms)
     wind_in = wind_at(ms)
     wv = wind_vector(*wind_in)
     rng = random.Random(ms)
+    if args.clock is not None:
+        print(f"  the clock is pinned at {ms}: same surface, same wind, same hands. "
+              f"Only the player can differ from the match this replays.")
     players = [Player(names[0], True, practice[0], rng=rng),
                Player(names[1], False, practice[1], rng=rng)]
     print(f"# early spring, rallying — {surface} ({SURFACES[surface]['note']}), wind {wind_in[0]} "
@@ -1133,6 +1149,10 @@ def main(argv=None) -> int:
     ap.add_argument("--drill", action="store_true", help="early spring: balls fed one at a time, no scoring")
     ap.add_argument("--rally", action="store_true", help="early spring: rallies that last until someone misses")
     ap.add_argument("--rallies", type=int, default=20, help="for --rally: how many rallies to play")
+    ap.add_argument("--clock", type=int, default=None,
+                    help="pin the clock, and with it the surface, the wind and the hands a player was born with "
+                         "(a test hook: replaying one match against a different opponent is the only way to see "
+                         "how much of a player's success belongs to the opponent)")
     ap.add_argument("--simulate-rally", action="store_true",
                     help="four scripted pairs rally, to test whether rally length responds to hands or learning")
     ap.add_argument("--season", default=None,

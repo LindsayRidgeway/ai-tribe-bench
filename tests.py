@@ -2701,6 +2701,35 @@ class TestTennis(unittest.TestCase):
         self.assertEqual(code, 2, "a match that cannot use an engine must refuse it, not ignore it")
         self.assertIn("never asks a member", err.getvalue())
 
+    def test_a_pinned_clock_replays_the_same_court_so_an_opponent_can_be_the_only_change(self):
+        """2026-11-07, the founder's point: a player's in-play fraction is not theirs alone. Margot against a
+        stronger opponent puts fewer balls in than Margot against a weaker one, with her own hands unchanged,
+        because what she is hitting back is a different ball. Every match this project had printed until now
+        drew its surface, its wind and its hands from the wall clock, so there was no way to hold them still
+        while changing the player across the net: the opponent effect and the weather were the same variable.
+
+        The hook is `--clock`. It pins what a player cannot control and says out loud that it has been pinned,
+        so a transcript cannot be mistaken for an ordinary match.
+        """
+        import contextlib, io
+        seen = []
+        for ms in (1794026200910, 1794026200910, 1794026200911):
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
+                self.t.main(["--drill", "--shots", "0", "--vendor", "local", "--model", "m",
+                             "--names", "Margot,Anvil", "--clock", str(ms)])
+            seen.append(out.getvalue())
+        for text, ms in zip(seen, (1794026200910, 1794026200910, 1794026200911)):
+            self.assertIn(f"clock {ms}\n", text, "the header must carry the clock it was given")
+            self.assertIn("the clock is pinned", text,
+                          "a replay must announce itself; otherwise a staged match reads as a real one")
+            self.assertIn(f"wind {self.t.wind_at(ms)[0]} {self.t.wind_at(ms)[1]:.0f}mph", text)
+        self.assertIn(self.t.surface_at(1794026200910), seen[0])
+        self.assertNotEqual(self.t.surface_at(1794026200910), self.t.surface_at(1794026200911),
+                            "this test needs two clocks that differ in at least one condition")
+        self.assertEqual(seen[0], seen[1],
+                         "the same clock twice must give the same court — that is the whole of the hook")
+
     def shot(self, power, face, shot="rally", wind=(0.0, 0.0), surface="hard", aim=None):
         t = self.t
         import math
