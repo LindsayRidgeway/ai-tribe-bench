@@ -43,7 +43,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parent))
-from rps import BASES, DEFAULT_MODEL, ask, default_model, spread  # noqa: E402  one vendor table, not two
+from rps import BASES, DEFAULT_MODEL, ask, default_model, key_for, spread  # noqa: E402  one vendor table, not two
 
 # ---- court, in feet -------------------------------------------------------------------------------
 LENGTH, WIDTH = 78.0, 27.0
@@ -664,7 +664,7 @@ def run_drill(args) -> int:
                      else [default_model(v) for v in vendors]), len(names), "--model")
     keys = []
     for v, n in zip(vendors, names):
-        k = os.environ.get(f"TRIBE_API_KEY_{v.upper()}")
+        k = key_for(v)
         if not k:
             print(f"   TRIBE_API_KEY_{v.upper()} is not set, so {n} cannot hit a ball. Nothing was played.",
                   file=sys.stderr)
@@ -901,7 +901,7 @@ def run_rally(args) -> int:
                      else [default_model(v) for v in vendors]), len(names), "--model")
     keys = []
     for v, n in zip(vendors, names):
-        k = os.environ.get(f"TRIBE_API_KEY_{v.upper()}")
+        k = key_for(v)
         if not k:
             print(f"   TRIBE_API_KEY_{v.upper()} is not set, so {n} cannot hit a ball. Nothing was played.",
                   file=sys.stderr)

@@ -33,6 +33,8 @@ on:
           - openrouter
           - together
           - anthropic
+        # `local` is missing on purpose: it means weights on the machine running the wake, and a GitHub
+        # runner has none. A member on those weights is made at a terminal — `tribe.py new --api local`.
         default: "gemini"
       model:
         description: "which model of that engine — leave blank for the project's usual one"

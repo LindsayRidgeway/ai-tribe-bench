@@ -666,7 +666,26 @@ API_BASES = {
     # Claude, which does not speak the OpenAI shape (added 2026-11-06, the day the founder obtained a key):
     # /v1/messages, x-api-key, a required max_tokens, and a list of content blocks in the reply.
     "anthropic": "https://api.anthropic.com/v1",
+    # Weights on this machine. `llama-server` (llama.cpp) and ollama both answer in the OpenAI shape on a
+    # loopback port, which is why this engine needs an address and no adapter — the same code path as
+    # every other engine here. Default port is llama.cpp's. Added 2026-11-06, the evening the founder put
+    # a runner back on the M4 Pro; what it measured is in ENGINES.md, note 17.
+    "local": "http://127.0.0.1:8080/v1",
 }
+
+# An address on this machine is not a vendor, and a vendor is the only thing that has a key to obtain.
+# Without this, the promise the harness makes — "no key, no wake, and it says so before printing the
+# prompt" — turns a local model into a missing credential, which is exactly backwards: local weights are
+# the one engine here that asks nobody for anything. The header is still sent, because servers vary about
+# a request with no Authorization, and the value is a word rather than a secret.
+LOOPBACK_HOSTS = ("127.0.0.1", "localhost", "::1", "[::1]", "0.0.0.0")
+
+
+def needs_no_key(base: str) -> bool:
+    """True when the address is this machine. Kept in step with lab/rps.py by a test."""
+    host = base.split("//", 1)[-1].split("/", 1)[0]
+    host = host.rsplit(":", 1)[0] if not host.startswith("[") else host.split("]", 1)[0] + "]"
+    return host in LOOPBACK_HOSTS
 
 
 def ask_gemini(base: str, key: str, model: str, prompt: str, images: list[str] | None = None) -> tuple[str, dict]:
@@ -1172,6 +1191,10 @@ having answered something nobody said.
         names = [n for n in (args.api_key_env,) if n] or [canonical]
         used = next((n for n in names if os.environ.get(n)), None)
         key = os.environ[used] if used else None
+        if not key and needs_no_key(base):
+            # Not a fallback and not a second name: there is no credential here to be missing. The games
+            # and this file have to agree about it, which is why the rule is a function with a test.
+            key, used = "local", f"{canonical} is not needed ({base} is this machine)"
         if not key:
             print("!! no API key in the environment: set " + " or ".join(names))
             print(f"   this wake asks {base} for {args.api_model} as member {args.member or '(none)'}."

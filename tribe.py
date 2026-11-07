@@ -22,7 +22,11 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent
 MEMBERS = REPO / "wake" / "members"
 BASES = {"deepseek", "gemini", "qwen", "groq", "openrouter", "cerebras", "mistral", "openai", "together",
-         "anthropic"}
+         "anthropic",
+         # Weights on this machine rather than a vendor's. It is a legal engine for a member and it is
+         # deliberately absent from new-member.yml: a GitHub runner has no weights and no port 8080, so
+         # offering it there would be a button that cannot work. Added 2026-11-06.
+         "local"}
 
 # Who writes each file, and what it is for. The "who" column is the part that was missing: the harness
 # maintains state.md's three lines and appends to journal.md, and a human editing those by hand is how a

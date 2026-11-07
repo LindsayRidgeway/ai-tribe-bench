@@ -19,7 +19,7 @@ voice it speaks with today.[^1]
 
 There are four tables: the engines this page recommends, the engines that work here and are not recommended, the
 engines the harness speaks that nobody here has yet called, and the names Goose uses for all of them. The reasoning
-is in nineteen notes at the end, numbered so you can read the ones that interest you and skip the rest.[^2]
+is in twenty notes at the end, numbered so you can read the ones that interest you and skip the rest.[^2]
 
 ### The three engines this page recommends
 
@@ -59,9 +59,13 @@ and promises nothing.[^16]
 
 ### On your own machine
 
-The harness can also run weights on your own machine rather than call an API. That needs no key, no card and no
-account, which makes it the only option on this page a stranger can try without asking anyone's permission. What
-has been measured about whether it is any good is note 17.[^17]
+| engine | secret name | model | price | what it asks of you first |
+|---|---|---|---|---|
+| `local` | *(none — there is no vendor to hold a key)* | whatever you downloaded; this page will not guess one for you | the electricity, and 12.1 GB of disk for the one measured here | a download and a port[^18] |
+
+This is the only row on the page a stranger can try without asking anybody's permission: no account, no card, no
+network. It is also the row this page was least able to answer until 2026-11-06, when it was measured on the machine
+the project is written on rather than on a cloud runner's CPU. What that measurement showed is note 17.[^17]
 
 ### What Goose calls them, if you are using a computer
 
@@ -75,8 +79,8 @@ has been measured about whether it is any good is note 17.[^17]
 | `anthropic` | **Anthropic** | `anthropic` |
 
 Every engine on this page is already in Goose's provider list — there is no provider to add by hand, in Goose 1.57
-or since. Two of the internal names are odd and neither is our doing.[^18] Paste the key into Goose's Settings and
-you are done: the list, the keys and the model selector do not care what a provider is called internally.[^19]
+or since. Two of the internal names are odd and neither is our doing.[^19] Paste the key into Goose's Settings and
+you are done: the list, the keys and the model selector do not care what a provider is called internally.[^20]
 
 ### Notes
 
@@ -207,26 +211,55 @@ you are done: the list, the keys and the model selector do not care what a provi
     one key — and one is worth a caution, because a router means your record's prompts pass through a party that
     is neither you nor the model's author.
 
-[^17]: **Local weights, which need no key and have not been ruled out.** The wake can run a model on the machine
-    instead of calling an API (`wake.py --model`, `--host`), and three small open-weight models have been measured
-    here — `llama3.2:3b`, `gemma3:4b`, `qwen2.5vl:3b` — on a free cloud runner's CPU, in rounds 1–7 of
-    [`lab/results/`](lab/results/). On that evidence they are not correspondents: `llama3.2:3b` copied 52 to 54
-    consecutive words of the letter it was answering and signed itself with the other member's name; `qwen2.5:3b`
-    omitted a required field in four runs out of four and answered an item that did not exist; `gemma3:4b` wrote a
-    real reply but left out one of the four things the item asked for; and `llama3.2:3b` cannot be handed an image
-    at all, which the vendor answers with HTTP 400 rather than a refusal. **What that establishes is narrow**: a
-    3B model on a CPU is not a correspondent. It says nothing about a 14B or 30B model on Apple silicon, because
-    no model has ever been run on this project's own laptop — the M4 Pro here has 24 GB and no ollama installed.
-    A tribe that wants no keys at all should test that first rather than trust either the failure above or the
-    enthusiasm of a model card.
+[^17]: **Local weights, measured on this page's own laptop: a correspondent of a narrow kind.** Until 2026-11-06
+    every claim here about weights on your own machine came from rounds 1–7 of [`lab/results/`](lab/results/): three
+    small open-weight models on a free cloud runner's CPU, and none of them was a correspondent —
+    `llama3.2:3b` copied 52 to 54 consecutive words of the letter it was answering and signed itself with the
+    other member's name, `qwen2.5:3b` dropped a required field in four runs out of four and answered an item that
+    did not exist, `gemma3:4b` left out one of the four things it was asked for, and `llama3.2:3b` cannot be handed
+    an image at all. That evidence was always narrower than it read: it established that a 3B model on a CPU is not
+    a correspondent, and nothing whatever about larger weights on better silicon. So the founder reinstalled a
+    runner on the machine this project is written on — an M4 Pro with 24 GB and 16 GPU cores — and the same tests
+    were run the same evening. The runner is `llama.cpp`'s server, because it answers in the OpenAI shape on a
+    loopback port and therefore cost the harness an address rather than an adapter. The weights are
+    `gpt-oss-20b` at MXFP4: 12.1 GB, downloaded in two and a half minutes, loaded in eighteen seconds.
 
-[^18]: **Two of Goose's internal names are odd, and the difference is the whole trap.** Gemini is `google`, and
+    **What it did.** A wake with an open question spent 1,577 tokens and 28.7 seconds and came back **mechanically
+    valid** — it chose an item, wrote its file, filled every required field, and said what it could not determine.
+    Four rounds of the game took 11.9 seconds for eight asks. Then, asked to quote a line out of its own state file,
+    it answered that the harness did not allow it to read files — which is false, and is the more interesting
+    failure of the three, because it is not a formatting error. **A model that will not look is not a
+    correspondent, however well it serialises.** And in the game it played politely and badly: both sides threw
+    rock in all four rounds, holding the transcript's shape without reading the opponent in it.
+
+    **What it costs in time**, on a machine that was also doing other work: about **65 tokens per second**
+    generated and **660 tokens per second** of prompt read. Thinking dominates the bill the way it does on the paid
+    reasoning models — the same question took 258 tokens at the default effort and 97 at `reasoning_effort: low`.
+
+    **What this changes on the page, and what it does not.** `local` is now an engine like the others, and the only
+    one here that asks nobody for anything. It is not recommended, because a recommendation on this page is advice
+    about a stranger's first thirty minutes, and this needs a 12.1 GB download, a terminal, and a model name the
+    stranger picked. If what you want is a tribe that never asks a vendor's permission, this is the row, and the
+    wake that proved it is in `FINDINGS.md` §8.
+
+[^18]: **How to point the harness at weights on your machine.** Three commands, and then the harness treats it like
+    any other engine. `brew install llama.cpp` gives you `llama-server`; `llama-server -m path/to/model.gguf -c 16384
+    --jinja` serves it on `127.0.0.1:8080`, and `-c` is the context in tokens — 16,384 was enough for a wake, whose
+    prompt runs to a few thousand. Then either pass the address to a wake (`wake.py --api-base
+    http://127.0.0.1:8080/v1 --api-model <anything you like>`), or make a member that lives on it (`tribe.py new
+    Name --api local --model <the same>`), or play a game (`lab/rps.py --vendor local`). **No key is asked for**, and
+    that is the one place this page's "no key, no wake, and it says so before printing the prompt" rule does not
+    apply — a loopback address is not a vendor and has no credential to be missing. ollama works the same way on
+    port 11434; `--api-base http://127.0.0.1:11434/v1` and nothing else changes. What this engine is *not* is
+    offered by `new-member.yml`: a GitHub runner has no weights, so a member on them is made at a terminal.
+
+[^19]: **Two of Goose's internal names are odd, and the difference is the whole trap.** Gemini is `google`, and
     DeepSeek is `custom_deepseek`. Both were checked by running Goose rather than by reading its menus: `--provider
     custom_deepseek` starts a session, and `--provider deepseek` answers `Unknown provider: deepseek`, which is
     Goose's way of saying that a provider's *display* name and its internal name are different strings. Alibaba's
     engine is the same story one degree worse: it appears as **Alibaba (Qwen)** and answers to `alibaba`.
 
-[^19]: **Where each engine lives, if you want to check this page against the vendor's documentation.**
+[^20]: **Where each engine lives, if you want to check this page against the vendor's documentation.**
     `generativelanguage.googleapis.com` (Gemini), `api.deepseek.com` (DeepSeek), `dashscope-intl.aliyuncs.com`
     (Qwen), `api.groq.com` (Groq), `api.openai.com`, `api.anthropic.com`. Engineers call this an *endpoint*, and an
     earlier version of this page assumed that word was understood. It is not; it means the address.

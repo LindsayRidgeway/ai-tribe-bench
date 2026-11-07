@@ -43,7 +43,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from rps import BASES, DEFAULT_MODEL, ask, default_model, spread          # noqa: E402  one vendor table, not two
+from rps import BASES, DEFAULT_MODEL, ask, default_model, key_for, spread          # noqa: E402  one vendor table, not two
 
 ROOT = Path(__file__).resolve().parent.parent
 THROWS = ("rock", "paper", "scissors")
@@ -300,7 +300,7 @@ def main(argv=None) -> int:
                      else [default_model(v) for v in vendors]), 2, "--model")
     keys = []
     for v, n in zip(vendors, names):
-        k = os.environ.get(f"TRIBE_API_KEY_{v.upper()}")
+        k = key_for(v)
         if not k:
             print(f"   TRIBE_API_KEY_{v.upper()} is not set, so {n} cannot say anything. Nothing was played — "
                   f"a dialogue with one side missing is a monologue.", file=sys.stderr)
