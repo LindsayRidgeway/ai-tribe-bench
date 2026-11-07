@@ -84,7 +84,15 @@ def renumber(text: str) -> tuple[str, dict[int, int]]:
     mapping = {old: new for new, old in enumerate(order, 1)}
 
     def swap(t: str) -> str:
-        return re.sub(r"\[\^(\d+)\]", lambda m: f"[^{mapping.get(int(m.group(1)), int(m.group(1)))}]", t)
+        # The reference first, then the prose number that points at it: "note 17.[^17]" is two statements of the
+        # same fact, and renumbering only the bracket leaves the sentence telling the reader the wrong note —
+        # which happened on 2026-11-07 and was caught by reading, not by this program.
+        def one(m):
+            old_n = int(m.group(1))
+            new_n = mapping.get(old_n, old_n)
+            return f"[^{new_n}]"
+        t = re.sub(r"\[\^(\d+)\]", one, t)
+        return re.sub(r"(note )(\d+)(\.\[\^)", lambda m: f"{m.group(1)}{mapping.get(int(m.group(2)), int(m.group(2)))}{m.group(3)}", t)
 
     by_old = dict(blocks)
     out = swap(body) + "\n".join(swap(by_old[old]) for old in order)
@@ -176,6 +184,12 @@ def problems(text: str | None = None) -> list[str]:
         actual = words.get(len(def_nums), str(len(def_nums)))
         if said != actual:
             out.append(f"The prose says {said!r} notes and there are {len(def_nums)} — say {actual!r}")
+
+    # 4b. a prose number and its reference are the same fact; they must agree
+    for m in re.finditer(r"note (\d+)\.\[\^(\d+)\]", text):
+        if m.group(1) != m.group(2):
+            out.append(f"the prose says 'note {m.group(1)}' and the reference beside it is [^{m.group(2)}] — "
+                       f"renumber by running --renumber rather than by editing the number")
 
     # 5. the forbidden sentences
     for phrase, why in FORBIDDEN:
