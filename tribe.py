@@ -213,6 +213,33 @@ def new(name: str, seat: str, api: str, model: str, of: str, place: str = "") ->
     return 0
 
 
+def place(name: str, where: str, force: bool = False) -> int:
+    """Give a member a world after it was created without one.
+
+    A member made with no place is created and never woken. Until 2026-11-07 the two remedies offered were a
+    shell command and "run this form again" — and the form refuses an existing member, so anyone who followed
+    the advice looped. The founder found this on a phone, where the shell command is not available at all.
+
+    An unknown world is refused rather than written: a member standing in a world that does not exist is the
+    same defect as a member standing in none, wearing a different sentence.
+    """
+    base = MEMBERS / name
+    if not base.is_dir():
+        print(f"   there is no member called {name!r} in this colony, so there is nothing to place.")
+        return 2
+    on_disk = sorted(p.name for p in (REPO / "soil").glob("*") if p.is_dir()) if (REPO / "soil").is_dir() else []
+    if on_disk and where not in on_disk and not force:
+        print(f"   there is no world called {where!r}. This colony has: {', '.join(on_disk)}.")
+        print("   a member in a world that does not exist is not in a colony either, so nothing was written.")
+        print("   to place it anyway (a world you are about to make), add --force.")
+        return 2
+    (base / "state").mkdir(parents=True, exist_ok=True)
+    (base / "state" / "place.md").write_text(f"place: {where}\n", encoding="utf-8")
+    print(f"   {name} stands in {where} now: wake/members/{name}/state/place.md")
+    print(f"   the next clock will consider it, one member per world.")
+    return 0
+
+
 def place_of(d: Path) -> str:
     try:
         line = (d / "state" / "place.md").read_text(encoding="utf-8").strip().splitlines()[0]
@@ -507,6 +534,11 @@ def main() -> int:
     n.add_argument("--place", default="",
                    help="which world the member stands in; inferred when the colony has exactly one")
     a = ap.add_argument_group("validate/status")
+    p_place = sub.add_parser("place", help="give an existing member a world, when it was created without one")
+    p_place.add_argument("name")
+    p_place.add_argument("where")
+    p_place.add_argument("--force", action="store_true",
+                         help="write the place even when no soil folder of that name exists yet")
     sub.add_parser("validate").add_argument("name", nargs="?")
     sub.add_parser("status")
     p_fresh = sub.add_parser("fresh", help="start a colony with no past: clear the record, keep the members")
@@ -522,6 +554,8 @@ def main() -> int:
 
     if args.cmd == "new":
         return new(args.name, args.seat, args.api, args.model, args.of, args.place)
+    if args.cmd == "place":
+        return place(args.name, args.where, args.force)
     if args.cmd == "validate":
         all_dirs = [d.name for d in member_dirs()]
         if args.name:

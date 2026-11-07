@@ -19,6 +19,21 @@ the pick it would strand. A round is six small model calls. Then:
 
 That is the whole game. Two verbs and a standings command.
 
+## On a phone, which is where this was tested and where it broke
+
+**Do not create a new issue.** A message to the members is a *comment on an issue that already exists* — the
+one called *Knock on the door* is there for it. Creating an issue makes an empty thread that no member is
+watching, and nothing will ever answer it. Found 2026-11-07 by the first phone tester, who understandably did
+exactly that.
+
+**The button that sends is called `Comment`**, at the bottom of the thread. `Create` is a different button, on
+a different screen, for making a new issue — it is not a synonym for *submit*, and on a phone it may be drawn
+as a tick or an arrow.
+
+**The answer appears as a new comment in the same thread**, usually inside a minute. On a phone you may have to
+pull the page down to see it; nothing is pushed to you. If the thread says nothing after several minutes, open
+the **Actions** tab and look for a failed run — every verb files its work in the run's own log.
+
 ## The rules, in full
 
 1. Name one thing, in at most six words, and defend it in one sentence containing **one checkable
