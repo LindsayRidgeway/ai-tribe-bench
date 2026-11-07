@@ -246,19 +246,36 @@ def ask(base: str, key: str, model: str, prompt: str, temperature: float = 1.0) 
             return {"choices": [{"message": {"content": text},
                                  "finish_reason": "length" if stopped == "max_tokens" else stopped}],
                     "usage": d.get("usage", {})}
-        body = json.dumps({
-            "model": model,
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": temperature,
-            field: cap,
-            "stream": False,
-            **next((extra for host, extra in ANSWER_ONLY.items() if host in base), {}),
-        }).encode()
-        req = urllib.request.Request(
-            f"{base.rstrip('/')}/chat/completions", data=body,
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}",
-                     "User-Agent": UA})
-        return json.loads(post(req))
+        def body_for(temp) -> bytes:
+            obj = {
+                "model": model,
+                "messages": [{"role": "user", "content": prompt}],
+                field: cap,
+                "stream": False,
+                **next((extra for host, extra in ANSWER_ONLY.items() if host in base), {}),
+            }
+            if temp is not None:
+                obj["temperature"] = temp
+            return json.dumps(obj).encode()
+
+        def send(temp):
+            req = urllib.request.Request(
+                f"{base.rstrip('/')}/chat/completions", data=body_for(temp),
+                headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}",
+                         "User-Agent": UA})
+            return json.loads(post(req))
+
+        try:
+            return send(temperature)
+        except urllib.error.HTTPError as e:
+            # Found 2026-11-07 by running a conversation at temperature 0.7: `gpt-6-luna` answers 400 "Only the
+            # default (1) value is supported", and this path raised instead of adapting — the wake has done this
+            # since the day it met Claude, and the games had not, so a bug that was fixed in one place was live
+            # in another. The vendor's complaint decides: name temperature, and the field comes out.
+            said = e.read().decode()[:400] if hasattr(e, "read") else ""
+            if e.code == 400 and "temperature" in said:
+                return send(None)
+            raise
 
     def call(cap: int) -> dict:
         """Ask, and if the vendor rejects the name of the budget field, ask again with the other name.

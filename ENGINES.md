@@ -241,6 +241,14 @@ you are done: the list, the keys and the model selector do not care what a provi
     sentences of what it was for, none of them about anything it had read. Bigger weights and a paid route do not fix
     that; it is the model, not the plumbing.
 
+    **The number no price table shows is throughput, and a fast wake does not predict it.** Cerebras answered this
+    page's wake in 1.8 s and then took **37 minutes** to play a fifty-rally session that `ministral-8b-latest` played
+    in 33 seconds, because Cerebras's free tier answers `x-ratelimit-limit-requests-minute: 5` — five calls a minute,
+    and a rally costs one call per shot. Nothing was refused and nothing was billed: the same headers showed
+    `x-ratelimit-remaining-tokens-minute` resting near 30,000, so the constraint was never the tokens. A member on
+    Cerebras is quick in a wake and slow in a game, and only a game tells you which. Groq's limiter has the same
+    shape with a much higher ceiling (note 9).
+
 [^16]: **OpenAI works here, and its cheapest model was the cheapest thing on this page until OpenRouter joined it.** `gpt-6-luna` at $0.05 in is still the cheapest model bought directly from the vendor that makes it; the four newer rows in the table above undercut it, and the cheapest of all is a router reselling somebody else's 20B weights. It speaks the shape this
     harness already speaks, so it needed no adapter, and it still refused three things in a row, each refusal
     naming the field: `max_tokens` on models that want `max_completion_tokens` (and the reverse on older ones), a
