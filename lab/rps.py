@@ -103,7 +103,13 @@ DEFAULT_MODEL = {"deepseek": "deepseek-flash", "gemini": "gemini-3.8-flash", "qw
                  # model this project ever called and it still answers, but it has since dropped off that
                  # sheet — and an id that exists without a price is the `deepseek-chat` lesson waiting to
                  # happen, so the default is the cheap model the vendor currently lists.
-                 "openai": "gpt-6-luna", "anthropic": "claude-haiku-5-5"}
+                 "openai": "gpt-6-luna", "anthropic": "claude-haiku-5-5",
+                 # All four measured on 2026-11-06, the evening the founder put keys in engines.env: one wake
+                 # each, all mechanically valid (5.9s, 1.8s, 8.6s, 47.2s). Before this line existed these
+                 # engines were "the rest, which the harness also speaks" — supported and never called, which
+                 # is a row that promises nothing and is worth nothing to a reader.
+                 "mistral": "ministral-8b-latest", "cerebras": "gpt-oss-120b",
+                 "openrouter": "openai/gpt-oss-20b", "together": "zai-org/GLM-5.3-Flash"}
 
 
 def default_model(vendor: str) -> str:
