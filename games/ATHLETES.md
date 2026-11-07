@@ -109,3 +109,11 @@ excellent prose about a bedroom and no bedroom.
    different opponent.
 5. **A game is not a demo.** `dice/` shows the filing cabinet works; it taught nobody anything, and its record
    says so.
+
+## Built since this queue was written
+
+- **`putt/` — built 2026-11-07, and it prints a number.** Eighteen holes on one 2% green with a scripted
+  athlete that bisects on the printed miss: on the flat control it converges to 0.00 ft of miss and holes
+  9 of 18; on the 2% green it does *not* converge (4.26 -> 6.16 ft) because one line bias cannot read a
+  green whose break grows with distance. That failure is the next item, not a reason to start the
+  basketball game. See `games/putt/README.md` and `records/putt-2026-11-07.txt`.

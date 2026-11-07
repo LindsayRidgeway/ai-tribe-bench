@@ -1,0 +1,70 @@
+# putt — one green, one slope, one speed, and the miss in feet
+
+  green: stimp 10.5 (friction 1.714 ft/s²), slope 2.0% falling toward 120°, hole radius 0.177 ft, capture under 4.5 ft/s
+  athlete: no model calls, no physics. two unknowns (pace gain, line bias), one number back per putt.
+
+## Eighteen holes, and the athlete bisecting on the printed miss after every one
+
+    1     6 ft at   0°   line  +0.00°  pace  4.94 ft/s   0.1 ft past, 1.0 ft right               
+    2     9 ft at  45°   line  +0.00°  pace  3.69 ft/s   4.4 ft short, 1.0 ft right              
+    3    12 ft at 315°   line  -4.00°  pace  5.24 ft/s   6.1 ft short, 0.2 ft left               
+    4    15 ft at   0°   line  -4.00°  pace  6.64 ft/s   4.1 ft short, 0.9 ft right              
+    5    18 ft at  90°   line  -6.00°  pace  5.49 ft/s   5.0 ft short, 0.4 ft right              
+    6    21 ft at 270°   line  -6.00°  pace  9.03 ft/s   2.9 ft short, 3.7 ft left               
+    7    24 ft at  30°   line  -5.00°  pace  8.39 ft/s   3.1 ft short, 2.4 ft right              
+    8    27 ft at 330°   line  -5.00°  pace 10.66 ft/s   2.1 ft short, 0.5 ft left               
+    9    30 ft at   0°   line  -4.50°  pace 10.64 ft/s   2.1 ft short, 2.0 ft right              
+   10    33 ft at  60°   line  -4.50°  pace  9.41 ft/s   0.6 ft short, 3.9 ft right              
+   11    36 ft at 300°   line  -4.75°  pace 12.78 ft/s   1.5 ft short, 3.3 ft left               
+   12    39 ft at  15°   line  -4.75°  pace 12.00 ft/s   0.3 ft short, 3.8 ft right              
+   13    42 ft at 345°   line  -4.88°  pace 13.37 ft/s   0.8 ft short, 1.0 ft right              
+   14    45 ft at  75°   line  -4.88°  pace 10.60 ft/s   0.1 ft past, 4.0 ft right               
+   15    48 ft at 285°   line  -4.94°  pace 14.90 ft/s   0.4 ft short, 6.8 ft left               
+   16    24 ft at 180°   line  -4.94°  pace  8.16 ft/s   1.1 ft past, 6.9 ft left                
+   17    30 ft at 200°   line  -4.91°  pace  9.78 ft/s   1.4 ft past, 9.5 ft left                
+   18    36 ft at 160°   line  -4.91°  pace  9.34 ft/s   1.0 ft past, 8.2 ft left                
+
+  eighteen holes: 0/18 holed, 0 lipped out
+    miss, first 6:  4.26 ft   last 6:  6.16 ft   ->  0.7x
+    |along|  3.77 ->  0.80 ft     |lateral|  1.20 ->  6.07 ft
+
+## Three holes it never practises on, with the two learned numbers held fixed
+
+   H1    11 ft at  20°   line  -4.89°  pace  6.32 ft/s   beside the hole, 1.2 ft right           
+   H2    26 ft at 340°   line  -4.89°  pace 10.68 ft/s   0.3 ft short, 0.3 ft right              
+   H3    40 ft at 100°   line  -4.89°  pace  9.39 ft/s   0.4 ft short, 0.5 ft right              
+
+  held out: 0/3 holed, 0 lipped out
+    miss, first 1:  1.17 ft   last 1:  0.59 ft   ->  2.0x
+    |along|  0.06 ->  0.38 ft     |lateral|  1.17 ->  0.45 ft
+
+## Three more, on the same green dead flat, for the comparison
+
+    1     6 ft at   0°   line  +0.00°  pace  4.54 ft/s   in the hole                               *
+    2     9 ft at  45°   line  +0.00°  pace  7.22 ft/s   lipped out — 6.2 ft past, 0.0 ft right    ~
+    3    12 ft at 315°   line  -4.00°  pace  8.34 ft/s   8.2 ft past, 1.4 ft left                
+    4    15 ft at   0°   line  -4.00°  pace  8.25 ft/s   4.8 ft past, 1.4 ft left                
+    5    18 ft at  90°   line  -2.00°  pace  9.03 ft/s   5.8 ft past, 0.8 ft left                
+    6    21 ft at 270°   line  -2.00°  pace  9.12 ft/s   3.3 ft past, 0.8 ft left                
+    7    24 ft at  30°   line  -1.00°  pace  9.75 ft/s   3.7 ft past, 0.5 ft left                
+    8    27 ft at 330°   line  -1.00°  pace  9.98 ft/s   2.1 ft past, 0.5 ft left                
+    9    30 ft at   0°   line  -0.50°  pace 10.52 ft/s   2.3 ft past, 0.3 ft left                
+   10    33 ft at  60°   line  -0.50°  pace 10.84 ft/s   1.3 ft past, 0.3 ft left                
+   11    36 ft at 300°   line  -0.25°  pace 11.32 ft/s   in the hole                               *
+   12    39 ft at  15°   line  -0.25°  pace 11.89 ft/s   in the hole                               *
+   13    42 ft at 345°   line  -0.12°  pace 12.34 ft/s   in the hole                               *
+   14    45 ft at  75°   line  -0.12°  pace 12.83 ft/s   in the hole                               *
+   15    48 ft at 285°   line  -0.06°  pace 13.25 ft/s   in the hole                               *
+   16    24 ft at 180°   line  -0.06°  pace  9.39 ft/s   in the hole                               *
+   17    30 ft at 200°   line  -0.03°  pace 10.50 ft/s   in the hole                               *
+   18    36 ft at 160°   line  -0.03°  pace 11.51 ft/s   in the hole                               *
+
+  flat green: 9/18 holed, 1 lipped out
+    miss, first 6:  4.80 ft   last 6:  0.00 ft   ->  4796352145.5x
+    |along|  4.72 ->  0.00 ft     |lateral|  0.75 ->  0.00 ft
+
+## What it converged on
+
+  pace gain 0.996 (bracket 0.995-0.998), line bias -4.89° (bracket -4.91 to -4.88)
+
+  The number back is the whole game: 4.26 ft of miss over the first third of the eighteen, 6.16 ft over the last. Held-out holes, never practised: 1.17 ft. Flat green, same holes and a fresh athlete: 4.80 -> 0.00 ft.
