@@ -96,7 +96,7 @@ UA = "ai-tribe/1.0 (+https://github.com/LindsayRidgeway/ai-tribe-bench)"
 # — it is every new member made on that engine failing on its first wake with "model not found".
 # Groq's model ids are namespaced by whoever trained the weights, and the names are not stable for long — the id
 # is the vendor's business, so it is written down here once rather than guessed at in a form.
-DEFAULT_MODEL = {"deepseek": "deepseek-flash", "gemini": "gemini-3.8-flash", "qwen": "qwen3.6-plus",
+DEFAULT_MODEL = {"deepseek": "deepseek-flash", "gemini": "gemini-3.8-flash", 
                  "groq": "openai/gpt-oss-120b",
                  # Both verified 2026-11-06 by waking a member and playing a game on each, and both named from
                  # the vendor's published price sheet rather than from memory. `gpt-5-mini` was the first OpenAI
@@ -109,7 +109,12 @@ DEFAULT_MODEL = {"deepseek": "deepseek-flash", "gemini": "gemini-3.8-flash", "qw
                  # engines were "the rest, which the harness also speaks" — supported and never called, which
                  # is a row that promises nothing and is worth nothing to a reader.
                  "mistral": "ministral-8b-latest", "cerebras": "gpt-oss-120b",
-                 "openrouter": "openai/gpt-oss-20b", "together": "zai-org/GLM-5.3-Flash"}
+                 "openrouter": "openai/gpt-oss-20b", "together": "zai-org/GLM-5.3-Flash",
+                 # Measured 2026-11-07 with the founder's Alibaba key: both qwen models wake. The default is the
+                 # cheap one — $0.15/$0.47 against $0.50/$3.00 on Alibaba's own sheet, same 1M context. It is
+                 # also the slowest wake measured here (124.8s, 8,459 tokens of thinking for five sentences), and
+                 # slow is not the same as wrong.
+                 "qwen": "qwen3.8-flash"}
 
 
 def default_model(vendor: str) -> str:
