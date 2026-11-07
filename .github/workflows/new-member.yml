@@ -74,13 +74,41 @@ jobs:
           PLACE: ${{ inputs.place }}
         run: |
           set -euo pipefail
-          args=(--seat "$SEAT" --api "$ENGINE")
-          [ -n "$MODEL" ] && args+=(--model "$MODEL")
-          [ -n "$PLACE" ] && args+=(--place "$PLACE")
-          python3 tribe.py new "$NAME" "${args[@]}" | tee /tmp/created.txt
+          # The worlds are folders under soil/, not a list in this file. A dropdown here would be a copy of
+          # that list, written the day this file was written and wrong the first time somebody renames a
+          # world — the failure this repository keeps finding. So the field stays free text and the value is
+          # checked against the folders, which is the same protection with nothing to go stale.
+          if [ -n "$PLACE" ] && [ ! -d "soil/$PLACE" ]; then
+            echo "::error::there is no world called '$PLACE' in this copy. The worlds it has are:"
+            ls -1 soil/ | sed 's/^/  - /'
+            echo "Nothing was created. Send this form again with one of those names, exactly as written."
+            exit 1
+          fi
+
+          # An existing member is not an error: it is the person coming back to finish the job. Before
+          # 2026-11-07 this step ran `new` again, which refuses an existing record, while the message
+          # underneath told the reader to "run this form again with the place field filled". That advice
+          # looped. Found by the founder on a phone, where there is no shell to fall back on.
+          if [ -d "wake/members/$NAME" ]; then
+            if [ -z "$PLACE" ]; then
+              echo "::error::$NAME already exists in this colony, so nothing was created."
+              echo "To put it in a world, send this form again with the SAME name and the place field filled."
+              echo "To change anything else about it, edit its files in wake/members/$NAME/state/."
+              exit 1
+            fi
+            python3 tribe.py place "$NAME" "$PLACE" | tee /tmp/created.txt
+            echo "$NAME was already here; it has been placed in $PLACE." >> /tmp/created.txt
+          else
+            args=(--seat "$SEAT" --api "$ENGINE")
+            [ -n "$MODEL" ] && args+=(--model "$MODEL")
+            [ -n "$PLACE" ] && args+=(--place "$PLACE")
+            python3 tribe.py new "$NAME" "${args[@]}" | tee /tmp/created.txt
+          fi
+
           if [ ! -f "wake/members/$NAME/state/place.md" ]; then
-            echo "::warning::$NAME stands in no world yet. Set place: in wake/members/$NAME/state/place.md,"
-            echo "or run this form again with the place field filled. Until then no clock will wake it."
+            echo "::warning::$NAME stands in no world yet, so no clock will ever wake it."
+            echo "::warning::Send this form again with the same name and the place field filled with one of:"
+            ls -1 soil/ | while read -r w; do echo "::warning::  $w"; done
           fi
 
       - name: Check it against the schema before anything is committed

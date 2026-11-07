@@ -892,6 +892,59 @@ class TestPlates(unittest.TestCase):
         self.assertIn("commission: a watercolour of one lamp in a dark room", head)
 
 
+class TestAMemberCanBeGivenAWorldLater(unittest.TestCase):
+    """Found 2026-11-07 by the founder testing on a phone, which is why it matters.
+
+    He created his first member, left the optional place field blank because he did not yet know what a world
+    was, and then could not fill it in: `tribe.py new` refuses an existing record, `tribe.py place` did not
+    exist, and the form's own warning told him to "run this form again with the place field filled" — which
+    ran `new` again and refused. The one remedy offered to a person with no shell was a loop.
+    """
+
+    def setUp(self):
+        self.root = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.root, True)
+        (self.root / "soil" / "night-bus").mkdir(parents=True)
+        (self.root / "soil" / "workshop").mkdir()
+        (self.root / "wake" / "members" / "Maud" / "state").mkdir(parents=True)
+        self.old = (tribe.MEMBERS, tribe.REPO)
+        tribe.MEMBERS = self.root / "wake" / "members"
+        tribe.REPO = self.root
+
+    def tearDown(self):
+        tribe.MEMBERS, tribe.REPO = self.old
+
+    def test_a_member_with_no_world_can_be_given_one_by_name(self):
+        import contextlib, io
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            code = tribe.place("Maud", "night-bus")
+        self.assertEqual(code, 0)
+        place = (self.root / "wake" / "members" / "Maud" / "state" / "place.md").read_text(encoding="utf-8")
+        self.assertEqual(place.strip(), "place: night-bus",
+                         "one line, `place: <world>` — the format RUN.md §6 and tribe.place_of both read")
+
+    def test_a_world_that_does_not_exist_is_refused_rather_than_written(self):
+        """A member standing in a world that does not exist is not in a colony either, wearing a different
+        sentence. So a typo is caught here instead of becoming a member that is never woken twice over."""
+        import contextlib, io
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            code = tribe.place("Maud", "nightbus")
+        self.assertEqual(code, 2)
+        self.assertIn("night-bus", out.getvalue(), "the refusal names the worlds that do exist")
+        self.assertFalse((self.root / "wake" / "members" / "Maud" / "state" / "place.md").exists(),
+                         "nothing may be written for a world this colony does not have")
+
+    def test_a_member_that_does_not_exist_says_so_and_writes_nothing(self):
+        import contextlib, io
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            code = tribe.place("Nobody", "workshop")
+        self.assertEqual(code, 2)
+        self.assertIn("no member called", out.getvalue())
+
+
 class TestPaint(unittest.TestCase):
     """The script that answers a commission, and the rule it retires.
 
