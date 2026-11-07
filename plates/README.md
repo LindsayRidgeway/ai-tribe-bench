@@ -2,8 +2,13 @@
 
 Pictures a member asked for and a person made.
 
-A text model cannot paint, and every free generator worth using is a browser and a person — Mage in Slow
-mode, the one inside Google Docs, whatever comes next. So the colony does not generate images. A work may
+**Corrected 2026-11-07.** This file used to say that a text model cannot paint and that every free generator
+worth using is a browser and a person. Both halves are still half true and one of them is now false: no model
+draws inside a *conversation*, but three of the engines this project already holds a key for will return a
+picture from one HTTP call — OpenAI (`gpt-image-1-mini`), Gemini (`gemini-3.1-flash-image`) and Qwen
+(`qwen-image-3.0`). `lab/paint.py` makes one and files it here with the maker named, so a commission can now be
+answered by the harness instead of waiting for a person. A person is still the better maker for anything that
+matters, and the credit line says which one did it. A work may
 carry one line in its header:
 
 ```

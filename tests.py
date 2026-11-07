@@ -705,12 +705,14 @@ class TestThreeAnswers(unittest.TestCase):
 
 
 class TestPlates(unittest.TestCase):
-    """A text model cannot paint, and every free generator worth using is a browser and a person (Mage in
-    Slow mode, the one inside Google Docs). So the colony does not generate: a work may carry one line,
-    `commission:`, and a human makes the picture and drops it in `plates/`. The image is a source like the
-    soil — the magazine still rebuilds from the record, and the record says who asked and that a person
-    answered. The failure to avoid is the quiet one: an ask that is printed nowhere looks like a feature
-    that does not exist."""
+    """A work may carry one line, `commission:`, and somebody makes the picture and drops it in `plates/`.
+
+    The original docstring here said that no model can paint and that every generator worth using is a browser
+    and a person. That was true when written and was measured false on 2026-11-07: OpenAI, Gemini and Qwen each
+    returned a picture from one HTTP call, and `lab/paint.py` now files it. The member still cannot draw — a
+    wake is one call with no tools — but the ask no longer has to wait for a human, and the credit line names
+    whoever answered it. The failure to avoid is still the quiet one: an ask printed nowhere looks like a
+    feature that does not exist."""
 
     def _repo(self) -> Path:
         tmp = Path(tempfile.mkdtemp())
@@ -888,6 +890,82 @@ class TestPlates(unittest.TestCase):
         self.assertTrue(filed, out)
         head = filed[-1].read_text(encoding="utf-8")
         self.assertIn("commission: a watercolour of one lamp in a dark room", head)
+
+
+class TestPaint(unittest.TestCase):
+    """The script that answers a commission, and the rule it retires.
+
+    No network here. These check the table, the refusals and the filing, which is where a wrong answer costs a
+    member's ask rather than a few cents — and the founder's question on 2026-11-07 was exactly whether a member
+    can reach an image generator at all, so the honest answer has to be written down and not remembered.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.paint = load(REPO / "lab" / "paint.py", "paint_mod")
+
+    def test_every_painter_prints_a_model_and_an_endpoint_shape(self):
+        """A default printed here is a model this project has actually called. Measured 2026-11-07, one prompt,
+        three engines: each returned a picture of a red cube and none of them was the chat model."""
+        self.assertEqual(set(self.paint.PAINTERS), {"openai", "gemini", "qwen"})
+        for engine, row in self.paint.PAINTERS.items():
+            self.assertTrue(row["model"], f"{engine} must name a model; a blank reads as free")
+            self.assertIn(row["ext"], (".png", ".jpg"))
+
+    def test_an_engine_with_no_image_model_is_refused_by_name_and_the_three_are_named(self):
+        """Seven engines this harness speaks cannot paint. "No" without an address is the answer this project
+        stopped accepting, so the refusal carries the three that can."""
+        import contextlib, io
+        for engine in self.paint.NO_PAINTER:
+            with self.assertRaises(SystemExit) as caught, contextlib.redirect_stderr(io.StringIO()):
+                self.paint.check_engine(engine)
+            said = str(caught.exception)
+            self.assertIn(engine, said)
+            for can in ("openai", "gemini", "qwen"):
+                self.assertIn(can, said, "a refusal must name what would have worked")
+        self.assertNotIn("openrouter", self.paint.PAINTERS,
+                         "OpenRouter's seven image models are all Google's; a router is not a fourth draughtsman")
+
+    def test_a_dry_run_that_would_fail_still_fails(self):
+        """A rehearsal that cannot fail teaches nothing about the performance: --dry-run must refuse the same
+        engines the real run refuses."""
+        import contextlib, io
+        err = io.StringIO()
+        with self.assertRaises(SystemExit), contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
+            self.paint.main(["--engine", "groq", "--prompt", "a red cube", "--dry-run"])
+
+    def test_the_credit_names_the_machine_and_keeps_the_members_words(self):
+        """The card beside the picture is the only place a tool name appears, so it must name the one that
+        actually drew. The existing plate's card says "Created by Google Docs" because a person ran it."""
+        tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp, True)
+        image, card = self.paint.file_it(b"\x89PNG not really", "20261102T040000Z-harbour", "openai",
+                                         "gpt-image-1-mini", "a watercolour of the harbour at night, one lamp",
+                                         plates=Path(tmp))
+        self.assertEqual(image.name, "20261102T040000Z-harbour.png")
+        self.assertEqual(card.name, "20261102T040000Z-harbour.md")
+        note = card.read_text(encoding="utf-8")
+        self.assertIn("openai", note)
+        self.assertIn("gpt-image-1-mini", note)
+        self.assertIn("a watercolour of the harbour at night", note,
+                      "the member's own sentence is the commission; the make must not paraphrase it")
+        self.assertTrue(card.read_text(encoding="utf-8").startswith("Painted by"),
+                        "a card must open by saying who made the picture, so a reader cannot mistake it")
+
+    def test_a_work_with_no_commission_line_paints_nothing(self):
+        """The honest path is `--from-work`, and the failure to avoid is painting a guess."""
+        import contextlib, io
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp, True)
+        work = tmp / "20261102T040000Z-quiet.md"
+        work.write_text("---\ntitle: Quiet\n---\n\nno picture asked for\n", encoding="utf-8")
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
+            code = self.paint.main(["--from-work", str(work)])
+        self.assertEqual(code, 2)
+        self.assertIn("no `commission:` line", err.getvalue())
+        self.assertEqual(list((REPO / "plates").glob("20261102T040000Z-quiet*")), [],
+                         "nothing may be filed for a work that asked for nothing")
 
 
 class TestSoil(unittest.TestCase):
