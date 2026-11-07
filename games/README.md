@@ -25,5 +25,8 @@ deleting them would leave the conclusions standing on nothing. `rps/` and `dice/
 the apparatus: what a game looks like before anyone is talking, and what a record looks like before anything is
 at stake.
 
+`ATHLETES.md` is the queue of games not yet built: one lever, one number back, and the reason tennis
+teaches while rock-paper-scissors cannot. It is a design file, not a game.
+
 The baseball and football experiments (`experiment/mlb/`, `experiment/rank/`) are not games and stay in
 `experiment/`, with the task files that run them.
