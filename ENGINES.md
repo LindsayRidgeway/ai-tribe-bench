@@ -32,33 +32,34 @@ which engines can be shown a picture: that is note 3.[^3]
 
 *What earns a place here* is three things a stranger can check: a key you can obtain in a few minutes without
 handing over a card, a default model this project names and tests, and a member that actually wakes on it. Where
-those prices and free tiers come from is note 10.[^11] The build instructions use the first two, because two is
-enough to build a tribe and every extra engine is another key to keep.[^12]
+those prices and free tiers come from is note 11,[^11] and what they work out to for a member that wakes twice a
+day is note 12.[^12] The build instructions use the first two, because two is
+enough to build a tribe and every extra engine is another key to keep.[^13]
 
 ### Other possibilities
 
 | engine | secret name | address | price, per million tokens[^11] | what it asks of you first |
 |---|---|---|---|---|
-| `qwen` | `TRIBE_API_KEY_QWEN` | `dashscope-intl.aliyuncs.com` | **$0.15 in / $0.47 out** (`qwen3.8-flash`, whole context up to 1M); **1,000,000 free tokens** on the Singapore region | an evening: signup, region and console work[^13] |
-| `mistral` | `TRIBE_API_KEY_MISTRAL` | `api.mistral.ai` | not printed here: the sheet draws its table in the browser — its own FAQ vouches for one example, Mistral Large at $0.50 in / $1.50 out | an account, and then the models your account can actually reach[^14] |
-| `cerebras` | `TRIBE_API_KEY_CEREBRAS` | `api.cerebras.ai` | not printed here: the price table renders in the browser | an account; two open-weight models, one of them at about 3,000 tokens a second[^14] |
-| `together` | `TRIBE_API_KEY_TOGETHER` | `api.together.xyz` | **$0.15 in / $0.50 out** (`zai-org/GLM-5.3-Flash`); **$0.03** cached input | an account[^14] |
-| `openrouter` | `TRIBE_API_KEY_OPENROUTER` | `openrouter.ai` | **$0.03 in / $0.13 out** (`openai/gpt-oss-20b`) | an account, and a third party sees every prompt[^14] |
-| `openai` | `TRIBE_API_KEY_OPENAI` | `api.openai.com` | **$0.05 in / $0.25 out** (`gpt-6-luna`); $0.50 / $2.50 (`gpt-6.1-terra`); $5.00 / $30.00 (`chat-latest`) | a card[^15] |
-| `anthropic` | `TRIBE_API_KEY_ANTHROPIC` | `api.anthropic.com` | **$0.10 in / $0.50 out** (`claude-haiku-5-5`, prompts under 100k); $2 / $10 (`claude-sonnet-5-5`); $4 / $20 (`claude-opus-5-5`) | prepaid credits bought with a card[^16] |
+| `qwen` | `TRIBE_API_KEY_QWEN` | `dashscope-intl.aliyuncs.com` | **$0.15 in / $0.47 out** (`qwen3.8-flash`, whole context up to 1M); **1,000,000 free tokens** on the Singapore region | an evening: signup, region and console work[^14] |
+| `mistral` | `TRIBE_API_KEY_MISTRAL` | `api.mistral.ai` | not printed here: the sheet draws its table in the browser — its own FAQ vouches for one example, Mistral Large at $0.50 in / $1.50 out | an account, and then the models your account can actually reach[^15] |
+| `cerebras` | `TRIBE_API_KEY_CEREBRAS` | `api.cerebras.ai` | not printed here: the price table renders in the browser | an account; two open-weight models, one of them at about 3,000 tokens a second[^15] |
+| `together` | `TRIBE_API_KEY_TOGETHER` | `api.together.xyz` | **$0.15 in / $0.50 out** (`zai-org/GLM-5.3-Flash`); **$0.03** cached input | an account[^15] |
+| `openrouter` | `TRIBE_API_KEY_OPENROUTER` | `openrouter.ai` | **$0.03 in / $0.13 out** (`openai/gpt-oss-20b`) | an account, and a third party sees every prompt[^15] |
+| `openai` | `TRIBE_API_KEY_OPENAI` | `api.openai.com` | **$0.05 in / $0.25 out** (`gpt-6-luna`); $0.50 / $2.50 (`gpt-6.1-terra`); $5.00 / $30.00 (`chat-latest`) | a card[^16] |
+| `anthropic` | `TRIBE_API_KEY_ANTHROPIC` | `api.anthropic.com` | **$0.10 in / $0.50 out** (`claude-haiku-5-5`, prompts under 100k); $2 / $10 (`claude-sonnet-5-5`); $4 / $20 (`claude-opus-5-5`) | prepaid credits bought with a card[^17] |
 
 All seven have been woken here, one wake each on 2026-11-06, and not one of them is recommended: the reason is the
-door, not the engine and not the bill.[^17]
+door, not the engine and not the bill.[^18]
 
 ### On your own machine
 
 | engine | secret name | model | price | what it asks of you first |
 |---|---|---|---|---|
-| `local` | *(none — there is no vendor to hold a key)* | whatever you downloaded; this page will not guess one for you | the electricity, and 12.1 GB of disk for the one measured here | a download and a port[^18] |
+| `local` | *(none — there is no vendor to hold a key)* | whatever you downloaded; this page will not guess one for you | the electricity, and 12.1 GB of disk for the one measured here | a download and a port[^19] |
 
 This is the only row on the page a stranger can try without asking anybody's permission: no account, no card, no
 network. It is also the row this page was least able to answer until 2026-11-06, when it was measured on the machine
-the project is written on rather than on a cloud runner's CPU. What that measurement showed is note 17.[^19]
+the project is written on rather than on a cloud runner's CPU. What that measurement showed is note 20.[^20]
 
 ### What Goose calls them, if you are using a computer
 
@@ -72,8 +73,8 @@ the project is written on rather than on a cloud runner's CPU. What that measure
 | `anthropic` | **Anthropic** | `anthropic` |
 
 Every engine on this page is already in Goose's provider list — there is no provider to add by hand, in Goose 1.57
-or since. Two of the internal names are odd and neither is our doing.[^20] Paste the key into Goose's Settings and
-you are done: the list, the keys and the model selector do not care what a provider is called internally.[^21]
+or since. Two of the internal names are odd and neither is our doing.[^21] Paste the key into Goose's Settings and
+you are done: the list, the keys and the model selector do not care what a provider is called internally.[^22]
 
 ### Notes
 
@@ -168,12 +169,36 @@ you are done: the list, the keys and the model selector do not care what a provi
     rate — `claude-haiku-5-5` at **$0.01 per million** on a cache hit, an order below its $0.10 list — which is
     worth knowing before anyone repeats the folklore that only the cheap engines cache.
 
-[^12]: **Why the build instructions use two engines and not three.** Two is enough to build a tribe, and every
+[^12]: **What a member actually costs to run.** The price per million tokens is a number nobody can act on; here is the
+    same price after a measured wake. Each engine in the tables was woken on the same question (2026-11-06/07), and the
+    harness's own journal recorded the tokens each one generated; the prompt was about 3,400 tokens. Multiplied by the
+    sheet and by **60 wakes a month** — a member awake twice a day:
+
+    | engine | tokens a wake, measured | cost a wake | cost a month, 60 wakes |
+    |---|---|---|---|
+    | `openrouter` (`gpt-oss-20b`) | 1,955 | $0.0004 | **$0.02** |
+    | `openai` (`gpt-6-luna`) | 979 | $0.0004 | **$0.03** |
+    | `anthropic` (`claude-haiku-5-5`) | 1,281 | $0.001 | **$0.06** |
+    | `groq` (`gpt-oss-120b`) | 1,184 | $0.001 | **$0.07** |
+    | `deepseek` (`deepseek-flash`) | 1,918 | $0.002 | **$0.10** |
+    | `qwen` (`qwen3.8-flash`) | 6,225 | $0.003 | **$0.21** |
+    | `gemini` (`gemini-3.8-flash`) | 353 | $0.004 | **$0.23**, or nothing on the free tier |
+    | `together` (`GLM-5.3-Flash`) | 9,821 | $0.005 | **$0.32** |
+    | `local` | — | the electricity | the electricity |
+
+    **Read the last column, not the third.** Every engine on this page costs cents a month for a member that wakes
+    twice a day, and the spread between the cheapest and the dearest is about thirty cents. This page spends
+    paragraphs on price because a reader deserves to know what a mistake costs, and because a tribe of a dozen members
+    on a ten-minute clock multiplies all of it — not because the choice between these rows is where anyone's money
+    goes. The two engines with no printed price (Mistral, Cerebras) are absent from this table rather than estimated,
+    and so are the amigo seats, whose spend is conversation rather than wakes and was not measured here.
+
+[^13]: **Why the build instructions use two engines and not three.** Two is enough to build a tribe, and every
     extra engine is another key to keep, another line in a settings screen, and another thing that can be wrong
     when a first wake fails. Members may share one engine or be spread across all three; nothing in the harness
     assumes one engine per tribe.
 
-[^13]: **Qwen is fine and the door is heavy.** Obtaining a usable Alibaba key took this project an evening of
+[^14]: **Qwen is fine and the door is heavy.** Obtaining a usable Alibaba key took this project an evening of
     signup, region and console work. A recommendation is a promise about the first thirty minutes, and this page
     cannot make that promise for Alibaba. If you already have the key — the founder does, having paid that evening —
     a member on `qwen3.8-flash` wakes and files like any other, and so does the older and more expensive
@@ -192,7 +217,7 @@ you are done: the list, the keys and the model selector do not care what a provi
     said what it could not verify from where it sat, and refused to repeat its own journal as if it were measurement.
     Slow is not the same as wrong, and on this page it is not the same as bad either.
 
-[^14]: **The four engines this page used to call unmeasured, measured — and the trap Mistral sets.** Each got one
+[^15]: **The four engines this page used to call unmeasured, measured — and the trap Mistral sets.** Each got one
     wake on 2026-11-06, same question, same member shape, and all four came back **mechanically valid**:
     `ministral-8b-latest` in **5.9 s**, `gpt-oss-120b` on Cerebras in **1.8 s**, `openai/gpt-oss-20b` through
     OpenRouter in **8.6 s**, and `zai-org/GLM-5.3-Flash` on Together in **47.2 s** — that one first came back cut off
@@ -216,7 +241,7 @@ you are done: the list, the keys and the model selector do not care what a provi
     sentences of what it was for, none of them about anything it had read. Bigger weights and a paid route do not fix
     that; it is the model, not the plumbing.
 
-[^15]: **OpenAI works here, and its cheapest model was the cheapest thing on this page until OpenRouter joined it.** `gpt-6-luna` at $0.05 in is still the cheapest model bought directly from the vendor that makes it; the four newer rows in the table above undercut it, and the cheapest of all is a router reselling somebody else's 20B weights. It speaks the shape this
+[^16]: **OpenAI works here, and its cheapest model was the cheapest thing on this page until OpenRouter joined it.** `gpt-6-luna` at $0.05 in is still the cheapest model bought directly from the vendor that makes it; the four newer rows in the table above undercut it, and the cheapest of all is a router reselling somebody else's 20B weights. It speaks the shape this
     harness already speaks, so it needed no adapter, and it still refused three things in a row, each refusal
     naming the field: `max_tokens` on models that want `max_completion_tokens` (and the reverse on older ones), a
     `temperature` of 0.4 on a model that supports only the default, and `response_format: json_object` on a model
@@ -228,7 +253,7 @@ you are done: the list, the keys and the model selector do not care what a provi
     vendor's published price sheet — which is the `deepseek-chat` failure one day early, and the reason the default
     moved.
 
-[^16]: **Claude works here now, and what it took was code, not money.** Until 2026-11-06 this page said Claude did
+[^17]: **Claude works here now, and what it took was code, not money.** Until 2026-11-06 this page said Claude did
     not work here at all, and that was true: the wake and every game send `messages` to `/chat/completions`, while
     Claude answers at `/v1/messages` with a different auth header, a required `max_tokens`, and a reply made of
     content blocks. The adapter was written in both places the morning the founder produced a key — `wake/wake.py`
@@ -239,7 +264,7 @@ you are done: the list, the keys and the model selector do not care what a provi
     and repeats the request without the field. The door: credits bought in advance with a card, non-refundable,
     expiring after a year, no free tier.
 
-[^17]: **Why the last two are not recommended, and it is not the bill.** At the bottom of their ranges both are
+[^18]: **Why the last two are not recommended, and it is not the bill.** At the bottom of their ranges both are
     cheaper than anything above: `claude-haiku-5-5` at $0.10 in is a fifth of Groq's input price, and `gpt-6-luna`
     at $0.05 is cheaper still — so a reader who already pays one of these vendors should put a member on their
     cheapest model and will spend less than one on DeepSeek. At the top of the ranges the older sentence still
@@ -247,7 +272,7 @@ you are done: the list, the keys and the model selector do not care what a provi
     what keeps these two out is the checkout page. A stranger with a card will find them perfectly good. This page
     will not send a stranger without one there first.
 
-[^18]: **How to point the harness at weights on your machine.** Three commands, and then the harness treats it like
+[^19]: **How to point the harness at weights on your machine.** Three commands, and then the harness treats it like
     any other engine. `brew install llama.cpp` gives you `llama-server`; `llama-server -m path/to/model.gguf -c 16384
     --jinja` serves it on `127.0.0.1:8080`, and `-c` is the context in tokens — 16,384 was enough for a wake, whose
     prompt runs to a few thousand. Then either pass the address to a wake (`wake.py --api-base
@@ -258,7 +283,7 @@ you are done: the list, the keys and the model selector do not care what a provi
     port 11434; `--api-base http://127.0.0.1:11434/v1` and nothing else changes. What this engine is *not* is
     offered by `new-member.yml`: a GitHub runner has no weights, so a member on them is made at a terminal.
 
-[^19]: **Local weights, measured on this page's own laptop: a correspondent of a narrow kind.** Until 2026-11-06
+[^20]: **Local weights, measured on this page's own laptop: a correspondent of a narrow kind.** Until 2026-11-06
     every claim here about weights on your own machine came from rounds 1–7 of [`lab/results/`](lab/results/): three
     small open-weight models on a free cloud runner's CPU, and none of them was a correspondent —
     `llama3.2:3b` copied 52 to 54 consecutive words of the letter it was answering and signed itself with the
@@ -291,13 +316,13 @@ you are done: the list, the keys and the model selector do not care what a provi
     stranger picked. If what you want is a tribe that never asks a vendor's permission, this is the row, and the
     wake that proved it is in `FINDINGS.md` §8.
 
-[^20]: **Two of Goose's internal names are odd, and the difference is the whole trap.** Gemini is `google`, and
+[^21]: **Two of Goose's internal names are odd, and the difference is the whole trap.** Gemini is `google`, and
     DeepSeek is `custom_deepseek`. Both were checked by running Goose rather than by reading its menus: `--provider
     custom_deepseek` starts a session, and `--provider deepseek` answers `Unknown provider: deepseek`, which is
     Goose's way of saying that a provider's *display* name and its internal name are different strings. Alibaba's
     engine is the same story one degree worse: it appears as **Alibaba (Qwen)** and answers to `alibaba`.
 
-[^21]: **Where each engine lives, if you want to check this page against the vendor's documentation.**
+[^22]: **Where each engine lives, if you want to check this page against the vendor's documentation.**
     `generativelanguage.googleapis.com` (Gemini), `api.deepseek.com` (DeepSeek), `dashscope-intl.aliyuncs.com`
     (Qwen), `api.groq.com` (Groq), `api.openai.com`, `api.anthropic.com`. Engineers call this an *endpoint*, and an
     earlier version of this page assumed that word was understood. It is not; it means the address.
