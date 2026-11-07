@@ -232,8 +232,10 @@ you are done: the list, the keys and the model selector do not care what a provi
     correspondent, however well it serialises.** And in the game it played politely and badly: both sides threw
     rock in all four rounds, holding the transcript's shape without reading the opponent in it.
 
-    **What it costs in time**, on a machine that was also doing other work: about **65 tokens per second**
-    generated and **660 tokens per second** of prompt read. Thinking dominates the bill the way it does on the paid
+    **What it costs in time and memory**, on a machine that was also doing other work: about **65 tokens per
+    second** generated and **660 tokens per second** of prompt read, and with the 12.1 GB loaded the machine
+    reported 65% of its memory free — so it fits a 24 GB laptop with room to keep using it, and a 16 GB one would
+    be tight. Thinking dominates the bill the way it does on the paid
     reasoning models — the same question took 258 tokens at the default effort and 97 at `reasoning_effort: low`.
 
     **What this changes on the page, and what it does not.** `local` is now an engine like the others, and the only
