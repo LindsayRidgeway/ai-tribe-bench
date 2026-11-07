@@ -666,7 +666,46 @@ API_BASES = {
     # Claude, which does not speak the OpenAI shape (added 2026-11-06, the day the founder obtained a key):
     # /v1/messages, x-api-key, a required max_tokens, and a list of content blocks in the reply.
     "anthropic": "https://api.anthropic.com/v1",
+    # Weights on this machine. `llama-server` (llama.cpp) and ollama both answer in the OpenAI shape on a
+    # loopback port, which is why this engine needs an address and no adapter — the same code path as
+    # every other engine here. Default port is llama.cpp's. Added 2026-11-06, the evening the founder put
+    # a runner back on the M4 Pro; what it measured is in ENGINES.md, note 17.
+    "local": "http://127.0.0.1:8080/v1",
 }
+
+# An address on this machine is not a vendor, and a vendor is the only thing that has a key to obtain.
+# Without this, the promise the harness makes — "no key, no wake, and it says so before printing the
+# prompt" — turns a local model into a missing credential, which is exactly backwards: local weights are
+# the one engine here that asks nobody for anything. The header is still sent, because servers vary about
+# a request with no Authorization, and the value is a word rather than a secret.
+LOOPBACK_HOSTS = ("127.0.0.1", "localhost", "::1", "[::1]", "0.0.0.0")
+
+
+def needs_no_key(base: str) -> bool:
+    """True when the address is this machine. Kept in step with lab/rps.py by a test."""
+    host = base.split("//", 1)[-1].split("/", 1)[0]
+    host = host.rsplit(":", 1)[0] if not host.startswith("[") else host.split("]", 1)[0] + "]"
+    return host in LOOPBACK_HOSTS
+
+
+def image_mime(b64: str) -> str:
+    """An image's type from its first bytes, not from what the caller hoped it was.
+
+    Found 2026-11-07 by sending a JPEG to nine engines: three places in this file declared `image/png` for
+    whatever bytes arrived. Gemini and OpenAI accepted the lie without comment; Anthropic answered 400 and
+    named nothing a reader could act on, so the finding read as "Claude cannot see" when the truth was "we
+    mislabelled the file". A member handed a photograph would have concluded the same wrong thing.
+    """
+    head = base64.b64decode(b64[:24] + "=" * (-len(b64[:24]) % 4))
+    if head.startswith(b"\x89PNG"):
+        return "image/png"
+    if head.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if head.startswith(b"GIF8"):
+        return "image/gif"
+    if head[:4] == b"RIFF" and head[8:12] == b"WEBP":
+        return "image/webp"
+    return "image/jpeg"
 
 
 def ask_gemini(base: str, key: str, model: str, prompt: str, images: list[str] | None = None) -> tuple[str, dict]:
@@ -674,7 +713,7 @@ def ask_gemini(base: str, key: str, model: str, prompt: str, images: list[str] |
     (key length 53, native listing fine, compat listing empty) — so the channel is the native one."""
     parts: list[dict] = [{"text": prompt}]
     for img in images or []:
-        parts.append({"inline_data": {"mime_type": "image/png", "data": img}})
+        parts.append({"inline_data": {"mime_type": image_mime(img), "data": img}})
     # Two truncations in a row (415 and 660 characters, cut mid-string) taught the shape of this
     # surface: thinking tokens are billed against the same output budget, so a cap that is generous
     # for prose is thin for a model that thinks first. Ask for the budget to be spent on the answer,
@@ -721,26 +760,49 @@ def ask_anthropic(base: str, key: str, model: str, prompt: str,
     of content blocks rather than one message string. Everything downstream — the JSON contract, the audit,
     the record — is unchanged, because this function hands back the same shape ask_api does.
 
-    Written 2026-11-06 and NOT yet run against a live key at the time of writing; the first wake on this
-    engine is what turns it from translation into knowledge.
+    Written 2026-11-06 before a key existed, and run against one the same afternoon: the wake came back
+    mechanically valid and wrote its file. What the translation had guessed wrong, the live call said out loud
+    — `temperature` is deprecated on the newest models, so the field is dropped and the request repeated —
+    which is why this is written as code that reads its refusals rather than as code that recites docs.
     """
     content: list[dict] = [{"type": "text", "text": prompt}]
     for img in images or []:
-        content.append({"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": img}})
-    payload_obj = {
-        "model": model,
-        "max_tokens": 2400,          # required by this API, and it is the reasoning allowance too
-        "temperature": 0.4,
-        "messages": [{"role": "user", "content": content if images else prompt}],
-    }
-    req = urllib.request.Request(
-        f"{base.rstrip('/')}/messages",
-        data=json.dumps(payload_obj).encode(),
-        headers={"Content-Type": "application/json", "x-api-key": key,
-                 "anthropic-version": "2023-06-01", "User-Agent": UA},
-    )
-    with urllib.request.urlopen(req, timeout=600) as r:
-        payload = json.loads(r.read().decode())
+        content.append({"type": "image",
+                        "source": {"type": "base64", "media_type": image_mime(img), "data": img}})
+    def send(temperature, budget: int) -> dict:
+        payload_obj = {
+            "model": model,
+            "max_tokens": budget,        # required by this API, and it is the reasoning allowance too
+            "messages": [{"role": "user", "content": content if images else prompt}],
+        }
+        if temperature is not None:
+            payload_obj["temperature"] = temperature
+        req = urllib.request.Request(
+            f"{base.rstrip('/')}/messages",
+            data=json.dumps(payload_obj).encode(),
+            headers={"Content-Type": "application/json", "x-api-key": key,
+                     "anthropic-version": "2023-06-01", "User-Agent": UA},
+        )
+        with urllib.request.urlopen(req, timeout=600) as r:
+            return json.loads(r.read().decode())
+
+    # `temperature` is deprecated on the newest Claude models — the first Anthropic wake answered 400
+    # "`temperature` is deprecated for this model" — so the field is dropped and the request repeated. Nothing
+    # else is guessed at: the refusal named the field.
+    try:
+        payload = send(0.4, 2400)
+    except urllib.error.HTTPError as e:
+        said = e.read().decode()[:400] if hasattr(e, "read") else ""
+        if e.code == 400 and "temperature" in said:
+            payload = send(None, 2400)
+        else:
+            raise
+    # A truncated wake is the harness's fault, not the member's: buy room rather than file half an object.
+    budget = 2400
+    while payload.get("stop_reason") == "max_tokens" and budget < 20000:
+        budget *= 3
+        print(f"   the reply was cut off at {budget // 3} tokens; asking again with {budget}", file=sys.stderr)
+        payload = send(None, budget)
     try:
         reply = "".join(b.get("text", "") for b in payload.get("content", []) if b.get("type") == "text")
     except Exception:  # noqa: BLE001 — an error body is a finding, not a crash
@@ -762,28 +824,84 @@ def ask_api(base: str, key: str, model: str, prompt: str, images: list[str] | No
         return ask_anthropic(base, key, model, prompt, images)
     content = [{"type": "text", "text": prompt}]
     for img in images or []:
-        content.append({"type": "image_url", "image_url": {"url": "data:image/png;base64," + img}})
-    payload_obj = {
-        "model": model,
-        "messages": [{"role": "user", "content": content if images else prompt}],
-        "temperature": 0.4,
-        "max_tokens": 2400,
-        "response_format": {"type": "json_object"},
-        "stream": False,
-    }
-    body = json.dumps(payload_obj).encode()
-    # A User-Agent, because Python's default one is refused at the door by some vendors before the key is
-    # even read. Measured 2026-11-06: Groq's edge answers `Python-urllib/3.9` with HTTP 403 "error code:
-    # 1010" — a Cloudflare browser check, not an authentication failure — and answers any other string with
-    # a clean 401 for a bad key. Nothing in the request was wrong except the introduction.
-    req = urllib.request.Request(
-        f"{base.rstrip('/')}/chat/completions",
-        data=body,
-        headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}",
-                 "User-Agent": UA},
-    )
-    with urllib.request.urlopen(req, timeout=600) as r:
-        payload = json.loads(r.read().decode())
+        content.append({"type": "image_url",
+                        "image_url": {"url": f"data:{image_mime(img)};base64,{img}"}})
+
+    # The budget field's name is the vendor's business, and two vendors disagree. Measured 2026-11-06: OpenAI's
+    # `gpt-5-mini` answers 400 "Unsupported parameter: 'max_tokens' ... Use 'max_completion_tokens' instead",
+    # and the older OpenAI models are the reverse, so the answer decides rather than the address. The JSON mode
+    # is the same story one step further: a model that does not offer it says so, and the prompt already asks
+    # for JSON, so a refusal there is answered by asking again without the field.
+    def announce(field: str, json_mode: bool, temperature, budget: int = 2400) -> dict:
+        payload_obj = {
+            "model": model,
+            "messages": [{"role": "user", "content": content if images else prompt}],
+            field: budget,
+            "stream": False,
+        }
+        if temperature is not None:
+            payload_obj["temperature"] = temperature
+        if json_mode:
+            payload_obj["response_format"] = {"type": "json_object"}
+        body = json.dumps(payload_obj).encode()
+        # A User-Agent, because Python's default one is refused at the door by some vendors before the key is
+        # even read. Measured 2026-11-06: Groq's edge answers `Python-urllib/3.9` with HTTP 403 "error code:
+        # 1010" — a Cloudflare browser check, not an authentication failure — and answers any other string with
+        # a clean 401 for a bad key. Nothing in the request was wrong except the introduction.
+        req = urllib.request.Request(
+            f"{base.rstrip('/')}/chat/completions",
+            data=body,
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}",
+                     "User-Agent": UA},
+        )
+        with urllib.request.urlopen(req, timeout=600) as r:
+            return json.loads(r.read().decode())
+
+    # Three rules that differ by vendor, each discovered by being refused on 2026-11-06:
+    #   - the budget field is `max_tokens` or `max_completion_tokens`, and OpenAI is the reverse of itself
+    #     depending on the model's age;
+    #   - `temperature` may be unsupported except at its default (gpt-5-mini: "does not support 0.4 ... Only
+    #     the default (1) value is supported");
+    #   - JSON mode may require the word "json" somewhere in the messages, which this prompt does not contain,
+    #     so the honest response is to ask without it and let `parse()` find the object in the prose.
+    # The vendor's complaint names which of the three it is, so the loop reads it rather than guessing.
+    field = "max_completion_tokens" if "api.openai.com" in base else "max_tokens"
+    json_mode, temperature, payload, said = True, 0.4, None, ""
+    for _ in range(6):
+        try:
+            payload = announce(field, json_mode, temperature)
+            break
+        except urllib.error.HTTPError as e:
+            said = e.read().decode()[:400] if hasattr(e, "read") else ""
+            if e.code != 400:
+                raise
+            if "temperature" in said and temperature is not None:
+                temperature = None
+            elif "max_completion_tokens" in said and field != "max_completion_tokens":
+                field = "max_completion_tokens"
+            elif "max_tokens" in said and field != "max_tokens":
+                field = "max_tokens"
+            elif "response_format" in said or "json" in said:
+                json_mode = False
+            else:
+                raise
+    if payload is None:
+        raise SystemExit(f"   the vendor refused every shape of this request: {said}")
+
+    # A reasoning model spends the budget before it starts the answer. Measured 2026-11-06 on the first OpenAI
+    # wake: `gpt-5-mini` was cut off mid-JSON at 2,400 tokens, all of them thinking. A truncated wake is not the
+    # member's error, so the harness buys room rather than filing a half-object as a reply.
+    budget = 2400
+    while budget < 20000:
+        try:
+            finish = (payload["choices"][0].get("finish_reason") or "")
+        except (KeyError, IndexError):
+            break
+        if finish != "length":
+            break
+        budget *= 3
+        print(f"   the reply was cut off at {budget // 3} tokens; asking again with {budget}", file=sys.stderr)
+        payload = announce(field, json_mode, temperature, budget)
     try:
         reply = payload["choices"][0]["message"]["content"]
     except Exception:  # noqa: BLE001 — an error body is a finding, not a crash
@@ -1095,6 +1213,10 @@ having answered something nobody said.
         names = [n for n in (args.api_key_env,) if n] or [canonical]
         used = next((n for n in names if os.environ.get(n)), None)
         key = os.environ[used] if used else None
+        if not key and needs_no_key(base):
+            # Not a fallback and not a second name: there is no credential here to be missing. The games
+            # and this file have to agree about it, which is why the rule is a function with a test.
+            key, used = "local", f"{canonical} is not needed ({base} is this machine)"
         if not key:
             print("!! no API key in the environment: set " + " or ".join(names))
             print(f"   this wake asks {base} for {args.api_model} as member {args.member or '(none)'}."
