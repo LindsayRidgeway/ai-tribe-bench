@@ -18,8 +18,8 @@ Nothing else about the member changes when you change those two lines. The being
 voice it speaks with today.[^1]
 
 There are four tables: the engines this page recommends, the engines that work here and are not recommended, the
-engines the harness speaks that nobody here has yet called, and the names Goose uses for all of them. The reasoning
-is in twenty notes at the end, numbered so you can read the ones that interest you and skip the rest.[^2]
+one engine that runs on your own machine, and the names Goose uses for all of them. The reasoning is in twenty notes
+at the end, numbered so you can read the ones that interest you and skip the rest.[^2]
 
 ### The three engines this page recommends
 
@@ -39,23 +39,16 @@ enough to build a tribe and every extra engine is another key to keep.[^11]
 | engine | secret name | address | price, per million tokens[^10] | what it asks of you first |
 |---|---|---|---|---|
 | `qwen` | `TRIBE_API_KEY_QWEN` | `dashscope-intl.aliyuncs.com` | not printed here: Alibaba's own sheet has not been read | an evening: signup, region and console work[^12] |
+| `mistral` | `TRIBE_API_KEY_MISTRAL` | `api.mistral.ai` | not printed here: the sheet draws its table in the browser — its own FAQ vouches for one example, Mistral Large at $0.50 in / $1.50 out | an account, and then the models your account can actually reach[^16] |
+| `cerebras` | `TRIBE_API_KEY_CEREBRAS` | `api.cerebras.ai` | not printed here: the price table renders in the browser | an account; two open-weight models, one of them at about 3,000 tokens a second[^16] |
+| `together` | `TRIBE_API_KEY_TOGETHER` | `api.together.xyz` | **$0.15 in / $0.50 out** (`zai-org/GLM-5.3-Flash`); **$0.03** cached input | an account[^16] |
+| `openrouter` | `TRIBE_API_KEY_OPENROUTER` | `openrouter.ai` | **$0.03 in / $0.13 out** (`openai/gpt-oss-20b`) | an account, and a third party sees every prompt[^16] |
 | `openai` | `TRIBE_API_KEY_OPENAI` | `api.openai.com` | **$0.05 in / $0.25 out** (`gpt-6-luna`); $0.50 / $2.50 (`gpt-6.1-terra`); $5.00 / $30.00 (`chat-latest`) | a card[^13] |
 | `anthropic` | `TRIBE_API_KEY_ANTHROPIC` | `api.anthropic.com` | **$0.10 in / $0.50 out** (`claude-haiku-5-5`, prompts under 100k); $2 / $10 (`claude-sonnet-5-5`); $4 / $20 (`claude-opus-5-5`) | prepaid credits bought with a card[^14] |
 
-All three work here. None of them is recommended, and the reason is the door, not the engine and not the
-bill.[^15]
-
-### The rest, which the harness also speaks
-
-| engine | secret name | address |
-|---|---|---|
-| `mistral` | `TRIBE_API_KEY_MISTRAL` | `api.mistral.ai` |
-| `cerebras` | `TRIBE_API_KEY_CEREBRAS` | `api.cerebras.ai` |
-| `openrouter` | `TRIBE_API_KEY_OPENROUTER` | `openrouter.ai` |
-| `together` | `TRIBE_API_KEY_TOGETHER` | `api.together.xyz` |
-
-Supported by the wake, unmeasured here: no key has been spent on any of them, so this page names no default model
-and promises nothing.[^16]
+Six of these seven have been woken here, one wake each on 2026-11-06, and the seventh has not been — its key is
+the one this project has never held in a shell, for the reason note 12 gives. None of them is recommended: the reason
+is the door, not the engine and not the bill.[^15]
 
 ### On your own machine
 
@@ -202,14 +195,29 @@ you are done: the list, the keys and the model selector do not care what a provi
     what keeps these two out is the checkout page. A stranger with a card will find them perfectly good. This page
     will not send a stranger without one there first.
 
-[^16]: **What "supported by the wake" means, and what it does not.** The harness speaks each of these addresses —
-    it is the same OpenAI-shaped request as Groq and DeepSeek — and nothing else has been established. Nobody here
-    has spent a key on them, so there is no measured wake, no tested model id, and no price line this page is
-    willing to print. To use one you name the model yourself when you make the member; if the name is wrong the
-    member fails on its first wake and says so. Two of these vendors are worth a look on their own terms —
-    Cerebras for speed on the same open-weight models Groq serves, OpenRouter for reaching many vendors through
-    one key — and one is worth a caution, because a router means your record's prompts pass through a party that
-    is neither you nor the model's author.
+[^16]: **The four engines this page used to call unmeasured, measured — and the trap Mistral sets.** Each got one
+    wake on 2026-11-06, same question, same member shape, and all four came back **mechanically valid**:
+    `ministral-8b-latest` in **5.9 s**, `gpt-oss-120b` on Cerebras in **1.8 s**, `openai/gpt-oss-20b` through
+    OpenRouter in **8.6 s**, and `zai-org/GLM-5.3-Flash` on Together in **47.2 s** — that one first came back cut off
+    at 2,400 tokens and the harness asked again with 7,200, which is the ladder doing its job. Those four model names
+    are now the defaults for their engines, because a default this page prints is a model this page has actually
+    called.
+
+    **The trap is worth more than the four rows.** Mistral answers a request for a model your account does not
+    include with **HTTP 429, "Rate limit exceeded"**, and the header explains it: `x-ratelimit-limit-req-minute: 0` —
+    a limit of zero, not a burst that will recover. Measured on one key in one minute: `mistral-small-latest` and
+    `mistral-medium-latest` both limit-0, while the whole `ministral` family, `open-mistral-nemo` and
+    `mistral-large-4` answered normally. So a Mistral member that dies on its first wake with 429 may have a
+    perfectly good key and a model it is not entitled to. The harness prints the vendor's body, which is how this was
+    found; read the header if you want to know which of the two it is.
+
+    **Two cautions and one surprise.** OpenRouter is a router: it reaches many vendors through one key, and the price
+    of that convenience is that a third party reads every prompt your members send. Cerebras serves the same
+    `gpt-oss-120b` weights this page recommends on Groq and does the same wake in 1.8 s against Groq's three —
+    the honest comparison is speed on identical weights. And the surprise is OpenRouter's `openai/gpt-oss-20b`:
+    the same 20B weights measured on this laptop in note 17, and it wrote the same kind of answer — five fluent
+    sentences of what it was for, none of them about anything it had read. Bigger weights and a paid route do not fix
+    that; it is the model, not the plumbing.
 
 [^17]: **Local weights, measured on this page's own laptop: a correspondent of a narrow kind.** Until 2026-11-06
     every claim here about weights on your own machine came from rounds 1–7 of [`lab/results/`](lab/results/): three

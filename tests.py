@@ -3528,8 +3528,17 @@ class TestWorkflows(unittest.TestCase):
             with self.assertRaises(SystemExit) as caught:
                 rps.default_model(engine)
             self.assertIn("name one with --model", str(caught.exception))
-        self.assertIn("mistral", rps.BASES,
-                      "the engine with no default has to be a real engine, or this test proves nothing")
+        # Measured 2026-11-06: one wake each on a key the founder put in engines.env, all four mechanically
+        # valid. These defaults are the models that were actually called, not the models their vendors
+        # advertise loudest — a default this project prints is a default this project has spent money on.
+        for engine, model in (("mistral", "ministral-8b-latest"), ("cerebras", "gpt-oss-120b"),
+                              ("openrouter", "openai/gpt-oss-20b"), ("together", "zai-org/GLM-5.3-Flash")):
+            self.assertEqual(rps.default_model(engine), model,
+                             f"{engine}'s default must be the model this project woke, so the first wake on a "
+                             f"stranger's machine is a wake that has already worked once")
+        self.assertIn("local", set(rps.BASES) - set(rps.DEFAULT_MODEL),
+                      "on this machine the model is whatever the person downloaded; a default here would be a "
+                      "guess about somebody else's disk")
 
     def test_weights_on_this_machine_need_no_key_and_the_wake_says_so(self):
         """The one engine here that asks nobody for anything was being told it was missing a credential.
@@ -3567,6 +3576,34 @@ class TestWorkflows(unittest.TestCase):
         finally:
             if saved:
                 os.environ["TRIBE_API_KEY_MISTRAL"] = saved
+
+    def test_every_engine_the_harness_speaks_has_been_woken_and_says_what_it_costs(self):
+        """Amended 2026-11-06, evening: the founder asked whether the unmeasured engines should be tested and the
+        category deleted, and the answer was yes — "supported by the wake, unmeasured here" is a row that promises
+        a reader nothing. All four were woken the same evening, so the section is gone. What replaces it is a rule
+        this test enforces: every engine listed works here, and every price cell either names a figure or says in
+        the cell why this page will not print one. A blank cell at that position is the thing this page must never
+        do, because a blank reads as free.
+        """
+        engines = (REPO / "ENGINES.md").read_text(encoding="utf-8")
+        self.assertNotIn("The rest, which the harness also speaks", engines,
+                         "every engine in the table has now been called; a section for the uncalled is a place for "
+                         "guesses to hide")
+        other = engines[engines.index("### Other possibilities"):engines.index("### On your own machine")]
+        rows = [l for l in other.splitlines() if l.startswith("| `")]
+        self.assertTrue(rows, "the table has rows")
+        listed = set()
+        for row in rows:
+            cells = [c.strip() for c in row.strip("|").split("|")]
+            self.assertEqual(len(cells), 5, f"a row needs engine, secret, address, price and door: {row[:60]}")
+            listed.add(cells[0].strip("`"))
+            self.assertTrue(cells[3], f"{cells[0]} has a blank price cell, which reads as free")
+            self.assertTrue(("$" in cells[3]) or cells[3].startswith("not printed here"),
+                            f"{cells[0]}'s price must be a figure or a stated reason for having none: "
+                            f"{cells[3][:60]}")
+        for engine in ("mistral", "cerebras", "openrouter", "together", "qwen", "openai", "anthropic"):
+            self.assertIn(engine, listed, f"{engine} works here and must be in that table")
+            self.assertIn(f"TRIBE_API_KEY_{engine.upper()}", other, f"{engine} must name its secret")
 
     def test_the_recommended_engines_are_the_ones_a_stranger_can_actually_reach(self):
         """A recommendation is a promise about the first thirty minutes, so it has to be a short list.
