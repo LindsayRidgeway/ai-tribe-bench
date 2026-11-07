@@ -3577,6 +3577,22 @@ class TestWorkflows(unittest.TestCase):
             if saved:
                 os.environ["TRIBE_API_KEY_MISTRAL"] = saved
 
+    def test_the_page_can_be_edited_by_someone_who_is_not_me(self):
+        """The founder asked how to edit ENGINES.md without breaking it, which is a fair question with an unfair
+        answer: the page is not prose that mentions engines, it is an input to tests that slice it on its headings
+        and read its table cells as promises. So the rules are a program now (`lab/check_engines.py`) and this test
+        is the same program: footnote references that resolve, notes numbered in reading order, no blank cell, no
+        price without a figure or a stated reason, every engine named with its secret, every default model printed.
+        A page edit that breaks one of those gets a sentence saying which one, instead of a red suite a week later.
+        """
+        check = load(REPO / "lab" / "check_engines.py", "check_engines_for_tests")
+        found = check.problems()
+        self.assertEqual(found, [], "ENGINES.md breaks a promise:\n  " + "\n  ".join(found))
+        # and the renumbering tool has to be idempotent, or it is a tool that moves the numbering every run
+        body = (REPO / "ENGINES.md").read_text(encoding="utf-8")
+        self.assertEqual(check.renumber(body)[0], body,
+                         "the notes are already renumbered; running --renumber again must change nothing")
+
     def test_every_engine_the_harness_speaks_has_been_woken_and_says_what_it_costs(self):
         """Amended 2026-11-06, evening: the founder asked whether the unmeasured engines should be tested and the
         category deleted, and the answer was yes — "supported by the wake, unmeasured here" is a row that promises

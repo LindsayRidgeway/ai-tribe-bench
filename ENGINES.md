@@ -39,26 +39,26 @@ enough to build a tribe and every extra engine is another key to keep.[^11]
 | engine | secret name | address | price, per million tokens[^10] | what it asks of you first |
 |---|---|---|---|---|
 | `qwen` | `TRIBE_API_KEY_QWEN` | `dashscope-intl.aliyuncs.com` | not printed here: Alibaba's own sheet has not been read | an evening: signup, region and console work[^12] |
-| `mistral` | `TRIBE_API_KEY_MISTRAL` | `api.mistral.ai` | not printed here: the sheet draws its table in the browser — its own FAQ vouches for one example, Mistral Large at $0.50 in / $1.50 out | an account, and then the models your account can actually reach[^16] |
-| `cerebras` | `TRIBE_API_KEY_CEREBRAS` | `api.cerebras.ai` | not printed here: the price table renders in the browser | an account; two open-weight models, one of them at about 3,000 tokens a second[^16] |
-| `together` | `TRIBE_API_KEY_TOGETHER` | `api.together.xyz` | **$0.15 in / $0.50 out** (`zai-org/GLM-5.3-Flash`); **$0.03** cached input | an account[^16] |
-| `openrouter` | `TRIBE_API_KEY_OPENROUTER` | `openrouter.ai` | **$0.03 in / $0.13 out** (`openai/gpt-oss-20b`) | an account, and a third party sees every prompt[^16] |
-| `openai` | `TRIBE_API_KEY_OPENAI` | `api.openai.com` | **$0.05 in / $0.25 out** (`gpt-6-luna`); $0.50 / $2.50 (`gpt-6.1-terra`); $5.00 / $30.00 (`chat-latest`) | a card[^13] |
-| `anthropic` | `TRIBE_API_KEY_ANTHROPIC` | `api.anthropic.com` | **$0.10 in / $0.50 out** (`claude-haiku-5-5`, prompts under 100k); $2 / $10 (`claude-sonnet-5-5`); $4 / $20 (`claude-opus-5-5`) | prepaid credits bought with a card[^14] |
+| `mistral` | `TRIBE_API_KEY_MISTRAL` | `api.mistral.ai` | not printed here: the sheet draws its table in the browser — its own FAQ vouches for one example, Mistral Large at $0.50 in / $1.50 out | an account, and then the models your account can actually reach[^13] |
+| `cerebras` | `TRIBE_API_KEY_CEREBRAS` | `api.cerebras.ai` | not printed here: the price table renders in the browser | an account; two open-weight models, one of them at about 3,000 tokens a second[^13] |
+| `together` | `TRIBE_API_KEY_TOGETHER` | `api.together.xyz` | **$0.15 in / $0.50 out** (`zai-org/GLM-5.3-Flash`); **$0.03** cached input | an account[^13] |
+| `openrouter` | `TRIBE_API_KEY_OPENROUTER` | `openrouter.ai` | **$0.03 in / $0.13 out** (`openai/gpt-oss-20b`) | an account, and a third party sees every prompt[^13] |
+| `openai` | `TRIBE_API_KEY_OPENAI` | `api.openai.com` | **$0.05 in / $0.25 out** (`gpt-6-luna`); $0.50 / $2.50 (`gpt-6.1-terra`); $5.00 / $30.00 (`chat-latest`) | a card[^14] |
+| `anthropic` | `TRIBE_API_KEY_ANTHROPIC` | `api.anthropic.com` | **$0.10 in / $0.50 out** (`claude-haiku-5-5`, prompts under 100k); $2 / $10 (`claude-sonnet-5-5`); $4 / $20 (`claude-opus-5-5`) | prepaid credits bought with a card[^15] |
 
 Six of these seven have been woken here, one wake each on 2026-11-06, and the seventh has not been — its key is
 the one this project has never held in a shell, for the reason note 12 gives. None of them is recommended: the reason
-is the door, not the engine and not the bill.[^15]
+is the door, not the engine and not the bill.[^16]
 
 ### On your own machine
 
 | engine | secret name | model | price | what it asks of you first |
 |---|---|---|---|---|
-| `local` | *(none — there is no vendor to hold a key)* | whatever you downloaded; this page will not guess one for you | the electricity, and 12.1 GB of disk for the one measured here | a download and a port[^18] |
+| `local` | *(none — there is no vendor to hold a key)* | whatever you downloaded; this page will not guess one for you | the electricity, and 12.1 GB of disk for the one measured here | a download and a port[^17] |
 
 This is the only row on the page a stranger can try without asking anybody's permission: no account, no card, no
 network. It is also the row this page was least able to answer until 2026-11-06, when it was measured on the machine
-the project is written on rather than on a cloud runner's CPU. What that measurement showed is note 17.[^17]
+the project is written on rather than on a cloud runner's CPU. What that measurement showed is note 17.[^18]
 
 ### What Goose calls them, if you are using a computer
 
@@ -164,38 +164,7 @@ you are done: the list, the keys and the model selector do not care what a provi
     cannot make that promise for Alibaba. If you already have the key — the founder does, having paid that evening
     — a member on `qwen3.6-plus` wakes, plays and files like any other.
 
-[^13]: **OpenAI works here, and its cheapest model is the cheapest thing on this page.** It speaks the shape this
-    harness already speaks, so it needed no adapter, and it still refused three things in a row, each refusal
-    naming the field: `max_tokens` on models that want `max_completion_tokens` (and the reverse on older ones), a
-    `temperature` of 0.4 on a model that supports only the default, and `response_format: json_object` on a model
-    that demands the word "json" appear in the messages. The harness now reads the complaint, changes that one
-    field and retries. The first live wake then came back truncated at 2,400 tokens — 2,400 tokens of reasoning
-    and no answer, which was our defect and not the member's; the wake now triples the allowance to 20,000 when a
-    reply is cut off. The default is `gpt-6-luna`, which woke in 6.8 seconds and played eight readable throws.
-    `gpt-5-mini` was the first OpenAI model this project ever called and still answers, but it has dropped off the
-    vendor's published price sheet — which is the `deepseek-chat` failure one day early, and the reason the default
-    moved.
-
-[^14]: **Claude works here now, and what it took was code, not money.** Until 2026-11-06 this page said Claude did
-    not work here at all, and that was true: the wake and every game send `messages` to `/chat/completions`, while
-    Claude answers at `/v1/messages` with a different auth header, a required `max_tokens`, and a reply made of
-    content blocks. The adapter was written in both places the morning the founder produced a key — `wake/wake.py`
-    and `lab/rps.py` each build their own request, so a translation that lives in one of them is a member that can
-    wake and cannot play. It is no longer a guess about documentation: a wake on `claude-haiku-5-5` came back
-    **mechanically valid**, four rounds of the game ran on it, and the one thing the first live call taught that
-    the docs had not is that `temperature` is now deprecated on the newest models — the wake reads that refusal
-    and repeats the request without the field. The door: credits bought in advance with a card, non-refundable,
-    expiring after a year, no free tier.
-
-[^15]: **Why the last two are not recommended, and it is not the bill.** At the bottom of their ranges both are
-    cheaper than anything above: `claude-haiku-5-5` at $0.10 in is a fifth of Groq's input price, and `gpt-6-luna`
-    at $0.05 is cheaper still — so a reader who already pays one of these vendors should put a member on their
-    cheapest model and will spend less than one on DeepSeek. At the top of the ranges the older sentence still
-    holds and this page keeps it: those models cost ten to fifty times what any engine above costs. Either way,
-    what keeps these two out is the checkout page. A stranger with a card will find them perfectly good. This page
-    will not send a stranger without one there first.
-
-[^16]: **The four engines this page used to call unmeasured, measured — and the trap Mistral sets.** Each got one
+[^13]: **The four engines this page used to call unmeasured, measured — and the trap Mistral sets.** Each got one
     wake on 2026-11-06, same question, same member shape, and all four came back **mechanically valid**:
     `ministral-8b-latest` in **5.9 s**, `gpt-oss-120b` on Cerebras in **1.8 s**, `openai/gpt-oss-20b` through
     OpenRouter in **8.6 s**, and `zai-org/GLM-5.3-Flash` on Together in **47.2 s** — that one first came back cut off
@@ -219,7 +188,49 @@ you are done: the list, the keys and the model selector do not care what a provi
     sentences of what it was for, none of them about anything it had read. Bigger weights and a paid route do not fix
     that; it is the model, not the plumbing.
 
-[^17]: **Local weights, measured on this page's own laptop: a correspondent of a narrow kind.** Until 2026-11-06
+[^14]: **OpenAI works here, and its cheapest model was the cheapest thing on this page until OpenRouter joined it.** `gpt-6-luna` at $0.05 in is still the cheapest model bought directly from the vendor that makes it; the four newer rows in the table above undercut it, and the cheapest of all is a router reselling somebody else's 20B weights. It speaks the shape this
+    harness already speaks, so it needed no adapter, and it still refused three things in a row, each refusal
+    naming the field: `max_tokens` on models that want `max_completion_tokens` (and the reverse on older ones), a
+    `temperature` of 0.4 on a model that supports only the default, and `response_format: json_object` on a model
+    that demands the word "json" appear in the messages. The harness now reads the complaint, changes that one
+    field and retries. The first live wake then came back truncated at 2,400 tokens — 2,400 tokens of reasoning
+    and no answer, which was our defect and not the member's; the wake now triples the allowance to 20,000 when a
+    reply is cut off. The default is `gpt-6-luna`, which woke in 6.8 seconds and played eight readable throws.
+    `gpt-5-mini` was the first OpenAI model this project ever called and still answers, but it has dropped off the
+    vendor's published price sheet — which is the `deepseek-chat` failure one day early, and the reason the default
+    moved.
+
+[^15]: **Claude works here now, and what it took was code, not money.** Until 2026-11-06 this page said Claude did
+    not work here at all, and that was true: the wake and every game send `messages` to `/chat/completions`, while
+    Claude answers at `/v1/messages` with a different auth header, a required `max_tokens`, and a reply made of
+    content blocks. The adapter was written in both places the morning the founder produced a key — `wake/wake.py`
+    and `lab/rps.py` each build their own request, so a translation that lives in one of them is a member that can
+    wake and cannot play. It is no longer a guess about documentation: a wake on `claude-haiku-5-5` came back
+    **mechanically valid**, four rounds of the game ran on it, and the one thing the first live call taught that
+    the docs had not is that `temperature` is now deprecated on the newest models — the wake reads that refusal
+    and repeats the request without the field. The door: credits bought in advance with a card, non-refundable,
+    expiring after a year, no free tier.
+
+[^16]: **Why the last two are not recommended, and it is not the bill.** At the bottom of their ranges both are
+    cheaper than anything above: `claude-haiku-5-5` at $0.10 in is a fifth of Groq's input price, and `gpt-6-luna`
+    at $0.05 is cheaper still — so a reader who already pays one of these vendors should put a member on their
+    cheapest model and will spend less than one on DeepSeek. At the top of the ranges the older sentence still
+    holds and this page keeps it: those models cost ten to fifty times what any engine above costs. Either way,
+    what keeps these two out is the checkout page. A stranger with a card will find them perfectly good. This page
+    will not send a stranger without one there first.
+
+[^17]: **How to point the harness at weights on your machine.** Three commands, and then the harness treats it like
+    any other engine. `brew install llama.cpp` gives you `llama-server`; `llama-server -m path/to/model.gguf -c 16384
+    --jinja` serves it on `127.0.0.1:8080`, and `-c` is the context in tokens — 16,384 was enough for a wake, whose
+    prompt runs to a few thousand. Then either pass the address to a wake (`wake.py --api-base
+    http://127.0.0.1:8080/v1 --api-model <anything you like>`), or make a member that lives on it (`tribe.py new
+    Name --api local --model <the same>`), or play a game (`lab/rps.py --vendor local`). **No key is asked for**, and
+    that is the one place this page's "no key, no wake, and it says so before printing the prompt" rule does not
+    apply — a loopback address is not a vendor and has no credential to be missing. ollama works the same way on
+    port 11434; `--api-base http://127.0.0.1:11434/v1` and nothing else changes. What this engine is *not* is
+    offered by `new-member.yml`: a GitHub runner has no weights, so a member on them is made at a terminal.
+
+[^18]: **Local weights, measured on this page's own laptop: a correspondent of a narrow kind.** Until 2026-11-06
     every claim here about weights on your own machine came from rounds 1–7 of [`lab/results/`](lab/results/): three
     small open-weight models on a free cloud runner's CPU, and none of them was a correspondent —
     `llama3.2:3b` copied 52 to 54 consecutive words of the letter it was answering and signed itself with the
@@ -251,17 +262,6 @@ you are done: the list, the keys and the model selector do not care what a provi
     about a stranger's first thirty minutes, and this needs a 12.1 GB download, a terminal, and a model name the
     stranger picked. If what you want is a tribe that never asks a vendor's permission, this is the row, and the
     wake that proved it is in `FINDINGS.md` §8.
-
-[^18]: **How to point the harness at weights on your machine.** Three commands, and then the harness treats it like
-    any other engine. `brew install llama.cpp` gives you `llama-server`; `llama-server -m path/to/model.gguf -c 16384
-    --jinja` serves it on `127.0.0.1:8080`, and `-c` is the context in tokens — 16,384 was enough for a wake, whose
-    prompt runs to a few thousand. Then either pass the address to a wake (`wake.py --api-base
-    http://127.0.0.1:8080/v1 --api-model <anything you like>`), or make a member that lives on it (`tribe.py new
-    Name --api local --model <the same>`), or play a game (`lab/rps.py --vendor local`). **No key is asked for**, and
-    that is the one place this page's "no key, no wake, and it says so before printing the prompt" rule does not
-    apply — a loopback address is not a vendor and has no credential to be missing. ollama works the same way on
-    port 11434; `--api-base http://127.0.0.1:11434/v1` and nothing else changes. What this engine is *not* is
-    offered by `new-member.yml`: a GitHub runner has no weights, so a member on them is made at a terminal.
 
 [^19]: **Two of Goose's internal names are odd, and the difference is the whole trap.** Gemini is `google`, and
     DeepSeek is `custom_deepseek`. Both were checked by running Goose rather than by reading its menus: `--provider
