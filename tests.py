@@ -3914,5 +3914,115 @@ class TestWorkflows(unittest.TestCase):
                       "the later steps must read the resolved member, not an empty input")
 
 
+class TestTheAdminIsAConversation(unittest.TestCase):
+    """2026-11-07. "You've been a computer for too long. That's how computers talk, not how people talk."
+
+    The founder was objecting to `/newmember Maud` and then wrote the exchange he did want: one question at a
+    time, each answer a few words, the next question depending on the last. `lab/admin.py` is that exchange
+    with no transport under it, and these tests hold the two things that make it worth having: every option
+    is read from disk at the moment it is offered, and the last question reads the whole thing back before
+    anything is written.
+    """
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp(prefix="admin-"))
+        self.addCleanup(shutil.rmtree, self.tmp, True)
+        for world in ("workshop", "night-bus"):
+            (self.tmp / "soil" / world).mkdir(parents=True)
+        (self.tmp / "wake" / "members").mkdir(parents=True)
+        wf = self.tmp / ".github" / "workflows"
+        wf.mkdir(parents=True)
+        shutil.copy(REPO / ".github" / "workflows" / "new-member.yml", wf / "new-member.yml")
+        self.mod = load(REPO / "lab" / "admin.py", "admin_mod")
+
+    def admin(self):
+        return self.mod.Admin(self.tmp)
+
+    def hold(self, admin, *answers):
+        """Say each answer in turn; hand back what the admin said to the last one."""
+        said = []
+        for answer in answers:
+            said = admin.say(answer)
+        return said
+
+    def test_the_engines_come_from_the_form_and_are_engines_not_lines_of_yaml(self):
+        """The first version of this used a regex with re.S and captured the rest of the workflow file, so
+        "something else" offered 121 engines, most of them YAML. A list that is right in a copy of the file
+        and wrong in the real one is the class of defect this project keeps finding, so it is read live."""
+        got = self.mod.all_engines(self.tmp)
+        self.assertEqual(got, ["gemini", "qwen", "deepseek", "openai", "groq",
+                               "mistral", "cerebras", "openrouter", "together", "anthropic"])
+        for line in got:
+            self.assertNotIn("${{", line, "a template line is not an engine")
+            self.assertNotIn(":", line)
+
+    def test_six_questions_end_in_one_command_that_carries_every_answer(self):
+        a = self.admin()
+        self.assertIn("What should it be called", a.ask())
+        self.hold(a, "Maud", "the newcomer", "1", "2")
+        self.assertTrue(a.ask().startswith("That is everything"),
+                        "the last question must read the whole member back, not just ask 'sure?'")
+        self.hold(a, "yes")
+        self.assertTrue(a.done)
+        self.assertEqual(a.command[1:],
+                         ["tribe.py", "new", "Maud", "--seat", "the newcomer",
+                          "--api", "gemini", "--place", "workshop"])
+
+    def test_a_name_that_already_exists_is_refused_before_anything_else_is_asked(self):
+        (self.tmp / "wake" / "members" / "Maud").mkdir()
+        a = self.admin()
+        said = a.say("Maud")
+        self.assertIn("already exists", said[0])
+        self.assertEqual(a.i, 0, "it must still be asking for a name")
+
+    def test_a_name_that_is_not_a_name_is_refused_in_words_that_say_what_one_is(self):
+        a = self.admin()
+        for bad in ("Maud Smith", "3Maud", "Maud!", ""):
+            self.assertIn("letters and numbers", a.say(bad)[0])
+        self.assertEqual(a.name, "")
+
+    def test_cancel_writes_nothing_and_leaves_no_half_made_member(self):
+        a = self.admin()
+        self.hold(a, "Maud", "the newcomer")
+        self.assertIn("Nothing was written", a.say("cancel")[0])
+        self.assertTrue(a.done)
+        self.assertEqual(a.command, [], "cancel must not leave a command to run later")
+
+    def test_just_do_it_picks_the_rest_and_says_which_ones_it_picked(self):
+        a = self.admin()
+        said = a.say("just do it")
+        self.assertIn("name Maud", said[0])
+        self.assertIn("engine gemini", said[0])
+        self.assertIn("world night-bus", said[0], "the worlds are sorted, so night-bus is the first")
+        self.assertTrue(a.ask().startswith("That is everything"))
+        self.assertEqual(a.command, [], "the defaults still stop at the confirmation")
+
+    def test_something_else_offers_the_engines_beyond_the_first_four(self):
+        a = self.admin()
+        offered = self.hold(a, "Maud", "the newcomer", "4")[0]
+        self.assertIn("anthropic", offered)
+        self.assertNotIn("gemini", offered, "the first four are not repeated in the long list")
+        self.hold(a, "7")
+        self.assertEqual(a.engine, "anthropic")
+
+    def test_the_worlds_are_whatever_is_in_the_soil_folder_today(self):
+        (self.tmp / "soil" / "harbour").mkdir()
+        a = self.admin()
+        offered = self.hold(a, "Maud", "the newcomer", "1")[0]
+        self.assertIn("harbour", offered, "a world added to the folder must appear without editing the admin")
+        self.hold(a, "1")
+        self.assertEqual(a.world, "harbour")
+        self.assertIn("harbour", a.ask(), "and the confirmation must read back the world it was given")
+
+    def test_a_colony_with_no_worlds_says_so_and_makes_the_member_without_one(self):
+        for d in (self.tmp / "soil").iterdir():
+            shutil.rmtree(d)
+        a = self.admin()
+        self.assertIn("no worlds yet", self.hold(a, "Maud", "the newcomer", "1")[0])
+        self.hold(a, "anything")
+        self.assertIn("(no world)", a.ask())
+        self.assertNotIn("--place", a._argv())
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
