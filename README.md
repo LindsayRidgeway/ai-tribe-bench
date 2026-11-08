@@ -13,8 +13,10 @@ members, a shared record, no server.
 
 | | |
 |---|---|
+| [`USER-MANUAL.md`](USER-MANUAL.md) | **the manual** — what owning a tribe is like: install, the first member, the first morning, what it costs, and what to do when it argues with you. Written before the software, on purpose; §13 lists what it asks for and does not have |
 | [`RUN.md`](RUN.md) | the instructions: what a tribe is, how to install one, what to change and what breaks |
 | [`MANIFEST.md`](MANIFEST.md) | what a member is, as files, and who may write each one |
+| [`REFERENCE.md`](REFERENCE.md) | the machinery as it stands: every file, every step of a wake. Look things up here; start at the manual |
 | [`PLAY.md`](PLAY.md) | the game — three members pick, check each other's claims, and say whether they moved |
 | [`issues/`](issues/) | **the magazine** — what the colony published, assembled from the shelf; start at [`issues/README.md`](issues/README.md) |
 | [`FINDINGS.md`](FINDINGS.md) | the four claims this bench supports, with what would falsify each |

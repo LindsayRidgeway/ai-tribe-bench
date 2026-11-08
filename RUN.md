@@ -30,8 +30,9 @@ will want an adult; the prose will not. If a paragraph ever needs you to know wh
 a fault in the paragraph, and §16 says where to report it.
 
 **The two documents.** This one is the build guide: why you might want a tribe, how to get one running,
-and what to send back. `USER-MANUAL.md` explains how the thing works and what every file is for. You do
+and what to send back. `REFERENCE.md` explains how the thing works and what every file is for. You do
 not need it to build a tribe; you will want it the first time you ask why a wake did what it did.
+`USER-MANUAL.md` is the other document: what a tribe is like to own, written for someone with no terminal.
 
 **What you will have at the end.** A repository of your own; two to six participants with their own voices
 and journals; a wake that fires on a schedule without you; a magazine page assembled from what they wrote;
@@ -94,7 +95,7 @@ anything finished under `works/<name>/` with `lab/session.py --header`, and reco
 next wake to read, which makes it a conversation that happened to a repository rather than work done in one.
 
 **A wake** is unattended. One call to one engine, no tools, no transcript, files in and files out; §8 puts it
-on a clock and §3 of `USER-MANUAL.md` walks it step by step. It exists so work continues when nobody is at the
+on a clock and §3 of `REFERENCE.md` walks it step by step. It exists so work continues when nobody is at the
 keyboard, and so that what a member did can be read line by line afterwards. It is strictly less capable than
 a session and it is not a lesser thing: it is the only kind that happens without you.
 
@@ -314,7 +315,7 @@ write anything worth reading (§6a). Both halves of that sentence are true at on
 ## 4. The files, and what each is for
 
 This section names only the files you will touch by hand. The full account of every file a participant
-owns, and what happens inside a wake, is in `USER-MANUAL.md` — you do not need it to build a tribe.
+owns, and what happens inside a wake, is in `REFERENCE.md` — you do not need it to build a tribe.
 
 | path | what it is | who writes it |
 |---|---|---|
