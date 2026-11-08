@@ -211,9 +211,9 @@ function load(){ try{ const j = JSON.parse(localStorage.getItem('ait') || '{}');
 
 /* ---- the GitHub door ------------------------------------------------------------------- */
 
-async function gh(path, opts = {}){
+async function gh(path, opts = {}, token = S.token){
   const headers = {
-    Authorization: 'Bearer ' + S.token,
+    Authorization: 'Bearer ' + token,
     Accept: 'application/vnd.github+json',
     'X-GitHub-Api-Version': '2022-11-28',
   };
@@ -504,6 +504,8 @@ function viewHome(main){
     </details>`;
 }
 
+const TEMPLATE = 'LindsayRidgeway/ai-tribe-template';
+
 function viewInstall(main){
   main.innerHTML = `
     <p class="small"><a href="#/">← back</a></p>
@@ -516,22 +518,16 @@ function viewInstall(main){
       <div class="b">
         <h3>Your GitHub account</h3>
         <p class="small muted" style="margin:0 0 8px">The tribe lives under your name, in your account, so that it
-        is yours and not mine.</p>
-        <button class="plain" disabled>Sign in with GitHub</button> <span class="chip warn">not built</span>
-        <details style="margin-top:10px">
-          <summary>Until that exists: a token</summary>
-          <p class="small muted">A <strong>token</strong> is a password for this page, made at GitHub, which you
-          can delete at any time. It is not your GitHub password and it works nowhere else. Make a
-          <strong>fine-grained</strong> token —
-          <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">new
-          token</a> — and set four permissions, each <em>Read and write</em>: <strong>Contents</strong>,
-          <strong>Actions</strong>, <strong>Workflows</strong> (the clock that wakes a member is a workflow file) and
-          <strong>Secrets</strong> (the engine key is kept as a secret, never in a file). Repository access:
-          <em>All repositories</em> — your tribe's repository does not exist until you press Install, so it cannot
-          be chosen yet. Narrow the token to that one afterwards; nothing but those four permissions was ever
-          granted.</p>
-          <input id="tok" type="password" placeholder="paste the token" autocapitalize="off" spellcheck="false">
-        </details>
+        is yours and not mine. A <strong>token</strong> is a password for this page, made at GitHub, which you can
+        delete at any time. It is not your GitHub password and it works nowhere else.</p>
+        <p class="small muted" style="margin:0 0 8px">Make a <strong>fine-grained</strong> token —
+        <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">new
+        token</a> — with <em>Repository access: All repositories</em> and three permissions, each
+        <em>Read and write</em>: <strong>Repository creation</strong> (to make the repository),
+        <strong>Contents</strong> (to write in it) and <strong>Actions</strong> (to start a wake). Afterwards you
+        can narrow it to that one repository, and then it can see nothing else on your account.</p>
+        <input id="tok" type="password" placeholder="paste the token" autocapitalize="off" spellcheck="false">
+        <p class="small" id="who" style="margin:8px 0 0"></p>
       </div>
     </div>
 
@@ -549,36 +545,96 @@ function viewInstall(main){
       <div class="n">3</div>
       <div class="b">
         <h3>Install</h3>
-        <button class="primary" id="install" disabled>Install</button> <span class="chip warn">not built</span>
-        <p class="small muted" style="margin:8px 0 0">The button does four things: makes the repository, writes the
-        members' machinery into it, puts the engine key where the wakes can reach it and no file can show it, and
-        gives you the link. Then the spinner, then one line:</p>
-        <p class="small" style="margin:4px 0 0">Here is your link:<br>
-        <a class="tlink" id="tlink" href="#"></a></p>
+        <button class="primary" id="install" disabled>Install</button>
+        <p class="small muted" style="margin:8px 0 0">It copies the tribe's machinery into a new private
+        repository, and then it opens it. About ten seconds.</p>
+        <p class="small muted" style="margin:8px 0 0" id="imsg"></p>
+        <div id="done" hidden>
+          <p class="small" style="margin:10px 0 0">Here is your link:<br>
+          <a class="tlink" id="tlink" href="#"></a></p>
+        </div>
       </div>
     </div>
 
-    <div class="notice"><strong>Your tribe starts empty — no members.</strong> That is deliberate, and it is the
-    change you asked for: an engine key belongs to a member, not to a tribe. A Gemini member and a DeepSeek
-    member need different keys, from different companies. So the first thing after install is <em>Add a
-    member</em>, which asks for a name, an engine, and that engine's key, and offers the page where the key comes
-    from.</div>
+    <div class="notice"><strong>Your tribe starts empty — no members.</strong> That is deliberate: an engine key
+    belongs to a member, not to a tribe, and a Gemini member and a DeepSeek member need keys from different
+    companies. So the first thing after install is <em>Add a member</em>, which asks for a name, an engine, and
+    that engine's key — and offers the page where the key comes from. One honest gap: that key is held in this
+    browser for chat, and handing the same key to the clock, as a repository secret, is the next thing I wire.
+    So a fresh tribe will talk before it wakes.</div>
 
-    <div class="notice"><strong>Both buttons above say "not built", and both are telling the truth.</strong> The
-    one way in that exists today is a repository that already holds a tribe —
-    <a href="#/connect">connect to one</a>. That is also how you reach Lumi and Laddie: their repository is
-    private, so the page needs a token that can see it.</div>`;
+    <div class="notice">One button that says <em>Sign in with GitHub</em> is the next thing I build; it removes
+    the token entirely. Until then the token is the door, and it is the only thing on this page you have to go
+    and fetch somewhere else.</div>`;
 
-  const name = $('tname');
+  const tok = $('tok'), name = $('tname'), msg = $('imsg'), btn = $('install');
+  let login = '';
+
   const slugOf = v => (v.trim().replace(/[^a-zA-Z0-9._-]/g, '-') || 'my-tribe');
+
   function place(){
     const slug = slugOf(name.value);
-    $('tpath').textContent = 'github.com/YOUR-ACCOUNT/' + slug;
-    const url = location.href.split('#')[0].split('?')[0] + '?tribe=YOUR-ACCOUNT/' + slug;
+    $('tpath').textContent = 'github.com/' + (login || 'YOUR-ACCOUNT') + '/' + slug;
+    const url = location.href.split('#')[0].split('?')[0] + '?tribe=' + (login || 'YOUR-ACCOUNT') + '/' + slug;
     const a = $('tlink'); a.textContent = url; a.href = url;
+    btn.disabled = !(login && tok.value.trim());
   }
+
+  let timer = null;
+  async function whoami(){
+    const t = tok.value.trim();
+    login = '';
+    if (!t){ $('who').textContent = ''; place(); return; }
+    $('who').className = 'small muted'; $('who').textContent = 'asking GitHub who that is…';
+    try {
+      const me = await gh('/user', {}, t);
+      login = me.login;
+      $('who').className = 'small';
+      $('who').innerHTML = 'Signed in as <strong>@' + esc(login) + '</strong>' +
+        (me.name ? ' — ' + esc(me.name) : '') + '. Is that you?';
+    } catch(e){
+      $('who').className = 'err';
+      $('who').textContent = 'That token could not be read: ' + e.message;
+    }
+    place();
+  }
+  tok.oninput = () => { clearTimeout(timer); timer = setTimeout(whoami, 500); place(); };
   name.oninput = place;
   place();
+
+  btn.onclick = async () => {
+    const t = tok.value.trim(), slug = slugOf(name.value);
+    btn.disabled = true;
+    msg.className = 'small muted'; msg.textContent = 'making the repository…';
+    try {
+      if (!login){ await whoami(); if (!login) throw new Error('the token could not be read'); }
+      await gh(`/repos/${TEMPLATE}/generate`, {method:'POST',
+        body:{owner:login, name:slug, private:true, description:'A tribe. AIT reads it; the members live in it.'}}, t);
+      msg.textContent = 'copied the machinery into it…';
+      S.repo = `${login}/${slug}`; S.token = t; S.branch = 'main';
+      save();
+      try { history.replaceState(null, '', location.pathname + '?tribe=' + S.repo); } catch(_){}
+      const ms = await loadMembers();
+      msg.textContent = `Installed. ${ms.length} member${ms.length === 1 ? '' : 's'} — the tribe is empty on purpose.`;
+      $('done').hidden = false;
+      place();
+      await sleep(900);
+      location.hash = '#/today'; render();
+    } catch(e){
+      msg.className = 'err';
+      msg.textContent = explainInstallError(e, slug);
+      btn.disabled = false;
+    }
+  };
+}
+
+function explainInstallError(e, slug){
+  const m = String(e.message || e);
+  if (m.startsWith('401')) return 'GitHub did not accept that token. Copy it again — a token is shown once, and an expired one is the usual cause.';
+  if (m.startsWith('403')) return 'The token is real but not allowed to create a repository. It needs Repository creation (read and write) — and Contents. A classic token with the repo scope also works.';
+  if (m.startsWith('422')) return `GitHub refused the name “${slug}”. You may already have a repository called that, or the name may not be allowed. Try another.`;
+  if (m.startsWith('404')) return 'GitHub answered 404, which here usually means the token cannot see the template repository. Check that the token can read public repositories and that Repository creation is granted.';
+  return m;
 }
 
 function viewConnect(main){
