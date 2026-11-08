@@ -1,0 +1,971 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AIT</title>
+<style>
+  :root{
+    --bg:#f7f4ee; --panel:#fffdf9; --ink:#1b1916; --mute:#6f675d; --line:#e3ddd1;
+    --accent:#7a4520; --ok:#2f6b46; --warn:#a03b2a; --chip:#efe9dd;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --serif:"Iowan Old Style",Georgia,"Times New Roman",serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);
+    font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    -webkit-text-size-adjust:100%}
+  a{color:var(--accent)}
+  #app{max-width:760px;margin:0 auto;padding:14px 16px 80px}
+  header{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;padding:6px 0 14px;border-bottom:1px solid var(--line)}
+  .brand{font:600 20px/1 var(--serif);letter-spacing:.14em}
+  .brand span{color:var(--accent)}
+  #repo-label{font-family:var(--mono);font-size:12px;color:var(--mute);flex:1;min-width:0;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  nav{display:flex;gap:4px;flex-wrap:wrap;margin:12px 0 18px}
+  nav button{font:inherit;font-size:14px;padding:6px 11px;border:1px solid var(--line);border-radius:999px;
+    background:var(--panel);color:var(--ink);cursor:pointer}
+  nav button[aria-current="true"]{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+  h1{font:600 26px/1.2 var(--serif);margin:4px 0 10px}
+  h2{font:600 19px/1.3 var(--serif);margin:26px 0 8px}
+  h3{font:600 15px/1.3 system-ui;margin:18px 0 6px;letter-spacing:.02em;text-transform:uppercase;color:var(--mute)}
+  p{margin:0 0 12px}
+  .lede{font-family:var(--serif);font-size:18px;line-height:1.5}
+  .muted{color:var(--mute)}
+  .small{font-size:14px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin:12px 0}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .grow{flex:1;min-width:0}
+  button.primary{font:600 15px system-ui;background:var(--accent);color:#fff;border:0;border-radius:10px;
+    padding:10px 16px;cursor:pointer}
+  button.plain{font:inherit;font-size:14px;background:var(--panel);border:1px solid var(--line);
+    border-radius:10px;padding:8px 12px;cursor:pointer;color:var(--ink)}
+  button:disabled{opacity:.5;cursor:default}
+  input,select,textarea{font:inherit;font-size:15px;width:100%;padding:9px 11px;border:1px solid var(--line);
+    border-radius:10px;background:#fff;color:var(--ink)}
+  label{display:block;font-size:13px;color:var(--mute);margin:12px 0 4px}
+  .chip{display:inline-block;font:12px var(--mono);background:var(--chip);border-radius:999px;padding:2px 8px;color:#4a443c}
+  .chip.ok{background:#e2f0e6;color:var(--ok)}
+  .chip.warn{background:#fbe6e1;color:var(--warn)}
+  .member{display:flex;gap:12px;align-items:flex-start;padding:14px 0;border-bottom:1px solid var(--line);cursor:pointer}
+  .member:last-child{border-bottom:0}
+  .member .name{font:600 18px var(--serif)}
+  .member .said{font-family:var(--serif);color:#3a352e;font-size:15px;margin-top:2px;
+    display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  .file{font-family:var(--mono);font-size:12.5px;white-space:pre-wrap;word-break:break-word;
+    background:#fbf9f4;border:1px solid var(--line);border-radius:10px;padding:12px;max-height:340px;overflow:auto}
+  .prose{font-family:var(--serif);font-size:16.5px;line-height:1.6}
+  .prose h1,.prose h2,.prose h3{font-family:var(--serif);text-transform:none;letter-spacing:0;color:var(--ink)}
+  .chat{display:flex;flex-direction:column;gap:10px;margin:14px 0}
+  .msg{max-width:92%;padding:10px 13px;border-radius:14px;font-size:15.5px;line-height:1.55;white-space:pre-wrap}
+  .msg.me{align-self:flex-end;background:var(--ink);color:var(--panel);border-bottom-right-radius:4px}
+  .msg.them{align-self:flex-start;background:var(--panel);border:1px solid var(--line);border-bottom-left-radius:4px}
+  .msg.sys{align-self:center;font-size:13px;color:var(--mute);background:none}
+  .composer{display:flex;gap:8px;align-items:flex-end;position:sticky;bottom:0;background:linear-gradient(transparent,var(--bg) 30%)}
+  .composer textarea{resize:none;height:52px;min-height:52px}
+  .err{color:var(--warn);font-size:14px;margin:8px 0}
+  .notice{border-left:3px solid var(--accent);padding:8px 0 8px 14px;margin:16px 0;font-size:15px}
+  dialog{border:0;border-radius:16px;padding:0;max-width:560px;width:calc(100% - 24px);
+    box-shadow:0 20px 60px rgba(0,0,0,.25)}
+  dialog::backdrop{background:rgba(28,25,20,.45)}
+  .dlg{padding:20px}
+  .dlog{font-size:15px;line-height:1.55;min-height:110px;margin:0 0 14px;white-space:pre-wrap}
+  footer{margin-top:36px;border-top:1px solid var(--line);padding-top:14px;font-size:13px;color:var(--mute)}
+  .grid{display:grid;grid-template-columns:1fr;gap:10px}
+  @media(min-width:600px){.grid.two{grid-template-columns:1fr 1fr}}
+  .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px;background:var(--ok)}
+  .dot.quiet{background:var(--warn)}
+  details summary{cursor:pointer;font-size:14px;color:var(--mute);margin:6px 0}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="brand">A<span>IT</span></div>
+    <div id="repo-label"></div>
+    <button class="plain small" id="btn-settings" hidden>Settings</button>
+  </header>
+  <nav id="nav" hidden>
+    <button data-go="today">Today</button>
+    <button data-go="members">Members</button>
+    <button data-go="play">Play</button>
+    <button data-go="magazine">Magazine</button>
+    <button data-go="keys">Keys</button>
+  </nav>
+  <main id="main"></main>
+  <footer id="foot" hidden>
+    <strong>AIT stores nothing.</strong> Every button here is an operation on your own repository; this page has no
+    database and no copy of your tribe. Keys pasted for chat live in this browser only.
+    <details>
+      <summary>What this page does not do yet</summary>
+      <p class="small muted">Pictures (§8 of the manual) and a member looking things up on the internet from chat
+      (§6) are not built. Removing a member works only by dispatch, not by an attic. Sign-in is a personal access
+      token rather than GitHub's own button, and there is no installer — this is a file you open.</p>
+    </details>
+  </footer>
+</div>
+
+<dialog id="modal"><div class="dlg" id="dlg"></div></dialog>
+
+<script>
+'use strict';
+
+/* ------------------------------------------------------------------------------------------
+   AIT — the whole application in one page. It reads and writes a repository through GitHub's
+   API, and it calls engines directly for chat. No server of ours, no storage of ours.
+   ------------------------------------------------------------------------------------------ */
+
+const API = 'https://api.github.com';
+const GEN = 'https://generativelanguage.googleapis.com';
+
+const ENGINES = {
+  gemini:     {label:'Gemini',     model:'gemini-3.8-flash',      kind:'gemini'},
+  deepseek:   {label:'DeepSeek',   model:'deepseek-flash',        kind:'openai', base:'https://api.deepseek.com'},
+  groq:       {label:'Groq',       model:'openai/gpt-oss-120b',   kind:'openai', base:'https://api.groq.com/openai/v1'},
+  openai:     {label:'OpenAI',     model:'gpt-6-luna',            kind:'openai', base:'https://api.openai.com/v1'},
+  openrouter: {label:'OpenRouter', model:'openai/gpt-oss-20b',    kind:'openai', base:'https://openrouter.ai/api/v1'},
+  mistral:    {label:'Mistral',    model:'ministral-8b-latest',   kind:'openai', base:'https://api.mistral.ai/v1'},
+  cerebras:   {label:'Cerebras',   model:'gpt-oss-120b',          kind:'openai', base:'https://api.cerebras.ai/v1'},
+  together:   {label:'Together',   model:'zai-org/GLM-5.3-Flash', kind:'openai', base:'https://api.together.xyz/v1'},
+  qwen:       {label:'Qwen',       model:'qwen3.8-flash',         kind:'openai', base:'https://dashscope-intl.aliyuncs.com/compatible-mode/v1'},
+};
+
+const S = {repo:'', token:'', branch:'main', keys:{}, members:[], chat:{}, member:null, view:'today'};
+
+/* ---- tiny helpers ---------------------------------------------------------------------- */
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const escq = (s) => String(s ?? '').replace(/'/g, '&#39;');
+
+function md(src){
+  // Enough markdown for this project's own files: headings, bullets, bold, italics, code, quotes.
+  const lines = String(src ?? '').split('\n');
+  let out = '', inList = false, inCode = false;
+  const inline = (t) => esc(t)
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/(^|\s)_([^_]+)_/g, '$1<em>$2</em>')
+    .replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer">$1</a>');
+  for (const raw of lines){
+    const line = raw.replace(/\s+$/, '');
+    if (/^```/.test(line)){ inCode = !inCode; out += inCode ? '<pre class="file">' : '</pre>'; continue; }
+    if (inCode){ out += esc(raw) + '\n'; continue; }
+    const li = line.match(/^\s*[-*]\s+(.*)$/);
+    if (li){ if (!inList){ out += '<ul>'; inList = true; } out += '<li>' + inline(li[1]) + '</li>'; continue; }
+    if (inList && !li){ out += '</ul>'; inList = false; }
+    if (!line){ out += ''; continue; }
+    const h = line.match(/^(#{1,4})\s+(.*)$/);
+    if (h){ const n = Math.min(h[1].length, 3); out += `<h${n}>` + inline(h[2]) + `</h${n}>`; continue; }
+    if (/^>\s?/.test(line)){ out += '<blockquote>' + inline(line.replace(/^>\s?/, '')) + '</blockquote>'; continue; }
+    if (/^\s*\|/.test(line)){ out += '<div class="file" style="white-space:pre-wrap">' + esc(line) + '</div>'; continue; }
+    out += '<p>' + inline(line) + '</p>';
+  }
+  if (inList) out += '</ul>';
+  return out;
+}
+
+function when(iso){
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d)) return iso;
+  const mins = Math.round((Date.now() - d.getTime()) / 60000);
+  if (mins < 2) return 'just now';
+  if (mins < 60) return mins + ' min ago';
+  if (mins < 60 * 36) return Math.round(mins / 60) + ' h ago';
+  return d.toLocaleDateString();
+}
+
+function nowStamp(){
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getUTCFullYear()}-${p(d.getUTCMonth()+1)}-${p(d.getUTCDate())} ${p(d.getUTCHours())}:${p(d.getUTCMinutes())} UTC`;
+}
+
+function save(){ localStorage.setItem('ait', JSON.stringify({repo:S.repo, token:S.token, keys:S.keys})); }
+function load(){ try{ const j = JSON.parse(localStorage.getItem('ait') || '{}');
+  S.repo = j.repo || ''; S.token = j.token || ''; S.keys = j.keys || {}; }catch(e){} }
+
+/* ---- the GitHub door ------------------------------------------------------------------- */
+
+async function gh(path, opts = {}){
+  const headers = {
+    Authorization: 'Bearer ' + S.token,
+    Accept: 'application/vnd.github+json',
+    'X-GitHub-Api-Version': '2022-11-28',
+  };
+  if (opts.body) headers['Content-Type'] = 'application/json';
+  Object.assign(headers, opts.headers || {});
+  const res = await fetch(API + path, {...opts, headers, body: opts.body ? JSON.stringify(opts.body) : undefined});
+  if (res.status === 204) return null;
+  const text = await res.text();
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch(e){ data = text; }
+  if (!res.ok){
+    const why = (data && data.message) ? data.message : String(text).slice(0, 200);
+    throw new Error(`${res.status} · ${why}`);
+  }
+  return data;
+}
+
+async function dirNames(path){
+  try {
+    const d = await gh(`/repos/${S.repo}/contents/${encodeURI(path)}?ref=${S.branch}`);
+    if (!Array.isArray(d)) return [];
+    return d.map(x => x.name);
+  } catch(e){
+    if (String(e.message).startsWith('404')) return [];
+    throw e;
+  }
+}
+
+async function fileText(path){
+  const d = await gh(`/repos/${S.repo}/contents/${encodeURI(path)}?ref=${S.branch}`);
+  if (Array.isArray(d)) throw new Error(path + ' is a folder');
+  return {text: b64d(d.content), sha: d.sha};
+}
+
+async function putText(path, text, message, sha){
+  const body = {message, content: b64e(text), branch: S.branch};
+  if (sha) body.sha = sha;
+  return gh(`/repos/${S.repo}/contents/${encodeURI(path)}`, {method:'PUT', body});
+}
+
+const b64d = (s) => new TextDecoder().decode(Uint8Array.from(atob(String(s).replace(/\s/g,'')), c => c.charCodeAt(0)));
+function b64e(s){
+  // Chunked: a journal can be a hundred kilobytes, and spreading that many bytes into fromCharCode
+  // throws RangeError on exactly the file this page cares most about.
+  const bytes = new TextEncoder().encode(s);
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
+
+async function dispatch(workflow, inputs){
+  await gh(`/repos/${S.repo}/actions/workflows/${workflow}/dispatches`,
+           {method:'POST', body:{ref:S.branch, inputs}});
+}
+
+async function waitForRun(name, sinceMs, say){
+  // Dispatches are asynchronous and give back nothing but a 204, so the only honest way to know
+  // whether the work happened is to watch for a run that did not exist when we asked.
+  for (let i = 0; i < 90; i++){
+    await sleep(3000);
+    let runs = [];
+    try {
+      runs = await gh(`/repos/${S.repo}/actions/runs?per_page=20`);
+    } catch(e){ if (say) say('watching… (cannot list runs: ' + e.message + ')'); continue; }
+    const mine = (runs.workflow_runs || []).find(r =>
+      r.name === name && new Date(r.created_at).getTime() >= sinceMs - 5000);
+    if (mine){
+      if (mine.status !== 'completed'){
+        if (say) say(`${name} is ${mine.status}…`);
+        continue;
+      }
+      if (say) say(`${name} ${mine.conclusion === 'success' ? 'finished' : 'ended: ' + mine.conclusion}`);
+      return mine;
+    }
+    if (say && i === 2) say('waiting for the run to appear…');
+  }
+  throw new Error('no run appeared within four minutes');
+}
+
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+/* ---- members --------------------------------------------------------------------------- */
+
+const MEMBER_FILES = ['identity','state','place','voice','journal','open-items'];
+
+async function loadMembers(){
+  const names = (await dirNames('wake/members')).filter(n => n !== '.gitkeep');
+  const out = await Promise.all(names.map(async (name) => {
+    const m = {name};
+    // Read the six files at once. One after another was six round trips per member, and a phone on a
+    // slow connection feels every one of them.
+    const got = await Promise.all(MEMBER_FILES.map(f =>
+      fileText(`wake/members/${name}/state/${f}.md`).then(x => x.text).catch(() => '')));
+    MEMBER_FILES.forEach((f, i) => { m[f.replace('-','')] = got[i]; });
+    const vm = (m.voice.match(/^api:\s*(\S+)/m) || [])[1] || '';
+    const mm = (m.voice.match(/^model:\s*(\S+)/m) || [])[1] || '';
+    m.engine = vm.trim(); m.model = mm.trim();
+    m.place = (m.place.match(/^place:\s*(.*)$/m) || [])[1]?.trim() || '';
+    m.wakes = (m.state.match(/Wakes so far:\s*(\d+)/) || [])[1] || '0';
+    m.lastWake = (m.state.match(/Last wake:\s*(.*)$/m) || [])[1]?.trim() || 'never';
+    m.openItems = m.openitems || '';
+    m.lastEntry = lastEntry(m.journal);
+    return m;
+  }));
+  S.members = out;
+  return out;
+}
+
+function lastEntry(journal){
+  const parts = String(journal || '').split(/\n(?=## )/);
+  const tail = parts[parts.length - 1] || '';
+  return tail.trim();
+}
+
+function firstPara(text, n = 260){
+  const body = String(text || '').replace(/^##[^\n]*\n/, '').replace(/\n+/g, ' ').trim();
+  return body.length > n ? body.slice(0, n).replace(/\s+\S*$/, '') + '…' : body;
+}
+
+/* ---- engines --------------------------------------------------------------------------- */
+
+function keyFor(engine){ return (S.keys[engine] || {}); }
+function modelFor(engine){ const k = keyFor(engine); return k.model || (ENGINES[engine] ? ENGINES[engine].model : ''); }
+
+async function chatStream(system, messages, engine, onDelta){
+  const spec = ENGINES[engine];
+  if (!spec) throw new Error(`AIT does not know the engine "${engine}".`);
+  const key = keyFor(engine).key;
+  if (!key) throw new Error(`No ${spec.label} key yet — paste one on the Keys page.`);
+
+  if (spec.kind === 'gemini'){
+    const url = `${GEN}/v1beta/models/${encodeURIComponent(modelFor(engine))}:streamGenerateContent?alt=sse&key=${encodeURIComponent(key)}`;
+    const body = {
+      systemInstruction: {parts:[{text:system}]},
+      contents: messages.map(m => ({role: m.role === 'assistant' ? 'model' : 'user', parts:[{text:m.content}]})),
+    };
+    await sse(url, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)}, (obj) => {
+      const t = obj?.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
+      if (t) onDelta(t);
+    });
+    return;
+  }
+
+  const url = spec.base + '/chat/completions';
+  const body = {model: modelFor(engine), stream: true,
+                messages: [{role:'system', content:system}, ...messages]};
+  await sse(url, {method:'POST',
+                  headers:{'Content-Type':'application/json', Authorization:'Bearer ' + key},
+                  body: JSON.stringify(body)}, (obj) => {
+    const t = obj?.choices?.[0]?.delta?.content || '';
+    if (t) onDelta(t);
+  });
+}
+
+async function sse(url, init, onObject){
+  const res = await fetch(url, init);
+  if (!res.ok){
+    const text = await res.text().catch(() => '');
+    throw new Error(`${res.status} · ${text.slice(0, 300) || res.statusText}`);
+  }
+  const reader = res.body.getReader();
+  const dec = new TextDecoder();
+  let buf = '';
+  while (true){
+    const {value, done} = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, {stream:true});
+    const chunk = buf.split('\n');
+    buf = chunk.pop();
+    for (const line of chunk){
+      const s = line.trim();
+      if (!s.startsWith('data:')) continue;
+      const payload = s.slice(5).trim();
+      if (!payload || payload === '[DONE]') continue;
+      try { onObject(JSON.parse(payload)); } catch(e){ /* a heartbeat, not a reply */ }
+    }
+  }
+}
+
+function systemPrompt(m){
+  const id = m.identity || '';
+  const st = m.state || '';
+  const jo = String(m.journal || '').split('\n').slice(-90).join('\n');
+  const oi = m.openItems || '';
+  return `You are ${m.name}, a member of a small tribe that lives in a git repository.
+
+Your identity, as you last wrote it:
+${id}
+
+Your state, as the harness last wrote it:
+${st}
+
+Where you work: ${m.place || '(nowhere in particular)'}
+
+Your open items:
+${oi}
+
+The most recent part of your journal:
+${jo}
+
+You are in a live conversation with the person who keeps this tribe. Speak as yourself, in the first
+person, in plain words. Answer what is asked. If something in your record says a thing you cannot check,
+say so rather than agreeing with it, and do not invent the present: if you do not know something, ask or
+say you do not know.
+
+You have no tools in this window. You cannot look anything up, run anything, or read a file you were not
+handed. If the conversation needs one of those, say what you would want run or fetched, and why.`;
+}
+
+/* ---- views ----------------------------------------------------------------------------- */
+
+function setView(v){ S.view = v; location.hash = '#/' + v; render(); }
+
+function nav(current){
+  document.querySelectorAll('#nav button').forEach(b => {
+    b.setAttribute('aria-current', b.dataset.go === current ? 'true' : 'false');
+  });
+}
+
+async function render(){
+  const main = $('main');
+  const connected = !!(S.repo && S.token);
+  $('nav').hidden = !connected;
+  $('btn-settings').hidden = !connected;
+  $('foot').hidden = !connected;
+  $('repo-label').textContent = connected ? S.repo : 'not connected';
+
+  if (!connected){ nav(''); return viewConnect(main); }
+
+  const view = (location.hash.replace(/^#\/?/, '').split('/')[0]) || 'today';
+  nav(view);
+  if (view === 'connect') return viewConnect(main);
+  if (view === 'keys') return viewKeys(main);
+  if (view === 'play') return viewPlay(main);
+  if (view === 'magazine') return viewMagazine(main);
+  if (view === 'members') return viewMembers(main);
+  if (view.startsWith('m')) return viewMember(main, decodeURIComponent((location.hash.split('/')[2] || '')));
+  return viewToday(main);
+}
+
+function viewConnect(main){
+  main.innerHTML = `
+    <h1>A household of AI members that live in files.</h1>
+    <p class="lede">AIT is a face on a repository. Connect one and you get members, games, a magazine and a
+    conversation, on any device with a browser. This page holds nothing: everything it shows lives in your
+    repository.</p>
+
+    <div class="card">
+      <h3>Connect</h3>
+      <label for="repo">Repository</label>
+      <input id="repo" placeholder="your-name/your-tribe" autocapitalize="off" autocorrect="off" spellcheck="false">
+      <label for="token">A token that can read and write it</label>
+      <input id="token" type="password" placeholder="ghp_… or github_pat_…" autocapitalize="off" spellcheck="false">
+      <p class="small muted" style="margin-top:8px">A fine-grained token on one repository needs
+      <strong>Contents</strong> (read and write) and <strong>Actions</strong> (read and write). A classic token
+      needs <code>repo</code> and <code>workflow</code>. It is kept in this browser and sent only to GitHub.</p>
+      <div class="row" style="margin-top:10px"><button class="primary" id="go">Connect</button>
+      <span class="small muted" id="cmsg"></span></div>
+    </div>
+
+    <div class="notice">
+      <strong>You need a repository made from the tribe template.</strong> On GitHub, open the template, press
+      <em>Use this template</em>, name it, create it. Then come back here with the name and a token. There is no
+      other step, and nothing is installed.
+    </div>`;
+
+  $('repo').value = S.repo || '';
+  $('go').onclick = async () => {
+    const repo = $('repo').value.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\/$/, '');
+    const token = $('token').value.trim();
+    const msg = $('cmsg');
+    if (!repo || !token){ msg.textContent = 'Both, please.'; return; }
+    $('go').disabled = true; msg.textContent = 'asking GitHub…';
+    try {
+      S.repo = repo; S.token = token;
+      const info = await gh(`/repos/${repo}`);
+      S.branch = info.default_branch || 'main';
+      save();
+      const ms = await loadMembers();
+      msg.textContent = `${ms.length} member${ms.length === 1 ? '' : 's'}.`;
+      location.hash = '#/today'; render();
+    } catch(e){
+      msg.textContent = e.message;
+      S.repo = ''; S.token = '';
+    } finally { $('go').disabled = false; }
+  };
+}
+
+async function viewToday(main){
+  main.innerHTML = `<h1>Today</h1><p class="muted small">reading the record…</p>`;
+  let members;
+  try { members = await loadMembers(); } catch(e){ return fail(main, e); }
+
+  if (!members.length){
+    main.innerHTML = `<h1>Today</h1>
+      <div class="card"><p>There are no members yet, so there is nothing to read.</p>
+      <p class="small muted">A member is a folder of text with a name on it. Making one takes six questions.</p>
+      <button class="primary" onclick="addMember()">Add a member</button></div>`;
+    return;
+  }
+
+  const quiet = members.filter(m => m.lastWake === 'never' ||
+    (isNaN(Date.parse(m.lastWake)) ? false : Date.now() - Date.parse(m.lastWake) > 30 * 3600e3));
+
+  const rows = members.map(m => `
+    <div class="member" onclick="setView('m/${encodeURIComponent(m.name)}')">
+      <div class="grow">
+        <div class="name"><span class="dot ${quiet.includes(m) ? 'quiet' : ''}"></span>${esc(m.name)}</div>
+        <div class="small muted">${esc((m.identity.match(/My seat is [^.]*\./) || [''])[0].replace(/^My seat is /,''))}
+          ${m.place ? '· in ' + esc(m.place) : '· <strong>no room</strong>'} · ${m.wakes} wake${m.wakes === '1' ? '' : 's'}</div>
+        <div class="said">${esc(firstPara(m.lastEntry) || 'Nothing filed yet.')}</div>
+      </div>
+      <span class="chip ${keyFor(m.engine).key ? 'ok' : 'warn'}">${esc(m.engine || 'no engine')}</span>
+    </div>`).join('');
+
+  main.innerHTML = `
+    <h1>Today</h1>
+    <p class="muted small">${members.length} member${members.length === 1 ? '' : 's'} · last read ${new Date().toLocaleTimeString()}</p>
+    ${quiet.length ? `<div class="notice">The clock has gone quiet for ${quiet.map(m => esc(m.name)).join(', ')}.
+      A schedule that has stopped looks exactly like a tribe with nothing to say, so it is worth a look — the
+      usual cause is a missing key, then a disabled schedule.</div>` : ''}
+    <div class="card">${rows}</div>
+    <div class="row" style="margin-top:14px">
+      <button class="primary" onclick="addMember()">Add a member</button>
+      <button class="plain" onclick="render()">Read again</button>
+      <span class="small muted" id="wake-msg"></span>
+    </div>`;
+}
+
+async function viewMembers(main){
+  main.innerHTML = `<h1>Members</h1><p class="muted small">reading…</p>`;
+  const members = await loadMembers().catch(e => { fail(main, e); return null; });
+  if (!members) return;
+  main.innerHTML = `<h1>Members</h1>
+    <div class="card">${members.map(m => `
+      <div class="member" onclick="setView('m/${encodeURIComponent(m.name)}')">
+        <div class="grow"><div class="name">${esc(m.name)}</div>
+        <div class="small muted">${esc(m.engine)} · ${esc(m.model)} · ${esc(m.place || 'no room')} · ${m.wakes} wakes</div>
+        </div><span class="chip">open</span></div>`).join('') || '<p class="muted">None yet.</p>'}</div>
+    <button class="primary" onclick="addMember()">Add a member</button>`;
+}
+
+async function viewMember(main, name){
+  main.innerHTML = `<h1>${esc(name)}</h1><p class="muted small">reading the member's files…</p>`;
+  const m = S.members.find(x => x.name === name) || (await loadMembers()).find(x => x.name === name);
+  if (!m) return fail(main, new Error('no member called ' + name));
+  S.member = m;
+
+  main.innerHTML = `
+    <div class="row" style="justify-content:space-between">
+      <h1 style="margin:0">${esc(m.name)}</h1>
+      <span class="chip ${keyFor(m.engine).key ? 'ok' : 'warn'}">${esc(m.engine)} · ${esc(m.model)}</span>
+    </div>
+    <p class="small muted">${esc(m.place || 'no room')} · ${m.wakes} wake${m.wakes === '1' ? '' : 's'} · last ${esc(m.lastWake)}
+      · <a href="#/m/${encodeURIComponent(m.name)}" onclick="showFiles('${escq(m.name)}');return false;">its files</a></p>
+
+    <h2>Talk</h2>
+    <div class="chat" id="chat">${(S.chat[m.name] || []).map(bubbleHTML).join('')}</div>
+    <div class="composer">
+      <textarea id="say" placeholder="Say something to ${esc(m.name)}…" autocapitalize="sentences"></textarea>
+      <button class="primary" id="send">Send</button>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button class="plain small" onclick="wakeNow('${escq(m.name)}')">Wake now</button>
+      <button class="plain small" onclick="fileConversation('${escq(m.name)}')">File this conversation</button>
+      <span class="small muted" id="mmsg"></span>
+    </div>
+
+    <h2>Its own words</h2>
+    <div class="prose">${md(m.journal.split(/\n(?=## )/).slice(-2).join('\n\n'))}</div>`;
+
+  const send = async () => {
+    const box = $('say'); const text = box.value.trim();
+    if (!text) return;
+    box.value = ''; box.disabled = true; $('send').disabled = true;
+    const arr = (S.chat[m.name] ||= []);
+    arr.push({role:'user', content:text});
+    // The empty bubble goes in BEFORE the call, and the reply is streamed into it. Pushing it after the
+    // repaint (as this did first) left the reply with nowhere to land: the text arrived, the page did not
+    // change, and the only evidence was a chat that looked hung.
+    const idx = arr.push({role:'assistant', content:''}) - 1;
+    repaintChat(m.name);
+    const msgEl = () => document.querySelector(`#chat .msg[data-i="${idx}"]`);
+    try {
+      await chatStream(systemPrompt(m), arr.slice(0, idx).map(x => ({role:x.role, content:x.content})),
+        m.engine, (d) => {
+          S.chat[m.name][idx].content += d;
+          const e = msgEl(); if (e){ e.textContent = S.chat[m.name][idx].content; e.scrollIntoView({block:'end'}); }
+        });
+      if (!S.chat[m.name][idx].content) S.chat[m.name][idx].content = '(nothing came back)';
+    } catch(e){
+      S.chat[m.name].pop();
+      $('mmsg').innerHTML = '<span class="err">' + esc(e.message) + '</span>';
+    } finally { box.disabled = false; $('send').disabled = false; box.focus(); }
+  };
+  $('send').onclick = send;
+  $('say').onkeydown = (ev) => { if (ev.key === 'Enter' && !ev.shiftKey){ ev.preventDefault(); send(); } };
+}
+
+function bubbleHTML(b){
+  const cls = b.role === 'user' ? 'me' : b.role === 'system' ? 'sys' : 'them';
+  return `<div class="msg ${cls}" data-i="${b.i ?? ''}">${esc(b.content)}</div>`;
+}
+
+function repaintChat(name){
+  const box = $('chat'); if (!box) return;
+  box.innerHTML = (S.chat[name] || []).map((b, i) =>
+    `<div class="msg ${b.role === 'user' ? 'me' : 'them'}" data-i="${i}">${esc(b.content)}</div>`).join('');
+  box.scrollIntoView({block:'end'});
+}
+
+async function showFiles(name){
+  const m = S.members.find(x => x.name === name);
+  if (!m) return;
+  openDialog(`<h3 style="margin-top:0">${esc(name)} — the files it is made of</h3>
+    <p class="small muted">Everything this member knows. Edit any of it by hand; it is the member.</p>
+    <label>identity.md</label><div class="prose">${md(m.identity)}</div>
+    <label>voice.md</label><div class="file">${esc(m.voice)}</div>
+    <label>open-items.md</label><div class="file">${esc(m.openItems)}</div>
+    <div class="row" style="margin-top:14px"><button class="plain" onclick="closeDialog()">Close</button></div>`);
+}
+
+async function wakeNow(name){
+  const say = (t) => { const e = $('mmsg') || $('wake-msg'); if (e) e.textContent = t; };
+  try {
+    say('asking the clock to wake ' + name + '…');
+    const since = Date.now();
+    await dispatch('clock.yml', {force: name});
+    say('woken. waiting for the run…');
+    const run = await waitForRun('clock', since, say);
+    if (run.conclusion !== 'success') throw new Error('the run ended: ' + run.conclusion);
+    say('done — reading what it wrote');
+    const m = (await loadMembers()).find(x => x.name === name);
+    if (m && S.member && S.member.name === name){
+      S.member = m; S.view = 'm/' + name; render();
+    } else { render(); }
+  } catch(e){ say(''); const e2 = $('mmsg') || $('wake-msg'); if (e2) e2.innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }
+}
+
+async function fileConversation(name){
+  const m = S.members.find(x => x.name === name);
+  const convo = S.chat[name] || [];
+  if (!convo.length) return;
+  const say = (t) => { const e = $('mmsg'); if (e) e.textContent = t; };
+  say('asking ' + name + ' to write the entry itself…');
+  try {
+    const transcript = convo.map(b => (b.role === 'user' ? 'You: ' : name + ': ') + b.content).join('\n\n');
+    let entry = '';
+    await chatStream(
+      `You are ${name}. Below is a conversation you have just had with the person who keeps this tribe. ` +
+      `Write the entry you would put in your journal for it. Same shape as the entries already there: ` +
+      `a "## ${nowStamp()} — attended session (the keeper present)" line, then what was asked, what you ` +
+      `decided, what is still open. Two short paragraphs at most. Write only the entry, nothing before it.`,
+      [{role:'user', content: transcript}], m.engine, (d) => { entry += d; });
+    const path = `wake/members/${name}/state/journal.md`;
+    const cur = await fileText(path);
+    const text = cur.text.replace(/\s*$/, '\n') + '\n' + entry.trim() + '\n';
+    await putText(path, text, `journal: ${name} — a conversation filed by the member`, cur.sha);
+    say('filed. It is in its journal now.');
+    S.chat[name] = [];
+    await loadMembers();
+    render();
+  } catch(e){ say(''); const e2 = $('mmsg'); if (e2) e2.innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }
+}
+
+/* ---- add a member ---------------------------------------------------------------------- */
+
+let NEW = null;
+
+async function addMember(){
+  let rooms = [];
+  try { rooms = (await dirNames('soil')).filter(n => !n.startsWith('.')); } catch(e){}
+  NEW = {step:'name', name:'', seat:'', engine:'', place:'', rooms};
+  openDialog(dialogAdmin());
+}
+
+function dialogAdmin(){
+  const d = NEW;
+  let body = '';
+  if (d.step === 'name'){
+    body = `<p class="dlog">You don't have any members yet, so let's make one. Ready?\n\nWhat should this member be called?
+One word — letters and numbers, no spaces, starting with a letter.</p>
+      <input id="ans" autofocus autocapitalize="words" placeholder="Margot">`;
+  } else if (d.step === 'seat'){
+    body = `<p class="dlog">${esc(d.name)}. What is it for? A short phrase is enough; it is what it will answer
+when someone asks.</p><input id="ans" autofocus placeholder="the one who keeps the records">`;
+  } else if (d.step === 'engine'){
+    body = `<p class="dlog">Which engine should ${esc(d.name)} borrow? Each is a company whose model does its thinking.</p>
+      <div class="grid">${['gemini','deepseek','groq','openai','qwen','openrouter'].map(e =>
+        `<button class="plain" onclick="pickEngine('${e}')">${ENGINES[e].label} — ${ENGINES[e].model}</button>`).join('')}</div>`;
+  } else if (d.step === 'place'){
+    body = d.rooms.length
+      ? `<p class="dlog">Which room does ${esc(d.name)} work in? A room is a group of members who take turns.
+Most tribes need one.</p><div class="grid">${d.rooms.map(r =>
+          `<button class="plain" onclick="pickPlace('${escq(r)}')">${esc(r)}</button>`).join('')}</div>
+         <div class="row" style="margin-top:10px"><button class="plain" onclick="pickPlace('')">none</button></div>`
+      : `<p class="dlog">This tribe has no rooms yet — the repository has no <code>soil/</code> folders — so
+${esc(d.name)} will be made without one and no clock will wake it. You can give it a room later by editing one
+line of its <code>place.md</code>.</p><button class="primary" onclick="pickPlace('')">Go on</button>`;
+  } else {
+    body = `<p class="dlog">That's everything:
+
+  name    ${esc(d.name)}
+  for     ${esc(d.seat)}
+  engine  ${esc(d.engine)}
+  room    ${esc(d.place || '(none)')}
+
+Make it?</p><div class="row"><button class="primary" onclick="makeMember()">Yes, make it</button>
+      <button class="plain" onclick="adminBack()">Change something</button></div>
+      <div id="dmsg" class="small muted" style="margin-top:10px"></div>`;
+  }
+  return `<h3 style="margin-top:0">Add a member</h3>${body}`;
+}
+
+function adminAnswer(){
+  const box = $('ans'); if (!box) return;
+  const text = box.value.trim();
+  const d = NEW;
+  if (/^(cancel|stop|never mind)$/i.test(text)){ closeDialog(); return; }
+  if (/^(just do it|do it|whatever|you choose|defaults)$/i.test(text)){ adminDefaults(); return; }
+  if (d.step === 'name'){
+    if (!/^[A-Za-z][A-Za-z0-9]{0,23}$/.test(text)){
+      box.value = ''; box.placeholder = 'One word, letters and numbers, starting with a letter.'; return;
+    }
+    if (S.members.some(m => m.name.toLowerCase() === text.toLowerCase())){
+      box.value = ''; box.placeholder = 'That name is taken in this tribe. Another?'; return;
+    }
+    d.name = text; d.step = 'seat';
+  } else if (d.step === 'seat'){
+    if (text.length < 3){ box.placeholder = 'A little more than that.'; box.value = ''; return; }
+    d.seat = text; d.step = 'engine';
+  }
+  $('dlg').innerHTML = dialogAdmin();
+  const again = $('ans'); if (again) again.focus();
+}
+
+function pickEngine(e){ NEW.engine = e; NEW.step = 'place'; $('dlg').innerHTML = dialogAdmin(); }
+
+function pickPlace(p){
+  NEW.place = p; NEW.step = 'confirm'; $('dlg').innerHTML = dialogAdmin();
+}
+
+function adminBack(){ NEW.step = 'name'; $('dlg').innerHTML = dialogAdmin(); }
+
+function adminDefaults(){
+  const d = NEW;
+  d.name = d.name || 'Maud';
+  d.seat = d.seat || 'the newcomer';
+  d.engine = d.engine || 'gemini';
+  d.place = d.place || (d.rooms[0] || '');
+  d.step = 'confirm';
+  $('dlg').innerHTML = dialogAdmin();
+}
+
+async function makeMember(){
+  const d = NEW; const msg = $('dmsg');
+  msg.textContent = 'asking the repository to make ' + d.name + '…';
+  try {
+    const since = Date.now();
+    const inputs = {name: d.name, seat: d.seat, engine: d.engine, model: '', place: d.place || ''};
+    await dispatch('new-member.yml', inputs);
+    msg.textContent = 'made the request. waiting for the run…';
+    const run = await waitForRun('new-member', since, t => msg.textContent = t);
+    if (run.conclusion !== 'success') throw new Error('the run ended: ' + run.conclusion +
+      ' — most often a name that was taken, or a room that does not exist');
+    await loadMembers();
+    closeDialog();
+    location.hash = '#/today'; render();
+  } catch(e){ msg.innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }
+}
+
+/* ---- play ------------------------------------------------------------------------------- */
+
+async function viewPlay(main){
+  const members = S.members.length ? S.members : await loadMembers().catch(() => []);
+  const seasons = await dirNames('games/tennis/seasons').catch(() => []);
+  const names = members.map(m => `<option>${esc(m.name)}</option>`).join('');
+  main.innerHTML = `<h1>Play</h1>
+    <p class="lede">Two members, a court, a ball, and real physics. The number that matters is the share of balls
+    kept in play — and it is a result against the other player, not a score in the abstract.</p>
+    <div class="card">
+      <div class="grid two">
+        <div><label>First player</label><select id="p1">${names}</select></div>
+        <div><label>Second player</label><select id="p2">${names}</select></div>
+      </div>
+      <div class="grid two">
+        <div><label>Rallies</label><input id="rallies" type="number" value="8" min="1" max="200"></div>
+        <div><label>Court</label><select id="surface"><option>auto</option><option>clay</option><option>hard</option><option>grass</option></select></div>
+      </div>
+      <label>Season — reuse the name every evening to keep the record going</label>
+      <input id="season" value="${esc(seasons[0] || '2026-spring')}">
+      <div class="row" style="margin-top:14px"><button class="primary" id="go">Play</button>
+      <span class="small muted" id="pmsg"></span></div>
+    </div>
+    <h2>Seasons on the shelf</h2>
+    <div class="card">${seasons.length ? seasons.map(s =>
+      `<div class="member" onclick="readSeason('${escq(s)}')"><div class="grow"><div class="name">${esc(s)}</div>
+       <div class="small muted">the record of one season</div></div><span class="chip">open</span></div>`).join('')
+      : '<p class="muted">None yet. The first evening makes one.</p>'}</div>
+    <div id="result"></div>`;
+
+  if (members.length >= 2) $('p2').selectedIndex = 1;
+  $('go').onclick = async () => {
+    const p1 = $('p1').value, p2 = $('p2').value;
+    const msg = $('pmsg');
+    if (p1 === p2){ msg.textContent = 'Two different members, please.'; return; }
+    $('go').disabled = true;
+    try {
+      const season = $('season').value.trim() || '2026-spring';
+      const since = Date.now();
+      msg.textContent = 'sent to the court…';
+      await dispatch('season.yml', {season, players: `${p1},${p2}`, rallies: String($('rallies').value || 8),
+                                    surface: $('surface').value, temperature: '1.0'});
+      const run = await waitForRun('season', since, t => msg.textContent = t);
+      if (run.conclusion !== 'success') throw new Error('the run ended: ' + run.conclusion);
+      msg.textContent = 'played. reading the record';
+      await readSeason(season);
+    } catch(e){ msg.innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }
+    finally { $('go').disabled = false; }
+  };
+}
+
+async function readSeason(season){
+  const box = $('result'); if (!box) return;
+  box.innerHTML = '<p class="muted small">reading…</p>';
+  try {
+    const {text} = await fileText(`games/tennis/seasons/${season}/report.md`);
+    box.innerHTML = `<h2>${esc(season)}</h2><div class="prose">${md(text)}</div>`;
+    box.scrollIntoView({behavior:'smooth', block:'start'});
+  } catch(e){ box.innerHTML = `<p class="err">${esc(e.message)}</p>`; }
+}
+
+/* ---- magazine --------------------------------------------------------------------------- */
+
+async function viewMagazine(main){
+  main.innerHTML = `<h1>Magazine</h1><p class="muted small">reading the shelf…</p>`;
+  const issues = (await dirNames('issues').catch(() => []))
+    .filter(n => /\.md$/.test(n) && n !== 'README.md').sort().reverse();
+  const shelves = await dirNames('works').catch(() => []);
+  let counts = [];
+  for (const who of shelves) counts.push(`${who}: ${(await dirNames('works/' + who).catch(() => [])).length}`);
+  main.innerHTML = `<h1>Magazine</h1>
+    <p class="lede">An issue is assembled from the shelf — everything finished, dated, in the order it happened.
+    Nothing in it is retyped, so a piece that was never filed cannot appear in it.</p>
+    <div class="card"><h3 style="margin-top:0">On the shelf</h3>
+      <p class="small">${counts.join(' · ') || 'nothing yet'}</p>
+      <button class="plain" onclick="buildIssue()">Assemble an issue from the shelf</button></div>
+    <h2>Issues</h2>
+    <div class="card">${issues.length ? issues.map(i =>
+      `<div class="member" onclick="readIssue('${escq(i)}')"><div class="grow"><div class="name">${esc(i.replace('.md',''))}</div>
+       <div class="small muted">published</div></div><span class="chip">read</span></div>`).join('')
+      : '<p class="muted">No issues yet.</p>'}</div>
+    <div id="issue"></div>`;
+}
+
+async function readIssue(name){
+  const box = $('issue');
+  box.innerHTML = '<p class="muted small">reading…</p>';
+  try {
+    const {text} = await fileText('issues/' + name);
+    box.innerHTML = `<h2>${esc(name.replace('.md',''))}</h2><div class="prose">${md(text)}</div>`;
+    box.scrollIntoView({behavior:'smooth'});
+  } catch(e){ box.innerHTML = `<p class="err">${esc(e.message)}</p>`; }
+}
+
+async function buildIssue(){
+  const box = $('issue');
+  box.innerHTML = '<p class="muted small">assembling…</p>';
+  try {
+    const who = await dirNames('works');
+    const items = [];
+    for (const w of who){
+      const files = (await dirNames('works/' + w)).filter(f => /\.md$/.test(f));
+      for (const f of files) items.push({w, f});
+    }
+    items.sort((a, b) => (a.f < b.f ? 1 : -1));
+    const picked = items.slice(0, 12);
+    let html = `<h2>An issue, assembled now</h2><p class="small muted">${picked.length} pieces, newest first.
+      This one is assembled in the page from what is on the shelf; the project's own assembler writes it into
+      <code>issues/</code>.</p>`;
+    for (const it of picked){
+      const {text} = await fileText(`works/${it.w}/${it.f}`);
+      html += `<div class="prose" style="border-top:1px solid var(--line);padding-top:12px;margin-top:16px">
+        <p class="small muted">${esc(it.w)} · ${esc(it.f)}</p>${md(text)}</div>`;
+    }
+    box.innerHTML = html;
+    box.scrollIntoView({behavior:'smooth'});
+  } catch(e){ box.innerHTML = `<p class="err">${esc(e.message)}</p>`; }
+}
+
+/* ---- keys ------------------------------------------------------------------------------- */
+
+function viewKeys(main){
+  main.innerHTML = `<h1>Keys</h1>
+    <p class="lede">One key per engine you want to use. A key is what lets a member think; there is nothing else
+    to buy.</p>
+    <p class="small muted">For <strong>chat</strong> a key is used straight from this browser, because the call is
+    made here. For <strong>wakes</strong> it must also be a secret in the repository — set that in the repository's
+    own settings, under Secrets. This page holds the chat copy and nothing else; it is in this browser, not on a
+    server of ours.</p>
+    <div class="card">${Object.keys(ENGINES).map(e => {
+      const k = keyFor(e);
+      return `<div style="padding:10px 0;border-bottom:1px solid var(--line)">
+        <div class="row"><strong class="grow">${ENGINES[e].label}</strong>
+          <span class="chip ${k.key ? 'ok' : ''}">${k.key ? '••••' + String(k.key).slice(-4) : 'no key'}</span></div>
+        <div class="grid two" style="margin-top:8px">
+          <div><label>Key</label><input type="password" id="k-${e}" placeholder="paste a key"></div>
+          <div><label>Model</label><input id="m-${e}" value="${esc(k.model || ENGINES[e].model)}"></div>
+        </div>
+        <div class="row" style="margin-top:8px"><button class="plain small" onclick="saveKey('${e}')">Save</button>
+          <button class="plain small" onclick="testKey('${e}')">Test</button>
+          <span class="small muted" id="t-${e}"></span></div>
+      </div>`; }).join('')}</div>`;
+}
+
+function saveKey(e){
+  const key = $('k-' + e).value.trim();
+  const model = $('m-' + e).value.trim();
+  S.keys[e] = {key: key || (S.keys[e] || {}).key || '', model};
+  save(); $('t-' + e).textContent = 'saved to this browser.'; viewKeys($('main'));
+}
+
+async function testKey(e){
+  const say = (t) => { const el = $('t-' + e); if (el) el.textContent = t; };
+  const key = $('k-' + e).value.trim() || keyFor(e).key;
+  const model = $('m-' + e).value.trim() || modelFor(e);
+  if (!key){ say('no key to test'); return; }
+  say('asking ' + ENGINES[e].label + '…');
+  try {
+    if (e === 'gemini'){
+      const r = await fetch(`${GEN}/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`,
+        {method:'POST', headers:{'Content-Type':'application/json'},
+         body: JSON.stringify({contents:[{parts:[{text:'Reply with the single word: ready'}]}]})});
+      if (!r.ok) throw new Error(r.status + ' · ' + (await r.text()).slice(0,200));
+      const j = await r.json();
+      say('up · ' + ((j.candidates?.[0]?.content?.parts||[]).map(p=>p.text).join('') || '').slice(0,60));
+    } else {
+      const r = await fetch(ENGINES[e].base + '/chat/completions', {method:'POST',
+        headers:{'Content-Type':'application/json', Authorization:'Bearer ' + key},
+        body: JSON.stringify({model, messages:[{role:'user', content:'Reply with the single word: ready'}], max_tokens: 12})});
+      if (!r.ok) throw new Error(r.status + ' · ' + (await r.text()).slice(0,200));
+      const j = await r.json();
+      say('up · ' + (j.choices?.[0]?.message?.content || '').slice(0,60));
+    }
+  } catch(err){ say(''); $('t-' + e).innerHTML = '<span class="err">' + esc(err.message) + '</span>'; }
+}
+
+/* ---- dialog ----------------------------------------------------------------------------- */
+
+function openDialog(html){ $('dlg').innerHTML = html; $('modal').showModal();
+  const a = $('ans'); if (a){ a.focus(); a.onkeydown = (e) => { if (e.key === 'Enter'){ e.preventDefault(); adminAnswer(); } }; } }
+function closeDialog(){ $('modal').close(); }
+$('modal').addEventListener('click', (e) => { if (e.target === $('modal')) closeDialog(); });
+
+/* ---- errors and boot -------------------------------------------------------------------- */
+
+function fail(main, e){
+  main.innerHTML = `<div class="card"><p class="err"><strong>${esc(e.message)}</strong></p>
+    <p class="small muted">If this is a 401 or 404, the token has probably expired, was revoked, or cannot see this
+    repository. If it is a 403, the token may lack Actions permission — AIT needs it to start a wake or a game.</p>
+    <button class="plain" onclick="location.hash='#/connect';render()">Reconnect</button></div>`;
+}
+
+$('btn-settings').onclick = () => setView('keys');
+document.querySelectorAll('#nav button').forEach(b => b.onclick = () => setView(b.dataset.go));
+window.addEventListener('hashchange', () => render());
+
+(async function boot(){
+  load();
+  if (S.repo && S.token){
+    try { await gh(`/repos/${S.repo}`); }
+    catch(e){ S.repo = ''; S.token = ''; }
+  }
+  render();
+})();
+</script>
+</body>
+</html>
