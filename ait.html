@@ -686,7 +686,7 @@ function viewConnect(main){
     } catch(e){
       msg.textContent = e.message;
       S.repo = ''; S.token = '';
-    } finally { $('go').disabled = false; }
+    } finally { const g = $('go'); if (g) g.disabled = false; }
   };
 }
 
@@ -795,7 +795,7 @@ async function viewMember(main, name){
     } catch(e){
       S.chat[m.name].pop();
       $('mmsg').innerHTML = '<span class="err">' + esc(e.message) + '</span>';
-    } finally { box.disabled = false; $('send').disabled = false; box.focus(); }
+    } finally { box.disabled = false; const s2 = $('send'); if (s2) s2.disabled = false; box.focus(); }
   };
   $('send').onclick = send;
   $('say').onkeydown = (ev) => { if (ev.key === 'Enter' && !ev.shiftKey){ ev.preventDefault(); send(); } };
@@ -1020,7 +1020,7 @@ async function viewPlay(main){
       msg.textContent = 'played. reading the record';
       await readSeason(season);
     } catch(e){ msg.innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }
-    finally { $('go').disabled = false; }
+    finally { const g = $('go'); if (g) g.disabled = false; }
   };
 }
 
