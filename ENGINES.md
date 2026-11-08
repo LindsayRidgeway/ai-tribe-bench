@@ -110,7 +110,7 @@ you are done: the list, the keys and the model selector do not care what a provi
     vendor's own spelling: if you already have `DEEPSEEK_API_KEY` in your profile, export the same key under the
     tribe's name as well. A wake that finds no `TRIBE_API_KEY_<ENGINE>` says so by name rather than failing
     quietly on an empty string. For how a wake uses the key, and what it does when there isn't one, see
-    [`USER-MANUAL.md`](USER-MANUAL.md).
+    [`REFERENCE.md`](REFERENCE.md).
 
 [^5]: **Model.** The name of one model in that vendor's catalogue, exactly as the vendor writes it. Every vendor
     publishes several and treats one as its default; this project names a tested default for five vendors — the

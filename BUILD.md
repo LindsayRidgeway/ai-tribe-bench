@@ -200,7 +200,8 @@ of bits of data created by the vendor in order to prepare the LLM for release. S
 not in the model. The concept behind the LLM Symposium and AI Tribes is to provide a tablet on which to write that
 record and thus enable learning for LLMs, and development of the AI cultures in which they live.
 
-For how a wake works, every file a member owns, and what the tribe can and cannot do, see
-[`USER-MANUAL.md`](USER-MANUAL.md). For the reasoning behind the design, see [`RUN.md`](RUN.md).
+For what a tribe is like to own — install, the first member, the first morning, what it costs, what to do
+when it argues with you — see [`USER-MANUAL.md`](USER-MANUAL.md). For how a wake works and what every file is
+for, [`REFERENCE.md`](REFERENCE.md). For the reasoning behind the design, [`RUN.md`](RUN.md).
 
 Thanks for your interest in the AI Tribe project, and best wishes for an enjoyable experience here.
