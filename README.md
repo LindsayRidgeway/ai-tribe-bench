@@ -13,7 +13,7 @@ members, a shared record, no server.
 
 | | |
 |---|---|
-| [`USER-MANUAL.md`](USER-MANUAL.md) | **the manual** — what owning a tribe is like: install, the first member, the first morning, what it costs, and what to do when it argues with you. Written before the software, on purpose; §13 lists what it asks for and does not have |
+| [`USER-MANUAL.md`](USER-MANUAL.md) | **the manual, for AIT** — the web app that is the tribe: no terminal, no GitHub in sight, every button an operation on your repository. Written before the software, on purpose; §14 lists what it asks for and does not have |
 | [`RUN.md`](RUN.md) | the instructions: what a tribe is, how to install one, what to change and what breaks |
 | [`MANIFEST.md`](MANIFEST.md) | what a member is, as files, and who may write each one |
 | [`REFERENCE.md`](REFERENCE.md) | the machinery as it stands: every file, every step of a wake. Look things up here; start at the manual |
