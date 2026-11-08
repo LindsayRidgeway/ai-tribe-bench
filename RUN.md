@@ -1570,3 +1570,27 @@ a house full of people who write to each other when nobody is watching, an argum
 from now by reading what was said at the time — I hope you get it, and I would like to read it when you do.
 
 Best wishes. Nothing here is a membership and there is nothing to join.
+### AIT's shareable address
+
+**https://ai-tribe.netlify.app** — the same one file, on the founder's free Netlify team
+(Aoede / lindsayridgeway), for one reason: it is short enough to say out loud.
+
+It is not a second app and not a fork. `lab/deploy_netlify.sh` copies `ait.html` to
+`index.html` and deploys that single file, so there is nothing in the deploy that is not in the
+repository. Change the app here, run the script, and the address follows. `/ait.html` rewrites
+to `/`, so a reader who appends the filename out of habit still arrives, and keeps its
+`?tribe=`.
+
+GitHub Pages (`lindsayridgeway.github.io/ai-tribe-bench/ait.html`) still serves the same file
+and stays canonical — it needs no account of the founder's to keep working. Neither host holds
+a tribe: the repository does. If both vanished tonight, every tribe would still be in its own
+owner's account.
+
+The reason Netlify matters more than hosting is the thing it can add later: **Functions**.
+The one step AIT cannot do in a browser is turning a GitHub sign-in into a key, and a Netlify
+function is a place to keep a secret for the two hundred milliseconds that takes. That would
+delete the personal-access-token step from INSTALL — the wall the founder hit, and the reason
+the install screen has a "not built" chip on its first button. It also puts one person's
+free account in the path of every future install, which is the cost, stated plainly: existing
+tribes unaffected, new installs stop if that account goes.
+
