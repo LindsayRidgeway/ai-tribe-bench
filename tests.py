@@ -4024,5 +4024,30 @@ class TestTheAdminIsAConversation(unittest.TestCase):
         self.assertNotIn("--place", a._argv())
 
 
+class TheTemplateMustBeEnough(unittest.TestCase):
+    """An installed tribe is a copy of a whitelist, so the whitelist has to be enough.
+
+    Both failures here are silent on this repository: a path deleted from the template, or a workflow
+    that starts running a script nobody added. Here the file exists either way; the owner's copy is
+    the only place it is missing, and by then they are the one debugging it.
+    """
+
+    def test_every_whitelisted_path_exists_and_every_script_a_workflow_runs_ships(self):
+        sys.path.insert(0, str(REPO / "lab"))
+        import make_template as mt
+        missing = [p for p in mt.paths() if not (REPO / p).is_file()]
+        self.assertEqual(missing, [], "whitelisted but not on disk")
+        self.assertEqual(mt.unshipped(), {}, "a shipped workflow runs a script the template does not ship")
+
+    def test_the_template_carries_no_members_and_no_fixtures(self):
+        sys.path.insert(0, str(REPO / "lab"))
+        import make_template as mt
+        for p in mt.paths():
+            self.assertFalse(p.startswith("lab/fixtures"), p)
+            self.assertFalse(p.startswith("lab/experiments"), p)
+            self.assertNotIn("/output/", p, "a template must not ship somebody's written work")
+        self.assertIn("wake/members/.gitkeep", mt.paths(), "the empty folder has to exist for the first member")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
