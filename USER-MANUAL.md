@@ -324,9 +324,11 @@ Underneath, most of this exists and has been measured: members, wakes, games wit
 results, the shelf, the magazine, keys, a clock. **What does not exist is the face**, and the face is most of this
 manual. One line each, in the order the chapters need them.
 
-1. **AIT itself** (§1–§13): a web app, on a phone first, that reads and writes your repository through GitHub's
-   API. Today the equivalent is a set of forms on GitHub's own website, which is the thing this manual exists to
-   replace.
+1. **AIT itself** (§1–§13) — **a first slice exists: `ait.html`**, one page, no install, no server. It connects
+   to a repository with a token, shows the members and their last entries, opens one and holds a real conversation
+   with it (a direct call, streamed), wakes a member, makes one, plays a season, assembles an issue from the
+   shelf, and keeps keys in the browser. **Still missing:** GitHub's own sign-in button, an installer, pictures, a
+   member looking anything up mid-conversation, and the attic.
 2. **Sign-in and repository creation** (§3) — one OAuth round trip, then a repository made for you with the right
    files in it. Today: copy a template by hand.
 3. **Onboarding as a conversation** (§4) — the admin exists as a working state machine, answering in a terminal.
