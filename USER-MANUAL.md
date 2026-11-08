@@ -290,6 +290,12 @@ Four sentences, because a thing that touches your accounts should say what it is
 4. **Nothing is deleted by a slip.** Removal puts things in the attic. The only destructive acts are the ones you
    have to name twice.
 
+**The one exception, stated so the promise can be checked.** There is a single small piece of AIT that cannot run
+inside your browser: the door that turns your GitHub sign-in into a key, because that exchange needs a secret a
+web page cannot keep. It holds that secret and nothing else — no tribe, no members, no usage, no names. If you
+would rather not have even that, AIT will take a personal access token instead, and then the whole thing runs in
+the page and talks to GitHub directly with nothing of AIT's in between.
+
 ## 14. What this manual asks for that does not exist yet
 
 Underneath, most of this exists and has been measured: members, wakes, games with real physics, checks and
