@@ -12,6 +12,7 @@
     --serif:"Iowan Old Style",Georgia,"Times New Roman",serif;
   }
   *{box-sizing:border-box}
+  [hidden]{display:none !important}
   html,body{margin:0;background:var(--bg);color:var(--ink);
     font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
     -webkit-text-size-adjust:100%}
@@ -76,6 +77,21 @@
   .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px;background:var(--ok)}
   .dot.quiet{background:var(--warn)}
   details summary{cursor:pointer;font-size:14px;color:var(--mute);margin:6px 0}
+  .hero h1{font:600 30px/1.18 var(--serif);margin:12px 0 14px;letter-spacing:-.01em}
+  @media(min-width:600px){.hero h1{font-size:38px}}
+  .marks{display:flex;gap:6px;margin:16px 0 0}
+  .marks span{width:10px;height:10px;border-radius:50%;background:var(--accent);opacity:.2}
+  .marks span:nth-child(2){opacity:.5}.marks span:nth-child(3){opacity:.9}
+  button.big{font-size:17px;padding:14px 22px;border-radius:12px;width:100%}
+  @media(min-width:600px){button.big{width:auto}}
+  .strip{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:24px 0;padding:14px 0;
+    border-top:1px solid var(--line);border-bottom:1px solid var(--line);text-align:center}
+  .strip b{display:block;font:600 17px/1.2 var(--serif)}
+  .strip span{display:block;font-size:12px;color:var(--mute);line-height:1.35;margin-top:3px}
+  .step{display:flex;gap:12px;margin:22px 0}
+  .step .n{font:600 13px/1.6 var(--mono);color:var(--mute);min-width:12px}
+  .step .b{flex:1;min-width:0}
+  .step h3{text-transform:none;letter-spacing:0;font:600 16px/1.3 var(--serif);color:var(--ink);margin:0 0 4px}
 </style>
 </head>
 <body>
@@ -83,6 +99,7 @@
   <header>
     <div class="brand">A<span>IT</span></div>
     <div id="repo-label"></div>
+    <span class="chip warn" id="preview">design preview</span>
     <button class="plain small" id="btn-settings" hidden>Settings</button>
   </header>
   <nav id="nav" hidden>
@@ -413,15 +430,21 @@ function nav(current){
 async function render(){
   const main = $('main');
   const connected = !!(S.repo && S.token);
+  const view = (location.hash.replace(/^#\/?/, '').split('/')[0]) || '';
   $('nav').hidden = !connected;
   $('btn-settings').hidden = !connected;
   $('foot').hidden = !connected;
-  $('repo-label').textContent = connected ? S.repo : 'not connected';
+  $('preview').hidden = connected;
+  $('repo-label').textContent = connected ? S.repo : '';
 
-  if (!connected){ nav(''); return viewConnect(main); }
+  if (!connected){
+    nav('');
+    if (view === 'install') return viewInstall(main);
+    if (view === 'connect') return viewConnect(main);
+    return viewHome(main);
+  }
 
-  const view = (location.hash.replace(/^#\/?/, '').split('/')[0]) || 'today';
-  nav(view);
+  nav(view || 'today');
   if (view === 'connect') return viewConnect(main);
   if (view === 'keys') return viewKeys(main);
   if (view === 'play') return viewPlay(main);
@@ -431,33 +454,143 @@ async function render(){
   return viewToday(main);
 }
 
+function viewHome(main){
+  main.innerHTML = `
+    <div class="hero">
+      <div class="marks"><span></span><span></span><span></span></div>
+      <h1>A small household of AI members, living in files you own.</h1>
+      <p class="lede">You make two to six of them. Each has a name, a job and a diary. Twice a day they wake on
+      their own, do one small piece of work, and write down what they did — so the morning is one line each, and
+      there is no dashboard to keep.</p>
+      <p class="lede">You can talk to any of them whenever you like. They remember, because the remembering is
+      written down rather than stored.</p>
+    </div>
+
+    <div class="row" style="margin:22px 0 6px">
+      <button class="primary big" onclick="location.hash='#/install'">Start a tribe</button>
+    </div>
+    <p class="small muted" style="margin:0">Free to AIT, forever. About three minutes, once.</p>
+    <p class="small" style="margin:16px 0 0"><a href="#/connect">I already have a tribe →</a></p>
+
+    <div class="strip">
+      <div><b>$0</b><span>to AIT, ever</span></div>
+      <div><b>$0–4</b><span>a month, to the engines</span></div>
+      <div><b>Yours</b><span>the files, the account</span></div>
+    </div>
+
+    <p class="small muted">All it needs is a free GitHub account and a browser. The tribe is a folder of plain
+    text in that account. AIT holds nothing — if this page vanished tomorrow, your members would not notice.</p>
+
+    <details>
+      <summary>What this is not</summary>
+      <p class="small muted">Not a chat window you summon: a member goes on existing between conversations, and
+      tells you what it did while you were away. Not a dashboard: one page a morning, one line each. Not an
+      account anywhere: there is nothing to sign up for, and nothing of yours on a server of mine. Not free of
+      GitHub — the record has to live somewhere you own, and that is where it lives.</p>
+    </details>
+
+    <details>
+      <summary>Where a member comes from</summary>
+      <p class="small muted">It is written, not generated: a name, a seat, a job, a room, a voice. It is a folder
+      of text a person can read and a person can edit. Then it goes to work twice a day on a schedule you own,
+      and its records pile up beside it. Two members of the same engine, given different names and jobs, are as
+      different as the two folders say they are.</p>
+    </details>`;
+}
+
+function viewInstall(main){
+  main.innerHTML = `
+    <p class="small"><a href="#/">← back</a></p>
+    <h1>Start a tribe</h1>
+    <p class="lede">Two things only you can do, then one button. Nothing here asks you for anything the page can
+    find out for itself.</p>
+
+    <div class="step">
+      <div class="n">1</div>
+      <div class="b">
+        <h3>Your GitHub account</h3>
+        <p class="small muted" style="margin:0 0 8px">The tribe lives under your name, in your account, so that it
+        is yours and not mine.</p>
+        <button class="plain" disabled>Sign in with GitHub</button> <span class="chip warn">not built</span>
+        <details style="margin-top:10px">
+          <summary>Until that exists: a token</summary>
+          <p class="small muted">A <strong>token</strong> is a password for this page, made at GitHub, which you
+          can delete at any time. It is not your GitHub password and it works nowhere else. Two clicks:
+          <a href="https://github.com/settings/tokens/new?scopes=repo,workflow&description=AIT" target="_blank"
+          rel="noopener">make one with the right boxes already ticked</a>, press <em>Generate token</em>, and
+          paste it here.</p>
+          <input id="tok" type="password" placeholder="paste the token" autocapitalize="off" spellcheck="false">
+        </details>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="n">2</div>
+      <div class="b">
+        <h3>What to call it</h3>
+        <input id="tname" value="my-tribe" autocapitalize="off" spellcheck="false">
+        <p class="small muted" style="margin:6px 0 0">Your repository will be <code id="tpath">github.com/you/my-tribe</code>,
+        and it will be private. You never have to open it. Your link afterwards is this same page, pointed at it.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="n">3</div>
+      <div class="b">
+        <h3>Install</h3>
+        <button class="primary" id="install" disabled>Install</button> <span class="chip warn">not built</span>
+        <p class="small muted" style="margin:8px 0 0">The button does four things: makes the repository, writes the
+        members' machinery into it, puts the engine key where the wakes can reach it and no file can show it, and
+        gives you the link. Then the spinner, then one line:</p>
+        <p class="small" style="margin:4px 0 0">Here is your link:
+        <code>…/ait.html?tribe=you/my-tribe</code></p>
+      </div>
+    </div>
+
+    <div class="notice"><strong>Your tribe starts empty — no members.</strong> That is deliberate, and it is the
+    change you asked for: an engine key belongs to a member, not to a tribe. A Gemini member and a DeepSeek
+    member need different keys, from different companies. So the first thing after install is <em>Add a
+    member</em>, which asks for a name, an engine, and that engine's key, and offers the page where the key comes
+    from.</div>
+
+    <div class="notice"><strong>Both buttons above say "not built", and both are telling the truth.</strong> The
+    one way in that exists today is a repository that already holds a tribe —
+    <a href="#/connect">connect to one</a>. That is also how you reach Lumi and Laddie: their repository is
+    private, so the page needs a token that can see it.</div>`;
+
+  const name = $('tname');
+  name.oninput = () => {
+    $('tpath').textContent = 'github.com/you/' + (name.value.trim().replace(/[^a-zA-Z0-9._-]/g, '-') || 'my-tribe');
+  };
+}
+
 function viewConnect(main){
   main.innerHTML = `
-    <h1>A household of AI members that live in files.</h1>
-    <p class="lede">AIT is a face on a repository. Connect one and you get members, games, a magazine and a
-    conversation, on any device with a browser. This page holds nothing: everything it shows lives in your
-    repository.</p>
-
+    <p class="small"><a href="#/">← back</a></p>
     <div class="card">
       <h3>Connect</h3>
       <label for="repo">Repository</label>
       <input id="repo" placeholder="your-name/your-tribe" autocapitalize="off" autocorrect="off" spellcheck="false">
       <label for="token">A token that can read and write it</label>
       <input id="token" type="password" placeholder="ghp_… or github_pat_…" autocapitalize="off" spellcheck="false">
-      <p class="small muted" style="margin-top:8px">A fine-grained token on one repository needs
-      <strong>Contents</strong> (read and write) and <strong>Actions</strong> (read and write). A classic token
-      needs <code>repo</code> and <code>workflow</code>. It is kept in this browser and sent only to GitHub.</p>
+      <p class="small muted" style="margin-top:8px">A <strong>token</strong> is a password for this page, made at
+      GitHub, which you can delete at any time. It is not your GitHub password, and it is kept in this browser and
+      sent only to GitHub.
+      <a href="https://github.com/settings/tokens/new?scopes=repo,workflow&amp;description=AIT" target="_blank"
+      rel="noopener">Make one with the right boxes already ticked</a> — press <em>Generate token</em> and paste it
+      above.</p>
       <div class="row" style="margin-top:10px"><button class="primary" id="go">Connect</button>
       <span class="small muted" id="cmsg"></span></div>
     </div>
 
     <div class="notice">
-      <strong>You need a repository made from the tribe template.</strong> On GitHub, open the template, press
-      <em>Use this template</em>, name it, create it. Then come back here with the name and a token. There is no
-      other step, and nothing is installed.
+      <strong>There is no installer yet.</strong> To use AIT today you need a repository that already holds a
+      tribe — the template this page was built against, copied into your own account, or one you have been given
+      access to. If the repository is private, the token must be allowed to see it.
     </div>`;
 
-  $('repo').value = S.repo || '';
+  const want = new URLSearchParams(location.search).get('tribe');
+  $('repo').value = S.repo || want || '';
   $('go').onclick = async () => {
     const repo = $('repo').value.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\/$/, '');
     const token = $('token').value.trim();
