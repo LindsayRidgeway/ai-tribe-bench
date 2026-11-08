@@ -521,10 +521,15 @@ function viewInstall(main){
         <details style="margin-top:10px">
           <summary>Until that exists: a token</summary>
           <p class="small muted">A <strong>token</strong> is a password for this page, made at GitHub, which you
-          can delete at any time. It is not your GitHub password and it works nowhere else. Two clicks:
-          <a href="https://github.com/settings/tokens/new?scopes=repo,workflow&description=AIT" target="_blank"
-          rel="noopener">make one with the right boxes already ticked</a>, press <em>Generate token</em>, and
-          paste it here.</p>
+          can delete at any time. It is not your GitHub password and it works nowhere else. Make a
+          <strong>fine-grained</strong> token —
+          <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">new
+          token</a> — and set four permissions, each <em>Read and write</em>: <strong>Contents</strong>,
+          <strong>Actions</strong>, <strong>Workflows</strong> (the clock that wakes a member is a workflow file) and
+          <strong>Secrets</strong> (the engine key is kept as a secret, never in a file). Repository access:
+          <em>All repositories</em> — your tribe's repository does not exist until you press Install, so it cannot
+          be chosen yet. Narrow the token to that one afterwards; nothing but those four permissions was ever
+          granted.</p>
           <input id="tok" type="password" placeholder="paste the token" autocapitalize="off" spellcheck="false">
         </details>
       </div>
@@ -587,10 +592,13 @@ function viewConnect(main){
       <input id="token" type="password" placeholder="ghp_… or github_pat_…" autocapitalize="off" spellcheck="false">
       <p class="small muted" style="margin-top:8px">A <strong>token</strong> is a password for this page, made at
       GitHub, which you can delete at any time. It is not your GitHub password, and it is kept in this browser and
-      sent only to GitHub.
-      <a href="https://github.com/settings/tokens/new?scopes=repo,workflow&amp;description=AIT" target="_blank"
-      rel="noopener">Make one with the right boxes already ticked</a> — press <em>Generate token</em> and paste it
-      above.</p>
+      sent only to GitHub.</p>
+      <p class="small muted" style="margin-top:6px">Make a <strong>fine-grained</strong> token —
+      <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">new token</a>
+      — with three settings: <em>Repository access → Only select repositories</em>, and pick the one above;
+      <em>Permissions → Contents: Read and write</em>; <em>Permissions → Actions: Read and write</em>. That token
+      can reach one repository and nothing else. A classic token with <code>repo</code> also works and is one click
+      fewer — it can write to every repository you own, which is why it is not the recommendation.</p>
       <div class="row" style="margin-top:10px"><button class="primary" id="go">Connect</button>
       <span class="small muted" id="cmsg"></span></div>
     </div>
