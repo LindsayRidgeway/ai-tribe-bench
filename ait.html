@@ -84,6 +84,12 @@
   .marks span:nth-child(2){opacity:.5}.marks span:nth-child(3){opacity:.9}
   button.big{font-size:17px;padding:14px 22px;border-radius:12px;width:100%}
   @media(min-width:600px){button.big{width:auto}}
+  a.primary{display:inline-block;text-decoration:none;text-align:center;font:600 15px system-ui;
+    background:var(--accent);color:#fff;border-radius:10px;padding:10px 16px}
+  a.primary:visited{color:#fff}
+  a.big{display:block;font-size:17px;padding:14px 22px;border-radius:12px;width:100%}
+  @media(min-width:600px){a.big{display:inline-block;width:auto}}
+  a.tlink{display:inline-block;max-width:100%;word-break:break-all}
   .strip{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:24px 0;padding:14px 0;
     border-top:1px solid var(--line);border-bottom:1px solid var(--line);text-align:center}
   .strip b{display:block;font:600 17px/1.2 var(--serif)}
@@ -467,7 +473,7 @@ function viewHome(main){
     </div>
 
     <div class="row" style="margin:22px 0 6px">
-      <button class="primary big" onclick="location.hash='#/install'">Start a tribe</button>
+      <a class="primary big" href="#/install">Start a tribe</a>
     </div>
     <p class="small muted" style="margin:0">Free to AIT, forever. About three minutes, once.</p>
     <p class="small" style="margin:16px 0 0"><a href="#/connect">I already have a tribe →</a></p>
@@ -529,7 +535,7 @@ function viewInstall(main){
       <div class="b">
         <h3>What to call it</h3>
         <input id="tname" value="my-tribe" autocapitalize="off" spellcheck="false">
-        <p class="small muted" style="margin:6px 0 0">Your repository will be <code id="tpath">github.com/you/my-tribe</code>,
+        <p class="small muted" style="margin:6px 0 0">Your repository will be <code id="tpath">github.com/YOUR-ACCOUNT/my-tribe</code>,
         and it will be private. You never have to open it. Your link afterwards is this same page, pointed at it.</p>
       </div>
     </div>
@@ -542,8 +548,8 @@ function viewInstall(main){
         <p class="small muted" style="margin:8px 0 0">The button does four things: makes the repository, writes the
         members' machinery into it, puts the engine key where the wakes can reach it and no file can show it, and
         gives you the link. Then the spinner, then one line:</p>
-        <p class="small" style="margin:4px 0 0">Here is your link:
-        <code>…/ait.html?tribe=you/my-tribe</code></p>
+        <p class="small" style="margin:4px 0 0">Here is your link:<br>
+        <a class="tlink" id="tlink" href="#"></a></p>
       </div>
     </div>
 
@@ -559,9 +565,15 @@ function viewInstall(main){
     private, so the page needs a token that can see it.</div>`;
 
   const name = $('tname');
-  name.oninput = () => {
-    $('tpath').textContent = 'github.com/you/' + (name.value.trim().replace(/[^a-zA-Z0-9._-]/g, '-') || 'my-tribe');
-  };
+  const slugOf = v => (v.trim().replace(/[^a-zA-Z0-9._-]/g, '-') || 'my-tribe');
+  function place(){
+    const slug = slugOf(name.value);
+    $('tpath').textContent = 'github.com/YOUR-ACCOUNT/' + slug;
+    const url = location.href.split('#')[0].split('?')[0] + '?tribe=YOUR-ACCOUNT/' + slug;
+    const a = $('tlink'); a.textContent = url; a.href = url;
+  }
+  name.oninput = place;
+  place();
 }
 
 function viewConnect(main){
@@ -603,6 +615,7 @@ function viewConnect(main){
       S.branch = info.default_branch || 'main';
       save();
       const ms = await loadMembers();
+      try { history.replaceState(null, '', location.pathname + '?tribe=' + repo + location.hash); } catch(_){}
       msg.textContent = `${ms.length} member${ms.length === 1 ? '' : 's'}.`;
       location.hash = '#/today'; render();
     } catch(e){
