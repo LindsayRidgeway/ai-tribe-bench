@@ -310,7 +310,7 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 /* ---- members --------------------------------------------------------------------------- */
 
-const MEMBER_FILES = ['identity','state','place','voice','journal','open-items'];
+const MEMBER_FILES = ['identity','state','place','voice','journal','open-items','memory'];
 
 async function loadMembers(){
   const names = (await dirNames('wake/members')).filter(n => n !== '.gitkeep');
@@ -445,7 +445,10 @@ function systemPrompt(m, thread){
   const oi = m.openItems || '';
   // Notes first, and half the budget at most. Whatever is left goes to the most recent conversation, so a
   // member always remembers what was just said even when its notes are long.
-  const notes = tailChars(m.journal || '', NOTES_MAX);
+  // Two layers, and the difference is the point: `memory` is the member's own retelling, which it may rewrite
+  // and which is allowed to drift; the journal is what was actually written down, and never changes.
+  const remembered = tailChars(m.memory || '', Math.floor(NOTES_MAX * 0.6));
+  const notes = tailChars(m.journal || '', NOTES_MAX - remembered.length);
   const room = Math.max(2000, CHAT_CHARS - notes.length);
   const said = thread !== undefined ? String(thread || '') : threadFor(S.chat[m.name] || [], room).slice(-room);
   const jo = notes;
@@ -465,9 +468,7 @@ Where you work: ${m.place || '(nowhere in particular)'}
 Your open items:
 ${oi}
 
-Your long-term memory — your journal, the notes you wrote yourself. These outlast any conversation and
-are quoted first:
-${jo}
+${remembered ? 'Your long-term memory, as you last retold it yourself — this is a retelling, not a record, and you\nmay rewrite it when you tell it again:\n' + remembered + '\n\n' : ''}Your long-term memory — your journal, the raw record: notes you wrote yourself, and what each wake wrote\nabout what it did. This does not change once it is written:\n${jo}
 
 ${said ? 'Your short-term memory — what has been said in this conversation. The newest turns are the ones kept; the oldest fall out as the talk goes on. They are quoted in the order they were said, so the last thing here is the most recent thing said:\n' + said + '\n' : ''}
 
@@ -988,6 +989,7 @@ async function viewMember(main, name){
     </div>
     <div class="row" style="margin-top:8px">
       <button class="plain small" onclick="wakeNow('${escq(m.name)}')">Wake now</button>
+      <button class="plain small" onclick="retellMemory('${escq(m.name)}')">Retell its memory</button>
       <button class="plain small" onclick="fileConversation('${escq(m.name)}')">Save this talk to its memory</button>
       <span class="small muted" id="mmsg"></span>
     </div>
@@ -1229,6 +1231,38 @@ async function searchOwnRecord(name, terms){
     if (hits.length >= 12) break;
   }
   return hits;
+}
+
+// Re-consolidation, with a floor under it. The member retells its life from the raw record, and its retelling
+// is allowed to be lossy, simplified, even wrong — human memory is. What it may not do is change the record:
+// journal.md stays as written, so every retelling can be compared against it, and git keeps every earlier
+// retelling too. Drift stops being a threat to the evidence and becomes the measurement.
+async function retellMemory(name){
+  const m = S.members.find(x => x.name === name);
+  const say = (t) => { const e = $('mmsg'); if (e) e.textContent = t; };
+  if (!m) return;
+  say('asking ' + name + ' to tell its life again…');
+  try {
+    const raw = String(m.journal || '').slice(-30000);
+    let out = '';
+    await chatStream(
+      `You are ${name}. Below are the raw records of your wakes and your written notes, and — if there is one — ` +
+      `your own previous retelling of your life. Write your memory again, in the first person, as a person would ` +
+      `tell it: what matters, what you did, what you learned, who you are to the person who keeps this tribe. ` +
+      `You may compress, connect and drop detail; you may not invent events that are not in the record. Six ` +
+      `hundred words at most. Write only the retelling, nothing before it.`,
+      [{role:'user', content: (m.memory ? `YOUR PREVIOUS RETELLING:\n${m.memory}\n\n` : '') + `THE RAW RECORD:\n${raw}`}],
+      m.engine, (d) => { out += d; });
+    const text = out.trim();
+    if (text.length < 80) throw new Error('it did not write anything usable');
+    let sha;
+    try { sha = (await fileText(`wake/members/${name}/state/memory.md`)).sha; } catch(e){}
+    await putText(`wake/members/${name}/state/memory.md`, text + '\n',
+      `memory: ${name} retold its memory from the record`, sha);
+    say('done. Its retelling is in memory.md; the record it came from is untouched.');
+    await loadMembers();
+    render();
+  } catch(e){ say(''); const e2 = $('mmsg'); if (e2) e2.innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }
 }
 
 async function loadThread(name){
