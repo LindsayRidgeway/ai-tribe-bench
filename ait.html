@@ -559,9 +559,10 @@ function viewInstall(main){
         <p class="small muted" style="margin:0 0 10px">The tribe lives under your name, in your account, so that it
         is yours and not mine.</p>
         <button class="primary" id="gh">Sign in with GitHub</button>
-        <p class="small muted" style="margin:8px 0 0">One permission screen. It asks for one repository — the one
-        it is about to make — and you can revoke it from your GitHub settings at any time; if you do, AIT stops
-        and your tribe does not.</p>
+        <p class="small muted" style="margin:8px 0 0">One permission screen. It asks for access to your
+        repositories, because GitHub has no narrower permission that lets a new one be created; this page asks
+        GitHub about nothing but the tribe you name below. You can revoke it from your GitHub settings at any
+        time; if you do, AIT stops and your tribe does not.</p>
         <p class="small" style="margin:12px 0 0"><a href="#" id="usetoken">Use a token instead</a></p>
         <div id="tokbox" hidden style="margin-top:10px">
           <p class="small muted" style="margin:0 0 8px">A <strong>token</strong> is a password for this page, made
@@ -714,9 +715,9 @@ function viewConnect(main){
     </div>
 
     <div class="notice">
-      <strong>There is no installer yet.</strong> To use AIT today you need a repository that already holds a
-      tribe — the template this page was built against, copied into your own account, or one you have been given
-      access to. If the repository is private, the token must be allowed to see it.
+      <strong>No tribe installed yet?</strong> <a href="#/install">Install one</a> — it makes the repository,
+      puts the tribe in it, and brings you back here. Connecting to a repository someone gave you also works:
+      type its name above. If it is private, the token must be allowed to see it.
     </div>`;
 
   const want = new URLSearchParams(location.search).get('tribe');
