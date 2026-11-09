@@ -1003,8 +1003,13 @@ async function viewMember(main, name){
     <h2>Its own words <span class="small muted" style="font-weight:400">— its long-term memory: what it wrote down, and what no conversation can take away</span></h2>
     <div class="prose">${md(m.journal.split(/\n(?=## )/).slice(-2).join('\n\n'))}</div>
 
+    <h2>What it is <span class="small muted" style="font-weight:400">— its identity: the file every prompt begins with</span></h2>
+    <div class="card" id="ident"><p class="small muted">reading…</p></div>
+
     <h2>What it did to its own history <span class="small muted" style="font-weight:400">— the retelling, against the record it came from</span></h2>
     <div class="card" id="memcmp"><p class="small muted">reading what changed…</p></div>`;
+
+  showIdentity(name).catch(() => {});
 
   // The comparison reads two API endpoints; it must not delay the talk, and a failure is a footnote.
   compareMemories(name).catch(e => {
@@ -1278,6 +1283,133 @@ async function retellMemory(name){
     render();
     compareMemories(name).catch(() => {});
   } catch(e){ say(''); const e2 = $('mmsg'); if (e2) e2.innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }
+}
+
+/* ---- the member's identity, readable and editable ---------------------------------------- */
+
+// The one file a person has to be able to write. An identity is written when the member is made, on a runner,
+// from a template — and before this, changing it meant finding the file on GitHub. It is also the file that
+// changes a member most: every prompt begins with it, nothing overrides it, and a person who rewrites it is
+// doing the thing the whole design is for. Two guards, both copied from `tribe.py validate` rather than
+// invented here, because a page that accepts what the harness refuses is a page that breaks a member quietly.
+
+let IDENT_OPEN = null;   // what the editor was opened on, so a change made elsewhere is not silently lost
+
+// The two identity rules `tribe.py validate` enforces, in the page, so the page can say when a member would be
+// refused by the harness. Not decoration: on 2026-11-09 the founder rewrote his dog's identity in seven lines,
+// the rewrite dropped the line naming him, and every push to his tribe failed its tests workflow for hours
+// while the page showed the file happily. The page was the only witness and it said nothing.
+function identityProblems(m){
+  const t = String((m && m.identity) || '');
+  const bad = [];
+  if (t.trim().length < 100) bad.push('it is under 100 characters — a member with no identity improvises one');
+  if (!t.toLowerCase().includes(('member ' + (m.name || '')).toLowerCase()))
+    bad.push('it does not name this member as "member ' + (m.name || '') + '"');
+  return bad;
+}
+
+async function showIdentity(name){
+  const box = $('ident'); if (!box) return;
+  const m = S.members.find(x => x.name === name); if (!m) return;
+  const bad = identityProblems(m);
+  box.innerHTML = `${bad.length ? `<p class="small" style="color:#a3302e"><strong>The harness will refuse this
+member as it stands:</strong> ${esc(bad.join('; '))}. <button class="plain small"
+onclick="editIdentity('${escq(name)}')">Fix it</button></p>` : ''}
+    <div class="prose">${md(m.identity || '')}</div>
+    <div class="row" style="margin-top:10px">
+      <button class="plain small" onclick="editIdentity('${escq(name)}')">Edit this</button>
+      <span class="small muted" id="ident-when"></span>
+    </div>`;
+  try {
+    const list = await gh(`/repos/${S.repo}/commits?path=${encodeURI(`wake/members/${name}/state/identity.md`)}&per_page=1&sha=${S.branch}`);
+    const c = list && list[0];
+    const w = $('ident-when');
+    if (w && c) w.textContent = 'last changed ' + when(c.commit.committer.date) + ' — "' + c.commit.message.split('\n')[0] + '"';
+  } catch(e){}
+}
+
+async function editIdentity(name){
+  const box = $('ident'); if (!box) return;
+  let cur;
+  try { cur = await fileText(`wake/members/${name}/state/identity.md`); }
+  catch(e){ box.innerHTML = '<p class="err">Could not read the file: ' + esc(e.message) + '</p>'; return; }
+  IDENT_OPEN = {name, text: cur.text, sha: cur.sha};
+  box.innerHTML = `<p class="small muted">This is <code>state/identity.md</code>, exactly as the member will read it.
+Every prompt begins with it and nothing overrides it, so this is the file that makes it the being it is. Two things
+the harness insists on: it must name this member as <strong>member ${esc(name)}</strong>, and it must be more than
+100 characters. Your words, and every version of them, stay in git.</p>
+    <textarea id="idtext" autocapitalize="sentences"
+      style="width:100%;min-height:340px;font-size:14px;line-height:1.6;font-family:ui-monospace,SFMono-Regular,Menlo,monospace">${esc(cur.text)}</textarea>
+    <div class="row" style="margin-top:10px;flex-wrap:wrap">
+      <button class="primary" onclick="saveIdentity('${escq(name)}')">Save it</button>
+      <button class="plain" onclick="showIdentity('${escq(name)}')">Never mind</button>
+      <span class="small muted" id="idmsg"></span>
+    </div>`;
+}
+
+function addNameLine(name){
+  const box = $('idtext'); if (!box) return;
+  box.value = `# Identity — member ${name}\n\n` + box.value.replace(/^\s+/, '');
+  saveIdentity(name);
+}
+
+async function saveIdentity(name){
+  const box = $('idtext'), msg = $('idmsg');
+  if (!box) return;
+  const text = box.value;
+  const say = (t) => { if (msg) msg.innerHTML = esc(t); };
+  // The harness's own two tests, so this page cannot write an identity `tribe.py validate` will refuse.
+  if (text.trim().length < 100){
+    if (msg) msg.innerHTML = '<span class="err">Not saved: an identity under 100 characters is refused by the '
+      + 'harness, because a member with no identity improvises one.</span>';
+    return;
+  }
+  if (!text.toLowerCase().includes(`member ${name}`.toLowerCase())){
+    // His own rewrite of Laddie's identity did exactly this — good prose, missing the line the schema turns on.
+    // So the fix is offered rather than only described: one press puts the heading back and saves.
+    if (msg) msg.innerHTML = '<span class="err">Not saved: it must name this member as “member ' + esc(name)
+      + '”. That line is how the harness knows whose identity it is reading.</span> '
+      + `<button class="plain small" onclick="addNameLine('${escq(name)}')">Add “# Identity — member ${esc(name)}” and save</button>`;
+    return;
+  }
+  say('saving…');
+  const path = `wake/members/${name}/state/identity.md`;
+  const message = `identity: ${name} — rewritten by the person who keeps this tribe`;
+  try {
+    // Measured 2026-11-09: GitHub's read can lag its own write by a second, so the sha this page reads can already
+    // be old and the PUT comes back 409. Three tries, a moment apart, and the conflict message only fires when the
+    // file's *text* has changed under us — a real edit made elsewhere is the person's to keep, not a retry's to
+    // overwrite.
+    let put = null, lastErr = null;
+    for (let attempt = 1; attempt <= 3 && !put; attempt++){
+      const fresh = await fileText(path);
+      if (IDENT_OPEN && fresh.text !== IDENT_OPEN.text){
+        IDENT_OPEN = {name, text: fresh.text, sha: fresh.sha};
+        if (msg) msg.innerHTML = '<span class="err">The file changed since you opened it — something else wrote to '
+          + 'it. Press <strong>Save it</strong> again to replace it with what is in the box.</span>';
+        return;
+      }
+      try { put = await putText(path, text, message, fresh.sha); }
+      catch(e){
+        if (!/^409/.test(String(e.message))) throw e;
+        lastErr = e;
+        if (attempt < 3) await sleep(900);
+      }
+    }
+    if (!put) throw new Error('GitHub kept refusing the write (409) after three tries, which is its own record '
+      + 'falling behind itself. Nothing was lost: your text is still in the box. Try Save again in a moment.');
+    // The page's own truth, not a fresh read: what was written here is what it shows. Reloading a member from
+    // GitHub a second after writing can return the version before the write, which showed the person their old
+    // identity back and looked like a failure.
+    const m = S.members.find(x => x.name === name);
+    if (m) m.identity = text;
+    IDENT_OPEN = null;
+    await showIdentity(name);
+    const ok = $('ident-when');
+    if (ok && !ok.textContent) ok.textContent = 'saved — this is now the member.';
+  } catch(e){
+    if (msg) msg.innerHTML = '<span class="err">Not saved: ' + esc(e.message) + '</span>';
+  }
 }
 
 /* ---- what a retelling did to the record -------------------------------------------------- */
