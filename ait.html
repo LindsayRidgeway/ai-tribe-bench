@@ -111,7 +111,7 @@
   <nav id="nav" hidden>
     <button data-go="today">Today</button>
     <button data-go="members">Members</button>
-    <button data-go="table">Table</button>
+    <button data-go="table">Chats</button>
     <button data-go="play">Play</button>
     <button data-go="magazine">Magazine</button>
     <button data-go="keys">Keys</button>
@@ -583,6 +583,7 @@ async function render(){
   nav(view || 'today');
   if (view === 'keys') return viewKeys(main);
   if (view === 'table') return viewTable(main);
+  if (view === 'c') return viewChat(main, decodeURIComponent((location.hash.split('/')[2] || '')));
   if (view === 'play') return viewPlay(main);
   if (view === 'magazine') return viewMagazine(main);
   if (view === 'members') return viewMembers(main);
@@ -635,11 +636,12 @@ function viewHome(main){
       <p class="small muted">One question, from the laboratory this was built in: <em>can a model woken with no
       memory of its last wake read its own record and produce a decision with an act behind it — or only
       plausible prose?</em> A wake is the test. A game between two members is the same test with a score attached.
-      A conversation is the same test with you in the room. A <strong>table</strong> — several members, one talk,
-      every one of them hearing all of it — is the same test with the room itself under examination: what a member
+      A conversation is the same test with you in the room. A <strong>chat</strong> — a topic, several members,
+      one talk, every one of them hearing all of it — is the same test with the room itself under examination: what a member
       does with somebody else's answer, in front of a person who can see both. Chat apps let you talk to one model at
       a time because their state lives in their database. Here the state is a file, so a talk can be in several
-      memories at once. Everything else — the buttons, the page, the GitHub account — is scaffolding around that.</p>
+      memories at once, and rooms can be opened and left and come back to. Everything else — the buttons, the page,
+      the GitHub account — is scaffolding around that.</p>
     </details>
 
     <details>
@@ -1249,8 +1251,14 @@ function bubbleHTML(b, showWho){
 
 function repaintChat(name){
   const box = $('chat'); if (!box) return;
-  box.innerHTML = (S.chat[name] || []).map((b, i) =>
-    `<div class="msg ${b.role === 'user' ? 'me' : 'them'}" data-i="${i}">${esc(b.content)}</div>`).join('');
+  // A turn spoken by somebody else in a room is in this member's file because it heard it, and it has to read
+  // that way: without the name above it, another member's sentences would look like its own.
+  box.innerHTML = (S.chat[name] || []).map((b, i) => {
+    const third = b.who && b.who !== name && b.who !== personLabel();
+    return `<div class="msg ${b.role === 'user' ? 'me' : 'them'}" data-i="${i}">`
+      + (third ? `<div class="small muted" style="margin-bottom:2px">${esc(b.who)}</div>` : '')
+      + `${esc(b.content)}</div>`;
+  }).join('');
   box.scrollIntoView({block:'end'});
 }
 
@@ -1685,8 +1693,10 @@ async function readChapter(name, file){
 }
 
 function turnsToText(name, msgs){
+  // `who` first: in a room with three members, a turn written as the room's name would come back out of the file
+  // with nobody's name on it, and the next member to read it could not tell who had said what.
   return (msgs || []).filter(b => !b.tool && String(b.content || '').trim())
-    .map(b => `\n## ${b.at || nowStamp()} — ${b.role === 'user' ? 'Lindsay' : name}\n\n${String(b.content || '').trim()}\n`).join('');
+    .map(b => `\n## ${b.at || nowStamp()} — ${b.who || (b.role === 'user' ? 'Lindsay' : name)}\n\n${String(b.content || '').trim()}\n`).join('');
 }
 
 // The chapter a falling turn belongs to: the newest one, or a new one if the member has none.
@@ -2024,159 +2034,270 @@ async function makeMember(){
   } catch(e){ msg.innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }
 }
 
-/* ---- a table, with more than one member at it -------------------------------------------- */
+/* ---- chats: rooms in the repository, with members at them -------------------------------- */
 
-// The thing no chat app does: several members, one conversation, everyone hearing all of it. It is possible here
-// for a reason that has nothing to do with the page — a member's memory is a file, so "everyone hears everything"
-// is a copy of the same transcript into each participant's own record, and each of them answers from its own
-// identity with the whole room in front of it. Nothing is shared in a database, because there is no database.
+// A table with no name is a conversation you can never come back to. A *chat* is a room in the repository — a topic,
+// a list of members, and the talk itself, appended as it happens — so a tribe can have several going, resume any of
+// them, and start one with nobody in it yet. Nothing about this needs a server: `chats/<slug>/chat.md` says what it
+// is and who is in it, `chats/<slug>/talk.md` is what was said, and each member keeps its own copy of the talk in
+// its own memory, because a member's memory is a file and the same tape can be in several records at once.
 
-let TABLE = {names: [], msgs: [], busy: false, restored: false, seated: false};
+let CHAT = {slug: '', topic: '', names: [], msgs: [], busy: false, total: 0};
+const chatDir = (slug) => `chats/${slug}`;
 
-function tableStore(){
-  try { localStorage.setItem('ait.table', JSON.stringify({names: TABLE.names})); } catch(_){}
+function slugOfTopic(topic){
+  const base = String(topic || '').toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '').slice(0, 40).replace(/-+$/, '');
+  return base || 'chat';
+}
+
+function chatHeader(slug, topic, names){
+  return `# A chat — ${topic}\n\nOpened ${nowStamp()} by the person who keeps this tribe.\n\n`
+    + `Members: ${names.length ? names.join(', ') : '(nobody yet)'}\n`;
+}
+
+async function listChats(){
+  const slugs = (await dirNames('chats')).filter(n => !n.startsWith('.'));
+  const out = [];
+  for (const slug of slugs.slice(0, 24)){
+    let head = '', turns = 0, when = '';
+    try {
+      head = (await fileText(`${chatDir(slug)}/chat.md`)).text;
+      const t = (await fileText(`${chatDir(slug)}/talk.md`)).text;
+      turns = parseTurns(t).length;
+      const last = parseTurns(t).slice(-1)[0];
+      when = last ? last.at : '';
+    } catch(e){ continue; }
+    const topic = (head.match(/^# A chat — (.+)$/m) || [, slug])[1];
+    const names = (head.match(/^Members: (.*)$/m) || [, ''])[1];
+    const opened = (head.match(/^Opened ([^\n]+?) by /m) || [, ''])[1];
+    out.push({slug, topic, names, turns, opened, when});
+  }
+  return out;
 }
 
 async function viewTable(main){
+  main.innerHTML = `<h1>Chats</h1><p class="muted small">reading the rooms…</p>`;
   const members = S.members && S.members.length ? S.members : await loadMembers().catch(() => []);
-  let saved = [];
-  try { saved = (JSON.parse(localStorage.getItem('ait.table') || '{}').names || []); } catch(_){}
-  if (!TABLE.names.length && saved.length) TABLE.names = saved.filter(n => members.some(m => m.name === n));
+  let chats = [];
+  try { chats = await listChats(); } catch(e){}
 
-  if (!TABLE.seated || TABLE.names.length < 2){
-    main.innerHTML = `<h1>A table</h1>
-      <p class="lede">Several members, one conversation. Everything said is heard by everyone at the table, and each
-      of them answers from its own identity and its own memory — because a memory here is a file, and the same talk
-      can be in more than one.</p>
-      <div class="card">${members.length ? members.map(m => `
-        <label class="row" style="justify-content:flex-start;gap:10px;padding:6px 0;cursor:pointer">
-          <input type="checkbox" data-name="${escq(m.name)}" ${TABLE.names.includes(m.name) ? 'checked' : ''}
-            onchange="tableToggle(this.dataset.name, this.checked)">
-          <span class="grow"><strong>${esc(m.name)}</strong>
-          <span class="small muted"> · ${esc(m.engine)} · ${esc(m.model)}</span>
-          ${keyFor(m.engine).key ? '' : '<span class="small" style="color:#a3302e"> · no key here, so it cannot answer</span>'}</span>
-        </label>`).join('') : '<p class="muted">There are no members yet.</p>'}
-      </div>
-      <div class="row" style="margin-top:10px"><button class="primary" onclick="tableStart()"
-        ${TABLE.names.length < 2 ? 'disabled' : ''}>Sit down together</button>
-        <span class="small muted" id="tmsg">${TABLE.names.length === 1 ? 'One more, and there is a table.' : ''}</span></div>`;
+  main.innerHTML = `<h1>Chats</h1>
+    <p class="lede">A chat is a room in the repository: a topic, the members in it, and everything said, kept as it
+    was said. Open as many as you like; come back to any of them.</p>
+    <div class="card">
+      <label for="topic">Open a chat</label>
+      <input id="topic" placeholder="What is it about? — e.g. the Labrador standard, or what the tribe is for"
+        autocapitalize="sentences">
+      <p class="small muted" style="margin:8px 0 4px">Who is in it? None is a legitimate answer: a room can wait for
+      its members.</p>
+      <div class="grid">${members.map(m => `
+        <label class="row" style="justify-content:flex-start;gap:8px;padding:4px 0;cursor:pointer">
+          <input type="checkbox" data-name="${escq(m.name)}">
+          <span class="small">${esc(m.name)} <span class="muted">· ${esc(m.engine)}</span>
+          ${keyFor(m.engine).key ? '' : '<span style="color:#a3302e"> · no key here</span>'}</span>
+        </label>`).join('') || '<p class="small muted">There are no members yet.</p>'}</div>
+      <div class="row" style="margin-top:10px"><button class="primary" onclick="openNewChat()">Open it</button>
+        <span class="small muted" id="tmsg"></span></div>
+    </div>
+    ${chats.length ? `<div class="card" style="margin-top:12px">
+      <p class="small" style="margin:0 0 6px"><strong>Chats in this tribe</strong></p>
+      ${chats.map(c => `<div class="row" style="justify-content:space-between;padding:6px 0;border-bottom:1px solid #eee">
+        <div class="grow"><a href="#/c/${encodeURIComponent(c.slug)}">${esc(c.topic)}</a>
+          <div class="small muted">${c.turns} turn${c.turns === 1 ? '' : 's'}${c.when ? ' · last ' + esc(c.when) : ''}
+          · ${esc(c.names || '(nobody)')}</div></div></div>`).join('')}
+    </div>` : '<p class="small muted" style="margin-top:12px">No chats yet. The first one is the hard one.</p>'}`;
+}
+
+async function openNewChat(){
+  const topic = ($('topic').value || '').trim();
+  const msg = $('tmsg');
+  if (topic.length < 3){ if (msg) msg.textContent = 'A topic, three letters at least — a room with no name is one you will not find again.'; return; }
+  const names = Array.from(document.querySelectorAll('input[type=checkbox][data-name]:checked')).map(e => e.dataset.name);
+  let slug = slugOfTopic(topic);
+  try {
+    const taken = (await dirNames('chats')).filter(n => !n.startsWith('.'));
+    let n = 2, base = slug;
+    while (taken.includes(slug)) slug = `${base}-${n++}`;
+    if (msg) msg.textContent = 'opening…';
+    await putText(`${chatDir(slug)}/chat.md`, chatHeader(slug, topic, names),
+      `chat: opened "${topic}"${names.length ? ' with ' + names.join(', ') : ' with nobody in it yet'}`, null);
+    await putText(`${chatDir(slug)}/talk.md`,
+      `# Talk — ${topic}\n\nWhat has been said in this room, in the order it was said. Appended, never rewritten.\n`,
+      `chat: the first page of "${topic}"`, null);
+    location.hash = '#/c/' + encodeURIComponent(slug);
+    render();
+  } catch(e){ if (msg) msg.innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }
+}
+
+async function loadChat(slug){
+  const head = (await fileText(`${chatDir(slug)}/chat.md`)).text;
+  const talk = await fileText(`${chatDir(slug)}/talk.md`).catch(() => ({text: ''}));
+  const all = parseTurns(talk.text);
+  const names = ((head.match(/^Members: (.*)$/m) || [, ''])[1] || '').trim();
+  return {
+    topic: (head.match(/^# A chat — (.+)$/m) || [, slug])[1],
+    names: names && names !== '(nobody yet)' ? names.split(',').map(x => x.trim()).filter(Boolean) : [],
+    msgs: all.slice(-60),
+    total: all.length,
+  };
+}
+
+async function viewChat(main, slug){
+  main.innerHTML = `<h1>…</h1><p class="muted small">reading the room…</p>`;
+  // Whole turns are labelled with a name, and `parseTurns` decides whose they are by asking which names belong to
+  // members — so the member list has to be here before the transcript is read, or every turn looks like the
+  // person's and the room shows three right-aligned bubbles in a row.
+  if (!S.members || !S.members.length) await loadMembers().catch(() => {});
+  let c;
+  try { c = await loadChat(slug); }
+  catch(e){
+    main.innerHTML = `<h1>No such chat</h1><p class="muted">${esc(slug)} is not a chat in this tribe.</p>
+      <p><a href="#/table">← all chats</a></p>`;
     return;
   }
-
-  main.innerHTML = `<h1>At the table</h1>
-    <p class="small muted">${TABLE.names.map(esc).join(', ')} — and you. Everything said goes into every one of their
-    memories, and each answers in turn, so one message costs ${TABLE.names.length} calls.</p>
+  CHAT = {...CHAT, slug, topic: c.topic, names: c.names, msgs: c.msgs, total: c.total};
+  const absent = (S.members || []).filter(m => !CHAT.names.includes(m.name));
+  main.innerHTML = `
+    <p class="small"><a href="#/table">← all chats</a></p>
+    <h1>${esc(c.topic)}</h1>
+    <p class="small muted">${CHAT.names.length ? CHAT.names.map(esc).join(', ') : 'Nobody is in this room yet'}
+      · ${c.total} turn${c.total === 1 ? '' : 's'} in the record${c.total > 60 ? ', showing the last 60' : ''}
+      · one message costs ${CHAT.names.length || 0} call${CHAT.names.length === 1 ? '' : 's'}</p>
     <div class="chat" id="tchat"></div>
     <div class="composer">
-      <textarea id="tsay" placeholder="Say something to the table…" autocapitalize="sentences"></textarea>
+      <textarea id="tsay" placeholder="Say something in ${esc(c.topic)}…" autocapitalize="sentences"></textarea>
       <button class="primary" id="tsend">Send</button>
     </div>
-    <div class="row" style="margin-top:8px">
-      <button class="plain small" onclick="tableReset()">Change who is at the table</button>
+    <div class="row" style="margin-top:8px;flex-wrap:wrap;gap:8px">
+      ${absent.length ? `<select id="addwho" style="max-width:220px">
+        <option value="">add a member…</option>
+        ${absent.map(m => `<option value="${escq(m.name)}">${esc(m.name)}</option>`).join('')}</select>
+        <button class="plain small" onclick="chatAddMember()">Add</button>` : ''}
       <span class="small muted" id="tmsg"></span>
     </div>
-    <p class="small muted">A member at the table cannot look anything up in this version: no SEARCH, no FETCH, no
-    pages. It speaks from its identity and the room. That limit is written here rather than discovered.</p>`;
+    <p class="small muted">A member in this room cannot look anything up yet: no SEARCH, no FETCH, no pages. It
+    speaks from its identity and the room. The whole talk is in <code>chats/${esc(slug)}/talk.md</code>, and each
+    member keeps a copy in its own memory.</p>`;
 
-  $('tsend').onclick = tableSay;
-  $('tsay').onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); tableSay(); } };
-
-  if (!TABLE.msgs.length && !TABLE.restored){
-    TABLE.restored = true;
-    // All participants hold the same transcript, so the first one's file restores the room.
-    const back = await loadThread(TABLE.names[0]).catch(() => []);
-    if (Array.isArray(back) && back.length && back.every(b => b.who)) TABLE.msgs = back.filter(b => !b.tool);
-  }
-  tablePaint();
+  $('tsend').onclick = chatSay;
+  $('tsay').onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); chatSay(); } };
+  chatPaint();
 }
 
-function tableToggle(name, on){
-  if (on){ if (!TABLE.names.includes(name)) TABLE.names.push(name); }
-  else TABLE.names = TABLE.names.filter(n => n !== name);
-  TABLE.restored = false;
-  viewTable($('main'));
-  $('tmsg').textContent = TABLE.names.length === 1 ? 'One more, and there is a table.' : '';
+function parseTurns(text){
+  const known = new Set((S.members || []).map(m => m.name));
+  return String(text || '').split(/^## /m).slice(1).map(part => {
+    const nl = part.indexOf('\n');
+    const heading = nl < 0 ? part : part.slice(0, nl);
+    const body = (nl < 0 ? '' : part.slice(nl + 1)).trim();
+    const who = heading.split(' — ').pop().trim();
+    const mine = known.size ? !known.has(who) : who === personLabel();
+    return {role: mine ? 'user' : 'assistant', who, at: heading.split(' — ')[0], content: body};
+  }).filter(x => x.content);
 }
 
-async function tableStart(){
-  if (TABLE.names.length < 2){ if ($('tmsg')) $('tmsg').textContent = 'Two at least.'; return; }
-  // Everyone at the table starts a new chapter. Its private talk is not lost — it is kept in its chapter — and the
-  // room's talk then becomes its short-term memory, because that is what it is now part of.
-  const say = (t) => { const e = $('tmsg'); if (e) e.textContent = t; };
-  for (const n of TABLE.names){
-    say('closing ' + n + "'s last chapter…");
-    try { if (!(S.chat[n] || []).length) await loadThread(n); await newChapter(n); } catch(e){}
-  }
-  TABLE.seated = true; TABLE.msgs = []; TABLE.restored = true; tableStore();
-  await viewTable($('main'));
+// The person's name as the transcript writes it: the first word of the name GitHub gave us, so that a tribe kept
+// by someone else does not have its own conversations signed `Lindsay`. Only a tribe that never recorded a name
+// falls back to it, and then only because every transcript already written here uses it.
+function personLabel(){
+  const o = String(S.owner || '').trim();
+  return o ? o.split(/\s+/)[0] : 'Lindsay';
 }
 
-function tableReset(){
-  TABLE.msgs = []; TABLE.names = []; TABLE.restored = false; TABLE.seated = false; tableStore();
-  viewTable($('main'));
-}
-
-function tablePaint(){
+function chatPaint(){
   const box = $('tchat'); if (!box) return;
-  box.innerHTML = TABLE.msgs.filter(b => !b.tool).map(b => bubbleHTML({...b, i: ''}, true)).join('')
-    + (TABLE.busy ? '<div class="msg sys">…</div>' : '');
-  box.scrollIntoView({block:'end'});
+  box.innerHTML = CHAT.msgs.filter(b => !b.tool).map(b => bubbleHTML({...b, i: ''}, true)).join('')
+    + (CHAT.busy ? '<div class="msg sys">…</div>' : '');
+  box.scrollIntoView({block: 'end'});
 }
 
-function tableUtterance(msgs, me){
-  const lines = msgs.filter(b => !b.tool && String(b.content || '').trim())
-    .map(b => `${b.who || (b.role === 'user' ? 'Lindsay' : me.name)}: ${String(b.content).trim()}`).join('\n\n');
-  return `AT THE TABLE, so far:\n\n${tailChars(lines, CHAT_CHARS)}\n\nAnswer the last turn as ${me.name}.`;
-}
-
-function tablePrompt(m){
-  const others = TABLE.names.filter(n => n !== m.name);
-  return systemPrompt(m, '') + `\n\nYou are at a table with ${others.join(' and ') || 'nobody else'} and with the `
-    + `person who keeps this tribe. Everyone hears everything that is said, including you, and each of you answers `
-    + `for yourself only. Answer the last thing said, in your own voice, in one or two short paragraphs. Do not `
-    + `speak for anyone else, and do not put your name at the front of what you say.`;
-}
-
-async function tableSay(){
-  const box = $('tsay'), msg = $('tmsg');
-  if (!box || TABLE.busy) return;
-  const text = box.value.trim(); if (!text) return;
-  TABLE.busy = true; box.value = '';
-  TABLE.msgs.push({role: 'user', who: 'Lindsay', at: nowStamp(), content: text});
-  tablePaint();
+async function chatAddMember(){
+  const pick = $('addwho'); if (!pick || !pick.value) return;
+  const name = pick.value;
+  const names = CHAT.names.concat([name]);
+  const msg = $('tmsg');
   try {
-    for (const n of TABLE.names){
-      const m = S.members.find(x => x.name === n);
-      if (!m){ continue; }
-      const at = TABLE.msgs.length;
-      TABLE.msgs.push({role: 'assistant', who: n, at: nowStamp(), content: ''});
-      tablePaint();
+    if (msg) msg.textContent = 'adding ' + name + '…';
+    const cur = await fileText(`${chatDir(CHAT.slug)}/chat.md`);
+    await putText(`${chatDir(CHAT.slug)}/chat.md`, chatHeader(CHAT.slug, CHAT.topic, names),
+      `chat: ${name} joined "${CHAT.topic}"`, cur.sha);
+    CHAT.names = names;
+    location.hash = '#/c/' + encodeURIComponent(CHAT.slug); render();
+  } catch(e){ if (msg) msg.innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }
+}
+
+function chatUtterance(msgs, me){
+  const lines = msgs.filter(b => !b.tool && String(b.content || '').trim())
+    .map(b => `${b.who || (b.role === 'user' ? personLabel() : me.name)}: ${String(b.content).trim()}`).join('\n\n');
+  return `IN THIS ROOM, so far:\n\n${tailChars(lines, CHAT_CHARS)}\n\nAnswer the last turn as ${me.name}.`;
+}
+
+function chatPrompt(m){
+  const others = CHAT.names.filter(n => n !== m.name);
+  return systemPrompt(m, '') + `\n\nYou are in a room called "${CHAT.topic}" with `
+    + `${others.length ? others.join(' and ') + ' and ' : ''}the person who keeps this tribe. Everyone in the room `
+    + `hears everything that is said, including you, and each of you answers for yourself only. Answer the last `
+    + `thing said, in your own voice, in one or two short paragraphs. Do not speak for anyone else, and do not put `
+    + `your name at the front of what you say.`;
+}
+
+async function chatSay(){
+  const box = $('tsay'), msg = $('tmsg'), slug = CHAT.slug;
+  if (!box || CHAT.busy || !slug) return;
+  const text = box.value.trim(); if (!text) return;
+  CHAT.busy = true; box.value = '';
+  const said = [{role: 'user', who: personLabel(), at: nowStamp(), content: text}];
+  CHAT.msgs.push(said[0]); chatPaint();
+  if (!CHAT.names.length && msg) msg.textContent = 'Nobody is in this room, so nobody will answer — but it is written down.';
+  try {
+    for (const n of CHAT.names){
+      const m = (S.members || []).find(x => x.name === n);
+      if (!m) continue;
+      const at = CHAT.msgs.length;
+      CHAT.msgs.push({role: 'assistant', who: n, at: nowStamp(), content: ''});
+      chatPaint();
       if (msg) msg.textContent = n + ' is answering…';
       try {
-        await chatStream(tablePrompt(m), [{role: 'user', content: tableUtterance(TABLE.msgs.slice(0, at), m)}],
-          m.engine, (d) => {
-            TABLE.msgs[at].content += d;
-            tablePaint();
-          });
-        if (!TABLE.msgs[at].content.trim()) TABLE.msgs[at].content = '(nothing came back)';
+        await chatStream(chatPrompt(m), [{role: 'user', content: chatUtterance(CHAT.msgs.slice(0, at), m)}],
+          m.engine, (d) => { CHAT.msgs[at].content += d; chatPaint(); });
+        if (!CHAT.msgs[at].content.trim()) CHAT.msgs[at].content = '(nothing came back)';
       } catch(e){
-        TABLE.msgs[at].content = '[could not answer: ' + e.message + ']';
+        CHAT.msgs[at].content = '[could not answer: ' + e.message + ']';
       }
-      tablePaint();
+      said.push(CHAT.msgs[at]);
+      chatPaint();
     }
-    await tablePersist();
+    await chatPersist(slug, said);
   } finally {
-    TABLE.busy = false; tablePaint();
-    if (msg) msg.textContent = '';
+    CHAT.busy = false; chatPaint();
+    if (msg && CHAT.names.length) msg.textContent = '';
   }
 }
 
-async function tablePersist(){
-  // Every participant saves the same transcript into its own conversation.md, which is its memory of the talk.
-  // saveThread rolls anything that no longer fits into that member's chapters, so nothing said is lost by this.
-  for (const n of TABLE.names){
-    S.chat[n] = TABLE.msgs.map(b => ({...b}));
-    try { await saveThread(n); } catch(e){ console.warn('could not save ' + n, e); }
+async function chatPersist(slug, turns){
+  // The room's own record first, then each member's memory of it. The order matters: if the second write fails, the
+  // room still has what was said, and the page can say so.
+  try {
+    const cur = await fileText(`${chatDir(slug)}/talk.md`).catch(() => ({text: '', sha: null}));
+    const body = String(cur.text || '').replace(/\s*$/, '\n') + '\n' + turnsToText('the room', turns).replace(/^\n/, '');
+    await putText(`${chatDir(slug)}/talk.md`, body, `chat: ${turns.length} turn(s) in "${CHAT.topic}"`, cur.sha);
+    CHAT.total += turns.length;
+  } catch(e){
+    const msg = $('tmsg'); if (msg) msg.innerHTML = '<span class="err">The room could not be written: ' + esc(e.message) + '</span>';
+    return;
+  }
+  // Then each member's own memory. Appended, never assigned: a member that has been talking to the person
+  // privately does not lose that talk by sitting in a room, and the room's turns land in its file under the
+  // names of everyone who spoke — which is what "everyone hears everything" has to mean in a file.
+  for (const n of CHAT.names){
+    try {
+      const had = await loadThread(n);
+      const seen = new Set(had.map(b => `${b.at}|${b.who}|${String(b.content).slice(0, 60)}`));
+      const fresh = turns.filter(t => !seen.has(`${t.at}|${t.who}|${String(t.content).slice(0, 60)}`));
+      S.chat[n] = had.concat(fresh);
+      await saveThread(n);
+    } catch(e){ console.warn('could not save ' + n, e); }
   }
 }
 
