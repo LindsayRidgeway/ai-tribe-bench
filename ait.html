@@ -1059,7 +1059,10 @@ async function viewMembers(main){
         <div class="grow"><div class="name">${esc(m.name)}</div>
         <div class="small muted">${esc(m.engine)} · ${esc(m.model)} · ${esc(m.place || 'no room')} · ${m.wakes} wakes</div>
         </div><span class="chip">open</span></div>`).join('') || '<p class="muted">None yet.</p>'}</div>
-    <button class="primary" onclick="addMember()">Add a member</button>`;
+    <button class="primary" onclick="addMember()">Add a member</button>
+    <h2>The attic <span class="small muted" style="font-weight:400">— members put away, with every file they had</span></h2>
+    <div class="card" id="attic"><p class="small muted">reading the attic…</p></div>`;
+  loadAttic().catch(() => {});
 }
 
 async function viewMember(main, name){
@@ -1088,6 +1091,7 @@ async function viewMember(main, name){
       <button class="plain small" onclick="wakeNow('${escq(m.name)}')">Wake now</button>
       <button class="plain small" onclick="retellMemory('${escq(m.name)}')">Retell its memory</button>
       <button class="plain small" onclick="fileConversation('${escq(m.name)}')">Save this talk to its memory</button>
+      <button class="plain small" onclick="putAway('${escq(m.name)}')">Put away</button>
       <span class="small muted" id="mmsg"></span>
     </div>
 
@@ -1931,6 +1935,56 @@ async function ownerName(){
   ownerAsked = true;
   try { const me = await gh('/user', {}, S.token); S.owner = String(me.name || '').trim(); save(); } catch(e){}
   return S.owner || '';
+}
+
+// §11 has promised this since the manual was written and the page never had it: a member is put away, not
+// deleted, and the way back is the same button the other way round. The moving is done on a runner because
+// moving a folder over the contents API is a dozen requests and one of them will lose a race.
+async function putAway(name){
+  if (!confirm('Put ' + name + ' away?\n\nNothing is deleted. Its folder moves to attic/, it stops being woken, '
+      + 'and the Members page will bring it back.')) return;
+  const msg = $('mmsg');
+  try {
+    if (msg) msg.textContent = 'asking the repository to put ' + name + ' away…';
+    const since = Date.now();
+    await dispatch('attic.yml', {member: name, back: ''});
+    const run = await waitForRun('attic', since, t => msg && (msg.textContent = t));
+    if (run.conclusion !== 'success') throw new Error('the run ended: ' + run.conclusion);
+    await loadMembers();
+    setView('members');
+  } catch(e){
+    if (msg) msg.innerHTML = '<span class="err">' + esc(e.message) + ' — nothing was moved.</span>';
+  }
+}
+
+async function bringBack(folder){
+  const box = $('attic');
+  try {
+    if (box) box.innerHTML = '<p class="small muted">bringing ' + esc(folder) + ' back…</p>';
+    const since = Date.now();
+    await dispatch('attic.yml', {member: '', back: folder});
+    const run = await waitForRun('attic', since);
+    if (run.conclusion !== 'success') throw new Error('the run ended: ' + run.conclusion);
+    await loadMembers();
+    setView('members');
+  } catch(e){
+    if (box) box.innerHTML = '<p class="err">' + esc(e.message) + '</p>';
+  }
+}
+
+async function loadAttic(){
+  const box = $('attic'); if (!box) return;
+  let names = [];
+  try { names = await dirNames('attic'); } catch(e){ names = []; }
+  names = names.filter(n => !n.startsWith('.'));
+  box.innerHTML = names.length ? names.map(n => {
+    const who = n.replace(/-\d{8}T\d{6}Z$/, '');
+    const when = (n.match(/-(\d{8}T\d{6}Z)$/) || [])[1];
+    const day = when ? when.slice(0,4) + '-' + when.slice(4,6) + '-' + when.slice(6,8) : '';
+    return `<div class="member"><div class="grow"><div class="name">${esc(who)}</div>
+      <div class="small muted">put away ${esc(day)} · every file it had is still there</div></div>
+      <button class="plain small" onclick="bringBack('${escq(n)}')">Bring back</button></div>`;
+  }).join('') : '<p class="small muted">Empty. Anything put away here keeps every file it had, and comes back with one press.</p>';
 }
 
 async function addMember(){

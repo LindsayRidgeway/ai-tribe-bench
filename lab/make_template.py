@@ -32,6 +32,7 @@ FILES = """
 .github/workflows/wake.yml
 .github/workflows/interactive.yml
 .github/workflows/new-member.yml
+.github/workflows/attic.yml
 .github/workflows/play.yml
 .github/workflows/season.yml
 tribe.py
