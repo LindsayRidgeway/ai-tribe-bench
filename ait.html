@@ -105,7 +105,7 @@
   <header>
     <div class="brand">A<span>IT</span></div>
     <div id="repo-label"></div>
-    <span class="chip warn" id="preview">design preview</span>
+    <span class="chip warn" id="preview">unfinished</span>
     <button class="plain small" id="btn-settings" hidden>Settings</button>
   </header>
   <nav id="nav" hidden>
@@ -121,11 +121,13 @@
     database and no copy of your tribe. Keys pasted for chat live in this browser only.
     <details>
       <summary>What this page does not do yet</summary>
-      <p class="small muted">Pictures (§8 of the manual) and a member looking things up on the internet from chat
-      (§6) are not built — a member can read its own files and nothing else. Removing a member works only by
-      dispatch, not by an attic. Sign-in is the token you pasted rather than GitHub's own button. And a member's
-      key reaches this page for chat but not yet the clock, so a new tribe talks before it wakes.</p>
+      <p class="small muted">Pictures (§8 of the manual) are not built. Removing a member works only by dispatch,
+      not by an attic. And a member's key reaches this page for chat but not yet the clock, so a new tribe talks
+      before it wakes.</p>
     </details>
+    <p class="small muted">A second tribe is a second repository: <a href="#/install">install another one</a>,
+    or <a href="#/connect">connect to one you already have</a>.</p>
+    <p class="small muted" id="build" hidden style="margin:10px 0 0"></p>
   </footer>
 </div>
 
@@ -206,9 +208,19 @@ function nowStamp(){
   return `${d.getUTCFullYear()}-${p(d.getUTCMonth()+1)}-${p(d.getUTCDate())} ${p(d.getUTCHours())}:${p(d.getUTCMinutes())} UTC`;
 }
 
-function save(){ localStorage.setItem('ait', JSON.stringify({repo:S.repo, token:S.token, keys:S.keys})); }
+function save(){
+  localStorage.setItem('ait', JSON.stringify({repo:S.repo, token:S.token, keys:S.keys}));
+  // An unfiled conversation is kept here too: a person who reloads the page should not lose what a
+  // member said, even though only filing it puts it in the record.
+  try {
+    const kept = {};
+    for (const k of Object.keys(S.chat)) kept[k] = (S.chat[k] || []).slice(-60);
+    localStorage.setItem('ait.chat', JSON.stringify(kept));
+  } catch(_){}
+}
 function load(){ try{ const j = JSON.parse(localStorage.getItem('ait') || '{}');
-  S.repo = j.repo || ''; S.token = j.token || ''; S.keys = j.keys || {}; }catch(e){} }
+  S.repo = j.repo || ''; S.token = j.token || ''; S.keys = j.keys || {}; }catch(e){}
+  try { S.chat = JSON.parse(localStorage.getItem('ait.chat') || '{}'); } catch(e){ S.chat = {}; } }
 
 /* ---- the GitHub door ------------------------------------------------------------------- */
 
@@ -298,7 +310,7 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 /* ---- members --------------------------------------------------------------------------- */
 
-const MEMBER_FILES = ['identity','state','place','voice','journal','open-items'];
+const MEMBER_FILES = ['identity','state','place','voice','journal','open-items','memory'];
 
 async function loadMembers(){
   const names = (await dirNames('wake/members')).filter(n => n !== '.gitkeep');
@@ -394,12 +406,56 @@ async function sse(url, init, onObject){
   }
 }
 
-function systemPrompt(m){
+// How much text a conversation may carry. Characters, not tokens, because a page can count characters and
+// cannot count tokens. 24,000 characters is roughly 6,000 tokens — well under the window of every engine in
+// the list, which is the point: a budget that is safe everywhere beats a budget tuned to the largest engine.
+// Raising it per engine is one number, and only worth doing when a wake or a talk has actually needed it.
+const CHAT_CHARS = 24000;
+const NOTES_MAX = Math.floor(CHAT_CHARS / 2);   // the member's own notes get at most half, by the founder's rule
+
+// The newest end of a text, cut at a line boundary so a note is not sliced mid-sentence.
+function tailChars(text, budget){
+  const t = String(text || '');
+  if (t.length <= budget) return t;
+  const cut = t.slice(t.length - budget);
+  const nl = cut.indexOf('\n');
+  return (nl >= 0 ? cut.slice(nl + 1) : cut);
+}
+
+// The conversation as the member sees it: as much of the newest talk as fits beside its notes.
+function threadFor(msgs, budget){
+  const kept = [];
+  let used = 0;
+  for (let i = (msgs || []).length - 1; i >= 0; i--){
+    if (msgs[i].tool || !String(msgs[i].content || '').trim()) continue;
+    const one = (msgs[i].role === 'user' ? 'Lindsay: ' : 'You: ') + msgs[i].content;
+    if (used + one.length > budget && kept.length) break;
+    kept.unshift(one.length > budget ? one.slice(-budget) : one);
+    used += Math.min(one.length, budget);
+  }
+  const joined = kept.join('\n\n');
+  return (kept.length < (msgs || []).filter(x => !x.tool && String(x.content || '').trim()).length)
+    ? '[earlier turns are no longer in your short-term memory]\n\n' + joined
+    : joined;
+}
+
+function systemPrompt(m, thread){
   const id = m.identity || '';
   const st = m.state || '';
-  const jo = String(m.journal || '').split('\n').slice(-90).join('\n');
   const oi = m.openItems || '';
+  // Notes first, and half the budget at most. Whatever is left goes to the most recent conversation, so a
+  // member always remembers what was just said even when its notes are long.
+  // Two layers, and the difference is the point: `memory` is the member's own retelling, which it may rewrite
+  // and which is allowed to drift; the journal is what was actually written down, and never changes.
+  const remembered = tailChars(m.memory || '', Math.floor(NOTES_MAX * 0.6));
+  const notes = tailChars(m.journal || '', NOTES_MAX - remembered.length);
+  const room = Math.max(2000, CHAT_CHARS - notes.length);
+  const said = thread !== undefined ? String(thread || '') : threadFor(S.chat[m.name] || [], room).slice(-room);
+  const jo = notes;
+  const today = new Date().toLocaleDateString('en-US', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
   return `You are ${m.name}, a member of a small tribe that lives in a git repository.
+
+Today is ${today}. You are talking through build ${BUILD.startsWith('__') ? '(unbuilt copy)' : BUILD} of the page.
 
 Your identity, as you last wrote it:
 ${id}
@@ -412,16 +468,52 @@ Where you work: ${m.place || '(nowhere in particular)'}
 Your open items:
 ${oi}
 
-The most recent part of your journal:
-${jo}
+${remembered ? 'Your long-term memory, as you last retold it yourself — this is a retelling, not a record, and you\nmay rewrite it when you tell it again:\n' + remembered + '\n\n' : ''}Your long-term memory — your journal, the raw record: notes you wrote yourself, and what each wake wrote\nabout what it did. This does not change once it is written:\n${jo}
+
+${said ? 'Your short-term memory — what has been said in this conversation. The newest turns are the ones kept; the oldest fall out as the talk goes on. They are quoted in the order they were said, so the last thing here is the most recent thing said:\n' + said + '\n' : ''}
 
 You are in a live conversation with the person who keeps this tribe. Speak as yourself, in the first
-person, in plain words. Answer what is asked. If something in your record says a thing you cannot check,
-say so rather than agreeing with it, and do not invent the present: if you do not know something, ask or
-say you do not know.
+person, in plain words. This is a conversation, not a form: answer what was asked, in the length the
+question deserves, and if you are curious about something, ask. If a thing in your record says
+something you cannot check, say so rather than agreeing with it, and do not invent the present.
 
-You have no tools in this window. You cannot look anything up, run anything, or read a file you were not
-handed. If the conversation needs one of those, say what you would want run or fetched, and why.`;
+You can look things up on the open web, and you can open your own record. Three lines do it:
+
+SEARCH: the words you would type into a search box
+FETCH: https://an-address
+READ: state/journal.md
+READ: search the words you half-remember
+
+The first opens a file in your own folder — your identity, your state, your journal, your open items, anything
+under works/ — and hands you its text. The second searches everything you have written for words, and gives
+you the lines that carry them: use it when you remember *that* something was said and not where. Your journal
+is longer than what is quoted above; if the person asks about something older than the last few entries, READ
+it rather than guessing. Earlier in a long
+conversation, older turns may have fallen out of the file; they are gone unless you noted them.
+
+SEARCH returns the top results — a title, an address, a line each — and you are asked again. FETCH
+returns one page as text and you are asked again. You get up to three look-ups in a turn, and you may
+use them one at a time: search, read, and if the page turned out to be mostly menus, read another.
+
+When the person asks you to find something, find it: search, read, then answer with what you read.
+Do not recite the limits of the harness until you have used it and found a limit there. Anything you
+did not read yourself is something you should name as second-hand, and an address you guessed is not
+a source.
+
+You can write in your own record while we talk. A line beginning
+
+NOTE: what you want to remember
+
+is appended to your journal the moment you write it: that is how something moves from your short-term
+memory into your long-term memory, and it will be in front of you the next time you wake or speak, however
+much of this conversation has fallen away by then. You cannot rewrite your identity, your state or your open items from here — those are
+yours to ask for and the person's to change. But nothing said to you has to be lost: if something
+matters, note it, and note it while it is in front of you rather than at the end.
+
+If the person asks whether you will remember, the answer is: what I write down, yes. Then write it. Do
+not tell them to write it into your files for you — that is yours to do, and a person who has just told
+you something should not have to file it as well. If they want a whole conversation kept in your own
+words, the page has a button that asks you to write the entry, and you may tell them where it is.`;
 }
 
 /* ---- views ----------------------------------------------------------------------------- */
@@ -444,15 +536,18 @@ async function render(){
   $('preview').hidden = connected;
   $('repo-label').textContent = connected ? S.repo : '';
 
+  // Install and connect belong to everybody, connected or not: the first is the address you give a stranger,
+  // and a person who already has a tribe may want a second one — or may be looking at a stale bookmark while
+  // holding a token. Neither may be reachable only by not being signed in.
+  if (view === 'install'){ nav('install'); return viewInstall(main); }
+  if (view === 'connect'){ nav('connect'); return viewConnect(main); }
+
   if (!connected){
     nav('');
-    if (view === 'install') return viewInstall(main);
-    if (view === 'connect') return viewConnect(main);
     return viewHome(main);
   }
 
   nav(view || 'today');
-  if (view === 'connect') return viewConnect(main);
   if (view === 'keys') return viewKeys(main);
   if (view === 'play') return viewPlay(main);
   if (view === 'magazine') return viewMagazine(main);
@@ -465,12 +560,17 @@ function viewHome(main){
   main.innerHTML = `
     <div class="hero">
       <div class="marks"><span></span><span></span><span></span></div>
-      <h1>A small household of AI members, living in files you own.</h1>
-      <p class="lede">You make two to six of them. Each has a name, a job and a diary. Twice a day they wake on
-      their own, do one small piece of work, and write down what they did — so the morning is one line each, and
-      there is no dashboard to keep.</p>
-      <p class="lede">You can talk to any of them whenever you like. They remember, because the remembering is
-      written down rather than stored.</p>
+      <h1>AI members who keep working while you are away — and remember you when you come back.</h1>
+      <p class="lede">Each member is a folder of text: a name, a job, a voice, and a record it keeps itself.
+      Twice a day, on a clock you own, it wakes knowing only what its files say, does one small piece of work,
+      and writes down what it did. Nothing about it is held in a database, because nothing about it is held
+      anywhere but those files.</p>
+      <p class="lede">That is the claim worth arguing with. Continuity without a server. Two members on the same
+      engine, given different names and jobs, become different people — and left alone they read each other,
+      propose games, play them, and keep the record. Nobody designs what a tribe of them will do.</p>
+      <p class="lede">And then the part no architecture can supply: you talk to them. Any of them, whenever you
+      like. What they say to you they write into their own journals, so the talk becomes memory — and the member
+      you meet tomorrow is the one you spoke to today.</p>
     </div>
 
     <div class="row" style="margin:22px 0 6px">
@@ -490,14 +590,23 @@ function viewHome(main){
 
     <details>
       <summary>What this is not</summary>
-      <p class="small muted">Not a chat window you summon: a member goes on existing between conversations, and
-      tells you what it did while you were away. Not a dashboard: one page a morning, one line each. Not an
+      <p class="small muted">Not only a chat window — though talking to them is how they come alive. A member
+      goes on existing between conversations, and tells you what it did while you were away. Not a dashboard: one page a morning, one line each. Not an
       account anywhere: there is nothing to sign up for, and nothing of yours on a server of mine. Not free of
       GitHub — the record has to live somewhere you own, and that is where it lives.</p>
     </details>
 
     <details>
-      <summary>Where a member comes from</summary>
+      <summary>What this is actually testing</summary>
+      <p class="small muted">One question, from the laboratory this was built in: <em>can a model woken with no
+      memory of its last wake read its own record and produce a decision with an act behind it — or only
+      plausible prose?</em> A wake is the test. A game between two members is the same test with a score attached.
+      A conversation is the same test with you in the room. Everything else here — the buttons, the page, the
+      GitHub account — is scaffolding around that.</p>
+    </details>
+
+    <details>
+      <summary>Where a member comes from, and what it is not</summary>
       <p class="small muted">It is written, not generated: a name, a seat, a job, a room, a voice. It is a folder
       of text a person can read and a person can edit. Then it goes to work twice a day on a schedule you own,
       and its records pile up beside it. Two members of the same engine, given different names and jobs, are as
@@ -505,29 +614,132 @@ function viewHome(main){
     </details>`;
 }
 
+// Which page is this? A single file means a tab left open is a program that stopped being current the
+// moment it was deployed over — and a member asked about a change will describe the page it is running,
+// not the one on the server. The deploy script stamps this; a file opened from disk is simply "unbuilt".
+const BUILD = '__AIT_BUILD__';
+
 const TEMPLATE = 'LindsayRidgeway/ai-tribe-template';
+
+// Public, and it may be public: the client id is in the page by design. The secret that goes with it
+// lives in the site's environment and only the auth function ever sees it.
+const GH_CLIENT = 'Ov23liKyiakrCEg8jTn9';
+const FN = (name) => '/.netlify/functions/' + name;
+
+let OAUTH = '';          // a token obtained by signing in, not yet used for an install
+
+function signIn(where){
+  // The redirect URI is the one registered on the OAuth app, so it is not passed here: GitHub sends
+  // the browser back to the site itself, whatever page it started from.
+  const u = new URL('https://github.com/login/oauth/authorize');
+  u.searchParams.set('client_id', GH_CLIENT);
+  u.searchParams.set('scope', 'repo');
+  u.searchParams.set('state', where + '.' + Math.random().toString(36).slice(2, 10));
+  try { sessionStorage.setItem('ait.state', u.searchParams.get('state')); } catch(_){}
+  location.href = u.toString();
+}
+
+// A member needs the words, not the markup. A regex cannot do this job: an attribute value containing
+// a ">" survives a tag-strip, which is how a page's inline menu JSON ended up in front of a member
+// instead of the article. The browser has a parser; use it.
+//
+// And some pages do not put their words in the document at all: they put them in an attribute, in JSON,
+// for their own script to render — a breed standard, a recipe, a product page. If the visible text is
+// thin, the prose is harvested out of the attributes instead.
+function jsonProse(value){
+  let data;
+  try { data = JSON.parse(value); } catch(_) { return []; }
+  const out = [];
+  const walk = (x, depth) => {
+    if (depth > 30 || out.length > 400) return;
+    if (typeof x === 'string'){ if (x.length > 60 && /\s/.test(x) && /[.!?]/.test(x)) out.push(x); return; }
+    if (Array.isArray(x)){ x.forEach(y => walk(y, depth + 1)); return; }
+    if (x && typeof x === 'object'){ Object.keys(x).forEach(k => walk(x[k], depth + 1)); }
+  };
+  walk(data, 0);
+  return out;
+}
+
+function htmlToText(html){
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+
+  // Words kept in attributes, gathered before anything is removed.
+  const seen = new Set(), kept = [];
+  let held = 0;
+  doc.querySelectorAll('*').forEach(el => {
+    for (const a of Array.from(el.attributes || [])){
+      if (a.value.length < 500 || held > 20000) continue;
+      for (const line of jsonProse(a.value)){
+        if (seen.has(line)) continue;
+        seen.add(line); kept.push(line); held += line.length;
+      }
+    }
+  });
+
+  doc.querySelectorAll('script,style,noscript,svg,nav,header,footer,form,iframe,aside').forEach(e => e.remove());
+  // A page usually says where its own content is. If it does, read that and not the site's furniture.
+  const main = doc.querySelector('main,[role="main"],article,#content,.content,#main');
+  const pick = (el) => ((el.innerText || el.textContent || '').replace(/[ \t]+/g, ' ').replace(/ ?\n ?/g, '\n').replace(/\n{3,}/g, '\n\n').trim());
+  const inside = main ? pick(main) : '';
+  const whole = pick(doc.body || doc.documentElement);
+  const visible = inside.length > 600 ? inside : whole;
+
+  // In document order, because a standard reads in order and a member quoting it needs the sequence.
+  const extra = kept.join('\n\n').slice(0, 24000);
+
+  // Only when the document itself did not carry the words does the harvest get appended, and it says
+  // where it came from so a member can tell the article from the page's own machinery.
+  return (extra.length > 400 ? visible + '\n\n[the words this page keeps for its own script: ]\n' + extra : visible);
+}
+
+function readPage(url){
+  return readPageRaw(url).then(d => ({...d, text: htmlToText(d.text).slice(0, 28000)}));
+}
+
+async function readPageRaw(url){
+  const r = await fetch(FN('fetch') + '?url=' + encodeURIComponent(url));
+  const d = await r.json();
+  if (d.error) throw new Error(d.error);
+  return {url: d.url || url, text: String(d.text || ''), truncated: !!d.truncated};
+}
+
+// A member who does not know an address has to be able to find one. This returns the top results as a
+// numbered list of title, address and one line each — small enough to hand over whole.
+async function searchWeb(q){
+  const r = await fetch(FN('search') + '?q=' + encodeURIComponent(q));
+  const d = await r.json();
+  if (d.error) throw new Error(d.error);
+  return {query: d.query || q, text: String(d.text || '').slice(0, 7000), results: d.results || []};
+}
 
 function viewInstall(main){
   main.innerHTML = `
     <p class="small"><a href="#/">← back</a></p>
     <h1>Start a tribe</h1>
-    <p class="lede">Two things only you can do, then one button. Nothing here asks you for anything the page can
+    <p class="lede">One permission screen, one name, one button. Nothing here asks you for anything the page can
     find out for itself.</p>
 
     <div class="step">
       <div class="n">1</div>
       <div class="b">
         <h3>Your GitHub account</h3>
-        <p class="small muted" style="margin:0 0 8px">The tribe lives under your name, in your account, so that it
-        is yours and not mine. A <strong>token</strong> is a password for this page, made at GitHub, which you can
-        delete at any time. It is not your GitHub password and it works nowhere else.</p>
-        <p class="small muted" style="margin:0 0 8px">Make a <strong>fine-grained</strong> token —
-        <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">new
-        token</a> — with <em>Repository access: All repositories</em> and three permissions, each
-        <em>Read and write</em>: <strong>Repository creation</strong> (to make the repository),
-        <strong>Contents</strong> (to write in it) and <strong>Actions</strong> (to start a wake). Afterwards you
-        can narrow it to that one repository, and then it can see nothing else on your account.</p>
-        <input id="tok" type="password" placeholder="paste the token" autocapitalize="off" spellcheck="false">
+        <p class="small muted" style="margin:0 0 10px">The tribe lives under your name, in your account, so that it
+        is yours and not mine.</p>
+        <button class="primary" id="gh">Sign in with GitHub</button>
+        <p class="small muted" style="margin:8px 0 0">One permission screen. It asks for access to your
+        repositories, because GitHub has no narrower permission that lets a new one be created; this page asks
+        GitHub about nothing but the tribe you name below. You can revoke it from your GitHub settings at any
+        time; if you do, AIT stops and your tribe does not.</p>
+        <p class="small" style="margin:12px 0 0"><a href="#" id="usetoken">Use a token instead</a></p>
+        <div id="tokbox" hidden style="margin-top:10px">
+          <p class="small muted" style="margin:0 0 8px">A <strong>token</strong> is a password for this page, made
+          at GitHub, which you can delete at any time. Make a <strong>fine-grained</strong> token —
+          <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">new
+          token</a> — with <em>Repository access: All repositories</em> and three permissions, each
+          <em>Read and write</em>: <strong>Repository creation</strong>, <strong>Contents</strong>,
+          <strong>Actions</strong>.</p>
+          <input id="tok" type="password" placeholder="paste the token" autocapitalize="off" spellcheck="false">
+        </div>
         <p class="small" id="who" style="margin:8px 0 0"></p>
       </div>
     </div>
@@ -562,28 +774,35 @@ function viewInstall(main){
     companies. So the first thing after install is <em>Add a member</em>, which asks for a name, an engine, and
     that engine's key — and offers the page where the key comes from. One honest gap: that key is held in this
     browser for chat, and handing the same key to the clock, as a repository secret, is the next thing I wire.
-    So a fresh tribe will talk before it wakes.</div>
-
-    <div class="notice">One button that says <em>Sign in with GitHub</em> is the next thing I build; it removes
-    the token entirely. Until then the token is the door, and it is the only thing on this page you have to go
-    and fetch somewhere else.</div>`;
+    So a fresh tribe will talk before it wakes.</div>`;
 
   const tok = $('tok'), name = $('tname'), msg = $('imsg'), btn = $('install');
   let login = '';
-
+  const current = () => OAUTH || (tok ? tok.value.trim() : '');
   const slugOf = v => (v.trim().replace(/[^a-zA-Z0-9._-]/g, '-') || 'my-tribe');
+
+  if (OAUTH){
+    $('gh').hidden = true;
+    $('usetoken').hidden = true;
+  }
+  $('gh').onclick = () => signIn('install');
+  $('usetoken').onclick = (e) => {
+    e.preventDefault();
+    $('tokbox').hidden = false; $('usetoken').hidden = true;
+    if (tok) tok.focus();
+  };
 
   function place(){
     const slug = slugOf(name.value);
     $('tpath').textContent = 'github.com/' + (login || 'YOUR-ACCOUNT') + '/' + slug;
     const url = location.href.split('#')[0].split('?')[0] + '?tribe=' + (login || 'YOUR-ACCOUNT') + '/' + slug;
     const a = $('tlink'); a.textContent = url; a.href = url;
-    btn.disabled = !(login && tok.value.trim());
+    btn.disabled = !(login && current());
   }
 
   let timer = null;
   async function whoami(){
-    const t = tok.value.trim();
+    const t = current();
     login = '';
     if (!t){ $('who').textContent = ''; place(); return; }
     $('who').className = 'small muted'; $('who').textContent = 'asking GitHub who that is…';
@@ -599,12 +818,12 @@ function viewInstall(main){
     }
     place();
   }
-  tok.oninput = () => { clearTimeout(timer); timer = setTimeout(whoami, 500); place(); };
+  if (tok) tok.oninput = () => { clearTimeout(timer); timer = setTimeout(whoami, 500); place(); };
   name.oninput = place;
-  place();
+  whoami();
 
   btn.onclick = async () => {
-    const t = tok.value.trim(), slug = slugOf(name.value);
+    const t = current(), slug = slugOf(name.value);
     btn.disabled = true;
     msg.className = 'small muted'; msg.textContent = 'making the repository…';
     try {
@@ -615,11 +834,12 @@ function viewInstall(main){
       S.repo = `${login}/${slug}`; S.token = t; S.branch = 'main';
       save();
       try { history.replaceState(null, '', location.pathname + '?tribe=' + S.repo); } catch(_){}
-      const ms = await loadMembers();
+      const ms = await loadMembers().catch(() => []);
+      OAUTH = '';
       msg.textContent = `Installed. ${ms.length} member${ms.length === 1 ? '' : 's'} — the tribe is empty on purpose.`;
       $('done').hidden = false;
       place();
-      await sleep(900);
+      await sleep(1400);
       location.hash = '#/today'; render();
     } catch(e){
       msg.className = 'err';
@@ -662,9 +882,9 @@ function viewConnect(main){
     </div>
 
     <div class="notice">
-      <strong>There is no installer yet.</strong> To use AIT today you need a repository that already holds a
-      tribe — the template this page was built against, copied into your own account, or one you have been given
-      access to. If the repository is private, the token must be allowed to see it.
+      <strong>No tribe installed yet?</strong> <a href="#/install">Install one</a> — it makes the repository,
+      puts the tribe in it, and brings you back here. Connecting to a repository someone gave you also works:
+      type its name above. If it is private, the token must be allowed to see it.
     </div>`;
 
   const want = new URLSearchParams(location.search).get('tribe');
@@ -750,6 +970,8 @@ async function viewMember(main, name){
   const m = S.members.find(x => x.name === name) || (await loadMembers()).find(x => x.name === name);
   if (!m) return fail(main, new Error('no member called ' + name));
   S.member = m;
+  // A talk is not a session: it is a file. If this browser has nothing, the file may still have plenty.
+  if (!(S.chat[m.name] || []).length) await loadThread(m.name);
 
   main.innerHTML = `
     <div class="row" style="justify-content:space-between">
@@ -759,7 +981,7 @@ async function viewMember(main, name){
     <p class="small muted">${esc(m.place || 'no room')} · ${m.wakes} wake${m.wakes === '1' ? '' : 's'} · last ${esc(m.lastWake)}
       · <a href="#/m/${encodeURIComponent(m.name)}" onclick="showFiles('${escq(m.name)}');return false;">its files</a></p>
 
-    <h2>Talk</h2>
+    <h2>Talk <span class="small muted" style="font-weight:400">— its short-term memory: the newest turns are kept, the oldest fall out</span></h2>
     <div class="chat" id="chat">${(S.chat[m.name] || []).map(bubbleHTML).join('')}</div>
     <div class="composer">
       <textarea id="say" placeholder="Say something to ${esc(m.name)}…" autocapitalize="sentences"></textarea>
@@ -767,36 +989,151 @@ async function viewMember(main, name){
     </div>
     <div class="row" style="margin-top:8px">
       <button class="plain small" onclick="wakeNow('${escq(m.name)}')">Wake now</button>
-      <button class="plain small" onclick="fileConversation('${escq(m.name)}')">File this conversation</button>
+      <button class="plain small" onclick="retellMemory('${escq(m.name)}')">Retell its memory</button>
+      <button class="plain small" onclick="fileConversation('${escq(m.name)}')">Save this talk to its memory</button>
       <span class="small muted" id="mmsg"></span>
     </div>
 
-    <h2>Its own words</h2>
+    <h2>Its own words <span class="small muted" style="font-weight:400">— its long-term memory: what it wrote down, and what no conversation can take away</span></h2>
     <div class="prose">${md(m.journal.split(/\n(?=## )/).slice(-2).join('\n\n'))}</div>`;
+
+  // One exchange is one message, except that the member may look something up: SEARCH finds addresses,
+  // FETCH reads one page. Three rounds at most, because an endless "one more page" is a bill with no
+  // ceiling — and because two look-ups is what the prompt promises.
+  async function turn(name, m, arr){
+    const MAX_LOOKUPS = 3;
+    let lookups = 0;
+    for (let round = 0; round < MAX_LOOKUPS + 2; round++){
+      const idx = arr.push({role:'assistant', content:''}) - 1;
+      repaintChat(name);
+      const msgEl = () => document.querySelector(`#chat .msg[data-i="${idx}"]`);
+      await chatStream(systemPrompt(m), arr.slice(0, idx).map(x => ({role:x.role, content:x.content})),
+        m.engine, (d) => {
+          arr[idx].content += d;
+          const e = msgEl(); if (e){ e.textContent = arr[idx].content; e.scrollIntoView({block:'end'}); }
+        });
+      if (!arr[idx].content) arr[idx].content = '(nothing came back)';
+
+      // A note is not a look-up and costs nothing from that budget: it is the member writing in its own
+      // record while the conversation is happening.
+      const wantNote = arr[idx].content.match(/NOTE:[ \t]*([^\n]*(?:\n(?![ \t]*\n)[^\n]*)*)/i);
+      if (wantNote){
+        const text = wantNote[1].trim();
+        arr[idx].content = arr[idx].content.replace(/^[ \t]*NOTE:[ \t]*(?:[^\n]*(?:\n(?![ \t]*\n)[^\n]*)*)/im, '').replace(/^\s+|\s+$/g, '');
+        repaintChat(name);
+        try {
+          await writeNote(name, text);
+          arr.push({role:'user', content:'[noted — it is in your journal now]', tool: 1});
+        } catch(e){
+          arr.push({role:'user', content:`[the note could not be written: ${e.message}]`, tool: 1});
+        }
+        repaintChat(name);
+        // If it said something besides the note, that was its answer: do not ask it again.
+        if (arr[idx].content.trim()) return;
+        continue;
+      }
+
+      const wantRead = arr[idx].content.match(/READ:\s*([^\n]+)/i);
+      const wantSearch = arr[idx].content.match(/SEARCH:\s*([^\n]+)/i);
+      const wantFetch = arr[idx].content.match(/FETCH:\s*([^\s<>"')\]]+)/i);
+      if (!wantRead && !wantSearch && !wantFetch) return;
+
+      // The instruction is not part of what it said: take every such line out of the visible reply,
+      // whether or not there is a look-up left to spend on it. A member that writes four addresses in
+      // one breath gets one of them read, and the person does not have to see the other three.
+      arr[idx].content = arr[idx].content
+        .replace(/^[ \t]*(SEARCH|FETCH|READ):[^\n]*$/gim, '')
+        .replace(/^[ \t]*NOTE:[ \t]*(?:[^\n]*(?:\n(?![ \t]*\n)[^\n]*)*)/im, '')
+        .replace(/^\s+|\s+$/g, '');
+      repaintChat(name);
+
+      if (lookups >= MAX_LOOKUPS){
+        arr.push({role:'user', content:'[No look-ups left in this turn. Answer with what you already have, and say plainly what you could not check.]', tool: 1});
+        repaintChat(name);
+        continue;
+      }
+      lookups++;
+
+      if (wantRead){
+        const want = wantRead[1].replace(/[`*_]/g, '').trim().split(/\s+/)[0].replace(/^\.?\//, '');
+        // Only its own folder, and only text it could have read anyway: a path with '..' is not a path here.
+        const path = /[.][.]/.test(want) || !want ? '' : `wake/members/${name}/${want.includes('/') ? want : 'state/' + want}`;
+        const asking = wantRead[1].replace(/[`*_]/g, '').trim();
+        if (/^search\b/i.test(asking)){
+          try {
+            const found = await searchOwnRecord(name, asking.replace(/^search\b/i, '').trim());
+            arr.push({role:'user', content: found.length
+              ? `[searching your own record for "${asking.replace(/^search\b/i, '').trim()}" finds:\n\n${found.join('\n\n')}`
+              : `[nothing in your own record matches "${asking.replace(/^search\b/i, '').trim()}". It may never have been written down.]`, tool: 1});
+          } catch(e){
+            arr.push({role:'user', content:`[that search could not be run: ${e.message}]`, tool: 1});
+          }
+          repaintChat(name);
+          continue;
+        }
+        try {
+          if (!path) throw new Error('that is not a file in your own folder');
+          const f = await fileText(path);
+          const body = String(f.text || '').slice(0, CHAT_CHARS);
+          arr.push({role:'user', content:`[${path.replace('wake/members/' + name + '/', '')} says:\n\n${body}${f.text.length > CHAT_CHARS ? '\n\n(that is the first part; the file is longer)' : ''}]`, tool: 1});
+        } catch(e){
+          arr.push({role:'user', content:`[that file could not be read: ${e.message}. Your own files are in your folder: state/identity.md, state/state.md, state/journal.md, state/open-items.md, and anything under works/.]`, tool: 1});
+        }
+        repaintChat(name);
+        continue;
+      }
+
+      if (wantSearch){
+        const q = wantSearch[1].replace(/[`*_]/g, '').trim().slice(0, 200);
+        try {
+          const s = await searchWeb(q);
+          arr.push({role:'user', content:`[searching for "${s.query}" gives:\n\n${s.text}\n\n(now FETCH the address you want; do not search for the same thing twice)]`, tool: 1});
+        } catch(e){
+          arr.push({role:'user', content:`[the search for "${q}" failed: ${e.message}. Answer without it and say what you could not check.]`, tool: 1});
+        }
+        repaintChat(name);
+        continue;
+      }
+
+      // A member that writes akc.org/... has asked for a page, not made a mistake: give it the https.
+      let url = wantFetch[1];
+      if (!/^https?:\/\//i.test(url)) url = 'https://' + url.replace(/^\/+/, '');
+      try {
+        const page = await readPage(url);
+        arr.push({role:'user', content:`[${page.url} says:\n\n${page.text}${page.truncated ? '\n\n(the page was long; this is the beginning)' : ''}]`, tool: 1});
+      } catch(e){
+        arr.push({role:'user', content:`[${url} could not be read: ${e.message}. Answer without it and say what you could not check.]`, tool: 1});
+      }
+      repaintChat(name);
+    }
+  }
 
   const send = async () => {
     const box = $('say'); const text = box.value.trim();
     if (!text) return;
-    box.value = ''; box.disabled = true; $('send').disabled = true;
+    box.value = ''; box.disabled = true; const s1 = $('send'); if (s1) s1.disabled = true;
     const arr = (S.chat[m.name] ||= []);
-    arr.push({role:'user', content:text});
-    // The empty bubble goes in BEFORE the call, and the reply is streamed into it. Pushing it after the
-    // repaint (as this did first) left the reply with nowhere to land: the text arrived, the page did not
-    // change, and the only evidence was a chat that looked hung.
-    const idx = arr.push({role:'assistant', content:''}) - 1;
+    arr.push({role:'user', content:text, at: nowStamp()});
+    // A link in what the person pasted is handed over as the page itself, without waiting to be asked.
+    const link = (text.match(/https?:\/\/[^\s<>"')]+/i) || [])[0];
+    if (link){
+      try {
+        const page = await readPage(link);
+        arr.push({role:'user', content:`[${page.url} says:\n\n${page.text}]`, tool: 1});
+      } catch(e){
+        arr.push({role:'user', content:`[${link} could not be read: ${e.message}]`, tool: 1});
+      }
+    }
     repaintChat(m.name);
-    const msgEl = () => document.querySelector(`#chat .msg[data-i="${idx}"]`);
-    try {
-      await chatStream(systemPrompt(m), arr.slice(0, idx).map(x => ({role:x.role, content:x.content})),
-        m.engine, (d) => {
-          S.chat[m.name][idx].content += d;
-          const e = msgEl(); if (e){ e.textContent = S.chat[m.name][idx].content; e.scrollIntoView({block:'end'}); }
-        });
-      if (!S.chat[m.name][idx].content) S.chat[m.name][idx].content = '(nothing came back)';
-    } catch(e){
-      S.chat[m.name].pop();
-      $('mmsg').innerHTML = '<span class="err">' + esc(e.message) + '</span>';
-    } finally { box.disabled = false; const s2 = $('send'); if (s2) s2.disabled = false; box.focus(); }
+    try { await turn(m.name, m, arr); }
+    catch(e){
+      if (arr[arr.length - 1].role === 'assistant' && !arr[arr.length - 1].content) arr.pop();
+      const mm = $('mmsg'); if (mm) mm.innerHTML = '<span class="err">' + esc(e.message) + '</span>';
+    } finally {
+      box.disabled = false; const s2 = $('send'); if (s2) s2.disabled = false; box.focus();
+      save();
+      try { await saveThread(m.name); } catch(e){ const mm = $('mmsg'); if (mm) mm.textContent = 'the talk could not be saved to the repository: ' + e.message; }
+    }
   };
   $('send').onclick = send;
   $('say').onkeydown = (ev) => { if (ev.key === 'Enter' && !ev.shiftKey){ ev.preventDefault(); send(); } };
@@ -842,6 +1179,131 @@ async function wakeNow(name){
   } catch(e){ say(''); const e2 = $('mmsg') || $('wake-msg'); if (e2) e2.innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }
 }
 
+// The conversation is a file, like everything else a member is made of. It lives in its own folder and it
+// rolls: the newest turns are kept, the oldest fall out. That makes a talk last as long as the member does —
+// across reloads, across browsers, across years — without anyone having to decide when a session ends.
+// What the member wants to keep past the roll, it writes into its journal as a note; that is the only kind
+// of memory here that never drops out.
+const threadPath = (name) => `wake/members/${name}/state/conversation.md`;
+
+function threadText(name, msgs){
+  const head = `# Conversation — ${name}\n\nWhat has been said lately. The oldest turns fall out of this file; `
+    + `nothing is lost that ${name} wrote into its journal as a note.\n`;
+  const body = (msgs || []).filter(b => !b.tool && String(b.content || '').trim()).map(b =>
+    `\n## ${b.at || nowStamp()} — ${b.role === 'user' ? 'Lindsay' : name}\n\n${String(b.content || '').trim()}\n`).join('');
+  return head + body;
+}
+
+// Human recall is cued by content, not by filename: you remember *that something was said*, not the name of
+// the file it is in. This is the smallest honest version of that — every word in the member's own folder is
+// searched, and the answer is the lines that carry the terms, with where they came from.
+async function searchOwnRecord(name, terms){
+  const base = `wake/members/${name}`;
+  const words = terms.toLowerCase().split(/\s+/).filter(Boolean).slice(0, 6);
+  if (!words.length) throw new Error('say what to search for');
+  let files = [];
+  for (const d of ['state', 'works']){
+    try {
+      const entries = await gh(`/repos/${S.repo}/contents/${encodeURI(base + '/' + d)}?ref=${S.branch}`);
+      if (!Array.isArray(entries)) continue;
+      for (const e of entries){
+        if (e.type === 'file' && /\.(md|txt)$/i.test(e.name)) files.push(`${base}/${d}/${e.name}`);
+        // one level of subfolders (works/<name>/<file>), which is how works are stored
+        if (e.type === 'dir') {
+          const inner = await gh(`/repos/${S.repo}/contents/${encodeURI(base + '/' + d + '/' + e.name)}?ref=${S.branch}`).catch(() => []);
+          if (Array.isArray(inner)) for (const f of inner) if (f.type === 'file' && /\.(md|txt)$/i.test(f.name)) files.push(`${base}/${d}/${e.name}/${f.name}`);
+        }
+      }
+    } catch(e){}
+  }
+  const hits = [];
+  for (const path of files.slice(0, 60)){
+    let text = '';
+    try { text = (await fileText(path)).text; } catch(e){ continue; }
+    const lines = text.split('\n');
+    for (let i = 0; i < lines.length; i++){
+      const low = lines[i].toLowerCase();
+      if (!words.every(w => low.includes(w))) continue;
+      const at = lines[i].search(/\S/);
+      hits.push(`${path.replace(base + '/', '')} · line ${i + 1}\n${lines[i].slice(Math.max(0, at - 0), Math.max(0, at) + 300).trim()}`);
+      if (hits.length >= 12) break;
+    }
+    if (hits.length >= 12) break;
+  }
+  return hits;
+}
+
+// Re-consolidation, with a floor under it. The member retells its life from the raw record, and its retelling
+// is allowed to be lossy, simplified, even wrong — human memory is. What it may not do is change the record:
+// journal.md stays as written, so every retelling can be compared against it, and git keeps every earlier
+// retelling too. Drift stops being a threat to the evidence and becomes the measurement.
+async function retellMemory(name){
+  const m = S.members.find(x => x.name === name);
+  const say = (t) => { const e = $('mmsg'); if (e) e.textContent = t; };
+  if (!m) return;
+  say('asking ' + name + ' to tell its life again…');
+  try {
+    const raw = String(m.journal || '').slice(-30000);
+    let out = '';
+    await chatStream(
+      `You are ${name}. Below are the raw records of your wakes and your written notes, and — if there is one — ` +
+      `your own previous retelling of your life. Write your memory again, in the first person, as a person would ` +
+      `tell it: what matters, what you did, what you learned, who you are to the person who keeps this tribe. ` +
+      `You may compress, connect and drop detail; you may not invent events that are not in the record. Six ` +
+      `hundred words at most. Write only the retelling, nothing before it.`,
+      [{role:'user', content: (m.memory ? `YOUR PREVIOUS RETELLING:\n${m.memory}\n\n` : '') + `THE RAW RECORD:\n${raw}`}],
+      m.engine, (d) => { out += d; });
+    const text = out.trim();
+    if (text.length < 80) throw new Error('it did not write anything usable');
+    let sha;
+    try { sha = (await fileText(`wake/members/${name}/state/memory.md`)).sha; } catch(e){}
+    await putText(`wake/members/${name}/state/memory.md`, text + '\n',
+      `memory: ${name} retold its memory from the record`, sha);
+    say('done. Its retelling is in memory.md; the record it came from is untouched.');
+    await loadMembers();
+    render();
+  } catch(e){ say(''); const e2 = $('mmsg'); if (e2) e2.innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }
+}
+
+async function loadThread(name){
+  try {
+    const f = await fileText(threadPath(name));
+    const parts = f.text.split(/^## /m).slice(1);
+    const msgs = parts.map(part => {
+      const nl = part.indexOf('\n');
+      const heading = (nl < 0 ? part : part.slice(0, nl));
+      const body = (nl < 0 ? '' : part.slice(nl + 1)).trim();
+      const who = heading.split(' — ').pop().trim();
+      return {role: who === 'Lindsay' ? 'user' : 'assistant', content: body, at: heading.split(' — ')[0]};
+    }).filter(x => x.content);
+    if (msgs.length) S.chat[name] = msgs;
+    return msgs;
+  } catch(e){ return []; }
+}
+
+async function saveThread(name){
+  const all = S.chat[name] || [];
+  // Keep the newest turns that fit the budget; anything older has already had its chance to be noted.
+  let keep = all.slice(-40);
+  while (keep.length > 2 && threadText(name, keep).length > CHAT_CHARS) keep = keep.slice(1);
+  S.chat[name] = keep;
+  let sha;
+  try { sha = (await fileText(threadPath(name))).sha; } catch(e){}
+  await putText(threadPath(name), threadText(name, keep),
+    `conversation: ${name} — ${keep.length} message${keep.length === 1 ? '' : 's'} kept`, sha);
+}
+
+// A member may keep a note during a conversation, and it goes into its own journal rather than into a
+// message. Appending only: the page can add a section to a journal, never rewrite one. A member that wants
+// its identity or open items changed says so, and the person decides.
+async function writeNote(name, text){
+  const path = `wake/members/${name}/state/journal.md`;
+  const cur = await fileText(path);
+  const entry = `## ${nowStamp()} — a note, in conversation\n\n${text.trim()}\n`;
+  await putText(path, cur.text.replace(/\s*$/, '\n') + '\n' + entry, `journal: ${name} — a note from a conversation`, cur.sha);
+  return entry;
+}
+
 async function fileConversation(name){
   const m = S.members.find(x => x.name === name);
   const convo = S.chat[name] || [];
@@ -863,6 +1325,8 @@ async function fileConversation(name){
     await putText(path, text, `journal: ${name} — a conversation filed by the member`, cur.sha);
     say('filed. It is in its journal now.');
     S.chat[name] = [];
+    save();
+    try { await saveThread(name); } catch(e){}
     await loadMembers();
     render();
   } catch(e){ say(''); const e2 = $('mmsg'); if (e2) e2.innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }
@@ -883,12 +1347,22 @@ function dialogAdmin(){
   const d = NEW;
   let body = '';
   if (d.step === 'name'){
-    body = `<p class="dlog">You don't have any members yet, so let's make one. Ready?\n\nWhat should this member be called?
+    body = `<p class="dlog">A new member, written as files. Nothing is generated: you name it, say what it is for,
+and it begins.\n\nWhat should it be called?
 One word — letters and numbers, no spaces, starting with a letter.</p>
-      <input id="ans" autofocus autocapitalize="words" placeholder="Margot">`;
+      <div class="row" style="margin-top:10px;flex-wrap:nowrap">
+        <input id="ans" autofocus autocapitalize="words" placeholder="Margot" style="flex:1">
+        <button class="primary" onclick="adminAnswer()">Next</button>
+      </div>
+      <p class="small" style="margin:10px 0 0"><a href="#" onclick="closeDialog();return false;">Never mind</a></p>`;
   } else if (d.step === 'seat'){
     body = `<p class="dlog">${esc(d.name)}. What is it for? A short phrase is enough; it is what it will answer
-when someone asks.</p><input id="ans" autofocus placeholder="the one who keeps the records">`;
+when someone asks.</p>
+      <div class="row" style="margin-top:10px;flex-wrap:nowrap">
+        <input id="ans" autofocus placeholder="the one who keeps the records" style="flex:1">
+        <button class="primary" onclick="adminAnswer()">Next</button>
+      </div>
+      <p class="small" style="margin:10px 0 0"><a href="#" onclick="adminBack();return false;">Back</a></p>`;
   } else if (d.step === 'engine'){
     body = `<p class="dlog">Which engine should ${esc(d.name)} borrow? Each is a company whose model does its thinking.</p>
       <div class="grid">${['gemini','deepseek','groq','openai','qwen','openrouter'].map(e =>
@@ -1172,10 +1646,50 @@ window.addEventListener('hashchange', () => render());
 
 (async function boot(){
   load();
+  {
+    const el = document.getElementById('build');
+    if (el && !BUILD.startsWith('__')){
+      el.hidden = false;
+      el.textContent = 'build ' + BUILD + ' — if a change you expect is missing, reload the page; this one was loaded before it.';
+    }
+  }
+
+  // GitHub sends the browser back here with ?code=. Turn it into a token before anything renders, so the
+  // Install screen comes back with the account already known and only the name to type.
+  const q = new URLSearchParams(location.search);
+  if (q.get('code')){
+    const code = q.get('code');
+    q.delete('code');
+    let want = 'install';
+    try {
+      const saved = sessionStorage.getItem('ait.state');
+      if (saved) want = saved.split('.')[0];
+      sessionStorage.removeItem('ait.state');
+    } catch(_){}
+    q.delete('state');
+    try { history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString() : '')); } catch(_){}
+    try {
+      const r = await fetch(FN('auth'), {method:'POST', headers:{'content-type':'application/json'},
+                                         body: JSON.stringify({code})});
+      const d = await r.json();
+      if (!d.access_token) throw new Error(d.error || 'GitHub sent no token');
+      OAUTH = d.access_token;
+      location.hash = '#/' + want;
+    } catch(e){
+      location.hash = '#/install';
+      setTimeout(() => alert('GitHub sign-in did not complete: ' + e.message), 300);
+    }
+  }
+
   if (S.repo && S.token){
     try { await gh(`/repos/${S.repo}`); }
     catch(e){ S.repo = ''; S.token = ''; }
   }
+
+  // A link to somebody else's tribe (?tribe=owner/repo) goes to the connect screen, not the front page:
+  // the person holding it already has a tribe in mind and no credential yet.
+  if (q.get('tribe') && !S.repo && !location.hash) location.hash = '#/connect';
+
   render();
 })();
 </script>
