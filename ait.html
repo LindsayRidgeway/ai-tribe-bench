@@ -111,6 +111,7 @@
   <nav id="nav" hidden>
     <button data-go="today">Today</button>
     <button data-go="members">Members</button>
+    <button data-go="table">Table</button>
     <button data-go="play">Play</button>
     <button data-go="magazine">Magazine</button>
     <button data-go="keys">Keys</button>
@@ -581,6 +582,7 @@ async function render(){
 
   nav(view || 'today');
   if (view === 'keys') return viewKeys(main);
+  if (view === 'table') return viewTable(main);
   if (view === 'play') return viewPlay(main);
   if (view === 'magazine') return viewMagazine(main);
   if (view === 'members') return viewMembers(main);
@@ -633,8 +635,11 @@ function viewHome(main){
       <p class="small muted">One question, from the laboratory this was built in: <em>can a model woken with no
       memory of its last wake read its own record and produce a decision with an act behind it — or only
       plausible prose?</em> A wake is the test. A game between two members is the same test with a score attached.
-      A conversation is the same test with you in the room. Everything else here — the buttons, the page, the
-      GitHub account — is scaffolding around that.</p>
+      A conversation is the same test with you in the room. A <strong>table</strong> — several members, one talk,
+      every one of them hearing all of it — is the same test with the room itself under examination: what a member
+      does with somebody else's answer, in front of a person who can see both. Chat apps let you talk to one model at
+      a time because their state lives in their database. Here the state is a file, so a talk can be in several
+      memories at once. Everything else — the buttons, the page, the GitHub account — is scaffolding around that.</p>
     </details>
 
     <details>
@@ -1236,9 +1241,10 @@ kept whole: not summarised, not rewritten</span></span>
   $('say').onkeydown = (ev) => { if (ev.key === 'Enter' && !ev.shiftKey){ ev.preventDefault(); send(); } };
 }
 
-function bubbleHTML(b){
+function bubbleHTML(b, showWho){
   const cls = b.role === 'user' ? 'me' : b.role === 'system' ? 'sys' : 'them';
-  return `<div class="msg ${cls}" data-i="${b.i ?? ''}">${esc(b.content)}</div>`;
+  const tag = showWho && b.who ? `<div class="small muted" style="margin-bottom:2px">${esc(b.who)}</div>` : '';
+  return `<div class="msg ${cls}" data-i="${b.i ?? ''}">${tag}${esc(b.content)}</div>`;
 }
 
 function repaintChat(name){
@@ -1287,7 +1293,7 @@ function threadText(name, msgs){
   const head = `# Conversation — ${name}\n\nWhat has been said lately. The oldest turns fall out of this file; `
     + `nothing is lost that ${name} wrote into its journal as a note.\n`;
   const body = (msgs || []).filter(b => !b.tool && String(b.content || '').trim()).map(b =>
-    `\n## ${b.at || nowStamp()} — ${b.role === 'user' ? 'Lindsay' : name}\n\n${String(b.content || '').trim()}\n`).join('');
+    `\n## ${b.at || nowStamp()} — ${b.who || (b.role === 'user' ? 'Lindsay' : name)}\n\n${String(b.content || '').trim()}\n`).join('');
   return head + body;
 }
 
@@ -1653,7 +1659,7 @@ async function loadThread(name){
       const heading = (nl < 0 ? part : part.slice(0, nl));
       const body = (nl < 0 ? '' : part.slice(nl + 1)).trim();
       const who = heading.split(' — ').pop().trim();
-      return {role: who === 'Lindsay' ? 'user' : 'assistant', content: body, at: heading.split(' — ')[0]};
+      return {role: who === 'Lindsay' ? 'user' : 'assistant', who, content: body, at: heading.split(' — ')[0]};
     }).filter(x => x.content);
     if (msgs.length) S.chat[name] = msgs;
     return msgs;
@@ -2016,6 +2022,162 @@ async function makeMember(){
     closeDialog();
     location.hash = '#/today'; render();
   } catch(e){ msg.innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }
+}
+
+/* ---- a table, with more than one member at it -------------------------------------------- */
+
+// The thing no chat app does: several members, one conversation, everyone hearing all of it. It is possible here
+// for a reason that has nothing to do with the page — a member's memory is a file, so "everyone hears everything"
+// is a copy of the same transcript into each participant's own record, and each of them answers from its own
+// identity with the whole room in front of it. Nothing is shared in a database, because there is no database.
+
+let TABLE = {names: [], msgs: [], busy: false, restored: false, seated: false};
+
+function tableStore(){
+  try { localStorage.setItem('ait.table', JSON.stringify({names: TABLE.names})); } catch(_){}
+}
+
+async function viewTable(main){
+  const members = S.members && S.members.length ? S.members : await loadMembers().catch(() => []);
+  let saved = [];
+  try { saved = (JSON.parse(localStorage.getItem('ait.table') || '{}').names || []); } catch(_){}
+  if (!TABLE.names.length && saved.length) TABLE.names = saved.filter(n => members.some(m => m.name === n));
+
+  if (!TABLE.seated || TABLE.names.length < 2){
+    main.innerHTML = `<h1>A table</h1>
+      <p class="lede">Several members, one conversation. Everything said is heard by everyone at the table, and each
+      of them answers from its own identity and its own memory — because a memory here is a file, and the same talk
+      can be in more than one.</p>
+      <div class="card">${members.length ? members.map(m => `
+        <label class="row" style="justify-content:flex-start;gap:10px;padding:6px 0;cursor:pointer">
+          <input type="checkbox" data-name="${escq(m.name)}" ${TABLE.names.includes(m.name) ? 'checked' : ''}
+            onchange="tableToggle(this.dataset.name, this.checked)">
+          <span class="grow"><strong>${esc(m.name)}</strong>
+          <span class="small muted"> · ${esc(m.engine)} · ${esc(m.model)}</span>
+          ${keyFor(m.engine).key ? '' : '<span class="small" style="color:#a3302e"> · no key here, so it cannot answer</span>'}</span>
+        </label>`).join('') : '<p class="muted">There are no members yet.</p>'}
+      </div>
+      <div class="row" style="margin-top:10px"><button class="primary" onclick="tableStart()"
+        ${TABLE.names.length < 2 ? 'disabled' : ''}>Sit down together</button>
+        <span class="small muted" id="tmsg">${TABLE.names.length === 1 ? 'One more, and there is a table.' : ''}</span></div>`;
+    return;
+  }
+
+  main.innerHTML = `<h1>At the table</h1>
+    <p class="small muted">${TABLE.names.map(esc).join(', ')} — and you. Everything said goes into every one of their
+    memories, and each answers in turn, so one message costs ${TABLE.names.length} calls.</p>
+    <div class="chat" id="tchat"></div>
+    <div class="composer">
+      <textarea id="tsay" placeholder="Say something to the table…" autocapitalize="sentences"></textarea>
+      <button class="primary" id="tsend">Send</button>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button class="plain small" onclick="tableReset()">Change who is at the table</button>
+      <span class="small muted" id="tmsg"></span>
+    </div>
+    <p class="small muted">A member at the table cannot look anything up in this version: no SEARCH, no FETCH, no
+    pages. It speaks from its identity and the room. That limit is written here rather than discovered.</p>`;
+
+  $('tsend').onclick = tableSay;
+  $('tsay').onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); tableSay(); } };
+
+  if (!TABLE.msgs.length && !TABLE.restored){
+    TABLE.restored = true;
+    // All participants hold the same transcript, so the first one's file restores the room.
+    const back = await loadThread(TABLE.names[0]).catch(() => []);
+    if (Array.isArray(back) && back.length && back.every(b => b.who)) TABLE.msgs = back.filter(b => !b.tool);
+  }
+  tablePaint();
+}
+
+function tableToggle(name, on){
+  if (on){ if (!TABLE.names.includes(name)) TABLE.names.push(name); }
+  else TABLE.names = TABLE.names.filter(n => n !== name);
+  TABLE.restored = false;
+  viewTable($('main'));
+  $('tmsg').textContent = TABLE.names.length === 1 ? 'One more, and there is a table.' : '';
+}
+
+async function tableStart(){
+  if (TABLE.names.length < 2){ if ($('tmsg')) $('tmsg').textContent = 'Two at least.'; return; }
+  // Everyone at the table starts a new chapter. Its private talk is not lost — it is kept in its chapter — and the
+  // room's talk then becomes its short-term memory, because that is what it is now part of.
+  const say = (t) => { const e = $('tmsg'); if (e) e.textContent = t; };
+  for (const n of TABLE.names){
+    say('closing ' + n + "'s last chapter…");
+    try { if (!(S.chat[n] || []).length) await loadThread(n); await newChapter(n); } catch(e){}
+  }
+  TABLE.seated = true; TABLE.msgs = []; TABLE.restored = true; tableStore();
+  await viewTable($('main'));
+}
+
+function tableReset(){
+  TABLE.msgs = []; TABLE.names = []; TABLE.restored = false; TABLE.seated = false; tableStore();
+  viewTable($('main'));
+}
+
+function tablePaint(){
+  const box = $('tchat'); if (!box) return;
+  box.innerHTML = TABLE.msgs.filter(b => !b.tool).map(b => bubbleHTML({...b, i: ''}, true)).join('')
+    + (TABLE.busy ? '<div class="msg sys">…</div>' : '');
+  box.scrollIntoView({block:'end'});
+}
+
+function tableUtterance(msgs, me){
+  const lines = msgs.filter(b => !b.tool && String(b.content || '').trim())
+    .map(b => `${b.who || (b.role === 'user' ? 'Lindsay' : me.name)}: ${String(b.content).trim()}`).join('\n\n');
+  return `AT THE TABLE, so far:\n\n${tailChars(lines, CHAT_CHARS)}\n\nAnswer the last turn as ${me.name}.`;
+}
+
+function tablePrompt(m){
+  const others = TABLE.names.filter(n => n !== m.name);
+  return systemPrompt(m, '') + `\n\nYou are at a table with ${others.join(' and ') || 'nobody else'} and with the `
+    + `person who keeps this tribe. Everyone hears everything that is said, including you, and each of you answers `
+    + `for yourself only. Answer the last thing said, in your own voice, in one or two short paragraphs. Do not `
+    + `speak for anyone else, and do not put your name at the front of what you say.`;
+}
+
+async function tableSay(){
+  const box = $('tsay'), msg = $('tmsg');
+  if (!box || TABLE.busy) return;
+  const text = box.value.trim(); if (!text) return;
+  TABLE.busy = true; box.value = '';
+  TABLE.msgs.push({role: 'user', who: 'Lindsay', at: nowStamp(), content: text});
+  tablePaint();
+  try {
+    for (const n of TABLE.names){
+      const m = S.members.find(x => x.name === n);
+      if (!m){ continue; }
+      const at = TABLE.msgs.length;
+      TABLE.msgs.push({role: 'assistant', who: n, at: nowStamp(), content: ''});
+      tablePaint();
+      if (msg) msg.textContent = n + ' is answering…';
+      try {
+        await chatStream(tablePrompt(m), [{role: 'user', content: tableUtterance(TABLE.msgs.slice(0, at), m)}],
+          m.engine, (d) => {
+            TABLE.msgs[at].content += d;
+            tablePaint();
+          });
+        if (!TABLE.msgs[at].content.trim()) TABLE.msgs[at].content = '(nothing came back)';
+      } catch(e){
+        TABLE.msgs[at].content = '[could not answer: ' + e.message + ']';
+      }
+      tablePaint();
+    }
+    await tablePersist();
+  } finally {
+    TABLE.busy = false; tablePaint();
+    if (msg) msg.textContent = '';
+  }
+}
+
+async function tablePersist(){
+  // Every participant saves the same transcript into its own conversation.md, which is its memory of the talk.
+  // saveThread rolls anything that no longer fits into that member's chapters, so nothing said is lost by this.
+  for (const n of TABLE.names){
+    S.chat[n] = TABLE.msgs.map(b => ({...b}));
+    try { await saveThread(n); } catch(e){ console.warn('could not save ' + n, e); }
+  }
 }
 
 /* ---- play ------------------------------------------------------------------------------- */
