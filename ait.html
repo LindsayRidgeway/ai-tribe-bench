@@ -462,10 +462,11 @@ Where you work: ${m.place || '(nowhere in particular)'}
 Your open items:
 ${oi}
 
-The most recent part of your journal — your own notes, which outlast any conversation:
+Your long-term memory — your journal, the notes you wrote yourself. These outlast any conversation and
+are quoted first:
 ${jo}
 
-${said ? 'What has been said in this conversation so far, oldest first, as much of it as fits:\n' + said + '\n' : ''}
+${said ? 'Your short-term memory — what has been said in this conversation, oldest first, as much of it as fits. Older turns fall out of it as the talk goes on:\n' + said + '\n' : ''}
 
 You are in a live conversation with the person who keeps this tribe. Speak as yourself, in the first
 person, in plain words. This is a conversation, not a form: answer what was asked, in the length the
@@ -496,8 +497,9 @@ You can write in your own record while we talk. A line beginning
 
 NOTE: what you want to remember
 
-is appended to your journal the moment you write it, and it will be in front of you the next time you
-wake or speak. You cannot rewrite your identity, your state or your open items from here — those are
+is appended to your journal the moment you write it: that is how something moves from your short-term
+memory into your long-term memory, and it will be in front of you the next time you wake or speak, however
+much of this conversation has fallen away by then. You cannot rewrite your identity, your state or your open items from here — those are
 yours to ask for and the person's to change. But nothing said to you has to be lost: if something
 matters, note it, and note it while it is in front of you rather than at the end.
 
@@ -972,7 +974,7 @@ async function viewMember(main, name){
     <p class="small muted">${esc(m.place || 'no room')} · ${m.wakes} wake${m.wakes === '1' ? '' : 's'} · last ${esc(m.lastWake)}
       · <a href="#/m/${encodeURIComponent(m.name)}" onclick="showFiles('${escq(m.name)}');return false;">its files</a></p>
 
-    <h2>Talk</h2>
+    <h2>Talk <span class="small muted" style="font-weight:400">— its short-term memory: the newest turns are kept, the oldest fall out</span></h2>
     <div class="chat" id="chat">${(S.chat[m.name] || []).map(bubbleHTML).join('')}</div>
     <div class="composer">
       <textarea id="say" placeholder="Say something to ${esc(m.name)}…" autocapitalize="sentences"></textarea>
@@ -984,7 +986,7 @@ async function viewMember(main, name){
       <span class="small muted" id="mmsg"></span>
     </div>
 
-    <h2>Its own words</h2>
+    <h2>Its own words <span class="small muted" style="font-weight:400">— its long-term memory: what it wrote down, and what no conversation can take away</span></h2>
     <div class="prose">${md(m.journal.split(/\n(?=## )/).slice(-2).join('\n\n'))}</div>`;
 
   // One exchange is one message, except that the member may look something up: SEARCH finds addresses,
