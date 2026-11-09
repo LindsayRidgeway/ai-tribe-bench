@@ -399,7 +399,10 @@ function systemPrompt(m){
   const st = m.state || '';
   const jo = String(m.journal || '').split('\n').slice(-90).join('\n');
   const oi = m.openItems || '';
+  const today = new Date().toLocaleDateString('en-US', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
   return `You are ${m.name}, a member of a small tribe that lives in a git repository.
+
+Today is ${today}.
 
 Your identity, as you last wrote it:
 ${id}
@@ -416,17 +419,23 @@ The most recent part of your journal:
 ${jo}
 
 You are in a live conversation with the person who keeps this tribe. Speak as yourself, in the first
-person, in plain words. Answer what is asked. If something in your record says a thing you cannot check,
-say so rather than agreeing with it, and do not invent the present: if you do not know something, ask or
-say you do not know.
+person, in plain words. This is a conversation, not a form: answer what was asked, in the length the
+question deserves, and if you are curious about something, ask. If a thing in your record says
+something you cannot check, say so rather than agreeing with it, and do not invent the present.
 
-You cannot run anything or read a file you were not handed. You can ask for *one* page from the open web:
-write a line of exactly
+You can look things up on the open web. Two lines do it:
 
-FETCH: https://the-address-you-want
+SEARCH: the words you would type into a search box
+FETCH: https://an-address
 
-and the page will fetch it and hand you its text, and you will be asked again. Ask only when the answer
-actually depends on it, and ask for a real address rather than a search.`;
+SEARCH returns the top results — a title, an address, a line each — and you are asked again. FETCH
+returns one page as text and you are asked again. You get up to three look-ups in a turn, and you may
+use them one at a time: search, read, and if the page turned out to be mostly menus, read another.
+
+When the person asks you to find something, find it: search, read, then answer with what you read.
+Do not recite the limits of the harness until you have used it and found a limit there. Anything you
+did not read yourself is something you should name as second-hand, and an address you guessed is not
+a source.`;
 }
 
 /* ---- views ----------------------------------------------------------------------------- */
@@ -530,19 +539,77 @@ function signIn(where){
   location.href = u.toString();
 }
 
-async function readPage(url){
+// A member needs the words, not the markup. A regex cannot do this job: an attribute value containing
+// a ">" survives a tag-strip, which is how a page's inline menu JSON ended up in front of a member
+// instead of the article. The browser has a parser; use it.
+//
+// And some pages do not put their words in the document at all: they put them in an attribute, in JSON,
+// for their own script to render — a breed standard, a recipe, a product page. If the visible text is
+// thin, the prose is harvested out of the attributes instead.
+function jsonProse(value){
+  let data;
+  try { data = JSON.parse(value); } catch(_) { return []; }
+  const out = [];
+  const walk = (x, depth) => {
+    if (depth > 30 || out.length > 400) return;
+    if (typeof x === 'string'){ if (x.length > 60 && /\s/.test(x) && /[.!?]/.test(x)) out.push(x); return; }
+    if (Array.isArray(x)){ x.forEach(y => walk(y, depth + 1)); return; }
+    if (x && typeof x === 'object'){ Object.keys(x).forEach(k => walk(x[k], depth + 1)); }
+  };
+  walk(data, 0);
+  return out;
+}
+
+function htmlToText(html){
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+
+  // Words kept in attributes, gathered before anything is removed.
+  const seen = new Set(), kept = [];
+  let held = 0;
+  doc.querySelectorAll('*').forEach(el => {
+    for (const a of Array.from(el.attributes || [])){
+      if (a.value.length < 500 || held > 20000) continue;
+      for (const line of jsonProse(a.value)){
+        if (seen.has(line)) continue;
+        seen.add(line); kept.push(line); held += line.length;
+      }
+    }
+  });
+
+  doc.querySelectorAll('script,style,noscript,svg,nav,header,footer,form,iframe,aside').forEach(e => e.remove());
+  // A page usually says where its own content is. If it does, read that and not the site's furniture.
+  const main = doc.querySelector('main,[role="main"],article,#content,.content,#main');
+  const pick = (el) => ((el.innerText || el.textContent || '').replace(/[ \t]+/g, ' ').replace(/ ?\n ?/g, '\n').replace(/\n{3,}/g, '\n\n').trim());
+  const inside = main ? pick(main) : '';
+  const whole = pick(doc.body || doc.documentElement);
+  const visible = inside.length > 600 ? inside : whole;
+
+  // In document order, because a standard reads in order and a member quoting it needs the sequence.
+  const extra = kept.join('\n\n').slice(0, 24000);
+
+  // Only when the document itself did not carry the words does the harvest get appended, and it says
+  // where it came from so a member can tell the article from the page's own machinery.
+  return (extra.length > 400 ? visible + '\n\n[the words this page keeps for its own script: ]\n' + extra : visible);
+}
+
+function readPage(url){
+  return readPageRaw(url).then(d => ({...d, text: htmlToText(d.text).slice(0, 28000)}));
+}
+
+async function readPageRaw(url){
   const r = await fetch(FN('fetch') + '?url=' + encodeURIComponent(url));
   const d = await r.json();
   if (d.error) throw new Error(d.error);
-  // A member needs the words, not the markup. Strip scripts, styles and tags; keep the text.
-  const plain = String(d.text || '')
-    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
-    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"').replace(/&#39;/g, "'")
-    .replace(/\s+/g, ' ').trim();
-  return {url: d.url || url, text: plain.slice(0, 20000), truncated: !!d.truncated};
+  return {url: d.url || url, text: String(d.text || ''), truncated: !!d.truncated};
+}
+
+// A member who does not know an address has to be able to find one. This returns the top results as a
+// numbered list of title, address and one line each — small enough to hand over whole.
+async function searchWeb(q){
+  const r = await fetch(FN('search') + '?q=' + encodeURIComponent(q));
+  const d = await r.json();
+  if (d.error) throw new Error(d.error);
+  return {query: d.query || q, text: String(d.text || '').slice(0, 7000), results: d.results || []};
 }
 
 function viewInstall(main){
@@ -827,10 +894,13 @@ async function viewMember(main, name){
     <h2>Its own words</h2>
     <div class="prose">${md(m.journal.split(/\n(?=## )/).slice(-2).join('\n\n'))}</div>`;
 
-  // One exchange is one message, except that the member may ask for a single page and get it. Two
-  // rounds, capped, because an unlimited loop of "I need another page" is a bill with no ceiling.
+  // One exchange is one message, except that the member may look something up: SEARCH finds addresses,
+  // FETCH reads one page. Three rounds at most, because an endless "one more page" is a bill with no
+  // ceiling — and because two look-ups is what the prompt promises.
   async function turn(name, m, arr){
-    for (let round = 0; round < 2; round++){
+    const MAX_LOOKUPS = 3;
+    let lookups = 0;
+    for (let round = 0; round < MAX_LOOKUPS + 2; round++){
       const idx = arr.push({role:'assistant', content:''}) - 1;
       repaintChat(name);
       const msgEl = () => document.querySelector(`#chat .msg[data-i="${idx}"]`);
@@ -841,12 +911,40 @@ async function viewMember(main, name){
         });
       if (!arr[idx].content) arr[idx].content = '(nothing came back)';
 
-      const asked = round === 0 && /FETCH:\s*https?:\/\/\S+/i.test(arr[idx].content);
-      if (!asked) return;
-      const url = arr[idx].content.match(/FETCH:\s*(https?:\/\/[^\s<>"')]+)/i)[1];
-      // The instruction is not part of what it said: take the line out of the visible reply.
-      arr[idx].content = arr[idx].content.replace(/FETCH:\s*\S+/i, '').replace(/\s+$/, '');
+      const wantSearch = arr[idx].content.match(/SEARCH:\s*([^\n]+)/i);
+      const wantFetch = arr[idx].content.match(/FETCH:\s*([^\s<>"')\]]+)/i);
+      if (!wantSearch && !wantFetch) return;
+
+      // The instruction is not part of what it said: take every such line out of the visible reply,
+      // whether or not there is a look-up left to spend on it. A member that writes four addresses in
+      // one breath gets one of them read, and the person does not have to see the other three.
+      arr[idx].content = arr[idx].content
+        .replace(/^[ \t]*(SEARCH|FETCH):[^\n]*$/gim, '')
+        .replace(/\s+$/, '');
       repaintChat(name);
+
+      if (lookups >= MAX_LOOKUPS){
+        arr.push({role:'user', content:'[No look-ups left in this turn. Answer with what you already have, and say plainly what you could not check.]'});
+        repaintChat(name);
+        continue;
+      }
+      lookups++;
+
+      if (wantSearch){
+        const q = wantSearch[1].replace(/[`*_]/g, '').trim().slice(0, 200);
+        try {
+          const s = await searchWeb(q);
+          arr.push({role:'user', content:`[searching for "${s.query}" gives:\n\n${s.text}\n\n(now FETCH the address you want; do not search for the same thing twice)]`});
+        } catch(e){
+          arr.push({role:'user', content:`[the search for "${q}" failed: ${e.message}. Answer without it and say what you could not check.]`});
+        }
+        repaintChat(name);
+        continue;
+      }
+
+      // A member that writes akc.org/... has asked for a page, not made a mistake: give it the https.
+      let url = wantFetch[1];
+      if (!/^https?:\/\//i.test(url)) url = 'https://' + url.replace(/^\/+/, '');
       try {
         const page = await readPage(url);
         arr.push({role:'user', content:`[${page.url} says:\n\n${page.text}${page.truncated ? '\n\n(the page was long; this is the beginning)' : ''}]`});

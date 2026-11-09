@@ -15,7 +15,7 @@
  * check and the fetch. For a page that reads public articles for a household, both are acceptable; for
  * a bank they would not be.
  */
-const MAX_BYTES = 400_000;      // enough for an article, small enough to stay cheap
+const MAX_BYTES = 1_500_000;    // a modern article page is mostly scripts; cap high, then strip them
 const TIMEOUT_MS = 12_000;
 
 const PRIVATE = /^(localhost|127\.\d|0\.\d|10\.\d|169\.254\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|metadata\.|\[?::1\]?$)/i;
@@ -50,7 +50,22 @@ exports.handler = async (event) => {
       },
     });
     const buf = await r.arrayBuffer();
-    const text = new TextDecoder('utf-8').decode(buf.slice(0, MAX_BYTES));
+    const type = r.headers.get('content-type') || '';
+    // A PDF or an image is not something this harness can read, and handing a member its bytes wastes a
+    // look-up and teaches it nothing. Say what it is instead, and let it choose a text page.
+    if (type && !/text\/|json|xml|javascript/i.test(type)) {
+      return json(415, {
+        error: 'that address is ' + type.split(';')[0] + ', which this harness cannot read — it reads text and html only',
+      });
+    }
+    const raw = new TextDecoder('utf-8').decode(buf.slice(0, MAX_BYTES));
+    // Scripts and styles are most of the bytes on a modern page and none of the words. Cut them here,
+    // before the response gets large, and without touching the markup the page actually says.
+    const text = raw
+      .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+      .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+      .replace(/<noscript[\s\S]*?<\/noscript>/gi, ' ')
+      .replace(/<svg[\s\S]*?<\/svg>/gi, ' ');
     return json(200, {
       url: r.url,
       status: r.status,
