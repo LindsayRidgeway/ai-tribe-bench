@@ -1288,6 +1288,11 @@ window.addEventListener('hashchange', () => render());
     try { await gh(`/repos/${S.repo}`); }
     catch(e){ S.repo = ''; S.token = ''; }
   }
+
+  // A link to somebody else's tribe (?tribe=owner/repo) goes to the connect screen, not the front page:
+  // the person holding it already has a tribe in mind and no credential yet.
+  if (q.get('tribe') && !S.repo && !location.hash) location.hash = '#/connect';
+
   render();
 })();
 </script>
