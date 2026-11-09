@@ -21,8 +21,8 @@
   header{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;padding:6px 0 14px;border-bottom:1px solid var(--line)}
   .brand{font:600 20px/1 var(--serif);letter-spacing:.14em}
   .brand span{color:var(--accent)}
-  #repo-label{font-family:var(--mono);font-size:12px;color:var(--mute);flex:1;min-width:0;
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #repo-label{font-family:var(--mono);font-size:12px;color:var(--mute);flex:1;min-width:0;cursor:pointer;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-decoration:underline dotted}
   nav{display:flex;gap:4px;flex-wrap:wrap;margin:12px 0 18px}
   nav button{font:inherit;font-size:14px;padding:6px 11px;border:1px solid var(--line);border-radius:999px;
     background:var(--panel);color:var(--ink);cursor:pointer}
@@ -104,7 +104,7 @@
 <div id="app">
   <header>
     <div class="brand">A<span>IT</span></div>
-    <div id="repo-label"></div>
+    <div id="repo-label" title="Which tribe this page is in — press to switch or connect another"></div>
     <span class="chip warn" id="preview">unfinished</span>
     <button class="plain small" id="btn-settings" hidden>Settings</button>
   </header>
@@ -157,7 +157,30 @@ const ENGINES = {
 };
 
 const S = {repo:'', token:'', branch:'main', keys:{}, members:[], chat:{}, member:null, view:'today',
-           owner:''};
+           owner:'', tribes:{}};
+
+// Which tribes this browser has been in, and the credential it used for each. Without this there is exactly one
+// way back to a tribe you have already opened: retype its name and paste a token. Found 2026-11-09, when the
+// founder's own address for his first tribe opened his second one instead.
+function rememberRepo(repo, token){
+  if (!repo || !token) return;
+  S.tribes[repo] = {token, when: Date.now()};
+  const keep = Object.entries(S.tribes).sort((a, b) => b[1].when - a[1].when).slice(0, 8);
+  S.tribes = Object.fromEntries(keep);
+  save();
+}
+
+const cleanRepo = (v) => String(v || '').trim()
+  .replace(/^https?:\/\/github\.com\//i, '').replace(/\.git$/i, '').replace(/\/+$/, '');
+
+// Walking into a different tribe must not carry the last one's talk with it: S.chat is keyed by member name, and
+// two tribes can each have a Laddie. The conversation is in the repository anyway, so nothing is lost by letting
+// this browser forget it.
+function setTribe(repo, token, branch){
+  if (repo !== S.repo){ S.chat = {}; try { localStorage.removeItem('ait.chat'); } catch(_){} }
+  S.repo = repo; S.token = token; if (branch) S.branch = branch;
+  rememberRepo(repo, token);
+}
 
 /* ---- tiny helpers ---------------------------------------------------------------------- */
 
@@ -210,7 +233,8 @@ function nowStamp(){
 }
 
 function save(){
-  localStorage.setItem('ait', JSON.stringify({repo:S.repo, token:S.token, keys:S.keys, owner:S.owner || ''}));
+  localStorage.setItem('ait', JSON.stringify({repo:S.repo, token:S.token, keys:S.keys, owner:S.owner || '',
+                                             tribes:S.tribes || {}}));
   // An unfiled conversation is kept here too: a person who reloads the page should not lose what a
   // member said, even though only filing it puts it in the record.
   try {
@@ -220,7 +244,8 @@ function save(){
   } catch(_){}
 }
 function load(){ try{ const j = JSON.parse(localStorage.getItem('ait') || '{}');
-  S.repo = j.repo || ''; S.token = j.token || ''; S.keys = j.keys || {}; S.owner = j.owner || ''; }catch(e){}
+  S.repo = j.repo || ''; S.token = j.token || ''; S.keys = j.keys || {}; S.owner = j.owner || '';
+  S.tribes = j.tribes || {}; }catch(e){}
   try { S.chat = JSON.parse(localStorage.getItem('ait.chat') || '{}'); } catch(e){ S.chat = {}; } }
 
 /* ---- the GitHub door ------------------------------------------------------------------- */
@@ -536,6 +561,7 @@ async function render(){
   $('foot').hidden = !connected;
   $('preview').hidden = connected;
   $('repo-label').textContent = connected ? S.repo : '';
+  $('repo-label').onclick = connected ? () => setView('connect') : null;
 
   // Install and connect belong to everybody, connected or not: the first is the address you give a stranger,
   // and a person who already has a tribe may want a second one — or may be looking at a stale bookmark while
@@ -628,6 +654,7 @@ const GH_CLIENT = 'Ov23liKyiakrCEg8jTn9';
 const FN = (name) => '/.netlify/functions/' + name;
 
 let OAUTH = '';          // a token obtained by signing in, not yet used for an install
+let WANT = '', WANT_WHY = '';   // a tribe named in a link that this browser could not open, and why
 
 function signIn(where){
   // The redirect URI is the one registered on the OAuth app, so it is not passed here: GitHub sends
@@ -833,7 +860,7 @@ function viewInstall(main){
       await gh(`/repos/${TEMPLATE}/generate`, {method:'POST',
         body:{owner:login, name:slug, private:true, description:'A tribe. AIT reads it; the members live in it.'}}, t);
       msg.textContent = 'copied the machinery into it…';
-      S.repo = `${login}/${slug}`; S.token = t; S.branch = 'main';
+      setTribe(`${login}/${slug}`, t, 'main');
       // Remember the name GitHub has for them, so the first member made in this tribe is told who it is
       // talking to without being asked. Blank when the account has no display name — the add-a-member
       // dialog asks then, and does not guess a login.
@@ -865,6 +892,16 @@ function explainInstallError(e, slug){
 }
 
 function viewConnect(main){
+  const want = cleanRepo(new URLSearchParams(location.search).get('tribe')) || WANT;
+  const others = Object.entries(S.tribes || {}).sort((a, b) => b[1].when - a[1].when)
+    .filter(([r]) => r !== S.repo);
+  const list = others.length ? `<div class="card" style="margin-top:12px">
+      <p class="small" style="margin:0 0 6px"><strong>Tribes this browser has been in</strong> — one press switches,
+      with the credential this browser already used for it.</p>
+      ${others.map(([r, v]) => `<div class="row" style="justify-content:space-between;padding:6px 0">
+        <button class="plain small" onclick="switchTribe('${escq(r)}')">${esc(r)}</button>
+        <span class="small muted">last opened ${esc(when(new Date(v.when).toISOString()))}</span></div>`).join('')}
+    </div>` : '';
   main.innerHTML = `
     <p class="small"><a href="#/">← back</a></p>
     <h1>Connect a tribe</h1>
@@ -886,6 +923,10 @@ function viewConnect(main){
       <div class="row" style="margin-top:10px"><button class="primary" id="go">Connect</button>
       <span class="small muted" id="cmsg"></span></div>
     </div>
+    ${WANT_WHY && want ? `<p class="small" style="color:#a3302e">This link asks for <code>${esc(want)}</code>, but
+this browser could not open it: ${esc(WANT_WHY)}. A token that can see that repository is needed — paste one above,
+or <a href="#/today" onclick="WANT='';WANT_WHY='';return true;">stay in ${esc(S.repo || 'the tribe you were in')}</a>.</p>` : ''}
+    ${list}
 
     <div class="notice">
       <strong>No tribe installed yet?</strong> <a href="#/install">Install one</a> — it makes the repository,
@@ -893,8 +934,7 @@ function viewConnect(main){
       type its name above. If it is private, the token must be allowed to see it.
     </div>`;
 
-  const want = new URLSearchParams(location.search).get('tribe');
-  $('repo').value = S.repo || want || '';
+  $('repo').value = want || S.repo || '';
   $('go').onclick = async () => {
     const repo = $('repo').value.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\/$/, '');
     const token = $('token').value.trim();
@@ -902,9 +942,9 @@ function viewConnect(main){
     if (!repo || !token){ msg.textContent = 'Both, please.'; return; }
     $('go').disabled = true; msg.textContent = 'asking GitHub…';
     try {
-      S.repo = repo; S.token = token;
-      const info = await gh(`/repos/${repo}`);
-      S.branch = info.default_branch || 'main';
+      const info = await gh(`/repos/${repo}`, {}, token);
+      setTribe(repo, token, info.default_branch || 'main');
+      WANT = ''; WANT_WHY = '';
       save();
       const ms = await loadMembers();
       try { history.replaceState(null, '', location.pathname + '?tribe=' + repo + location.hash); } catch(_){}
@@ -915,6 +955,21 @@ function viewConnect(main){
       S.repo = ''; S.token = '';
     } finally { const g = $('go'); if (g) g.disabled = false; }
   };
+}
+
+async function switchTribe(repo){
+  const t = (S.tribes[repo] && S.tribes[repo].token) || S.token;
+  if (!t){ WANT = repo; WANT_WHY = 'this browser has no token stored for it'; location.hash = '#/connect'; render(); return; }
+  try {
+    const info = await gh(`/repos/${repo}`, {}, t);
+    setTribe(repo, t, info.default_branch || 'main');
+    try { history.replaceState(null, '', location.pathname + '?tribe=' + repo); } catch(_){}
+    WANT = ''; WANT_WHY = '';
+    location.hash = '#/today'; render();
+  } catch(e){
+    WANT = repo; WANT_WHY = e.message;
+    location.hash = '#/connect'; render();
+  }
 }
 
 async function viewToday(main){
@@ -2031,9 +2086,26 @@ window.addEventListener('hashchange', () => render());
     catch(e){ S.repo = ''; S.token = ''; }
   }
 
-  // A link to somebody else's tribe (?tribe=owner/repo) goes to the connect screen, not the front page:
-  // the person holding it already has a tribe in mind and no credential yet.
-  if (q.get('tribe') && !S.repo && !location.hash) location.hash = '#/connect';
+  // A link to a tribe (?tribe=owner/repo) is a request to be *in* that tribe, not a suggestion for a form. Until
+  // 2026-11-09 it only pre-filled a box on a page nobody with a tribe was sent to, so the address of a person's
+  // first tribe opened whichever tribe they were already in — the founder's own report, about his own two.
+  const wantTribe = cleanRepo(q.get('tribe'));
+  if (wantTribe){
+    if (wantTribe === S.repo) rememberRepo(S.repo, S.token);
+    else {
+      const tok = (S.tribes[wantTribe] && S.tribes[wantTribe].token) || S.token || OAUTH || '';
+      if (!tok){ WANT = wantTribe; WANT_WHY = 'this browser has no token stored for it'; }
+      else {
+        try {
+          const info = await gh(`/repos/${wantTribe}`, {}, tok);
+          setTribe(wantTribe, tok, info.default_branch || 'main');
+          try { history.replaceState(null, '', location.pathname + '?tribe=' + wantTribe + location.hash); } catch(_){}
+        } catch(e){ WANT = wantTribe; WANT_WHY = e.message; }
+      }
+    }
+  }
+  if (WANT) location.hash = '#/connect';
+  else if (q.get('tribe') && !S.repo && !location.hash) location.hash = '#/connect';
 
   render();
 })();
