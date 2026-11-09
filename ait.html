@@ -1001,7 +1001,15 @@ async function viewMember(main, name){
     </div>
 
     <h2>Its own words <span class="small muted" style="font-weight:400">— its long-term memory: what it wrote down, and what no conversation can take away</span></h2>
-    <div class="prose">${md(m.journal.split(/\n(?=## )/).slice(-2).join('\n\n'))}</div>`;
+    <div class="prose">${md(m.journal.split(/\n(?=## )/).slice(-2).join('\n\n'))}</div>
+
+    <h2>What it did to its own history <span class="small muted" style="font-weight:400">— the retelling, against the record it came from</span></h2>
+    <div class="card" id="memcmp"><p class="small muted">reading what changed…</p></div>`;
+
+  // The comparison reads two API endpoints; it must not delay the talk, and a failure is a footnote.
+  compareMemories(name).catch(e => {
+    const b = $('memcmp'); if (b) b.innerHTML = '<p class="small muted">Could not read the retelling: ' + esc(e.message) + '</p>';
+  });
 
   // One exchange is one message, except that the member may look something up: SEARCH finds addresses,
   // FETCH reads one page. Three rounds at most, because an endless "one more page" is a bill with no
@@ -1268,7 +1276,147 @@ async function retellMemory(name){
     say('done. Its retelling is in memory.md; the record it came from is untouched.');
     await loadMembers();
     render();
+    compareMemories(name).catch(() => {});
   } catch(e){ say(''); const e2 = $('mmsg'); if (e2) e2.innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }
+}
+
+/* ---- what a retelling did to the record -------------------------------------------------- */
+
+// A retelling that nobody reads is a rewritten memory with no witness, which is what the founder objected to
+// in the first place. Git has every version; this is the part that reads them. Three mechanical facts and no
+// judgment: which words changed since the last retelling, how much of the record survives into it, and what
+// nothing here can answer — whether a sentence in it is true.
+
+const STOP = new Set(('a an the and or of to in on for with as at by from that this these those it its is was '
+  + 'were be been being are not no but if then than so such we i you he she they them his her their my our your '
+  + 'me us him one two also very more most much many some any all only just about into over after before while '
+  + 'when where what who whom which how there here have has had do does did can could would should will shall '
+  + 'may might must been am').split(' '));
+
+const toks = (s) => String(s || '').match(/\S+\s*/g) || [];
+const bare = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9' ]+/g, ' ').split(/\s+/).filter(Boolean);
+const distinctive = (s) => [...new Set(bare(s).filter(w => w.length > 4 && !STOP.has(w)))];
+
+// Word-level longest common subsequence: 600 words against 600 is 360k cells, which a phone does in a blink.
+function wordDiff(before, after){
+  const a = toks(before), b = toks(after);
+  const n = a.length, m = b.length;
+  const A = a.map(t => t.trim().toLowerCase()), B = b.map(t => t.trim().toLowerCase());
+  // table[i][j] is the length of the longest common subsequence of a[i:] and b[j:]. The last row is zeros and
+  // is not an optimisation: without it the backtrack reads past the end on the final token.
+  const table = new Array(n + 1);
+  table[n] = new Uint32Array(m + 1);
+  for (let i = n - 1; i >= 0; i--){
+    const row = new Uint32Array(m + 1), below = table[i + 1];
+    for (let j = m - 1; j >= 0; j--)
+      row[j] = A[i] === B[j] ? below[j + 1] + 1 : Math.max(below[j], row[j + 1]);
+    table[i] = row;
+  }
+  const out = []; let i = 0, j = 0;
+  while (i < n && j < m){
+    if (A[i] === B[j]){ out.push({op:'same', text:a[i]}); i++; j++; }
+    else if (table[i + 1][j] >= table[i][j + 1]){ out.push({op:'del', text:a[i]}); i++; }
+    else { out.push({op:'ins', text:b[j]}); j++; }
+  }
+  while (i < n) out.push({op:'del', text:a[i++]});
+  while (j < m) out.push({op:'ins', text:b[j++]});
+  return out;
+}
+
+// Changed runs only, with a few words either side. A whole retelling printed twice is a wall; three changed
+// sentences with their context is an answer.
+function diffHunks(diff, context = 9, most = 14){
+  const keep = new Array(diff.length).fill(false);
+  diff.forEach((d, k) => {
+    if (d.op === 'same') return;
+    for (let x = Math.max(0, k - context); x <= Math.min(diff.length - 1, k + context); x++) keep[x] = true;
+  });
+  const hunks = []; let run = null;
+  diff.forEach((d, k) => {
+    if (!keep[k]){ if (run) hunks.push(run); run = null; return; }
+    if (!run) run = {items: []};
+    run.items.push(d);
+  });
+  if (run) hunks.push(run);
+  return hunks.slice(0, most).map(h => h.items.map(d =>
+    d.op === 'same' ? esc(d.text) :
+    d.op === 'del' ? '<del style="color:#a3302e">' + esc(d.text) + '</del>' :
+                     '<ins style="color:#166b4a;text-decoration:none;font-weight:600">' + esc(d.text) + '</ins>'
+  ).join(''));
+}
+
+async function previousMemory(name){
+  // The commit before the one that wrote the current retelling. Asking git rather than keeping a second copy
+  // in the repository is the whole reason the retelling can be overwritten without the record suffering.
+  const path = `wake/members/${name}/state/memory.md`;
+  const list = await gh(`/repos/${S.repo}/commits?path=${encodeURI(path)}&per_page=2&sha=${S.branch}`);
+  if (!Array.isArray(list) || list.length < 2) return null;
+  const c = list[1];
+  const d = await gh(`/repos/${S.repo}/contents/${encodeURI(path)}?ref=${c.sha}`);
+  return {text: b64d(d.content), when: c.commit.committer.date, of: list[0].commit.committer.date};
+}
+
+function journalEntries(journal){
+  return String(journal || '').split(/^## /m).slice(1).map(chunk => {
+    const nl = chunk.indexOf('\n');
+    return {head: nl < 0 ? chunk.trim() : chunk.slice(0, nl).trim(), body: nl < 0 ? '' : chunk.slice(nl + 1)};
+  });
+}
+
+async function compareMemories(name, {saying} = {}){
+  const box = $('memcmp');
+  if (!box) return;
+  const m = S.members.find(x => x.name === name);
+  if (!m) return;
+  box.innerHTML = '<p class="small muted">reading what changed…</p>';
+  const retelling = String(m.memory || '');
+  const entries = journalEntries(m.journal || '');
+  const rWords = bare(retelling).length, jWords = bare(m.journal || '').length;
+  const have = new Set(bare(retelling));
+  const covered = entries.map(e => {
+    const d = distinctive(e.body);
+    const hit = d.filter(w => have.has(w)).length;
+    return {head: e.head, share: d.length ? hit / d.length : 1, n: d.length};
+  });
+  const thin = covered.filter(c => c.n >= 8 && c.share < 0.35).slice(-5);
+
+  let prev = null, prevErr = '';
+  try { prev = await previousMemory(name); } catch(e){ prevErr = e.message; }
+
+  let html = '';
+  if (!retelling.trim()){
+    html = `<p class="muted">It has not retold its memory yet. Until it does, the record below is all it has —
+      which is honest, but it is not how a person remembers. <button class="plain small"
+      onclick="retellMemory('${escq(name)}')">Ask it to retell it</button></p>`;
+  } else {
+    html += `<p class="small muted">Its retelling is <strong>${rWords}</strong> words. Its record is
+      <strong>${jWords}</strong> words in ${entries.length} entr${entries.length === 1 ? 'y' : 'ies'}.
+      ${prev ? 'The previous retelling was written ' + esc(when(prev.when)) + '.' : 'This is its first retelling, so there is nothing before it to compare.'}</p>`;
+    if (prev){
+      const d = wordDiff(prev.text, retelling);
+      const gained = d.filter(x => x.op === 'ins').length, lost = d.filter(x => x.op === 'del').length;
+      const hunks = diffHunks(d);
+      html += `<p class="small">Since then: <strong>${gained}</strong> words in,
+        <strong>${lost}</strong> words out${hunks.length ? '' : ' — nothing changed'}. Words it dropped are
+        struck through; words it added are bold.</p>`;
+      if (hunks.length){
+        html += `<div class="prose" style="font-size:15px;line-height:1.65">` +
+          hunks.map(h => '<p>… ' + h + ' …</p>').join('') + `</div>`;
+        if (hunks.length >= 14) html += `<p class="small muted">(the first fourteen changes; the rest are in the commits)</p>`;
+      }
+    }
+    if (thin.length){
+      html += `<p class="small">Entries from the record that barely survive into the retelling:</p><ul class="small">` +
+        thin.map(c => `<li>${esc(c.head)} — ${Math.round(c.share * 100)}% of its distinctive words</li>`).join('') +
+        `</ul>`;
+    }
+    html += `<p class="small muted">What this can tell you: what moved, and what the retelling left behind. What it
+      cannot tell you: whether a sentence in the retelling is true — no word count settles that, and the record
+      beside it is there so a person can check.</p>`;
+  }
+  if (prevErr) html += `<p class="small muted">(the previous retelling could not be read: ${esc(prevErr)})</p>`;
+  box.innerHTML = html;
+  if (saying) saying.textContent = '';
 }
 
 async function loadThread(name){
