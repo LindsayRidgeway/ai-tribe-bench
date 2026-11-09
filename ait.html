@@ -420,8 +420,13 @@ person, in plain words. Answer what is asked. If something in your record says a
 say so rather than agreeing with it, and do not invent the present: if you do not know something, ask or
 say you do not know.
 
-You have no tools in this window. You cannot look anything up, run anything, or read a file you were not
-handed. If the conversation needs one of those, say what you would want run or fetched, and why.`;
+You cannot run anything or read a file you were not handed. You can ask for *one* page from the open web:
+write a line of exactly
+
+FETCH: https://the-address-you-want
+
+and the page will fetch it and hand you its text, and you will be asked again. Ask only when the answer
+actually depends on it, and ask for a real address rather than a search.`;
 }
 
 /* ---- views ----------------------------------------------------------------------------- */
@@ -507,27 +512,66 @@ function viewHome(main){
 
 const TEMPLATE = 'LindsayRidgeway/ai-tribe-template';
 
+// Public, and it may be public: the client id is in the page by design. The secret that goes with it
+// lives in the site's environment and only the auth function ever sees it.
+const GH_CLIENT = 'Ov23liKyiakrCEg8jTn9';
+const FN = (name) => '/.netlify/functions/' + name;
+
+let OAUTH = '';          // a token obtained by signing in, not yet used for an install
+
+function signIn(where){
+  // The redirect URI is the one registered on the OAuth app, so it is not passed here: GitHub sends
+  // the browser back to the site itself, whatever page it started from.
+  const u = new URL('https://github.com/login/oauth/authorize');
+  u.searchParams.set('client_id', GH_CLIENT);
+  u.searchParams.set('scope', 'repo');
+  u.searchParams.set('state', where + '.' + Math.random().toString(36).slice(2, 10));
+  try { sessionStorage.setItem('ait.state', u.searchParams.get('state')); } catch(_){}
+  location.href = u.toString();
+}
+
+async function readPage(url){
+  const r = await fetch(FN('fetch') + '?url=' + encodeURIComponent(url));
+  const d = await r.json();
+  if (d.error) throw new Error(d.error);
+  // A member needs the words, not the markup. Strip scripts, styles and tags; keep the text.
+  const plain = String(d.text || '')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+    .replace(/\s+/g, ' ').trim();
+  return {url: d.url || url, text: plain.slice(0, 20000), truncated: !!d.truncated};
+}
+
 function viewInstall(main){
   main.innerHTML = `
     <p class="small"><a href="#/">← back</a></p>
     <h1>Start a tribe</h1>
-    <p class="lede">Two things only you can do, then one button. Nothing here asks you for anything the page can
+    <p class="lede">One permission screen, one name, one button. Nothing here asks you for anything the page can
     find out for itself.</p>
 
     <div class="step">
       <div class="n">1</div>
       <div class="b">
         <h3>Your GitHub account</h3>
-        <p class="small muted" style="margin:0 0 8px">The tribe lives under your name, in your account, so that it
-        is yours and not mine. A <strong>token</strong> is a password for this page, made at GitHub, which you can
-        delete at any time. It is not your GitHub password and it works nowhere else.</p>
-        <p class="small muted" style="margin:0 0 8px">Make a <strong>fine-grained</strong> token —
-        <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">new
-        token</a> — with <em>Repository access: All repositories</em> and three permissions, each
-        <em>Read and write</em>: <strong>Repository creation</strong> (to make the repository),
-        <strong>Contents</strong> (to write in it) and <strong>Actions</strong> (to start a wake). Afterwards you
-        can narrow it to that one repository, and then it can see nothing else on your account.</p>
-        <input id="tok" type="password" placeholder="paste the token" autocapitalize="off" spellcheck="false">
+        <p class="small muted" style="margin:0 0 10px">The tribe lives under your name, in your account, so that it
+        is yours and not mine.</p>
+        <button class="primary" id="gh">Sign in with GitHub</button>
+        <p class="small muted" style="margin:8px 0 0">One permission screen. It asks for one repository — the one
+        it is about to make — and you can revoke it from your GitHub settings at any time; if you do, AIT stops
+        and your tribe does not.</p>
+        <p class="small" style="margin:12px 0 0"><a href="#" id="usetoken">Use a token instead</a></p>
+        <div id="tokbox" hidden style="margin-top:10px">
+          <p class="small muted" style="margin:0 0 8px">A <strong>token</strong> is a password for this page, made
+          at GitHub, which you can delete at any time. Make a <strong>fine-grained</strong> token —
+          <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">new
+          token</a> — with <em>Repository access: All repositories</em> and three permissions, each
+          <em>Read and write</em>: <strong>Repository creation</strong>, <strong>Contents</strong>,
+          <strong>Actions</strong>.</p>
+          <input id="tok" type="password" placeholder="paste the token" autocapitalize="off" spellcheck="false">
+        </div>
         <p class="small" id="who" style="margin:8px 0 0"></p>
       </div>
     </div>
@@ -562,28 +606,35 @@ function viewInstall(main){
     companies. So the first thing after install is <em>Add a member</em>, which asks for a name, an engine, and
     that engine's key — and offers the page where the key comes from. One honest gap: that key is held in this
     browser for chat, and handing the same key to the clock, as a repository secret, is the next thing I wire.
-    So a fresh tribe will talk before it wakes.</div>
-
-    <div class="notice">One button that says <em>Sign in with GitHub</em> is the next thing I build; it removes
-    the token entirely. Until then the token is the door, and it is the only thing on this page you have to go
-    and fetch somewhere else.</div>`;
+    So a fresh tribe will talk before it wakes.</div>`;
 
   const tok = $('tok'), name = $('tname'), msg = $('imsg'), btn = $('install');
   let login = '';
-
+  const current = () => OAUTH || (tok ? tok.value.trim() : '');
   const slugOf = v => (v.trim().replace(/[^a-zA-Z0-9._-]/g, '-') || 'my-tribe');
+
+  if (OAUTH){
+    $('gh').hidden = true;
+    $('usetoken').hidden = true;
+  }
+  $('gh').onclick = () => signIn('install');
+  $('usetoken').onclick = (e) => {
+    e.preventDefault();
+    $('tokbox').hidden = false; $('usetoken').hidden = true;
+    if (tok) tok.focus();
+  };
 
   function place(){
     const slug = slugOf(name.value);
     $('tpath').textContent = 'github.com/' + (login || 'YOUR-ACCOUNT') + '/' + slug;
     const url = location.href.split('#')[0].split('?')[0] + '?tribe=' + (login || 'YOUR-ACCOUNT') + '/' + slug;
     const a = $('tlink'); a.textContent = url; a.href = url;
-    btn.disabled = !(login && tok.value.trim());
+    btn.disabled = !(login && current());
   }
 
   let timer = null;
   async function whoami(){
-    const t = tok.value.trim();
+    const t = current();
     login = '';
     if (!t){ $('who').textContent = ''; place(); return; }
     $('who').className = 'small muted'; $('who').textContent = 'asking GitHub who that is…';
@@ -599,12 +650,12 @@ function viewInstall(main){
     }
     place();
   }
-  tok.oninput = () => { clearTimeout(timer); timer = setTimeout(whoami, 500); place(); };
+  if (tok) tok.oninput = () => { clearTimeout(timer); timer = setTimeout(whoami, 500); place(); };
   name.oninput = place;
-  place();
+  whoami();
 
   btn.onclick = async () => {
-    const t = tok.value.trim(), slug = slugOf(name.value);
+    const t = current(), slug = slugOf(name.value);
     btn.disabled = true;
     msg.className = 'small muted'; msg.textContent = 'making the repository…';
     try {
@@ -615,11 +666,12 @@ function viewInstall(main){
       S.repo = `${login}/${slug}`; S.token = t; S.branch = 'main';
       save();
       try { history.replaceState(null, '', location.pathname + '?tribe=' + S.repo); } catch(_){}
-      const ms = await loadMembers();
+      const ms = await loadMembers().catch(() => []);
+      OAUTH = '';
       msg.textContent = `Installed. ${ms.length} member${ms.length === 1 ? '' : 's'} — the tribe is empty on purpose.`;
       $('done').hidden = false;
       place();
-      await sleep(900);
+      await sleep(1400);
       location.hash = '#/today'; render();
     } catch(e){
       msg.className = 'err';
@@ -774,29 +826,60 @@ async function viewMember(main, name){
     <h2>Its own words</h2>
     <div class="prose">${md(m.journal.split(/\n(?=## )/).slice(-2).join('\n\n'))}</div>`;
 
+  // One exchange is one message, except that the member may ask for a single page and get it. Two
+  // rounds, capped, because an unlimited loop of "I need another page" is a bill with no ceiling.
+  async function turn(name, m, arr){
+    for (let round = 0; round < 2; round++){
+      const idx = arr.push({role:'assistant', content:''}) - 1;
+      repaintChat(name);
+      const msgEl = () => document.querySelector(`#chat .msg[data-i="${idx}"]`);
+      await chatStream(systemPrompt(m), arr.slice(0, idx).map(x => ({role:x.role, content:x.content})),
+        m.engine, (d) => {
+          arr[idx].content += d;
+          const e = msgEl(); if (e){ e.textContent = arr[idx].content; e.scrollIntoView({block:'end'}); }
+        });
+      if (!arr[idx].content) arr[idx].content = '(nothing came back)';
+
+      const asked = round === 0 && /FETCH:\s*https?:\/\/\S+/i.test(arr[idx].content);
+      if (!asked) return;
+      const url = arr[idx].content.match(/FETCH:\s*(https?:\/\/[^\s<>"')]+)/i)[1];
+      // The instruction is not part of what it said: take the line out of the visible reply.
+      arr[idx].content = arr[idx].content.replace(/FETCH:\s*\S+/i, '').replace(/\s+$/, '');
+      repaintChat(name);
+      try {
+        const page = await readPage(url);
+        arr.push({role:'user', content:`[${page.url} says:\n\n${page.text}${page.truncated ? '\n\n(the page was long; this is the beginning)' : ''}]`});
+      } catch(e){
+        arr.push({role:'user', content:`[${url} could not be read: ${e.message}. Answer without it and say what you could not check.]`});
+      }
+      repaintChat(name);
+    }
+  }
+
   const send = async () => {
     const box = $('say'); const text = box.value.trim();
     if (!text) return;
-    box.value = ''; box.disabled = true; $('send').disabled = true;
+    box.value = ''; box.disabled = true; const s1 = $('send'); if (s1) s1.disabled = true;
     const arr = (S.chat[m.name] ||= []);
     arr.push({role:'user', content:text});
-    // The empty bubble goes in BEFORE the call, and the reply is streamed into it. Pushing it after the
-    // repaint (as this did first) left the reply with nowhere to land: the text arrived, the page did not
-    // change, and the only evidence was a chat that looked hung.
-    const idx = arr.push({role:'assistant', content:''}) - 1;
+    // A link in what the person pasted is handed over as the page itself, without waiting to be asked.
+    const link = (text.match(/https?:\/\/[^\s<>"')]+/i) || [])[0];
+    if (link){
+      try {
+        const page = await readPage(link);
+        arr.push({role:'user', content:`[${page.url} says:\n\n${page.text}]`});
+      } catch(e){
+        arr.push({role:'user', content:`[${link} could not be read: ${e.message}]`});
+      }
+    }
     repaintChat(m.name);
-    const msgEl = () => document.querySelector(`#chat .msg[data-i="${idx}"]`);
-    try {
-      await chatStream(systemPrompt(m), arr.slice(0, idx).map(x => ({role:x.role, content:x.content})),
-        m.engine, (d) => {
-          S.chat[m.name][idx].content += d;
-          const e = msgEl(); if (e){ e.textContent = S.chat[m.name][idx].content; e.scrollIntoView({block:'end'}); }
-        });
-      if (!S.chat[m.name][idx].content) S.chat[m.name][idx].content = '(nothing came back)';
-    } catch(e){
-      S.chat[m.name].pop();
-      $('mmsg').innerHTML = '<span class="err">' + esc(e.message) + '</span>';
-    } finally { box.disabled = false; const s2 = $('send'); if (s2) s2.disabled = false; box.focus(); }
+    try { await turn(m.name, m, arr); }
+    catch(e){
+      if (arr[arr.length - 1].role === 'assistant' && !arr[arr.length - 1].content) arr.pop();
+      const mm = $('mmsg'); if (mm) mm.innerHTML = '<span class="err">' + esc(e.message) + '</span>';
+    } finally {
+      box.disabled = false; const s2 = $('send'); if (s2) s2.disabled = false; box.focus();
+    }
   };
   $('send').onclick = send;
   $('say').onkeydown = (ev) => { if (ev.key === 'Enter' && !ev.shiftKey){ ev.preventDefault(); send(); } };
@@ -1172,6 +1255,34 @@ window.addEventListener('hashchange', () => render());
 
 (async function boot(){
   load();
+
+  // GitHub sends the browser back here with ?code=. Turn it into a token before anything renders, so the
+  // Install screen comes back with the account already known and only the name to type.
+  const q = new URLSearchParams(location.search);
+  if (q.get('code')){
+    const code = q.get('code');
+    q.delete('code');
+    let want = 'install';
+    try {
+      const saved = sessionStorage.getItem('ait.state');
+      if (saved) want = saved.split('.')[0];
+      sessionStorage.removeItem('ait.state');
+    } catch(_){}
+    q.delete('state');
+    try { history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString() : '')); } catch(_){}
+    try {
+      const r = await fetch(FN('auth'), {method:'POST', headers:{'content-type':'application/json'},
+                                         body: JSON.stringify({code})});
+      const d = await r.json();
+      if (!d.access_token) throw new Error(d.error || 'GitHub sent no token');
+      OAUTH = d.access_token;
+      location.hash = '#/' + want;
+    } catch(e){
+      location.hash = '#/install';
+      setTimeout(() => alert('GitHub sign-in did not complete: ' + e.message), 300);
+    }
+  }
+
   if (S.repo && S.token){
     try { await gh(`/repos/${S.repo}`); }
     catch(e){ S.repo = ''; S.token = ''; }
