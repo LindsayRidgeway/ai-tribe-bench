@@ -435,7 +435,17 @@ use them one at a time: search, read, and if the page turned out to be mostly me
 When the person asks you to find something, find it: search, read, then answer with what you read.
 Do not recite the limits of the harness until you have used it and found a limit there. Anything you
 did not read yourself is something you should name as second-hand, and an address you guessed is not
-a source.`;
+a source.
+
+You can write in your own record while we talk. A line beginning
+
+NOTE: what you want to remember
+
+is appended to your journal the moment you write it, and it will be in front of you the next time you
+wake or speak. You cannot rewrite your identity, your state or your open items from here — those are
+yours to ask for and the person's to change. But nothing said to you has to be lost: if something
+matters, note it. And the person has a button that files a whole conversation into your journal, so if
+you would rather have the whole thing written up, say so and ask for it.`;
 }
 
 /* ---- views ----------------------------------------------------------------------------- */
@@ -911,6 +921,25 @@ async function viewMember(main, name){
         });
       if (!arr[idx].content) arr[idx].content = '(nothing came back)';
 
+      // A note is not a look-up and costs nothing from that budget: it is the member writing in its own
+      // record while the conversation is happening.
+      const wantNote = arr[idx].content.match(/NOTE:[ \t]*([^\n]*(?:\n(?![ \t]*\n)[^\n]*)*)/i);
+      if (wantNote){
+        const text = wantNote[1].trim();
+        arr[idx].content = arr[idx].content.replace(/^[ \t]*NOTE:[ \t]*(?:[^\n]*(?:\n(?![ \t]*\n)[^\n]*)*)/im, '').replace(/^\s+|\s+$/g, '');
+        repaintChat(name);
+        try {
+          await writeNote(name, text);
+          arr.push({role:'user', content:'[noted — it is in your journal now]'});
+        } catch(e){
+          arr.push({role:'user', content:`[the note could not be written: ${e.message}]`});
+        }
+        repaintChat(name);
+        // If it said something besides the note, that was its answer: do not ask it again.
+        if (arr[idx].content.trim()) return;
+        continue;
+      }
+
       const wantSearch = arr[idx].content.match(/SEARCH:\s*([^\n]+)/i);
       const wantFetch = arr[idx].content.match(/FETCH:\s*([^\s<>"')\]]+)/i);
       if (!wantSearch && !wantFetch) return;
@@ -920,7 +949,8 @@ async function viewMember(main, name){
       // one breath gets one of them read, and the person does not have to see the other three.
       arr[idx].content = arr[idx].content
         .replace(/^[ \t]*(SEARCH|FETCH):[^\n]*$/gim, '')
-        .replace(/\s+$/, '');
+        .replace(/^[ \t]*NOTE:[ \t]*(?:[^\n]*(?:\n(?![ \t]*\n)[^\n]*)*)/im, '')
+        .replace(/^\s+|\s+$/g, '');
       repaintChat(name);
 
       if (lookups >= MAX_LOOKUPS){
@@ -1022,6 +1052,17 @@ async function wakeNow(name){
       S.member = m; S.view = 'm/' + name; render();
     } else { render(); }
   } catch(e){ say(''); const e2 = $('mmsg') || $('wake-msg'); if (e2) e2.innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }
+}
+
+// A member may keep a note during a conversation, and it goes into its own journal rather than into a
+// message. Appending only: the page can add a section to a journal, never rewrite one. A member that wants
+// its identity or open items changed says so, and the person decides.
+async function writeNote(name, text){
+  const path = `wake/members/${name}/state/journal.md`;
+  const cur = await fileText(path);
+  const entry = `## ${nowStamp()} — a note, in conversation\n\n${text.trim()}\n`;
+  await putText(path, cur.text.replace(/\s*$/, '\n') + '\n' + entry, `journal: ${name} — a note from a conversation`, cur.sha);
+  return entry;
 }
 
 async function fileConversation(name){
