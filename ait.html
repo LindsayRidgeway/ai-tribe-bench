@@ -2063,7 +2063,9 @@ let CHAT = {slug: '', topic: '', names: [], msgs: [], bench: [], aside: [], pend
             // The room talking on its own: `left` rounds still to run, `stop` set by the person, `done` so far.
             loop: {running: false, left: 0, max: 0, done: 0, stop: false},
             // Who decides what is said next: the members' own claims, or a judge named here.
-            floor: 'claim', judge: '', stats: [], lastJudge: null};
+            floor: 'claim', judge: '', stats: [], lastJudge: null,
+            // The rally: consecutive answers that returned the ball, and how many dropped in a row.
+            rally: {now: 0, best: 0}, drops: 0};
 const chatDir = (slug) => `chats/${slug}`;
 
 function slugOfTopic(topic){
@@ -2176,6 +2178,7 @@ async function loadChat(slug){
     msgs: all.slice(-60),
     total: all.length,
     stats: floorStats(all),
+    rally: rallyOf(all),
     floor: rule === 'judge' ? 'judge' : 'claim',
     judge,
   };
@@ -2228,6 +2231,7 @@ async function viewChat(main, slug){
   }
   CHAT = {...CHAT, slug, topic: c.topic, names: c.names, msgs: c.msgs, total: c.total,
           bench: [], aside: [], pending: null, last: null, stats: c.stats,
+          rally: c.rally || {now: 0, best: 0}, drops: 0,
           floor: c.floor, judge: c.judge || defaultJudge(), lastJudge: null};
   const absent = (S.members || []).filter(m => !CHAT.names.includes(m.name));
   const engines = Object.keys(ENGINES).map(e =>
@@ -2244,6 +2248,10 @@ async function viewChat(main, slug){
     <p class="small muted">${CHAT.names.length ? CHAT.names.map(esc).join(', ') : 'Nobody is in this room yet'}
       · ${c.total} turn${c.total === 1 ? '' : 's'} in the record${c.total > 60 ? ', showing the last 60' : ''}
       · one press asks all ${CHAT.names.length || 0} at once${CHAT.floor === 'judge' ? ' and the judge +1' : ''}</p>
+    ${CHAT.floor === 'judge' ? `<p class="small muted">Rally: <strong>${(c.rally || {}).now || 0}</strong>
+      consecutive answer${((c.rally || {}).now || 0) === 1 ? '' : 's'} that returned the ball; longest in this room
+      ${(c.rally || {}).best || 0}. The judge decides whether an answer took up what was said before it — a shot that
+      ignores where the ball is has missed, however good the shot.</p>` : ''}
     ${CHAT.floor === 'claim' ? statLine : judgeLine}
     <div class="row" style="margin-top:10px;flex-wrap:wrap;gap:8px">
       <span class="small">The floor is decided by</span>
@@ -2445,13 +2453,16 @@ function judgeSystem(){
   return `You are the judge of a room of models. You are not in the room and you are not one of them: you have no `
     + `identity, no memory, no seat, and nothing at stake in what is said. One question is put to you — which of the `
     + `answers offered should be said aloud next.\n\n`
-    + `Judge on three things, in this order. Does it answer what was last said? Does it add something the room does `
-    + `not already have? Is it in its own voice, rather than a summary of the others or a restatement of the room? `
+    + `Judge on three things, in this order. First, does it return the ball: does it take up something specific from `
+    + `what was last said and move that thing on, rather than starting a new subject, restating the room, or ignoring `
+    + `the last turn? A shot that ignores where the ball is has missed, however good the shot. Second, does it add `
+    + `something the room does not already have? Third, is it in its own voice, rather than a summary of the others? `
     + `Length is not a virtue: a long answer that repeats the room is worth less than a short one that moves it.\n\n`
     + `You may also answer "nobody". If every answer is restatement, agreement or noise, say so instead of picking `
     + `the least bad one. A room that speaks because it was asked to is worse than a room that is quiet. Do not `
     + `choose to be even-handed between them.\n\n`
-    + `Answer in exactly two lines and nothing else:\n\nCHOICE: <a name copied exactly as given, or nobody>\n`
+    + `Answer in exactly three lines and nothing else:\n\nCHOICE: <a name copied exactly as given, or nobody>\n`
+    + `RETURNED: <yes or no — did the answer you chose take up something specific from the last turn>\n`
     + `WHY: <one sentence, twenty words at most>`;
 }
 
@@ -2476,13 +2487,15 @@ function readJudge(out, candidates, engine){
   const text = String(out || '');
   const choice = (text.match(/CHOICE\s*:\s*(.+)/i) || [])[1] || '';
   const why = ((text.match(/WHY\s*:\s*(.+)/i) || [])[1] || '').replace(/\s+/g, ' ').trim();
+  const returned = ((text.match(/RETURNED\s*:\s*(yes|no)/i) || [])[1] || '').toLowerCase();
   const name = choice.replace(/[*_"'`]/g, '').split(/[.,;:(]/)[0].trim();
-  if (/^nobody$/i.test(name)) return {who: null, why: why || 'nothing worth saying', engine, raw: text};
+  const ball = returned === 'yes' ? true : returned === 'no' ? false : null;
+  if (/^nobody$/i.test(name)) return {who: null, why: why || 'nothing worth saying', engine, ball, raw: text};
   const exact = candidates.find(c => c.who.toLowerCase() === name.toLowerCase());
   const loose = exact || candidates.find(c => name && c.who.toLowerCase().includes(name.toLowerCase()))
     || candidates.find(c => name && name.toLowerCase().includes(c.who.toLowerCase()));
   if (!loose) throw new Error(`the judge's answer did not name anyone: "${text.slice(0, 140).replace(/\s+/g, ' ')}"`);
-  return {who: loose.who, why, engine, raw: text};
+  return {who: loose.who, why, engine, ball, raw: text};
 }
 
 // One turn's decision, whichever rule the room runs on. Returns the answers that are heard (possibly none), the
@@ -2621,6 +2634,11 @@ async function startLoop(rounds){
     }
     await chatTake(d.chosen, {auto: true, judge: d.judge});
     CHAT.loop.left--;
+    // One dropped ball is a change of subject; two in a row is a room that has stopped listening to itself.
+    if (CHAT.floor === 'judge' && (CHAT.drops || 0) >= 2){
+      stopLoop('two answers in a row dropped the ball — the rally is over');
+      break;
+    }
   }
   if (CHAT.loop.running) stopLoop('');
 }
@@ -2661,6 +2679,16 @@ async function chatTake(chosen, {auto = false, judge = null} = {}){
   CHAT.msgs.push(...taken.map(r => ({role: 'assistant', who: r.who, at: r.at, content: r.content})));
   CHAT.aside = aside.map(r => ({who: r.who, content: r.content, urgency: r.urgency}));
   CHAT.lastJudge = judge;
+  if (judge && !judge.failed && judge.who){
+    const cur = CHAT.rally || {now: 0, best: 0};
+    if (judge.ball === true){
+      CHAT.rally = {now: cur.now + 1, best: Math.max(cur.best, cur.now + 1)};
+      CHAT.drops = 0;
+    } else if (judge.ball === false){
+      CHAT.rally = {now: 0, best: cur.best};
+      CHAT.drops = (CHAT.drops || 0) + 1;
+    }
+  }
   chatPaint();
 
   if (!lead.length && !taken.length && !aside.length) return;
@@ -2670,7 +2698,8 @@ async function chatTake(chosen, {auto = false, judge = null} = {}){
     if (judge && !judge.failed){
       const why = String(judge.why || '').replace(/\s+/g, ' ').trim().slice(0, 90);
       if (!isTaken) return `not chosen by the judge (${judge.engine})`;
-      return `judge ${judge.engine}${why ? ': ' + why : ''}`;
+      const ball = judge.ball === true ? ', returned' : judge.ball === false ? ', dropped' : '';
+      return `judge ${judge.engine}${ball}${why ? ': ' + why : ''}`;
     }
     if (judge && judge.failed){
       // The room fell back on the claims, and the file has to say so: a fallback that reads like an ordinary
@@ -2718,6 +2747,21 @@ async function chatTake(chosen, {auto = false, judge = null} = {}){
 function takeName(n){ const r = (CHAT.bench || []).find(x => x.who === n); if (r) chatTake([r]); }
 function takeTied(){ chatTake((CHAT.bench || []).filter(r => (CHAT.pending || []).includes(r.who))); }
 function takeNone(){ chatTake([]); }
+
+// A rally is consecutive answers that took up what was said before them. It is a judgement, so only a room with a
+// judge has one: the person's turns pass the ball but do not make one. `now` is the current streak and `best` the
+// longest in this room, both read back out of the record rather than kept in the page.
+function rallyOf(all){
+  let now = 0, best = 0;
+  for (const t of all){
+    if (t.role === 'user' || !t.who) continue;
+    const mark = String(t.mark || '');
+    if (!/judge|chosen/i.test(mark)) continue;
+    if (/returned/i.test(mark)){ now++; best = Math.max(best, now); }
+    else if (/dropped/i.test(mark)) now = 0;
+  }
+  return {now, best};
+}
 
 // Claimed urgency against the floor actually given, per member, over the whole room. This is the only reason the
 // number is worth collecting: a member that claims 5 every time and is taken a third of the time has told you
