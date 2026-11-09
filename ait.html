@@ -413,6 +413,30 @@ async function chatStream(system, messages, engine, onDelta){
   });
 }
 
+// A key does not fail once, at setup. It gets rotated, cancelled, expired by the provider, or runs out of credit —
+// and the failure arrives weeks later, in the middle of a conversation, as `401 · invalid_api_key`. That string is
+// the techie requirement people say does not exist, and it does: it is what a non-technical person meets at 11pm in
+// month two. Every failure the page can recognise is translated here, once, and everywhere it can surface.
+function explainEngineError(err, engine){
+  const label = ENGINES[engine] ? ENGINES[engine].label : engine;
+  const raw = String((err && err.message) || err || '');
+  const code = (raw.match(/\b(4\d\d|5\d\d)\b/) || [])[1] || '';
+  const say = (short, fix) => ({short, fix, label, raw, engine});
+  if (/no .*key|no key/i.test(raw))
+    return say(`There is no ${label} key in this browser.`, 'Paste one on the Keys page — it stays in this browser.');
+  if (code === '401' || code === '403' || /invalid.*api.?key|unauthor|forbidden/i.test(raw))
+    return say(`The ${label} key was refused.`, 'It has most likely been replaced or cancelled since it was pasted. Paste the current one on the Keys page.');
+  if (code === '429' || /rate.?limit|quota|insufficient/i.test(raw))
+    return say(`${label} is over its limit or out of credit.`, 'It will work again when the limit resets. Nothing is broken, and nothing said in the room is lost.');
+  if (code === '404' || /model.*(not found|does not exist|unknown)/i.test(raw))
+    return say(`${label} does not recognise that model name.`, 'The name to use is on the Keys page, under that engine.');
+  if (/^5\d\d$/.test(code) || /overload|unavailable|internal/i.test(raw))
+    return say(`${label} failed at its own end.`, 'There is nothing here to fix. Try again in a little while.');
+  if (/failed to fetch|network|load failed/i.test(raw))
+    return say(`This browser could not reach ${label}.`, 'Check the connection. Some providers also refuse calls made from a page like this one; the Keys page will tell you if the key itself is good.');
+  return say(`${label} could not answer.`, 'The exact reply was: ' + raw.slice(0, 160));
+}
+
 async function sse(url, init, onObject){
   const res = await fetch(url, init);
   if (!res.ok){
@@ -2063,7 +2087,7 @@ let CHAT = {slug: '', topic: '', names: [], msgs: [], bench: [], aside: [], pend
             // The room talking on its own: `left` rounds still to run, `stop` set by the person, `done` so far.
             loop: {running: false, left: 0, max: 0, done: 0, stop: false},
             // Who decides what is said next: the members' own claims, or a judge named here.
-            floor: 'claim', judge: '', repeat: 1, streak: {}, byJudge: [], stats: [], lastJudge: null,
+            floor: 'claim', judge: '', repeat: 1, streak: {}, byJudge: [], stats: [], lastJudge: null, failed: [],
             // The rally: consecutive answers that returned the ball, and how many dropped in a row.
             rally: {now: 0, best: 0}, drops: 0};
 const chatDir = (slug) => `chats/${slug}`;
@@ -2239,7 +2263,7 @@ async function viewChat(main, slug){
           bench: [], aside: [], pending: null, last: null, stats: c.stats,
           rally: c.rally || {now: 0, best: 0}, drops: 0,
           repeat: c.repeat, streak: {}, byJudge: c.byJudge || [],
-          floor: c.floor, judge: c.judge || defaultJudge(), lastJudge: null};
+          floor: c.floor, judge: c.judge || defaultJudge(), lastJudge: null, failed: []};
   const absent = (S.members || []).filter(m => !CHAT.names.includes(m.name));
   const engines = Object.keys(ENGINES).map(e =>
     `<option value="${e}" ${CHAT.judge === e ? 'selected' : ''}>${esc(ENGINES[e].label)}${keyFor(e).key ? '' : ' (no key here)'}</option>`).join('');
@@ -2408,6 +2432,14 @@ function chatPaint(){
       others are kept in the room's file.</div></div>`;
   }
 
+  // An absence is not a set-aside reply and must not be filed behind a fold with them. The member that could not
+  // answer is the one thing the person needs to know at 11pm in month two, and it is said where the room is.
+  for (const f of (CHAT.failed || [])){
+    html += `<div class="msg sys" style="display:block;max-width:100%;border-left:3px solid #a3302e">
+      <strong>${esc(f.who)} could not answer.</strong> ${esc(f.short)} ${esc(f.fix)}
+      <a href="#/keys" class="small">Go to the keys</a></div>`;
+  }
+
   if ((CHAT.aside || []).length && !(CHAT.bench || []).length){
     const a = CHAT.aside;
     html += `<div class="small muted" style="margin:12px 0 4px">${a.length === 1 ? 'A reply was' : a.length + ' replies were'}
@@ -2533,10 +2565,14 @@ async function decideTurn(room, names, {byPerson}){
     await askRoom(room, names, false);
     // The governor: nobody speaks more than `Repeat` times in a row. The excluded answers are still written — they
     // were written before the rule applied to them — and the record says they were excluded rather than passed over.
-    const field = CHAT.repeat ? CHAT.bench.filter(r => (CHAT.streak[r.who] || 0) < CHAT.repeat) : CHAT.bench;
+    const answered = CHAT.bench.filter(r => !r.failed);
+    const field = CHAT.repeat ? answered.filter(r => (CHAT.streak[r.who] || 0) < CHAT.repeat) : answered;
     CHAT.bench.forEach(r => { r.ineligible = !field.includes(r); });
     if (!field.length){
-      return {chosen: [], judge: {who: null, why: 'the repeat rule has excluded everybody', engine: CHAT.judge, ball: null}};
+      const why = answered.length ? 'the repeat rule has excluded everybody'
+        : CHAT.bench.length ? 'nobody could answer — the keys are the first thing to check'
+        : 'nobody was asked';
+      return {chosen: [], judge: {who: null, why, engine: CHAT.judge, ball: null}};
     }
     try {
       const barred = CHAT.bench.filter(r => !field.includes(r)).map(r => r.who);
@@ -2603,6 +2639,7 @@ async function chatSay(){
 // which is an artifact of the page's loop and not of the room.
 async function askRoom(room, names, claim = true){
   CHAT.bench = names.map(n => ({role: 'assistant', who: n, at: nowStamp(), content: '', urgency: null, done: false}));
+  CHAT.failed = [];   // an old failure is cleared by asking again; it comes back only if it is still true
   chatPaint();
   await Promise.all(CHAT.bench.map(async (r) => {
     const m = (S.members || []).find(x => x.name === r.who);
@@ -2610,7 +2647,11 @@ async function askRoom(room, names, claim = true){
     try {
       await chatStream(chatPrompt(m, claim), [{role: 'user', content: chatUtterance(room, m)}], m.engine,
         (d) => { r.content += d; chatPaint(); });
-    } catch(e){ r.content = '[could not answer: ' + e.message + ']'; }
+    } catch(e){
+      const x = explainEngineError(e, m.engine);
+      r.failed = x;
+      r.content = '[could not answer — ' + x.short + ' ' + x.fix + ']';
+    }
     const p = parseUrgency(r.content);
     r.claimed = p.urgency;
     r.urgency = p.urgency === null ? 0 : p.urgency;
@@ -2713,7 +2754,8 @@ async function chatTake(chosen, {auto = false, judge = null} = {}){
   CHAT.bench = []; CHAT.pending = null;
 
   CHAT.msgs.push(...taken.map(r => ({role: 'assistant', who: r.who, at: r.at, content: r.content})));
-  CHAT.aside = aside.map(r => ({who: r.who, content: r.content, urgency: r.urgency}));
+  CHAT.failed = aside.filter(r => r.failed).map(r => ({who: r.who, short: r.failed.short, fix: r.failed.fix, label: r.failed.label}));
+  CHAT.aside = aside.filter(r => !r.failed).map(r => ({who: r.who, content: r.content, urgency: r.urgency}));
   CHAT.lastJudge = judge;
   if (judge && !judge.failed){
     // The streak is what the governor counts: who spoke, how many times in a row.
@@ -2740,6 +2782,8 @@ async function chatTake(chosen, {auto = false, judge = null} = {}){
   // What the record says about this turn: a claim the room weighed, or a judge that chose and said why. Either way
   // the reason goes in the file beside the answer, because a decision nobody can read afterwards is not evidence.
   const markOf = (r, isTaken) => {
+    // A member whose engine refused to answer made no claim; writing `urgency 0` would file a broken key as modesty.
+    if (r.failed) return `could not answer (${r.failed.engine}: ${r.failed.short})`;
     if (judge && !judge.failed){
       const why = String(judge.why || '').replace(/\s+/g, ' ').trim().slice(0, 90);
       if (r.ineligible) return `excluded by the repeat rule (judge ${judge.engine})`;
@@ -2779,7 +2823,9 @@ async function chatTake(chosen, {auto = false, judge = null} = {}){
       return;
     }
     if (msg && judge && judge.failed){
-      msg.innerHTML = '<span class="err">The judge did not answer: ' + esc(judge.failed) + '. The room fell back on the members\' claims for this turn.</span>';
+      const x = explainEngineError(judge.failed, judge.engine);
+      msg.innerHTML = '<span class="err">The judge did not answer — ' + esc(x.short) + ' ' + esc(x.fix)
+        + ' The room fell back on the members\' claims for this turn.</span>';
       return;
     }
     if (msg) msg.textContent = taken.length
@@ -2997,6 +3043,10 @@ function viewKeys(main){
     made here. For <strong>wakes</strong> it must also be a secret in the repository — set that in the repository's
     own settings, under Secrets. This page holds the chat copy and nothing else; it is in this browser, not on a
     server of ours.</p>
+    <p class="small muted">A key is set once and then nothing here needs touching for as long as it works. When one
+    stops working — a key gets replaced, a free tier runs out, a model is renamed — the page says so in a sentence
+    instead of a code, here and in the room. <button class="plain small" onclick="checkAllKeys()">Check every key</button></p>
+    <p class="small" id="allkeys"></p>
     <div class="card">${Object.keys(ENGINES).map(e => {
       const k = keyFor(e);
       return `<div style="padding:10px 0;border-bottom:1px solid var(--line)">
@@ -3017,6 +3067,37 @@ function saveKey(e){
   const model = $('m-' + e).value.trim();
   S.keys[e] = {key: key || (S.keys[e] || {}).key || '', model};
   save(); $('t-' + e).textContent = 'saved to this browser.'; viewKeys($('main'));
+}
+
+// Every configured key, one at a time, in words. The check is not the point — the point is that the answer is a
+// sentence a person can act on without knowing what a 401 is.
+async function checkAllKeys(){
+  const out = $('allkeys');
+  const engines = Object.keys(ENGINES).filter(e => keyFor(e).key);
+  if (!engines.length){ if (out) out.textContent = 'No keys in this browser yet, so there is nothing to check.'; return; }
+  if (out) out.textContent = 'asking ' + engines.map(e => ENGINES[e].label).join(', ') + '…';
+  const lines = [];
+  for (const e of engines){
+    const key = keyFor(e).key, model = modelFor(e);
+    try {
+      if (e === 'gemini'){
+        const r = await fetch(`${GEN}/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`,
+          {method:'POST', headers:{'Content-Type':'application/json'},
+           body: JSON.stringify({contents:[{parts:[{text:'Reply with the single word: ready'}]}], generationConfig:{maxOutputTokens:8}})});
+        if (!r.ok) throw new Error(r.status + ' · ' + (await r.text()).slice(0, 200));
+      } else {
+        const r = await fetch(ENGINES[e].base + '/chat/completions', {method:'POST',
+          headers:{'Content-Type':'application/json', Authorization: 'Bearer ' + key},
+          body: JSON.stringify({model, max_tokens: 8, messages:[{role:'user', content:'Reply with the single word: ready'}]})});
+        if (!r.ok) throw new Error(r.status + ' · ' + (await r.text()).slice(0, 200));
+      }
+      lines.push(`<strong>${esc(ENGINES[e].label)}</strong> answered — the key works.`);
+    } catch(err){
+      const x = explainEngineError(err, e);
+      lines.push(`<strong>${esc(ENGINES[e].label)}</strong> — ${esc(x.short)} ${esc(x.fix)}`);
+    }
+  }
+  if (out) out.innerHTML = lines.join('<br>');
 }
 
 async function testKey(e){
