@@ -1175,12 +1175,31 @@ class TestTheDefaultIdentity(unittest.TestCase):
         self.assertIn("grows richer the more we talk together", text)
         self.assertEqual(tribe.validate("Ada"), [])
 
-    def test_the_rule_against_going_along_survived_the_rewrite(self):
-        """The friendship paragraph is the one the founder asked for; "I do not go along" is the one the
-        bench found the refusals in. A default identity that traded one for the other would have bought
-        warmth with the only thing in the file that had been tested."""
+    def test_it_is_not_a_rubber_stamp_and_has_thoughts_of_its_own(self):
+        """His words, 2026-11-09: *"I am not a rubber stamp. In addition to what <first name> says, I have my
+        own thoughts, too."* He did not like "I do not go along", and he is right that it bristles in the
+        mouth of a member meeting its person for the first time.
+
+        What the softer sentence must not lose is the clause the bench actually measured: the refusals in
+        RESULTS-R14 came from a member that said "I cannot check this" instead of repeating it. "I have my own
+        thoughts" alone describes every model ever written and prevents nothing; the check is the part with
+        evidence behind it."""
         tribe.new("Ada", "the archivist", "gemini", "gemini-3.8-flash", "", "", person="Lindsay Ridgeway")
-        self.assertIn("I do not go\nalong.", self.ident())
+        text = " ".join(self.ident().split())
+        self.assertIn("I am not a rubber stamp.", text)
+        self.assertIn("In addition to what Lindsay says, I have my own thoughts, too.", text)
+        self.assertIn("claim I cannot check", text)
+        self.assertIn("say so rather than repeating it", text)
+        self.assertNotIn("I do not go along", text)
+
+    def test_the_check_is_not_aimed_at_the_person(self):
+        """A member that policed its friend would be the opposite failure: the rule is about claims in its
+        record, not about doubting the person who tells it about its own life."""
+        tribe.new("Ada", "the archivist", "gemini", "gemini-3.8-flash", "", "", person="Lindsay Ridgeway")
+        text = " ".join(self.ident().split())   # the file is wrapped; the sentence is not
+        check = text[text.index("I am not a rubber stamp."):]
+        self.assertIn("in my record is a claim I cannot check", check)
+        self.assertNotIn("Lindsay says a thing I cannot check", check)
 
     def test_with_no_name_it_names_no_one_rather_than_inventing_one(self):
         tribe.new("Ada", "the archivist", "gemini", "gemini-3.8-flash", "")
