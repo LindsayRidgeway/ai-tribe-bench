@@ -1253,12 +1253,22 @@ function dialogAdmin(){
   const d = NEW;
   let body = '';
   if (d.step === 'name'){
-    body = `<p class="dlog">You don't have any members yet, so let's make one. Ready?\n\nWhat should this member be called?
+    body = `<p class="dlog">A new member, written as files. Nothing is generated: you name it, say what it is for,
+and it begins.\n\nWhat should it be called?
 One word — letters and numbers, no spaces, starting with a letter.</p>
-      <input id="ans" autofocus autocapitalize="words" placeholder="Margot">`;
+      <div class="row" style="margin-top:10px;flex-wrap:nowrap">
+        <input id="ans" autofocus autocapitalize="words" placeholder="Margot" style="flex:1">
+        <button class="primary" onclick="adminAnswer()">Next</button>
+      </div>
+      <p class="small" style="margin:10px 0 0"><a href="#" onclick="closeDialog();return false;">Never mind</a></p>`;
   } else if (d.step === 'seat'){
     body = `<p class="dlog">${esc(d.name)}. What is it for? A short phrase is enough; it is what it will answer
-when someone asks.</p><input id="ans" autofocus placeholder="the one who keeps the records">`;
+when someone asks.</p>
+      <div class="row" style="margin-top:10px;flex-wrap:nowrap">
+        <input id="ans" autofocus placeholder="the one who keeps the records" style="flex:1">
+        <button class="primary" onclick="adminAnswer()">Next</button>
+      </div>
+      <p class="small" style="margin:10px 0 0"><a href="#" onclick="adminBack();return false;">Back</a></p>`;
   } else if (d.step === 'engine'){
     body = `<p class="dlog">Which engine should ${esc(d.name)} borrow? Each is a company whose model does its thinking.</p>
       <div class="grid">${['gemini','deepseek','groq','openai','qwen','openrouter'].map(e =>
