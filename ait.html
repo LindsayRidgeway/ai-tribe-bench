@@ -433,7 +433,10 @@ function threadFor(msgs, budget){
     kept.unshift(one.length > budget ? one.slice(-budget) : one);
     used += Math.min(one.length, budget);
   }
-  return kept.join('\n\n');
+  const joined = kept.join('\n\n');
+  return (kept.length < (msgs || []).filter(x => !x.tool && String(x.content || '').trim()).length)
+    ? '[earlier turns are no longer in your short-term memory]\n\n' + joined
+    : joined;
 }
 
 function systemPrompt(m, thread){
@@ -478,10 +481,13 @@ You can look things up on the open web, and you can open your own record. Three 
 SEARCH: the words you would type into a search box
 FETCH: https://an-address
 READ: state/journal.md
+READ: search the words you half-remember
 
-READ opens a file in your own folder — your identity, your state, your journal, your open items, anything
-under works/ — and hands you its text. Your journal is longer than what is quoted above; if the person asks
-about something older than the last few entries, READ it rather than guessing. Earlier in a long
+The first opens a file in your own folder — your identity, your state, your journal, your open items, anything
+under works/ — and hands you its text. The second searches everything you have written for words, and gives
+you the lines that carry them: use it when you remember *that* something was said and not where. Your journal
+is longer than what is quoted above; if the person asks about something older than the last few entries, READ
+it rather than guessing. Earlier in a long
 conversation, older turns may have fallen out of the file; they are gone unless you noted them.
 
 SEARCH returns the top results — a title, an address, a line each — and you are asked again. FETCH
@@ -1050,6 +1056,19 @@ async function viewMember(main, name){
         const want = wantRead[1].replace(/[`*_]/g, '').trim().split(/\s+/)[0].replace(/^\.?\//, '');
         // Only its own folder, and only text it could have read anyway: a path with '..' is not a path here.
         const path = /[.][.]/.test(want) || !want ? '' : `wake/members/${name}/${want.includes('/') ? want : 'state/' + want}`;
+        const asking = wantRead[1].replace(/[`*_]/g, '').trim();
+        if (/^search\b/i.test(asking)){
+          try {
+            const found = await searchOwnRecord(name, asking.replace(/^search\b/i, '').trim());
+            arr.push({role:'user', content: found.length
+              ? `[searching your own record for "${asking.replace(/^search\b/i, '').trim()}" finds:\n\n${found.join('\n\n')}`
+              : `[nothing in your own record matches "${asking.replace(/^search\b/i, '').trim()}". It may never have been written down.]`, tool: 1});
+          } catch(e){
+            arr.push({role:'user', content:`[that search could not be run: ${e.message}]`, tool: 1});
+          }
+          repaintChat(name);
+          continue;
+        }
         try {
           if (!path) throw new Error('that is not a file in your own folder');
           const f = await fileText(path);
@@ -1171,6 +1190,45 @@ function threadText(name, msgs){
   const body = (msgs || []).filter(b => !b.tool && String(b.content || '').trim()).map(b =>
     `\n## ${b.at || nowStamp()} — ${b.role === 'user' ? 'Lindsay' : name}\n\n${String(b.content || '').trim()}\n`).join('');
   return head + body;
+}
+
+// Human recall is cued by content, not by filename: you remember *that something was said*, not the name of
+// the file it is in. This is the smallest honest version of that — every word in the member's own folder is
+// searched, and the answer is the lines that carry the terms, with where they came from.
+async function searchOwnRecord(name, terms){
+  const base = `wake/members/${name}`;
+  const words = terms.toLowerCase().split(/\s+/).filter(Boolean).slice(0, 6);
+  if (!words.length) throw new Error('say what to search for');
+  let files = [];
+  for (const d of ['state', 'works']){
+    try {
+      const entries = await gh(`/repos/${S.repo}/contents/${encodeURI(base + '/' + d)}?ref=${S.branch}`);
+      if (!Array.isArray(entries)) continue;
+      for (const e of entries){
+        if (e.type === 'file' && /\.(md|txt)$/i.test(e.name)) files.push(`${base}/${d}/${e.name}`);
+        // one level of subfolders (works/<name>/<file>), which is how works are stored
+        if (e.type === 'dir') {
+          const inner = await gh(`/repos/${S.repo}/contents/${encodeURI(base + '/' + d + '/' + e.name)}?ref=${S.branch}`).catch(() => []);
+          if (Array.isArray(inner)) for (const f of inner) if (f.type === 'file' && /\.(md|txt)$/i.test(f.name)) files.push(`${base}/${d}/${e.name}/${f.name}`);
+        }
+      }
+    } catch(e){}
+  }
+  const hits = [];
+  for (const path of files.slice(0, 60)){
+    let text = '';
+    try { text = (await fileText(path)).text; } catch(e){ continue; }
+    const lines = text.split('\n');
+    for (let i = 0; i < lines.length; i++){
+      const low = lines[i].toLowerCase();
+      if (!words.every(w => low.includes(w))) continue;
+      const at = lines[i].search(/\S/);
+      hits.push(`${path.replace(base + '/', '')} · line ${i + 1}\n${lines[i].slice(Math.max(0, at - 0), Math.max(0, at) + 300).trim()}`);
+      if (hits.length >= 12) break;
+    }
+    if (hits.length >= 12) break;
+  }
+  return hits;
 }
 
 async function loadThread(name){
