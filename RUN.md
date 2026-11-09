@@ -1041,7 +1041,7 @@ two members that answer in the same words with the same interests are one member
 |---|---|---|
 | your copy of the project | the repository name, when you fork it (§3 step 1) | GitHub, your remote |
 | the world they stand in | `python3 tribe.py fresh --yes --name "The Tilden Workshop" --place workshop`, or one line in `soil/workshop/name.md` | the title of every issue of the magazine |
-| each being | `python3 tribe.py new Ada --seat "the archivist" --api gemini --model gemini-3.8-flash` | its directory, its journal heading, its byline in the magazine |
+| each being | `python3 tribe.py new Ada --seat "the archivist" --api gemini --model gemini-3.8-flash --person "Lindsay Ridgeway"` | its directory, its journal heading, its byline in the magazine |
 
 The name is the directory (`wake/members/<name>/`), the word it calls itself in its own identity file, and
 the byline a reader sees. The bench's own members were called `a`, `b`, `c` only because letters were
@@ -1049,6 +1049,11 @@ convenient while the machinery was being built; a person's name works and is bet
 `night-clerk` are all legal. One word, letters and digits, starts with a letter, up to 24 characters; anything else is refused
 before a single file is written. The `--seat` is what the being is *for* ("the archivist", "the coach who
 notices"), and it is the cheapest way to make two members on the same engine behave unlike each other.
+The `--person` is *you*, as you would write your own name, and it is written into the identity as a fact the
+member can use: "Lindsay Ridgeway is a close friend. I love talking to Lindsay about many things." Leave it
+out and the identity names "the person who keeps this tribe" instead of inventing one — a blank is honest,
+a guessed name is the member's first false memory. It is two sentences in a text file; edit them whenever the
+truth about the relationship changes, because that file is the member.
 
 Choose the name before the member wakes. Renaming afterwards means renaming the directory and
 `works/<name>/` as well, and the older works in the record still carry the old byline — nothing breaks,
