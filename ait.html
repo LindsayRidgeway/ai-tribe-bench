@@ -258,7 +258,12 @@ async function gh(path, opts = {}, token = S.token){
   };
   if (opts.body) headers['Content-Type'] = 'application/json';
   Object.assign(headers, opts.headers || {});
-  const res = await fetch(API + path, {...opts, headers, body: opts.body ? JSON.stringify(opts.body) : undefined});
+  // `no-store`: GitHub sends its contents API responses with a private max-age, and a browser that reuses one
+  // hands the page a sha that is already out of date — which turned every "write what you just read" into a 409.
+  // Measured 2026-11-09 on the chapter archiver: the read after a create returned the file's *creation-time*
+  // absence twice, so the append refused to land.
+  const res = await fetch(API + path, {...opts, cache: 'no-store', headers,
+    body: opts.body ? JSON.stringify(opts.body) : undefined});
   if (res.status === 204) return null;
   const text = await res.text();
   let data = null;
@@ -496,7 +501,7 @@ ${oi}
 
 ${remembered ? 'Your long-term memory, as you last retold it yourself — this is a retelling, not a record, and you\nmay rewrite it when you tell it again:\n' + remembered + '\n\n' : ''}Your long-term memory — your journal, the raw record: notes you wrote yourself, and what each wake wrote\nabout what it did. This does not change once it is written:\n${jo}
 
-${said ? 'Your short-term memory — what has been said in this conversation. The newest turns are the ones kept; the oldest fall out as the talk goes on. They are quoted in the order they were said, so the last thing here is the most recent thing said:\n' + said + '\n' : ''}
+${said ? 'Your short-term memory — what has been said in this conversation. The newest turns are the ones kept; the oldest fall out as the talk goes on, and they are kept whole in your chapters (state/talk/), which you can look into with READ: search <words> when you want to remember something specific. They are quoted in the order they were said, so the last thing here is the most recent thing said:\n' + said + '\n' : ''}
 
 You are in a live conversation with the person who keeps this tribe. Speak as yourself, in the first
 person, in plain words. This is a conversation, not a form: answer what was asked, in the length the
@@ -1042,7 +1047,7 @@ async function viewMember(main, name){
     <p class="small muted">${esc(m.place || 'no room')} · ${m.wakes} wake${m.wakes === '1' ? '' : 's'} · last ${esc(m.lastWake)}
       · <a href="#/m/${encodeURIComponent(m.name)}" onclick="showFiles('${escq(m.name)}');return false;">its files</a></p>
 
-    <h2>Talk <span class="small muted" style="font-weight:400">— its short-term memory: the newest turns are kept, the oldest fall out</span></h2>
+    <h2>Talk <span class="small muted" style="font-weight:400">— its short-term memory: the newest turns are kept here, the oldest roll into its chapters</span></h2>
     <div class="chat" id="chat">${(S.chat[m.name] || []).map(bubbleHTML).join('')}</div>
     <div class="composer">
       <textarea id="say" placeholder="Say something to ${esc(m.name)}…" autocapitalize="sentences"></textarea>
@@ -1055,6 +1060,23 @@ async function viewMember(main, name){
       <span class="small muted" id="mmsg"></span>
     </div>
 
+    <div class="card" style="margin-top:10px">
+      <div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <span class="small"><strong>Its chapters</strong> <span class="muted">— what has rolled out of the talk above,
+kept whole: not summarised, not rewritten</span></span>
+        <span class="row" style="gap:6px;align-items:center">
+          <button class="plain small" onclick="newChapter('${escq(m.name)}')">Start a new chapter</button>
+          <span class="small muted" id="chaptsmsg"></span>
+        </span>
+      </div>
+      <div class="row" style="margin-top:8px;gap:6px;flex-wrap:nowrap">
+        <input id="chapq" placeholder="search everything said in them…" style="flex:1"
+          onkeydown="if (event.key === 'Enter'){ event.preventDefault(); searchChapters('${escq(m.name)}', this.value); }">
+        <button class="plain small" onclick="searchChapters('${escq(m.name)}', $('chapq').value)">Search</button>
+      </div>
+      <div id="chapts" style="margin-top:6px"><p class="small muted">reading the chapters…</p></div>
+    </div>
+
     <h2>Its own words <span class="small muted" style="font-weight:400">— its long-term memory: what it wrote down, and what no conversation can take away</span></h2>
     <div class="prose">${md(m.journal.split(/\n(?=## )/).slice(-2).join('\n\n'))}</div>
 
@@ -1065,6 +1087,7 @@ async function viewMember(main, name){
     <div class="card" id="memcmp"><p class="small muted">reading what changed…</p></div>`;
 
   showIdentity(name).catch(() => {});
+  showChapters(name).catch(() => {});
 
   // The comparison reads two API endpoints; it must not delay the talk, and a failure is a footnote.
   compareMemories(name).catch(e => {
@@ -1637,12 +1660,159 @@ async function loadThread(name){
   } catch(e){ return []; }
 }
 
+// A talk has no end, so the window has to roll — but rolling used to *discard*, which is why the record of a long
+// conversation thinned out instead of lengthening. What falls out of the window now goes into a chapter: an
+// append-only file under `state/talk/`, one per chapter, numbered and dated. The live window stays short (the
+// page stays short with it), the record keeps everything, and the member can search it with `READ: search`.
+const talkDir = (name) => `wake/members/${name}/state/talk`;
+
+async function chapterFiles(name){
+  const names = (await dirNames(talkDir(name))).filter(n => /^\d{3}-.*\.md$/.test(n)).sort();
+  return names;
+}
+
+// The chapter's text and the sha it was read at, together — because a sha separated from the text it belongs to is
+// how a write lands on top of somebody else's.
+async function readChapter(name, file){
+  try { const f = await fileText(`${talkDir(name)}/${file}`); return {text: f.text, sha: f.sha}; }
+  catch(e){ return {text: '', sha: null}; }
+}
+
+function turnsToText(name, msgs){
+  return (msgs || []).filter(b => !b.tool && String(b.content || '').trim())
+    .map(b => `\n## ${b.at || nowStamp()} — ${b.role === 'user' ? 'Lindsay' : name}\n\n${String(b.content || '').trim()}\n`).join('');
+}
+
+// The chapter a falling turn belongs to: the newest one, or a new one if the member has none.
+async function openChapter(name){
+  const files = await chapterFiles(name);
+  const n = files.length + 1;
+  // `2026-11-09 21:46 UTC` → `2026-11-09T2146Z`: sorts as a filename and reads as a time.
+  const stamp = nowStamp().replace(' ', 'T').replace(' UTC', 'Z').replace(':', '');
+  const file = `${String(n).padStart(3, '0')}-${stamp}.md`;
+  const head = `# Talk — ${name} — chapter ${n}, opened ${nowStamp()}\n\n`
+    + `Written by the harness, not by ${name}: this is the talk as it happened, kept once it rolled out of the live\n`
+    + `window. Nothing in it is a summary, and nothing in it is rewritten.\n`;
+  const put = await putText(`${talkDir(name)}/${file}`, head, `talk: ${name} — chapter ${n} opened`, null);
+  return {file, text: head, sha: put && put.content ? put.content.sha : null};
+}
+
+async function currentChapter(name){
+  const files = await chapterFiles(name);
+  if (!files.length) return await openChapter(name);
+  const file = files[files.length - 1];
+  const cur = await readChapter(name, file);
+  return {file, text: cur.text, sha: cur.sha};
+}
+
+async function appendToChapter(name, file, text, message){
+  const path = `${talkDir(name)}/${file}`;
+  let cur = await readChapter(name, file);
+  const body = String(cur.text || '').replace(/\s*$/, '\n') + '\n' + text;
+  try { return await putText(path, body, message, cur.sha); }
+  catch(e){
+    // Same lag the identity editor met: the read can be one second behind the write that created the file.
+    if (!/^409/.test(String(e.message))) throw e;
+    cur = await readChapter(name, file);
+    return await putText(path, String(cur.text || '').replace(/\s*$/, '\n') + '\n' + text, message, cur.sha);
+  }
+}
+
+async function archiveTurns(name, msgs){
+  const mine = (msgs || []).filter(b => !b.tool && String(b.content || '').trim());
+  if (!mine.length) return;
+  const ch = await currentChapter(name);
+  await appendToChapter(name, ch.file,
+    turnsToText(name, mine).replace(/^\n/, ''),
+    `talk: ${name} — ${mine.length} older turn${mine.length === 1 ? '' : 's'} kept in ${ch.file}`);
+}
+
+// The person's own break. The live window is emptied into the chapter, so the page starts clean while the record
+// grows by exactly what the page let go of.
+async function newChapter(name){
+  const say = (t) => { const e = $('chaptsmsg'); if (e) e.textContent = t; };
+  const all = S.chat[name] || [];
+  try {
+    if (all.length) await archiveTurns(name, all);
+    const closed = await chapterFiles(name);
+    S.chat[name] = [];
+    let sha;
+    try { sha = (await fileText(threadPath(name))).sha; } catch(e){}
+    await putText(threadPath(name), threadText(name, []),
+      `conversation: ${name} — chapter closed, ${all.filter(b => !b.tool).length} turn(s) kept in the chapter`, sha);
+    repaintChat(name);
+    await showChapters(name);
+    say(all.length ? `Chapter ${closed.length} is closed and kept. This is chapter ${closed.length + 1}.`
+                   : 'Nothing to close — the talk is already empty.');
+  } catch(e){ if ($('chaptsmsg')) $('chaptsmsg').innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }
+}
+
+function chapterPreview(text){
+  // What a reader wants in a table of contents: who spoke, when, and the first words.
+  const turns = String(text || '').split(/^## /m).slice(1);
+  const first = (turns[0] || '').split('\n').slice(2).join(' ').replace(/\s+/g, ' ').trim().slice(0, 90);
+  return {turns: turns.length, first, opened: (turns[0] || '').split(' — ')[0] || ''};
+}
+
+async function showChapters(name){
+  const box = $('chapts'); if (!box) return;
+  try {
+    const files = (await chapterFiles(name)).reverse();
+    if (!files.length){ box.innerHTML = '<p class="small muted">No chapters yet. Older turns go here as the talk goes on.</p>'; return; }
+    const rows = [];
+    for (const f of files.slice(0, 12)){
+      let t = '';
+      try { t = (await fileText(`${talkDir(name)}/${f}`)).text; } catch(e){ continue; }
+      const p = chapterPreview(t);
+      rows.push(`<div class="row" style="justify-content:space-between;align-items:flex-start;padding:6px 0;
+        border-bottom:1px solid #eee"><div class="grow"><div class="small"><strong>${esc(f.replace('.md',''))}</strong>
+        <span class="muted">· ${p.turns} turn${p.turns === 1 ? '' : 's'}${p.opened ? ' · from ' + esc(p.opened) : ''}</span></div>
+        <div class="small muted">${esc(p.first)}${p.first ? '…' : ''}</div></div></div>`);
+    }
+    box.innerHTML = rows.join('') || '<p class="small muted">No chapters yet.</p>';
+  } catch(e){ box.innerHTML = '<p class="small muted">Could not read the chapters: ' + esc(e.message) + '</p>'; }
+}
+
+// A table of contents is a memory aid only if you can look things up in it: the page searches the chapters for
+// the same reason the member does, and stops at eight files so a long record cannot become a long wait.
+async function searchChapters(name, terms){
+  const box = $('chapts');
+  const words = String(terms || '').toLowerCase().split(/\s+/).filter(Boolean).slice(0, 5);
+  if (!box) return;
+  if (!words.length){ await showChapters(name); return; }
+  box.innerHTML = '<p class="small muted">searching the chapters…</p>';
+  const files = (await chapterFiles(name)).reverse().slice(0, 8);
+  const hits = [];
+  for (const f of files){
+    let t = '';
+    try { t = (await fileText(`${talkDir(name)}/${f}`)).text; } catch(e){ continue; }
+    const lines = t.split('\n'); let when = '';
+    for (const line of lines){
+      const h = line.match(/^## (.+?) — (.+)$/);
+      if (h){ when = h[1] + ' — ' + h[2]; continue; }
+      if (!line.trim()) continue;
+      const low = line.toLowerCase();
+      if (words.every(w => low.includes(w))) hits.push(`<div class="small" style="padding:4px 0">
+        <span class="muted">${esc(f.replace('.md',''))} · ${esc(when)}</span><br>${esc(line.trim().slice(0, 300))}</div>`);
+      if (hits.length >= 20) break;
+    }
+    if (hits.length >= 20) break;
+  }
+  box.innerHTML = (hits.length ? hits.join('') : '<p class="small muted">Nothing in the chapters matches that.</p>')
+    + `<p class="small"><a href="#" onclick="showChapters('${escq(name)}');return false;">← the chapter list</a></p>`;
+}
+
 async function saveThread(name){
   const all = S.chat[name] || [];
-  // Keep the newest turns that fit the budget; anything older has already had its chance to be noted.
+  // Keep the newest turns that fit the budget. What falls out is not discarded: it is kept in the chapter, so a
+  // long talk lengthens the record instead of thinning it.
   let keep = all.slice(-40);
   while (keep.length > 2 && threadText(name, keep).length > CHAT_CHARS) keep = keep.slice(1);
+  const dropped = all.slice(0, all.length - keep.length);
   S.chat[name] = keep;
+  if (dropped.some(b => !b.tool && String(b.content || '').trim())){
+    try { await archiveTurns(name, dropped); } catch(e){ console.warn('chapter not written', e); }
+  }
   let sha;
   try { sha = (await fileText(threadPath(name))).sha; } catch(e){}
   await putText(threadPath(name), threadText(name, keep),
