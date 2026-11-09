@@ -1301,7 +1301,8 @@ function threadText(name, msgs){
   const head = `# Conversation — ${name}\n\nWhat has been said lately. The oldest turns fall out of this file; `
     + `nothing is lost that ${name} wrote into its journal as a note.\n`;
   const body = (msgs || []).filter(b => !b.tool && String(b.content || '').trim()).map(b =>
-    `\n## ${b.at || nowStamp()} — ${b.who || (b.role === 'user' ? 'Lindsay' : name)}\n\n${String(b.content || '').trim()}\n`).join('');
+    `\n## ${b.at || nowStamp()} — ${b.who || (b.role === 'user' ? 'Lindsay' : name)}`
+      + `${b.mark ? ' [' + b.mark + ']' : ''}\n\n${String(b.content || '').trim()}\n`).join('');
   return head + body;
 }
 
@@ -1666,8 +1667,10 @@ async function loadThread(name){
       const nl = part.indexOf('\n');
       const heading = (nl < 0 ? part : part.slice(0, nl));
       const body = (nl < 0 ? '' : part.slice(nl + 1)).trim();
-      const who = heading.split(' — ').pop().trim();
-      return {role: who === 'Lindsay' ? 'user' : 'assistant', who, content: body, at: heading.split(' — ')[0]};
+      const h = headingWho(heading);
+      const mine = (S.members || []).some(m => m.name === h.who) ? false : true;
+      return {role: mine ? 'user' : 'assistant', who: h.who, content: body, at: heading.split(' — ')[0],
+              mark: h.mark, urgency: h.urgency, taken: h.taken};
     }).filter(x => x.content);
     if (msgs.length) S.chat[name] = msgs;
     return msgs;
@@ -1696,7 +1699,8 @@ function turnsToText(name, msgs){
   // `who` first: in a room with three members, a turn written as the room's name would come back out of the file
   // with nobody's name on it, and the next member to read it could not tell who had said what.
   return (msgs || []).filter(b => !b.tool && String(b.content || '').trim())
-    .map(b => `\n## ${b.at || nowStamp()} — ${b.who || (b.role === 'user' ? 'Lindsay' : name)}\n\n${String(b.content || '').trim()}\n`).join('');
+    .map(b => `\n## ${b.at || nowStamp()} — ${b.who || (b.role === 'user' ? 'Lindsay' : name)}`
+      + `${b.mark ? ' [' + b.mark + ']' : ''}\n\n${String(b.content || '').trim()}\n`).join('');
 }
 
 // The chapter a falling turn belongs to: the newest one, or a new one if the member has none.
@@ -2041,8 +2045,19 @@ async function makeMember(){
 // them, and start one with nobody in it yet. Nothing about this needs a server: `chats/<slug>/chat.md` says what it
 // is and who is in it, `chats/<slug>/talk.md` is what was said, and each member keeps its own copy of the talk in
 // its own memory, because a member's memory is a file and the same tape can be in several records at once.
+//
+// The floor. Asking three members one after another makes the third a responder to the first, which is an artifact
+// of the loop rather than of the room: in a room everyone hears the same thing and one of them speaks. So every
+// member is asked the same turn at once, each says how urgently the room needs its answer (1-5), and the room hears
+// the highest — or, on a tie, whichever the person gives the floor to. The set-aside answers are written down and
+// not said aloud, which is the difference between a room and a transcript. The number is a claim by the member that
+// benefits from it, so it is kept with the outcome: claimed urgency against floors actually given is printed at the
+// top of every room, which is the only sense in which this is a measurement.
 
-let CHAT = {slug: '', topic: '', names: [], msgs: [], busy: false, total: 0};
+// `bench` is the answers to the turn just asked, before the room decides which one it hears; `aside` is the ones
+// it did not hear. Nothing here is thrown away: the bench is decided, not discarded.
+let CHAT = {slug: '', topic: '', names: [], msgs: [], bench: [], aside: [], pending: null, pendingTop: 0,
+            last: null, busy: false, total: 0};
 const chatDir = (slug) => `chats/${slug}`;
 
 function slugOfTopic(topic){
@@ -2140,6 +2155,7 @@ async function loadChat(slug){
     names: names && names !== '(nobody yet)' ? names.split(',').map(x => x.trim()).filter(Boolean) : [],
     msgs: all.slice(-60),
     total: all.length,
+    floor: floorStats(all),
   };
 }
 
@@ -2156,14 +2172,19 @@ async function viewChat(main, slug){
       <p><a href="#/table">← all chats</a></p>`;
     return;
   }
-  CHAT = {...CHAT, slug, topic: c.topic, names: c.names, msgs: c.msgs, total: c.total};
+  CHAT = {...CHAT, slug, topic: c.topic, names: c.names, msgs: c.msgs, total: c.total,
+          bench: [], aside: [], pending: null, last: null};
   const absent = (S.members || []).filter(m => !CHAT.names.includes(m.name));
   main.innerHTML = `
     <p class="small"><a href="#/table">← all chats</a></p>
     <h1>${esc(c.topic)}</h1>
     <p class="small muted">${CHAT.names.length ? CHAT.names.map(esc).join(', ') : 'Nobody is in this room yet'}
       · ${c.total} turn${c.total === 1 ? '' : 's'} in the record${c.total > 60 ? ', showing the last 60' : ''}
-      · one message costs ${CHAT.names.length || 0} call${CHAT.names.length === 1 ? '' : 's'}</p>
+      · one press asks all ${CHAT.names.length || 0} at once</p>
+    ${c.floor.length ? `<p class="small muted">The floor, claimed against given:
+      ${c.floor.map(x => `${esc(x.name)} took it ${x.taken} of ${x.claims} time${x.claims === 1 ? '' : 's'}`
+        + (x.nTaken ? ` (claiming ${(x.sumTaken / x.nTaken).toFixed(1)} when taken` : ' (')
+        + (x.nAside ? `, ${(x.sumAside / x.nAside).toFixed(1)} when set aside)` : ')')).join(' · ')}</p>` : ''}
     <div class="chat" id="tchat"></div>
     <div class="composer">
       <textarea id="tsay" placeholder="Say something in ${esc(c.topic)}…" autocapitalize="sentences"></textarea>
@@ -2176,13 +2197,30 @@ async function viewChat(main, slug){
         <button class="plain small" onclick="chatAddMember()">Add</button>` : ''}
       <span class="small muted" id="tmsg"></span>
     </div>
+    <p class="small muted">Everybody in the room is asked at once and nobody hears the others' answers before
+    theirs; each begins with its own urgency, 1 to 5, and the room hears the highest. <strong>That number is a
+    claim, not a measurement</strong> — it is written by the member that benefits from it — so it is kept beside
+    what actually happened instead of being trusted: the line above counts claims against floors. A tie is yours to
+    settle, and every answer, taken or not, is kept.</p>
     <p class="small muted">A member in this room cannot look anything up yet: no SEARCH, no FETCH, no pages. It
     speaks from its identity and the room. The whole talk is in <code>chats/${esc(slug)}/talk.md</code>, and each
-    member keeps a copy in its own memory.</p>`;
+    member keeps a copy in its own memory: what was said, and its own unsaid reply if it had one.</p>`;
 
   $('tsend').onclick = chatSay;
   $('tsay').onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); chatSay(); } };
   chatPaint();
+}
+
+// A turn's heading is `## 2026-11-09 22:06 UTC — Lumi [urgency 4, not taken]`. The bracket is the only place the
+// room records what a member *claimed* about its own contribution, and whether the room took it — which is what
+// makes the number checkable later instead of decorative now.
+function headingWho(heading){
+  const raw = heading.split(' — ').pop().trim();
+  const m = raw.match(/^(.*?)\s*\[([^\]]*)\]\s*$/);
+  if (!m) return {who: raw, mark: '', urgency: null, taken: true};
+  const mark = m[2].trim();
+  const u = mark.match(/urgency\s+(\d)/i);
+  return {who: m[1].trim(), mark, urgency: u ? Number(u[1]) : null, taken: !/not taken/i.test(mark)};
 }
 
 function parseTurns(text){
@@ -2191,9 +2229,10 @@ function parseTurns(text){
     const nl = part.indexOf('\n');
     const heading = nl < 0 ? part : part.slice(0, nl);
     const body = (nl < 0 ? '' : part.slice(nl + 1)).trim();
-    const who = heading.split(' — ').pop().trim();
-    const mine = known.size ? !known.has(who) : who === personLabel();
-    return {role: mine ? 'user' : 'assistant', who, at: heading.split(' — ')[0], content: body};
+    const h = headingWho(heading);
+    const mine = known.size ? !known.has(h.who) : h.who === personLabel();
+    return {role: mine ? 'user' : 'assistant', who: h.who, at: heading.split(' — ')[0], content: body,
+            mark: h.mark, urgency: h.urgency, taken: h.taken};
   }).filter(x => x.content);
 }
 
@@ -2205,10 +2244,53 @@ function personLabel(){
   return o ? o.split(/\s+/)[0] : 'Lindsay';
 }
 
+// The reply arrives as `URGENCY: 3` and then the answer. The line is machinery and the page does not print it,
+// but a member that wrote it while streaming is briefly visible, so it is stripped wherever the text is shown.
+function parseUrgency(text){
+  const t = String(text || '');
+  const m = t.match(/^\s*URGENCY\s*[:：]?\s*([1-5])\b/i);
+  if (!m) return {urgency: null, text: t.trim()};
+  return {urgency: Number(m[1]), text: t.slice(m[0].length).replace(/^\s*\n/, '').trim()};
+}
+const stripUrgency = (t) => parseUrgency(t).text;
+
 function chatPaint(){
   const box = $('tchat'); if (!box) return;
-  box.innerHTML = CHAT.msgs.filter(b => !b.tool).map(b => bubbleHTML({...b, i: ''}, true)).join('')
-    + (CHAT.busy ? '<div class="msg sys">…</div>' : '');
+  let html = CHAT.msgs.filter(b => !b.tool).map(b => bubbleHTML({...b, i: ''}, true)).join('');
+
+  // The bench: every member wrote an answer to the same turn, and the room is deciding which of them it hears.
+  for (const r of (CHAT.bench || [])){
+    const tie = CHAT.pending && CHAT.pending.includes(r.who);
+    const claim = r.urgency ? ` · claimed ${r.urgency}` : (r.done ? ' · claimed nothing' : '');
+    html += `<div class="msg them" style="border-left:3px solid ${tie ? '#a3302e' : '#e3e3e3'};opacity:${CHAT.pending ? 1 : .85}">
+      <div class="small muted" style="margin-bottom:2px">${esc(r.who)}${claim}${r.done ? '' : ' · writing…'}</div>
+      ${esc(stripUrgency(r.content))}</div>`;
+  }
+
+  if (CHAT.pending){
+    html += `<div class="msg sys" style="display:block;max-width:100%">
+      <div style="margin-bottom:8px"><strong>A tie at ${CHAT.pendingTop}</strong> — which does the room hear?</div>
+      <div class="row" style="gap:6px;flex-wrap:wrap">
+        ${CHAT.pending.map(n => `<button class="plain small" onclick="takeName('${escq(n)}')">${esc(n)}</button>`).join('')}
+        <button class="plain small" onclick="takeTied()">both</button>
+        <button class="plain small" onclick="takeNone()">neither</button>
+      </div>
+      <div class="small muted" style="margin-top:8px">Nothing is written until you choose. Whichever you pick, the
+      others are kept in the room's file.</div></div>`;
+  }
+
+  if ((CHAT.aside || []).length && !(CHAT.bench || []).length){
+    const a = CHAT.aside;
+    html += `<div class="small muted" style="margin:12px 0 4px">${a.length === 1 ? 'A reply was' : a.length + ' replies were'}
+      set aside — ${a.map(r => esc(r.who) + ' (claimed ' + r.urgency + ')').join(', ')}. It is in the room's file, and
+      the count of claims against floors is in the header.
+      <button class="plain small" onclick="var d=document.getElementById('taside'); d.hidden=!d.hidden">read ${a.length === 1 ? 'it' : 'them'}</button></div>
+      <div id="taside" hidden>${a.map(r => `<div class="msg them" style="opacity:.75">
+        <div class="small muted" style="margin-bottom:2px">${esc(r.who)} · claimed ${r.urgency} · not taken</div>
+        ${esc(r.content)}</div>`).join('')}</div>`;
+  }
+
+  box.innerHTML = html;
   box.scrollIntoView({block: 'end'});
 }
 
@@ -2237,60 +2319,138 @@ function chatPrompt(m){
   const others = CHAT.names.filter(n => n !== m.name);
   return systemPrompt(m, '') + `\n\nYou are in a room called "${CHAT.topic}" with `
     + `${others.length ? others.join(' and ') + ' and ' : ''}the person who keeps this tribe. Everyone in the room `
-    + `hears everything that is said, including you, and each of you answers for yourself only. Answer the last `
-    + `thing said, in your own voice, in one or two short paragraphs. Do not speak for anyone else, and do not put `
-    + `your name at the front of what you say.`;
+    + `hears everything that is said. You are all being asked the same thing at the same time, without hearing the `
+    + `others' answers first — so, as in a real room, more than one of you may want the floor at once, and only one `
+    + `of you will get it.\n\n`
+    + `Begin with one line, exactly like this:\n\nURGENCY: <a number from 1 to 5>\n\n`
+    + `5 means the room needs this from you now and it would be lost if you stayed quiet; 1 means you have nothing `
+    + `to add that someone else is not better placed to say. Answer honestly, including when the honest number is `
+    + `low: a number everybody gives 5 decides nothing, and this one is kept in the record and compared with what the `
+    + `room actually took. Then leave a blank line and say what you have to say, in your own voice, in one or two `
+    + `short paragraphs. Do not speak for anyone else, and do not put your name at the front of it.`;
 }
 
 async function chatSay(){
   const box = $('tsay'), msg = $('tmsg'), slug = CHAT.slug;
   if (!box || CHAT.busy || !slug) return;
+  if (CHAT.pending){
+    if (msg) msg.innerHTML = '<span class="err">Give somebody the floor first — the tied answers are waiting above.</span>';
+    return;
+  }
   const text = box.value.trim(); if (!text) return;
   CHAT.busy = true; box.value = '';
-  const said = [{role: 'user', who: personLabel(), at: nowStamp(), content: text}];
-  CHAT.msgs.push(said[0]); chatPaint();
-  if (!CHAT.names.length && msg) msg.textContent = 'Nobody is in this room, so nobody will answer — but it is written down.';
+  const person = {role: 'user', who: personLabel(), at: nowStamp(), content: text};
+  CHAT.last = person; CHAT.msgs.push(person); CHAT.aside = []; CHAT.pending = null;
+  const room = CHAT.msgs.slice();   // what everyone is answering: the room as it stood, without these answers
+  CHAT.bench = CHAT.names.map(n => ({role: 'assistant', who: n, at: nowStamp(), content: '', urgency: null, done: false}));
+  chatPaint();
+  if (!CHAT.names.length && msg)
+    msg.textContent = 'Nobody is in this room, so nobody will answer — but it is written down.';
+
   try {
-    for (const n of CHAT.names){
-      const m = (S.members || []).find(x => x.name === n);
-      if (!m) continue;
-      const at = CHAT.msgs.length;
-      CHAT.msgs.push({role: 'assistant', who: n, at: nowStamp(), content: ''});
-      chatPaint();
-      if (msg) msg.textContent = n + ' is answering…';
+    // All at once, not in turn: a queue makes the last member a responder to the first, which is an artifact of
+    // the page's loop and not of the room. In a real room everyone hears the same thing and somebody speaks.
+    await Promise.all(CHAT.bench.map(async (r) => {
+      const m = (S.members || []).find(x => x.name === r.who);
+      if (!m){ r.content = '[not a member of this tribe any more]'; r.urgency = 0; r.done = true; return; }
       try {
-        await chatStream(chatPrompt(m), [{role: 'user', content: chatUtterance(CHAT.msgs.slice(0, at), m)}],
-          m.engine, (d) => { CHAT.msgs[at].content += d; chatPaint(); });
-        if (!CHAT.msgs[at].content.trim()) CHAT.msgs[at].content = '(nothing came back)';
-      } catch(e){
-        CHAT.msgs[at].content = '[could not answer: ' + e.message + ']';
-      }
-      said.push(CHAT.msgs[at]);
+        await chatStream(chatPrompt(m), [{role: 'user', content: chatUtterance(room, m)}], m.engine,
+          (d) => { r.content += d; chatPaint(); });
+      } catch(e){ r.content = '[could not answer: ' + e.message + ']'; }
+      const p = parseUrgency(r.content);
+      r.claimed = p.urgency;
+      r.urgency = p.urgency === null ? 0 : p.urgency;
+      r.content = p.text || '(nothing came back)';
+      r.done = true;
       chatPaint();
+    }));
+
+    const live = CHAT.bench.filter(r => r.urgency > 0);
+    const top = live.length ? Math.max(...live.map(r => r.urgency)) : 0;
+    const winners = live.filter(r => r.urgency === top);
+    if (winners.length > 1){
+      CHAT.pending = winners.map(r => r.who);
+      CHAT.pendingTop = top;
+      if (msg) msg.textContent = winners.map(r => r.who).join(' and ') + ' both claimed ' + top + '. The floor is yours to give.';
+      chatPaint();
+    } else {
+      await chatTake(winners);
     }
-    await chatPersist(slug, said);
   } finally {
     CHAT.busy = false; chatPaint();
-    if (msg && CHAT.names.length) msg.textContent = '';
   }
 }
 
-async function chatPersist(slug, turns){
+// Whoever is chosen is what the room hears; everyone else is set aside — written down, not spoken. `chosen` empty
+// means the person judged that nobody needed the floor, which is an answer too and is recorded as one.
+async function chatTake(chosen){
+  const bench = CHAT.bench.slice();
+  const taken = chosen.filter(Boolean);
+  const aside = bench.filter(r => !taken.includes(r));
+  const person = CHAT.last;
+  const msg = $('tmsg');
+  CHAT.bench = []; CHAT.pending = null;
+
+  CHAT.msgs.push(...taken.map(r => ({role: 'assistant', who: r.who, at: r.at, content: r.content})));
+  CHAT.aside = aside.map(r => ({who: r.who, content: r.content, urgency: r.urgency}));
+  chatPaint();
+
+  if (!person) return;
+  const spoken = taken.map(r => ({role: 'assistant', who: r.who, at: r.at, content: r.content, mark: `urgency ${r.urgency}`}));
+  const unheard = aside.map(r => ({role: 'assistant', who: r.who, at: r.at, content: r.content, mark: `urgency ${r.urgency}, not taken`}));
+  const roomTurns = [person, ...spoken, ...unheard];
+
+  // Each member's own memory: the person's turn, what was actually said, and — only for the member that said it —
+  // its own set-aside reply, because it thought it and should remember thinking it. It never hears another
+  // member's unsaid reply, for the same reason it would not in a room.
+  const byName = {};
+  for (const n of CHAT.names){
+    const own = unheard.find(t => t.who === n);
+    byName[n] = [person, ...spoken].concat(own ? [own] : []);
+  }
+
+  try {
+    await chatPersist(CHAT.slug, roomTurns, byName);
+    if (msg) msg.textContent = taken.length
+      ? taken.map(r => r.who).join(' and ') + ' took the floor.'
+      : 'Nobody took the floor. What each of them said is kept in the room\'s file.';
+  } catch(e){ if (msg) msg.innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }
+}
+
+function takeName(n){ const r = (CHAT.bench || []).find(x => x.who === n); if (r) chatTake([r]); }
+function takeTied(){ chatTake((CHAT.bench || []).filter(r => (CHAT.pending || []).includes(r.who))); }
+function takeNone(){ chatTake([]); }
+
+// Claimed urgency against the floor actually given, per member, over the whole room. This is the only reason the
+// number is worth collecting: a member that claims 5 every time and is taken a third of the time has told you
+// something about itself that no word of its prose would have.
+function floorStats(all){
+  const by = {};
+  for (const t of all){
+    if (t.role === 'user' || !t.who || t.urgency === null || t.urgency === undefined) continue;
+    const s = by[t.who] || (by[t.who] = {name: t.who, claims: 0, taken: 0, nTaken: 0, sumTaken: 0, nAside: 0, sumAside: 0});
+    s.claims++;
+    if (t.taken){ s.taken++; s.nTaken++; s.sumTaken += t.urgency; }
+    else { s.nAside++; s.sumAside += t.urgency; }
+  }
+  return Object.values(by);
+}
+
+async function chatPersist(slug, roomTurns, byName){
   // The room's own record first, then each member's memory of it. The order matters: if the second write fails, the
   // room still has what was said, and the page can say so.
   try {
     const cur = await fileText(`${chatDir(slug)}/talk.md`).catch(() => ({text: '', sha: null}));
-    const body = String(cur.text || '').replace(/\s*$/, '\n') + '\n' + turnsToText('the room', turns).replace(/^\n/, '');
-    await putText(`${chatDir(slug)}/talk.md`, body, `chat: ${turns.length} turn(s) in "${CHAT.topic}"`, cur.sha);
-    CHAT.total += turns.length;
+    const body = String(cur.text || '').replace(/\s*$/, '\n') + '\n' + turnsToText('the room', roomTurns).replace(/^\n/, '');
+    await putText(`${chatDir(slug)}/talk.md`, body, `chat: ${roomTurns.length} turn(s) in "${CHAT.topic}"`, cur.sha);
+    CHAT.total += roomTurns.length;
   } catch(e){
     const msg = $('tmsg'); if (msg) msg.innerHTML = '<span class="err">The room could not be written: ' + esc(e.message) + '</span>';
-    return;
+    throw e;
   }
   // Then each member's own memory. Appended, never assigned: a member that has been talking to the person
-  // privately does not lose that talk by sitting in a room, and the room's turns land in its file under the
-  // names of everyone who spoke — which is what "everyone hears everything" has to mean in a file.
-  for (const n of CHAT.names){
+  // privately does not lose that talk by sitting in a room.
+  for (const [n, turns] of Object.entries(byName || {})){
     try {
       const had = await loadThread(n);
       const seen = new Set(had.map(b => `${b.at}|${b.who}|${String(b.content).slice(0, 60)}`));
