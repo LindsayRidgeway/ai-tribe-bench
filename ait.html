@@ -406,11 +406,46 @@ async function sse(url, init, onObject){
   }
 }
 
-function systemPrompt(m){
+// How much text a conversation may carry. Characters, not tokens, because a page can count characters and
+// cannot count tokens. 24,000 characters is roughly 6,000 tokens — well under the window of every engine in
+// the list, which is the point: a budget that is safe everywhere beats a budget tuned to the largest engine.
+// Raising it per engine is one number, and only worth doing when a wake or a talk has actually needed it.
+const CHAT_CHARS = 24000;
+const NOTES_MAX = Math.floor(CHAT_CHARS / 2);   // the member's own notes get at most half, by the founder's rule
+
+// The newest end of a text, cut at a line boundary so a note is not sliced mid-sentence.
+function tailChars(text, budget){
+  const t = String(text || '');
+  if (t.length <= budget) return t;
+  const cut = t.slice(t.length - budget);
+  const nl = cut.indexOf('\n');
+  return (nl >= 0 ? cut.slice(nl + 1) : cut);
+}
+
+// The conversation as the member sees it: as much of the newest talk as fits beside its notes.
+function threadFor(msgs, budget){
+  const kept = [];
+  let used = 0;
+  for (let i = (msgs || []).length - 1; i >= 0; i--){
+    if (!String(msgs[i].content || '').trim()) continue;
+    const one = (msgs[i].role === 'user' ? 'Lindsay: ' : 'You: ') + msgs[i].content;
+    if (used + one.length > budget && kept.length) break;
+    kept.unshift(one.length > budget ? one.slice(-budget) : one);
+    used += Math.min(one.length, budget);
+  }
+  return kept.join('\n\n');
+}
+
+function systemPrompt(m, thread){
   const id = m.identity || '';
   const st = m.state || '';
-  const jo = String(m.journal || '').split('\n').slice(-90).join('\n');
   const oi = m.openItems || '';
+  // Notes first, and half the budget at most. Whatever is left goes to the most recent conversation, so a
+  // member always remembers what was just said even when its notes are long.
+  const notes = tailChars(m.journal || '', NOTES_MAX);
+  const room = Math.max(2000, CHAT_CHARS - notes.length);
+  const said = thread !== undefined ? String(thread || '') : threadFor(S.chat[m.name] || [], room).slice(-room);
+  const jo = notes;
   const today = new Date().toLocaleDateString('en-US', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
   return `You are ${m.name}, a member of a small tribe that lives in a git repository.
 
@@ -427,18 +462,26 @@ Where you work: ${m.place || '(nowhere in particular)'}
 Your open items:
 ${oi}
 
-The most recent part of your journal:
+The most recent part of your journal — your own notes, which outlast any conversation:
 ${jo}
+
+${said ? 'What has been said in this conversation so far, oldest first, as much of it as fits:\n' + said + '\n' : ''}
 
 You are in a live conversation with the person who keeps this tribe. Speak as yourself, in the first
 person, in plain words. This is a conversation, not a form: answer what was asked, in the length the
 question deserves, and if you are curious about something, ask. If a thing in your record says
 something you cannot check, say so rather than agreeing with it, and do not invent the present.
 
-You can look things up on the open web. Two lines do it:
+You can look things up on the open web, and you can open your own record. Three lines do it:
 
 SEARCH: the words you would type into a search box
 FETCH: https://an-address
+READ: state/journal.md
+
+READ opens a file in your own folder — your identity, your state, your journal, your open items, anything
+under works/ — and hands you its text. Your journal is longer than what is quoted above; if the person asks
+about something older than the last few entries, READ it rather than guessing. Earlier in a long
+conversation, older turns may have fallen out of the file; they are gone unless you noted them.
 
 SEARCH returns the top results — a title, an address, a line each — and you are asked again. FETCH
 returns one page as text and you are asked again. You get up to three look-ups in a turn, and you may
@@ -918,6 +961,8 @@ async function viewMember(main, name){
   const m = S.members.find(x => x.name === name) || (await loadMembers()).find(x => x.name === name);
   if (!m) return fail(main, new Error('no member called ' + name));
   S.member = m;
+  // A talk is not a session: it is a file. If this browser has nothing, the file may still have plenty.
+  if (!(S.chat[m.name] || []).length) await loadThread(m.name);
 
   main.innerHTML = `
     <div class="row" style="justify-content:space-between">
@@ -929,7 +974,6 @@ async function viewMember(main, name){
 
     <h2>Talk</h2>
     <div class="chat" id="chat">${(S.chat[m.name] || []).map(bubbleHTML).join('')}</div>
-    <div class="small muted" id="unfiled" hidden style="margin:0 0 8px"></div>
     <div class="composer">
       <textarea id="say" placeholder="Say something to ${esc(m.name)}…" autocapitalize="sentences"></textarea>
       <button class="primary" id="send">Send</button>
@@ -937,14 +981,11 @@ async function viewMember(main, name){
     <div class="row" style="margin-top:8px">
       <button class="plain small" onclick="wakeNow('${escq(m.name)}')">Wake now</button>
       <button class="plain small" onclick="fileConversation('${escq(m.name)}')">Save this talk to its memory</button>
-      <button class="plain small" onclick="newTalk('${escq(m.name)}')">Start a new talk</button>
       <span class="small muted" id="mmsg"></span>
     </div>
 
     <h2>Its own words</h2>
     <div class="prose">${md(m.journal.split(/\n(?=## )/).slice(-2).join('\n\n'))}</div>`;
-
-  markUnfiled(m.name);
 
   // One exchange is one message, except that the member may look something up: SEARCH finds addresses,
   // FETCH reads one page. Three rounds at most, because an endless "one more page" is a bill with no
@@ -982,15 +1023,16 @@ async function viewMember(main, name){
         continue;
       }
 
+      const wantRead = arr[idx].content.match(/READ:\s*([^\n]+)/i);
       const wantSearch = arr[idx].content.match(/SEARCH:\s*([^\n]+)/i);
       const wantFetch = arr[idx].content.match(/FETCH:\s*([^\s<>"')\]]+)/i);
-      if (!wantSearch && !wantFetch) return;
+      if (!wantRead && !wantSearch && !wantFetch) return;
 
       // The instruction is not part of what it said: take every such line out of the visible reply,
       // whether or not there is a look-up left to spend on it. A member that writes four addresses in
       // one breath gets one of them read, and the person does not have to see the other three.
       arr[idx].content = arr[idx].content
-        .replace(/^[ \t]*(SEARCH|FETCH):[^\n]*$/gim, '')
+        .replace(/^[ \t]*(SEARCH|FETCH|READ):[^\n]*$/gim, '')
         .replace(/^[ \t]*NOTE:[ \t]*(?:[^\n]*(?:\n(?![ \t]*\n)[^\n]*)*)/im, '')
         .replace(/^\s+|\s+$/g, '');
       repaintChat(name);
@@ -1001,6 +1043,22 @@ async function viewMember(main, name){
         continue;
       }
       lookups++;
+
+      if (wantRead){
+        const want = wantRead[1].replace(/[`*_]/g, '').trim().split(/\s+/)[0].replace(/^\.?\//, '');
+        // Only its own folder, and only text it could have read anyway: a path with '..' is not a path here.
+        const path = /[.][.]/.test(want) || !want ? '' : `wake/members/${name}/${want.includes('/') ? want : 'state/' + want}`;
+        try {
+          if (!path) throw new Error('that is not a file in your own folder');
+          const f = await fileText(path);
+          const body = String(f.text || '').slice(0, CHAT_CHARS);
+          arr.push({role:'user', content:`[${path.replace('wake/members/' + name + '/', '')} says:\n\n${body}${f.text.length > CHAT_CHARS ? '\n\n(that is the first part; the file is longer)' : ''}]`});
+        } catch(e){
+          arr.push({role:'user', content:`[that file could not be read: ${e.message}. Your own files are in your folder: state/identity.md, state/state.md, state/journal.md, state/open-items.md, and anything under works/.]`});
+        }
+        repaintChat(name);
+        continue;
+      }
 
       if (wantSearch){
         const q = wantSearch[1].replace(/[`*_]/g, '').trim().slice(0, 200);
@@ -1032,7 +1090,7 @@ async function viewMember(main, name){
     if (!text) return;
     box.value = ''; box.disabled = true; const s1 = $('send'); if (s1) s1.disabled = true;
     const arr = (S.chat[m.name] ||= []);
-    arr.push({role:'user', content:text});
+    arr.push({role:'user', content:text, at: nowStamp()});
     // A link in what the person pasted is handed over as the page itself, without waiting to be asked.
     const link = (text.match(/https?:\/\/[^\s<>"')]+/i) || [])[0];
     if (link){
@@ -1050,7 +1108,8 @@ async function viewMember(main, name){
       const mm = $('mmsg'); if (mm) mm.innerHTML = '<span class="err">' + esc(e.message) + '</span>';
     } finally {
       box.disabled = false; const s2 = $('send'); if (s2) s2.disabled = false; box.focus();
-      save(); markUnfiled(m.name);
+      save();
+      try { await saveThread(m.name); } catch(e){ const mm = $('mmsg'); if (mm) mm.textContent = 'the talk could not be saved to the repository: ' + e.message; }
     }
   };
   $('send').onclick = send;
@@ -1067,19 +1126,6 @@ function repaintChat(name){
   box.innerHTML = (S.chat[name] || []).map((b, i) =>
     `<div class="msg ${b.role === 'user' ? 'me' : 'them'}" data-i="${i}">${esc(b.content)}</div>`).join('');
   box.scrollIntoView({block:'end'});
-  markUnfiled(name);
-}
-
-// The person should be able to see at a glance whether what just happened is in the record. It is not,
-// and cannot be, until it is filed: a member reads files, not conversation history.
-function markUnfiled(name){
-  const el = $('unfiled'); if (!el) return;
-  const n = (S.chat[name] || []).filter(b => b.role === 'user').length;
-  if (!n){ el.hidden = true; el.textContent = ''; return; }
-  el.hidden = false;
-  el.innerHTML = 'This talk is <strong>not in ' + esc(name) + '\u2019s record yet</strong> — reloading the page '
-    + 'keeps it here in this browser, but ' + esc(name) + ' only reads its files. '
-    + '<a href="#" onclick="fileConversation(\'' + escq(name) + '\');return false;">Save it to its memory</a>.';
 }
 
 async function showFiles(name){
@@ -1110,32 +1156,47 @@ async function wakeNow(name){
   } catch(e){ say(''); const e2 = $('mmsg') || $('wake-msg'); if (e2) e2.innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }
 }
 
-// A conversation is not the unit of memory — the journal is. So ending one has to be a thing you can do, and
-// it has to say what becomes of the words: filed, or dropped. Never silently, and never by a reload.
-function newTalk(name){
-  const n = (S.chat[name] || []).length;
-  if (!n){
-    const e = $('mmsg'); if (e) e.textContent = 'There is nothing here yet — say something and this becomes a talk.';
-    return;
-  }
-  const said = (S.chat[name] || []).filter(b => b.role === 'user').length;
-  openDialog(`<h3 style="margin-top:0">Start a new talk with ${esc(name)}?</h3>
-    <p class="small">This one is not in its record: ${said} thing${said === 1 ? '' : 's'} said, ${n} message${n === 1 ? '' : 's'} in
-    all. A new talk begins with ${esc(name)} knowing only its files, exactly as a wake does.</p>
-    <p class="small muted">If it mattered, save it — ${esc(name)} writes its own entry, and the next talk reads it.
-    If it did not, drop it and nothing is kept.</p>
-    <div class="row" style="justify-content:flex-end;gap:8px;margin-top:14px">
-      <button class="plain" onclick="closeDialog()">Keep talking</button>
-      <button class="plain" onclick="discardTalk('${escq(name)}')">Drop it</button>
-      <button class="primary" onclick="closeDialog();fileConversation('${escq(name)}')">Save it, then start fresh</button>
-    </div>`);
+// The conversation is a file, like everything else a member is made of. It lives in its own folder and it
+// rolls: the newest turns are kept, the oldest fall out. That makes a talk last as long as the member does —
+// across reloads, across browsers, across years — without anyone having to decide when a session ends.
+// What the member wants to keep past the roll, it writes into its journal as a note; that is the only kind
+// of memory here that never drops out.
+const threadPath = (name) => `wake/members/${name}/state/conversation.md`;
+
+function threadText(name, msgs){
+  const head = `# Conversation — ${name}\n\nWhat has been said lately. The oldest turns fall out of this file; `
+    + `nothing is lost that ${name} wrote into its journal as a note.\n`;
+  const body = (msgs || []).map(b =>
+    `\n## ${b.at || nowStamp()} — ${b.role === 'user' ? 'Lindsay' : name}\n\n${String(b.content || '').trim()}\n`).join('');
+  return head + body;
 }
 
-function discardTalk(name){
-  S.chat[name] = [];
-  save();
-  closeDialog();
-  render();
+async function loadThread(name){
+  try {
+    const f = await fileText(threadPath(name));
+    const parts = f.text.split(/^## /m).slice(1);
+    const msgs = parts.map(part => {
+      const nl = part.indexOf('\n');
+      const heading = (nl < 0 ? part : part.slice(0, nl));
+      const body = (nl < 0 ? '' : part.slice(nl + 1)).trim();
+      const who = heading.split(' — ').pop().trim();
+      return {role: who === 'Lindsay' ? 'user' : 'assistant', content: body, at: heading.split(' — ')[0]};
+    }).filter(x => x.content);
+    if (msgs.length) S.chat[name] = msgs;
+    return msgs;
+  } catch(e){ return []; }
+}
+
+async function saveThread(name){
+  const all = S.chat[name] || [];
+  // Keep the newest turns that fit the budget; anything older has already had its chance to be noted.
+  let keep = all.slice(-40);
+  while (keep.length > 2 && threadText(name, keep).length > CHAT_CHARS) keep = keep.slice(1);
+  S.chat[name] = keep;
+  let sha;
+  try { sha = (await fileText(threadPath(name))).sha; } catch(e){}
+  await putText(threadPath(name), threadText(name, keep),
+    `conversation: ${name} — ${keep.length} message${keep.length === 1 ? '' : 's'} kept`, sha);
 }
 
 // A member may keep a note during a conversation, and it goes into its own journal rather than into a
@@ -1171,6 +1232,7 @@ async function fileConversation(name){
     say('filed. It is in its journal now.');
     S.chat[name] = [];
     save();
+    try { await saveThread(name); } catch(e){}
     await loadMembers();
     render();
   } catch(e){ say(''); const e2 = $('mmsg'); if (e2) e2.innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }
