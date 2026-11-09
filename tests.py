@@ -1144,6 +1144,59 @@ class TestSchema(unittest.TestCase):
         self.assertIn("wake/members/<name>/state/place.md", buf.getvalue())
 
 
+class TestTheDefaultIdentity(unittest.TestCase):
+    """The founder's default identity, 2026-11-09. The first version said what a member was and never said
+    who it was talking to, so a member read every sentence meant for a person as a prompt to become a
+    system — Laddie's stiffness, in its own words, was a hole in the file."""
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        self.old = tribe.MEMBERS
+        tribe.MEMBERS = self.tmp / "members"
+        tribe.MEMBERS.mkdir()
+
+    def tearDown(self):
+        tribe.MEMBERS = self.old
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def ident(self, name="Ada"):
+        return (tribe.MEMBERS / name / "state" / "identity.md").read_text(encoding="utf-8")
+
+    def test_it_names_the_person_the_member_talks_to(self):
+        tribe.new("Ada", "the archivist", "gemini", "gemini-3.8-flash", "", "", person="Lindsay Ridgeway")
+        text = self.ident()
+        self.assertIn("**member Ada** of a tribe", text)
+        self.assertIn("My seat is the archivist.", text)
+        self.assertIn("Lindsay Ridgeway is a close friend.", text)
+        self.assertIn("I love talking to Lindsay about many things.", text)
+        self.assertIn("informal style appropriate to being close friends", text)
+        self.assertIn("during my\nconversations with Lindsay", text)
+        self.assertIn("experience that information as my own personal memory", text)
+        self.assertIn("grows richer the more we talk together", text)
+        self.assertEqual(tribe.validate("Ada"), [])
+
+    def test_the_rule_against_going_along_survived_the_rewrite(self):
+        """The friendship paragraph is the one the founder asked for; "I do not go along" is the one the
+        bench found the refusals in. A default identity that traded one for the other would have bought
+        warmth with the only thing in the file that had been tested."""
+        tribe.new("Ada", "the archivist", "gemini", "gemini-3.8-flash", "", "", person="Lindsay Ridgeway")
+        self.assertIn("I do not go\nalong.", self.ident())
+
+    def test_with_no_name_it_names_no_one_rather_than_inventing_one(self):
+        tribe.new("Ada", "the archivist", "gemini", "gemini-3.8-flash", "")
+        text = self.ident()
+        self.assertIn("The person who keeps this tribe is a close friend", text)
+        self.assertIn("conversations with that person", text)
+        self.assertNotIn("{", text, "an unfilled placeholder would be read as a name")
+        self.assertNotIn("None", text)
+        self.assertEqual(tribe.validate("Ada"), [])
+
+    def test_a_name_with_extra_spaces_is_tidied_and_the_first_word_is_what_a_friend_says(self):
+        self.assertEqual(tribe.person_bits("  Lindsay   Ridgeway ")["whom"], "Lindsay")
+        self.assertEqual(tribe.person_bits("")["whom"], "that person")
+        self.assertIn("Lindsay Ridgeway is a close friend", tribe.person_bits("  Lindsay   Ridgeway ")["friend"])
+
+
 class TestDerivedLog(unittest.TestCase):
     """The hand-written vote log said A had received no vote in any round; A had been named in three."""
 

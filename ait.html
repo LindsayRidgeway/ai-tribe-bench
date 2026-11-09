@@ -156,7 +156,8 @@ const ENGINES = {
   qwen:       {label:'Qwen',       model:'qwen3.8-flash',         kind:'openai', base:'https://dashscope-intl.aliyuncs.com/compatible-mode/v1'},
 };
 
-const S = {repo:'', token:'', branch:'main', keys:{}, members:[], chat:{}, member:null, view:'today'};
+const S = {repo:'', token:'', branch:'main', keys:{}, members:[], chat:{}, member:null, view:'today',
+           owner:''};
 
 /* ---- tiny helpers ---------------------------------------------------------------------- */
 
@@ -209,7 +210,7 @@ function nowStamp(){
 }
 
 function save(){
-  localStorage.setItem('ait', JSON.stringify({repo:S.repo, token:S.token, keys:S.keys}));
+  localStorage.setItem('ait', JSON.stringify({repo:S.repo, token:S.token, keys:S.keys, owner:S.owner || ''}));
   // An unfiled conversation is kept here too: a person who reloads the page should not lose what a
   // member said, even though only filing it puts it in the record.
   try {
@@ -219,7 +220,7 @@ function save(){
   } catch(_){}
 }
 function load(){ try{ const j = JSON.parse(localStorage.getItem('ait') || '{}');
-  S.repo = j.repo || ''; S.token = j.token || ''; S.keys = j.keys || {}; }catch(e){}
+  S.repo = j.repo || ''; S.token = j.token || ''; S.keys = j.keys || {}; S.owner = j.owner || ''; }catch(e){}
   try { S.chat = JSON.parse(localStorage.getItem('ait.chat') || '{}'); } catch(e){ S.chat = {}; } }
 
 /* ---- the GitHub door ------------------------------------------------------------------- */
@@ -800,7 +801,7 @@ function viewInstall(main){
     btn.disabled = !(login && current());
   }
 
-  let timer = null;
+  let timer = null, myName = '';
   async function whoami(){
     const t = current();
     login = '';
@@ -809,6 +810,7 @@ function viewInstall(main){
     try {
       const me = await gh('/user', {}, t);
       login = me.login;
+      myName = String(me.name || '').trim();
       $('who').className = 'small';
       $('who').innerHTML = 'Signed in as <strong>@' + esc(login) + '</strong>' +
         (me.name ? ' — ' + esc(me.name) : '') + '. Is that you?';
@@ -832,6 +834,10 @@ function viewInstall(main){
         body:{owner:login, name:slug, private:true, description:'A tribe. AIT reads it; the members live in it.'}}, t);
       msg.textContent = 'copied the machinery into it…';
       S.repo = `${login}/${slug}`; S.token = t; S.branch = 'main';
+      // Remember the name GitHub has for them, so the first member made in this tribe is told who it is
+      // talking to without being asked. Blank when the account has no display name — the add-a-member
+      // dialog asks then, and does not guess a login.
+      if (myName) S.owner = myName;
       save();
       try { history.replaceState(null, '', location.pathname + '?tribe=' + S.repo); } catch(_){}
       const ms = await loadMembers().catch(() => []);
@@ -1336,17 +1342,39 @@ async function fileConversation(name){
 
 let NEW = null;
 
+// Who the members are talking to. GitHub knows a display name for most accounts, and that is the one a
+// person would write down; when it has none, the dialog asks once rather than writing a login into an
+// identity, because "I love talking to ldridgeway" is worse than not naming anyone at all.
+let ownerAsked = false;
+async function ownerName(){
+  if (S.owner) return S.owner;
+  if (ownerAsked) return '';
+  ownerAsked = true;
+  try { const me = await gh('/user', {}, S.token); S.owner = String(me.name || '').trim(); save(); } catch(e){}
+  return S.owner || '';
+}
+
 async function addMember(){
   let rooms = [];
   try { rooms = (await dirNames('soil')).filter(n => !n.startsWith('.')); } catch(e){}
-  NEW = {step:'name', name:'', seat:'', engine:'', place:'', rooms};
+  const owner = await ownerName();
+  NEW = {step: owner ? 'name' : 'person', name:'', seat:'', engine:'', place:'', rooms, person: owner};
   openDialog(dialogAdmin());
 }
 
 function dialogAdmin(){
   const d = NEW;
   let body = '';
-  if (d.step === 'name'){
+  if (d.step === 'person'){
+    body = `<p class="dlog">One thing first, and only once. A member is told in its identity who it is talking
+to — otherwise it talks to a room instead of to you. Who should it call you?</p>
+      <div class="row" style="margin-top:10px;flex-wrap:nowrap">
+        <input id="ans" autofocus autocapitalize="words" placeholder="Lindsay Ridgeway" style="flex:1">
+        <button class="primary" onclick="adminAnswer()">Next</button>
+      </div>
+      <p class="small" style="margin:10px 0 0"><a href="#" onclick="adminSkipPerson();return false;">Skip it — they
+will call me &ldquo;the person who keeps this tribe&rdquo;</a></p>`;
+  } else if (d.step === 'name'){
     body = `<p class="dlog">A new member, written as files. Nothing is generated: you name it, say what it is for,
 and it begins.\n\nWhat should it be called?
 One word — letters and numbers, no spaces, starting with a letter.</p>
@@ -1383,6 +1411,7 @@ line of its <code>place.md</code>.</p><button class="primary" onclick="pickPlace
   for     ${esc(d.seat)}
   engine  ${esc(d.engine)}
   room    ${esc(d.place || '(none)')}
+  talks to you, ${esc(d.person || 'unnamed — "the person who keeps this tribe"')}
 
 Make it?</p><div class="row"><button class="primary" onclick="makeMember()">Yes, make it</button>
       <button class="plain" onclick="adminBack()">Change something</button></div>
@@ -1397,7 +1426,10 @@ function adminAnswer(){
   const d = NEW;
   if (/^(cancel|stop|never mind)$/i.test(text)){ closeDialog(); return; }
   if (/^(just do it|do it|whatever|you choose|defaults)$/i.test(text)){ adminDefaults(); return; }
-  if (d.step === 'name'){
+  if (d.step === 'person'){
+    if (text.length < 2){ box.value = ''; box.placeholder = 'A name, at least two letters.'; return; }
+    d.person = text.replace(/\s+/g, ' '); d.step = 'name';
+  } else if (d.step === 'name'){
     if (!/^[A-Za-z][A-Za-z0-9]{0,23}$/.test(text)){
       box.value = ''; box.placeholder = 'One word, letters and numbers, starting with a letter.'; return;
     }
@@ -1412,6 +1444,8 @@ function adminAnswer(){
   $('dlg').innerHTML = dialogAdmin();
   const again = $('ans'); if (again) again.focus();
 }
+
+function adminSkipPerson(){ NEW.person = ''; NEW.step = 'name'; $('dlg').innerHTML = dialogAdmin(); }
 
 function pickEngine(e){ NEW.engine = e; NEW.step = 'place'; $('dlg').innerHTML = dialogAdmin(); }
 
@@ -1436,7 +1470,8 @@ async function makeMember(){
   msg.textContent = 'asking the repository to make ' + d.name + '…';
   try {
     const since = Date.now();
-    const inputs = {name: d.name, seat: d.seat, engine: d.engine, model: '', place: d.place || ''};
+    const inputs = {name: d.name, seat: d.seat, engine: d.engine, model: '', place: d.place || '',
+                    person: d.person || ''};
     await dispatch('new-member.yml', inputs);
     msg.textContent = 'made the request. waiting for the run…';
     const run = await waitForRun('new-member', since, t => msg.textContent = t);
