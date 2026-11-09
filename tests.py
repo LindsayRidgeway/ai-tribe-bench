@@ -1398,8 +1398,15 @@ class TestFiling(unittest.TestCase):
         # A wake that writes to the same filename twice leaves the .md count unchanged; counting raw
         # replies is the only test that cannot read an overwrite as silence.
         yml = (REPO / ".github" / "workflows" / "clock.yml").read_text(encoding="utf-8")
-        self.assertIn('raw-*.json 2>/dev/null | wc -l', yml)
+        self.assertIn("raw-*.json", yml)
+        self.assertIn("| wc -l", yml)
         self.assertNotIn('output"/*.md 2>/dev/null | wc -l', yml)
+        # And the count must not be able to kill the step that makes it. `ls` exits 2 on a glob that
+        # matches nothing, and this file runs under `set -euo pipefail`, so a member woken for the first
+        # time — whose output/ is empty or absent — took the whole clock down before the member was
+        # called. Measured 2026-11-09 in a fresh tribe: `=== Laddie in workshop ===` then exit 2, no wake.
+        self.assertNotIn('ls "wake/members/$who/output"/raw-*.json', yml)
+        self.assertIn('find "wake/members/$who/output"', yml)
 
 
     # --- the front door -------------------------------------------------------------------------
