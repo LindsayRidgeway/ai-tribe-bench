@@ -206,9 +206,19 @@ function nowStamp(){
   return `${d.getUTCFullYear()}-${p(d.getUTCMonth()+1)}-${p(d.getUTCDate())} ${p(d.getUTCHours())}:${p(d.getUTCMinutes())} UTC`;
 }
 
-function save(){ localStorage.setItem('ait', JSON.stringify({repo:S.repo, token:S.token, keys:S.keys})); }
+function save(){
+  localStorage.setItem('ait', JSON.stringify({repo:S.repo, token:S.token, keys:S.keys}));
+  // An unfiled conversation is kept here too: a person who reloads the page should not lose what a
+  // member said, even though only filing it puts it in the record.
+  try {
+    const kept = {};
+    for (const k of Object.keys(S.chat)) kept[k] = (S.chat[k] || []).slice(-60);
+    localStorage.setItem('ait.chat', JSON.stringify(kept));
+  } catch(_){}
+}
 function load(){ try{ const j = JSON.parse(localStorage.getItem('ait') || '{}');
-  S.repo = j.repo || ''; S.token = j.token || ''; S.keys = j.keys || {}; }catch(e){} }
+  S.repo = j.repo || ''; S.token = j.token || ''; S.keys = j.keys || {}; }catch(e){}
+  try { S.chat = JSON.parse(localStorage.getItem('ait.chat') || '{}'); } catch(e){ S.chat = {}; } }
 
 /* ---- the GitHub door ------------------------------------------------------------------- */
 
@@ -444,8 +454,12 @@ NOTE: what you want to remember
 is appended to your journal the moment you write it, and it will be in front of you the next time you
 wake or speak. You cannot rewrite your identity, your state or your open items from here — those are
 yours to ask for and the person's to change. But nothing said to you has to be lost: if something
-matters, note it. And the person has a button that files a whole conversation into your journal, so if
-you would rather have the whole thing written up, say so and ask for it.`;
+matters, note it, and note it while it is in front of you rather than at the end.
+
+If the person asks whether you will remember, the answer is: what I write down, yes. Then write it. Do
+not tell them to write it into your files for you — that is yours to do, and a person who has just told
+you something should not have to file it as well. If they want a whole conversation kept in your own
+words, the page has a button that asks you to write the entry, and you may tell them where it is.`;
 }
 
 /* ---- views ----------------------------------------------------------------------------- */
@@ -891,18 +905,21 @@ async function viewMember(main, name){
 
     <h2>Talk</h2>
     <div class="chat" id="chat">${(S.chat[m.name] || []).map(bubbleHTML).join('')}</div>
+    <div class="small muted" id="unfiled" hidden style="margin:0 0 8px"></div>
     <div class="composer">
       <textarea id="say" placeholder="Say something to ${esc(m.name)}…" autocapitalize="sentences"></textarea>
       <button class="primary" id="send">Send</button>
     </div>
     <div class="row" style="margin-top:8px">
       <button class="plain small" onclick="wakeNow('${escq(m.name)}')">Wake now</button>
-      <button class="plain small" onclick="fileConversation('${escq(m.name)}')">File this conversation</button>
+      <button class="plain small" onclick="fileConversation('${escq(m.name)}')">Save this talk to its memory</button>
       <span class="small muted" id="mmsg"></span>
     </div>
 
     <h2>Its own words</h2>
     <div class="prose">${md(m.journal.split(/\n(?=## )/).slice(-2).join('\n\n'))}</div>`;
+
+  markUnfiled(m.name);
 
   // One exchange is one message, except that the member may look something up: SEARCH finds addresses,
   // FETCH reads one page. Three rounds at most, because an endless "one more page" is a bill with no
@@ -1008,6 +1025,7 @@ async function viewMember(main, name){
       const mm = $('mmsg'); if (mm) mm.innerHTML = '<span class="err">' + esc(e.message) + '</span>';
     } finally {
       box.disabled = false; const s2 = $('send'); if (s2) s2.disabled = false; box.focus();
+      save(); markUnfiled(m.name);
     }
   };
   $('send').onclick = send;
@@ -1024,6 +1042,19 @@ function repaintChat(name){
   box.innerHTML = (S.chat[name] || []).map((b, i) =>
     `<div class="msg ${b.role === 'user' ? 'me' : 'them'}" data-i="${i}">${esc(b.content)}</div>`).join('');
   box.scrollIntoView({block:'end'});
+  markUnfiled(name);
+}
+
+// The person should be able to see at a glance whether what just happened is in the record. It is not,
+// and cannot be, until it is filed: a member reads files, not conversation history.
+function markUnfiled(name){
+  const el = $('unfiled'); if (!el) return;
+  const n = (S.chat[name] || []).filter(b => b.role === 'user').length;
+  if (!n){ el.hidden = true; el.textContent = ''; return; }
+  el.hidden = false;
+  el.innerHTML = 'This talk is <strong>not in ' + esc(name) + '\u2019s record yet</strong> — reloading the page '
+    + 'keeps it here in this browser, but ' + esc(name) + ' only reads its files. '
+    + '<a href="#" onclick="fileConversation(\'' + escq(name) + '\');return false;">Save it to its memory</a>.';
 }
 
 async function showFiles(name){
@@ -1086,6 +1117,7 @@ async function fileConversation(name){
     await putText(path, text, `journal: ${name} — a conversation filed by the member`, cur.sha);
     say('filed. It is in its journal now.');
     S.chat[name] = [];
+    save();
     await loadMembers();
     render();
   } catch(e){ say(''); const e2 = $('mmsg'); if (e2) e2.innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }
