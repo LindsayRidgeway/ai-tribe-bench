@@ -1,6 +1,6 @@
 # Traction — LindsayRidgeway/ai-tribe-bench
 
-*Rebuilt 2026-11-02T14:47:33Z by `lab/traction.py`. Public data only: logins and dates, never addresses.*
+*Rebuilt 2026-11-09T17:48:39Z by `lab/traction.py`. Public data only: logins and dates, never addresses.*
 
 **Stars** 0 · **Forks** 0 · **Watchers** 0
 
@@ -10,22 +10,7 @@ No forks. Nobody has taken a copy through GitHub.
 
 ## Clones of this repository (last 14 days, owner only)
 
-356 clones from 78 distinct sources.
-
-- 2026-10-19: 0 (0 unique)
-- 2026-10-20: 0 (0 unique)
-- 2026-10-21: 0 (0 unique)
-- 2026-10-22: 0 (0 unique)
-- 2026-10-23: 0 (0 unique)
-- 2026-10-24: 0 (0 unique)
-- 2026-10-25: 0 (0 unique)
-- 2026-10-26: 0 (0 unique)
-- 2026-10-27: 0 (0 unique)
-- 2026-10-28: 0 (0 unique)
-- 2026-10-29: 0 (0 unique)
-- 2026-10-30: 0 (0 unique)
-- 2026-10-31: 0 (0 unique)
-- 2026-11-01: 356 (78 unique)
+Not available (HTTP 403). This needs push access to the repository; the Actions token has it, an anonymous request does not. **This is not zero** — it is unread.
 
 ## What the beacon adds
 
