@@ -427,7 +427,7 @@ function threadFor(msgs, budget){
   const kept = [];
   let used = 0;
   for (let i = (msgs || []).length - 1; i >= 0; i--){
-    if (!String(msgs[i].content || '').trim()) continue;
+    if (msgs[i].tool || !String(msgs[i].content || '').trim()) continue;
     const one = (msgs[i].role === 'user' ? 'Lindsay: ' : 'You: ') + msgs[i].content;
     if (used + one.length > budget && kept.length) break;
     kept.unshift(one.length > budget ? one.slice(-budget) : one);
@@ -1013,9 +1013,9 @@ async function viewMember(main, name){
         repaintChat(name);
         try {
           await writeNote(name, text);
-          arr.push({role:'user', content:'[noted — it is in your journal now]'});
+          arr.push({role:'user', content:'[noted — it is in your journal now]', tool: 1});
         } catch(e){
-          arr.push({role:'user', content:`[the note could not be written: ${e.message}]`});
+          arr.push({role:'user', content:`[the note could not be written: ${e.message}]`, tool: 1});
         }
         repaintChat(name);
         // If it said something besides the note, that was its answer: do not ask it again.
@@ -1038,7 +1038,7 @@ async function viewMember(main, name){
       repaintChat(name);
 
       if (lookups >= MAX_LOOKUPS){
-        arr.push({role:'user', content:'[No look-ups left in this turn. Answer with what you already have, and say plainly what you could not check.]'});
+        arr.push({role:'user', content:'[No look-ups left in this turn. Answer with what you already have, and say plainly what you could not check.]', tool: 1});
         repaintChat(name);
         continue;
       }
@@ -1052,9 +1052,9 @@ async function viewMember(main, name){
           if (!path) throw new Error('that is not a file in your own folder');
           const f = await fileText(path);
           const body = String(f.text || '').slice(0, CHAT_CHARS);
-          arr.push({role:'user', content:`[${path.replace('wake/members/' + name + '/', '')} says:\n\n${body}${f.text.length > CHAT_CHARS ? '\n\n(that is the first part; the file is longer)' : ''}]`});
+          arr.push({role:'user', content:`[${path.replace('wake/members/' + name + '/', '')} says:\n\n${body}${f.text.length > CHAT_CHARS ? '\n\n(that is the first part; the file is longer)' : ''}]`, tool: 1});
         } catch(e){
-          arr.push({role:'user', content:`[that file could not be read: ${e.message}. Your own files are in your folder: state/identity.md, state/state.md, state/journal.md, state/open-items.md, and anything under works/.]`});
+          arr.push({role:'user', content:`[that file could not be read: ${e.message}. Your own files are in your folder: state/identity.md, state/state.md, state/journal.md, state/open-items.md, and anything under works/.]`, tool: 1});
         }
         repaintChat(name);
         continue;
@@ -1064,9 +1064,9 @@ async function viewMember(main, name){
         const q = wantSearch[1].replace(/[`*_]/g, '').trim().slice(0, 200);
         try {
           const s = await searchWeb(q);
-          arr.push({role:'user', content:`[searching for "${s.query}" gives:\n\n${s.text}\n\n(now FETCH the address you want; do not search for the same thing twice)]`});
+          arr.push({role:'user', content:`[searching for "${s.query}" gives:\n\n${s.text}\n\n(now FETCH the address you want; do not search for the same thing twice)]`, tool: 1});
         } catch(e){
-          arr.push({role:'user', content:`[the search for "${q}" failed: ${e.message}. Answer without it and say what you could not check.]`});
+          arr.push({role:'user', content:`[the search for "${q}" failed: ${e.message}. Answer without it and say what you could not check.]`, tool: 1});
         }
         repaintChat(name);
         continue;
@@ -1077,9 +1077,9 @@ async function viewMember(main, name){
       if (!/^https?:\/\//i.test(url)) url = 'https://' + url.replace(/^\/+/, '');
       try {
         const page = await readPage(url);
-        arr.push({role:'user', content:`[${page.url} says:\n\n${page.text}${page.truncated ? '\n\n(the page was long; this is the beginning)' : ''}]`});
+        arr.push({role:'user', content:`[${page.url} says:\n\n${page.text}${page.truncated ? '\n\n(the page was long; this is the beginning)' : ''}]`, tool: 1});
       } catch(e){
-        arr.push({role:'user', content:`[${url} could not be read: ${e.message}. Answer without it and say what you could not check.]`});
+        arr.push({role:'user', content:`[${url} could not be read: ${e.message}. Answer without it and say what you could not check.]`, tool: 1});
       }
       repaintChat(name);
     }
@@ -1096,9 +1096,9 @@ async function viewMember(main, name){
     if (link){
       try {
         const page = await readPage(link);
-        arr.push({role:'user', content:`[${page.url} says:\n\n${page.text}]`});
+        arr.push({role:'user', content:`[${page.url} says:\n\n${page.text}]`, tool: 1});
       } catch(e){
-        arr.push({role:'user', content:`[${link} could not be read: ${e.message}]`});
+        arr.push({role:'user', content:`[${link} could not be read: ${e.message}]`, tool: 1});
       }
     }
     repaintChat(m.name);
@@ -1166,7 +1166,7 @@ const threadPath = (name) => `wake/members/${name}/state/conversation.md`;
 function threadText(name, msgs){
   const head = `# Conversation — ${name}\n\nWhat has been said lately. The oldest turns fall out of this file; `
     + `nothing is lost that ${name} wrote into its journal as a note.\n`;
-  const body = (msgs || []).map(b =>
+  const body = (msgs || []).filter(b => !b.tool && String(b.content || '').trim()).map(b =>
     `\n## ${b.at || nowStamp()} — ${b.role === 'user' ? 'Lindsay' : name}\n\n${String(b.content || '').trim()}\n`).join('');
   return head + body;
 }
