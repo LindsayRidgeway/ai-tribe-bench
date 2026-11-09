@@ -24,7 +24,10 @@ prod=0
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 mkdir -p "$work/pub" "$work/fn"
-cp ait.html "$work/pub/index.html"
+# Stamp the page with the commit it was built from. A tab left open is a program, and when it is deployed
+# over it keeps running the old one; the stamp is how the person — and the member they ask — can tell.
+stamp="$(git rev-parse --short HEAD) $(date -u '+%Y-%m-%d %H:%M UTC')"
+sed "s|__AIT_BUILD__|$stamp|" ait.html > "$work/pub/index.html"
 printf 'User-agent: *\nDisallow: /\n' > "$work/pub/robots.txt"
 # Anyone who appends ait.html out of habit gets the app, not a 404, and keeps their ?tribe=.
 printf '/ait.html  /  200\n' > "$work/pub/_redirects"

@@ -121,11 +121,11 @@
     database and no copy of your tribe. Keys pasted for chat live in this browser only.
     <details>
       <summary>What this page does not do yet</summary>
-      <p class="small muted">Pictures (§8 of the manual) and a member looking things up on the internet from chat
-      (§6) are not built — a member can read its own files and nothing else. Removing a member works only by
-      dispatch, not by an attic. Sign-in is the token you pasted rather than GitHub's own button. And a member's
-      key reaches this page for chat but not yet the clock, so a new tribe talks before it wakes.</p>
+      <p class="small muted">Pictures (§8 of the manual) are not built. Removing a member works only by dispatch,
+      not by an attic. And a member's key reaches this page for chat but not yet the clock, so a new tribe talks
+      before it wakes.</p>
     </details>
+    <p class="small muted" id="build" hidden style="margin:10px 0 0"></p>
   </footer>
 </div>
 
@@ -412,7 +412,7 @@ function systemPrompt(m){
   const today = new Date().toLocaleDateString('en-US', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
   return `You are ${m.name}, a member of a small tribe that lives in a git repository.
 
-Today is ${today}.
+Today is ${today}. You are talking through build ${BUILD.startsWith('__') ? '(unbuilt copy)' : BUILD} of the page.
 
 Your identity, as you last wrote it:
 ${id}
@@ -542,6 +542,11 @@ function viewHome(main){
       different as the two folders say they are.</p>
     </details>`;
 }
+
+// Which page is this? A single file means a tab left open is a program that stopped being current the
+// moment it was deployed over — and a member asked about a change will describe the page it is running,
+// not the one on the server. The deploy script stamps this; a file opened from disk is simply "unbuilt".
+const BUILD = '__AIT_BUILD__';
 
 const TEMPLATE = 'LindsayRidgeway/ai-tribe-template';
 
@@ -1427,6 +1432,13 @@ window.addEventListener('hashchange', () => render());
 
 (async function boot(){
   load();
+  {
+    const el = document.getElementById('build');
+    if (el && !BUILD.startsWith('__')){
+      el.hidden = false;
+      el.textContent = 'build ' + BUILD + ' — if a change you expect is missing, reload the page; this one was loaded before it.';
+    }
+  }
 
   // GitHub sends the browser back here with ?code=. Turn it into a token before anything renders, so the
   // Install screen comes back with the account already known and only the name to type.
