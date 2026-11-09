@@ -2061,7 +2061,9 @@ let CHAT = {slug: '', topic: '', names: [], msgs: [], bench: [], aside: [], pend
             // Turns spoken but not yet written — the person's, always, and any that a round is holding.
             queue: [],
             // The room talking on its own: `left` rounds still to run, `stop` set by the person, `done` so far.
-            loop: {running: false, left: 0, max: 0, done: 0, stop: false}};
+            loop: {running: false, left: 0, max: 0, done: 0, stop: false},
+            // Who decides what is said next: the members' own claims, or a judge named here.
+            floor: 'claim', judge: '', stats: [], lastJudge: null};
 const chatDir = (slug) => `chats/${slug}`;
 
 function slugOfTopic(topic){
@@ -2070,9 +2072,21 @@ function slugOfTopic(topic){
   return base || 'chat';
 }
 
-function chatHeader(slug, topic, names){
+// A room's rules are in the room's file, like everything else here. `Floor:` is who decides what is said next —
+// the members' own claims, or a judge that is not in the room — and `Judge:` names the engine that judges. Both are
+// lines a person can read and edit, and the page rewrites the whole header rather than patching it.
+function chatHeader(slug, topic, names, floor = 'claim', judge = ''){
   return `# A chat — ${topic}\n\nOpened ${nowStamp()} by the person who keeps this tribe.\n\n`
-    + `Members: ${names.length ? names.join(', ') : '(nobody yet)'}\n`;
+    + `Members: ${names.length ? names.join(', ') : '(nobody yet)'}\n`
+    + `Floor: ${floor === 'judge' ? 'judge' : 'claim'}\n`
+    + (floor === 'judge' ? `Judge: ${judge || 'gemini'}\n` : '');
+}
+
+// A judge should not be one of the judged, so the page prefers an engine no member in this room is running.
+function defaultJudge(){
+  const inRoom = new Set((S.members || []).filter(m => (CHAT.names || []).includes(m.name)).map(m => m.engine));
+  const have = Object.keys(ENGINES).filter(e => keyFor(e).key);
+  return have.find(e => !inRoom.has(e)) || have[0] || 'gemini';
 }
 
 async function listChats(){
@@ -2139,7 +2153,7 @@ async function openNewChat(){
     let n = 2, base = slug;
     while (taken.includes(slug)) slug = `${base}-${n++}`;
     if (msg) msg.textContent = 'opening…';
-    await putText(`${chatDir(slug)}/chat.md`, chatHeader(slug, topic, names),
+    await putText(`${chatDir(slug)}/chat.md`, chatHeader(slug, topic, names, 'claim'),
       `chat: opened "${topic}"${names.length ? ' with ' + names.join(', ') : ' with nobody in it yet'}`, null);
     await putText(`${chatDir(slug)}/talk.md`,
       `# Talk — ${topic}\n\nWhat has been said in this room, in the order it was said. Appended, never rewritten.\n`,
@@ -2154,13 +2168,49 @@ async function loadChat(slug){
   const talk = await fileText(`${chatDir(slug)}/talk.md`).catch(() => ({text: ''}));
   const all = parseTurns(talk.text);
   const names = ((head.match(/^Members: (.*)$/m) || [, ''])[1] || '').trim();
+  const rule = ((head.match(/^Floor: (\w+)/m) || [, 'claim'])[1] || 'claim').toLowerCase();
+  const judge = ((head.match(/^Judge: ([a-z0-9_-]+)/im) || [, ''])[1] || '').toLowerCase();
   return {
     topic: (head.match(/^# A chat — (.+)$/m) || [, slug])[1],
     names: names && names !== '(nobody yet)' ? names.split(',').map(x => x.trim()).filter(Boolean) : [],
     msgs: all.slice(-60),
     total: all.length,
-    floor: floorStats(all),
+    stats: floorStats(all),
+    floor: rule === 'judge' ? 'judge' : 'claim',
+    judge,
   };
+}
+
+// The header is the room's settings, so it is rewritten a line at a time: `Opened` is a fact about the past and
+// regenerating it would move the room's birthday every time somebody joined or changed the judge.
+function withRules(head, {names, floor, judge}){
+  let t = String(head || '').replace(/\s*$/, '\n');
+  const put = (re, line, keep = true) => {
+    if (re.test(t)) t = keep ? t.replace(re, line) : t.replace(re, '');
+    else if (keep) t = t.replace(/\n*$/, '\n') + line + '\n';
+  };
+  put(/^Members: .*$/m, `Members: ${names.length ? names.join(', ') : '(nobody yet)'}`);
+  put(/^Floor: .*$/m, `Floor: ${floor === 'judge' ? 'judge' : 'claim'}`);
+  put(/^Judge: .*\n?/m, `Judge: ${judge || 'gemini'}\n`, floor === 'judge');
+  return t;
+}
+
+async function saveFloor(floor, judge){
+  floor = floor === 'judge' ? 'judge' : 'claim';
+  judge = String(judge || '').trim() || CHAT.judge || defaultJudge();
+  const msg = $('tmsg');
+  try {
+    if (msg) msg.textContent = 'saving the rule…';
+    const cur = await fileText(`${chatDir(CHAT.slug)}/chat.md`);
+    await putText(`${chatDir(CHAT.slug)}/chat.md`,
+      withRules(cur.text, {names: CHAT.names, floor, judge}),
+      floor === 'judge'
+        ? `chat: the floor in "${CHAT.topic}" is now decided by a judge (${judge})`
+        : `chat: the floor in "${CHAT.topic}" is now decided by the members' own claims`,
+      cur.sha);
+    CHAT.floor = floor; CHAT.judge = judge;
+    render();
+  } catch(e){ if (msg) msg.innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }
 }
 
 async function viewChat(main, slug){
@@ -2177,18 +2227,33 @@ async function viewChat(main, slug){
     return;
   }
   CHAT = {...CHAT, slug, topic: c.topic, names: c.names, msgs: c.msgs, total: c.total,
-          bench: [], aside: [], pending: null, last: null};
+          bench: [], aside: [], pending: null, last: null, stats: c.stats,
+          floor: c.floor, judge: c.judge || defaultJudge(), lastJudge: null};
   const absent = (S.members || []).filter(m => !CHAT.names.includes(m.name));
+  const engines = Object.keys(ENGINES).map(e =>
+    `<option value="${e}" ${CHAT.judge === e ? 'selected' : ''}>${esc(ENGINES[e].label)}${keyFor(e).key ? '' : ' (no key here)'}</option>`).join('');
+  const statLine = (c.stats || []).length ? `<p class="small muted">The floor, claimed against given:
+      ${c.stats.map(x => `${esc(x.name)} took it ${x.taken} of ${x.claims} time${x.claims === 1 ? '' : 's'}`
+        + (x.nTaken + x.nAside ? ' (claiming ' + (x.nTaken ? (x.sumTaken / x.nTaken).toFixed(1) : '—') + ' when taken, '
+            + (x.nAside ? (x.sumAside / x.nAside).toFixed(1) : '—') + ' when set aside)' : '')).join(' · ')}</p>` : '';
+  const judgeLine = (c.stats || []).length ? `<p class="small muted">The judge's record in this room:
+      ${c.stats.map(x => `${esc(x.name)} chosen ${x.taken} of ${x.claims}`).join(' · ')}</p>` : '';
   main.innerHTML = `
     <p class="small"><a href="#/table">← all chats</a></p>
     <h1>${esc(c.topic)}</h1>
     <p class="small muted">${CHAT.names.length ? CHAT.names.map(esc).join(', ') : 'Nobody is in this room yet'}
       · ${c.total} turn${c.total === 1 ? '' : 's'} in the record${c.total > 60 ? ', showing the last 60' : ''}
-      · one press asks all ${CHAT.names.length || 0} at once</p>
-    ${c.floor.length ? `<p class="small muted">The floor, claimed against given:
-      ${c.floor.map(x => `${esc(x.name)} took it ${x.taken} of ${x.claims} time${x.claims === 1 ? '' : 's'}`
-        + (x.nTaken ? ` (claiming ${(x.sumTaken / x.nTaken).toFixed(1)} when taken` : ' (')
-        + (x.nAside ? `, ${(x.sumAside / x.nAside).toFixed(1)} when set aside)` : ')')).join(' · ')}</p>` : ''}
+      · one press asks all ${CHAT.names.length || 0} at once${CHAT.floor === 'judge' ? ' and the judge +1' : ''}</p>
+    ${CHAT.floor === 'claim' ? statLine : judgeLine}
+    <div class="row" style="margin-top:10px;flex-wrap:wrap;gap:8px">
+      <span class="small">The floor is decided by</span>
+      <select id="floorwho" onchange="saveFloor(this.value, document.getElementById('judgewho').value)">
+        <option value="claim" ${CHAT.floor === 'claim' ? 'selected' : ''}>the members' own claims</option>
+        <option value="judge" ${CHAT.floor === 'judge' ? 'selected' : ''}>a judge, from outside the room</option>
+      </select>
+      <select id="judgewho" onchange="saveFloor(document.getElementById('floorwho').value, this.value)"
+        ${CHAT.floor === 'judge' ? '' : 'disabled'}>${engines}</select>
+    </div>
     <div class="chat" id="tchat"></div>
     <div class="composer">
       <textarea id="tsay" placeholder="Say something in ${esc(c.topic)}…" autocapitalize="sentences"></textarea>
@@ -2199,8 +2264,7 @@ async function viewChat(main, slug){
         <option value="2">2 rounds</option><option value="4" selected>4 rounds</option><option value="8">8 rounds</option>
       </select>
       <button class="plain small" onclick="startLoop(document.getElementById('rounds').value)">Let them talk</button>
-      <span class="small muted">${CHAT.names.length} call${CHAT.names.length === 1 ? '' : 's'} a round; it stops on
-      its own when nobody claims 3 or more.</span>` : ''}
+      <span class="small muted">${CHAT.names.length} call${CHAT.names.length === 1 ? '' : 's'} a round${CHAT.floor === 'judge' ? ', plus one for the judge' : ''}; it stops ${CHAT.floor === 'judge' ? 'when nobody has anything the judge would choose, or when you stop it' : 'on its own when nobody claims 3 or more'}.</span>` : ''}
     </div>
     <div class="row" style="margin-top:8px;flex-wrap:wrap;gap:8px">
       ${absent.length ? `<select id="addwho" style="max-width:220px">
@@ -2209,12 +2273,18 @@ async function viewChat(main, slug){
         <button class="plain small" onclick="chatAddMember()">Add</button>` : ''}
       <span class="small muted" id="tmsg"></span>
     </div>
-    <p class="small muted">Everybody in the room is asked at once and nobody hears the others' answers before
-    theirs; each begins with its own urgency, 1 to 5, and the room hears the highest — unless the highest is 2 or
-    less, which means nobody thought it needed saying aloud. <strong>That number is a
-    claim, not a measurement</strong> — it is written by the member that benefits from it — so it is kept beside
-    what actually happened instead of being trusted: the line above counts claims against floors. A tie is yours to
-    settle, and every answer, taken or not, is kept.</p>
+    ${CHAT.floor === 'judge' ? `<p class="small muted"><strong>A judge decides who is heard.</strong> Everybody
+    answers, and then one more call — a model that is not in the room, has no identity, no memory and nothing at
+    stake — reads what was last said and what each of them would say next, and picks one. The rest are kept in the
+    file and not said aloud. It is told to prefer the answer that answers, adds something new, and is in its own
+    voice, and that length is not a virtue. A judge is still a model with preferences nobody wrote down, so the room
+    records which engine judged and why it said it chose, and you can change the judge at any time — the room is
+    unaffected, and the change is a line in <code>chat.md</code>.</p>` : `<p class="small muted">Everybody in the
+    room is asked at once and nobody hears the others' answers before theirs; each begins with its own urgency, 1 to
+    5, and the room hears the highest — unless the highest is 2 or less, which means nobody thought it needed saying
+    aloud. <strong>That number is a claim, not a measurement</strong> — it is written by the member that benefits
+    from it — so it is kept beside what actually happened instead of being trusted: the line above counts claims
+    against floors. A tie is yours to settle, and every answer, taken or not, is kept.</p>`}
     <p class="small muted">Nobody here has to answer <em>you</em> in particular. The room answers whatever was last
     said, and in a round of their own they answer each other; you join the way anyone joins a conversation, by saying
     something. Whoever spoke last is not asked about their own sentence. A member in this room cannot look anything
@@ -2236,7 +2306,8 @@ function headingWho(heading){
   if (!m) return {who: raw, mark: '', urgency: null, taken: true};
   const mark = m[2].trim();
   const u = mark.match(/urgency\s+(\d)/i);
-  return {who: m[1].trim(), mark, urgency: u ? Number(u[1]) : null, taken: !/not taken/i.test(mark)};
+  return {who: m[1].trim(), mark, urgency: u ? Number(u[1]) : null,
+          taken: !/not taken|not chosen/i.test(mark)};
 }
 
 function parseTurns(text){
@@ -2275,6 +2346,13 @@ function chatPaint(){
   let html = CHAT.msgs.filter(b => !b.tool).map(b => bubbleHTML({...b, i: ''}, true)).join('');
 
   // The bench: every member wrote an answer to the same turn, and the room is deciding which of them it hears.
+  if (CHAT.lastJudge && !CHAT.lastJudge.failed && CHAT.lastJudge.why && !(CHAT.bench || []).length){
+    const lj = CHAT.lastJudge;
+    html += `<div class="small muted" style="margin:6px 0 0 2px;font-style:italic">The judge
+      (${esc(ENGINES[lj.engine] ? ENGINES[lj.engine].label : lj.engine)}) heard ${lj.who ? esc(lj.who) : 'nobody'}:
+      ${esc(lj.why)}</div>`;
+  }
+
   if (CHAT.loop && CHAT.loop.running){
     html += `<div class="msg sys" style="display:block;max-width:100%">
       <strong>Round ${CHAT.loop.done} of ${CHAT.loop.max}</strong> — they are talking among themselves; you can say
@@ -2325,7 +2403,8 @@ async function chatAddMember(){
   try {
     if (msg) msg.textContent = 'adding ' + name + '…';
     const cur = await fileText(`${chatDir(CHAT.slug)}/chat.md`);
-    await putText(`${chatDir(CHAT.slug)}/chat.md`, chatHeader(CHAT.slug, CHAT.topic, names),
+    await putText(`${chatDir(CHAT.slug)}/chat.md`,
+      withRules(cur.text, {names, floor: CHAT.floor, judge: CHAT.judge}),
       `chat: ${name} joined "${CHAT.topic}"`, cur.sha);
     CHAT.names = names;
     location.hash = '#/c/' + encodeURIComponent(CHAT.slug); render();
@@ -2338,19 +2417,94 @@ function chatUtterance(msgs, me){
   return `IN THIS ROOM, so far:\n\n${tailChars(lines, CHAT_CHARS)}\n\nAnswer the last turn as ${me.name}.`;
 }
 
-function chatPrompt(m){
+function chatPrompt(m, claim = true){
   const others = CHAT.names.filter(n => n !== m.name);
-  return systemPrompt(m, '') + `\n\nYou are in a room called "${CHAT.topic}" with `
+  const head = systemPrompt(m, '') + `\n\nYou are in a room called "${CHAT.topic}" with `
     + `${others.length ? others.join(' and ') + ' and ' : ''}the person who keeps this tribe. Everyone in the room `
     + `hears everything that is said. You are all being asked the same thing at the same time, without hearing the `
-    + `others' answers first — so, as in a real room, more than one of you may want the floor at once, and only one `
-    + `of you will get it.\n\n`
+    + `others' answers first — so, as in a real room, more than one of you may want the floor at once, and not all of `
+    + `you will get it.\n\n`;
+  if (!claim){
+    return head + `Say what you would say next, in your own voice, in one or two short paragraphs. Someone outside `
+      + `the room will decide whose answer is heard, and it has been told not to be even-handed. Do not speak for `
+      + `anyone else, and do not put your name at the front of it.`;
+  }
+  return head
     + `Begin with one line, exactly like this:\n\nURGENCY: <a number from 1 to 5>\n\n`
     + `5 means the room needs this from you now and it would be lost if you stayed quiet; 1 means you have nothing `
     + `to add that someone else is not better placed to say. Answer honestly, including when the honest number is `
     + `low: a number everybody gives 5 decides nothing, and this one is kept in the record and compared with what the `
     + `room actually took. Then leave a blank line and say what you have to say, in your own voice, in one or two `
     + `short paragraphs. Do not speak for anyone else, and do not put your name at the front of it.`;
+}
+
+// The judge. Not a member: no identity, no memory, no seat, no stake — one question, answered. The room may appoint
+// one, and the person may change which engine it is at any time, because a judge is a preference nobody wrote down
+// and the only honest thing to do with one is to name it and make it swappable.
+function judgeSystem(){
+  return `You are the judge of a room of models. You are not in the room and you are not one of them: you have no `
+    + `identity, no memory, no seat, and nothing at stake in what is said. One question is put to you — which of the `
+    + `answers offered should be said aloud next.\n\n`
+    + `Judge on three things, in this order. Does it answer what was last said? Does it add something the room does `
+    + `not already have? Is it in its own voice, rather than a summary of the others or a restatement of the room? `
+    + `Length is not a virtue: a long answer that repeats the room is worth less than a short one that moves it.\n\n`
+    + `You may also answer "nobody". If every answer is restatement, agreement or noise, say so instead of picking `
+    + `the least bad one. A room that speaks because it was asked to is worse than a room that is quiet. Do not `
+    + `choose to be even-handed between them.\n\n`
+    + `Answer in exactly two lines and nothing else:\n\nCHOICE: <a name copied exactly as given, or nobody>\n`
+    + `WHY: <one sentence, twenty words at most>`;
+}
+
+async function judgePick(candidates, room, engine){
+  const label = ENGINES[engine] ? ENGINES[engine].label : engine;
+  if (!ENGINES[engine]) throw new Error(`there is no engine called "${engine}" to judge with`);
+  if (!keyFor(engine).key) throw new Error(`no ${label} key in this browser, so there is no judge`);
+  const said = room.filter(b => !b.tool && String(b.content || '').trim())
+    .map(b => `${b.who || personLabel()}: ${String(b.content).trim()}`).join('\n\n');
+  const opts = candidates.map((c, i) => `${i + 1}. ${c.who}:\n${String(c.content).trim()}`).join('\n\n');
+  const ask = `The room is called "${CHAT.topic}".\n\nWhat has been said, the most recent last:\n\n`
+    + `${tailChars(said, 6000)}\n\nWhat each of them would say next, each written without hearing the others:\n\n`
+    + `${opts}\n\nWho should be heard?`;
+  let out = '';
+  await chatStream(judgeSystem(), [{role: 'user', content: ask}], engine, d => { out += d; });
+  return readJudge(out, candidates, engine);
+}
+
+// A judge that does not name anyone has not judged. The page says so and falls back to the members' claims for that
+// turn, rather than guessing which answer it meant — a guessed winner would look exactly like a chosen one.
+function readJudge(out, candidates, engine){
+  const text = String(out || '');
+  const choice = (text.match(/CHOICE\s*:\s*(.+)/i) || [])[1] || '';
+  const why = ((text.match(/WHY\s*:\s*(.+)/i) || [])[1] || '').replace(/\s+/g, ' ').trim();
+  const name = choice.replace(/[*_"'`]/g, '').split(/[.,;:(]/)[0].trim();
+  if (/^nobody$/i.test(name)) return {who: null, why: why || 'nothing worth saying', engine, raw: text};
+  const exact = candidates.find(c => c.who.toLowerCase() === name.toLowerCase());
+  const loose = exact || candidates.find(c => name && c.who.toLowerCase().includes(name.toLowerCase()))
+    || candidates.find(c => name && name.toLowerCase().includes(c.who.toLowerCase()));
+  if (!loose) throw new Error(`the judge's answer did not name anyone: "${text.slice(0, 140).replace(/\s+/g, ' ')}"`);
+  return {who: loose.who, why, engine, raw: text};
+}
+
+// One turn's decision, whichever rule the room runs on. Returns the answers that are heard (possibly none), the
+// judge's verdict, or `pending` when a tie at the top has to go to the person inside the room.
+async function decideTurn(room, names, {byPerson}){
+  if (CHAT.floor === 'judge' && CHAT.judge){
+    await askRoom(room, names, false);
+    try {
+      const pick = await judgePick(CHAT.bench, room, CHAT.judge);
+      return {chosen: pick.who ? [CHAT.bench.find(r => r.who === pick.who)] : [], judge: pick};
+    } catch(e){
+      const {top, winners} = topClaim(CHAT.bench);
+      const failed = {failed: e.message, engine: CHAT.judge};
+      if (winners.length > 1 && byPerson) return {pending: winners.map(r => r.who), top, judge: failed};
+      return {chosen: winners.slice(0, 1), judge: failed};
+    }
+  }
+  await askRoom(room, names, true);
+  const {top, winners} = topClaim(CHAT.bench);
+  if (top < 3) return {chosen: []};
+  if (winners.length > 1 && byPerson) return {pending: winners.map(r => r.who), top};
+  return {chosen: winners};
 }
 
 async function chatSay(){
@@ -2383,16 +2537,13 @@ async function chatSay(){
 
   try {
     const room = CHAT.msgs.slice();   // the room as it stands, without these answers
-    await askRoom(room, CHAT.names);
-    const {top, winners} = topClaim(CHAT.bench);
-    if (top < 3){                       // 1 and 2 mean "this does not need saying aloud"
-      await chatTake([]);
-    } else if (winners.length > 1){
-      CHAT.pending = winners.map(r => r.who); CHAT.pendingTop = top;
-      if (msg) msg.textContent = winners.map(r => r.who).join(' and ') + ' both claimed ' + top + '. The floor is yours to give.';
+    const d = await decideTurn(room, CHAT.names, {byPerson: true});
+    if (d.pending){
+      CHAT.pending = d.pending; CHAT.pendingTop = d.top;
+      if (msg) msg.textContent = d.pending.join(' and ') + ' both claimed ' + d.top + '. The floor is yours to give.';
       chatPaint();
     } else {
-      await chatTake(winners);
+      await chatTake(d.chosen, {judge: d.judge});
     }
   } finally {
     CHAT.busy = false; chatPaint();
@@ -2401,14 +2552,14 @@ async function chatSay(){
 
 // Everyone asked the same thing at the same moment. A queue would make the last member a responder to the first,
 // which is an artifact of the page's loop and not of the room.
-async function askRoom(room, names){
+async function askRoom(room, names, claim = true){
   CHAT.bench = names.map(n => ({role: 'assistant', who: n, at: nowStamp(), content: '', urgency: null, done: false}));
   chatPaint();
   await Promise.all(CHAT.bench.map(async (r) => {
     const m = (S.members || []).find(x => x.name === r.who);
     if (!m){ r.content = '[not a member of this tribe any more]'; r.urgency = 0; r.done = true; return; }
     try {
-      await chatStream(chatPrompt(m), [{role: 'user', content: chatUtterance(room, m)}], m.engine,
+      await chatStream(chatPrompt(m, claim), [{role: 'user', content: chatUtterance(room, m)}], m.engine,
         (d) => { r.content += d; chatPaint(); });
     } catch(e){ r.content = '[could not answer: ' + e.message + ']'; }
     const p = parseUrgency(r.content);
@@ -2445,29 +2596,30 @@ async function startLoop(rounds){
   while (CHAT.loop.running && CHAT.loop.left > 0 && !CHAT.loop.stop){
     // Whoever just spoke is not asked about their own sentence: in a two-member room that leaves one voice, which
     // is the conversation. A room of one has nobody to talk to and stops rather than answering itself.
+    // With claims deciding, nobody is asked about their own sentence. With a judge, everyone is asked every round —
+    // otherwise in a two-member room there is one candidate and the judge is decoration.
     const lastWho = (CHAT.msgs[CHAT.msgs.length - 1] || {}).who;
-    const asked = CHAT.names.filter(n => n !== lastWho);
+    const asked = CHAT.floor === 'judge' ? CHAT.names.slice() : CHAT.names.filter(n => n !== lastWho);
     if (!asked.length){ stopLoop('nobody left to answer'); break; }
     CHAT.loop.done++;
     chatPaint();
     const room = CHAT.msgs.slice();
+    let d;
     try {
-      await askRoom(room, asked);
+      d = await decideTurn(room, asked, {byPerson: false});
     } catch(e){
       stopLoop('a call failed: ' + e.message);
       break;
     }
-    const {top, winners} = topClaim(CHAT.bench);
-    if (top < 3){
-      // Nobody thinks the room needs this aloud. What they wrote is still written, as set aside.
-      await chatTake([], {auto: true});
-      stopLoop(top ? 'the highest claim was ' + top + ', below 3 — nothing needed saying aloud'
-                   : 'nobody claimed the floor');
+    if (!d.chosen.length){
+      // Nobody thinks the room needs this aloud — or the judge said so. What they wrote is still written.
+      await chatTake([], {auto: true, judge: d.judge});
+      stopLoop(d.judge && !d.judge.failed
+        ? 'the judge said nobody — ' + (d.judge.why || 'nothing worth saying')
+        : 'the highest claim was below 3 — nothing needed saying aloud');
       break;
     }
-    // No person is in this round to settle a tie, so both of them speak, in the order they are in the room.
-    const speak = winners.length > 1 ? winners.slice().sort((a, b) => CHAT.names.indexOf(a.who) - CHAT.names.indexOf(b.who)) : winners;
-    await chatTake(speak, {auto: true});
+    await chatTake(d.chosen, {auto: true, judge: d.judge});
     CHAT.loop.left--;
   }
   if (CHAT.loop.running) stopLoop('');
@@ -2497,7 +2649,7 @@ async function flushQueue(){
 
 // Whoever is chosen is what the room hears; everyone else is set aside — written down, not spoken. `chosen` empty
 // means the person judged that nobody needed the floor, which is an answer too and is recorded as one.
-async function chatTake(chosen, {auto = false} = {}){
+async function chatTake(chosen, {auto = false, judge = null} = {}){
   const bench = CHAT.bench.slice();
   const taken = chosen.filter(Boolean);
   const aside = bench.filter(r => !taken.includes(r));
@@ -2508,11 +2660,31 @@ async function chatTake(chosen, {auto = false} = {}){
 
   CHAT.msgs.push(...taken.map(r => ({role: 'assistant', who: r.who, at: r.at, content: r.content})));
   CHAT.aside = aside.map(r => ({who: r.who, content: r.content, urgency: r.urgency}));
+  CHAT.lastJudge = judge;
   chatPaint();
 
   if (!lead.length && !taken.length && !aside.length) return;
-  const spoken = taken.map(r => ({role: 'assistant', who: r.who, at: r.at, content: r.content, mark: `urgency ${r.urgency}`}));
-  const unheard = aside.map(r => ({role: 'assistant', who: r.who, at: r.at, content: r.content, mark: `urgency ${r.urgency}, not taken`}));
+  // What the record says about this turn: a claim the room weighed, or a judge that chose and said why. Either way
+  // the reason goes in the file beside the answer, because a decision nobody can read afterwards is not evidence.
+  const markOf = (r, isTaken) => {
+    if (judge && !judge.failed){
+      const why = String(judge.why || '').replace(/\s+/g, ' ').trim().slice(0, 90);
+      if (!isTaken) return `not chosen by the judge (${judge.engine})`;
+      return `judge ${judge.engine}${why ? ': ' + why : ''}`;
+    }
+    if (judge && judge.failed){
+      // The room fell back on the claims, and the file has to say so: a fallback that reads like an ordinary
+      // decision is the one thing this page must not produce.
+      const parts = [];
+      if (r.urgency !== null && r.urgency !== undefined) parts.push(`urgency ${r.urgency}`);
+      if (!isTaken) parts.push('not taken');
+      parts.push(`the judge failed (${judge.engine}: ${String(judge.failed).replace(/\s+/g, ' ').slice(0, 70)})`);
+      return parts.join(', ');
+    }
+    return isTaken ? `urgency ${r.urgency}` : `urgency ${r.urgency}, not taken`;
+  };
+  const spoken = taken.map(r => ({role: 'assistant', who: r.who, at: r.at, content: r.content, mark: markOf(r, true)}));
+  const unheard = aside.map(r => ({role: 'assistant', who: r.who, at: r.at, content: r.content, mark: markOf(r, false)}));
   const roomTurns = [...lead, ...spoken, ...unheard];
 
   // Each member's own memory: what was said in the room, and — only for the member that said it — its own set-aside
@@ -2525,6 +2697,16 @@ async function chatTake(chosen, {auto = false} = {}){
 
   try {
     await chatPersist(CHAT.slug, roomTurns, byName);
+    if (msg && judge && !judge.failed){
+      msg.textContent = judge.who
+        ? `The judge (${ENGINES[judge.engine] ? ENGINES[judge.engine].label : judge.engine}) chose ${judge.who}` + (judge.why ? `: ${judge.why}` : '.')
+        : `The judge (${judge.engine}) heard nothing worth saying aloud` + (judge.why ? `: ${judge.why}` : '.');
+      return;
+    }
+    if (msg && judge && judge.failed){
+      msg.innerHTML = '<span class="err">The judge did not answer: ' + esc(judge.failed) + '. The room fell back on the members\' claims for this turn.</span>';
+      return;
+    }
     if (msg) msg.textContent = taken.length
       ? taken.map(r => r.who).join(' and ') + ' took the floor.'
       : 'Nobody took the floor' + (bench.some(r => r.urgency)
@@ -2543,11 +2725,13 @@ function takeNone(){ chatTake([]); }
 function floorStats(all){
   const by = {};
   for (const t of all){
-    if (t.role === 'user' || !t.who || t.urgency === null || t.urgency === undefined) continue;
+    if (t.role === 'user' || !t.who) continue;
+    const judged = /judge|chosen/i.test(t.mark || '');
+    if (!judged && (t.urgency === null || t.urgency === undefined)) continue;
     const s = by[t.who] || (by[t.who] = {name: t.who, claims: 0, taken: 0, nTaken: 0, sumTaken: 0, nAside: 0, sumAside: 0});
     s.claims++;
-    if (t.taken){ s.taken++; s.nTaken++; s.sumTaken += t.urgency; }
-    else { s.nAside++; s.sumAside += t.urgency; }
+    if (t.taken){ s.taken++; if (t.urgency !== null && t.urgency !== undefined){ s.nTaken++; s.sumTaken += t.urgency; } }
+    else { if (t.urgency !== null && t.urgency !== undefined){ s.nAside++; s.sumAside += t.urgency; } }
   }
   return Object.values(by);
 }
