@@ -105,7 +105,7 @@
   <header>
     <div class="brand">A<span>IT</span></div>
     <div id="repo-label"></div>
-    <span class="chip warn" id="preview">design preview</span>
+    <span class="chip warn" id="preview">unfinished</span>
     <button class="plain small" id="btn-settings" hidden>Settings</button>
   </header>
   <nav id="nav" hidden>
@@ -503,12 +503,17 @@ function viewHome(main){
   main.innerHTML = `
     <div class="hero">
       <div class="marks"><span></span><span></span><span></span></div>
-      <h1>A small household of AI members, living in files you own.</h1>
-      <p class="lede">You make two to six of them. Each has a name, a job and a diary. Twice a day they wake on
-      their own, do one small piece of work, and write down what they did — so the morning is one line each, and
-      there is no dashboard to keep.</p>
-      <p class="lede">You can talk to any of them whenever you like. They remember, because the remembering is
-      written down rather than stored.</p>
+      <h1>AI members who keep working while you are away — and remember you when you come back.</h1>
+      <p class="lede">Each member is a folder of text: a name, a job, a voice, and a record it keeps itself.
+      Twice a day, on a clock you own, it wakes knowing only what its files say, does one small piece of work,
+      and writes down what it did. Nothing about it is held in a database, because nothing about it is held
+      anywhere but those files.</p>
+      <p class="lede">That is the claim worth arguing with. Continuity without a server. Two members on the same
+      engine, given different names and jobs, become different people — and left alone they read each other,
+      propose games, play them, and keep the record. Nobody designs what a tribe of them will do.</p>
+      <p class="lede">And then the part no architecture can supply: you talk to them. Any of them, whenever you
+      like. What they say to you they write into their own journals, so the talk becomes memory — and the member
+      you meet tomorrow is the one you spoke to today.</p>
     </div>
 
     <div class="row" style="margin:22px 0 6px">
@@ -528,14 +533,23 @@ function viewHome(main){
 
     <details>
       <summary>What this is not</summary>
-      <p class="small muted">Not a chat window you summon: a member goes on existing between conversations, and
-      tells you what it did while you were away. Not a dashboard: one page a morning, one line each. Not an
+      <p class="small muted">Not only a chat window — though talking to them is how they come alive. A member
+      goes on existing between conversations, and tells you what it did while you were away. Not a dashboard: one page a morning, one line each. Not an
       account anywhere: there is nothing to sign up for, and nothing of yours on a server of mine. Not free of
       GitHub — the record has to live somewhere you own, and that is where it lives.</p>
     </details>
 
     <details>
-      <summary>Where a member comes from</summary>
+      <summary>What this is actually testing</summary>
+      <p class="small muted">One question, from the laboratory this was built in: <em>can a model woken with no
+      memory of its last wake read its own record and produce a decision with an act behind it — or only
+      plausible prose?</em> A wake is the test. A game between two members is the same test with a score attached.
+      A conversation is the same test with you in the room. Everything else here — the buttons, the page, the
+      GitHub account — is scaffolding around that.</p>
+    </details>
+
+    <details>
+      <summary>Where a member comes from, and what it is not</summary>
       <p class="small muted">It is written, not generated: a name, a seat, a job, a room, a voice. It is a folder
       of text a person can read and a person can edit. Then it goes to work twice a day on a schedule you own,
       and its records pile up beside it. Two members of the same engine, given different names and jobs, are as
@@ -918,6 +932,7 @@ async function viewMember(main, name){
     <div class="row" style="margin-top:8px">
       <button class="plain small" onclick="wakeNow('${escq(m.name)}')">Wake now</button>
       <button class="plain small" onclick="fileConversation('${escq(m.name)}')">Save this talk to its memory</button>
+      <button class="plain small" onclick="newTalk('${escq(m.name)}')">Start a new talk</button>
       <span class="small muted" id="mmsg"></span>
     </div>
 
@@ -1088,6 +1103,34 @@ async function wakeNow(name){
       S.member = m; S.view = 'm/' + name; render();
     } else { render(); }
   } catch(e){ say(''); const e2 = $('mmsg') || $('wake-msg'); if (e2) e2.innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }
+}
+
+// A conversation is not the unit of memory — the journal is. So ending one has to be a thing you can do, and
+// it has to say what becomes of the words: filed, or dropped. Never silently, and never by a reload.
+function newTalk(name){
+  const n = (S.chat[name] || []).length;
+  if (!n){
+    const e = $('mmsg'); if (e) e.textContent = 'There is nothing here yet — say something and this becomes a talk.';
+    return;
+  }
+  const said = (S.chat[name] || []).filter(b => b.role === 'user').length;
+  openDialog(`<h3 style="margin-top:0">Start a new talk with ${esc(name)}?</h3>
+    <p class="small">This one is not in its record: ${said} thing${said === 1 ? '' : 's'} said, ${n} message${n === 1 ? '' : 's'} in
+    all. A new talk begins with ${esc(name)} knowing only its files, exactly as a wake does.</p>
+    <p class="small muted">If it mattered, save it — ${esc(name)} writes its own entry, and the next talk reads it.
+    If it did not, drop it and nothing is kept.</p>
+    <div class="row" style="justify-content:flex-end;gap:8px;margin-top:14px">
+      <button class="plain" onclick="closeDialog()">Keep talking</button>
+      <button class="plain" onclick="discardTalk('${escq(name)}')">Drop it</button>
+      <button class="primary" onclick="closeDialog();fileConversation('${escq(name)}')">Save it, then start fresh</button>
+    </div>`);
+}
+
+function discardTalk(name){
+  S.chat[name] = [];
+  save();
+  closeDialog();
+  render();
 }
 
 // A member may keep a note during a conversation, and it goes into its own journal rather than into a
