@@ -125,6 +125,8 @@
       not by an attic. And a member's key reaches this page for chat but not yet the clock, so a new tribe talks
       before it wakes.</p>
     </details>
+    <p class="small muted">A second tribe is a second repository: <a href="#/install">install another one</a>,
+    or <a href="#/connect">connect to one you already have</a>.</p>
     <p class="small muted" id="build" hidden style="margin:10px 0 0"></p>
   </footer>
 </div>
@@ -482,15 +484,18 @@ async function render(){
   $('preview').hidden = connected;
   $('repo-label').textContent = connected ? S.repo : '';
 
+  // Install and connect belong to everybody, connected or not: the first is the address you give a stranger,
+  // and a person who already has a tribe may want a second one — or may be looking at a stale bookmark while
+  // holding a token. Neither may be reachable only by not being signed in.
+  if (view === 'install'){ nav('install'); return viewInstall(main); }
+  if (view === 'connect'){ nav('connect'); return viewConnect(main); }
+
   if (!connected){
     nav('');
-    if (view === 'install') return viewInstall(main);
-    if (view === 'connect') return viewConnect(main);
     return viewHome(main);
   }
 
   nav(view || 'today');
-  if (view === 'connect') return viewConnect(main);
   if (view === 'keys') return viewKeys(main);
   if (view === 'play') return viewPlay(main);
   if (view === 'magazine') return viewMagazine(main);
