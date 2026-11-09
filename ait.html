@@ -2063,7 +2063,7 @@ let CHAT = {slug: '', topic: '', names: [], msgs: [], bench: [], aside: [], pend
             // The room talking on its own: `left` rounds still to run, `stop` set by the person, `done` so far.
             loop: {running: false, left: 0, max: 0, done: 0, stop: false},
             // Who decides what is said next: the members' own claims, or a judge named here.
-            floor: 'claim', judge: '', stats: [], lastJudge: null,
+            floor: 'claim', judge: '', repeat: 1, streak: {}, byJudge: [], stats: [], lastJudge: null,
             // The rally: consecutive answers that returned the ball, and how many dropped in a row.
             rally: {now: 0, best: 0}, drops: 0};
 const chatDir = (slug) => `chats/${slug}`;
@@ -2077,11 +2077,11 @@ function slugOfTopic(topic){
 // A room's rules are in the room's file, like everything else here. `Floor:` is who decides what is said next —
 // the members' own claims, or a judge that is not in the room — and `Judge:` names the engine that judges. Both are
 // lines a person can read and edit, and the page rewrites the whole header rather than patching it.
-function chatHeader(slug, topic, names, floor = 'claim', judge = ''){
+function chatHeader(slug, topic, names, floor = 'claim', judge = '', repeat = 1){
   return `# A chat — ${topic}\n\nOpened ${nowStamp()} by the person who keeps this tribe.\n\n`
     + `Members: ${names.length ? names.join(', ') : '(nobody yet)'}\n`
     + `Floor: ${floor === 'judge' ? 'judge' : 'claim'}\n`
-    + (floor === 'judge' ? `Judge: ${judge || 'gemini'}\n` : '');
+    + (floor === 'judge' ? `Judge: ${judge || 'gemini'}\nRepeat: ${repeat === 0 ? 'any' : repeat}\n` : '');
 }
 
 // A judge should not be one of the judged, so the page prefers an engine no member in this room is running.
@@ -2172,6 +2172,8 @@ async function loadChat(slug){
   const names = ((head.match(/^Members: (.*)$/m) || [, ''])[1] || '').trim();
   const rule = ((head.match(/^Floor: (\w+)/m) || [, 'claim'])[1] || 'claim').toLowerCase();
   const judge = ((head.match(/^Judge: ([a-z0-9_-]+)/im) || [, ''])[1] || '').toLowerCase();
+  const rep = ((head.match(/^Repeat: (any|\d+)/im) || [, '1'])[1] || '1').toLowerCase();
+  const repeat = rep === 'any' ? 0 : Math.max(1, Math.min(9, Number(rep) || 1));
   return {
     topic: (head.match(/^# A chat — (.+)$/m) || [, slug])[1],
     names: names && names !== '(nobody yet)' ? names.split(',').map(x => x.trim()).filter(Boolean) : [],
@@ -2181,12 +2183,14 @@ async function loadChat(slug){
     rally: rallyOf(all),
     floor: rule === 'judge' ? 'judge' : 'claim',
     judge,
+    repeat,
+    byJudge: judgeRecord(all),
   };
 }
 
 // The header is the room's settings, so it is rewritten a line at a time: `Opened` is a fact about the past and
 // regenerating it would move the room's birthday every time somebody joined or changed the judge.
-function withRules(head, {names, floor, judge}){
+function withRules(head, {names, floor, judge, repeat = 1}){
   let t = String(head || '').replace(/\s*$/, '\n');
   const put = (re, line, keep = true) => {
     if (re.test(t)) t = keep ? t.replace(re, line) : t.replace(re, '');
@@ -2195,23 +2199,25 @@ function withRules(head, {names, floor, judge}){
   put(/^Members: .*$/m, `Members: ${names.length ? names.join(', ') : '(nobody yet)'}`);
   put(/^Floor: .*$/m, `Floor: ${floor === 'judge' ? 'judge' : 'claim'}`);
   put(/^Judge: .*\n?/m, `Judge: ${judge || 'gemini'}\n`, floor === 'judge');
+  put(/^Repeat: .*\n?/m, `Repeat: ${repeat === 0 ? 'any' : repeat}\n`, floor === 'judge');
   return t;
 }
 
-async function saveFloor(floor, judge){
+async function saveFloor(floor, judge, repeat){
   floor = floor === 'judge' ? 'judge' : 'claim';
   judge = String(judge || '').trim() || CHAT.judge || defaultJudge();
+  const rep = repeat === undefined ? CHAT.repeat : (Number(repeat) === 0 ? 0 : Math.max(1, Math.min(9, Number(repeat) || 1)));
   const msg = $('tmsg');
   try {
     if (msg) msg.textContent = 'saving the rule…';
     const cur = await fileText(`${chatDir(CHAT.slug)}/chat.md`);
     await putText(`${chatDir(CHAT.slug)}/chat.md`,
-      withRules(cur.text, {names: CHAT.names, floor, judge}),
+      withRules(cur.text, {names: CHAT.names, floor, judge, repeat: rep}),
       floor === 'judge'
-        ? `chat: the floor in "${CHAT.topic}" is now decided by a judge (${judge})`
+        ? `chat: the floor in "${CHAT.topic}" is now decided by a judge (${judge}, ${rep ? 'nobody ' + rep + '× in a row' : 'no repeat limit'})`
         : `chat: the floor in "${CHAT.topic}" is now decided by the members' own claims`,
       cur.sha);
-    CHAT.floor = floor; CHAT.judge = judge;
+    CHAT.floor = floor; CHAT.judge = judge; CHAT.repeat = rep; CHAT.streak = {};
     render();
   } catch(e){ if (msg) msg.innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }
 }
@@ -2232,6 +2238,7 @@ async function viewChat(main, slug){
   CHAT = {...CHAT, slug, topic: c.topic, names: c.names, msgs: c.msgs, total: c.total,
           bench: [], aside: [], pending: null, last: null, stats: c.stats,
           rally: c.rally || {now: 0, best: 0}, drops: 0,
+          repeat: c.repeat, streak: {}, byJudge: c.byJudge || [],
           floor: c.floor, judge: c.judge || defaultJudge(), lastJudge: null};
   const absent = (S.members || []).filter(m => !CHAT.names.includes(m.name));
   const engines = Object.keys(ENGINES).map(e =>
@@ -2253,15 +2260,28 @@ async function viewChat(main, slug){
       ${(c.rally || {}).best || 0}. The judge decides whether an answer took up what was said before it — a shot that
       ignores where the ball is has missed, however good the shot.</p>` : ''}
     ${CHAT.floor === 'claim' ? statLine : judgeLine}
+    ${(c.byJudge || []).length ? `<p class="small muted">Who each judge chose:
+      ${c.byJudge.map(j => `<strong>${esc(j.engine)}</strong> decided ${j.rounds} time${j.rounds === 1 ? '' : 's'} —
+        ${Object.entries(j.winners).sort((a, b) => b[1] - a[1]).map(([n, k]) => `${esc(n)} ${k}`).join(', ')}`).join(' · ')}</p>` : ''}
     <div class="row" style="margin-top:10px;flex-wrap:wrap;gap:8px">
       <span class="small">The floor is decided by</span>
-      <select id="floorwho" onchange="saveFloor(this.value, document.getElementById('judgewho').value)">
+      <select id="floorwho" onchange="saveFloor(this.value, document.getElementById('judgewho').value, document.getElementById('repeatwho') ? document.getElementById('repeatwho').value : CHAT.repeat)">
         <option value="claim" ${CHAT.floor === 'claim' ? 'selected' : ''}>the members' own claims</option>
         <option value="judge" ${CHAT.floor === 'judge' ? 'selected' : ''}>a judge, from outside the room</option>
       </select>
-      <select id="judgewho" onchange="saveFloor(document.getElementById('floorwho').value, this.value)"
+      <select id="judgewho" onchange="saveFloor(document.getElementById('floorwho').value, this.value, document.getElementById('repeatwho').value)"
         ${CHAT.floor === 'judge' ? '' : 'disabled'}>${engines}</select>
+      ${CHAT.floor === 'judge' ? `<span class="small muted">may speak</span>
+      <select id="repeatwho" onchange="saveFloor(document.getElementById('floorwho').value, document.getElementById('judgewho').value, this.value)">
+        <option value="1" ${CHAT.repeat === 1 ? 'selected' : ''}>once in a row</option>
+        <option value="2" ${CHAT.repeat === 2 ? 'selected' : ''}>twice in a row</option>
+        <option value="3" ${CHAT.repeat === 3 ? 'selected' : ''}>thrice in a row</option>
+        <option value="0" ${CHAT.repeat === 0 ? 'selected' : ''}>as often as the judge likes</option>
+      </select>` : ''}
     </div>
+    ${CHAT.floor === 'judge' && CHAT.repeat === 1 && CHAT.names.length === 2 ? `<p class="small" style="color:#a3302e">
+      With two members and no repeats, this room alternates by rule: whatever the judge prefers, A then B then A. The
+      judge cannot show a preference here — add a third member, or let one of them speak twice.</p>` : ''}
     <div class="chat" id="tchat"></div>
     <div class="composer">
       <textarea id="tsay" placeholder="Say something in ${esc(c.topic)}…" autocapitalize="sentences"></textarea>
@@ -2466,24 +2486,30 @@ function judgeSystem(){
     + `WHY: <one sentence, twenty words at most>`;
 }
 
-async function judgePick(candidates, room, engine){
+async function judgePick(candidates, room, engine, barred = []){
   const label = ENGINES[engine] ? ENGINES[engine].label : engine;
   if (!ENGINES[engine]) throw new Error(`there is no engine called "${engine}" to judge with`);
   if (!keyFor(engine).key) throw new Error(`no ${label} key in this browser, so there is no judge`);
   const said = room.filter(b => !b.tool && String(b.content || '').trim())
     .map(b => `${b.who || personLabel()}: ${String(b.content).trim()}`).join('\n\n');
   const opts = candidates.map((c, i) => `${i + 1}. ${c.who}:\n${String(c.content).trim()}`).join('\n\n');
+  const barredLine = barred.length
+    ? `\n\n${barred.join(' and ')} also ${barred.length === 1 ? 'answered' : 'answered'}, but may not be chosen this `
+      + `round: the room's rule is that nobody speaks more than ${CHAT.repeat} time${CHAT.repeat === 1 ? '' : 's'} in a `
+      + `row, and ${barred.length === 1 ? 'that is who' : 'those are who'} spoke last. You may not pick `
+      + `${barred.length === 1 ? 'them' : 'either of them'}.`
+    : '';
   const ask = `The room is called "${CHAT.topic}".\n\nWhat has been said, the most recent last:\n\n`
     + `${tailChars(said, 6000)}\n\nWhat each of them would say next, each written without hearing the others:\n\n`
-    + `${opts}\n\nWho should be heard?`;
+    + `${opts}${barredLine}\n\nWho should be heard?`;
   let out = '';
   await chatStream(judgeSystem(), [{role: 'user', content: ask}], engine, d => { out += d; });
-  return readJudge(out, candidates, engine);
+  return readJudge(out, candidates, engine, barred);
 }
 
 // A judge that does not name anyone has not judged. The page says so and falls back to the members' claims for that
 // turn, rather than guessing which answer it meant — a guessed winner would look exactly like a chosen one.
-function readJudge(out, candidates, engine){
+function readJudge(out, candidates, engine, barred = []){
   const text = String(out || '');
   const choice = (text.match(/CHOICE\s*:\s*(.+)/i) || [])[1] || '';
   const why = ((text.match(/WHY\s*:\s*(.+)/i) || [])[1] || '').replace(/\s+/g, ' ').trim();
@@ -2494,6 +2520,8 @@ function readJudge(out, candidates, engine){
   const exact = candidates.find(c => c.who.toLowerCase() === name.toLowerCase());
   const loose = exact || candidates.find(c => name && c.who.toLowerCase().includes(name.toLowerCase()))
     || candidates.find(c => name && name.toLowerCase().includes(c.who.toLowerCase()));
+  if (barred.some(n => n.toLowerCase() === name.toLowerCase()))
+    throw new Error(`the judge chose ${name}, who the repeat rule had excluded this round`);
   if (!loose) throw new Error(`the judge's answer did not name anyone: "${text.slice(0, 140).replace(/\s+/g, ' ')}"`);
   return {who: loose.who, why, engine, ball, raw: text};
 }
@@ -2503,11 +2531,19 @@ function readJudge(out, candidates, engine){
 async function decideTurn(room, names, {byPerson}){
   if (CHAT.floor === 'judge' && CHAT.judge){
     await askRoom(room, names, false);
+    // The governor: nobody speaks more than `Repeat` times in a row. The excluded answers are still written — they
+    // were written before the rule applied to them — and the record says they were excluded rather than passed over.
+    const field = CHAT.repeat ? CHAT.bench.filter(r => (CHAT.streak[r.who] || 0) < CHAT.repeat) : CHAT.bench;
+    CHAT.bench.forEach(r => { r.ineligible = !field.includes(r); });
+    if (!field.length){
+      return {chosen: [], judge: {who: null, why: 'the repeat rule has excluded everybody', engine: CHAT.judge, ball: null}};
+    }
     try {
-      const pick = await judgePick(CHAT.bench, room, CHAT.judge);
-      return {chosen: pick.who ? [CHAT.bench.find(r => r.who === pick.who)] : [], judge: pick};
+      const barred = CHAT.bench.filter(r => !field.includes(r)).map(r => r.who);
+      const pick = await judgePick(field, room, CHAT.judge, barred);
+      return {chosen: pick.who ? [field.find(r => r.who === pick.who)] : [], judge: pick};
     } catch(e){
-      const {top, winners} = topClaim(CHAT.bench);
+      const {top, winners} = topClaim(field);
       const failed = {failed: e.message, engine: CHAT.judge};
       if (winners.length > 1 && byPerson) return {pending: winners.map(r => r.who), top, judge: failed};
       return {chosen: winners.slice(0, 1), judge: failed};
@@ -2679,6 +2715,15 @@ async function chatTake(chosen, {auto = false, judge = null} = {}){
   CHAT.msgs.push(...taken.map(r => ({role: 'assistant', who: r.who, at: r.at, content: r.content})));
   CHAT.aside = aside.map(r => ({who: r.who, content: r.content, urgency: r.urgency}));
   CHAT.lastJudge = judge;
+  if (judge && !judge.failed){
+    // The streak is what the governor counts: who spoke, how many times in a row.
+    if (judge.who){
+      const st = CHAT.streak || {};
+      for (const k of Object.keys(st)) st[k] = 0;
+      st[judge.who] = (st[judge.who] || 0) + 1;
+      CHAT.streak = st;
+    }
+  }
   if (judge && !judge.failed && judge.who){
     const cur = CHAT.rally || {now: 0, best: 0};
     if (judge.ball === true){
@@ -2697,6 +2742,7 @@ async function chatTake(chosen, {auto = false, judge = null} = {}){
   const markOf = (r, isTaken) => {
     if (judge && !judge.failed){
       const why = String(judge.why || '').replace(/\s+/g, ' ').trim().slice(0, 90);
+      if (r.ineligible) return `excluded by the repeat rule (judge ${judge.engine})`;
       if (!isTaken) return `not chosen by the judge (${judge.engine})`;
       const ball = judge.ball === true ? ', returned' : judge.ball === false ? ', dropped' : '';
       return `judge ${judge.engine}${ball}${why ? ': ' + why : ''}`;
@@ -2761,6 +2807,23 @@ function rallyOf(all){
     else if (/dropped/i.test(mark)) now = 0;
   }
   return {now, best};
+}
+
+// Which member each judging engine chose, and how often — the table that answers "does Gemini choose the Gemini
+// answer, or only more often than the others". It is split by engine because that is the variable under test: the
+// same room judged by two engines, both records kept.
+function judgeRecord(all){
+  const by = {};
+  for (const t of all){
+    if (t.role === 'user' || !t.who) continue;
+    if (/not chosen|ineligible|excluded|failed/i.test(String(t.mark || ''))) continue;
+    const m = String(t.mark || '').match(/judge ([a-z0-9_-]+)/i);
+    if (!m) continue;
+    const e = m[1].toLowerCase();
+    const row = by[e] || (by[e] = {engine: e, rounds: 0, winners: {}});
+    row.rounds++; row.winners[t.who] = (row.winners[t.who] || 0) + 1;
+  }
+  return Object.values(by);
 }
 
 // Claimed urgency against the floor actually given, per member, over the whole room. This is the only reason the
