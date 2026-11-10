@@ -44,6 +44,14 @@ The same turns are also appended to each participant's own `state/conversation.m
 in the room heard it" true in the only place a member can hear anything — its own memory. That is two records of one
 talk, deliberately: the room's copy is the evidence, and each member's copy is what it can actually recall.
 
+**Two lines a turn can carry besides what it said.** A member in a conversation can look things up — `SEARCH:` and
+`FETCH:` — and what it read is written with the turn it read it for: `[read: <address>, …]` and `[searched: "<query>"]`,
+addresses only, never the page. A turn that answered from a page and a turn that remembered are otherwise identical
+in the file, and the whole point of the record is that those are not the same thing. A refused engine writes
+`[could not answer (<engine>: <what the page told the person>)]` in a conversation for the same reason it does in a
+room: four unanswered messages with nothing between them read as a person talking to himself, which is what the
+founder's own record looked like on 2026-11-10 before any of this was written down.
+
 ## Making one
 
 ```
