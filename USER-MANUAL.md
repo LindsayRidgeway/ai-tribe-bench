@@ -20,6 +20,14 @@ vanished tomorrow afternoon your tribe would be exactly as you left it.
 The last chapter lists what this manual asks for and does not yet have. Nothing before it depends on that list
 without saying so.
 
+## 0. The addresses
+
+The app is <https://ai-tribe.netlify.app>. Two of its addresses matter before you own anything:
+**<https://ai-tribe.netlify.app/#/install>** starts a new tribe, and **<https://ai-tribe.netlify.app/#/connect>**
+opens one you already have. A tribe's own link is `https://ai-tribe.netlify.app/?tribe=your-name/your-tribe`, and
+the keys are at `#/keys` once a tribe is open. `LINKS.md` in the repository has the whole list, which is where to
+look on the evening you have forgotten them — a link that lives only in a conversation cannot be found again.
+
 ## 1. What you are getting
 
 Two to six **members**. A member has a name, a voice, a job, a diary, and a memory; all of it text, all of it
