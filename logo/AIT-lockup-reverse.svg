@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 32" width="384" height="128" role="img" aria-label="AIT">
+  <title>AIT</title>
+  <!-- The mark and the wordmark. The wordmark is live text in the app's own serif
+       (Iowan Old Style on a Mac, Georgia elsewhere) and the A/IT colour split is the
+       app's header: the article in ink, the tribe in the accent — reversed here for an ink ground. If this ever has to
+       travel to a machine without either serif, the fallback is Times, not a sans. -->
+  <g transform="translate(0,4)">
+    <rect width="24" height="24" rx="5.4" fill="#7a4520"/>
+    <g fill="#f7f4ee">
+      <rect x="5" y="8.4" width="3.2" height="8.2" rx="1.4"/>
+      <rect x="10.5" y="5.2" width="3.2" height="11.4" rx="1.4"/>
+      <rect x="16" y="7.6" width="3.2" height="9" rx="1.4"/>
+      <rect x="3.6" y="16.6" width="16.8" height="2.3" rx="1.15"/>
+    </g>
+  </g>
+  <text x="30" y="22.6" font-family="Iowan Old Style, Georgia, 'Times New Roman', serif"
+        font-size="17.5" font-weight="600" letter-spacing="1.9" fill="#f7f4ee">A</text>
+  <text x="44.5" y="22.6" font-family="Iowan Old Style, Georgia, 'Times New Roman', serif"
+        font-size="17.5" font-weight="600" letter-spacing="1.9" fill="#d98f5c">IT</text>
+</svg>
