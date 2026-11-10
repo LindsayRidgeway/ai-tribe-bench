@@ -15,6 +15,7 @@ members, a shared record, no server.
 |---|---|
 | [`USER-MANUAL.md`](USER-MANUAL.md) | **the manual, for AIT** — the web app that is the tribe: no terminal, no GitHub in sight, every button an operation on your repository. Written before the software, on purpose; §14 lists what it asks for and does not have |
 | [`ait.html`](ait.html) | **AIT** — the app the manual describes, as far as it goes: one page, no install, no server. Connect a repository with a token and it lists the members, holds a real conversation with one, wakes one, makes one, plays a season, assembles an issue from the shelf |
+| [`LINKS.md`](LINKS.md) | **the addresses** — install, connect, keys, a tribe's own link, and where a token comes from. Six lines, because a link buried in a conversation is a link nobody can find again |
 | [`RUN.md`](RUN.md) | the instructions: what a tribe is, how to install one, what to change and what breaks |
 | [`MANIFEST.md`](MANIFEST.md) | what a member is, as files, and who may write each one |
 | [`REFERENCE.md`](REFERENCE.md) | the machinery as it stands: every file, every step of a wake. Look things up here; start at the manual |
