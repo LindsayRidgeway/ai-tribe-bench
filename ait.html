@@ -155,6 +155,12 @@ const ENGINES = {
   cerebras:   {label:'Cerebras',   model:'gpt-oss-120b',          kind:'openai', base:'https://api.cerebras.ai/v1'},
   together:   {label:'Together',   model:'zai-org/GLM-5.3-Flash', kind:'openai', base:'https://api.together.xyz/v1'},
   qwen:       {label:'Qwen',       model:'qwen3.8-flash',         kind:'openai', base:'https://dashscope-intl.aliyuncs.com/compatible-mode/v1'},
+  // Anthropic is the one engine that is not an OpenAI-shaped endpoint: its own path, its own headers, its own
+  // event names, and `max_tokens` is required rather than optional. It also refuses to be called from a page
+  // unless the page says out loud that it is a browser — hence the absurd but load-bearing header below.
+  // Added 2026-11-09: until then a member could wake on Anthropic (the harness knew it) but could not sit in a
+  // room, so Claude could be a member in a file and not a member in a conversation.
+  anthropic:  {label:'Anthropic',  model:'claude-haiku-5-5',      kind:'anthropic', base:'https://api.anthropic.com/v1'},
 };
 
 const S = {repo:'', token:'', branch:'main', keys:{}, members:[], chat:{}, member:null, view:'today',
@@ -399,6 +405,23 @@ async function chatStream(system, messages, engine, onDelta){
       const t = obj?.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
       if (t) onDelta(t);
     });
+    return;
+  }
+
+  if (spec.kind === 'anthropic'){
+    const body = {model: modelFor(engine), max_tokens: 2000, stream: true, system,
+                  messages: messages.map(m => ({role: m.role === 'assistant' ? 'assistant' : 'user',
+                                                content: String(m.content || '')}))};
+    await sse(spec.base + '/messages', {method:'POST',
+      headers:{'Content-Type':'application/json', 'x-api-key': key,
+               'anthropic-version': '2023-06-01',
+               // The page is a browser and Anthropic will not answer one that pretends otherwise. The key is
+               // the person's own and it is in their own browser; the header is a declaration, not a permission.
+               'anthropic-dangerous-direct-browser-access': 'true'},
+      body: JSON.stringify(body)}, (obj) => {
+        const t = obj?.type === 'content_block_delta' ? (obj?.delta?.text || '') : '';
+        if (t) onDelta(t);
+      });
     return;
   }
 
@@ -893,8 +916,24 @@ function viewInstall(main){
     msg.className = 'small muted'; msg.textContent = 'making the repository…';
     try {
       if (!login){ await whoami(); if (!login) throw new Error('the token could not be read'); }
-      await gh(`/repos/${TEMPLATE}/generate`, {method:'POST',
-        body:{owner:login, name:slug, private:true, description:'A tribe. AIT reads it; the members live in it.'}}, t);
+      // One retry, and only for a throttle: pressing again is exactly what a person does, and doing it for
+      // them — while saying that is what is happening — is the difference between a hiccup and a dead end.
+      let made = false;
+      for (let attempt = 1; attempt <= 2; attempt++){
+        try {
+          await gh(`/repos/${TEMPLATE}/generate`, {method:'POST',
+            body:{owner:login, name:slug, private:true, description:'A tribe. AIT reads it; the members live in it.'}}, t);
+          made = true; break;
+        } catch(err){
+          if (!/too quickly|secondary rate limit|abuse/i.test(String(err.message)) || attempt === 2) throw err;
+          for (let s = 45; s > 0; s--){
+            msg.textContent = 'GitHub asked us to slow down; making the repository again in ' + s + 's. Nothing is lost.';
+            await sleep(1000);
+          }
+          msg.textContent = 'making the repository again…';
+        }
+      }
+      if (!made) throw new Error('422 · the repository was not created');
       msg.textContent = 'copied the machinery into it…';
       setTribe(`${login}/${slug}`, t, 'main');
       // Remember the name GitHub has for them, so the first member made in this tribe is told who it is
@@ -920,6 +959,13 @@ function viewInstall(main){
 
 function explainInstallError(e, slug){
   const m = String(e.message || e);
+  // GitHub throttles repository creation per account, and its word for that is "was submitted too quickly".
+  // Until 2026-11-09 this branch did not exist, so a throttle was reported as "GitHub refused the name" —
+  // a wrong reason, given confidently, about the one thing a person had just chosen. Measured while making
+  // six repositories in a minute: five tribes and one probe, then a 422 that blamed the name.
+  if (/too quickly|secondary rate limit|abuse/i.test(m))
+    return 'GitHub is throttling new repositories from this account — it says the request came too quickly, not '
+      + 'that anything is wrong with the name. Nothing was created. Wait a minute and press Install again.';
   if (m.startsWith('401')) return 'GitHub did not accept that token. Copy it again — a token is shown once, and an expired one is the usual cause.';
   if (m.startsWith('403')) return 'The token is real but not allowed to create a repository. It needs Repository creation (read and write) — and Contents. A classic token with the repo scope also works.';
   if (m.startsWith('422')) return `GitHub refused the name “${slug}”. You may already have a repository called that, or the name may not be allowed. Try another.`;
@@ -3139,6 +3185,12 @@ async function checkAllKeys(){
           {method:'POST', headers:{'Content-Type':'application/json'},
            body: JSON.stringify({contents:[{parts:[{text:'Reply with the single word: ready'}]}], generationConfig:{maxOutputTokens:8}})});
         if (!r.ok) throw new Error(r.status + ' · ' + (await r.text()).slice(0, 200));
+      } else if (ENGINES[e].kind === 'anthropic'){
+        const r = await fetch(ENGINES[e].base + '/messages', {method:'POST',
+          headers:{'Content-Type':'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01',
+                   'anthropic-dangerous-direct-browser-access': 'true'},
+          body: JSON.stringify({model, max_tokens: 16, messages:[{role:'user', content:'Reply with the single word: ready'}]})});
+        if (!r.ok) throw new Error(r.status + ' · ' + (await r.text()).slice(0, 200));
       } else {
         const r = await fetch(ENGINES[e].base + '/chat/completions', {method:'POST',
           headers:{'Content-Type':'application/json', Authorization: 'Bearer ' + key},
@@ -3168,6 +3220,14 @@ async function testKey(e){
       if (!r.ok) throw new Error(r.status + ' · ' + (await r.text()).slice(0,200));
       const j = await r.json();
       say('up · ' + ((j.candidates?.[0]?.content?.parts||[]).map(p=>p.text).join('') || '').slice(0,60));
+    } else if (ENGINES[e].kind === 'anthropic'){
+      const r = await fetch(ENGINES[e].base + '/messages', {method:'POST',
+        headers:{'Content-Type':'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01',
+                 'anthropic-dangerous-direct-browser-access': 'true'},
+        body: JSON.stringify({model, max_tokens: 16, messages:[{role:'user', content:'Reply with the single word: ready'}]})});
+      if (!r.ok) throw new Error(r.status + ' · ' + (await r.text()).slice(0,200));
+      const j = await r.json();
+      say('up · ' + ((j.content || []).map(c => c.text || '').join('') || '').slice(0,60));
     } else {
       const r = await fetch(ENGINES[e].base + '/chat/completions', {method:'POST',
         headers:{'Content-Type':'application/json', Authorization:'Bearer ' + key},
