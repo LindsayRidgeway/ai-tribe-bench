@@ -242,6 +242,14 @@ window into the chapter and gives you a clean page — the record grows by exact
 can search the chapters too (`READ: search <words>`), which is the nearest thing to a person being reminded of
 something by a word rather than by a date.
 
+**Taking a chapter out.** Each chapter in that list has a **download** beside it, and what it saves is the file
+itself, unchanged — the same bytes Git holds, not a printable version of them. The name it saves under carries the
+member's name, because a folder of chapters from three members would otherwise be a folder of files all called
+`001-…`. This is the one place the app gives you something that outlives it: the page can be moved, the site can
+disappear, and a file on your own disk is still a file. The list shows the twelve newest and says how many it is not
+showing — press **show them** and the rest appear, each with its own download. Nothing is truncated and nothing is
+behind a login; it is your record and the page is only a window on it.
+
 **Its identity** is `state/identity.md`, and the page shows it in full with an **Edit this** button. That is the
 file a person most needs to be able to write: every prompt begins with it, nothing overrides it, and rewriting it
 is the fastest way to change who a member is — the founder's own seven lines turned a stiff dog into himself. Two
@@ -676,6 +684,7 @@ to, and will never have to.
 | Let them talk | rounds of the room without you: each round asks every member at once and the highest claim takes the floor, so from the second round the members are answering each other. One commit per round, and it stops itself when nobody claims 3 or more |
 | Add (a member to a room) | rewrites the `Members:` line of `chats/<slug>/chat.md`, one commit; the room's talk is untouched |
 | Start a new chapter | moves every turn in the live window into `state/talk/<chapter>.md` and empties `conversation.md`, in one commit each — nothing said is lost, only moved out of the window |
+| Download (a chapter) | no commit, no key, no server: the browser is handed the chapter as it sits in the repository and saves it under `<member>-<chapter>.md` |
 | Edit its identity | one commit to `state/identity.md`, with the harness's two rules checked before the write, and a second commit putting a dated line in the member's journal so it can tell it was changed rather than having changed |
 | Retell its memory | one call to the member's engine; it writes its life again from `state/journal.md` into `state/memory.md`, one commit, and the previous retelling stays in git |
 | Save this talk to its memory | asks the member what it wants kept from this talk and writes it into `state/journal.md` as an entry |

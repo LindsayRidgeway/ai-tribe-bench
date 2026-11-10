@@ -1961,23 +1961,53 @@ function chapterPreview(text){
   return {turns: turns.length, first, opened: (turns[0] || '').split(' — ')[0] || ''};
 }
 
-async function showChapters(name){
+async function showChapters(name, all){
   const box = $('chapts'); if (!box) return;
   try {
     const files = (await chapterFiles(name)).reverse();
     if (!files.length){ box.innerHTML = '<p class="small muted">No chapters yet. Older turns go here as the talk goes on.</p>'; return; }
+    // Twelve at a time, because a table of contents that costs twelve reads is already a long wait. But a chapter
+    // nobody can see is a chapter nobody can take away, so the rest are one press from here rather than absent.
+    const shown = all ? files : files.slice(0, 12);
     const rows = [];
-    for (const f of files.slice(0, 12)){
+    for (const f of shown){
       let t = '';
       try { t = (await fileText(`${talkDir(name)}/${f}`)).text; } catch(e){ continue; }
       const p = chapterPreview(t);
       rows.push(`<div class="row" style="justify-content:space-between;align-items:flex-start;padding:6px 0;
         border-bottom:1px solid #eee"><div class="grow"><div class="small"><strong>${esc(f.replace('.md',''))}</strong>
         <span class="muted">· ${p.turns} turn${p.turns === 1 ? '' : 's'}${p.opened ? ' · from ' + esc(p.opened) : ''}</span></div>
-        <div class="small muted">${esc(p.first)}${p.first ? '…' : ''}</div></div></div>`);
+        <div class="small muted">${esc(p.first)}${p.first ? '…' : ''}</div></div>
+        <button class="plain small" onclick="saveChapter('${escq(name)}','${escq(f)}')"
+          title="Save this chapter to your own disk — it is already a Markdown file, and this saves it unchanged">download</button></div>`);
     }
-    box.innerHTML = rows.join('') || '<p class="small muted">No chapters yet.</p>';
+    const older = files.length - shown.length;
+    box.innerHTML = (rows.join('') || '<p class="small muted">No chapters yet.</p>')
+      + (older > 0 ? `<p class="small muted">…and ${older} older chapter${older === 1 ? '' : 's'}.
+          <a href="#" onclick="showChapters('${escq(name)}', true);return false;">show them</a></p>` : '');
   } catch(e){ box.innerHTML = '<p class="small muted">Could not read the chapters: ' + esc(e.message) + '</p>'; }
+}
+
+// A chapter is already a file, and the record is the whole point of this thing — so a person should be able to take
+// one out of the page without going to the repository and finding it among a hundred other files. No server, no
+// library, no key: the page hands the browser a Blob and a filename and the browser does the rest. The filename
+// carries the member's own name, because a folder of chapters from three members would otherwise be a folder of
+// files all called 001-….
+//
+// The bytes saved are the bytes read: `f.text` is the file as Git holds it, not a prettified view of it. A download
+// that reformats what it downloads is a second edition, and this app has spent its whole life refusing to be one.
+async function saveChapter(name, file){
+  const msg = $('chaptsmsg');
+  try {
+    const f = await fileText(`${talkDir(name)}/${file}`);
+    const blob = new Blob([f.text || ''], {type: 'text/markdown;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `${name}-${file}`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    if (msg) msg.textContent = `saved ${name}-${file}`;
+  } catch(e){ if (msg) msg.textContent = 'could not save it: ' + e.message; }
 }
 
 // A table of contents is a memory aid only if you can look things up in it: the page searches the chapters for
