@@ -1203,7 +1203,11 @@ kept whole: not summarised, not rewritten</span></span>
     const MAX_LOOKUPS = 3;
     let lookups = 0;
     for (let round = 0; round < MAX_LOOKUPS + 2; round++){
-      const idx = arr.push({role:'assistant', content:''}) - 1;
+      // Stamped now, and not left to be stamped by whoever writes the file. Measured on the founder's Aphrodite,
+      // 2026-11-10: twelve of her turns in `conversation.md` carried one timestamp — 05:18, the moment of the last
+      // write — while every line of his carried the minute he said it. A record that cannot say when a thing was
+      // said is not evidence about the conversation, only about the file.
+      const idx = arr.push({role:'assistant', content:'', at: nowStamp(), read: [], searched: []}) - 1;
       repaintChat(name);
       const msgEl = () => document.querySelector(`#chat .msg[data-i="${idx}"]`);
       await chatStream(systemPrompt(m), arr.slice(0, idx).map(x => ({role:x.role, content:x.content})),
@@ -1273,6 +1277,7 @@ kept whole: not summarised, not rewritten</span></span>
         try {
           if (!path) throw new Error('that is not a file in your own folder');
           const f = await fileText(path);
+          arr[idx].read.push(path.replace('wake/members/' + name + '/', ''));
           const body = String(f.text || '').slice(0, CHAT_CHARS);
           arr.push({role:'user', content:`[${path.replace('wake/members/' + name + '/', '')} says:\n\n${body}${f.text.length > CHAT_CHARS ? '\n\n(that is the first part; the file is longer)' : ''}]`, tool: 1});
         } catch(e){
@@ -1286,6 +1291,7 @@ kept whole: not summarised, not rewritten</span></span>
         const q = wantSearch[1].replace(/[`*_]/g, '').trim().slice(0, 200);
         try {
           const s = await searchWeb(q);
+          arr[idx].searched.push(s.query);
           arr.push({role:'user', content:`[searching for "${s.query}" gives:\n\n${s.text}\n\n(now FETCH the address you want; do not search for the same thing twice)]`, tool: 1});
         } catch(e){
           arr.push({role:'user', content:`[the search for "${q}" failed: ${e.message}. Answer without it and say what you could not check.]`, tool: 1});
@@ -1299,6 +1305,7 @@ kept whole: not summarised, not rewritten</span></span>
       if (!/^https?:\/\//i.test(url)) url = 'https://' + url.replace(/^\/+/, '');
       try {
         const page = await readPage(url);
+        arr[idx].read.push(page.url);
         arr.push({role:'user', content:`[${page.url} says:\n\n${page.text}${page.truncated ? '\n\n(the page was long; this is the beginning)' : ''}]`, tool: 1});
       } catch(e){
         arr.push({role:'user', content:`[${url} could not be read: ${e.message}. Answer without it and say what you could not check.]`, tool: 1});
@@ -1318,6 +1325,7 @@ kept whole: not summarised, not rewritten</span></span>
     if (link){
       try {
         const page = await readPage(link);
+        arr[arr.length - 1].read = [page.url];
         arr.push({role:'user', content:`[${page.url} says:\n\n${page.text}]`, tool: 1});
       } catch(e){
         arr.push({role:'user', content:`[${link} could not be read: ${e.message}]`, tool: 1});
@@ -1326,7 +1334,19 @@ kept whole: not summarised, not rewritten</span></span>
     repaintChat(m.name);
     try { await turn(m.name, m, arr); }
     catch(e){
-      if (arr[arr.length - 1].role === 'assistant' && !arr[arr.length - 1].content) arr.pop();
+      // A refusal is a thing that happened in the conversation, so it goes into the record as one. Before this,
+      // the empty reply was dropped and the file kept the person's message with nothing after it — measured on the
+      // founder's Aphrodite 2026-11-10: the same message four times, minutes apart, and no trace of the four
+      // failures between them. It read as a person repeating himself. It was an engine that was not answering.
+      const x = explainEngineError(e, m.engine);
+      const line = `[could not answer (${x.engine}: ${x.short}) ${x.fix}]`;
+      const last = arr[arr.length - 1];
+      if (last && last.role === 'assistant' && !String(last.content || '').trim()){
+        last.content = line; last.failed = x;
+      } else {
+        arr.push({role:'assistant', content: line, at: nowStamp(), failed: x});
+      }
+      repaintChat(m.name);
       const mm = $('mmsg'); if (mm) mm.innerHTML = '<span class="err">' + esc(e.message) + '</span>';
     } finally {
       box.disabled = false; const s2 = $('send'); if (s2) s2.disabled = false; box.focus();
@@ -1392,12 +1412,34 @@ async function wakeNow(name){
 // of memory here that never drops out.
 const threadPath = (name) => `wake/members/${name}/state/conversation.md`;
 
+// What a turn looked at. A member that answers from a page has read something, and a record that cannot say which
+// page turns a checkable claim into an opinion — the one thing this repository exists to refuse. Only addresses and
+// queries are kept: a fetched page runs to tens of thousands of characters and would swamp the record it is meant
+// to support.
+function sourceLine(b){
+  const read = ((b && b.read) || []).filter(Boolean);
+  const looked = ((b && b.searched) || []).filter(Boolean);
+  return (read.length ? `\n[read: ${read.join(', ')}]\n` : '')
+    + (looked.length ? `\n[searched: ${looked.map(q => '"' + q + '"').join(', ')}]\n` : '');
+}
+
+// The reverse, for a page reading its own record back: the sources belong to the turn, not to its words, and a
+// member that is handed its own `[read: …]` line as prose will one day write one itself.
+function splitSources(body){
+  const read = [], looked = [];
+  const content = String(body || '').replace(/^\[(read|searched): ([^\]]*)\]$/gm, (m, kind, list) => {
+    (kind === 'read' ? read : looked).push(...list.split(',').map(x => x.trim().replace(/^"|"$/g, '')).filter(Boolean));
+    return '';
+  }).replace(/\n{3,}/g, '\n\n').trim();
+  return {content, read, searched: looked};
+}
+
 function threadText(name, msgs){
   const head = `# Conversation — ${name}\n\nWhat has been said lately. The oldest turns fall out of this file; `
     + `nothing is lost that ${name} wrote into its journal as a note.\n`;
   const body = (msgs || []).filter(b => !b.tool && String(b.content || '').trim()).map(b =>
     `\n## ${b.at || nowStamp()} — ${b.who || (b.role === 'user' ? 'Lindsay' : name)}`
-      + `${b.mark ? ' [' + b.mark + ']' : ''}\n\n${String(b.content || '').trim()}\n`).join('');
+      + `${b.mark ? ' [' + b.mark + ']' : ''}\n\n${String(b.content || '').trim()}\n` + sourceLine(b)).join('');
   return head + body;
 }
 
@@ -1856,7 +1898,9 @@ async function loadThread(name){
       const body = (nl < 0 ? '' : part.slice(nl + 1)).trim();
       const h = headingWho(heading);
       const mine = (S.members || []).some(m => m.name === h.who) ? false : true;
-      return {role: mine ? 'user' : 'assistant', who: h.who, content: body, at: heading.split(' — ')[0],
+      const src = splitSources(body);
+      return {role: mine ? 'user' : 'assistant', who: h.who, content: src.content, at: heading.split(' — ')[0],
+              read: src.read, searched: src.searched,
               mark: h.mark, urgency: h.urgency, taken: h.taken};
     }).filter(x => x.content);
     if (msgs.length) S.chat[name] = msgs;
@@ -1887,7 +1931,7 @@ function turnsToText(name, msgs){
   // with nobody's name on it, and the next member to read it could not tell who had said what.
   return (msgs || []).filter(b => !b.tool && String(b.content || '').trim())
     .map(b => `\n## ${b.at || nowStamp()} — ${b.who || (b.role === 'user' ? 'Lindsay' : name)}`
-      + `${b.mark ? ' [' + b.mark + ']' : ''}\n\n${String(b.content || '').trim()}\n`).join('');
+      + `${b.mark ? ' [' + b.mark + ']' : ''}\n\n${String(b.content || '').trim()}\n` + sourceLine(b)).join('');
 }
 
 // The chapter a falling turn belongs to: the newest one, or a new one if the member has none.

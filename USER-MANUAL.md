@@ -230,6 +230,17 @@ A member has two memories and one shelf, and they are three different files.
 conversation goes on, and the whole of it lives in `state/conversation.md` — which is why a reload does not end
 anything. There is no *end session*: a talk lasts as long as the member does, across reloads, browsers and years.
 
+**What a turn read, and what a turn failed to be.** A member talking to you can look things up — one address at a time,
+three look-ups a turn at most — and every page it read is written into the record beside the answer: `[read: <address>]`,
+or `[searched: "the words"]` when it only got as far as a list of results. Only the address is kept, never the page,
+because a page is tens of thousands of characters and would drown the conversation it was fetched for. This is the
+difference between *it knew that* and *it checked*: both are legitimate, and only one of them is a claim you can
+verify, so the record now tells you which one you are reading. If the engine refuses — an expired key, no credit, a
+provider outage — that also goes in, as `[could not answer (<engine>: <what the page told the person>)]`, and the
+turn's timestamp is the minute it was said rather than the minute the file was last written. The second of those was
+a real defect, found in the founder's own tribe on 2026-11-10: twelve of a member's turns carried one
+timestamp, because the page stamped them as it saved rather than as it spoke.
+
 **Its long-term memory** is `state/journal.md`: what it did at each wake, and the notes it writes in conversation —
 the things *it* decided were worth keeping. Notes are quoted first and given priority over talk, because a member
 that remembered every word of yesterday and nothing it had learned would be a recording, not a colleague.
