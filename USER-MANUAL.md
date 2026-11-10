@@ -200,6 +200,28 @@ an hour you spent talking, that left nothing in the record, did not happen to it
 every exchange is a call. AIT counts while you talk, and you can stop at any point without losing what is already
 written down.
 
+### Changing its voice, and changing what it is
+
+Two things on a member's page can be changed without opening GitHub, and they are different in kind.
+
+**Its voice** — the engine and the model it borrows — is `state/voice.md`, two lines of machinery inside a file
+that is otherwise prose. Press **change** beside the heading, pick an engine, type the model, save. Only those
+two lines are touched; the rest of the file is left exactly as it was. This is the setting a person changes most
+often and for ordinary reasons: a cheaper model when the month gets long, a better one for a conversation worth
+having, a different company when one goes down. **The member is its files and the engine is a voice it borrows**, so
+changing this does not make it someone else — the journal records that the voice changed, which is the honest
+record of a real thing that happened to it. Two consequences worth knowing before you press it: the key in this
+browser must be for the *new* engine, or the room will say so in words on the next turn; and the clock's copy of
+the key is a repository secret, so a member whose voice names an engine with no secret will be skipped by the
+clock and told why.
+
+**Its identity** — `state/identity.md`, the file every prompt begins with — is under **What it is**, and the
+**edit** button beside that heading opens the whole file. Every prompt begins with it and nothing overrides it, so
+this is the file that makes the member the being it is. The page refuses to save an identity the harness would
+reject: it must be more than a hundred characters, and it must name the member as `member <name>`. When it refuses,
+it offers the one press that fixes the name line rather than only describing the problem. Every version you write
+stays in git, so an identity is never lost by being edited — that is what makes it safe to be careless in a draft.
+
 ### Its memory, which is the part that is not a chat app
 
 A member has two memories and one shelf, and they are three different files.
