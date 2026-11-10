@@ -1161,12 +1161,19 @@ kept whole: not summarised, not rewritten</span></span>
     <h2>Its own words <span class="small muted" style="font-weight:400">— its long-term memory: what it wrote down, and what no conversation can take away</span></h2>
     <div class="prose">${md(m.journal.split(/\n(?=## )/).slice(-2).join('\n\n'))}</div>
 
-    <h2>What it is <span class="small muted" style="font-weight:400">— its identity: the file every prompt begins with</span></h2>
+    <h2>Its voice <span class="small muted" style="font-weight:400">— which engine answers, and with which model:
+      the one thing about a member that a person should be able to change without opening GitHub</span>
+      <button class="plain small" style="font-weight:400" onclick="editVoice('${escq(name)}')">change</button></h2>
+    <div class="card" id="voice"><p class="small muted">reading its voice…</p></div>
+
+    <h2>What it is <span class="small muted" style="font-weight:400">— its identity: the file every prompt begins with</span>
+      <button class="plain small" style="font-weight:400" onclick="editIdentity('${escq(name)}')">edit</button></h2>
     <div class="card" id="ident"><p class="small muted">reading…</p></div>
 
     <h2>What it did to its own history <span class="small muted" style="font-weight:400">— the retelling, against the record it came from</span></h2>
     <div class="card" id="memcmp"><p class="small muted">reading what changed…</p></div>`;
 
+  showVoice(name).catch(() => {});
   showIdentity(name).catch(() => {});
   showChapters(name).catch(() => {});
 
@@ -1493,6 +1500,98 @@ onclick="editIdentity('${escq(name)}')">Fix it</button></p>` : ''}
     const w = $('ident-when');
     if (w && c) w.textContent = 'last changed ' + when(c.commit.committer.date) + ' — "' + c.commit.message.split('\n')[0] + '"';
   } catch(e){}
+}
+
+// `state/voice.md` is two lines of machinery inside a file a person wrote: `api:` and `model:`. Changing them
+// does not change who the member is — the files are the member, the engine is the voice it borrows — but until
+// now it was the one setting that needed GitHub to change, and it is the setting a person changes most: a
+// cheaper model when the month gets long, a better one for a conversation worth having, another company when
+// one goes down. Two rules: only those two lines are touched, and the rest of the file is left exactly as it
+// was, because it is the person's prose and this page is not an editor for it.
+async function showVoice(name){
+  const box = $('voice'); if (!box) return;
+  const m = S.members.find(x => x.name === name); if (!m) return;
+  const has = keyFor(m.engine).key;
+  box.innerHTML = `<div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <div><strong>${esc(m.engine || '(no engine named)')}</strong> <span class="muted">·</span>
+        <code>${esc(m.model || '(no model named)')}</code></div>
+      ${has ? '' : `<span class="chip warn">no ${esc(ENGINES[m.engine] ? ENGINES[m.engine].label : m.engine)} key in this browser</span>`}
+    </div>
+    <p class="small muted" style="margin:8px 0 0">The member is its files; the engine is a voice it borrows. Changing
+    this does not make it someone else, and its journal will say the voice changed — which is the honest record of a
+    real thing that happened to it.</p>
+    <div class="row" style="margin-top:10px"><button class="plain small" onclick="editVoice('${escq(name)}')">Change its voice</button></div>`;
+}
+
+async function editVoice(name){
+  const box = $('voice'); if (!box) return;
+  const m = S.members.find(x => x.name === name) || {};
+  const engines = Object.keys(ENGINES).map(e =>
+    `<option value="${e}" ${e === m.engine ? 'selected' : ''}>${esc(ENGINES[e].label)}${keyFor(e).key ? '' : ' (no key here)'}</option>`).join('');
+  box.innerHTML = `<div class="grid two">
+      <div><label>Engine</label><select id="vengine">${engines}</select></div>
+      <div><label>Model</label><input id="vmodel" value="${esc(m.model || '')}" autocapitalize="off" spellcheck="false"></div>
+    </div>
+    <p class="small muted" style="margin:8px 0 0">The model name must be one that engine knows; if it does not, the
+    engine will say so in the room, in words, and nothing else breaks. Leave the model blank to use the project's
+    usual one for that engine.</p>
+    <div class="row" style="margin-top:10px;flex-wrap:wrap">
+      <button class="primary" onclick="saveVoice('${escq(name)}')">Save the voice</button>
+      <button class="plain" onclick="showVoice('${escq(name)}')">Never mind</button>
+      <span class="small muted" id="vmsg"></span>
+    </div>`;
+}
+
+async function saveVoice(name){
+  const msg = $('vmsg');
+  const engine = ($('vengine') || {}).value || '';
+  const typed = (($('vmodel') || {}).value || '').trim();
+  if (!engine) return;
+  const model = typed || (ENGINES[engine] ? ENGINES[engine].model : '');
+  const say = (t) => { if (msg) msg.innerHTML = t; };
+  const path = `wake/members/${name}/state/voice.md`;
+  say('reading the file as it is…');
+  try {
+    let put = null, lastErr = null;
+    for (let attempt = 1; attempt <= 3 && !put; attempt++){
+      const fresh = await fileText(path);
+      // Only the two machinery lines are touched. Everything else — the comment a member wrote about why it
+      // chose this voice, the note about what it cost — is the member's and stays.
+      const lines = String(fresh.text || '').split('\n');
+      const set = (key, value) => {
+        const i = lines.findIndex(l => new RegExp('^' + key + ':').test(l));
+        if (i >= 0) lines[i] = key + ': ' + value;
+        else {
+          // Put it after the heading, so the file still reads like a file and not like a patch.
+          const h = lines.findIndex(l => /^#/.test(l));
+          lines.splice(h >= 0 ? h + 1 : 0, 0, key + ': ' + value);
+        }
+      };
+      set('api', engine);
+      set('model', model);
+      let body = lines.join('\n');
+      if (!/\n$/.test(body)) body += '\n';
+      if (body === fresh.text){ say('nothing to change — the voice is already that.'); return; }
+      try {
+        put = await gh(`/repos/${S.repo}/contents/${encodeURI(path)}`,
+          {method:'PUT', body:{message:`voice: ${name} — now answers on ${engine} ${model}`,
+                               content: b64e(body), sha: fresh.sha, branch: S.branch}});
+      } catch(e){
+        lastErr = e;
+        if (!/^409/.test(String(e.message))) throw e;
+        await sleep(900);
+      }
+    }
+    if (!put) throw lastErr || new Error('the file could not be written');
+    await loadMembers();
+    say('saved. It answers on ' + esc(engine) + ' ' + esc(model) + ' from the next turn.');
+    showVoice(name).catch(() => {});
+    // A member's page is built from the member list, so the header chip and this card are one edit behind until
+    // the whole view is redrawn; redrawing it is what makes the page agree with the file.
+    setTimeout(() => { if (location.hash.startsWith('#/m/')) { const h = location.hash; location.hash = '#/today'; location.hash = h; } }, 900);
+  } catch(e){
+    say('<span class="err">Not saved: ' + esc(e.message) + '</span>');
+  }
 }
 
 async function editIdentity(name){
