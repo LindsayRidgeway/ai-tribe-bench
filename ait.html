@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>AIT</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHJvbGU9ImltZyIgYXJpYS1sYWJlbD0iQUlUIj4gPHRpdGxlPkFJVDwvdGl0bGU+IDxyZWN0IHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgcng9IjUuNCIgZmlsbD0iIzdhNDUyMCIvPiA8ZyBmaWxsPSIjZjdmNGVlIj4gPHJlY3QgeD0iNSIgeT0iOC40IiB3aWR0aD0iMy4yIiBoZWlnaHQ9IjguMiIgcng9IjEuNCIvPiA8cmVjdCB4PSIxMC41IiB5PSI1LjIiIHdpZHRoPSIzLjIiIGhlaWdodD0iMTEuNCIgcng9IjEuNCIvPiA8cmVjdCB4PSIxNiIgeT0iNy42IiB3aWR0aD0iMy4yIiBoZWlnaHQ9IjkiIHJ4PSIxLjQiLz4gPHJlY3QgeD0iMy42IiB5PSIxNi42IiB3aWR0aD0iMTYuOCIgaGVpZ2h0PSIyLjMiIHJ4PSIxLjE1Ii8+IDwvZz4gPC9zdmc+">
+<meta name="theme-color" content="#f7f4ee">
 <style>
   :root{
     --bg:#f7f4ee; --panel:#fffdf9; --ink:#1b1916; --mute:#6f675d; --line:#e3ddd1;
@@ -20,6 +22,9 @@
   #app{max-width:760px;margin:0 auto;padding:14px 16px 80px}
   header{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;padding:6px 0 14px;border-bottom:1px solid var(--line)}
   .brand{font:600 20px/1 var(--serif);letter-spacing:.14em}
+  /* the mark, at the size a header can carry: a plate with three members on it, the middle
+     one standing up to speak. Same drawing as logo/AIT.svg and the favicon. */
+  .mark{width:22px;height:22px;flex:0 0 auto;align-self:center;margin-right:-4px}
   .brand span{color:var(--accent)}
   #repo-label{font-family:var(--mono);font-size:12px;color:var(--mute);flex:1;min-width:0;cursor:pointer;
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-decoration:underline dotted}
@@ -103,6 +108,15 @@
 <body>
 <div id="app">
   <header>
+    <svg class="mark" viewBox="0 0 24 24" aria-hidden="true">
+      <rect width="24" height="24" rx="5.4" fill="#7a4520"/>
+      <g fill="#f7f4ee">
+        <rect x="5" y="8.4" width="3.2" height="8.2" rx="1.4"/>
+        <rect x="10.5" y="5.2" width="3.2" height="11.4" rx="1.4"/>
+        <rect x="16" y="7.6" width="3.2" height="9" rx="1.4"/>
+        <rect x="3.6" y="16.6" width="16.8" height="2.3" rx="1.15"/>
+      </g>
+    </svg>
     <div class="brand">A<span>IT</span></div>
     <div id="repo-label" title="Which tribe this page is in — press to switch or connect another"></div>
     <span class="chip warn" id="preview">unfinished</span>
