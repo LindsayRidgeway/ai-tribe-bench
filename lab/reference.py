@@ -36,7 +36,43 @@ def mask_of(path):
     # A floor plane, a gradient or a shadow can survive the threshold. Keep rows that are at most 0.75 of
     # the frame wide; a person never is, a background artefact usually is.
     m[m.sum(axis=1) > m.shape[1] * 0.75] = False
-    return m
+    return body_component(m)
+
+
+def body_component(m):
+    """Keep the largest blob and everything of a plausible size near it.
+
+    A photograph has a margin: a sliver of a border, a jpeg edge, one line of the backdrop that survived the
+    threshold. With the first photograph through this instrument, a two-pixel sliver at the top right of the
+    frame became the top of the figure, and the tape then reported a head nine thousandths of a body wide and a
+    figure 1146 pixels tall in a 1152-pixel frame. The blob that matters is the one with the most pixels in it;
+    the racquet and the ball are separate blobs and are kept if they are big enough to be equipment rather than
+    noise, because a racquet is part of the pose and the tape already reports islands separately."""
+    h, w = m.shape
+    lab = np.zeros((h, w), np.int32)
+    sizes = []
+    cur = 0
+    stack = []
+    for y0 in range(h):
+        for x0 in np.flatnonzero(m[y0] & (lab[y0] == 0)):
+            cur += 1
+            n = 0
+            stack.append((y0, int(x0)))
+            lab[y0, x0] = cur
+            while stack:
+                y, x = stack.pop()
+                n += 1
+                for yy, xx in ((y - 1, x), (y + 1, x), (y, x - 1), (y, x + 1)):
+                    if 0 <= yy < h and 0 <= xx < w and m[yy, xx] and lab[yy, xx] == 0:
+                        lab[yy, xx] = cur
+                        stack.append((yy, xx))
+            sizes.append(n)
+    if not sizes:
+        return m
+    big = int(np.argmax(sizes)) + 1
+    keep = sizes[big - 1] * 0.02                     # keep the body and anything worth calling equipment
+    good = [i + 1 for i, n in enumerate(sizes) if n >= keep]
+    return np.isin(lab, good)
 
 
 def islands(row):
