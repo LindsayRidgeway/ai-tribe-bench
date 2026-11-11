@@ -149,11 +149,18 @@ Until 2026-11-09 the address only pre-filled a box on a page that a person who a
 to — so the address of your first tribe opened your second one, which is how the founder found it.
 
 **A remembered token is not asked for twice.** The connect page lists the tribes this browser has been in, and
-the list shows the one you are standing in too, marked *you are here* rather than left out. Type or accept a
-repository this browser already holds a token for and the **Connect** button becomes **Open**: the token box can be
-left empty, because the page has been trusted with that repository already and says so before you press anything.
-It is only a repository this browser has never opened that asks for a token, once. A failed attempt no longer costs
-you the tribe you were in — nothing is half-connected, so nothing is taken away.
+that list includes the repository this page is set to open — labelled *the one this page opens*, with the same
+last-opened time as the others, because there is no session to be standing in and that is the strongest true thing
+to say about it. Type or accept a repository this browser already holds a token for and the label beside the token
+box says so for that repository, in words, and the **Connect** button becomes **Open**: the box can be left empty
+because the page has been trusted with that repository already. It is only a repository this browser has never
+opened that asks for a token, once. A failed attempt no longer costs you the tribe you were in — nothing is
+half-connected, so nothing is taken away.
+
+Where those tokens live matters, so: **not in the repository.** Each one sits in this browser's own storage, one
+per repository, and a repository this browser has never opened has no entry at all until you paste one. What a
+repository holds is the *engine* key for its clock, as a repository secret — a different credential, for a
+different purpose, and it cannot reach your account the way a GitHub token can.
 
 ## 5. The first morning
 
