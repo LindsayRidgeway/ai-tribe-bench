@@ -79,3 +79,27 @@ and her stance; they cannot settle the swing. That remains a rule in the rendere
 The two titled sheets (`reference/poses/sketch-b.jpg`, `sketch-c.jpg`) are the ones to imitate. My negative prompt
 said "text, watermark, labels", which suppresses exactly that; it now says "no other writing anywhere except the
 panel titles" and the panel titles are asked for by name.
+
+## The sheets that came back, 2026-11-11 (sketch-dmitri, look-gwen, look-dmitri)
+
+Filed as `reference/poses/sketch-a/b/c.jpg` and `reference/poses/look-gwen.jpg`, `look-dmitri.jpg`. What they give:
+
+- **The look, at last, and for both players.** A young woman with a blond ponytail and an open face; a big man of
+  about twenty-five with a hard face, dark skin, black hair and shorts. They are the same person in all eight
+  panels and at the same scale, which is what the previous nine sheets could not manage.
+- **The back view works.** Every back panel is legible: we see the ponytail, the shoulder blades, the kit, the
+  racquet silhouette on the hitting side. That is the view the near-end camera draws for half of every match and
+  no earlier sheet had ever produced it.
+- **The stance changes.** Knees load, the front foot turns out, the back foot comes up on the toe. Across eleven
+  sheets that had never happened.
+
+What they still get wrong, and both faults are the same one twice — the drawing reaches for a familiar shape:
+
+- **Contact is drawn with two hands on the handle** in both sheets, front and back. The text says "right hand only,
+  both hands never on the handle" and is overruled by the picture's own idea of what a tennis photograph looks
+  like.
+- **The drop panel from behind hangs the racquet between the legs**, which reads as a two-handed backhand ready
+  position rather than a forehand's low point.
+
+Neither fault touches what the sheets are now for. They are the appearance reference; the swing is a rule. That
+division is what finally made the sheets useful — and it took ten of them to learn.
