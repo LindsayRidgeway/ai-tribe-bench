@@ -61,7 +61,7 @@
   <div id="bar"><div class="track"></div><div class="self" id="self"></div><div class="tick" id="tick"></div></div>
   <div class="mono" id="winline">—</div>
 </div>
-<div id="cut">camera · landing</div>
+<div id="cut">between points</div>
 <div id="err"></div>
 
 <script type="application/json" id="script">__SCRIPT__</script>
@@ -213,13 +213,27 @@ async function loadBodies() {
     // dotted name kept as an alias so neither spelling can break it again.
     root.traverse(o => {
       if (!o.isBone) return;
+      // three.js's loader sanitises node names, so Blender's "thigh.L" arrives in the browser as "thighL". Both
+      // spellings are keyed: the bare one because that is what the file contains, and the dotted one because
+      // every posing rule in this file was written against the bone's name in Blender. The previous version keyed
+      // o.name and o.name.replace(/\./g, "") — after sanitising those are the same string, so the dotted lookups
+      // returned undefined and every rule that used them did nothing at all, silently. The legs have never moved.
       bones[o.name] = o;
-      bones[o.name.replace(/\./g, "")] = o;
+      const bare = o.name.replace(/\./g, "");
+      bones[bare] = o;
+      const m = bare.match(/^(.*?)([LR])$/);
+      if (m) bones[`${m[1]}.${m[2]}`] = o;
     });
     // the figure's own height, in feet, read off the model rather than assumed: the stride below is a
     // fraction of it, and a 6ft 2in member does not take the same steps as a 5ft 8in one
     const box = new THREE.Box3().setFromObject(root);
-    rigs[name] = { root, bones, height: box.max.y - box.min.y };
+    // The racquet is NOT parented to the hand. A racquet is aimed at the ball, not welded to a fist: the page
+    // places it every frame — butt in the palm, head on the ball, face square to the direction the ball leaves
+    // in. Being its own object in the scene also spares it the 3.28084 that converts the metre-built body into
+    // the feet the court is measured in; built in feet and left in the scene it is 27in long, as it should be.
+    const rac = buildRacquet();
+    scene.add(rac);
+    rigs[name] = { root, bones, height: box.max.y - box.min.y, racquet: rac };
     if (q.has("debug")) console.log("debug bones", name, Object.keys(bones).join(","), "height", rigs[name].height.toFixed(2));
   }
 }
@@ -232,10 +246,14 @@ const tmpA = new THREE.Vector3(), tmpB = new THREE.Vector3(), tmpQ = new THREE.Q
 const tmpQ2 = new THREE.Quaternion(), tmpP = new THREE.Vector3();
 
 function rotateWorld(bone, qWorld) {
+  // world' = q * world  =>  local' = parentInv * q * parent * local. The first version multiplied them
+  // premultiply(inv).premultiply(q).premultiply(parent), which evaluates to parent*q*parentInv*local — the same
+  // rotation about a conjugated axis, i.e. about the wrong axis. The arm solver then "converged" by pulling the
+  // hand toward a point nobody had asked for, which is a large part of why every stroke looked like a statue
+  // reaching for something. Verified numerically before changing it: the old order is off by 1.19 on a unit test.
   bone.parent.getWorldQuaternion(tmpQ2);
   const inv = tmpQ2.clone().invert();
-  bone.quaternion.premultiply(inv).premultiply(qWorld).premultiply(tmpQ2);
-  // simpler and equivalent: world' = q * world  ->  local' = parentInv * q * parent * local
+  bone.quaternion.premultiply(tmpQ2).premultiply(qWorld).premultiply(inv);
   bone.updateMatrixWorld(true);
 }
 
@@ -259,14 +277,36 @@ function solveArm(rig, target) {
   }
 }
 
+/* Point a bone at something, without knowing how Blender rolled it.
+   Every bone here runs along its own local +Y (checked against the .glb: every child offset is (0,1,0)), but the
+   local X and Z axes are rolled differently bone by bone, so the same Euler angle means a different motion on the
+   thigh and on the arm. Aiming sidesteps the question: the bone is rotated in world space until its own axis
+   lies along the direction asked for, which is also how you would pose a lay figure. */
+const _aim = new THREE.Vector3(), _aimQ = new THREE.Quaternion();
+function aimBone(bone, dir) {
+  if (!bone) return;
+  bone.updateWorldMatrix(true, false);
+  _aim.set(0, 1, 0).transformDirection(bone.matrixWorld);
+  _aimQ.setFromUnitVectors(_aim, dir.clone().normalize());
+  rotateWorld(bone, _aimQ);
+}
+
 /* ---------- walking, without a walk cycle ----------
    A gait is two numbers and a phase: the thigh swings, the knee folds on the way through, and the phase advances
    with the ground covered, not with the clock. That way the feet keep pace with the body however fast it is going
    — which is the whole difference between a figure that runs and a figure that is pushed along on castors.
    Nothing here is animation data; it is a rule about where the legs are given how far the player has travelled. */
-function legs(rig, phase, moving) {
+function legs(rig, phase, moving, face) {
   const { bones } = rig;
-  const set = (n, x, y, z) => { const b = bones[n]; if (b) b.rotation.set(x, y, z); };
+  // A pose is a DELTA on the rest pose, not a replacement for it. bone.rotation.set(...) throws away the bone's
+  // rest orientation, which in a glTF skeleton is carried by the node's own quaternion — do that to a thigh and
+  // the leg swings up over the shoulder. The rest quaternion is captured once and composed with each swing.
+  const dq = new THREE.Quaternion(), de = new THREE.Euler();
+  const set = (n, x, y, z) => {
+    const b = bones[n]; if (!b) return;
+    const rest = b.userData.rest || (b.userData.rest = b.quaternion.clone());
+    b.quaternion.copy(rest).multiply(dq.setFromEuler(de.set(x, y, z)));
+  };
   const live = moving ? 1 : 0.12;                       // standing still is a very small version of walking
   // The swing is set so the foot travels as far as the body does in one step (0.42 of its height), which is what
   // stops the feet skimming along the ground. A bigger swing looks more athletic and slides; the phase is already
@@ -281,11 +321,23 @@ function legs(rig, phase, moving) {
   set("foot.R", -0.25 * (moving ? 1 : 0), 0, 0);
   set("spine", -0.05 - 0.09 * live, 0, 0.06);
   set("hips", 0.04 * live, 0, 0);
-  // the free arm counter-swings; the racquet arm is left to the solver
-  set("upperarm.L", -0.35 - 0.40 * live * Math.sin(phase + Math.PI), 0, -0.30);
-  set("forearm.L", -0.70, 0, 0);
-  set("upperarm.R", -0.25, 0, 0.55);
-  set("forearm.R", -0.85, 0, 0);
+  arms(rig, face, phase);
+}
+
+/* A player waiting for a ball does not stand with both arms hanging: the free arm is across the body, the racquet
+   arm has the frame up in front of the shoulder. Both are aimed rather than rotated, so the pose survives any
+   future change of bone roll. */
+function arms(rig, face, phase) {
+  const right = new THREE.Vector3().crossVectors(face, _up).normalize();
+  const dir = (f, r, u) => new THREE.Vector3().addScaledVector(face, f)
+    .addScaledVector(right, r).addScaledVector(_up, u).normalize();
+  // racquet arm: elbow low and near the ribs, forearm forward and a little up, so the frame sits at head
+  // height in front of the shoulder rather than straight above it
+  aimBone(rig.bones["upperarm.R"], dir(0.20, 0.30, -0.93));
+  aimBone(rig.bones["forearm.R"], dir(0.72, 0.12, 0.28));
+  // free arm: down and across, hand toward the racquet's throat, elbow bent
+  aimBone(rig.bones["upperarm.L"], dir(0.15, 0.35, -0.92));
+  aimBone(rig.bones["forearm.L"], dir(0.55, 0.30, -0.25));
 }
 
 function ready(rig, north) {
@@ -296,6 +348,93 @@ function ready(rig, north) {
   p.y += 1.35;
   p.x += north ? 0.55 : -0.55;
   return p;
+}
+
+/* ---------- the racquet, which the page holds ----------
+   A tennis racquet is 27in long: a grip of 7, a throat of 8, a head of 12, the head 9.5in wide. The one in the
+   .glb was a torus on a stick, 20% too long, and being welded to the hand it could only ever point where the
+   hand pointed. So the body is exported without it and the racquet is built here, as a child of the hand bone:
+   real proportions, a strung bed, and an aim — the face turns to the direction the engine says the ball left in.
+   Equipment belongs to the shot, not to the body. */
+function stringTexture() {
+  const px = 8, n = 14;
+  const cv = document.createElement("canvas");
+  cv.width = cv.height = n * px;
+  const g = cv.getContext("2d");
+  g.fillStyle = "rgba(0,0,0,0)"; g.fillRect(0, 0, cv.width, cv.height);
+  g.strokeStyle = "rgba(238,238,232,.85)"; g.lineWidth = 1.1;
+  for (let i = 0; i <= n; i++) {
+    g.beginPath(); g.moveTo(i * px, 0); g.lineTo(i * px, cv.height); g.stroke();
+    g.beginPath(); g.moveTo(0, i * px); g.lineTo(cv.width, i * px); g.stroke();
+  }
+  const t = new THREE.CanvasTexture(cv);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(3, 3.4);
+  return t;
+}
+
+function buildRacquet() {
+  const g = new THREE.Group();
+  const gripMat = new THREE.MeshStandardMaterial({ color: 0x1d2126, roughness: 0.85 });
+  const frameMat = new THREE.MeshStandardMaterial({ color: 0xd9d3c4, roughness: 0.32, metalness: 0.30 });
+  const strMat = new THREE.MeshStandardMaterial({ map: stringTexture(), transparent: true, alphaTest: 0.05,
+                                                  side: THREE.DoubleSide, roughness: 0.9 });
+
+  const strut = (a, b, r, mat) => {
+    const d = new THREE.Vector3().subVectors(b, a);
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, d.length(), 8), mat);
+    m.position.copy(a).addScaledVector(d, 0.5);
+    m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.clone().normalize());
+    m.castShadow = true;
+    g.add(m);
+    return m;
+  };
+  const V = (x, y, z = 0) => new THREE.Vector3(x, y, z);
+
+  const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.070, 0.064, 0.58, 12), gripMat);
+  grip.position.y = 0.29; grip.castShadow = true; g.add(grip);
+  g.add(new THREE.Mesh(new THREE.TorusGeometry(0.075, 0.012, 6, 16).rotateX(Math.PI / 2)
+                        .translate(0, 0.575, 0), gripMat));           // the collar at the top of the grip
+
+  strut(V(0, 0.58), V(0.255, 1.31), 0.026, frameMat);
+  strut(V(0, 0.58), V(-0.255, 1.31), 0.026, frameMat);
+
+  const head = new THREE.Mesh(new THREE.TorusGeometry(0.435, 0.030, 8, 28), frameMat);
+  head.position.y = 1.74; head.scale.x = 0.83; head.castShadow = true; g.add(head);
+
+  const bed = new THREE.Mesh(new THREE.PlaneGeometry(0.72, 0.85), strMat);
+  bed.position.y = 1.74; g.add(bed);
+
+  g.userData.normal = new THREE.Vector3(0, 0, 1);        // the face looks along the racquet's local +Z
+  g.userData.shaft = new THREE.Vector3(0, 1, 0);
+  return g;
+}
+
+/* Put the racquet where a racquet goes: butt in the palm, head toward the ball, string bed square to the shot.
+   Two vectors make it, and both are already in the record: the hand, and the direction the engine says the ball
+   left in. The shaft is lined up with the first, then the racquet is rolled about its own shaft until the face
+   looks along the second. A racquet that only points where the hand points is a paddle. */
+const _hp = new THREE.Vector3(), _shaft = new THREE.Vector3(), _n0 = new THREE.Vector3(),
+      _n1 = new THREE.Vector3(), _ax = new THREE.Vector3(), _q1 = new THREE.Quaternion(),
+      _up = new THREE.Vector3(0, 1, 0), _face = new THREE.Vector3(), _sh0 = new THREE.Vector3();
+function placeRacquet(rig, aim, face) {
+  const rac = rig.racquet, hand = rig.bones["handR"] || rig.bones["hand.R"];
+  if (!rac || !hand) return;
+  hand.getWorldPosition(_hp);
+  rac.position.copy(_hp);
+  _shaft.subVectors(aim, _hp);
+  if (_shaft.lengthSq() < 1e-6) _shaft.set(0, 1, 0);
+  _shaft.normalize();
+  rac.quaternion.setFromUnitVectors(_up, _shaft);
+  // roll about the shaft until the bed's normal (the racquet's local +Z) lies along `face`
+  _n0.set(0, 0, 1).applyQuaternion(rac.quaternion).addScaledVector(_shaft, -_n0.dot(_shaft));
+  if (_n0.lengthSq() < 1e-6) return;
+  _n0.normalize();
+  _n1.copy(face).addScaledVector(_shaft, -face.dot(_shaft));
+  if (_n1.lengthSq() < 1e-6) return;
+  _n1.normalize();
+  _ax.crossVectors(_n0, _n1);
+  _q1.setFromAxisAngle(_shaft, Math.atan2(_ax.dot(_shaft), _n0.dot(_n1)));
+  rac.quaternion.premultiply(_q1);
 }
 
 /* ---------- the film ---------- */
@@ -337,12 +476,8 @@ function whereAt(name, T) {
   return { pos, moving, travelled };
 }
 function cams(sh, dur) {
-  const list = [{ at: 0, cam: wide(sh.north) }];
-  if (sh.land) {
-    const nl = nearest(sh.land);
-    if ((nl && nl.d < 4) || !sh.in) list.push({ at: dur * 0.22, cam: closeup(sh.land, sh.north) });
-  }
-  return list;
+  // One camera holds the whole point; when the point is over, cut once to the player who was running.
+  return [{ at: 0, cam: tower() }, { at: dur, cam: between(sh) }];
 }
 function nearest(land) {
   let best = null;
@@ -354,7 +489,26 @@ function nearest(land) {
   }
   return best;
 }
-function wide(north, hx) {
+/* The televised camera: one position at one end of the court for the whole match, long lens, the court in frame
+   for every shot. It does not hunt the ball and it does not cut per shot — a spectator's eye is not a drone. The
+   only cut is between points, to a player standing about, which is also what television does. */
+function tower() {
+  // Height and distance chosen so both baselines are inside the frame: the near one 10.7 degrees below the axis,
+  // the far one 4.5 above, in a 26 degree lens. The player standing on the near baseline is then a quarter of the
+  // frame tall instead of a smudge at the edge.
+  return { eye: new THREE.Vector3(-56, 29, WID / 2), at: new THREE.Vector3(NX + 14, 0.5, WID / 2), fov: 26 };
+}
+function between(sh) {
+  // Between points, television goes to the player the point was about, from the side and a step ahead of them,
+  // whole figure in frame, low. The first version stood behind them at boot height and filled the screen with a
+  // back: a cut is for reading a person, and you read a face and a stance, not a shirt.
+  const who = sh.run ? { at: sh.run.to, north: sh.run.north } : { at: [sh.contact[0], sh.contact[1]], north: sh.north };
+  const face = who.north ? 1 : -1;                       // the way that player looks
+  const side = who.at[1] < WID / 2 ? 1 : -1;             // out toward the nearer sideline
+  return { eye: new THREE.Vector3(who.at[0] + 4.5 * face, 5.0, who.at[1] + 13.5 * side),
+           at: new THREE.Vector3(who.at[0] + 0.4 * face, 3.4, who.at[1]), fov: 34 };
+}
+function wide(north) {
   // Behind the hitter's baseline, high, looking at the net: the broadcast view, which is the only one that shows
   // both players and the ball. The first version put the camera 84ft behind the baseline, where the far player
   // is forty pixels tall and the near one is standing on the bottom edge.
@@ -373,14 +527,7 @@ function beside(north, px) {
   return { eye: new THREE.Vector3(p - 12 * dir, 5.5, WID / 2 + 12),
            at: new THREE.Vector3(p, 3, WID / 2), fov: 34 };
 }
-function closeup(land, north) {
-  const dir = north ? 1 : -1;
-  const side = land[1] < WID / 2 ? 1 : -1;
-  return { eye: new THREE.Vector3(land[0] - 8 * dir, 10, land[1] + side * 20),
-           at: new THREE.Vector3(land[0] + 3 * dir, 0.6, land[1]), fov: 50 };
-}
-
-let T = 0, playing = true, T0 = performance.now(), firstFrame = true;
+let T = 0, playing = true, T0 = performance.now(), firstFrame = true, lastCam = null;
 const q = new URLSearchParams(location.search);
 
 function shotAt(t) {
@@ -401,6 +548,7 @@ function tick(now) {
   const seg = shotAt(T);
   const tl = T - seg.start;
   const sh = seg.sh;
+  const onCut = seg.cams.length > 1 && tl >= seg.cams[1].at;
 
   // camera
   let cam = seg.cams[0].cam;
@@ -410,9 +558,14 @@ function tick(now) {
     const who = sh.run ? sh.run : { north: sh.north, from: [sh.contact[0], sh.contact[1]] };
     cam = beside(who.north, (who.from || [null])[0]);
   }
-  if (firstFrame) { camera.position.copy(cam.eye); firstFrame = false; }
-  else camera.position.lerp(cam.eye, 0.22);
-  camera.fov += (cam.fov - camera.fov) * 0.22;
+  // A cut is a cut. Television changes shot by changing shot; it does not fly the camera from the tower to a
+  // player's shoulder over half a second, which reads as a drone and is the tell of a rendered game.
+  if (firstFrame || (cam !== lastCam && !q.has("cam"))) {
+    camera.position.copy(cam.eye); camera.fov = cam.fov; firstFrame = false; lastCam = cam;
+  } else {
+    camera.position.lerp(cam.eye, 0.22);
+    camera.fov += (cam.fov - camera.fov) * 0.22;
+  }
   camera.updateProjectionMatrix();
   camera.lookAt(cam.at);
 
@@ -422,6 +575,9 @@ function tick(now) {
   const p = sh.path[idx];
   ballPos.set(p[0], Math.max(0.16, p[2]), p[1]);
   ball.position.copy(ballPos);
+  // on the between-points closeup the ball is dead on the court a few feet from the lens, where it reads as a
+  // beach ball. Television does not have a ball in that shot either.
+  ball.visible = !onCut; trail.visible = !onCut;
   const tail = [];
   for (let i = Math.max(0, idx - 34); i <= idx; i++) {
     const q2 = sh.path[i]; tail.push(new THREE.Vector3(q2[0], Math.max(0.12, q2[2]), q2[1]));
@@ -442,15 +598,30 @@ function tick(now) {
     const phase = 2 * Math.PI * (travelled / (0.84 * Math.max(4.0, rig.height)));
     if (q.has("debug")) console.log("debug legs", pl.name, "moving", moving, "travelled", travelled.toFixed(2),
       "phase", phase.toFixed(2), "thigh", rig.bones["thighL"] ? rig.bones["thighL"].rotation.x.toFixed(3) : "MISSING");
-    legs(rig, phase, moving);
+    legs(rig, phase, moving, new THREE.Vector3(pl.north ? 1 : -1, 0, 0));
 
+    const wait = ready(rig, pl.north);
     if (sh.player === pl.name) {
       // the arm is at the ball at the strike and back at the shoulder by half a second; the solver is given a
       // target that moves rather than being switched on and off, because switching it off snaps the arm
-      const hit = new THREE.Vector3(sh.contact[0], sh.contact[2], sh.contact[1]);
-      const wait = ready(rig, pl.north);
       const k = Math.max(0, Math.min(1, (tl - 0.26) / 0.30));
-      solveArm(rig, hit.lerp(wait, k));
+      const ball = new THREE.Vector3(sh.contact[0], sh.contact[2], sh.contact[1]);
+      // A hand does not touch the ball; a racquet does. The arm is solved to a hand 1.6ft back down the line from
+      // the shoulder to the ball, and the racquet's 1.74ft shaft carries the head the rest of the way — which is
+      // what the stroke is. Solved to the ball itself, the arm put the hand on it and the frame 2ft past it.
+      (rig.bones["upperarmR"] || rig.bones["chest"]).getWorldPosition(_sh0);
+      const u = ball.clone().sub(_sh0).normalize();
+      solveArm(rig, ball.clone().addScaledVector(u, -1.60).lerp(wait, k));
+      const aim = ball.clone().addScaledVector(u, -0.20).lerp(wait, k);
+      _face.set(sh.v0[0], sh.v0[2], sh.v0[1]).normalize();
+      placeRacquet(rig, aim, _face);
+    } else {
+      _face.set(pl.north ? 1 : -1, 0.12, 0).normalize();   // waiting for the ball, bed open to the net
+      const hand = rig.bones["handR"] || rig.bones["hand.R"];
+      const aim = new THREE.Vector3();
+      if (hand) { hand.getWorldPosition(aim); }
+      aim.addScaledVector(_face, 0.70).addScaledVector(_up, 1.55);
+      placeRacquet(rig, aim, _face);
     }
   }
 
@@ -458,6 +629,7 @@ function tick(now) {
   el("surface").textContent = `${D.surface} · wind ${D.wind.direction} ${D.wind.mph}mph`;
   el("rally").textContent = `rally ${sh.rally} of ${D.rallies.length} · shot ${sh.i}`;
   el("who").textContent = sh.player;
+
   const sw = el("sweet"); sw.textContent = sh.sweet ? "clean" : "framed";
   sw.className = "badge " + (sh.sweet ? "clean" : "frame");
   el("shotline").textContent = `face ${sh.face > 0 ? "+" : ""}${sh.face}°  power ${Math.round(sh.power)}  ` +
@@ -477,7 +649,8 @@ function tick(now) {
   el("players").innerHTML = D.players.map(p =>
     `<div><span class="swatch" style="background:${p.north ? "#8fc6ff" : "#ffb98f"}"></span>${p.name} ` +
     `<span class="mono" style="color:var(--dim)">${p.rating.toFixed(1)} · ${p.balls} balls</span></div>`).join("");
-  el("cut").className = (seg.cams.length > 1 && tl >= seg.cams[1].at && tl < seg.cams[1].at + 0.6) ? "on" : "";
+  el("cut").className = onCut ? "on" : "";
+  if (onCut) el("cut").textContent = `between points · ${sh.run ? sh.run.player : sh.player}`;
 
   renderer.render(scene, camera);
   requestAnimationFrame(tick);
