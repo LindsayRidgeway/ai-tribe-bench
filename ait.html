@@ -1007,6 +1007,18 @@ function knownToken(repo){
   return hit ? (S.tribes[hit].token || '') : '';
 }
 
+// One way out of a remembered credential, for the person who wants to paste a new one before GitHub has refused the
+// old one — a token about to be rotated, or one that belongs to somebody else for a minute. Reveals the box and
+// puts the cursor in it, without pretending the page has forgotten what it holds.
+function useAnotherToken(){
+  const box = $('ctokbox'), held = $('tokheld');
+  if (box) box.hidden = false;
+  if (held) held.hidden = true;
+  const lab = $('toklab');
+  if (lab) lab.innerHTML = 'A token that can read and write it <span class="small muted">— this will replace the one this browser holds</span>';
+  const t = $('token'); if (t) t.focus();
+}
+
 function viewConnect(main){
   const want = cleanRepo(new URLSearchParams(location.search).get('tribe')) || WANT;
   // The tribe this page is set to open is listed too. Leaving it out made the list look like it had lost the one
@@ -1028,11 +1040,11 @@ function viewConnect(main){
   main.innerHTML = `
     <p class="small"><a href="#/">← back</a></p>
     <h1>Connect a tribe</h1>
-    <p class="lede">The repository it lives in, and a token that can see it. A repository this browser has opened
-    before needs no token pasted again.</p>
+    <p class="lede">The repository it lives in, and a token that can see it.</p>
     <div class="card">
       <label for="repo">Repository</label>
       <input id="repo" placeholder="your-name/your-tribe" autocapitalize="off" autocorrect="off" spellcheck="false">
+      <div id="ctokbox">
       <label for="token" id="toklab">A token that can read and write it</label>
       <input id="token" type="password" placeholder="ghp_… or github_pat_…" autocapitalize="off" spellcheck="false">
       <p class="small muted" style="margin-top:8px">A <strong>token</strong> is a password for this page, made at
@@ -1044,6 +1056,8 @@ function viewConnect(main){
       <em>Permissions → Contents: Read and write</em>; <em>Permissions → Actions: Read and write</em>. That token
       can reach one repository and nothing else. A classic token with <code>repo</code> also works and is one click
       fewer — it can write to every repository you own, which is why it is not the recommendation.</p>
+      </div>
+      <p class="small muted" id="tokheld" hidden style="margin-top:8px"></p>
       <div class="row" style="margin-top:10px"><button class="primary" id="go">Connect</button>
       <span class="small muted" id="cmsg"></span></div>
       <p class="small" id="cstore" style="margin:10px 0 0"></p>
@@ -1060,25 +1074,39 @@ or <a href="#/today" onclick="WANT='';WANT_WHY='';return true;">stay in ${esc(S.
     </div>`;
 
   $('repo').value = want || S.repo || '';
-  // What the box already knows. This is the whole of the founder's question: the page can answer "which
-  // credential" before anybody presses anything, so it should say so rather than wait to be told twice — and it
-  // should say which of the two it is, not "leave empty if…". A label that describes both cases and leaves the
-  // reader to work out which one applies is the page asking a question it can answer itself.
+  // What the box already knows. The founder's question, twice: the page can answer "which credential" before
+  // anybody presses anything, so it should say so rather than wait to be told twice — and where it holds one, it
+  // should not show a token field and an explanation of what a token is at all. He is right that a page carrying a
+  // field nobody has to fill is a page asking a question it can answer itself. So the field is not there when the
+  // answer is known; what is there instead is one sentence about what will be used, and one way to override it.
+  //
+  // It says "will be used", not "will work": a stored token can be revoked, expired, or narrowed since it was
+  // pasted, and only GitHub knows. The page cannot promise it opens; it can promise what it will try, and it says
+  // what happened when the answer comes back.
   const sayStore = () => {
     const box = $('cstore'); if (!box) return;
     const repo = $('repo').value.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\/$/, '');
-    const b = $('go'), lab = $('toklab'), inp = $('token');
-    const has = knownToken(repo);
-    if (lab) lab.innerHTML = 'A token that can read and write it' + (!repo ? ''
-      : has ? ` <span class="small muted">— not needed: this browser has one for <code>${esc(repo)}</code></span>`
-            : ' <span class="small muted">— this browser has none for that repository, so one is needed, once</span>');
-    if (inp) inp.placeholder = !repo ? 'ghp_… or github_pat_…' : has ? 'not needed — leave it empty' : 'ghp_… or github_pat_…';
+    const b = $('go'), tokbox = $('ctokbox'), held = $('tokheld'), lab = $('toklab'), inp = $('token');
+    const stored = knownToken(repo);
+    const reuse = !!stored;
+    if (tokbox) tokbox.hidden = reuse;
+    if (held){
+      held.hidden = !reuse;
+      if (reuse){
+        held.innerHTML = `Using the token this browser already holds for <code>${esc(repo)}</code>. It can be
+          refused — revoked, expired, or narrowed since it was pasted — and if GitHub refuses it, the line above
+          will say so and this box will come back for a current one.
+          <a href="#" onclick="useAnotherToken();return false;">Use a different token</a>`;
+      }
+    }
+    if (lab) lab.innerHTML = 'A token that can read and write it';
+    if (inp) inp.placeholder = 'ghp_… or github_pat_…';
     if (!repo){ box.textContent = ''; if (b) b.textContent = 'Connect'; return; }
-    if (has){
+    if (reuse){
       box.innerHTML = repo.toLowerCase() === String(S.repo || '').toLowerCase()
-        ? `This is the repository this page is set to open, and it has the token for it — <strong>Open</strong>
-           re-checks that the token still works and goes there.`
-        : `This browser already has a token for it, so there is nothing to paste. <strong>Open</strong> uses it.`;
+        ? `This is the repository this page is set to open. <strong>Open</strong> asks GitHub whether the token
+           still works and goes there.`
+        : `<strong>Open</strong> asks GitHub whether the token still works and goes there.`;
       if (b) b.textContent = 'Open';
     } else {
       box.textContent = 'This browser has no credential for that repository. A token is needed, once.';
@@ -1108,6 +1136,11 @@ or <a href="#/today" onclick="WANT='';WANT_WHY='';return true;">stay in ${esc(S.
     } catch(e){
       msg.textContent = e.message
         + (typed ? '' : ' — the token this browser has for it was used; paste a current one if it has been revoked.');
+      // When a stored token is refused, the box comes back rather than leaving the person to work out that the
+      // way forward is to reveal a field the page hid from them. Any other failure (a mistyped name, no network)
+      // leaves the page as it was: revealing the token box for a typo in a repository name would be the page
+      // guessing again.
+      if (!typed && /\b(401|403)\b|Bad credentials|not accessible/i.test(String(e.message || ''))) useAnotherToken();
       // Failure used to wipe the session — S.repo = '' and S.token = '' — so mistyping a repository logged you out
       // of the one you were already in. Nothing was half-connected: setTribe runs only after GitHub answers. So the
       // failure leaves the tribe you were in exactly where it was.
