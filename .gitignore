@@ -1,2 +1,10 @@
 __pycache__/
 *.pyc
+
+# keys
+lab/.env
+.env
+
+# blender backups
+*.blend1
+.DS_Store

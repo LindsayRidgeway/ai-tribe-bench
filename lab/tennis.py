@@ -101,9 +101,14 @@ def wind_vector(direction: str, speed_mph: float) -> tuple[float, float]:
 
 
 # ---- the ball -------------------------------------------------------------------------------------
-def flight(p0, v0, wind, surface, net_check=True, cl=0.0):
+def flight(p0, v0, wind, surface, net_check=True, cl=0.0, trace=None):
     """Integrate one shot. Returns where it crossed the net, where it first landed, and the ball at that
     moment. No closed form: drag makes it a numeric problem, and doing it numerically is the honest way.
+
+    `trace`, when given as a number of seconds, also returns the ball's position every that many seconds
+    under the key "path". It exists so that a picture of the shot can be drawn from the same integration
+    that judged it, rather than from a second copy of the physics or from an animation that merely looks
+    like tennis. Default None: every existing caller gets exactly what it got before.
 
     Wind is the air's velocity, so drag acts on the ball's velocity *relative to the air*.
     `cl` is the lift coefficient from the spin: positive is topspin and pulls the ball down, negative is
@@ -115,6 +120,7 @@ def flight(p0, v0, wind, surface, net_check=True, cl=0.0):
     wx, wy = wind
     dt, t = 0.001, 0.0
     net = None
+    path, next_sample = [], 0.0
     while t < 6.0:
         rx, ry, rz = vx - wx, vy - wy, vz
         rel = math.sqrt(rx * rx + ry * ry + rz * rz)
@@ -129,20 +135,26 @@ def flight(p0, v0, wind, surface, net_check=True, cl=0.0):
             net = (y + f * (ny - y), z + f * (nz - z))
             if net[1] < net_height(net[0]):
                 return {"net": net, "land": None, "time": t,
-                        "speed_at_net": math.sqrt(vx * vx + vy * vy + vz * vz)}
+                        "speed_at_net": math.sqrt(vx * vx + vy * vy + vz * vz), "path": path}
         if nz <= 0:                                       # first bounce on the court plane
             f = z / (z - nz) if z != nz else 1.0
             land = (x + f * (nx - x), y + f * (ny - y))
             vx2, vy2, vz2 = vx + f * (nvx - vx), vy + f * (nvy - vy), vz + f * (nvz - vz)
             s = SURFACES[surface]
             after = (vx2 * s["f"], vy2 * s["f"], -vz2 * s["e"])
+            if trace:
+                path.append((round(t + f * dt, 4), round(land[0], 3), round(land[1], 3), 0.0))
             return {"net": net, "land": land, "time": t + f * dt,
                     "speed_in": math.sqrt(vx2 * vx2 + vy2 * vy2 + vz2 * vz2),
                     "bounce": {"speed_out": math.sqrt(sum(c * c for c in after)),
-                               "v": after, "angle": math.degrees(math.atan2(after[2], math.hypot(*after[:2])))}}
+                               "v": after, "angle": math.degrees(math.atan2(after[2], math.hypot(*after[:2])))},
+                    "path": path}
         x, y, z, vx, vy, vz = nx, ny, nz, nvx, nvy, nvz
         t += dt
-    return {"net": net, "land": None, "lost": True}
+        if trace and t >= next_sample:
+            path.append((round(t, 4), round(x, 3), round(y, 3), round(z, 3)))
+            next_sample += trace
+    return {"net": net, "land": None, "lost": True, "path": path}
 
 
 def net_height(y: float) -> float:
@@ -256,7 +268,8 @@ def spin_for(shot: str, face: float, power: float) -> float:
 
 
 def strike(p: Player, incoming: dict | None, face: float, power: float, aim: float,
-           shot: str, surface: str, wind: tuple[float, float], clean: bool = False) -> dict:
+           shot: str, surface: str, wind: tuple[float, float], clean: bool = False,
+           contact=None) -> dict:
     """Movement in, ball out. The player supplies a face angle in degrees (negative closed), a power in
     per-cent and an aim offset in feet; everything else is physics plus the player's skill."""
     control = p.skill("control")
@@ -281,7 +294,7 @@ def strike(p: Player, incoming: dict | None, face: float, power: float, aim: flo
     # 100% of swing sends the ball at 105mph, a hard forehand; 30% is a 32mph push. The first version used
     # 1.32mph per point, so 100% meant 132mph and every number on the page was a fiction.
     speed = max(8.0, power_actual * 1.05)
-    p0 = contact_point(p, shot)
+    p0 = contact if contact is not None else contact_point(p, shot)
     # the player turns to aim; the face angle sets the loft, not the direction. A first version made the
     # face angle steer as well, and a serve aimed at the right box landed thirty feet wide. Aim is absolute
     # across the court (feet from the west sideline), not relative to the ball, because a serve struck four
@@ -294,7 +307,10 @@ def strike(p: Player, incoming: dict | None, face: float, power: float, aim: flo
     cl = spin_for(shot, face_actual, power_actual)
     traj = flight(p0, (vx, vy, vz), wind, surface, cl=cl)
     return {"player": p, "shot": shot, "speed": speed, "sweet": sweet, "contact": p0,
-            "traj": traj, "face": face_actual, "power": power_actual, "spin": cl}
+            "traj": traj, "face": face_actual, "power": power_actual, "spin": cl,
+            # v0 is the ball as it left the strings, kept so a renderer can integrate the same shot
+            # rather than approximate it. Nothing that existed before reads this key.
+            "v0": (vx, vy, vz)}
 
 
 def aim_at(p: Player, target, shot: str, surface: str, wind, power: float) -> tuple[float, float]:
