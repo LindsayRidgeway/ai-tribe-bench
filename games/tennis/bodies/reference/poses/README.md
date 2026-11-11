@@ -107,3 +107,20 @@ So the founder's two corrections, 2026-11-11, both taken:
   readable.
 
 Negative gains `visible tennis racquet`. The count terms (extra arms, extra hands) stay; `two hands` stays out.
+
+## f1-g, and the end of the swing sheet
+
+`f1-g.jpg` is the invisible racquet. It bought the verb back — the arms swing, the turn is there — and it paid
+for it with a fist closed around a black stub drawn in every panel, because "invisible racquet" is a contradiction
+a rendering model resolves by drawing a small piece of one. Panels 4 and 5 are punches. Nothing in the sheet is a
+forehand.
+
+Eight grids, four prompts, no forehand. The conclusion is not that the prompt needs a ninth revision. It is that
+a photograph cannot tell me eight joint angles per moment, and the model has a strong prior about what a tennis
+portrait looks like which no wording has moved. The swing becomes a rule in `replay3d.html`, written against the
+geometry the engine already knows — contact point, contact height, the ball's exit direction, the stance the run
+record produced — and checked by looking at the render, which takes seconds instead of a generation round-trip.
+
+The founder's hair correction stands for any future sheet: **"face-framing loose pony-tail"**. Loose and framing
+the face is the character; clear of the shoulders is the measurement (the neck and shoulder-line rows of the tape
+need a silhouette without hair across them), and a loose ponytail is the only wording that has produced both.
