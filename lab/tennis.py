@@ -399,6 +399,53 @@ def placement(p: Player, receiver: Player, at, record: dict) -> tuple[float, flo
     return c_north
 
 
+# ---- serving ----------------------------------------------------------------------------------------
+SERVE_SLACK = 3.0          # feet inside the service line and the sideline for hands that can put it there
+
+
+def serve_corners(north: bool, control: float = 1.0):
+    """The two far corners of the service box, one on each side of the centre line.
+
+    The founder's instruction (2026-11-11): a first serve attempts one of the far corners of the service box,
+    and for now which corner is chosen at random. "Far" is the deep pair — the service line, tight to each
+    sideline — because that is the ball that pulls the receiver out of the court, and it is the same rule as the
+    groundstroke corners: attack the place the other player is furthest from.
+
+    The margin inside the lines follows the server's hands for the same reason the groundstroke corners do. A
+    corner three feet inside the line is only a corner for someone who can hit it; a beginner aiming at the line
+    serves a double fault and learns nothing, so the margin opens with their error and closes with practice.
+    """
+    slack = min(8.0, SERVE_SLACK + 6.0 * (1.0 - control))
+    x = NET_X + SERVICE_LINE - slack if north else NET_X - SERVICE_LINE + slack
+    return ((x, slack), (x, WIDTH - slack))
+
+
+def serve_verdict(shot: dict) -> tuple[bool, str]:
+    """In the service box or not, and how far from it.
+
+    A serve is not judged by `verdict`. To `verdict` a ball that lands ten feet past the service line is inside
+    the court and therefore good, which is true of every other shot and false of this one. The box is the whole
+    of the rule, and the number reported is the distance to the line that was missed, in feet, for the same
+    reason an out groundstroke reports it: a player corrects a number.
+    """
+    t = shot["traj"]
+    p = shot["player"]
+    fwd = 1.0 if p.north else -1.0
+    if t.get("land") is None:
+        if t.get("net"):
+            return False, f"fault — into the net at {t['net'][1]:.1f}ft, needs more height"
+        return False, "fault — lost"
+    x, y = t["land"]
+    depth = (x - NET_X) * fwd                    # feet past the net, along the serve
+    if depth <= 0:
+        return False, f"fault — into the net, {abs(depth):.1f}ft short"
+    if depth > SERVICE_LINE:
+        return False, f"fault — {depth - SERVICE_LINE:.1f}ft past the service line"
+    if not (0.0 <= y <= WIDTH):
+        return False, "fault — wide"
+    return True, f"in — {SERVICE_LINE - depth:.1f}ft inside the service line"
+
+
 def movement_speed(p: Player) -> float:
     """How fast a player covers ground, in feet per second. A beginner shuffles at about 6 ft/s, which is
     brisk walking; five hundred balls later they are at 20 ft/s, which is a run. Real figures: adults move at

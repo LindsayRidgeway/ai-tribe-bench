@@ -85,6 +85,18 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str) 
 
     for rally_no in range(1, rallies + 1):
         idxs, length = [], 0
+        # Every point in tennis begins with a serve, and until 2026-11-11 this file began every point with a
+        # groundstroke struck from the baseline — a rally with no opening ball, which is why a rally could be
+        # one shot long. The server alternates for now; the game's own service order (a whole game, then the
+        # other player) belongs to the scoring layer, and MATCH-FORMAT.md says so.
+        server_i = (rally_no - 1) % 2
+        hitter = server_i
+        serve_no = 1          # first ball; a fault earns a second
+        rallied = False
+        server = players[server_i]
+        # The corner is chosen once per point, at random, and both serves go there: a second serve is the same
+        # intention with less pace, not a change of plan.
+        serve_corner = rng.choice(T.serve_corners(server.north, server.skill("control")))
         # Who won it, recorded where the engine's own verdict is read rather than worked out again downstream:
         # a rally ends when a shot is out (the hitter loses it) or when the other player cannot reach a good one
         # (the hitter wins it). If it runs to the cap, nobody won it and the record says so.
@@ -92,16 +104,30 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str) 
         while length < CAP:
             p = players[hitter]
             other = players[1 - hitter]
-            contact = carry[hitter] or T.contact_point(p, "rally")
-            # Where the ball is going: the far corner the other player is furthest from, not the middle of the
-            # court. Until 2026-11-11 every shot in this file was aimed at T.WIDTH/2 and NET_X plus or minus
-            # twenty, which is why the renderer showed two people trading balls down the centre.
-            target = T.placement(p, other, where[1 - hitter], record)
-            face, pw = T.aim_at(p, target, "rally", surface, wv, power=power[hitter], contact=contact)
+            serving = (hitter == server_i and serve_no <= 2 and not rallied)
+            if serving:
+                # A serve is struck from 8.8ft over the baseline, not at waist height, and it is judged by the
+                # service box rather than by the court. A second serve keeps the corner and takes pace off and
+                # height on: the ball is sent four feet shorter, which is what a higher, safer serve is.
+                contact = T.contact_point(p, "serve")
+                pace = (66.0 + 18.0 * rng.random()) * (1.0 if serve_no == 1 else 0.85)
+                target = (serve_corner if serve_no == 1
+                          else (serve_corner[0] + (4.0 if p.north else -4.0), serve_corner[1]))
+                face, pw = T.aim_at(p, target, "serve", surface, wv, power=pace, contact=contact)
+                shot = T.strike(p, None, face=face, power=pw, aim=target[1], aim_x=target[0], shot="serve",
+                                surface=surface, wind=wv, contact=contact)
+                ok, why = T.serve_verdict(shot)
+            else:
+                contact = carry[hitter] or T.contact_point(p, "rally")
+                # Where the ball is going: the far corner the other player is furthest from, not the middle of
+                # the court. Until 2026-11-11 every shot in this file was aimed at T.WIDTH/2 and NET_X plus or
+                # minus twenty, which is why the renderer showed two people trading balls down the centre.
+                target = T.placement(p, other, where[1 - hitter], record)
+                face, pw = T.aim_at(p, target, "rally", surface, wv, power=power[hitter], contact=contact)
+                shot = T.strike(p, incoming, face=face, power=pw, aim=target[1], aim_x=target[0], shot="rally",
+                                surface=surface, wind=wv, contact=contact)
+                ok, why = T.verdict(shot)
             aim = target[1]
-            shot = T.strike(p, incoming, face=face, power=pw, aim=aim, aim_x=target[0], shot="rally",
-                            surface=surface, wind=wv, contact=contact)
-            ok, why = T.verdict(shot)
             traj = shot["traj"]
             tpath = T.flight(shot["contact"], shot["v0"], wv, surface, cl=shot["spin"], trace=TRACE)["path"]
             lo, hi = corridor(p, incoming, shot["power"], aim, shot["contact"], surface, wv, aim_x=target[0])
@@ -113,6 +139,7 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str) 
                 "i": length,
                 "player": p.name,
                 "north": p.north,
+                "kind": "serve" if serving else "rally",
                 "face": round(shot["face"], 2),
                 "power": round(shot["power"], 1),
                 "aim": round(aim, 1),
@@ -133,8 +160,16 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str) 
             idxs.append(entry["n"])
 
             if not ok:
+                if serving:
+                    if serve_no == 1:
+                        serve_no = 2        # a fault is not a lost point: the server has a second ball
+                        continue
+                    point = {"winner": other.name, "reason": f"double fault — {why}"}
+                    break
                 point = {"winner": players[1 - hitter].name, "reason": why}
                 break
+            if serving:
+                rallied = True
             meet = T.intercept(other, traj["land"], traj["time"], traj["bounce"], surface,
                                frm=where[1 - hitter])
             available = traj["time"] + 1.0
