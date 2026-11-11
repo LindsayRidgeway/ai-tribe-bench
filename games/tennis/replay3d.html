@@ -455,28 +455,29 @@ function placeRacquet(rig, aim, face) {
 /* ---------- the film ---------- */
 const SEG = [];
 const PLAN = {};                       // name -> [{t0,t1,from,to}] in seconds of film
+/* The last shot of each rally, and who the engine says won it. A rally ends either because the shot was out (the
+   hitter loses it) or because the other player could not reach a good one (the hitter wins it); a rally that runs
+   to the cap has no winner and says so. The page does not decide this — lab/tennis_script.py reads it off the
+   engine's verdict — but it has to be known before the film is cut, because the camera only leaves the court
+   between points. */
+const POINT = {}, LASTN = {};
+for (const sh of D.shots) LASTN[sh.rally] = sh.n;
+for (const r of D.rallies) POINT[r.rally] = (r.point && r.point.winner) ? r.point : null;
 {
   let t = 0.8;
   for (const sh of D.shots) {
     const dur = Math.max(0.35, sh.path.length * TRACE);
-    const hold = sh.in ? 0.75 : 1.6;
-    SEG.push({ sh, start: t, dur, hold, cams: cams(sh, dur) });
+    // A shot in the middle of a rally gets a beat before the next one starts; the shot that ends the rally gets
+    // the point board, the pause, and then a couple of seconds on the player, which is what the 3.8 is for.
+    const hold = (LASTN[sh.rally] === sh.n && POINT[sh.rally]) ? 3.8 : 0.75;
+    const seg = { sh, start: t, dur, hold, cams: cams(sh, dur) };
+    if (LASTN[sh.rally] === sh.n && POINT[sh.rally]) seg.point = POINT[sh.rally];
+    SEG.push(seg);
     if (sh.run) {
       (PLAN[sh.run.player] = PLAN[sh.run.player] || []).push(
         { t0: t + sh.run.t0, t1: t + Math.min(sh.run.t1, dur), from: sh.run.from, to: sh.run.to });
     }
     t += dur + hold;
-  }
-}
-
-/* Which shot ended each rally, and who the engine says won it. The page does not decide this: lab/tennis_script.py
-   reads it off the engine's own verdict — the shot was out, or the other player could not reach a good one. */
-{
-  const lastOf = {};
-  for (const sh of D.shots) lastOf[sh.rally] = sh;
-  for (const r of D.rallies) {
-    const seg = SEG.find(x => x.sh === lastOf[r.rally]);
-    if (seg && r.point && r.point.winner) seg.point = r.point;
   }
 }
 
@@ -502,8 +503,12 @@ function whereAt(name, T) {
   return { pos, moving, travelled };
 }
 function cams(sh, dur) {
-  // One camera holds the whole point; when the point is over, cut once to the player who was running.
-  return [{ at: 0, cam: tower() }, { at: dur, cam: between(sh) }];
+  // One camera holds the whole POINT. A shot is not a point: the camera leaves the court only when the rally is
+  // over, which is once per rally and not once per shot. Cutting to a player at the end of every shot was the
+  // last version's mistake — it turned a point of eleven shots into eleven cuts.
+  const lastOne = LASTN[sh.rally] === sh.n && POINT[sh.rally];
+  return lastOne ? [{ at: 0, cam: tower() }, { at: dur, cam: between(sh) }]
+                 : [{ at: 0, cam: tower() }];
 }
 function nearest(land) {
   let best = null;
@@ -531,8 +536,9 @@ function between(sh) {
   const who = sh.run ? { at: sh.run.to, north: sh.run.north } : { at: [sh.contact[0], sh.contact[1]], north: sh.north };
   const face = who.north ? 1 : -1;                       // the way that player looks
   const side = who.at[1] < WID / 2 ? 1 : -1;             // out toward the nearer sideline
-  return { eye: new THREE.Vector3(who.at[0] + 4.5 * face, 5.0, who.at[1] + 13.5 * side),
-           at: new THREE.Vector3(who.at[0] + 0.4 * face, 3.4, who.at[1]), fov: 34 };
+  // Far enough back that the racquet is in the frame when it is held up, which at 13ft it was not.
+  return { eye: new THREE.Vector3(who.at[0] + 4.5 * face, 5.2, who.at[1] + 16.0 * side),
+           at: new THREE.Vector3(who.at[0] + 0.4 * face, 4.0, who.at[1]), fov: 34 };
 }
 function wide(north) {
   // Behind the hitter's baseline, high, looking at the net: the broadcast view, which is the only one that shows
