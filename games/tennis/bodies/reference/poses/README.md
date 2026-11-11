@@ -88,3 +88,22 @@ the ankles — and put a horizon line behind her in one panel and not the next. 
 empty background above her head and below her shoes in every frame, and the backdrop is flat mid-grey with no
 floor line. The costume is fixed; the framing is not yet.
 
+
+## f1-f — framing fixed, and the swing lost with it
+
+`f1-f.jpg` is the first sheet that passes the framing instruction: head to shoes inside every frame with margin,
+flat backdrop, no shorts, midriff consistent. And it is the worst sheet for the thing the sheet exists to
+measure. Panels 4, 5 and 6 are a wave, folded arms and a catalogue stance — not a forehand. Take the racquet out
+and the model loses the verb: "forehand" without an implement is a woman standing with her arms out.
+
+So the founder's two corrections, 2026-11-11, both taken:
+
+- **"invisible racquet".** Tell the model she is swinging a racquet that cannot be seen, rather than that she is
+  holding nothing. The motion survives and nothing is drawn. It also fixes something I got wrong: a forehand hand
+  is *closed* around a grip, not open. The flat open palm I asked for, to keep the model from mangling fingers,
+  was a worse landmark than a fist — and it read as waving.
+- **hair in a ponytail, back in.** Without the line, six panels of long hair falling over the shoulders, which is
+  the neck and the shoulder-line landmarks gone. Not a taste note: a ponytail keeps two of the thirteen rows
+  readable.
+
+Negative gains `visible tennis racquet`. The count terms (extra arms, extra hands) stay; `two hands` stays out.
