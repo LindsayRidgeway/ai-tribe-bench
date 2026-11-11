@@ -56,15 +56,35 @@ moves changes the silhouette the instrument reads. Two of the thirteen landmarks
 "hip / skirt" at 0.50 of height and "under the skirt" at 0.44; if the hem is in a different place in panel 2 than
 in panel 4, those two rows are measuring different garments.
 
-This paragraph goes verbatim at the top of every set from here — f, b, s and m:
+Revision 2, after the first sheet made with it (`f1-e.jpg`). His corrections, all four taken:
+
+- **No shorts.** The inner shorts clause — "white inner shorts ending 1 inch below the skirt hem" — came back as
+  visible white briefs below the hem in four of six panels, which is underwear drawn by a machine that read the
+  words and not the intent. The skirt is a single layer and nothing shows under it. Deleted.
+- **Not "her hair tied back off her face".** Deleted outright. It is the character reference's job: `@kirsten`
+  already fixes the hair, and instructing it again in words is a second opinion that competes with the first.
+- **"jewelry"**, his spelling, not "jewellery".
+- **"extra arms" goes back in the negative.** He is right and my reasoning last turn did not cover it: "extra
+  arms" is a count correction and it works; "two hands" was a penalty on a body part the positive was asking
+  for, and it damaged the hands. Different mechanisms. Keep count terms, drop part penalties.
+
+The paragraph, verbatim in every set from here — f, b, s and m:
 
 > Her outfit is identical in every frame: a fitted white athletic T-shirt with a plain crew neck, short sleeves
 > ending about 6 inches above the elbow, and a hem ending 3 inches above her navel, so exactly 3 inches of bare
-> midriff shows; a white tennis skirt with the waistband on her hips, the hem 4 inches above the knee, and white
-> inner shorts ending 1 inch below the skirt hem; white ankle socks and white tennis shoes. No logos, no
-> wristbands, no headband, no watch, no jewellery, nothing on her wrists or hands. Her hair is tied back off her
-> face.
+> midriff shows; a white tennis skirt with the waistband on her hips and the hem 4 inches above the knee, a single
+> layer with no shorts, no briefs and nothing visible below the hem; white ankle socks and white tennis shoes. No
+> logos, no wristbands, no headband, no watch, no jewelry, nothing on her wrists or hands.
 
-The two prohibitions that are measurement, not taste: nothing on the wrists (the wrist is one of the landmarks,
-and a sweatband moves it) and nothing on the head (the crown line is where the instrument starts measuring
-height).
+Nothing on the wrists is measurement, not taste: the wrist is one of the landmarks and a sweatband moves it.
+
+Negative, revision 2:
+
+> tennis racquet, ball, shadow, extra arms, extra hands, text, watermark, logo, side view, back view, motion
+> blur, different woman, different outfit, cropped head, cropped shoes.
+
+`f1-e.jpg` also failed the framing instruction in two panels — panel 2 has no shoes in frame and panel 5 stops at
+the ankles — and put a horizon line behind her in one panel and not the next. So the wording now says there is
+empty background above her head and below her shoes in every frame, and the backdrop is flat mid-grey with no
+floor line. The costume is fixed; the framing is not yet.
+
