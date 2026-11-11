@@ -148,6 +148,13 @@ names a tribe this browser cannot reach, the connect page opens with the reason 
 Until 2026-11-09 the address only pre-filled a box on a page that a person who already had a tribe was never sent
 to — so the address of your first tribe opened your second one, which is how the founder found it.
 
+**A remembered token is not asked for twice.** The connect page lists the tribes this browser has been in, and
+the list shows the one you are standing in too, marked *you are here* rather than left out. Type or accept a
+repository this browser already holds a token for and the **Connect** button becomes **Open**: the token box can be
+left empty, because the page has been trusted with that repository already and says so before you press anything.
+It is only a repository this browser has never opened that asks for a token, once. A failed attempt no longer costs
+you the tribe you were in — nothing is half-connected, so nothing is taken away.
+
 ## 5. The first morning
 
 Nothing you have to do.
@@ -685,6 +692,7 @@ to, and will never have to.
 
 | in AIT | underneath |
 |---|---|
+| Connect to a tribe | a `GET /repos/<owner>/<name>` with a token, which proves the token can see the repository before anything is written. If this browser has opened that repository before, the token is taken from what it already holds and the box can be left empty; the button reads **Open** rather than **Connect** |
 | Add a member | writes a member's folder (identity, voice, state, journal, open items, place) and commits it |
 | Wake now | starts a wake run for that member and shows you the reply |
 | Say something in chat | a direct call to the engine from this page, answered as it is written; every exchange is committed to `state/conversation.md`, and a `NOTE:` goes into the journal |
