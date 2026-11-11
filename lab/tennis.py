@@ -269,7 +269,7 @@ def spin_for(shot: str, face: float, power: float) -> float:
 
 def strike(p: Player, incoming: dict | None, face: float, power: float, aim: float,
            shot: str, surface: str, wind: tuple[float, float], clean: bool = False,
-           contact=None) -> dict:
+           contact=None, aim_x=None) -> dict:
     """Movement in, ball out. The player supplies a face angle in degrees (negative closed), a power in
     per-cent and an aim offset in feet; everything else is physics plus the player's skill."""
     control = p.skill("control")
@@ -299,7 +299,12 @@ def strike(p: Player, incoming: dict | None, face: float, power: float, aim: flo
     # face angle steer as well, and a serve aimed at the right box landed thirty feet wide. Aim is absolute
     # across the court (feet from the west sideline), not relative to the ball, because a serve struck four
     # feet off centre otherwise lands four feet off target.
-    azimuth = math.atan2(aim - p0[1], 32.0)
+    # The racquet is pointed at a place on the court, so the direction is the direction to that place. The first
+    # version divided by a fixed 32ft, which is a fine stand-in when every ball is aimed at the middle of the
+    # court and a disaster when one is aimed at a corner 70ft away: a ball aimed 9ft across from the centre
+    # landed 21ft across, because 71ft of travel multiplies a 32ft-hypotenuse angle by more than two.
+    forward = 32.0 if aim_x is None else max(1.0, abs(aim_x - p0[0]))
+    azimuth = math.atan2(aim - p0[1], forward)
     v = speed * MPH
     vx = v * math.cos(elevation) * math.cos(azimuth) * (1 if p.north else -1)
     vy = v * math.cos(elevation) * math.sin(azimuth)
@@ -313,28 +318,85 @@ def strike(p: Player, incoming: dict | None, face: float, power: float, aim: flo
             "v0": (vx, vy, vz)}
 
 
-def aim_at(p: Player, target, shot: str, surface: str, wind, power: float) -> tuple[float, float]:
-    """The player's intent, translated into movement: what face angle and power send the ball to that spot.
-    This is what a competent player does by feel and a beginner cannot do at all — so the *error* is applied
-    afterwards, by `strike`, from the player's control."""
-    lo, hi = -20.0, 40.0
+def aim_at(p: Player, target, shot: str, surface: str, wind, power: float,
+           contact=None) -> tuple[float, float]:
+    """The player's intent, translated into movement: the face angle that sends the ball to that spot. The
+    lateral part needs no solving now that `strike` is pointed at the target's own x — before that the aim was
+    a direction from a fixed 32ft reference and had to be corrected iteratively, badly enough that the corrected
+    value was never handed back to the caller. What is left is one bisection on elevation, and what is left after
+    that is the wind, which is the point of having wind."""
     fwd = 1.0 if p.north else -1.0        # "past the target" is +x for one end and -x for the other
-    for _ in range(22):
+    lo, hi = -20.0, 42.0
+    face = 0.0
+    for _ in range(26):
         mid = (lo + hi) / 2
-        probe = strike(p, None, face=mid, power=power, aim=target[1],
-                       shot=shot, surface=surface, wind=wind, clean=True)
+        probe = strike(p, None, face=mid, power=power, aim=target[1], aim_x=target[0], shot=shot,
+                       surface=surface, wind=wind, clean=True, contact=contact)
         land = probe["traj"].get("land")
         if land is None:
             lo = mid                       # still in the net: hit up more
             continue
         short = (land[0] - target[0]) * fwd
-        if abs(short) < 0.5:
+        if abs(short) < 0.4:
             return mid, power
         if short < 0:
             lo = mid                       # short: more elevation
         else:
             hi = mid
     return (lo + hi) / 2, power
+
+
+# ---- placement --------------------------------------------------------------------------------------
+# The corners of the receiver's court, a little inside the lines. Wide enough that a good player's error lands
+# in, tight enough that hitting one is worth something: a ball five feet inside the baseline is a different ball
+# from one twenty feet short of it, and until 2026-11-11 every ball this engine played went to the same place.
+CORNER_SLACK = 4.0         # feet inside the lines for a player who can put the ball where they look
+
+
+def corners_of(north: bool, control: float = 1.0) -> tuple[tuple[float, float], tuple[float, float]]:
+    """The two deep corners of the court the player at that end is defending — or, for a player whose hands
+    are not yet reliable, corners moved in to where their own scatter leaves the ball in.
+
+    The founder's rule is to hit one of the far corners, and that is the rule. But a corner five feet inside the
+    line is only a corner for someone who can hit it: at 1° of face error the ball moves about 1.2ft over 70ft,
+    so a beginner with four degrees of error spraying a ball at the line loses the point rather than winning it.
+    The margin is therefore 2.5 standard deviations of the hitter's own face error, expressed in feet, capped at
+    18 so that a beginner is not aiming at the net post. As the hands improve the target walks out to the corner
+    by itself, which is what practice looks like from the other end of the court."""
+    slack = min(18.0, CORNER_SLACK + 11.0 * (1.0 - control))
+    x = slack if north else LENGTH - slack
+    return ((x, slack), (x, WIDTH - slack))
+
+
+def side_of(y: float, north: bool) -> str:
+    """Which side of their own body a ball at y is on, for the player at that end. A player at the north end
+    faces +x, so their right hand is toward +y."""
+    return "right" if (y > WIDTH / 2) == north else "left"
+
+
+def placement(p: Player, receiver: Player, at, record: dict) -> tuple[float, float]:
+    """Where to hit it.
+
+    The rule is the founder's, and it is a better rule than anything this file had: go to the far corner the
+    receiver is further from; if the two corners are within a few feet of equidistant, go at the side that has
+    been winning points against them; with no history to go on, go at a right-hander's backhand, which is their
+    left. `at` is where the receiver's feet are, which the engine already knows because it made them run.
+    """
+    c_north, c_south = corners_of(receiver.north, p.skill("control"))
+    d = [math.hypot(c[0] - at[0], c[1] - at[1]) for c in (c_north, c_south)]
+    if abs(d[0] - d[1]) >= 4.0:
+        return c_north if d[1] > d[0] else c_south
+    rec = record.get(receiver.name) or {"left": [0, 0], "right": [0, 0]}
+    tries = rec["left"][1] + rec["right"][1]
+    if tries == 0:
+        side = "left"                      # a right-hander's backhand, and a stranger is assumed right-handed
+    else:
+        rate = {s: (rec[s][0] + 0.5) / (rec[s][1] + 1.0) for s in ("left", "right")}
+        side = "left" if rate["left"] >= rate["right"] else "right"
+    for c in (c_north, c_south):
+        if side_of(c[1], receiver.north) == side:
+            return c
+    return c_north
 
 
 def movement_speed(p: Player) -> float:

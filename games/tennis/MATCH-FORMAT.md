@@ -36,7 +36,12 @@ an answer before it can be played.
    every club and professional format, and without it a set can run forever.
 2. **Deuce.** 40–40 is deuce; the next point gives AD to that player; if the other player wins the next point it
    returns to deuce. No "golden point" — his wording assumes advantage scoring.
-3. **Serving.** Rallies are currently played with no serve at all; the engine's serve exists (`shot="serve"`,
+3. **Serving, and where it goes.** A first serve is aimed at one of the two far corners of the service box,
+   chosen at random for now (his instruction, 2026-11-11) — random because nothing yet knows which side a player
+   returns badly from, and a corner is a corner. Once returns are recorded by side the same history the rally
+   placement uses will choose between the two. Second serves will go to the same target with the pace off and the
+   height on, which is what a second serve is.
+   Rallies are currently played with no serve at all; the engine's serve exists (`shot="serve"`,
    contact at 8.8ft) but the script plays `shot="rally"`. A match needs an order: one player serves a whole game,
    service alternates each game, and within a game the server alternates ends of the court each point. This is a
    change to `lab/tennis_script.py`, not to the renderer.

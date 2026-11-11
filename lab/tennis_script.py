@@ -41,7 +41,8 @@ def balls_for(r: float) -> float:
     return -120.0 * math.log(1.0 - s)
 
 
-def corridor(p: T.Player, incoming, power: float, aim: float, contact, surface, wind) -> tuple[float, float]:
+def corridor(p: T.Player, incoming, power: float, aim: float, contact, surface, wind,
+             aim_x=None) -> tuple[float, float]:
     """The range of face angles that would have landed this swing in the court.
 
     Same contact point, same power, same aim, same hands-free delivery: the only thing that moves is the
@@ -51,7 +52,7 @@ def corridor(p: T.Player, incoming, power: float, aim: float, contact, surface, 
     lo = hi = None
     f = -14.0
     while f <= 46.0:
-        shot = T.strike(p, incoming, face=f, power=power, aim=aim, shot="rally",
+        shot = T.strike(p, incoming, face=f, power=power, aim=aim, aim_x=aim_x, shot="rally",
                         surface=surface, wind=wind, clean=True, contact=contact)
         ok, _ = T.verdict(shot)
         if ok:
@@ -77,6 +78,10 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str) 
     carry = [None, None]          # the meeting point each player has been left standing at
     out_rallies, shots = [], []
     incoming, hitter = None, 0
+    # Which side of each player's body has been losing points, so that a ball sent to one corner and a ball sent
+    # to the other can be told apart later. The engine's placement rule reads this when the corners are
+    # equidistant; nothing else does.
+    record = {pl.name: {"left": [0, 0], "right": [0, 0]} for pl in players}
 
     for rally_no in range(1, rallies + 1):
         idxs, length = [], 0
@@ -86,16 +91,20 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str) 
         point = {"winner": None, "reason": "the rally ran to the cap without a result"}
         while length < CAP:
             p = players[hitter]
+            other = players[1 - hitter]
             contact = carry[hitter] or T.contact_point(p, "rally")
-            depth = T.NET_X + 20.0 if p.north else T.NET_X - 20.0
-            face, pw = T.aim_at(p, (depth, T.WIDTH / 2), "rally", surface, wv, power=power[hitter])
-            aim = T.WIDTH / 2
-            shot = T.strike(p, incoming, face=face, power=pw, aim=aim, shot="rally",
+            # Where the ball is going: the far corner the other player is furthest from, not the middle of the
+            # court. Until 2026-11-11 every shot in this file was aimed at T.WIDTH/2 and NET_X plus or minus
+            # twenty, which is why the renderer showed two people trading balls down the centre.
+            target = T.placement(p, other, where[1 - hitter], record)
+            face, pw = T.aim_at(p, target, "rally", surface, wv, power=power[hitter], contact=contact)
+            aim = target[1]
+            shot = T.strike(p, incoming, face=face, power=pw, aim=aim, aim_x=target[0], shot="rally",
                             surface=surface, wind=wv, contact=contact)
             ok, why = T.verdict(shot)
             traj = shot["traj"]
             tpath = T.flight(shot["contact"], shot["v0"], wv, surface, cl=shot["spin"], trace=TRACE)["path"]
-            lo, hi = corridor(p, incoming, shot["power"], aim, shot["contact"], surface, wv)
+            lo, hi = corridor(p, incoming, shot["power"], aim, shot["contact"], surface, wv, aim_x=target[0])
 
             length += 1
             entry = {
@@ -107,6 +116,7 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str) 
                 "face": round(shot["face"], 2),
                 "power": round(shot["power"], 1),
                 "aim": round(aim, 1),
+                "target": [round(target[0], 1), round(target[1], 1)],
                 "sweet": bool(shot["sweet"]),
                 "contact": [round(v, 2) for v in shot["contact"]],
                 "v0": [round(v, 3) for v in shot["v0"]],
@@ -125,7 +135,6 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str) 
             if not ok:
                 point = {"winner": players[1 - hitter].name, "reason": why}
                 break
-            other = players[1 - hitter]
             meet = T.intercept(other, traj["land"], traj["time"], traj["bounce"], surface,
                                frm=where[1 - hitter])
             available = traj["time"] + 1.0
@@ -153,6 +162,16 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str) 
             incoming = {"speed_in": traj["speed_in"], "traj": traj}
             hitter = 1 - hitter
 
+        # Credit the point to the corner it was aimed at, if the last ball is the one that decided it.
+        if idxs:
+            last = shots[idxs[-1]]
+            tgt = last.get("target")
+            if tgt:
+                side = T.side_of(tgt[1], not last["north"])
+                who = players[0].name if last["player"] == players[1].name else players[1].name
+                record[who][side][1] += 1
+                if point["winner"] == last["player"]:
+                    record[who][side][0] += 1
         out_rallies.append({"rally": rally_no, "shots": idxs, "length": length,
                             "point": point, "clock_ms": ms})
         incoming = None

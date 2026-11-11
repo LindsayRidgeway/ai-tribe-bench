@@ -683,8 +683,11 @@ function tick(now) {
 
   const sw = el("sweet"); sw.textContent = sh.sweet ? "clean" : "framed";
   sw.className = "badge " + (sh.sweet ? "clean" : "frame");
+  // the target, named rather than numbered: a reader can see that the ball was sent to a corner, and which
+  const corner = sh.target ? `${sh.target[1] < WID / 2 ? "west" : "east"} corner, ` +
+    `${Math.round(sh.target[0] < LEN / 2 ? sh.target[0] : LEN - sh.target[0])}ft inside` : `${sh.aim}ft across`;
   el("shotline").textContent = `face ${sh.face > 0 ? "+" : ""}${sh.face}°  power ${Math.round(sh.power)}  ` +
-    `aim ${sh.aim}ft  leaving at ${Math.round(sh.power * 1.05)}mph`;
+    `aimed ${corner}  leaving at ${Math.round(sh.power * 1.05)}mph`;
   const rn = sh.run;
   el("why").textContent = sh.why + (rn
     ? `   ·   ${rn.player} runs ${rn.dist}ft at ${rn.speed}ft/s${rn.met ? "" : " and does not get there"}`
