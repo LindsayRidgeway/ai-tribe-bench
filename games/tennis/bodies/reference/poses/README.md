@@ -47,3 +47,24 @@ Six frames of a one-handed forehand, hands empty, is a sheet the instrument can 
 Also present and harmless: a soft floor shadow. The silhouette instrument separates her from it without help
 (checked on panel 1 of f1-c: mask rows 236–1136, shadow below threshold), so the ask is not "no shadow" but
 "the racquet clear of her body", which is the overlap that does obscure a measurement.
+
+## The outfit block
+
+The founder's suggestion, 2026-11-11: name the kit in numbers, not adjectives. He is right, and for a reason
+beyond tidiness — the sheets came back with the top sometimes a tee and sometimes a tee-dress, and a hem that
+moves changes the silhouette the instrument reads. Two of the thirteen landmarks in `lab/reference.py` are
+"hip / skirt" at 0.50 of height and "under the skirt" at 0.44; if the hem is in a different place in panel 2 than
+in panel 4, those two rows are measuring different garments.
+
+This paragraph goes verbatim at the top of every set from here — f, b, s and m:
+
+> Her outfit is identical in every frame: a fitted white athletic T-shirt with a plain crew neck, short sleeves
+> ending about 6 inches above the elbow, and a hem ending 3 inches above her navel, so exactly 3 inches of bare
+> midriff shows; a white tennis skirt with the waistband on her hips, the hem 4 inches above the knee, and white
+> inner shorts ending 1 inch below the skirt hem; white ankle socks and white tennis shoes. No logos, no
+> wristbands, no headband, no watch, no jewellery, nothing on her wrists or hands. Her hair is tied back off her
+> face.
+
+The two prohibitions that are measurement, not taste: nothing on the wrists (the wrist is one of the landmarks,
+and a sweatband moves it) and nothing on the head (the crown line is where the instrument starts measuring
+height).
