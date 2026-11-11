@@ -25,6 +25,7 @@ members, a shared record, no server.
 | [`TESTER.md`](TESTER.md) | the brief for the person installing it, with a stopwatch and a hesitation column |
 | `wake/`, `play/`, `check.py`, `tribe.py` | the harness: one wake, the game, a strict read-only executor, the schema |
 | [`lab/`](lab/) | everything historical: eleven rounds of measurements, transcripts, failures, old models |
+| [`lab/repos.py`](lab/repos.py) | every repository this project has made, which kind each one is, and which are allowed to be deleted — because by 2026-11-10 one of them was called `test-ai-tribe` and held a member's 24,000-character conversation |
 
 ## The short version
 
