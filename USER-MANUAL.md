@@ -151,11 +151,18 @@ to — so the address of your first tribe opened your second one, which is how t
 **A remembered token is not asked for twice.** The connect page lists the tribes this browser has been in, and
 that list includes the repository this page is set to open — labelled *the one this page opens*, with the same
 last-opened time as the others, because there is no session to be standing in and that is the strongest true thing
-to say about it. Type or accept a repository this browser already holds a token for and the label beside the token
-box says so for that repository, in words, and the **Connect** button becomes **Open**: the box can be left empty
-because the page has been trusted with that repository already. It is only a repository this browser has never
-opened that asks for a token, once. A failed attempt no longer costs you the tribe you were in — nothing is
-half-connected, so nothing is taken away.
+to say about it. Type or accept a repository this browser already holds a token for and **the token box is not
+shown at all**: what is shown is one line saying which token will be used, a way to use a different one, and a
+button that reads **Open**. Asking for a field nobody has to fill, beside an explanation of what a token is, is the
+page asking a question it can answer itself.
+
+It says *will be used*, not *will work*, and the difference is the whole of the honesty here: a token can be
+revoked, expired, or narrowed since it was pasted, and only GitHub knows which. So the page promises what it will
+try — `GET /repos/<owner>/<name>`, with that token — and it tells you what came back. If GitHub refuses it, the
+line says so and the token box comes back for a current one. A token is needed for three other cases and each of
+them is normal: a repository this browser has never opened, a different browser or profile or machine, and a token
+rotated since. A failed attempt no longer costs you the tribe you were in — nothing is half-connected, so nothing
+is taken away.
 
 Where those tokens live matters, so: **not in the repository.** Each one sits in this browser's own storage, one
 per repository, and a repository this browser has never opened has no entry at all until you paste one. What a
