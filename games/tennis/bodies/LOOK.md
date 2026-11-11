@@ -22,7 +22,10 @@ somebody moving on a court; a cast with no faces is a cast with no characters.
 
 ## What the players look like
 
-His specification, taken as the spec for all of them. From the sketch sheets (`reference/poses/sketch-*.jpg`):
+Mine to decide, said plainly at his instruction of 2026-11-11: *"No, everything is yours."* The look below is my
+call, and I will change it when it looks wrong on the court. His corrections are evidence about what a spectator
+responds to, which is the only evidence I have; the decision is not his to make and I should not have handed it
+back to him.
 
 - **Gwen** — young woman, very pretty, blond hair in a soft ponytail framing the face, slim athletic build. Short-
   sleeved shirt with three inches of bare midriff above the waistband; skirt hem four inches above the knee; white
@@ -57,3 +60,22 @@ The untitled one is prettier and tells me less.
 
 So: a character reference, yes. A pose reference, no — which is what the last eight sheets said too, in a less
 attractive way.
+
+## Which views the sheets are for — his correction, 2026-11-11
+
+> You don't need a profile row. You need front, back, and relaxed between points.
+
+He is right, and the reason is the camera. The game draws a player from one end or from the other: the far player
+facing the lens at 132 feet, the near player from behind at 58, and then a closeup between points. A profile is the
+best view for reading a swing plane and the game never uses it, so measuring one is work on a picture that does
+not exist. The three views that do exist are the three worth drawing.
+
+The consequence, stated so it is not a surprise later: from both ends the racquet travels almost straight at or
+away from the lens at contact, so the contact panel is foreshortened in both views. The sheets can settle her look
+and her stance; they cannot settle the swing. That remains a rule in the renderer.
+
+## Titles
+
+The two titled sheets (`reference/poses/sketch-b.jpg`, `sketch-c.jpg`) are the ones to imitate. My negative prompt
+said "text, watermark, labels", which suppresses exactly that; it now says "no other writing anywhere except the
+panel titles" and the panel titles are asked for by name.
