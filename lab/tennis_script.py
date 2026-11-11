@@ -69,6 +69,12 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str) 
     players = [T.Player(names[0], True, practice[0], rng=rng),
                T.Player(names[1], False, practice[1], rng=rng)]
     power = [55.0, 55.0]
+    # Where each player's feet are. A rally is played by people who have to run to the ball, and until
+    # 2026-11-10 this file did not track that at all: every contact was struck from the middle of the baseline,
+    # so the renderer had no choice but to slide two puppets along a trolley. The engine's own interception
+    # logic already computed where a player meets the ball; it now says so instead of only saying yes or no.
+    where = [(2.0 if pl.north else T.LENGTH - 2.0, T.WIDTH / 2) for pl in players]
+    carry = [None, None]          # the meeting point each player has been left standing at
     out_rallies, shots = [], []
     incoming, hitter = None, 0
 
@@ -76,11 +82,12 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str) 
         idxs, length = [], 0
         while length < CAP:
             p = players[hitter]
+            contact = carry[hitter] or T.contact_point(p, "rally")
             depth = T.NET_X + 20.0 if p.north else T.NET_X - 20.0
             face, pw = T.aim_at(p, (depth, T.WIDTH / 2), "rally", surface, wv, power=power[hitter])
             aim = T.WIDTH / 2
             shot = T.strike(p, incoming, face=face, power=pw, aim=aim, shot="rally",
-                            surface=surface, wind=wv)
+                            surface=surface, wind=wv, contact=contact)
             ok, why = T.verdict(shot)
             traj = shot["traj"]
             tpath = T.flight(shot["contact"], shot["v0"], wv, surface, cl=shot["spin"], trace=TRACE)["path"]
@@ -113,10 +120,29 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str) 
 
             if not ok:
                 break
-            beaten, why_caught = T.reachable(players[1 - hitter], traj["land"], traj["time"],
-                                             traj["bounce"], surface)
-            if not beaten:
-                entry["why"] += f" — {players[1 - hitter].name} {why_caught}"
+            other = players[1 - hitter]
+            meet = T.intercept(other, traj["land"], traj["time"], traj["bounce"], surface,
+                               frm=where[1 - hitter])
+            available = traj["time"] + 1.0
+            # A beaten player runs as far as the time allowed and arrives late; the picture shows them short,
+            # which is what "beaten by the wide ball" looks like. Nobody is teleported to a contact.
+            reachable_dist = min(meet["distance"], meet["speed"] * available)
+            ux = (traj["land"][0] - where[1 - hitter][0]) / max(meet["distance"], 1e-6)
+            uy = (traj["land"][1] - where[1 - hitter][1]) / max(meet["distance"], 1e-6)
+            got_to = (where[1 - hitter][0] + ux * reachable_dist, where[1 - hitter][1] + uy * reachable_dist)
+            entry["run"] = {
+                "player": other.name, "north": other.north,
+                "from": [round(v, 2) for v in where[1 - hitter]],
+                "to": [round(v, 2) for v in (meet["meet"] if meet["ok"] else got_to)],
+                "t0": 0.0, "t1": round(traj["time"] + meet["t_meet"], 3),
+                "dist": round(meet["distance"], 1), "speed": round(meet["speed"], 1),
+                "met": bool(meet["ok"]),
+            }
+            where[1 - hitter] = entry["run"]["to"] if meet["ok"] else got_to
+            carry[1 - hitter] = (entry["run"]["to"][0], entry["run"]["to"][1],
+                                 T.contact_point(other, "rally")[2])
+            if not meet["ok"]:
+                entry["why"] += f" — {other.name} {meet['why']}"
                 break
             incoming = {"speed_in": traj["speed_in"], "traj": traj}
             hitter = 1 - hitter
@@ -125,6 +151,8 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str) 
                             "clock_ms": ms})
         incoming = None
         hitter = 0
+        where = [(2.0 if pl.north else T.LENGTH - 2.0, T.WIDTH / 2) for pl in players]
+        carry = [None, None]
 
     return {
         "generated": "lab/tennis_script.py — every number below came out of lab/tennis.py",
@@ -141,6 +169,8 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str) 
                      "reach": round(pl.skill("reach"), 3),
                      "body": pl.name.lower()}
                     for i, pl in enumerate(players)],
+        "start": [{"name": pl.name, "north": pl.north,
+                   "at": [round(v, 2) for v in wh]} for pl, wh in zip(players, where)],
         "rallies": out_rallies,
         "shots": shots,
     }

@@ -206,8 +206,21 @@ async function loadBodies() {
     root.scale.setScalar(3.28084);
     scene.add(root);
     const bones = {};
-    root.traverse(o => { if (o.isBone) bones[o.name] = o; });
-    rigs[name] = { root, bones };
+    // glTF strips the dots out of node names, so Blender's "thigh.L" arrives as "thighL". Every lookup in this
+    // file used the dotted name, found nothing, and did nothing: the legs were never posed and the arm solver
+    // returned at its first line. That is why the racquet sat at the hip in every still — the page had been
+    // reporting a solved pose it had never applied. Keyed by the name the file actually contains, with the
+    // dotted name kept as an alias so neither spelling can break it again.
+    root.traverse(o => {
+      if (!o.isBone) return;
+      bones[o.name] = o;
+      bones[o.name.replace(/\./g, "")] = o;
+    });
+    // the figure's own height, in feet, read off the model rather than assumed: the stride below is a
+    // fraction of it, and a 6ft 2in member does not take the same steps as a 5ft 8in one
+    const box = new THREE.Box3().setFromObject(root);
+    rigs[name] = { root, bones, height: box.max.y - box.min.y };
+    if (q.has("debug")) console.log("debug bones", name, Object.keys(bones).join(","), "height", rigs[name].height.toFixed(2));
   }
 }
 
@@ -228,10 +241,10 @@ function rotateWorld(bone, qWorld) {
 
 function solveArm(rig, target) {
   const { bones } = rig;
-  const hand = bones["hand.R"];
+  const hand = bones["handR"];
   if (!hand) return;
   for (let iter = 0; iter < 6; iter++) {
-    for (const name of ["forearm.R", "upperarm.R"]) {
+    for (const name of ["forearmR", "upperarmR"]) {
       const b = bones[name];
       if (!b) continue;
       b.getWorldPosition(tmpA);
@@ -239,35 +252,89 @@ function solveArm(rig, target) {
       const v1 = tmpB.sub(tmpA).normalize();
       const v2 = target.clone().sub(tmpA).normalize();
       tmpQ.setFromUnitVectors(v1, v2);
-      const k = name === "upperarm.R" ? 0.6 : 1.0;   // damp the shoulder so the elbow does the reaching
+      const k = name === "upperarmR" ? 0.6 : 1.0;   // damp the shoulder so the elbow does the reaching
       tmpQ.slerp(new THREE.Quaternion(), 1 - k);
       rotateWorld(b, tmpQ);
     }
   }
 }
 
-function stance(rig, north, poseName) {
+/* ---------- walking, without a walk cycle ----------
+   A gait is two numbers and a phase: the thigh swings, the knee folds on the way through, and the phase advances
+   with the ground covered, not with the clock. That way the feet keep pace with the body however fast it is going
+   — which is the whole difference between a figure that runs and a figure that is pushed along on castors.
+   Nothing here is animation data; it is a rule about where the legs are given how far the player has travelled. */
+function legs(rig, phase, moving) {
   const { bones } = rig;
   const set = (n, x, y, z) => { const b = bones[n]; if (b) b.rotation.set(x, y, z); };
-  if (poseName === "ready") {
-    set("thigh.L", -0.24, 0, -0.12); set("thigh.R", -0.16, 0, 0.12);
-    set("shin.L", 0.46, 0, 0); set("shin.R", 0.34, 0, 0);
-    set("spine", 0, 0, 0.10);
-    set("upperarm.L", -0.2, 0, -0.3); set("forearm.L", -0.5, 0, 0);
-    set("upperarm.R", -0.3, 0, 0.9); set("forearm.R", -0.4, 0, 0);
-  }
+  const live = moving ? 1 : 0.12;                       // standing still is a very small version of walking
+  // The swing is set so the foot travels as far as the body does in one step (0.42 of its height), which is what
+  // stops the feet skimming along the ground. A bigger swing looks more athletic and slides; the phase is already
+  // driven by distance, so the stride is honest at any speed and the legs simply cycle faster when the player runs.
+  const A = 0.45 * live, K = 0.85 * live;
+  const swing = p => Math.max(0.05, Math.sin(p + 0.75));
+  set("thigh.L", -A * Math.sin(phase), 0, -0.09);
+  set("thigh.R", -A * Math.sin(phase + Math.PI), 0, 0.09);
+  set("shin.L", K * swing(phase), 0, 0);
+  set("shin.R", K * swing(phase + Math.PI), 0, 0);
+  set("foot.L", -0.25 * (moving ? 1 : 0), 0, 0);
+  set("foot.R", -0.25 * (moving ? 1 : 0), 0, 0);
+  set("spine", -0.05 - 0.09 * live, 0, 0.06);
+  set("hips", 0.04 * live, 0, 0);
+  // the free arm counter-swings; the racquet arm is left to the solver
+  set("upperarm.L", -0.35 - 0.40 * live * Math.sin(phase + Math.PI), 0, -0.30);
+  set("forearm.L", -0.70, 0, 0);
+  set("upperarm.R", -0.25, 0, 0.55);
+  set("forearm.R", -0.85, 0, 0);
+}
+
+function ready(rig, north) {
+  // where the racquet waits between shots: in front of the right shoulder, on the hitting side
+  const { bones } = rig;
+  const p = new THREE.Vector3();
+  (bones["chest"] || bones["upperarmR"]).getWorldPosition(p);
+  p.y += 1.35;
+  p.x += north ? 0.55 : -0.55;
+  return p;
 }
 
 /* ---------- the film ---------- */
 const SEG = [];
+const PLAN = {};                       // name -> [{t0,t1,from,to}] in seconds of film
 {
   let t = 0.8;
   for (const sh of D.shots) {
     const dur = Math.max(0.35, sh.path.length * TRACE);
     const hold = sh.in ? 0.75 : 1.6;
     SEG.push({ sh, start: t, dur, hold, cams: cams(sh, dur) });
+    if (sh.run) {
+      (PLAN[sh.run.player] = PLAN[sh.run.player] || []).push(
+        { t0: t + sh.run.t0, t1: t + Math.min(sh.run.t1, dur), from: sh.run.from, to: sh.run.to });
+    }
     t += dur + hold;
   }
+}
+
+/* Where a player is at time T. The record says where each run began and ended and how long it took; there is
+   no footfall in the record and there is not meant to be — this interpolates, it does not invent a route. */
+function whereAt(name, T) {
+  const moves = PLAN[name] || [];
+  const start = (D.start.find(s => s.name === name) || { at: [0, WID / 2] }).at;
+  let pos = start, moving = false, travelled = 0;
+  for (const m of moves) {
+    const d = Math.hypot(m.to[0] - m.from[0], m.to[1] - m.from[1]);
+    if (T >= m.t1) { pos = m.to; travelled += d; }
+    else if (T > m.t0) {
+      const k = (T - m.t0) / Math.max(0.05, m.t1 - m.t0);
+      pos = [m.from[0] + (m.to[0] - m.from[0]) * k, m.from[1] + (m.to[1] - m.from[1]) * k];
+      travelled += d * k;
+      moving = true; break;
+    } else break;
+  }
+  // the gait's phase is the ground covered, integrated over the planned runs, so scrubbing backwards and
+  // jumping to a shot both put the legs where they belong. A phase counted frame by frame would only be right
+  // in continuous play, which is the one case a still cannot show.
+  return { pos, moving, travelled };
 }
 function cams(sh, dur) {
   const list = [{ at: 0, cam: wide(sh.north) }];
@@ -287,10 +354,24 @@ function nearest(land) {
   }
   return best;
 }
-function wide(north) {
+function wide(north, hx) {
+  // Behind the hitter's baseline, high, looking at the net: the broadcast view, which is the only one that shows
+  // both players and the ball. The first version put the camera 84ft behind the baseline, where the far player
+  // is forty pixels tall and the near one is standing on the bottom edge.
   const dir = north ? 1 : -1;
-  return { eye: new THREE.Vector3(NX - 84 * dir, 20, WID / 2 + 2),
-           at: new THREE.Vector3(NX + 5 * dir, 3, WID / 2), fov: 44 };
+  // The camera stands behind the hitter's BASELINE, not behind the hitter: a player who has run forward to a short
+  // ball would otherwise carry the camera into the middle of the court, and the net would appear in the middle of
+  // the picture with the far player beyond it.
+  const base = north ? 0 : LEN;
+  return { eye: new THREE.Vector3(base - 14 * dir, 8.0, WID / 2 + 9),
+           at: new THREE.Vector3(NX + 8 * dir, 4.5, WID / 2 - 1), fov: 50 };
+}
+function beside(north, px) {
+  // A camera a few feet from one player, for looking at feet rather than at tennis. Reached with ?cam=near.
+  const dir = north ? 1 : -1;
+  const p = (px === undefined || px === null) ? (north ? 2 : LEN - 2) : px;
+  return { eye: new THREE.Vector3(p - 12 * dir, 5.5, WID / 2 + 12),
+           at: new THREE.Vector3(p, 3, WID / 2), fov: 34 };
 }
 function closeup(land, north) {
   const dir = north ? 1 : -1;
@@ -324,6 +405,11 @@ function tick(now) {
   // camera
   let cam = seg.cams[0].cam;
   for (const c of seg.cams) if (tl >= c.at) cam = c.cam;
+  if (q.has("cam")) {
+    // follow whoever is running; that is the one whose feet are worth looking at
+    const who = sh.run ? sh.run : { north: sh.north, from: [sh.contact[0], sh.contact[1]] };
+    cam = beside(who.north, (who.from || [null])[0]);
+  }
   if (firstFrame) { camera.position.copy(cam.eye); firstFrame = false; }
   else camera.position.lerp(cam.eye, 0.22);
   camera.fov += (cam.fov - camera.fov) * 0.22;
@@ -343,24 +429,28 @@ function tick(now) {
   trail.geometry.dispose();
   trail.geometry = new THREE.BufferGeometry().setFromPoints(tail);
 
-  // players
+  // players: position from the record's runs, legs from the ground covered
   for (const pl of D.players) {
     const rig = rigs[pl.body];
     if (!rig) continue;
-    const mine = D.shots.filter(x => x.rally === sh.rally && x.n <= sh.n && x.player === pl.name);
-    const lastShot = mine[mine.length - 1];
-    const target = lastShot ? new THREE.Vector3(lastShot.contact[0], 0, lastShot.contact[1])
-                            : new THREE.Vector3(pl.north ? 2 : LEN - 2, 0, WID / 2);
-    if (firstFrameFor[pl.body] === undefined) { rig.root.position.copy(target); firstFrameFor[pl.body] = true; }
-    else rig.root.position.lerp(target, 0.18);
+    const { pos, moving, travelled } = whereAt(pl.name, T);
+    rig.root.position.set(pos[0], 0, pos[1]);
     // the body is built facing +Z; a north player faces +X, a south player faces -X
     rig.root.rotation.y = pl.north ? Math.PI / 2 : -Math.PI / 2;
 
-    const hitting = sh.player === pl.name;
-    stance(rig, pl.north, "ready");
-    if (hitting) {
-      const reach = new THREE.Vector3(ballPos.x, ballPos.y, ballPos.z);
-      solveArm(rig, reach);
+    // one cycle of the gait is two steps, and a step is about 0.42 of the figure's own height
+    const phase = 2 * Math.PI * (travelled / (0.84 * Math.max(4.0, rig.height)));
+    if (q.has("debug")) console.log("debug legs", pl.name, "moving", moving, "travelled", travelled.toFixed(2),
+      "phase", phase.toFixed(2), "thigh", rig.bones["thighL"] ? rig.bones["thighL"].rotation.x.toFixed(3) : "MISSING");
+    legs(rig, phase, moving);
+
+    if (sh.player === pl.name) {
+      // the arm is at the ball at the strike and back at the shoulder by half a second; the solver is given a
+      // target that moves rather than being switched on and off, because switching it off snaps the arm
+      const hit = new THREE.Vector3(sh.contact[0], sh.contact[2], sh.contact[1]);
+      const wait = ready(rig, pl.north);
+      const k = Math.max(0, Math.min(1, (tl - 0.26) / 0.30));
+      solveArm(rig, hit.lerp(wait, k));
     }
   }
 
@@ -372,7 +462,10 @@ function tick(now) {
   sw.className = "badge " + (sh.sweet ? "clean" : "frame");
   el("shotline").textContent = `face ${sh.face > 0 ? "+" : ""}${sh.face}°  power ${Math.round(sh.power)}  ` +
     `aim ${sh.aim}ft  leaving at ${Math.round(sh.power * 1.05)}mph`;
-  el("why").textContent = sh.why;
+  const rn = sh.run;
+  el("why").textContent = sh.why + (rn
+    ? `   ·   ${rn.player} runs ${rn.dist}ft at ${rn.speed}ft/s${rn.met ? "" : " and does not get there"}`
+    : "");
   if (sh.corridor[0] !== null) {
     const [lo, hi] = sh.corridor, zero = -12, span = 30;
     const x = v => Math.max(0, Math.min(100, (v - zero) / span * 100));
