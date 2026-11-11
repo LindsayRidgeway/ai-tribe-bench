@@ -988,44 +988,53 @@ function explainInstallError(e, slug){
 }
 
 // The credential this browser already holds for a repository, if it holds one. Asked for by the founder on
-// 2026-11-11: the page remembered the token for every tribe in the list but demanded one for the tribe you were
-// standing in, which is the one time there is nothing to look up and nothing to paste. A remembered token is not
-// a convenience, it is the same claim the list makes — this browser has been trusted with this repository — and
-// the Connect form should make it as often as the list does.
+// 2026-11-11: the page remembered the token for every tribe in the list but demanded one for the tribe it was set
+// to open, which is the one time there is nothing to look up and nothing to paste. A remembered token is not a
+// convenience, it is the same claim the list makes — this browser has been trusted with this repository — and the
+// Connect form should make it as often as the list does.
+//
+// The last term is not a stored session and must not be described as one: OAUTH is a token GitHub handed this tab
+// during sign-in, held in a variable because the exchange needs the app's secret and cannot happen in a page. It
+// dies with the tab, and after an install it is cleared. It is here only for the minute between "signed in" and
+// "the tribe has been made", where there is a token and not yet a stored one. What persists is S.tribes: a token
+// per repository in this browser's localStorage, and nothing anywhere else.
 function knownToken(repo){
   const key = String(repo || '').trim().toLowerCase();
   if (!key) return '';
   if (S.repo && key === String(S.repo).toLowerCase())
-    return S.token || OAUTH || (S.tribes[S.repo] || {}).token || '';
+    return S.token || (S.tribes[S.repo] || {}).token || OAUTH || '';
   const hit = Object.keys(S.tribes || {}).find(k => k.toLowerCase() === key);
   return hit ? (S.tribes[hit].token || '') : '';
 }
 
 function viewConnect(main){
   const want = cleanRepo(new URLSearchParams(location.search).get('tribe')) || WANT;
-  // The tribe you are in is listed too, marked as such. Leaving it out made the list look like it had lost the
-  // one repository the page had just filled into the box below it.
+  // The tribe this page is set to open is listed too. Leaving it out made the list look like it had lost the one
+  // repository the page had just filled into the box below it. The label says what it is — there is no server
+  // session here, so "this page opens it" is the strongest true thing to say — and it carries the same timestamp
+  // as the others rather than a claim about where anybody is standing.
   const mine = Object.entries(S.tribes || {}).sort((a, b) => b[1].when - a[1].when);
-  if (S.repo && !mine.some(([r]) => r === S.repo)) mine.unshift([S.repo, {when: Date.now()}]);
+  if (S.repo && !mine.some(([r]) => r === S.repo)) mine.unshift([S.repo, {when: 0}]);
+  const opened = (v) => v && v.when
+    ? 'last opened ' + esc(when(new Date(v.when).toISOString()))
+    : 'no record of when it was last opened';
   const list = mine.length ? `<div class="card" style="margin-top:12px">
       <p class="small" style="margin:0 0 6px"><strong>Tribes this browser has been in</strong> — one press switches,
       with the credential this browser already used for it.</p>
       ${mine.map(([r, v]) => `<div class="row" style="justify-content:space-between;padding:6px 0">
         <button class="plain small" onclick="${r === S.repo ? `location.hash='#/today';render()` : `switchTribe('${escq(r)}')`}">${esc(r)}</button>
-        <span class="small muted">${r === S.repo ? 'you are here' : 'last opened ' + esc(when(new Date(v.when).toISOString()))}</span></div>`).join('')}
+        <span class="small muted">${r === S.repo ? 'the one this page opens · ' + opened(v) : opened(v)}</span></div>`).join('')}
     </div>` : '';
   main.innerHTML = `
     <p class="small"><a href="#/">← back</a></p>
     <h1>Connect a tribe</h1>
-    <p class="lede">The repository it lives in, and a token that can see it. If this browser has opened it before,
-    the token is already here and the box below can be left empty.</p>
+    <p class="lede">The repository it lives in, and a token that can see it. A repository this browser has opened
+    before needs no token pasted again.</p>
     <div class="card">
       <label for="repo">Repository</label>
       <input id="repo" placeholder="your-name/your-tribe" autocapitalize="off" autocorrect="off" spellcheck="false">
-      <label for="token">A token that can read and write it <span class="small muted">— leave empty if this
-      browser already has one</span></label>
-      <input id="token" type="password" placeholder="ghp_… or github_pat_… (or nothing, if it is remembered)"
-        autocapitalize="off" spellcheck="false">
+      <label for="token" id="toklab">A token that can read and write it</label>
+      <input id="token" type="password" placeholder="ghp_… or github_pat_…" autocapitalize="off" spellcheck="false">
       <p class="small muted" style="margin-top:8px">A <strong>token</strong> is a password for this page, made at
       GitHub, which you can delete at any time. It is not your GitHub password, and it is kept in this browser and
       sent only to GitHub.</p>
@@ -1052,16 +1061,23 @@ or <a href="#/today" onclick="WANT='';WANT_WHY='';return true;">stay in ${esc(S.
 
   $('repo').value = want || S.repo || '';
   // What the box already knows. This is the whole of the founder's question: the page can answer "which
-  // credential" before anybody presses anything, so it should say so rather than wait to be told twice.
+  // credential" before anybody presses anything, so it should say so rather than wait to be told twice — and it
+  // should say which of the two it is, not "leave empty if…". A label that describes both cases and leaves the
+  // reader to work out which one applies is the page asking a question it can answer itself.
   const sayStore = () => {
     const box = $('cstore'); if (!box) return;
     const repo = $('repo').value.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\/$/, '');
-    const b = $('go');
+    const b = $('go'), lab = $('toklab'), inp = $('token');
+    const has = knownToken(repo);
+    if (lab) lab.innerHTML = 'A token that can read and write it' + (!repo ? ''
+      : has ? ` <span class="small muted">— not needed: this browser has one for <code>${esc(repo)}</code></span>`
+            : ' <span class="small muted">— this browser has none for that repository, so one is needed, once</span>');
+    if (inp) inp.placeholder = !repo ? 'ghp_… or github_pat_…' : has ? 'not needed — leave it empty' : 'ghp_… or github_pat_…';
     if (!repo){ box.textContent = ''; if (b) b.textContent = 'Connect'; return; }
-    if (knownToken(repo)){
+    if (has){
       box.innerHTML = repo.toLowerCase() === String(S.repo || '').toLowerCase()
-        ? `This is the tribe you are in, and this browser has its token — <strong>Open</strong> re-checks that the
-           token still works and goes there.`
+        ? `This is the repository this page is set to open, and it has the token for it — <strong>Open</strong>
+           re-checks that the token still works and goes there.`
         : `This browser already has a token for it, so there is nothing to paste. <strong>Open</strong> uses it.`;
       if (b) b.textContent = 'Open';
     } else {
