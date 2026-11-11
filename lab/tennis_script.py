@@ -80,6 +80,10 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str) 
 
     for rally_no in range(1, rallies + 1):
         idxs, length = [], 0
+        # Who won it, recorded where the engine's own verdict is read rather than worked out again downstream:
+        # a rally ends when a shot is out (the hitter loses it) or when the other player cannot reach a good one
+        # (the hitter wins it). If it runs to the cap, nobody won it and the record says so.
+        point = {"winner": None, "reason": "the rally ran to the cap without a result"}
         while length < CAP:
             p = players[hitter]
             contact = carry[hitter] or T.contact_point(p, "rally")
@@ -119,6 +123,7 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str) 
             idxs.append(entry["n"])
 
             if not ok:
+                point = {"winner": players[1 - hitter].name, "reason": why}
                 break
             other = players[1 - hitter]
             meet = T.intercept(other, traj["land"], traj["time"], traj["bounce"], surface,
@@ -143,12 +148,13 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str) 
                                  T.contact_point(other, "rally")[2])
             if not meet["ok"]:
                 entry["why"] += f" — {other.name} {meet['why']}"
+                point = {"winner": p.name, "reason": f"{other.name} did not reach it — {meet['why']}"}
                 break
             incoming = {"speed_in": traj["speed_in"], "traj": traj}
             hitter = 1 - hitter
 
         out_rallies.append({"rally": rally_no, "shots": idxs, "length": length,
-                            "clock_ms": ms})
+                            "point": point, "clock_ms": ms})
         incoming = None
         hitter = 0
         where = [(2.0 if pl.north else T.LENGTH - 2.0, T.WIDTH / 2) for pl in players]

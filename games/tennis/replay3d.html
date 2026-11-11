@@ -42,6 +42,19 @@
   #cut{position:fixed;top:64px;left:50%;transform:translateX(-50%);font-size:11px;letter-spacing:.22em;
     text-transform:uppercase;color:rgba(255,255,255,.55);opacity:0;transition:opacity .2s}
   #cut.on{opacity:1}
+  /* the board that says the point is over: the action stops, the picture holds, and for a beat the match
+     tells you what just happened instead of making you infer it from a caption in the corner */
+  #sign{position:fixed;inset:0;display:grid;justify-items:center;align-content:start;
+    padding-top:9vh;pointer-events:none;opacity:0;transition:opacity .18s;z-index:5}
+  #sign.on{opacity:1}
+  #sign .box{background:rgba(9,12,15,.82);border:1px solid rgba(255,255,255,.16);border-radius:14px;
+    padding:22px 40px 20px;text-align:center;backdrop-filter:blur(3px);
+    box-shadow:0 18px 60px rgba(0,0,0,.55)}
+  #sign .k{font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:rgba(255,255,255,.5)}
+  #sign .who{font-size:34px;font-weight:600;letter-spacing:.01em;margin:6px 0 8px}
+  #sign .why{font-size:13px;color:rgba(255,255,255,.68);max-width:520px;line-height:1.45}
+  #sign .ctx{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.38);
+    margin-top:10px}
   .swatch{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;
     vertical-align:middle;border:1px solid rgba(255,255,255,.6)}
   #err{position:fixed;inset:0;display:none;place-items:center;text-align:center;padding:40px;
@@ -62,6 +75,8 @@
   <div class="mono" id="winline">—</div>
 </div>
 <div id="cut">between points</div>
+<div id="sign"><div class="box"><div class="k" id="signk">point</div><div class="who" id="signwho">—</div>
+  <div class="why" id="signwhy"></div><div class="ctx" id="signctx"></div></div></div>
 <div id="err"></div>
 
 <script type="application/json" id="script">__SCRIPT__</script>
@@ -454,6 +469,17 @@ const PLAN = {};                       // name -> [{t0,t1,from,to}] in seconds o
   }
 }
 
+/* Which shot ended each rally, and who the engine says won it. The page does not decide this: lab/tennis_script.py
+   reads it off the engine's own verdict — the shot was out, or the other player could not reach a good one. */
+{
+  const lastOf = {};
+  for (const sh of D.shots) lastOf[sh.rally] = sh;
+  for (const r of D.rallies) {
+    const seg = SEG.find(x => x.sh === lastOf[r.rally]);
+    if (seg && r.point && r.point.winner) seg.point = r.point;
+  }
+}
+
 /* Where a player is at time T. The record says where each run began and ended and how long it took; there is
    no footfall in the record and there is not meant to be — this interpolates, it does not invent a route. */
 function whereAt(name, T) {
@@ -527,7 +553,7 @@ function beside(north, px) {
   return { eye: new THREE.Vector3(p - 12 * dir, 5.5, WID / 2 + 12),
            at: new THREE.Vector3(p, 3, WID / 2), fov: 34 };
 }
-let T = 0, playing = true, T0 = performance.now(), firstFrame = true, lastCam = null;
+let T = 0, playing = true, T0 = performance.now(), firstFrame = true, lastCam = null, signAlways = false;
 const q = new URLSearchParams(location.search);
 
 function shotAt(t) {
@@ -540,12 +566,31 @@ const el = id => document.getElementById(id);
 const ballPos = new THREE.Vector3();
 const firstFrameFor = {};
 
+const PAUSE = 1.6;            // seconds the picture holds on the point board
+let pauseUntil = 0;           // wall clock, ms
+
 function tick(now) {
   const dt = Math.min(0.05, (now - T0) / 1000); T0 = now;
-  if (playing) T += dt;
+  let seg = shotAt(T);
+  if (playing) {
+    // The point is over, so the picture stops: the clock is held, not merely slowed, and the match says who won
+    // it. A pause of wall-clock rather than a longer shot means scrubbing the record still shows every frame of
+    // play, and playing it back still gives the same pause in the same place.
+    const endT = seg.start + seg.dur;
+    if (seg.point && !seg.announced && T >= endT) {
+      T = endT; seg.announced = true; pauseUntil = now + PAUSE * 1000;
+    } else if (pauseUntil && now < pauseUntil) {
+      T = seg.start + seg.dur;
+    } else {
+      pauseUntil = 0; T += dt;
+    }
+  }
   const last = SEG[SEG.length - 1];
-  if (T > last.start + last.dur + last.hold) T = 0;
-  const seg = shotAt(T);
+  if (T > last.start + last.dur + last.hold) {
+    T = 0; pauseUntil = 0;
+    for (const s2 of SEG) s2.announced = false;
+  }
+  seg = shotAt(T);
   const tl = T - seg.start;
   const sh = seg.sh;
   const onCut = seg.cams.length > 1 && tl >= seg.cams[1].at;
@@ -649,6 +694,14 @@ function tick(now) {
   el("players").innerHTML = D.players.map(p =>
     `<div><span class="swatch" style="background:${p.north ? "#8fc6ff" : "#ffb98f"}"></span>${p.name} ` +
     `<span class="mono" style="color:var(--dim)">${p.rating.toFixed(1)} · ${p.balls} balls</span></div>`).join("");
+  const showSign = !!(seg.point && (pauseUntil > now || signAlways));
+  el("sign").className = showSign ? "on" : "";
+  if (showSign) {
+    el("signwho").textContent = `Point to ${seg.point.winner}`;
+    el("signwhy").textContent = seg.point.reason;
+    el("signctx").textContent = `rally ${sh.rally} of ${D.rallies.length} · ${D.surface} · ` +
+      `last ball: ${sh.player}`;
+  }
   el("cut").className = onCut ? "on" : "";
   if (onCut) el("cut").textContent = `between points · ${sh.run ? sh.run.player : sh.player}`;
 
@@ -666,6 +719,11 @@ addEventListener("keydown", e => {
   if (e.code === "ArrowLeft") T = Math.max(0, T - 0.25);
 });
 if (q.has("t")) { T = parseFloat(q.get("t")); playing = false; }
+if (q.has("point")) {
+  // a still of the boards: jump to the end of a rally and hold the sign up
+  const seg = SEG.find(x => x.sh.rally === parseInt(q.get("point"), 10) && x.point);
+  if (seg) { T = seg.start + seg.dur; playing = false; signAlways = true; }
+}
 if (q.has("shot")) {
   const seg = SEG.find(x => x.sh.n === parseInt(q.get("shot"), 10));
   if (seg) { T = seg.start + seg.dur * parseFloat(q.get("at") || "0.8"); playing = false; }
