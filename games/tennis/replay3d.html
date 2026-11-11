@@ -487,7 +487,7 @@ const WINPOS = {};
     const dur = Math.max(0.35, sh.path.length * TRACE);
     // A shot in the middle of a rally gets a beat before the next one starts; the shot that ends the rally gets
     // the point board, the pause, and then a couple of seconds on the player, which is what the 3.8 is for.
-    const hold = (LASTN[sh.rally] === sh.n && POINT[sh.rally]) ? 3.8 : 0.75;
+    const hold = (LASTN[sh.rally] === sh.n && POINT[sh.rally]) ? 1.2 : 0.55;
     const seg = { sh, start: t, dur, hold, cams: cams(sh, dur) };
     if (LASTN[sh.rally] === sh.n && POINT[sh.rally]) seg.point = POINT[sh.rally];
     SEG.push(seg);
@@ -590,7 +590,9 @@ const el = id => document.getElementById(id);
 const ballPos = new THREE.Vector3();
 const firstFrameFor = {};
 
-const PAUSE = 0.75;           // seconds the picture holds on the point board — his number, 2026-11-11
+const PAUSE = 0.4;            // seconds the picture holds on the point board. He asked for minimal on 2026-11-11:
+                              // "I'll let you know if I think you should increase it". The board exists to say who
+                              // won; it does not need to be read twice.
 let pauseUntil = 0;           // wall clock, ms
 
 function tick(now) {
