@@ -463,6 +463,24 @@ const PLAN = {};                       // name -> [{t0,t1,from,to}] in seconds o
 const POINT = {}, LASTN = {};
 for (const sh of D.shots) LASTN[sh.rally] = sh.n;
 for (const r of D.rallies) POINT[r.rally] = (r.point && r.point.winner) ? r.point : null;
+/* Where the player who WON the point is standing when it ends. The board says "Point to X", so the picture that
+   follows it has to be X. It was cutting to whoever struck the last ball, which reads correctly only when that
+   ball was a winner; on an error it showed the player who had just lost the point, underneath a sign naming the
+   other one, which is what he saw as reversed. Nothing is invented: the winner is wherever the record last put
+   them — their own contact point, or the end of their own run. */
+const WINPOS = {};
+{
+  const pos = {};
+  for (const pl of D.players) pos[pl.name] = { at: pl.north ? [2, WID / 2] : [LEN - 2, WID / 2], north: pl.north };
+  for (const sh of D.shots) {
+    if (sh.run) pos[sh.run.player] = { at: sh.run.to, north: sh.run.north };
+    pos[sh.player] = { at: [sh.contact[0], sh.contact[1]], north: sh.north };
+    if (POINT[sh.rally] && LASTN[sh.rally] === sh.n) {
+      const w = POINT[sh.rally].winner;
+      WINPOS[sh.rally] = (w && pos[w]) ? { name: w, at: pos[w].at, north: pos[w].north } : null;
+    }
+  }
+}
 {
   let t = 0.8;
   for (const sh of D.shots) {
@@ -507,8 +525,9 @@ function cams(sh, dur) {
   // over, which is once per rally and not once per shot. Cutting to a player at the end of every shot was the
   // last version's mistake — it turned a point of eleven shots into eleven cuts.
   const lastOne = LASTN[sh.rally] === sh.n && POINT[sh.rally];
-  return lastOne ? [{ at: 0, cam: tower() }, { at: dur, cam: between(sh) }]
-                 : [{ at: 0, cam: tower() }];
+  const w = lastOne ? WINPOS[sh.rally] : null;      // the point's winner, not the last hand on the ball
+  return w ? [{ at: 0, cam: tower() }, { at: dur, cam: between(w) }]
+           : [{ at: 0, cam: tower() }];
 }
 function nearest(land) {
   let best = null;
@@ -529,16 +548,15 @@ function tower() {
   // frame tall instead of a smudge at the edge.
   return { eye: new THREE.Vector3(-56, 29, WID / 2), at: new THREE.Vector3(NX + 14, 0.5, WID / 2), fov: 26 };
 }
-function between(sh) {
-  // Between points, television goes to the player the point was about, from the side and a step ahead of them,
-  // whole figure in frame, low. The first version stood behind them at boot height and filled the screen with a
-  // back: a cut is for reading a person, and you read a face and a stance, not a shirt.
-  const who = sh.run ? { at: sh.run.to, north: sh.run.north } : { at: [sh.contact[0], sh.contact[1]], north: sh.north };
-  const face = who.north ? 1 : -1;                       // the way that player looks
-  const side = who.at[1] < WID / 2 ? 1 : -1;             // out toward the nearer sideline
-  // Far enough back that the racquet is in the frame when it is held up, which at 13ft it was not.
-  return { eye: new THREE.Vector3(who.at[0] + 4.5 * face, 5.2, who.at[1] + 16.0 * side),
-           at: new THREE.Vector3(who.at[0] + 0.4 * face, 4.0, who.at[1]), fov: 34 };
+function between(w) {
+  // w is the point's winner: {name, at, north}. The camera stands four and a half feet in front of them, sixteen
+  // to the side, at eye level for a face: at 13 feet it cut the racquet off when a player held it up.
+  const face = w.north ? 1 : -1;
+  const side = w.at[1] < WID / 2 ? 1 : -1;
+  // 21 feet, not 16: at 16 a player with the racquet up filled the frame and the point board sat on her head, and
+  // at 13 it cut the racquet off entirely. Six feet of person and four of raised racquet need the room.
+  return { eye: new THREE.Vector3(w.at[0] + 5.0 * face, 6.2, w.at[1] + 21.0 * side),
+           at: new THREE.Vector3(w.at[0], 3.4, w.at[1]), fov: 32 };
 }
 function wide(north) {
   // Behind the hitter's baseline, high, looking at the net: the broadcast view, which is the only one that shows
@@ -572,7 +590,7 @@ const el = id => document.getElementById(id);
 const ballPos = new THREE.Vector3();
 const firstFrameFor = {};
 
-const PAUSE = 1.6;            // seconds the picture holds on the point board
+const PAUSE = 0.75;           // seconds the picture holds on the point board — his number, 2026-11-11
 let pauseUntil = 0;           // wall clock, ms
 
 function tick(now) {
@@ -712,7 +730,8 @@ function tick(now) {
       `last ball: ${sh.player}`;
   }
   el("cut").className = onCut ? "on" : "";
-  if (onCut) el("cut").textContent = `between points · ${sh.run ? sh.run.player : sh.player}`;
+  if (onCut) el("cut").textContent =
+    `between points · ${WINPOS[sh.rally] ? WINPOS[sh.rally].name : sh.player}`;
 
   renderer.render(scene, camera);
   requestAnimationFrame(tick);
