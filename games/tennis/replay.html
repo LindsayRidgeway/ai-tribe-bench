@@ -10,8 +10,8 @@
 
   What the picture is: the ball follows the positions the integrator actually computed, 50 times a
   second. Nothing is eased, embellished or re-timed. The players are markers placed at the contact
-  point the engine used for their shot — not animated people, because footwork is a formula in this
-  engine and drawing a running figure would invent a body the record does not contain.
+  point the engine used for their shot, moved along the runs the record now contains — not animated
+  people, because footwork is a formula in this engine and drawing a running body would invent one.
 -->
 <style>
   :root{
@@ -231,6 +231,7 @@ function drawMarker(pt, name, north, colour){
 const TRACE = 0.02;
 const shots = D.shots;
 let SEG = [];                       // one entry per shot: {shot, start, dur, cam}
+let PLAN = {};                      // who was running, from where to where, and when
 let T = 0, playing = true, T0 = performance.now();
 
 function buildTimeline(){
@@ -239,8 +240,24 @@ function buildTimeline(){
     const dur = Math.max(0.35, s.path.length*TRACE);
     const hold = s.in ? 0.75 : 1.6;          // the pause after the ball has landed
     SEG.push({shot: s, start: t, dur, hold, cam: chooseCams(s, dur)});
+    // The record now carries a run per shot — where the receiver started, where they met the ball, how long it
+    // took. Markers follow it, so they no longer jump from contact to contact.
+    if (s.run) (PLAN[s.run.player] = PLAN[s.run.player] || []).push(
+      {t0: t + s.run.t0, t1: t + Math.min(s.run.t1, dur), from: s.run.from, to: s.run.to});
     t += dur + hold;
   }
+}
+function whereAt(name, T){
+  const start = (D.start.find(p => p.name === name) || {at: [0, W/2]}).at;
+  let pos = start;
+  for (const m of (PLAN[name] || [])){
+    if (T >= m.t1) pos = m.to;
+    else if (T > m.t0){
+      const k = (T - m.t0) / Math.max(0.05, m.t1 - m.t0);
+      return [m.from[0] + (m.to[0]-m.from[0])*k, m.from[1] + (m.to[1]-m.from[1])*k];
+    } else break;
+  }
+  return pos;
 }
 function chooseCams(s, dur){
   const dir = s.north ? 1 : -1;
@@ -348,11 +365,9 @@ function frame(now){
     }
   }
 
-  // players: at the contact point they used for their shot, or their home while waiting
+  // players: wherever the record's runs leave them at this instant
   for (const pl of D.players){
-    const last = shots.filter(s => s.rally===seg.shot.rally && s.n<=seg.shot.n && s.player===pl.name).pop();
-    const at = last ? [last.contact[0], last.contact[1]] : [pl.north ? 2 : L-2, W/2];
-    drawMarker(at, pl.name, pl.north, pl.north ? "#8fc6ff" : "#ffb98f");
+    drawMarker(whereAt(pl.name, T), pl.name, pl.north, pl.north ? "#8fc6ff" : "#ffb98f");
   }
 
   hud(seg, tLocal);

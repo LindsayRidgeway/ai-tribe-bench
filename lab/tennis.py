@@ -345,12 +345,13 @@ def movement_speed(p: Player) -> float:
     return 5.0 + 15.0 * p.skill("reach")
 
 
-def reachable(p: Player, land, flight_time: float, bounce: dict, surface: str) -> tuple[bool, str]:
-    """Can the player get to the ball before it has gone past them?
+def intercept(p: Player, land, flight_time: float, bounce: dict, surface: str, frm=None) -> dict:
+    """Where and when the player meets the ball.
 
     Player and ball close on each other, so the question is when they meet, not how far the ball landed. The
-    receiver stands in the middle of their own baseline; the ball lands and then travels; the player runs. The
-    speed that matters is the player's, plus how fast the ball is coming *at them* — which is the component of
+    receiver stands where they stand — the middle of their own baseline unless a caller says otherwise, because
+    after a shot a player is wherever their last contact left them; the ball lands and then travels; the player
+    runs. The speed that matters is the player's, plus how fast the ball is coming *at them* — the component of
     the ball's velocity along the line from the landing point to the player. A ball hit straight back at you
     closes fast and you barely have to move; a ball hit wide crosses in front of you and does not come to you at
     all, so it is your own legs against the flight.
@@ -358,24 +359,41 @@ def reachable(p: Player, land, flight_time: float, bounce: dict, surface: str) -
     The first version compared the distance to the landing point against a radius that grew with skill. That got
     short balls exactly backwards — a ball landing in the service box was 21ft away across the court and was
     called unreachable, when in fact it bounces and comes back to you — and it failed players for something that
-    was neither visible nor theirs to control, which is the one thing a rule in this game must never do."""
-    home_x = 2.0 if p.north else LENGTH - 2.0
-    dx, dy = home_x - land[0], WIDTH / 2 - land[1]
+    was neither visible nor theirs to control, which is the one thing a rule in this game must never do.
+
+    This returns the *meeting point*, not just a verdict, because a verdict is all a score needs and a picture
+    needs where the feet went. Until 2026-11-10 this function threw that away and the renderer, having no
+    positions to draw, showed both players standing in the middle of the baseline through every rally.
+    """
+    home = frm if frm is not None else (2.0 if p.north else LENGTH - 2.0, WIDTH / 2)
+    dx, dy = home[0] - land[0], home[1] - land[1]
     distance = math.hypot(dx, dy)
-    gap = max(0.0, distance - 3.0)                 # racquet and arm
+    reach = 3.0                                    # racquet and arm
+    gap = max(0.0, distance - reach)
+    speed = movement_speed(p)
     if gap <= 0:
-        return True, ""
+        return {"ok": True, "why": "", "meet": (land[0], land[1]), "t_meet": 0.0,
+                "distance": distance, "speed": speed, "short": 0.0}
     ux, uy = dx / distance, dy / distance
     vx, vy, _vz = bounce["v"]
     toward = max(0.0, vx * ux + vy * uy)           # how fast the ball is closing on the player
-    t_meet = gap / (movement_speed(p) + toward)
+    t_meet = gap / (speed + toward)
     # the ball is hittable from the bounce until it bounces again, which is roughly a second of flight
     available = flight_time + 1.0
-    if t_meet <= available:
-        return True, ""
-    short = (t_meet - available) * movement_speed(p)      # the ground they would have covered with more time
-    return False, (f"{short:.0f}ft short of it, beaten by the "
-                   f"{'wide' if abs(dy) > abs(dx) else 'deep'} ball")
+    meet = (land[0] + ux * reach, land[1] + uy * reach)      # a racquet's length short of the landing point
+    ok = t_meet <= available
+    short = 0.0 if ok else (t_meet - available) * speed
+    why = "" if ok else (f"{short:.0f}ft short of it, beaten by the "
+                         f"{'wide' if abs(dy) > abs(dx) else 'deep'} ball")
+    return {"ok": ok, "why": why, "meet": meet, "t_meet": t_meet, "distance": distance,
+            "speed": speed, "short": short}
+
+
+def reachable(p: Player, land, flight_time: float, bounce: dict, surface: str) -> tuple[bool, str]:
+    """The verdict only, for callers that need nothing but the verdict. Kept so that every existing record and
+    every existing test keeps meaning what it meant."""
+    got = intercept(p, land, flight_time, bounce, surface)
+    return got["ok"], got["why"]
 
 
 # ---- the season: practice that outlives the process ------------------------------------------------
