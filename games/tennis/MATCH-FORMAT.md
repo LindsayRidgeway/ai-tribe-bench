@@ -131,3 +131,40 @@ sign — and it looked perfectly plausible on a still until the landing points w
 Not built, and it is fine: nothing rolls along the tape. A ball that clips the cord and climbs over is still a
 ball that clears the net here, with no loss of speed, because the contact is a plane and not a rope. It matters
 for a lucky let; it does not matter for a point that ends.
+
+## Ends, and which player is in the foreground — built 2026-11-11
+
+> even for rallies, it would be more interesting if half the time the male was in the foreground, and half the
+> time the female was... You don't want them changing after every point, but maybe after ten points.
+
+The camera is nailed to one end — that is the whole point of it — so whoever stands at that end is a quarter of
+the frame tall and whoever stands at the other end is a smudge. Until now that was always the same person, for
+the whole film. In a match the ends change on their own schedule (the end of every odd game); practice rallies
+have no games, so the count here is points, and the default is ten.
+
+- `lab/tennis_script.py --swap-every N` (default 10, `0` never flips). One line of engine: at the boundary,
+  `pl.north = not pl.north` for both players. Nothing else needed changing, because every rule downstream already
+  asks the player which end they are on rather than assuming: the serve corner, which side of the body is the
+  forehand, the recovery spot behind *their* baseline, and which corner is "far" all read `pl.north`.
+- The record now carries `ends` per rally and `changed_ends`, so the page can see the change instead of
+  inferring it.
+- The page had one real piece of work: `pl.north` meant the end a player *started* at, and it was read in nine
+  places for posture — the body's facing, which way the legs go, the ready pose, the racquet face. Those now read
+  `northIn(seg, name)`, which takes the end off the record: the striker's `sh.north`, the runner's
+  `sh.run.north`, and otherwise the opposite, because within a rally the two players are always at opposite ends.
+- Nobody walks seventy-eight feet during a break. The change is a cut: each player appears at the other end at
+  the instant the next rally begins, under the point board, and the body's yaw is set rather than turned so
+  there is no pirouette at the start of the next point.
+
+Verified in the film as it now stands (20 points, `demo3d.html`): Dmitri is the near player in points 1-10 and
+Gwen in 11-20, and 95 of the 116 shots were good balls landing inside the court — **every one of them on the
+opponent's side of the net**. The two that landed on the hitter's own side are `in: false`, short of the net,
+which is what they are.
+
+For the record on the other question: the male figure is no less finished than the female one. Both are built by
+the same script into the same eighteen-bone rig (`?debug` prints the same bone list for both), the same two-bone
+solver poses both, and `?debug` reports 0.00ft of error against the prepared hand position for each. The gait is
+a rule scaled by the figure's own measured height — 6.16ft for Dmitri, 5.64ft for Gwen, so his stride cycle is
+5.17ft against her 4.74 — and movement speed comes from skill alone, so the two differ only in proportion. The
+one number that is not proportional is the preparation offset, which is absolute feet from the chest: about 9%
+smaller, in proportion, on the taller body. Nothing in the renderer names a player.

@@ -510,6 +510,13 @@ function placeRacquet(rig, aim, face) {
 /* ---------- the film ---------- */
 const SEG = [];
 const PLAN = {};                       // name -> [{t0,t1,from,to}] in seconds of film
+/* Where each player is at each moment of the film, when it is not where a run left them. The only thing that
+   does this is a change of ends: the founder asked for the players to swap which one is in the foreground every
+   ten points, and the camera does not move, so both of them are suddenly seventy-eight feet away. They do not
+   walk it — nobody walks it on television either; the change happens during the break, under the point board,
+   and the picture comes back to a court with the two of them at the other ends. Each entry is {t, to} in
+   seconds of film, applied instantly. */
+const SWAP = {};
 /* The last shot of each rally, and who the engine says won it. A rally ends either because the shot was out (the
    hitter loses it) or because the other player could not reach a good one (the hitter wins it); a rally that runs
    to the cap has no winner and says so. The page does not decide this — lab/tennis_script.py reads it off the
@@ -545,7 +552,20 @@ const WINPOS = {};
 }
 {
   let t = 0.8;
+  let rallySeen = 0;
+  const lastNorth = {};
   for (const sh of D.shots) {
+    if (sh.rally !== rallySeen) {                    // first shot of a new rally: has anyone changed ends?
+      const r = D.rallies.find(x => x.rally === sh.rally) || {};
+      for (const name in (r.ends || {})) {
+        const n = r.ends[name];
+        if (lastNorth[name] !== undefined && lastNorth[name] !== n) {
+          (SWAP[name] = SWAP[name] || []).push({ t, to: [n ? 2 : LEN - 2, WID / 2], north: n });
+        }
+        lastNorth[name] = n;
+      }
+      rallySeen = sh.rally;
+    }
     const dur = Math.max(0.35, sh.path.length * TRACE);
     // A shot in the middle of a rally gets a beat before the next one starts; the shot that ends the rally gets
     // the point board, the pause, and then a couple of seconds on the player, which is what the 3.8 is for.
@@ -590,7 +610,26 @@ function whereAt(name, T) {
   // the gait's phase is the ground covered, integrated over the planned runs, so scrubbing backwards and
   // jumping to a shot both put the legs where they belong. A phase counted frame by frame would only be right
   // in continuous play, which is the one case a still cannot show.
-  return { pos, moving, travelled, dir };
+  let swapped = false;
+  for (const s of (SWAP[name] || [])) {
+    if (T >= s.t) {
+      swapped = (T - s.t) < 0.06;          // the frame they arrive at the other end, not every frame after it
+      pos = s.to; travelled = 0; moving = false; dir = null;
+    }
+  }
+  return { pos, moving, travelled, dir, swapped };
+}
+
+/* Which end is this player at during this segment of the film. `pl.north` is the end they started the match at
+   and stops being true after the first change of ends, so nothing in the picture may read it. The record already
+   says the end on every shot and every run — a striker struck the ball at `sh.north`, a runner ran to
+   `sh.run.north`, and within a rally the two players are always at opposite ends. That last part is what makes
+   this one line rather than a timeline. */
+function northIn(seg, name) {
+  const sh = seg.sh;
+  if (sh.player === name) return sh.north;
+  if (sh.run && sh.run.player === name) return sh.run.north;
+  return !sh.north;
 }
 function cams(sh, dur) {
   // One camera holds the whole POINT. A shot is not a point: the camera leaves the court only when the rally is
@@ -746,7 +785,9 @@ function tick(now) {
   for (const pl of D.players) {
     const rig = rigs[pl.body];
     if (!rig) continue;
-    const { pos, moving, travelled, dir } = whereAt(pl.name, T);
+    // the end this player is at *now*, from the record, not the end they began the film at
+    const at = northIn(seg, pl.name);
+    const { pos, moving, travelled, dir, swapped } = whereAt(pl.name, T);
     rig.root.position.set(pos[0], 0, pos[1]);
     // The body is built facing +Z; a north player faces +X, a south player faces -X.
     //
@@ -760,16 +801,18 @@ function tick(now) {
     // away from the net while standing on the middle of the baseline — and except while striking, where the body
     // is square to the net by definition. The turn is rate-limited, because a body turning 90 degrees in one
     // frame is a puppet on a stick.
-    const netYaw = pl.north ? Math.PI / 2 : -Math.PI / 2;
+    const netYaw = at ? Math.PI / 2 : -Math.PI / 2;
     let yaw = netYaw;
     if (moving && dir && !(sh.player === pl.name && tl < 0.45)) {
-      const towardNet = pl.north ? 1 : -1;
+      const towardNet = at ? 1 : -1;
       const along = dir[0] * towardNet;                       // > 0 is towards the net
       const onTheMiddle = Math.abs(pos[1] - WID / 2) < 6.0 &&
-                          Math.abs(pos[0] - (pl.north ? 0 : LEN)) < 12.0;
+                          Math.abs(pos[0] - (at ? 0 : LEN)) < 12.0;
       if (!(along < -0.5 && onTheMiddle)) yaw = Math.atan2(dir[0], dir[1]);
     }
-    if (rig.yaw === undefined) rig.yaw = yaw;
+    // A change of ends is a cut, not a walk: the body arrives at the other end already facing the net, because
+    // the alternative is watching a player pirouette for a fifth of a second at the start of the next point.
+    if (rig.yaw === undefined || swapped) rig.yaw = yaw;
     let dy = ((yaw - rig.yaw + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
     rig.yaw += dy * 0.22;
     rig.root.rotation.y = rig.yaw;
@@ -778,7 +821,7 @@ function tick(now) {
     const phase = 2 * Math.PI * (travelled / (0.84 * Math.max(4.0, rig.height)));
     if (q.has("debug")) console.log("debug yaw", pl.name, "moving", moving,
       "dir", dir ? dir.map(v => v.toFixed(2)).join(",") : "-", "yaw", (rig.root.rotation.y).toFixed(2),
-      "net", (pl.north ? Math.PI / 2 : -Math.PI / 2).toFixed(2));
+      "net", (at ? Math.PI / 2 : -Math.PI / 2).toFixed(2));
     if (q.has("debug")) console.log("debug legs", pl.name, "moving", moving, "travelled", travelled.toFixed(2),
       "phase", phase.toFixed(2), "thigh", rig.bones["thighL"] ? rig.bones["thighL"].rotation.x.toFixed(3) : "MISSING");
     // Whose ball is it? The hitter struck at this segment's first frame, so the swing is already past contact and
@@ -812,9 +855,9 @@ function tick(now) {
     const turn = Math.max(-1.25, Math.min(1.25,
       sgn * (-1.05 * windup + 0.62 * follow) + aimDelta * 0.9 * follow));
     const load = Math.max(windup, follow);
-    legs(rig, phase, moving, new THREE.Vector3(pl.north ? 1 : -1, 0, 0), turn, load);
+    legs(rig, phase, moving, new THREE.Vector3(at ? 1 : -1, 0, 0), turn, load);
 
-    const wait = ready(rig, pl.north);
+    const wait = ready(rig, at);
     if (sh.player === pl.name) {
       // the arm is at the ball at the strike and back at the shoulder by half a second; the solver is given a
       // target that moves rather than being switched on and off, because switching it off snaps the arm
@@ -874,7 +917,7 @@ function tick(now) {
       // backhand shot." Open means the racquet hand away from the body on the hitting side; crossing means both
       // hands across the chest with the racquet head back on the far side. A player who has not remembered gets
       // neither, which is the ready pose — the same lerp, by the same `windup`.
-      _face.set(pl.north ? 1 : -1, 0.12, 0).normalize();   // waiting for the ball, bed open to the net
+      _face.set(at ? 1 : -1, 0.12, 0).normalize();   // waiting for the ball, bed open to the net
       const fwd = new THREE.Vector3(Math.sin(rig.yaw), 0, Math.cos(rig.yaw));     // the way the body is facing
       const right = new THREE.Vector3(Math.cos(rig.yaw), 0, -Math.sin(rig.yaw));
       const chest = new THREE.Vector3();

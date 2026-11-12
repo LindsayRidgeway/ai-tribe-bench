@@ -234,9 +234,29 @@ let SEG = [];                       // one entry per shot: {shot, start, dur, ca
 let PLAN = {};                      // who was running, from where to where, and when
 let T = 0, playing = true, T0 = performance.now();
 
+/* A change of ends. The players swap which one is in the foreground every ten points (play script
+   `--swap-every`), which on this top-down board is simply the two of them arriving at the other end during the
+   break. Instant, like a television cut: nothing walks eighty feet in the pause after a point. */
+const SWAP = {};
+{
+  const last = {};
+  let rally = 0;
+  SWAP.note = (s, t) => {
+    if (rally === s.rally) return;
+    rally = s.rally;
+    const r = (D.rallies || []).find(x => x.rally === s.rally) || {};
+    for (const name in (r.ends || {})) {
+      const n = r.ends[name];
+      const list = (SWAP[name] = SWAP[name] || []);
+      if (last[name] === undefined || last[name] !== n) list.push({ t, to: [n ? 2 : L - 2, W / 2], north: n });
+      last[name] = n;
+    }
+  };
+}
 function buildTimeline(){
   let t = 0.8;
   for (const s of shots){
+    SWAP.note(s, t);
     const dur = Math.max(0.35, s.path.length*TRACE);
     const hold = s.in ? 0.75 : 1.6;          // the pause after the ball has landed
     SEG.push({shot: s, start: t, dur, hold, cam: chooseCams(s, dur)});
@@ -247,9 +267,16 @@ function buildTimeline(){
     t += dur + hold;
   }
 }
+function northAt(name, T){
+  const list = SWAP[name] || [];
+  let n = null;
+  for (const s of list) if (T >= s.t) n = s.to[0] < L/2;
+  return n;
+}
 function whereAt(name, T){
   const start = (D.start.find(p => p.name === name) || {at: [0, W/2]}).at;
   let pos = start;
+  for (const s of (SWAP[name] || [])) if (T >= s.t) pos = s.to;
   for (const m of (PLAN[name] || [])){
     if (T >= m.t1) pos = m.to;
     else if (T > m.t0){
@@ -367,7 +394,8 @@ function frame(now){
 
   // players: wherever the record's runs leave them at this instant
   for (const pl of D.players){
-    drawMarker(whereAt(pl.name, T), pl.name, pl.north, pl.north ? "#8fc6ff" : "#ffb98f");
+    drawMarker(whereAt(pl.name, T), pl.name, northAt(pl.name, T) ?? pl.north,
+               pl.north ? "#8fc6ff" : "#ffb98f");
   }
 
   hud(seg, tLocal);

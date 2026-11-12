@@ -25,6 +25,7 @@ import tennis as T  # noqa: E402
 
 CAP = 60          # the record's ceiling on a rally, stated rather than hidden
 TRACE = 0.02      # seconds between ball positions in the script
+SWAP_EVERY = 10   # points at one end before both players change ends, so neither is always the small one
 
 
 def rating(balls: int) -> float:
@@ -63,7 +64,8 @@ def corridor(p: T.Player, incoming, power: float, aim: float, contact, surface, 
     return (lo, hi) if lo is not None else (None, None)
 
 
-def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str) -> dict:
+def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str,
+         swap_every: int = SWAP_EVERY) -> dict:
     wind_in = T.wind_at(ms)
     wv = T.wind_vector(*wind_in)
     rng = random.Random(ms)
@@ -84,9 +86,25 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str) 
     # to the other can be told apart later. The engine's placement rule reads this when the corners are
     # equidistant; nothing else does.
     record = {pl.name: {"left": [0, 0], "right": [0, 0]} for pl in players}
+    # The end each player began at. After a change of ends `pl.north` is no longer that, so it is kept here: the
+    # players block and the page's opening positions read this, and every shot and run carries its own `north`.
+    north0 = [pl.north for pl in players]
 
     for rally_no in range(1, rallies + 1):
         idxs, length = [], 0
+        # Both players change ends every SWAP_EVERY points, so neither spends the whole film at the far baseline.
+        # The founder, 2026-11-11: "even for rallies, it would be more interesting if half the time the male was
+        # in the foreground, and half the time the female was... You don't want them changing after every point,
+        # but maybe after ten points." Real matches change ends at the end of every odd game; practice has no
+        # games, so the count is points here. Everything downstream already reads `pl.north` rather than assuming,
+        # which is why this is a flip and not a refactor — the legs, the recovery spot, the serve corner, which
+        # side of the body is the forehand, and which corner is "far" all follow.
+        changed_ends = bool(rally_no > 1 and swap_every and (rally_no - 1) % swap_every == 0)
+        if changed_ends:
+            for pl in players:
+                pl.north = not pl.north
+            where = [(2.0 if pl.north else T.LENGTH - 2.0, T.WIDTH / 2) for pl in players]
+            carry = [None, None]
         # Every point in tennis begins with a serve, and until 2026-11-11 this file began every point with a
         # groundstroke struck from the baseline — a rally with no opening ball, which is why a rally could be
         # one shot long. The server alternates for now; the game's own service order (a whole game, then the
@@ -311,7 +329,9 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str) 
                 if point["winner"] == last["player"]:
                     record[who][side][0] += 1
         out_rallies.append({"rally": rally_no, "shots": idxs, "length": length,
-                            "point": point, "clock_ms": ms})
+                            "point": point, "clock_ms": ms,
+                            "ends": {pl.name: pl.north for pl in players},
+                            "changed_ends": changed_ends})
         incoming = None
         hitter = 0
         where = [(2.0 if pl.north else T.LENGTH - 2.0, T.WIDTH / 2) for pl in players]
@@ -326,7 +346,7 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str) 
         "court": {"length": T.LENGTH, "width": T.WIDTH, "net_x": T.NET_X,
                   "service_line": T.SERVICE_LINE if hasattr(T, "SERVICE_LINE") else 21.0,
                   "net_centre": T.NET_CENTRE, "net_posts": T.NET_POSTS},
-        "players": [{"name": pl.name, "north": pl.north, "balls": practice[i],
+        "players": [{"name": pl.name, "north": north0[i], "balls": practice[i],
                      "rating": round(rating(practice[i]), 2),
                      "control": round(pl.skill("control"), 3),
                      "sweet": round(pl.skill("sweet"), 3),
@@ -346,6 +366,8 @@ def main(argv=None) -> int:
     ap.add_argument("--practice", default="0,300", help="balls hit before today, one per player")
     ap.add_argument("--names", default="Dmitri,Gwen")
     ap.add_argument("--surface", default="clay")
+    ap.add_argument("--swap-every", type=int, default=SWAP_EVERY,
+                    help="points at one end before both players change ends (0 never)")
     ap.add_argument("--clock", type=int, default=1793809110303)
     ap.add_argument("--out", default=None, help="write the flat 2D page here")
     ap.add_argument("--out3d", default=None, help="write the 3D page here (needs a local server)")
@@ -354,7 +376,7 @@ def main(argv=None) -> int:
 
     practice = tuple(int(x) for x in a.practice.split(","))
     names = tuple(a.names.split(","))
-    data = play(practice, names, a.rallies, a.clock, a.surface)
+    data = play(practice, names, a.rallies, a.clock, a.surface, a.swap_every)
 
     if a.json:
         Path(a.json).write_text(json.dumps(data, indent=1))
