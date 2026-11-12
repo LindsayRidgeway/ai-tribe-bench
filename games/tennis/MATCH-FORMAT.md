@@ -371,3 +371,24 @@ positions, the centre strap, and the dip where the strap pulls the net down. All
 Two things had to be measured rather than assumed: the first sagging net was built across Z and turned a quarter
 turn, which put it down the middle of the service boxes; and a pale mesh at 55% alpha was invisible against the
 clay, so the mesh is dark cord with white tape, as a real one is.
+
+## The net, again — the white line that is not there, 2026-11-12
+
+Two things the founder named, and both were mine: *"There is no white line above the net in real life. And there is a
+vertical strap that actually pulls the center of the net down."*
+
+- **The white line above the net** was a cord: a straight box at 3.5ft across the whole span between the posts, drawn
+  over a net whose top edge sags 6in at the centre. So the middle of the net had a white line floating a foot above
+  it. Removed. What is white now is the net's own headband — 2.6in of canvas along the top edge — and it is built on
+  the same curve as the mesh's top row, cut out of the mesh rather than laid over it, so it dips where the net dips
+  and cannot float. It is geometry and not four pixels of texture, because four pixels of texture mip away at the
+  broadcast camera's distance: measured on the film, the top of the net had no edge at all.
+- **The strap** existed and could not be seen. Two reasons, both found by asking why rather than by moving it: it sat
+  in the net's own plane (z-fighting), and the net's material wrote depth — a net full of holes averages, in its
+  mipmaps, to a thin veil every fragment of which wrote depth, so the veil hid the strap standing behind it. The net
+  no longer writes depth (`depthWrite: false`), the strap is 2in wide, white, from the ground to the headband, and it
+  is set 0.6in in front of the net's plane.
+
+`?cam=net` was added to look at it square on: `games/tennis/stills/net-and-strap.png`. The net itself is unchanged —
+the same 48-column mesh with the same parabolic top, which is the founder's earlier "slight angle in net where it's
+pulled down by strap".

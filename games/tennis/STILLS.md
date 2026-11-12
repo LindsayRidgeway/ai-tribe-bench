@@ -31,4 +31,6 @@ The page takes three query parameters, all of which pause the film so the still 
 - `?shot=12` — shot 12, with `&at=0.8` to choose how far through it (0 to 1).
 - `?t=41.2` — an absolute time in seconds of film.
 
-`?cam=near` puts the camera beside the near baseline for looking at feet.
+`?cam=near` puts the camera beside the near baseline for looking at feet. `?cam=hit` goes over the striker's own
+shoulder, and `?cam=net` stands square on to the net from the side — which is the only way to see whether the
+headband follows the sag and whether the centre strap reaches the ground.

@@ -246,7 +246,10 @@ function netTexture() {
   g.strokeStyle = "rgba(28,26,24,.78)"; g.lineWidth = 1.6;
   for (let x = 0; x <= 512; x += 8) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, 64); g.stroke(); }
   for (let y = 0; y <= 64; y += 8) { g.beginPath(); g.moveTo(0, y); g.lineTo(512, y); g.stroke(); }
-  g.fillStyle = "rgba(246,243,234,.95)"; g.fillRect(0, 0, 512, 4);   // the white tape along the top of the mesh
+  // The white canvas along the top is NOT drawn here. It was, as four pixels of the texture, and at the distance the
+  // broadcast camera sits those four pixels mip away into the net's own grey haze: measured on the film, the top of
+  // the net had no edge at all. A band that has to be crisp at 78ft is geometry, so it is a ribbon below, cut out of
+  // the mesh rather than laid over it.
   const t = new THREE.CanvasTexture(cv);
   t.wrapS = THREE.RepeatWrapping; t.repeat.set(6, 1);
   return t;
@@ -257,14 +260,16 @@ function netTexture() {
 // leaves the alleys open. The founder, 2026-11-12: "Net pole positions".
 const POST_OUT = 3.0;                                     // feet outside the doubles sideline, per the ITF rule
 const NET_HALF = (WID + ALLEY * 2) / 2 + POST_OUT;        // half the span between the posts
-// The cord is tensioned between posts at 3.5ft and it is straight. What sags is the NET under the cord: the centre
-// strap pulls the middle of the net down to exactly 3.0ft, so the top of the mesh runs from 3.5ft at each post to
-// 3.0ft in the middle. The founder named the effect: "Slight angle in net where it's pulled down by strap".
+// The posts hold the net at 3.5ft and the net hangs from its own headband; what sags is the net, because the centre
+// strap pulls the middle down to exactly 3.0ft. So the top of the mesh runs from 3.5ft at each post to 3.0ft in the
+// middle, and the white canvas along that edge dips with it. The founder named the effect: "Slight angle in net
+// where it's pulled down by strap".
 const netTopAt = u => C.net_posts - (C.net_posts - C.net_centre) * (1 - (2 * u - 1) ** 2);
+const BAND = 0.22;                                         // the headband: a little under three inches of white canvas
 {
   const NXSEG = 48, rows = 10, pos = [], idx = [];
   for (let i = 0; i <= NXSEG; i++) {
-    const u = i / NXSEG, x = -NET_HALF + 2 * NET_HALF * u, top = netTopAt(u);
+    const u = i / NXSEG, x = -NET_HALF + 2 * NET_HALF * u, top = netTopAt(u) - BAND;
     // the span is along X here and the mesh is turned a quarter turn below, the same way the flat plane it
     // replaced was: built across Z it ends up along the court's LENGTH, which is a net down the middle of the
     // service boxes.
@@ -281,21 +286,49 @@ const netTopAt = u => C.net_posts - (C.net_posts - C.net_centre) * (1 - (2 * u -
   geo.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
   geo.setIndex(idx);
   geo.computeVertexNormals();
+  // depthWrite false, and it is not housekeeping: at the camera's distance the mipmap averages a net full of holes
+  // into a thin veil, every fragment of which wrote depth — so the veil hid the centre strap standing behind it, and
+  // that is why the strap could not be seen at all after it was added.
   const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: netTexture(), transparent: true,
-    alphaTest: 0.05, side: THREE.DoubleSide, roughness: 0.9 }));
+    alphaTest: 0.05, depthWrite: false, side: THREE.DoubleSide, roughness: 0.9 }));
   mesh.position.set(NX, 0, WID / 2);
   mesh.rotation.y = Math.PI / 2;
   scene.add(mesh);
+
+  // the headband: two inches of white canvas along the top edge, and it takes the net's own sag because it is built
+  // on netTopAt, the same curve the mesh's top row uses — the mesh stops BAND below the top and this is what fills
+  // the gap, so the two never overlap and there is nothing laid on top of anything.
+  const bpos = [], bidx = [];
+  for (let i = 0; i <= NXSEG; i++) {
+    const u = i / NXSEG, x = -NET_HALF + 2 * NET_HALF * u, top = netTopAt(u);
+    bpos.push(x, top, 0, x, top - BAND, 0);
+  }
+  for (let i = 0; i < NXSEG; i++) {
+    const a = i * 2, b = a + 2;
+    bidx.push(a, b, a + 1, b, b + 1, a + 1);
+  }
+  const bgeo = new THREE.BufferGeometry();
+  bgeo.setAttribute("position", new THREE.Float32BufferAttribute(bpos, 3));
+  bgeo.setIndex(bidx);
+  const band = new THREE.Mesh(bgeo, new THREE.MeshStandardMaterial({ color: 0xf4f1e6, roughness: 0.8,
+    side: THREE.DoubleSide }));
+  band.position.set(NX, 0, WID / 2);
+  band.rotation.y = Math.PI / 2;
+  scene.add(band);
 }
-// the cord: straight, at post height, all the way across
-const cord = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.09, NET_HALF * 2),
-  new THREE.MeshStandardMaterial({ color: 0xf5f2e8, roughness: 0.7 }));
-cord.position.set(NX, C.net_posts, WID / 2); scene.add(cord);
-// the centre strap: a white band from the cord to the ground, holding the middle of the net at 3.0ft
+/* The centre strap, and the headband it holds down. There is no cord above the net: the white canvas is sewn along
+   the net's own top edge and dips with it, and the strap is what makes it dip. The first version drew a straight
+   white bar at 3.5ft all the way across, which is a white line floating a foot above the middle of the net — the
+   founder, 2026-11-12: "There is no white line above the net in real life." The white band is now the top 0.22ft of
+   the mesh itself (drawn in its texture, so it follows netTopAt and cannot float), and all that hangs above the
+   ground at the centre is the strap. */
 {
-  const strap = new THREE.Mesh(new THREE.BoxGeometry(0.06, C.net_posts, 0.16),
+  // the strap: from the ground to the headband, 2 inches wide, and it is the thing that puts the sag in the net.
+  // It sits a hair in front of the net's plane so it is drawn rather than z-fighting with the mesh.
+  const strap = new THREE.Mesh(new THREE.BoxGeometry(0.035, netTopAt(0.5) + 0.06, 0.17),
     new THREE.MeshStandardMaterial({ color: 0xf2efe4, roughness: 0.85 }));
-  strap.position.set(NX, C.net_posts / 2, WID / 2);
+  strap.position.set(NX + 0.05, (netTopAt(0.5) + 0.06) / 2, WID / 2);
+  strap.castShadow = true;
   scene.add(strap);
 }
 for (const z of [-ALLEY - POST_OUT, WID + ALLEY + POST_OUT]) {
@@ -1070,7 +1103,10 @@ function tick(now) {
   for (const c of seg.cams) if (tlRaw >= c.at) cam = c.cam;
   if (q.has("cam")) {
     const mode = q.get("cam");
-    if (mode === "hit") {
+    if (mode === "net") {
+      // ?cam=net: square on to the net from the side, for looking at the sag, the headband and the centre strap.
+      cam = { eye: new THREE.Vector3(NX - 17, 5.0, WID / 2 + 1), at: new THREE.Vector3(NX, 2.2, WID / 2), fov: 34 };
+    } else if (mode === "hit") {
       // ?cam=hit: over the striker's own back shoulder, for looking at which arm is on the ball. ?cam=near films
       // the runner, which is a different person from the hitter and was the reason a stroke could not be
       // inspected from a still at all.
