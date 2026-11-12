@@ -43,7 +43,7 @@
      ball is dead, because a face angle is not the interesting thing about a dead ball and a face is. The ink
      drawing sits on paper rather than floating on the court, so it reads as a card and never pretends to be a
      camera. */
-  #facecard{position:fixed;left:34px;top:50%;transform:translateY(-50%);width:200px;background:#f4f1ea;
+  #facecard{position:fixed;left:34px;top:52%;transform:translateY(-50%);width:248px;background:#f4f1ea;
     border-radius:10px;overflow:hidden;box-shadow:0 18px 40px rgba(0,0,0,.55);opacity:0;
     transition:opacity .3s ease;pointer-events:none}
   #facecard.on{opacity:1}
@@ -551,7 +551,12 @@ function cams(sh, dur) {
   // last version's mistake — it turned a point of eleven shots into eleven cuts.
   const lastOne = LASTN[sh.rally] === sh.n && POINT[sh.rally];
   const w = lastOne ? WINPOS[sh.rally] : null;      // the point's winner, not the last hand on the ball
-  return w ? [{ at: 0, cam: tower() }, { at: dur, cam: between(w) }]
+  // The cut still exists — the ball goes dead, the board goes up, the face card appears — but the camera no
+  // longer goes to the player. Enlarged, the bodies are the worst thing in the picture: jointed storefront
+  // dummies with no faces and racquets at impossible angles, and the founder said so ("an empty court would be
+  // better, but better renderings of the players is where we really want to go"). An empty court it is, held at
+  // the tower, until the players deserve the closeup.
+  return w ? [{ at: 0, cam: tower() }, { at: dur, cam: tower() }]
            : [{ at: 0, cam: tower() }];
 }
 function nearest(land) {

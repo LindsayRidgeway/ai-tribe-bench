@@ -452,6 +452,66 @@ def serve_verdict(shot: dict) -> tuple[bool, str]:
     return True, f"in — {SERVICE_LINE - depth:.1f}ft inside the service line"
 
 
+# ---- shot selection -----------------------------------------------------------------------------------
+# The founder's rule picks a corner, and a corner every time is a metronome: he watched twenty shots alternate
+# left, right, left, right and called it monotonous (2026-11-11). A player chooses a BALL, not a corner — a drive,
+# a ball down the line, a drop, a lob, an approach — and each of those is a different target, a different pace and
+# a different racquet angle. The corner rule stays as the default for the drive, because it is a good rule.
+SHOT_KINDS = ("cross", "line", "drop", "lob", "approach")
+
+
+def choose_shot(p: Player, other: Player, at_hitter, at_receiver, record: dict, rng) -> dict:
+    """Which ball to play: kind, target, pace. Randomised within what the situation allows.
+
+    Three situations, and they are the ones a player actually reads:
+      - the other player is at the net, so the ball must go past them or over them;
+      - the hitter is behind the baseline, so the safe ball is a drive and the ambitious ones are rare;
+      - the hitter is inside the court on a short ball, which is the one moment a player can choose freely.
+    Everything is scaled by the hitter's hands: a beginner's drop shot is a short ball in the middle of the court
+    that the other player eats, so they do not attempt many.
+    """
+    skill = p.skill("control")
+    own_base = 2.0 if p.north else LENGTH - 2.0
+    behind = abs(at_hitter[0] - own_base) < 9.0
+    other_net = abs(at_receiver[0] - NET_X) < 15.0
+    opp_side = side_of(at_receiver[1], other.north)          # which side of the receiver the ball is already on
+    c_near, c_far = corners_of(other.north, skill)
+    # cross-court is the far corner; down the line is the corner on the receiver's own side, past them
+    cross = placement(p, other, at_receiver, record)
+    line = c_near if side_of(c_near[1], other.north) == opp_side else c_far
+
+    if other_net:
+        w = {"lob": 0.42, "cross": 0.33, "line": 0.25, "drop": 0.0, "approach": 0.0}
+    elif behind:
+        w = {"cross": 0.56, "line": 0.24, "drop": 0.06 * (0.4 + skill), "lob": 0.10, "approach": 0.04}
+    else:
+        w = {"cross": 0.40, "line": 0.34, "drop": 0.16 * (0.4 + skill), "lob": 0.04, "approach": 0.06}
+    total = sum(w.values())
+    r = rng.random() * total
+    kind = "cross"
+    for k in SHOT_KINDS:
+        r -= w[k]
+        if r <= 0:
+            kind = k
+            break
+
+    fwd = 1.0 if p.north else -1.0
+    if kind == "cross":
+        return {"kind": kind, "target": cross, "power": rng.uniform(58, 76)}
+    if kind == "line":
+        return {"kind": kind, "target": line, "power": rng.uniform(62, 80)}
+    if kind == "approach":
+        # short and low, hit while moving in, so the hitter can get to the net behind it
+        return {"kind": kind, "target": line, "power": rng.uniform(48, 62)}
+    if kind == "drop":
+        # a short ball that dies: eight to twelve feet past the net, on the side the receiver has left
+        y = WIDTH - at_receiver[1] if abs(at_receiver[1] - WIDTH / 2) > 3 else rng.choice((5.5, WIDTH - 5.5))
+        return {"kind": kind, "target": (NET_X + fwd * rng.uniform(8, 13), y), "power": rng.uniform(26, 34)}
+    # a lob: deep, high, and slow enough that it comes down inside the baseline
+    y = WIDTH - 5.5 if at_receiver[1] < WIDTH / 2 else 5.5
+    return {"kind": kind, "target": (LENGTH - 6.0 if p.north else 6.0, y), "power": rng.uniform(40, 52)}
+
+
 def movement_speed(p: Player) -> float:
     """How fast a player covers ground, in feet per second. A beginner shuffles at about 6 ft/s, which is
     brisk walking; five hundred balls later they are at 20 ft/s, which is a run. Real figures: adults move at

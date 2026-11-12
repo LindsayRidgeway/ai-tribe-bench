@@ -122,8 +122,12 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str) 
                 # Where the ball is going: the far corner the other player is furthest from, not the middle of
                 # the court. Until 2026-11-11 every shot in this file was aimed at T.WIDTH/2 and NET_X plus or
                 # minus twenty, which is why the renderer showed two people trading balls down the centre.
-                target = T.placement(p, other, where[1 - hitter], record)
-                face, pw = T.aim_at(p, target, "rally", surface, wv, power=power[hitter], contact=contact)
+                # A ball, not a corner: which shot, to where, how hard. The corner rule is the default drive and
+                # it is still the founder's; the other four kinds are what stop twenty shots alternating left and
+                # right like a metronome (his note, 2026-11-11).
+                plan = T.choose_shot(p, other, where[hitter], where[1 - hitter], record, rng)
+                target = plan["target"]
+                face, pw = T.aim_at(p, target, "rally", surface, wv, power=plan["power"], contact=contact)
                 shot = T.strike(p, incoming, face=face, power=pw, aim=target[1], aim_x=target[0], shot="rally",
                                 surface=surface, wind=wv, contact=contact)
                 ok, why = T.verdict(shot)
@@ -140,6 +144,7 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str) 
                 "player": p.name,
                 "north": p.north,
                 "kind": "serve" if serving else "rally",
+                "ball": "serve" if serving else plan["kind"],
                 "face": round(shot["face"], 2),
                 "power": round(shot["power"], 1),
                 "aim": round(aim, 1),
