@@ -92,6 +92,28 @@ shot while the target was 1.6ft away.
    (elbows point down), reading both bone lengths off the rig. The hand now lands 1.60ft from the ball, which
    is what was asked for.
 
+### A fourth, found the same way — and it was only ever the backhand
+
+The founder, 2026-11-11: "Right now, backhand animation is the weakest part."
+
+- The hand target was the ball minus 1.6ft **along the line from the shoulder to the ball**. On a forehand that
+  line is long — the ball is out in front and to the side — and the hand lands on the handle. On a backhand the
+  contact is *beside* the body: the ball is 1.7ft from the LEFT shoulder, so the hand target was 0.08ft from it,
+  inside the shoulder, where a two-bone solve has no elbow to choose and folds the arm into a spike above the
+  head. Measured: `shL to target 0.08`, `handL up 0.81`, and the left hand **1.70ft from the ball it was
+  supposed to be holding** — on every backhand in the film.
+- The direction that is right for both strokes is the direction the ball leaves in. The racquet's head goes on
+  the ball and the butt 1.74ft behind it along that line; the top hand is 0.36ft up the grip from the butt. After
+  the fix: right hand 1.55ft from the ball, left hand 1.14ft, **racquet head 0.25-0.32ft** — and the shoulder to
+  its own hand is 1.8-2.0ft, an arm with an elbow in it.
+- The swing also had no finish. It lerped from the ball straight back to the ready pose, so a backhand — which
+  starts on one side of the body and ends on the other — passed through its own finish on the way home and read
+  as a poke. The racquet now carries up and across to the shoulder on the hitting side over 0.17s and relaxes
+  from there over 0.33s.
+- Still short: on a genuinely low wide ball (contact at 2.3ft, fully stretched) the arm cannot reach, and the
+  racquet head stops 1.0ft short of the ball on 2 of 5 sampled backhands. That is the feet, not the arm — the
+  same missing knee bend as the rest of the film.
+
 ## 5. The racquet comes back on the way, or it does not come back in time
 
 The founder, 2026-11-11:
