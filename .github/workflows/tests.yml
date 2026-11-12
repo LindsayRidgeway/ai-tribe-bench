@@ -25,6 +25,11 @@ jobs:
         run: python3 tribe.py validate
       - name: Tests
         run: python3 tests.py -v
+      # `python3 tests.py` runs this too, but skips it when node is absent — and a check that quietly does not
+      # run is the failure mode this file was written against. Here it is a step of its own, so a runner without
+      # node goes red instead of green.
+      - name: The page's own checks
+        run: node lab/page-check.mjs
       # Every published file must be a function of the record. If this fails, one of them was edited by
       # hand or the builder has an input that is not the shelf — either way a reader is being shown
       # something the record does not support.

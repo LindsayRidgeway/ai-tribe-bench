@@ -2078,7 +2078,9 @@ async function appendToChapter(name, file, text, message){
 }
 
 async function archiveTurns(name, msgs){
-  const mine = (msgs || []).filter(b => !b.tool && String(b.content || '').trim());
+  // `filed` is set on the turns a filing has already put in the chapter. Without it, a failure *after* the chapter
+  // and before the window is cleared would put the same talk in twice when the person pressed the button again.
+  const mine = (msgs || []).filter(b => !b.tool && !b.filed && String(b.content || '').trim());
   if (!mine.length) return;
   const ch = await currentChapter(name);
   await appendToChapter(name, ch.file,
@@ -2249,14 +2251,27 @@ async function fileConversation(name){
       `a "## ${nowStamp()} — attended session (the keeper present)" line, then what was asked, what you ` +
       `decided, what is still open. Two short paragraphs at most. Write only the entry, nothing before it.`,
       [{role:'user', content: transcript}], m.engine, (d) => { entry += d; });
+    // The talk itself, before the window that holds it is emptied. Until 2026-11-12 the order was the other way
+    // round — `S.chat[name] = []` and then `saveThread`, which files only the turns that fall out of the window —
+    // so filing a conversation wrote no chapter at all, and the one case a chapter must exist was the one case it
+    // was not written (Gwen's #9). The turns in the page are the only copy of this talk that exists anywhere, so
+    // the chapter is appended before the window is touched: if this fails, nothing has been cleared and pressing
+    // the button again is safe.
+    say('keeping the talk itself in its chapter…');
+    await archiveTurns(name, convo);
+    // Marked rather than assumed: if the journal write below fails, the person presses again and the chapter gets
+    // the entry, not a second copy of a talk it already holds.
+    convo.forEach(b => { b.filed = 1; });
+    save();
     const path = `wake/members/${name}/state/journal.md`;
     const cur = await fileText(path);
     const text = cur.text.replace(/\s*$/, '\n') + '\n' + entry.trim() + '\n';
     await putText(path, text, `journal: ${name} — a conversation filed by the member`, cur.sha);
-    say('filed. It is in its journal now.');
     S.chat[name] = [];
     save();
     try { await saveThread(name); } catch(e){}
+    const kept = (await chapterFiles(name)).length;
+    say(`filed. The talk is kept in chapter ${kept}, and the entry is in its journal.`);
     await loadMembers();
     render();
   } catch(e){ say(''); const e2 = $('mmsg'); if (e2) e2.innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }

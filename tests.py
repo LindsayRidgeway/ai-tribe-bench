@@ -4120,6 +4120,28 @@ class TestTheAdminIsAConversation(unittest.TestCase):
         self.assertNotIn("--place", a._argv())
 
 
+class ThePageIsCheckedByDrivingIt(unittest.TestCase):
+    """`ait.html` is the whole product for everybody who does not use a terminal, and until 2026-11-12 no test
+    touched it: every claim about the page was a claim about a browser session somebody had watched. Gwen's #9 —
+    filing a conversation emptied the window and wrote no chapter, so the one case a chapter must exist was the
+    one case it was not written — lived in that gap, which is why she could find it and the suite could not.
+
+    The check itself is `lab/page-check.mjs`: it reads the shipped `ait.html`, runs its script in a fake browser,
+    and answers GitHub's contents API and one engine from memory. Nothing about the page is copied into it, so a
+    change to the page is a change to what is tested. Here it is run as one test, because the thing that must be
+    true is that `python3 tests.py` is enough.
+    """
+
+    def test_the_page_keeps_what_it_files(self):
+        node = shutil.which("node")
+        if not node:
+            self.skipTest("node is not installed here, so the page's own checks did not run — on this machine "
+                          "ait.html is untested, and this line is the only sign of it")
+        r = subprocess.run([node, str(REPO / "lab" / "page-check.mjs")],
+                           cwd=REPO, capture_output=True, text=True, timeout=120)
+        self.assertEqual(r.returncode, 0, "the page failed its own checks:\n" + r.stdout + r.stderr)
+
+
 class TheTemplateMustBeEnough(unittest.TestCase):
     """An installed tribe is a copy of a whitelist, so the whitelist has to be enough.
 
