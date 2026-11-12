@@ -1,0 +1,76 @@
+name: publish
+
+# Put AIT at https://ai-tribe.netlify.app from a runner instead of from the founder's laptop.
+#
+# Why this exists: publishing was the one step in the whole build that could only be done by hand, because
+# `netlify deploy` needs an account token and the founder's laptop was the only place it lived. That made
+# every change end at "ready to ship, needs him" — a queue with one server, and the queue was his evening.
+#
+# Credits, which is why the default is a preview: the free team holds 300 deploy credits a month, a
+# *production* deploy costs 15 of them (so twenty and the site pauses), and preview deploys are free. A
+# preview gives its own URL to test against. Promotion is therefore a second, deliberate press.
+#
+# The secret it needs, once: NETLIFY_AUTH_TOKEN on this repository (Settings -> Secrets and variables ->
+# Actions). It is a Netlify personal access token: User settings -> Applications -> Personal access tokens.
+# Nothing else in this repository uses it, and the deploy cannot read the repository's contents beyond the
+# checkout it already has.
+#
+# The site is not load-bearing: every tribe lives in its own repository, so if this site vanished no tribe
+# would notice. That is what makes a 15-credit press worth deciding rather than automating.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "preview (free) or prod (15 credits)"
+        type: choice
+        options: [preview, prod]
+        default: preview
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install the Netlify CLI
+        run: npm install -g netlify-cli@17
+
+      - name: Refuse early when there is no token
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+        run: |
+          if [ -z "$NETLIFY_AUTH_TOKEN" ]; then
+            echo "NETLIFY_AUTH_TOKEN is not set on this repository, so nothing was published." >&2
+            echo "Add it under Settings -> Secrets and variables -> Actions. See the header of this file." >&2
+            exit 1
+          fi
+
+      - name: Deploy
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: 5f4150cb-113b-4816-aad2-7d195df8bc8b
+        run: |
+          if [ "${{ inputs.mode }}" = "prod" ]; then
+            sh lab/deploy_netlify.sh --prod
+          else
+            sh lab/deploy_netlify.sh
+          fi
+
+      - name: Say what was published
+        run: |
+          echo "mode: ${{ inputs.mode }}"
+          echo "commit: $(git rev-parse --short HEAD)"
+          echo "a production deploy is the address; a preview deploy printed its own URL above."
