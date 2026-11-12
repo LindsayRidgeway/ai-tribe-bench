@@ -85,6 +85,11 @@ bookmarks and nothing goes with it.
 **What you should see after this minute:** the front page, an empty list of members, one button that says **Add a
 member**, and a line at the top saying the tribe is not running yet.
 
+**The name you typed is still there when GitHub sends you back.** You may fill the name in before signing in or
+after; the permission screen is a different site, and going to it and coming back does not throw away what the page
+had already been told. It is kept for that tab only — an install is one sitting, and a name typed on Tuesday has no
+business appearing in Friday's form.
+
 ## 4. Your first member
 
 Press **Add a member**. AIT asks, one question at a time, and waits.

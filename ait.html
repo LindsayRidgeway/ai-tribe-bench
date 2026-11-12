@@ -729,6 +729,12 @@ const FN = (name) => '/.netlify/functions/' + name;
 let OAUTH = '';          // a token obtained by signing in, not yet used for an install
 let WANT = '', WANT_WHY = '';   // a tribe named in a link that this browser could not open, and why
 
+// The name a person typed on the install page before they signed in. Kept in sessionStorage, which lives as long
+// as the tab: an install is one sitting, and a name typed on Tuesday has no business appearing in Friday's form.
+function keptName(){
+  try { return sessionStorage.getItem('ait.name') || ''; } catch(_){ return ''; }
+}
+
 function signIn(where){
   // The redirect URI is the one registered on the OAuth app, so it is not passed here: GitHub sends
   // the browser back to the site itself, whatever page it started from.
@@ -736,7 +742,14 @@ function signIn(where){
   u.searchParams.set('client_id', GH_CLIENT);
   u.searchParams.set('scope', 'repo');
   u.searchParams.set('state', where + '.' + Math.random().toString(36).slice(2, 10));
-  try { sessionStorage.setItem('ait.state', u.searchParams.get('state')); } catch(_){}
+  try {
+    sessionStorage.setItem('ait.state', u.searchParams.get('state'));
+    // The name typed before signing in costs a person a keystroke, and the round trip through GitHub is a full page
+    // load that would otherwise throw it away — the field came back as "my-tribe" under a page that had just been
+    // told otherwise. Found by the founder on the live page, 2026-11-11: "it's ignored, and you have to type it on
+    // the next page." Saved here and read by keptName(); nothing else about it is remembered anywhere.
+    if (where === 'install'){ const n = $('tname'); if (n) sessionStorage.setItem('ait.name', n.value); }
+  } catch(_){}
   location.href = u.toString();
 }
 
@@ -849,7 +862,7 @@ function viewInstall(main){
       <div class="n">2</div>
       <div class="b">
         <h3>What to call it</h3>
-        <input id="tname" value="my-tribe" autocapitalize="off" spellcheck="false">
+        <input id="tname" value="${esc(keptName() || 'my-tribe')}" autocapitalize="off" spellcheck="false">
         <p class="small muted" style="margin:6px 0 0">Your repository will be <code id="tpath">github.com/YOUR-ACCOUNT/my-tribe</code>,
         and it will be private. You never have to open it. Your link afterwards is this same page, pointed at it.</p>
       </div>
@@ -958,6 +971,8 @@ function viewInstall(main){
       try { history.replaceState(null, '', location.pathname + '?tribe=' + S.repo); } catch(_){}
       const ms = await loadMembers().catch(() => []);
       OAUTH = '';
+      // The name has been used; the next install in this tab starts from the default rather than from this one.
+      try { sessionStorage.removeItem('ait.name'); } catch(_){}
       msg.textContent = `Installed. ${ms.length} member${ms.length === 1 ? '' : 's'} — the tribe is empty on purpose.`;
       $('done').hidden = false;
       place();
