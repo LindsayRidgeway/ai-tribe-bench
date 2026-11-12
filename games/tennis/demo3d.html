@@ -573,7 +573,7 @@ const WINPOS = {};
 function whereAt(name, T) {
   const moves = PLAN[name] || [];
   const start = (D.start.find(s => s.name === name) || { at: [0, WID / 2] }).at;
-  let pos = start, moving = false, travelled = 0;
+  let pos = start, moving = false, travelled = 0, dir = null;
   for (const m of moves) {
     const d = Math.hypot(m.to[0] - m.from[0], m.to[1] - m.from[1]);
     if (T >= m.t1) { pos = m.to; travelled += d; }
@@ -581,13 +581,16 @@ function whereAt(name, T) {
       const k = (T - m.t0) / Math.max(0.05, m.t1 - m.t0);
       pos = [m.from[0] + (m.to[0] - m.from[0]) * k, m.from[1] + (m.to[1] - m.from[1]) * k];
       travelled += d * k;
+      // the direction of travel, which is the direction the body turns to: a player moving anywhere other than
+      // straight back from the middle of their own baseline turns and runs, they do not reverse into the court
+      if (d > 0.5) dir = [(m.to[0] - m.from[0]) / d, (m.to[1] - m.from[1]) / d];
       moving = true; break;
     } else break;
   }
   // the gait's phase is the ground covered, integrated over the planned runs, so scrubbing backwards and
   // jumping to a shot both put the legs where they belong. A phase counted frame by frame would only be right
   // in continuous play, which is the one case a still cannot show.
-  return { pos, moving, travelled };
+  return { pos, moving, travelled, dir };
 }
 function cams(sh, dur) {
   // One camera holds the whole POINT. A shot is not a point: the camera leaves the court only when the rally is
@@ -743,13 +746,39 @@ function tick(now) {
   for (const pl of D.players) {
     const rig = rigs[pl.body];
     if (!rig) continue;
-    const { pos, moving, travelled } = whereAt(pl.name, T);
+    const { pos, moving, travelled, dir } = whereAt(pl.name, T);
     rig.root.position.set(pos[0], 0, pos[1]);
-    // the body is built facing +Z; a north player faces +X, a south player faces -X
-    rig.root.rotation.y = pl.north ? Math.PI / 2 : -Math.PI / 2;
+    // The body is built facing +Z; a north player faces +X, a south player faces -X.
+    //
+    // Facing the net is the default and it is wrong whenever the player is going anywhere: the founder,
+    // 2026-11-11 — "Your players always back into the backcourt. That only happens from right in front of the
+    // center of the baseline. From any other stroke, the player will turn their body in the direction that they
+    // are running." Until now the yaw was fixed at the net for the whole match, so every recovery was a
+    // back-pedal and every chase was a crab walk, whatever the feet were doing.
+    //
+    // So: turn towards the direction of travel, except in the one case where backing up is the shot — moving
+    // away from the net while standing on the middle of the baseline — and except while striking, where the body
+    // is square to the net by definition. The turn is rate-limited, because a body turning 90 degrees in one
+    // frame is a puppet on a stick.
+    const netYaw = pl.north ? Math.PI / 2 : -Math.PI / 2;
+    let yaw = netYaw;
+    if (moving && dir && !(sh.player === pl.name && tl < 0.45)) {
+      const towardNet = pl.north ? 1 : -1;
+      const along = dir[0] * towardNet;                       // > 0 is towards the net
+      const onTheMiddle = Math.abs(pos[1] - WID / 2) < 6.0 &&
+                          Math.abs(pos[0] - (pl.north ? 0 : LEN)) < 12.0;
+      if (!(along < -0.5 && onTheMiddle)) yaw = Math.atan2(dir[0], dir[1]);
+    }
+    if (rig.yaw === undefined) rig.yaw = yaw;
+    let dy = ((yaw - rig.yaw + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
+    rig.yaw += dy * 0.22;
+    rig.root.rotation.y = rig.yaw;
 
     // one cycle of the gait is two steps, and a step is about 0.42 of the figure's own height
     const phase = 2 * Math.PI * (travelled / (0.84 * Math.max(4.0, rig.height)));
+    if (q.has("debug")) console.log("debug yaw", pl.name, "moving", moving,
+      "dir", dir ? dir.map(v => v.toFixed(2)).join(",") : "-", "yaw", (rig.root.rotation.y).toFixed(2),
+      "net", (pl.north ? Math.PI / 2 : -Math.PI / 2).toFixed(2));
     if (q.has("debug")) console.log("debug legs", pl.name, "moving", moving, "travelled", travelled.toFixed(2),
       "phase", phase.toFixed(2), "thigh", rig.bones["thighL"] ? rig.bones["thighL"].rotation.x.toFixed(3) : "MISSING");
     // Whose ball is it? The hitter struck at this segment's first frame, so the swing is already past contact and

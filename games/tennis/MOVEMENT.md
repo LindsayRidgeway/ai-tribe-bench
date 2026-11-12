@@ -165,7 +165,29 @@ After: **12 of 91 consecutive shots within 8ft** (9–16% depending on the run, 
 rate, which is worse than the aiming rate because two aiming points 20ft apart can land close by error). Same side
 of the court twice in a row: 32% of pairs, and one rally in sixty reached three in a row.
 
-## 7. What is still wrong
+## 7. Which way the body faces
+
+The founder, 2026-11-11: "Your players always back into the backcourt. That only happens from right in front of
+the center of the baseline. From any other stroke, the player will turn their body in the direction that they are
+running."
+
+The yaw of the body was fixed at the net for the whole match — one line, set once from which end the player was
+at — so every recovery was a back-pedal and every chase was a crab walk, whatever the feet were doing. `whereAt`
+now returns the direction of travel and the body turns to it, with three exceptions:
+
+- **back-pedal**: moving away from the net while standing on the middle of the own baseline, which is the one
+  place the founder allows it;
+- **striking**: square to the net, for the first half-second of the stroke;
+- **standing still**: facing the net, which is what a player waiting for the ball does.
+
+The turn is rate-limited at about a tenth of a second, because a body that snaps through ninety degrees in one
+frame is a puppet on a stick. Verified with `?debug`: a player running direction (0.38, −0.93) carries a yaw of
+2.76 rad against a net-facing 1.57, and a player striking at the same instant holds the net.
+
+Not done: the legs still walk *forward* during a back-pedal, which is a moonwalk. Reversing the stride is the next
+thing on this list, and it is small.
+
+## 8. What is still wrong
 
 - **A volley at a deep corner goes long.** Three of the seven in the sample above missed; the corner margin for
   a groundstroke is applied unchanged to a ball struck from 6ft from the net, where the same angle error covers
