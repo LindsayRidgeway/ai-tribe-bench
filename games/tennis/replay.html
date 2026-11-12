@@ -310,7 +310,8 @@ function whereAt(name, T){
     const from = (sw && m.t0 < sw.t) ? sw.to : m.from;
     if (T >= m.t1) pos = m.to;
     else if (T > m.t0){
-      const k = (T - m.t0) / Math.max(0.05, m.t1 - m.t0);
+      const u = (T - m.t0) / Math.max(0.05, m.t1 - m.t0);
+      const k = u*u*(3-2*u);          // ease in and out: see replay3d.html — a body does not start at 11ft/s
       return [from[0] + (m.to[0]-from[0])*k, from[1] + (m.to[1]-from[1])*k];
     } else break;
   }

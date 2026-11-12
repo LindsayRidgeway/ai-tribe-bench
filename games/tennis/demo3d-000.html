@@ -151,17 +151,19 @@ function courtTexture() {
   const cv = document.createElement("canvas");
   cv.width = (LEN + pad * 2) * px; cv.height = (WID + ALLEY * 2 + pad * 2) * px;
   const g = cv.getContext("2d");
-  // Two shades of the one clay, and the lighter one is exactly the doubles rectangle: the boundary is the outer
-  // white line, not a shape of its own. The founder, 2026-11-12: "Real courts don't have such a two-color floor,
-  // and if they did, the distinguishing color would all be inside the white lines... if you're going to keep it,
-  // I would keep the lighter color inside the white lines." It was 0.62 of the clay, which read as a different
-  // material — a platform the court was sitting on. 0.82 keeps the court bounded without inventing a surface.
+  // Two shades of the one clay, and the lighter one is exactly the doubles rectangle: the boundary is the white
+  // lines, not a shape of its own. The founder, 2026-11-12: "Real courts don't have such a two-color floor, and if
+  // they did, the distinguishing color would all be inside the white lines." It was 0.62 of the clay, which read
+  // as a different material — a platform the court was sitting on — and it ran 4.5ft past each baseline, where
+  // there is no line to end it: "The spill wasn't on the sides, it was behind the baselines at both ends of the
+  // court." Both are fixed here: 0.82 of the clay, and the light rectangle is the doubles court exactly, from
+  // baseline to baseline and doubles sideline to doubles sideline, so every edge of it is a line.
   const dark = `rgb(${CLAY.map(v => Math.round(v * 0.82)).join(",")})`;
   g.fillStyle = dark; g.fillRect(0, 0, cv.width, cv.height);
   g.translate(pad * px, (pad + ALLEY) * px);
   // the playing surface is the doubles width; the singles court is a set of lines on it, not a different colour
   g.fillStyle = `rgb(${CLAY.join(",")})`;
-  g.fillRect(-ALLEY * px, -ALLEY * px, (LEN + ALLEY * 2) * px, (WID + ALLEY * 2) * px);
+  g.fillRect(0, -ALLEY * px, LEN * px, (WID + ALLEY * 2) * px);
   g.strokeStyle = "rgba(248,246,238,.95)"; g.lineWidth = 0.30 * px; g.lineCap = "butt";
   const line = (x0, y0, x1, y1) => { g.beginPath(); g.moveTo(x0 * px, y0 * px); g.lineTo(x1 * px, y1 * px); g.stroke(); };
   const top = -ALLEY, bot = WID + ALLEY;
@@ -616,6 +618,7 @@ function reachTo(rig, lead, ball, tTo) {
    the bone a little and see whether the top of the head moved forwards or backwards. Done once per body and kept
    on the bone. */
 const _hq = new THREE.Quaternion(), _hx = new THREE.Vector3(1, 0, 0), _hn = new THREE.Vector3(0, 1, 0);
+const _readyAim = new THREE.Vector3();
 function nodSign(rig, fwd) {
   const b = rig.bones["head"]; if (!b) return 1;
   if (b.userData.nodSign !== undefined) return b.userData.nodSign;
@@ -705,7 +708,12 @@ const WINPOS = {};
     const dur = Math.max(0.35, sh.path.length * TRACE);
     // A shot in the middle of a rally gets a beat before the next one starts; the shot that ends the rally gets
     // the point board, the pause, and then a couple of seconds on the player, which is what the 3.8 is for.
-    let hold = (LASTN[sh.rally] === sh.n && POINT[sh.rally]) ? 1.2 : 0.55;
+    // 0.12s, not 0.55: a beat between shots is a beat in the BALL's timing, and half a second of it was half a
+    // second in which both players stood still with the ball parked on the racquet. Measured across one of those
+    // beats: both bodies between 0.0 and 0.6ft/s for 0.35s, then a jump to 10.6 and 21.5ft/s. The founder,
+    // 2026-11-12: "movement of the players at the time they strike the ball is still not continuous, there's still
+    // a pause that doesn't occur in real life."
+    let hold = (LASTN[sh.rally] === sh.n && POINT[sh.rally]) ? 1.2 : 0.12;
     const seg = { sh, start: t, dur, hold, cams: cams(sh, dur) };
     if (LASTN[sh.rally] === sh.n && POINT[sh.rally]) seg.point = POINT[sh.rally];
     SEG.push(seg);
@@ -774,7 +782,13 @@ function whereAt(name, T) {
     const d = Math.hypot(m.to[0] - from[0], m.to[1] - from[1]);
     if (T >= m.t1) { pos = m.to; travelled += d; }
     else if (T > m.t0) {
-      const k = (T - m.t0) / Math.max(0.05, m.t1 - m.t0);
+      // Smoothstep and not a straight line. A body does not go from standing to 11ft/s between one frame and the
+      // next, and a linear interpolation does exactly that at the start of every move: measured at a strike, the
+      // recovery began at 11.1ft/s while the frame before it showed 0.6. Easing in and out keeps the endpoints —
+      // the walk still arrives where the record says, when it says — and gives every move a beginning and an end
+      // instead of a switch.
+      const u = (T - m.t0) / Math.max(0.05, m.t1 - m.t0);
+      const k = u * u * (3 - 2 * u);
       pos = [from[0] + (m.to[0] - from[0]) * k, from[1] + (m.to[1] - from[1]) * k];
       travelled += d * k;
       // the direction of travel, which is the direction the body turns to: a player moving anywhere other than
@@ -917,13 +931,19 @@ function tick(now) {
     for (const s2 of SEG) s2.announced = false;
   }
   seg = shotAt(T);
-  const tl = T - seg.start;
+  // Two clocks. `tl` stops at the end of the shot, because the hold is a beat in the RECORD's timing, not an
+  // instruction to keep drifting: the poses are all written against a time-to-contact that has already happened,
+  // so past the end of the shot they were still evaluating — and reachTo's lean, which fades 0.5s either side of
+  // a strike, faded OUT across the hold and then snapped back in at the next strike. Measured across a boundary:
+  // the racquet head moved at 103ft/s in a single frame. `tlRaw` is for the things that happen IN the hold.
+  const tlRaw = T - seg.start;
+  const tl = Math.min(tlRaw, seg.dur);
   const sh = seg.sh;
-  const onCut = seg.cams.length > 1 && tl >= seg.cams[1].at;
+  const onCut = seg.cams.length > 1 && tlRaw >= seg.cams[1].at;
 
   // camera
   let cam = seg.cams[0].cam;
-  for (const c of seg.cams) if (tl >= c.at) cam = c.cam;
+  for (const c of seg.cams) if (tlRaw >= c.at) cam = c.cam;
   if (q.has("cam")) {
     const mode = q.get("cam");
     if (mode === "hit") {
@@ -977,7 +997,7 @@ function tick(now) {
     let walking = false, dpass = null, otherPos = null;
     if (seg.settle) {
       const mine = seg.settle.players.find(w => w.name === pl.name);
-      const rel = tl - seg.dur;                             // seconds into the break
+      const rel = tlRaw - seg.dur;                          // seconds into the break
       if (mine && mine.legs.length && rel >= mine.legs[0].t0 - 0.02 && rel <= mine.t1 + 0.02) walking = true;
       if (seg.settle.pass) {
         dpass = rel - seg.settle.pass.t;
@@ -1039,7 +1059,15 @@ function tick(now) {
     // decays; the receiver has been waiting and winds up as the ball arrives, which the record knows to the frame
     // because it knows the flight time.
     const isHitter = sh.player === pl.name;
-    const isReceiver = !!(sh.run && sh.run.player === pl.name);
+    // A receiver is not the only player who has to prepare. The take-back was tied to `run`, so a ball that came
+    // straight at somebody — no run needed — produced NO wind-up at all: the frame sat in the ready position until
+    // the next segment began and then appeared on the ball in one frame. Measured at the boundary before that shot:
+    // the racquet head moved at 103.5ft/s for a single frame while the body was at 0.6ft/s, which is the hiccup the
+    // founder described as "a pause that doesn't occur in real life". `isReceiver` now means only "this player is
+    // the one the ball is going to", which is who the record's next shot belongs to.
+    const isReceiver = !!(AFTER[sh.n] && AFTER[sh.n].rally === sh.rally && AFTER[sh.n].player === pl.name
+                          && AFTER[sh.n].player !== sh.player);
+    const isRunner = !!(sh.run && sh.run.player === pl.name);
     // A backhand is the same stroke played from the other side of the body, so the shoulders turn the other
     // way and the other arm leads. The record now says which it is (sh.hand), because the engine has always
     // known which side of the court the contact was on and never wrote it down.
@@ -1054,7 +1082,13 @@ function tick(now) {
     // founder's point of 2026-11-11, and the reason a beginner's mishits are mishits rather than bad aims.
     const w = Math.max(0.18, 0.55 - 0.30 * rush);
     const ramp = isReceiver ? Math.max(0, Math.min(1, (tl - (seg.dur - w)) / w)) : 0;
-    const windup = Math.max(ramp, isReceiver ? (1 - rush) : 0);
+    // ...and it takes a quarter of a second to get there. `1 - rush` is how much of a take-back this player has,
+    // and it was applied at full value on the segment's FIRST frame, so the arm and the frame went from the ready
+    // position to the wind-up between one frame and the next: measured, the racquet head at 102ft/s for a single
+    // frame. A player who is going to strike reaches back over about a quarter second, which is what `tl / 0.28`
+    // is, and a rushed player still gets less of it because `1 - rush` is still the ceiling.
+    const _wu = Math.max(0, Math.min(1, tl / 0.28));
+    const windup = isReceiver ? Math.min(1 - rush, Math.max(ramp, _wu * _wu * (3 - 2 * _wu))) : 0;
     // The shoulders turn something like the direction the ball is being hit in, and the two halves of the founder's
     // note of 2026-11-11 live here and three lines down: the coil turns away from the ball on the take-back, the
     // release turns *through towards the target*, and on a backhand that is the whole look of the stroke — the
@@ -1176,8 +1210,15 @@ function tick(now) {
         .addScaledVector(fwdW, back ? 0.45 : 0.55);
       fin.y = chestW.y + (back ? 1.05 : 1.45);
       const done = Math.min(1, tl / 0.17);                                  // into the finish
-      const relax = Math.max(0, Math.min(1, (tl - 0.17) / 0.33));           // and back out of it
-      placeRacquet(rig, ball.clone().lerp(fin, done).lerp(wait, relax), _face);
+      // ...and back out of it by the END OF THIS SHOT, not half a second after it. The relax used to take 0.5s,
+      // which the old 0.55s beat between shots hid; with the beat gone the arm was still up in the finish when the
+      // next shot began, and the frame dropped 1.5ft between one frame and the next.
+      const relax = Math.max(0, Math.min(1, (tl - 0.17) / Math.max(0.14, seg.dur - 0.17)));
+      // The pose it relaxes into is the ready pose, the same one the other player is standing in: hand at `wait`,
+      // frame 0.70ft in front of it and 0.75ft up. It used to relax the frame onto `wait` itself, i.e. held straight
+      // above the hand, which is not a pose anybody stands in.
+      _readyAim.copy(wait).addScaledVector(_face, 0.70).addScaledVector(_up, 0.75);
+      placeRacquet(rig, ball.clone().lerp(fin, done).lerp(_readyAim, relax), _face);
       if (q.has("debug")) {
         const hR = rig.bones["handR"], hL = rig.bones["handL"], d = v => (v ? v.getWorldPosition(new THREE.Vector3()).distanceTo(ball) : NaN);
         const head = rig.racquet
@@ -1251,7 +1292,15 @@ function tick(now) {
       handTake.y = Math.max(chest.y + 0.30, 0.85 * H);
       headPrep.copy(handPrep).addScaledVector(prepDir, 1.70);
       headTake.copy(handTake).addScaledVector(takeDir, 1.70);
-      const prep = readyHand.clone().lerp(handPrep, windup);           // a beginner never gets here
+      // Where the hand IS, not where a chest-relative point says it should be. The ready pose is made twice in this
+      // file — once as angles, by arms(), and once by the arm solver aiming at `readyHand` — and the two do not
+      // agree: 1.3ft apart, measured, at the first frame of a shot, when the pose switches from one construction to
+      // the other and the racquet head leaves at 33ft/s. Starting the blend from the hand's own position makes the
+      // two constructions meet.
+      // `wait` and not the hand's current position: the angular ready pose and the solved one are 1.5ft apart, and
+      // the hand's current position is the angular one because arms() has just run. `wait` is the point the hitter
+      // relaxes to and the point the standing player is now solved to, so all three agree.
+      const prep = wait.clone().lerp(handPrep, windup);           // a beginner never gets here
       if (isReceiver) {
         // When, not whether: the take-back happens in the last half-second of the ball's flight, and the swing
         // from there to the ball in the last of it, ending exactly on the frame the next shot starts on. A rushed
@@ -1295,6 +1344,10 @@ function tick(now) {
             `miss ${h.distanceTo(hand).toFixed(2)}`);
         }
       } else {
+        // Solved to the hand's own ready point, exactly as the hitter's arm is solved to it when the stroke relaxes.
+        // The pose used to be made two ways — angles here, IK there — and the two answers were 1.3ft apart, so the
+        // racquet left at 33ft/s whenever the picture switched from one to the other.
+        solveArm(rig, wait, "R");
         placeRacquet(rig, readyAim, _face);
       }
     }
@@ -1352,7 +1405,7 @@ function tick(now) {
   // ...but not across the whole break any more: the walk between points is now the picture, and he asked to see
   // it. The board is up for the first second and a half of the break, which is as long as it takes to read, and
   // then the court gets its players back.
-  const deepInBreak = !!(seg.settle && tl > seg.dur + 1.8);
+  const deepInBreak = !!(seg.settle && tlRaw > seg.dur + 1.8);
   const showSign = !!(seg.point && (onCut || signAlways) && !deepInBreak);
   el("sign").className = showSign ? "on" : "";
   if (showSign) {

@@ -649,3 +649,50 @@ whole body into the ball and reaching its full value at the contact frame — co
 instantaneously because the segment begins at the strike. The receiver's lean ramps in over the flight (their
 preparation is in the previous shot's segment); the striker's does not, because the striker's take-back is still
 unbuilt. Fixing it is the same job as building the take-back, and it is on the list below.
+
+### The pause at the strike — found 2026-11-12
+
+The founder, after the walks: "movement of the players at the time they strike the ball is still not continuous,
+there's still a pause that doesn't occur in real life." He was right and the previous measurement could not see
+it: "no two consecutive frames are identical" only rules out a body at complete rest, and the idle sway kept every
+frame different while both players stood on the same two feet.
+
+Measured properly — body speed and racquet-head speed, clock stepped every 40ms — one shot in rally 7:
+
+| t | body | racquet head |
+| --- | --- | --- |
+| 64.7-64.9 | 0.1-0.5ft/s | 0.1-0.9ft/s |
+| 65.0 (next shot) | **8.6ft/s in one frame** | **103ft/s in one frame** |
+
+Four separate faults, all inside the same second:
+
+1. **The beat between shots was 0.55s of nobody moving.** Both bodies at 0.1-0.6ft/s — the idle sway, which is a
+   body standing — with the ball parked on the racquet. Now 0.12s.
+2. **The pose kept running during that beat.** `tl` was `T - seg.start` with no clamp, so through the beat the
+   strike's own clock ran on past the shot: `reachTo`'s lean fades out half a second either side of a strike, so it
+   faded during the beat and snapped back on at the next one. `tl` now stops at the end of the shot, and `tlRaw`
+   is used for the things that genuinely happen during the beat.
+3. **Only a player who had to RUN prepared at all.** The take-back was gated on `run`, so a ball that came straight
+   at somebody produced no wind-up: the frame sat at the shoulder and then appeared on the ball. The gate is now
+   "the next shot in this rally is yours", whichever way the ball came at you.
+4. **The ready pose was made two different ways** — as angles by `arms()`, and by the arm solver aiming at a
+   chest-relative point — and the two answers are 1.5ft apart, so the frame jumped whenever the picture switched
+   from one to the other. All three poses (standing, waiting, and the hitter relaxing out of the finish) now go to
+   the same point, and the hitter's relax is timed to finish by the end of their own shot rather than half a second
+   after it.
+
+And every move now eases: `whereAt` interpolates with a smoothstep instead of a straight line, so no body goes from
+standing to 11ft/s between one frame and the next. Measured after: at the same boundary the striker's body goes
+0.5 → 2.5 → 9.9 → 14.5 → 16.6ft/s, and the racquet head 0.9 → 25 → 17.9 (it is a swing now, not a teleport).
+
+**What is left:** the first frame of a take-back still moves the frame about 1ft (25ft/s) as the wind-up starts.
+Smaller than what it replaced and in the same family: the stroke has no continuous take-back yet, which is the next
+item on this list.
+
+### The floor, once more — 2026-11-12
+
+The founder, on the two shades of clay: "The spill wasn't on the sides, it was behind the baselines at both ends of
+the court and it's still there." Correct, and the earlier fix did not touch it: the lighter rectangle was the
+doubles court plus `ALLEY` at each end, so 4.5ft of light clay sat behind each baseline with no line to end it. It
+is now exactly the doubles court — baseline to baseline, doubles sideline to doubles sideline — so every edge of
+the lighter shade is a white line.
