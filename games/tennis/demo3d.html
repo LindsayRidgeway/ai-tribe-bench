@@ -102,7 +102,33 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
-const D = JSON.parse(document.getElementById("script").textContent);
+/* Where the record comes from. Dmitri's setup contract (`games/tennis/SETUP.md` §4) has three ways of getting a
+   season's play onto this screen, and the one that costs nobody anything is this one: the page FETCHES the record,
+   so a season folder holds a JSON file and every season links to the same viewer. The baked copy stays as the
+   fallback, which is what the three demo films are and what a page opened from disk still shows.
+
+   `?record=../seasons/2026-spring/rally.json` — relative to this page, so the season folder is the unit that gets
+   moved or linked to, not the player. */
+const QS = new URLSearchParams(location.search);
+const REC = QS.get("record");
+const D = REC ? await (await fetch(REC)).json()
+              : JSON.parse(document.getElementById("script").textContent);
+
+/* Where the appearance comes from — the other half of the same contract. `SETUP.md` §2 has the Play page write
+   `players.json` and §3 has the runner copy the resolved file into the season as `setup.json`, so the season folder
+   is the unit: a record at `seasons/<season>/rally.json` is assumed to have its provenance copy beside it, and the
+   copy is what this page reads, not the live file — a season's picture has to be the season that was played.
+   `?setup=<url>` overrides, and a missing file is not an error: the three demo films have none and nothing else
+   changes, because every field here has a sensible absence. */
+const SETUP = QS.get("setup") || (REC ? REC.replace(/[^/]*$/, "") + "setup.json" : null);
+const LOOK = {};
+if (SETUP) {
+  try {
+    const S = await (await fetch(SETUP)).json();
+    for (const p of S.players || []) LOOK[p.name] = p.look || {};
+    if (QS.has("debug")) console.log("debug setup", SETUP, JSON.stringify(LOOK));
+  } catch (e) { console.warn("no setup beside the record:", SETUP); }
+}
 const C = D.court, LEN = C.length, WID = C.width, NX = C.net_x;
 /* The doubles alley. It is painted and never judged: every ball in this film is judged against the 27ft singles
    court, and the two extra sidelines 4.5ft outside it are the ones a doubles match would use. The founder,
@@ -294,13 +320,58 @@ const rigs = {};
 const fail = msg => { const e = document.getElementById("err"); e.style.display = "grid";
   e.innerHTML = msg; document.getElementById("tl").style.display = "none"; };
 
+/* The .glb carries three materials and no more — `skin`, `hair`, `kit` — in both bodies, which is exactly the shape
+   `look` asks for. So the setup page's three swatches are a one-to-one map onto the file rather than a guess about
+   which material is "the shirt". Materials are cloned per member: the loader shares one material across the
+   primitives of a .glb, and a colour should be a property of the player rather than of the file on disk. */
+function paint(root, L) {
+  const want = { skin: L.skin, hair: L.hair, kit: L.kit };
+  root.traverse(o => {
+    if (!o.isMesh || !o.material) return;
+    const one = m => {
+      const hex = want[m.name];
+      if (!hex) return m;
+      const c = m.clone();
+      c.color = new THREE.Color(hex);
+      return c;
+    };
+    o.material = Array.isArray(o.material) ? o.material.map(one) : one(o.material);
+  });
+}
+
 async function loadBodies() {
   for (const name of NEED) {
     const gltf = await loader.loadAsync(`bodies/${name}.glb`);
     const root = gltf.scene;
     root.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+
+    /* `look` is the only thing in Dmitri's setup file that the renderer owns, so this is the only place it is spent.
+       Four of its fields are cheap and are applied here; two are not, and §5 of SETUP.md now says so.
+
+       height_m — the body is scaled so the TOP OF THE HEAD lands on the number asked for. Measured, not assumed:
+       the .glb's own height is read off the model first, because body.py may be built at any height and a season
+       that asks for 1.72 must get 1.72 whether the file was built at 1.60 or 1.90. `height` in the rig below is
+       measured AFTER scaling, so the stride rule (0.42 of height per step) follows the member, not the file.
+
+       build — a multiplier on GIRTH, on X and Z and not on Y, so a heavier member is wider and not taller. The body
+       is built facing +Z, so those are the two axes across it.
+
+       skin / hair / kit — the three materials gwen.glb and dmitri.glb actually carry. One-to-one with the three
+       colours the setup page offers, which is why the page can offer exactly those. Nothing is interpreted.
+
+       Not applied, deliberately: `lower` (skirt/shorts/none) is garment GEOMETRY — the clothing is part of the
+       `kit` primitive, so changing it means rebuilding the .glb in Blender, not tinting it here. And `hand` is not
+       an appearance field at all: the record decides which side every ball is struck from, and a renderer that
+       reversed it would draw the right picture of a different player. Both are answered in SETUP.md §6. */
+    const mem = D.players.find(p => p.body === name) || {};
+    const L = LOOK[mem.name] || {};
+    paint(root, L);
+    const natural = new THREE.Box3().setFromObject(root).getSize(new THREE.Vector3()).y;  // metres, scale 1
+    const want = (L.height_m || natural) * 3.28084;                                      // feet, top of head
+    const s = want / natural;                                                            // feet per metre
+    const b = L.build || 1;
     // the .glb is already Y-up (the exporter converts), and it is in METRES while the court is in FEET.
-    root.scale.setScalar(3.28084);
+    root.scale.set(s * b, s, s * b);
     scene.add(root);
     const bones = {};
     // glTF strips the dots out of node names, so Blender's "thigh.L" arrives as "thighL". Every lookup in this
@@ -330,7 +401,10 @@ async function loadBodies() {
     // the feet the court is measured in; built in feet and left in the scene it is 27in long, as it should be.
     const rac = buildRacquet();
     scene.add(rac);
-    rigs[name] = { root, bones, height: box.max.y - box.min.y, racquet: rac };
+    // `look.racquet` is a boolean about the picture, not about the tennis: a member who does not want to see one is
+    // shown without one, and the record's own racquet positions still cost nothing, because they are a placement.
+    if (L.racquet === false) rac.visible = false;
+    rigs[name] = { root, bones, height: box.max.y - box.min.y, racquet: rac, look: L };
     if (q.has("debug")) console.log("debug bones", name, Object.keys(bones).join(","), "height", rigs[name].height.toFixed(2),
       "| upperarmR is", bones["upperarmR"] && (bones["upperarmR"].type || "?"), "| handR is", bones["handR"] && (bones["handR"].type || "?"),
       "| handL is", bones["handL"] && (bones["handL"].type || "?"));

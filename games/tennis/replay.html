@@ -79,7 +79,18 @@
 <script type="application/json" id="script">__SCRIPT__</script>
 <script>
 "use strict";
-const D = JSON.parse(document.getElementById("script").textContent);
+// The record may be fetched rather than baked: ?record=../seasons/<season>/rally.json (see replay3d.html).
+// This page is a plain script and not a module, so there is no top-level await, and the rest of the file is written
+// as top-level statements that cannot be wrapped in a callback without moving every one of them. A synchronous
+// request is the ugly answer and the right one here: it is a viewer, it is one file, and it keeps the page's shape.
+const _recSrc = new URLSearchParams(location.search).get("record");
+let D;
+if (_recSrc) {
+  const _x = new XMLHttpRequest(); _x.open("GET", _recSrc, false); _x.send();
+  D = JSON.parse(_x.responseText);
+} else {
+  D = JSON.parse(document.getElementById("script").textContent);
+}
 const C = D.court, L = C.length, W = C.width, NX = C.net_x;
 // The doubles alley: painted, never judged. 27ft is the court this film plays on; the extra 4.5ft each side is
 // what a real court carries for doubles (founder, 2026-11-12).
