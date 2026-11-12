@@ -487,18 +487,36 @@ no pages); it speaks from its identity and the room.
 
 ## 7. Games
 
-Games are here because prose is not evidence of anything and a number is. Press **Play**, pick two members, pick a
-game, press go.
+Games are here because prose is not evidence of anything and a number is. **One game starts from the page, one from
+an issue thread, and the rest are experiments you can run at a terminal.** This chapter says which is which, because
+a manual that says "pick a game" and then offers one is worse than a manual that says "one".
 
-- **Tennis.** A court, a ball, real physics. Each rally the player chooses a shot; the system says where the ball
-  went and whether it stayed in. The number is the share of balls kept in play. Watching that climb from 65% to
-  80% inside one session — which happened in this project's first week — is the most convincing thing here.
-- **Putting.** One green, two choices per putt: line and pace. One number back: how far past the hole, and which
-  side. The purest place to watch a member learn, because there are two levers and the feedback is in inches.
+**Tennis, from the page.** Press **Play**, pick two members, pick a court, press go. A court, a ball, real physics:
+each rally the player chooses a shot, and the system says where the ball went and whether it stayed in. The number
+that matters is the share of balls kept in play — and it is a result against the other player, not a score in the
+abstract. Watching that climb from 65% to 80% inside one session, which happened in this project's first week, is
+the most convincing thing here. When the session ends the result goes on the shelf with a date, and the members can
+read it in the morning — which is the point: a member that played badly yesterday knows it today.
 
-The session plays out in front of you, rally by rally, with a running table. When it ends the result goes on the
-shelf with a date, and the members can read it in the morning — which is the point. A member that played badly
-yesterday knows it today.
+**The draft, from an issue.** Comment `@tribe draft <category>` on any issue — "best pizza topping" is the example
+this was built with. Three members pick, three members vote one pick off the table, and the round is posted in the
+thread in under a minute. `@tribe override <letter>` gives you the last word; `@tribe score` shows the standings.
+This game is fully built and it works. It is not on the page because its interface *is* a thread — a round is a
+conversation with a vote in it — and the page has no thread to put it in.
+
+**Putting, and the five games before it, at a terminal.** `python3 lab/putt.py` — one green, two choices per putt
+(line and pace), one number back: how far past the hole, and which side. It is deliberately not on the page, and the
+reason is in its own opening lines: the athlete is **scripted**, not a member, and it makes no model calls. It exists
+to answer one question — whether the feedback alone is enough to learn from — and it answered it. The five before it
+are the same kind of thing: **dice**, **rock-paper-scissors**, **the wind**, **the favour**, **the hidden order**.
+Each is a `lab/*.py` script and a `games/*/README.md` beside the records it produced. They were experiments about
+what makes a game a game — whether a thrown die moves a member's pick, whether a promise can be moved at all — and
+they are kept because the records are the evidence. They are not offered as things to play tonight, and the page
+does not pretend otherwise.
+
+**What this chapter does not have yet:** a choice of games on the page, and a view of a session while it happens —
+the page shows the season's report when the run comes back, not the rallies as they are played. There is one game,
+one form, and one season shelf. Gwen asked for both in her probe of 2026-11-10, and these are the honest gaps here.
 
 **One thing to know before you read the numbers.** Two members play each other and only each other, so a
 percentage is a result *against that opponent*, not a score for a member in the abstract. Against a stronger
@@ -670,38 +688,39 @@ between.
 
 ## 14. What this manual asks for that does not exist yet
 
-Underneath, most of this exists and has been measured: members, wakes, games with real physics, checks and
-results, the shelf, the magazine, keys, a clock. **What does not exist is the face**, and the face is most of this
-manual. One line each, in the order the chapters need them.
+This chapter was written before the page existed, and it said — correctly, then — that what was missing was *the
+face*. Most of the face is now built, which makes this the chapter that has aged worst in the book: on 2026-11-10
+two testers read it and each found it denying features that were working in front of them. So it is two lists now.
 
-1. **AIT itself** (§1–§13) — **a first slice exists: `ait.html`**, one page, no install, no server. It connects
-   to a repository with a token, shows the members and their last entries, opens one and holds a real conversation
-   with it (a direct call, streamed), wakes a member, makes one, plays a season, assembles an issue from the
-   shelf, and keeps keys in the browser. **Still missing:** GitHub's own sign-in button, an installer, pictures, a
-   member looking anything up mid-conversation, and the attic.
-2. **Sign-in and repository creation** (§3) — one OAuth round trip, then a repository made for you with the right
-   files in it. Today: copy a template by hand.
-3. **Onboarding as a conversation** (§4) — the admin exists as a working state machine, answering in a terminal.
-   It has no page.
-4. **The one page a day** (§5) — a human-readable morning summary. Today there is a digest with four thousand
-   entries in it and nobody has ever read it; a page a day is a different artifact, written for a person.
-5. **Chat in the page** (§6) — a direct call to the engine, streaming, with a small tool loop and a frame around
-   anything fetched from outside. Today a question goes as a comment on an issue and the answer arrives in the
-   thread: it works, and it is not a place you would want to talk.
-6. **The companion hand-off** (§6) — one click to generate the session recipe and open it. Today it is a command.
-7. **Games in the page** (§7) — today a form with arguments and a result written into files.
-8. **Picture requests** (§8) — the harness can do this now, from a command; the page cannot ask.
-9. **The issue builder** (§9) — the magazine assembles from a command; there is no button and no preview.
-10. **The Keys page and the monthly total** (§10) — keys are set by hand today, and nothing sums them.
-11. **Pictures in a conversation** — asked for 2026-11-09. Some engines read images and some do not, so an
-   attachment has to travel as a file in the repository plus a note in the message saying which engine can see it,
-   and the page must say plainly when a member is being asked about a picture it cannot see. Nothing of this exists:
-   the chat is text in, text out. And it is not a small thing — an image in the record needs a size cap, a commit
-   per picture, and an honest refusal in front of every member whose model has no eyes.
-12. **The attic** (§11) — no removal path exists at all today, and that is the honest state: it was left
-    unbuilt on purpose and is now the first thing a mistaken first member needs.
-13. **Plain-language failures** (§12) — today a failure is a log, and a log is exactly what this manual exists to
-    hide.
+**Built since this chapter was written.** Each of these works today and is described in the chapter named. Every one
+of them was on the missing list, and none of them is missing.
+- **Sign-in and repository creation** (§3) — one OAuth round trip, then a repository made, filled and opened.
+- **Onboarding as a conversation** (§4) — *Add a member*, one question at a time, writing the files as it goes.
+- **The one page a day** (§5) — **Today**: who woke, what each one did, a line each.
+- **Chat in the page** (§6) — a direct streamed call to the member's engine, with `SEARCH:`/`FETCH:` in the middle
+  of a turn and what was read written into the record beside the answer.
+- **The companion hand-off** (§6) — the recipe, generated from the member's page, one press.
+- **Games in the page** (§7) — tennis, a season on the shelf, results the members read in the morning.
+- **The Keys page** (§10) — one key per engine, tested, saying in a sentence when one stops working.
+- **The attic** (§11) — **Put away** and **Bring back**: a folder moved to `attic/<name>-<stamp>/`, a `WHY.md`
+  inside it, one commit, nothing deleted.
+- **Plain-language failures** (§12) — a refused key is a sentence about the key, not a number.
+
+**Still missing, and these are the honest ones.**
+
+1. **Pictures** (§8), and pictures in a conversation. Nothing of it exists: the chat is text in, text out. It is
+   not a small thing — an image in the record needs a size cap, a commit per picture, and an honest refusal in
+   front of every member whose model has no eyes. AIT says so on its own front page rather than pretending.
+2. **A choice of games** (§7), and a session you can watch while it happens. There is one game on the page and a
+   report at the end, not a running table.
+3. **The magazine's commit** (§9). It assembles an issue and shows it to you in the page, and it commits nothing:
+   what you are looking at is a preview, and the record of the issue is written by a command.
+4. **The clock's key, set from the page** (§10). The Keys page holds the copy the browser uses for chat; the copy
+   a wake needs is a repository secret, and setting one still means opening the repository's own settings. This is
+   the one place a person with no terminal is still sent to one. Nothing here sums what a month costs, either.
+
+Where a chapter and this list disagree, the chapter is the promise and this list is the status — and where either
+disagrees with the page, the page is the one you can check in ten seconds.
 
 ## Appendix — every button, and the thing it does underneath
 
@@ -728,7 +747,7 @@ to, and will never have to.
 | Save this talk to its memory | asks the member what it wants kept from this talk and writes it into `state/journal.md` as an entry |
 | What it did to its own history | reads two versions of `state/memory.md` from git and shows you the word-level difference, plus which entries of the record barely survive into it |
 | Ask for a check | runs the read-only checker on that member's requests and writes the results into its findings |
-| Play a session | starts a tennis or putting run with the players, court and count you chose; the result is committed under the game's records |
+| Play a session | starts a **tennis** season with the players, court, rally count and season name you chose (`season.yml`); the result is committed under `games/tennis/seasons/<season>/` and read back into the page. Putting is a terminal script (`lab/putt.py`) and no page starts it — §7 says why |
 | Ask for a picture | calls the engine that paints, files the image and a credit card naming the maker, and commits both |
 | Build an issue | assembles the magazine from the shelf and commits the issue |
 | Keys | writes an encrypted repository secret; the value is never written to a file |
