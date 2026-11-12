@@ -136,3 +136,35 @@ The fourth body is mine to choose, and it is a woman's, which makes the women's 
 Dmitri and Tarik. The sheets that exist (`look-gwen`, `look-dmitri`) are still usable for shape; they will be
 re-run with the neutral expression and shot as a pair for each sex, but not until the movement is right — the
 founder's instruction of the same day was to fix the movement first, and he is right.
+
+## The running sheets — 2026-11-11
+
+Three sheets, filed as `reference/poses/run-front.jpg`, `run-side.jpg`, `run-back.jpg` (Gwen, eight panels
+each, titles kept):
+
+- **front** — FIRST STEP · CROSS-OVER · FULL STRIDE · BRAKING / REACHING · PLANTED · STRIKING · TURNING BACK
+- **side** — PUSH-OFF · MID-STRIDE · FLIGHT · PLANT / SPLIT STEP · CROSS-OVER · RECOVERING · READY
+- **back** — the front sheet's eight, from behind
+
+What they are for is not appearance, it is the gait. The renderer's legs are one symmetric sine cycle, mirrored
+for whichever way the player is going, so every movement of the body is a forward walk. The sheets show four
+things the renderer does not have:
+
+1. **the cross-over step** — sideways, the trail leg crosses in front of or behind the lead leg, and the hips
+   stay square to the net; a mirrored forward cycle does neither;
+2. **the brake** — the last stride before a shot, feet forward of the hips, trunk upright, hips still travelling;
+3. **the split step** — both feet off the ground at once, knees bent, racquet at chest, which is the one small
+   hop that makes a receiver look alive and does not exist anywhere in the model;
+4. **the turn back** — the body rotating while the feet keep running, which is what a player does the instant
+   the ball leaves the other racquet.
+
+The two numbers to take from them are stride length against her own height (the gait rule currently uses
+0.42 of height per step, and 0.84 for a cycle) and how far the racquet head gets from her centre line at full
+stretch in REACHING, which is the number the arm solver is short of or past.
+
+### One set or two?
+
+One set. The gait is a rule in the renderer, not a clip per player, and it is scaled by figure height already
+(`phase = 2π · ground covered / (0.84 · height)`). What differs between Gwen and Dmitri is proportion — shoulder
+width, leg to torso ratio — which the body builder already sets. A separate male set would only be worth a run
+if the *movement* differed, and the thing that does differ is the serve, whose sheet does not exist yet.

@@ -112,8 +112,14 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str) 
                 # height on: the ball is sent four feet shorter, which is what a higher, safer serve is.
                 contact = T.contact_point(p, "serve")
                 pace = (66.0 + 18.0 * rng.random()) * (1.0 if serve_no == 1 else 0.85)
+                # A second serve is not the same ball with the pace taken off. It is aimed at the middle of the
+                # same half of the box: the first serve attacks a corner because a fault costs nothing but a
+                # serve, the second one cannot afford a corner at all. Until 2026-11-11 it kept the corner and
+                # only lost 15% of its pace, and thirteen points in twenty-four were double faults at zero
+                # practice — a beginner who cannot play a point cannot be watched playing one.
                 target = (serve_corner if serve_no == 1
-                          else (serve_corner[0] + (4.0 if p.north else -4.0), serve_corner[1]))
+                          else (T.NET_X + (T.SERVICE_LINE - 6.0) * (1.0 if p.north else -1.0),
+                                T.WIDTH / 2 + (5.5 if serve_corner[1] > T.WIDTH / 2 else -5.5)))
                 face, pw = T.aim_at(p, target, "serve", surface, wv, power=pace, contact=contact)
                 shot = T.strike(p, None, face=face, power=pw, aim=target[1], aim_x=target[0], shot="serve",
                                 surface=surface, wind=wv, contact=contact)
@@ -128,16 +134,15 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str) 
                 # it is still the founder's; the other four kinds are what stop twenty shots alternating left and
                 # right like a metronome (his note, 2026-11-11).
                 plan = T.choose_shot(p, other, where[hitter], where[1 - hitter], record, rng)
-                target = plan["target"]
                 # At the net the ball is volleyed — taken out of the air before it bounces, at whatever height it
-                # happens to be at, which is the reason a player comes to the net at all.
-                swing = "rally"
-                if incoming and abs(where[hitter][0] - T.NET_X) < T.VOLLEY_ZONE:
-                    vol = T.volley_contact(p, incoming["traj"], where[hitter])
-                    if vol:
-                        _t_hit, contact = vol
-                        swing = "volley"
-                        plan = dict(plan, power=plan["power"] * 0.88)
+                # happens to be at, which is the reason a player comes to the net at all. Whether this ball is
+                # one of those is decided when it is struck at this player, not here: see the receiving block
+                # below, which is where the racquet's reach and the flight time are both known.
+                swing = "volley" if (incoming and incoming.get("volley")) else "rally"
+                if swing == "volley":
+                    plan = T.choose_shot(p, other, where[hitter], where[1 - hitter], record, rng,
+                                         height=contact[2])
+                target = plan["target"]
                 face, pw = T.aim_at(p, target, "rally", surface, wv, power=plan["power"], contact=contact)
                 shot = T.strike(p, incoming, face=face, power=pw, aim=target[1], aim_x=target[0], shot=swing,
                                 surface=surface, wind=wv, contact=contact)
@@ -190,26 +195,6 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str) 
                 break
             if serving:
                 rallied = True
-            meet = T.intercept(other, traj["land"], traj["time"], traj["bounce"], surface,
-                               frm=where[1 - hitter])
-            available = traj["time"] + 1.0
-            # A beaten player runs as far as the time allowed and arrives late; the picture shows them short,
-            # which is what "beaten by the wide ball" looks like. Nobody is teleported to a contact.
-            reachable_dist = min(meet["distance"], meet["speed"] * available)
-            ux = (traj["land"][0] - where[1 - hitter][0]) / max(meet["distance"], 1e-6)
-            uy = (traj["land"][1] - where[1 - hitter][1]) / max(meet["distance"], 1e-6)
-            got_to = (where[1 - hitter][0] + ux * reachable_dist, where[1 - hitter][1] + uy * reachable_dist)
-            entry["run"] = {
-                "player": other.name, "north": other.north,
-                "from": [round(v, 2) for v in where[1 - hitter]],
-                "to": [round(v, 2) for v in (meet["meet"] if meet["ok"] else got_to)],
-                "t0": 0.0, "t1": round(traj["time"] + meet["t_meet"], 3),
-                "dist": round(meet["distance"], 1), "speed": round(meet["speed"], 1),
-                "met": bool(meet["ok"]),
-            }
-            where[1 - hitter] = entry["run"]["to"] if meet["ok"] else got_to
-            carry[1 - hitter] = (entry["run"]["to"][0], entry["run"]["to"][1],
-                                 T.contact_point(other, "rally")[2])
             # Recovery. The player who has just hit does not stay where the ball was: they go back behind the
             # baseline to the centre, or forward to the net if the shot was an approach or a volley. Their `where`
             # becomes that spot, so the ball the other player hits next is aimed at a receiver standing where a
@@ -231,7 +216,57 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str) 
                                 "from": [round(shot["contact"][0], 2), round(shot["contact"][1], 2)],
                                 "to": [round(where[hitter][0], 2), round(where[hitter][1], 2)],
                                 "t0": 0.0, "t1": round(t_rec, 3), "dist": round(d_rec, 1),
-                                "speed": round(spd, 1), "arrived": bool(d_rec <= spd * traj["time"])}
+                                # `in_time` is not "they got back" — they always get back inside the 2.5s cap at
+                                # this level; it is "they were back in the middle before the ball they had just
+                                # hit had landed", which is the harder and more interesting of the two claims.
+                                "speed": round(spd, 1), "in_time": bool(d_rec <= spd * traj["time"])}
+
+            # ---- the ball arrives at the other player ------------------------------------------------
+            # A volley is not decided when the net player's turn comes round two shots later: it is decided
+            # here, while the ball is in the air at them, because that is the only moment at which the racquet's
+            # reach and the flight time are both known. Deciding it later is why no volley ever fired: the
+            # receiving check ran first, found that the net player could not get back to the landing point, and
+            # ended the point — while the whole reason they were standing there was to take it before it landed.
+            receiver_at = where[1 - hitter]
+            vol = (T.volley_contact(other, traj, receiver_at)
+                   if abs(receiver_at[0] - T.NET_X) < T.VOLLEY_ZONE else None)
+            if vol is not None:
+                entry["run"] = {
+                    "player": other.name, "north": other.north,
+                    "from": [round(v, 2) for v in receiver_at],
+                    "to": [round(v, 2) for v in vol["feet"]],
+                    "t0": 0.0, "t1": round(vol["t"], 3),
+                    "dist": vol["step"], "speed": round(T.movement_speed(other), 1),
+                    "met": True, "volley": True,
+                }
+                where[1 - hitter] = vol["feet"]
+                carry[1 - hitter] = (vol["contact"][0], vol["contact"][1], vol["contact"][2])
+                # The height the ball is at is the fact the next shot is chosen from.
+                incoming = {"speed_in": traj["speed_in"], "traj": traj, "volley": True,
+                            "height": round(vol["contact"][2], 2)}
+                hitter = 1 - hitter
+                continue
+
+            meet = T.intercept(other, traj["land"], traj["time"], traj["bounce"], surface,
+                               frm=receiver_at)
+            available = traj["time"] + 1.0
+            # A beaten player runs as far as the time allowed and arrives late; the picture shows them short,
+            # which is what "beaten by the wide ball" looks like. Nobody is teleported to a contact.
+            reachable_dist = min(meet["distance"], meet["speed"] * available)
+            ux = (traj["land"][0] - receiver_at[0]) / max(meet["distance"], 1e-6)
+            uy = (traj["land"][1] - receiver_at[1]) / max(meet["distance"], 1e-6)
+            got_to = (receiver_at[0] + ux * reachable_dist, receiver_at[1] + uy * reachable_dist)
+            entry["run"] = {
+                "player": other.name, "north": other.north,
+                "from": [round(v, 2) for v in receiver_at],
+                "to": [round(v, 2) for v in (meet["meet"] if meet["ok"] else got_to)],
+                "t0": 0.0, "t1": round(traj["time"] + meet["t_meet"], 3),
+                "dist": round(meet["distance"], 1), "speed": round(meet["speed"], 1),
+                "met": bool(meet["ok"]),
+            }
+            where[1 - hitter] = entry["run"]["to"] if meet["ok"] else got_to
+            carry[1 - hitter] = (entry["run"]["to"][0], entry["run"]["to"][1],
+                                 T.contact_point(other, "rally")[2])
             if not meet["ok"]:
                 entry["why"] += f" — {other.name} {meet['why']}"
                 point = {"winner": p.name, "reason": f"{other.name} did not reach it — {meet['why']}"}

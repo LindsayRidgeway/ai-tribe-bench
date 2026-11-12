@@ -220,6 +220,15 @@ class Player:
                 "sweet": 0.72 + 0.26 * learned,
                 "reach": 0.35 + 0.60 * learned}[attr]
 
+    def hands(self, pace_in: float = 40.0) -> float:
+        """Control as it is when a ball is actually coming at you. A fast ball takes away the time to set up, so
+        the same player is less accurate returning it. This existed inside `strike` only, as one line, which
+        meant the shot the player *tried* to play and the shot they could actually hit were scaled by two
+        different numbers — and the corner they aimed at was placed by the optimistic one. Everything that
+        reasons about this player's accuracy now reads this, so there is one answer to 'how good are their
+        hands right now' rather than two."""
+        return self.skill("control") * (1 - 0.22 * min(1.0, pace_in / 100.0))
+
 
 def contact_point(p: Player, shot: str = "rally") -> tuple[float, float, float]:
     """Where the racquet meets the ball. A serve is struck high from just behind the baseline; a groundstroke
@@ -272,10 +281,9 @@ def strike(p: Player, incoming: dict | None, face: float, power: float, aim: flo
            contact=None, aim_x=None) -> dict:
     """Movement in, ball out. The player supplies a face angle in degrees (negative closed), a power in
     per-cent and an aim offset in feet; everything else is physics plus the player's skill."""
-    control = p.skill("control")
     pace_in = (incoming or {}).get("speed_in", 40.0)          # mph
     # a fast ball gives less time to set up, so the same player is less accurate returning it
-    control *= 1 - 0.22 * min(1.0, pace_in / 100.0)
+    control = p.hands(pace_in)
 
     if not clean:
         p.shots += 1
@@ -351,6 +359,8 @@ def aim_at(p: Player, target, shot: str, surface: str, wind, power: float,
 # in, tight enough that hitting one is worth something: a ball five feet inside the baseline is a different ball
 # from one twenty feet short of it, and until 2026-11-11 every ball this engine played went to the same place.
 CORNER_SLACK = 4.0         # feet inside the lines for a player who can put the ball where they look
+SCATTER_PER_DEGREE = 6.0   # feet of landing error per degree of face error, measured at rally depth (~70ft)
+SCATTER_SIGMAS = 2.0       # how many of the hitter's own standard deviations to stay inside the line by
 
 
 def corners_of(north: bool, control: float = 1.0) -> tuple[tuple[float, float], tuple[float, float]]:
@@ -358,12 +368,19 @@ def corners_of(north: bool, control: float = 1.0) -> tuple[tuple[float, float], 
     are not yet reliable, corners moved in to where their own scatter leaves the ball in.
 
     The founder's rule is to hit one of the far corners, and that is the rule. But a corner five feet inside the
-    line is only a corner for someone who can hit it: at 1° of face error the ball moves about 1.2ft over 70ft,
-    so a beginner with four degrees of error spraying a ball at the line loses the point rather than winning it.
-    The margin is therefore 2.5 standard deviations of the hitter's own face error, expressed in feet, capped at
-    18 so that a beginner is not aiming at the net post. As the hands improve the target walks out to the corner
-    by itself, which is what practice looks like from the other end of the court."""
-    slack = min(18.0, CORNER_SLACK + 11.0 * (1.0 - control))
+    line is only a corner for someone who can hit it: at 1° of face error the ball moves about 6ft over 70ft,
+    so a beginner spraying a ball at the line loses the point rather than winning it. The margin is therefore
+    a couple of standard deviations of the hitter's own face error expressed in feet — which is what this
+    function said it did from the day it was written and did not do: it used `4 + 11*(1-control)`, and at the
+    control a practised player actually has (0.83) that is 5.9ft against a measured landing scatter of 4.3ft,
+    so about a fifth of every ball went long and 21 points in 24 ended on a miss rather than on a winner. The
+    number is now the one the comment always promised: 2 sigma of 6ft per degree of 4° of face error.
+
+    As the hands improve the target walks out to the corner by itself, which is what practice looks like from
+    the other end of the court. Capped at 18 so a beginner is not aiming at the net post.
+    """
+    sd = SCATTER_PER_DEGREE * 4.0 * (1.0 - control)      # feet, one standard deviation of the landing point
+    slack = min(18.0, max(CORNER_SLACK, SCATTER_SIGMAS * sd))
     x = slack if north else LENGTH - slack
     return ((x, slack), (x, WIDTH - slack))
 
@@ -382,7 +399,7 @@ def placement(p: Player, receiver: Player, at, record: dict) -> tuple[float, flo
     been winning points against them; with no history to go on, go at a right-hander's backhand, which is their
     left. `at` is where the receiver's feet are, which the engine already knows because it made them run.
     """
-    c_north, c_south = corners_of(receiver.north, p.skill("control"))
+    c_north, c_south = corners_of(receiver.north, p.hands())
     d = [math.hypot(c[0] - at[0], c[1] - at[1]) for c in (c_north, c_south)]
     if abs(d[0] - d[1]) >= 4.0:
         # The FAR corner, which is the whole rule. This comparison was inverted from the day it was written
@@ -460,7 +477,8 @@ def serve_verdict(shot: dict) -> tuple[bool, str]:
 SHOT_KINDS = ("cross", "line", "drop", "lob", "approach")
 
 
-def choose_shot(p: Player, other: Player, at_hitter, at_receiver, record: dict, rng) -> dict:
+def choose_shot(p: Player, other: Player, at_hitter, at_receiver, record: dict, rng,
+                height: float | None = None) -> dict:
     """Which ball to play: kind, target, pace. Randomised within what the situation allows.
 
     Three situations, and they are the ones a player actually reads:
@@ -469,8 +487,15 @@ def choose_shot(p: Player, other: Player, at_hitter, at_receiver, record: dict, 
       - the hitter is inside the court on a short ball, which is the one moment a player can choose freely.
     Everything is scaled by the hitter's hands: a beginner's drop shot is a short ball in the middle of the court
     that the other player eats, so they do not attempt many.
+
+    `height` is the ball's height at the moment of contact, and passing it means the hitter is in the forecourt
+    taking the ball out of the air. The founder, 2026-11-11: "from the forecourt, the height of the ball when
+    struck has a much more significant effect on the receiver's options: a drop-shot, a passing shot, a lob to the
+    back court, a sharply angled shot to the side." So over the net the ball is high and the drop and the angle
+    are both on; at shin height the only ball left is the one dug up the middle, which is why a low volley is a
+    defensive shot and not a choice.
     """
-    skill = p.skill("control")
+    skill = p.hands()                       # not their best-case hands: the ones the ball is coming at
     own_base = 2.0 if p.north else LENGTH - 2.0
     behind = abs(at_hitter[0] - own_base) < 9.0
     other_net = abs(at_receiver[0] - NET_X) < 15.0
@@ -480,7 +505,14 @@ def choose_shot(p: Player, other: Player, at_hitter, at_receiver, record: dict, 
     cross = placement(p, other, at_receiver, record)
     line = c_near if side_of(c_near[1], other.north) == opp_side else c_far
 
-    if other_net:
+    if height is not None:
+        if height >= 5.0:                                # a high volley: hit down on it, or kill it short
+            w = {"cross": 0.30, "line": 0.24, "drop": 0.26 * (0.4 + skill), "lob": 0.20, "approach": 0.0}
+        elif height >= 3.4:                              # a volley at a comfortable height
+            w = {"cross": 0.36, "line": 0.26, "drop": 0.18 * (0.4 + skill), "lob": 0.20, "approach": 0.0}
+        else:                                            # a low volley: dig it, do not get cute with it
+            w = {"cross": 0.34, "line": 0.18, "drop": 0.0, "lob": 0.48, "approach": 0.0}
+    elif other_net:
         w = {"lob": 0.42, "cross": 0.33, "line": 0.25, "drop": 0.0, "approach": 0.0}
     elif behind:
         w = {"cross": 0.56, "line": 0.24, "drop": 0.06 * (0.4 + skill), "lob": 0.10, "approach": 0.04}
@@ -496,20 +528,27 @@ def choose_shot(p: Player, other: Player, at_hitter, at_receiver, record: dict, 
             break
 
     fwd = 1.0 if p.north else -1.0
+    pace = 1.0 if height is None else 0.80          # a volley is a punch, not a swing
     if kind == "cross":
-        return {"kind": kind, "target": cross, "power": rng.uniform(58, 76)}
+        return {"kind": kind, "target": cross, "power": rng.uniform(58, 76) * pace}
     if kind == "line":
-        return {"kind": kind, "target": line, "power": rng.uniform(62, 80)}
+        return {"kind": kind, "target": line, "power": rng.uniform(62, 80) * pace}
     if kind == "approach":
         # short and low, hit while moving in, so the hitter can get to the net behind it
-        return {"kind": kind, "target": line, "power": rng.uniform(48, 62)}
+        return {"kind": kind, "target": line, "power": rng.uniform(48, 62) * pace}
     if kind == "drop":
-        # a short ball that dies: eight to twelve feet past the net, on the side the receiver has left
-        y = WIDTH - at_receiver[1] if abs(at_receiver[1] - WIDTH / 2) > 3 else rng.choice((5.5, WIDTH - 5.5))
-        return {"kind": kind, "target": (NET_X + fwd * rng.uniform(8, 13), y), "power": rng.uniform(26, 34)}
+        # a short ball that dies: on the side the receiver has left, and never off the court — the mirror of a
+        # receiver standing near a sideline is a target outside it, which is how four balls a match were aimed
+        # at a place the court does not have (found 2026-11-11, when the miss list said "the court is 27ft wide").
+        if abs(at_receiver[1] - WIDTH / 2) > 3:
+            y = min(WIDTH - 4.0, max(4.0, WIDTH - at_receiver[1]))
+        else:
+            y = rng.choice((5.5, WIDTH - 5.5))
+        depth = rng.uniform(5, 9) if height is not None else rng.uniform(8, 13)
+        return {"kind": kind, "target": (NET_X + fwd * depth, y), "power": rng.uniform(26, 34) * pace}
     # a lob: deep, high, and slow enough that it comes down inside the baseline
     y = WIDTH - 5.5 if at_receiver[1] < WIDTH / 2 else 5.5
-    return {"kind": kind, "target": (LENGTH - 6.0 if p.north else 6.0, y), "power": rng.uniform(40, 52)}
+    return {"kind": kind, "target": (LENGTH - 6.0 if p.north else 6.0, y), "power": rng.uniform(40, 52) * pace}
 
 
 # ---- recovery and the net ---------------------------------------------------------------------------
@@ -534,27 +573,45 @@ def recovery_spot(p: Player, at_hitter, came_in: bool) -> tuple[float, float]:
     return (-RECOVER_DEPTH if p.north else LENGTH + RECOVER_DEPTH, WIDTH / 2)
 
 
-def volley_contact(p: Player, traj: dict, at, reach: float = 3.0, lo: float = 2.2, hi: float = 6.5):
+def volley_contact(p: Player, traj: dict, at, reach: float = 4.5, lat: float = 3.5,
+                   lo: float = 2.2, hi: float = 8.0, speed: float | None = None):
     """Where the incoming ball can be taken out of the air, if it can be.
 
-    A volley is struck before the bounce, so the moment to find is the one where the ball reaches a racquet's
-    length in front of the player, still above the ground, on the player's own side of the net, and not five feet
-    off to the side of them. The height at that moment is the whole difference between a volley and a half-volley —
-    the founder's point that from the forecourt the ball's height is what decides what the player can do with it.
+    A volley is struck before the bounce. The racquet sweeps a volume: about four and a half feet from the
+    middle of the body, three and a half feet to either side without moving the feet, everything below the
+    ground and everything above head height (where the shot becomes an overhead rather than a volley) excluded.
+    The player has the flight time to get there — `speed` is how fast they move, so the volume grows with time,
+    which is the difference between a volley and a reflex.
 
-    Second attempt, 2026-11-11. The first scanned for the ball "level with the player", which for a player facing
-    the net is a place the ball reaches twice, and it returned the frame where the ball crossed the net itself
-    forty feet from anyone's racquet. This one solves for the meeting plane, three feet in front of the player.
+    Third version, 2026-11-11. The first scanned for the ball "level with the player", a place the ball reaches
+    twice; the second solved for a fixed meeting plane three feet in front of the stance, which put the contact
+    four feet past the net where the ball is still on its way up at seven feet, and it reported nothing on
+    every ball that landed short of that plane — which was most of them. This one takes the *earliest* moment
+    the racquet can physically reach the ball, which is what a player coming forward actually does.
+
+    The upper bound is 8ft rather than 6.5: a ball that height at the net is a high volley, struck down, and
+    the engine already models a volley as a shot struck downward (`elevation_for`). Anything above that is an
+    overhead, and is not built.
+
+    Returns None when the ball cannot be reached in the air, which is not a failure — it means the ball bounces
+    and becomes a groundstroke, and the caller is responsible for that.
     """
     fwd = 1.0 if p.north else -1.0
-    meet_x = at[0] + reach * fwd
+    spd = movement_speed(p) if speed is None else speed
     for t, x, y, z in traj["path"]:
-        if (x - NET_X) * fwd >= 0.0:          # still on the other side of the net
+        if (NET_X - x) * fwd < 2.0:           # still on the other side of the net, or at the tape itself —
+            continue                          # nobody volleys a ball that is on the net cord, and a racquet
+                                              # cannot reach through the net to a ball on the far side
+        if not (lo <= z <= hi):               # too low to volley, or too high to be a volley
             continue
-        if (x - meet_x) * fwd <= 0.0:         # the ball has reached the meeting plane
-            if abs(y - at[1]) > 5.0:
-                return None                   # wide of them by more than a step: not a volley, a chase
-            return (t, (x, y, z)) if lo <= z <= hi else None
+        dx, dy = abs(x - at[0]), abs(y - at[1])
+        need = math.hypot(max(0.0, dx - reach), max(0.0, dy - lat))
+        if need > spd * t:                    # the legs cannot cover the gap in the time
+            continue
+        # the feet: a step in, and a step across, so the ball is at the edge of the racquet's reach
+        feet = (at[0] + math.copysign(min(spd * t, max(0.0, dx - reach)), x - at[0]),
+                at[1] + math.copysign(min(spd * t, max(0.0, dy - lat)), y - at[1]))
+        return {"t": t, "contact": (x, y, z), "feet": feet, "step": round(need, 2)}
     return None
 
 
@@ -564,6 +621,9 @@ def movement_speed(p: Player) -> float:
     1.5-2.5 m/s when they are learning and 4-5 m/s when they can play, so 4.9 to 16.4 ft/s, and this sits a
     little above that to account for the first step."""
     return 5.0 + 15.0 * p.skill("reach")
+
+
+HIT_WINDOW = 1.0          # seconds after the bounce during which the ball can still be struck
 
 
 def intercept(p: Player, land, flight_time: float, bounce: dict, surface: str, frm=None) -> dict:
@@ -599,8 +659,9 @@ def intercept(p: Player, land, flight_time: float, bounce: dict, surface: str, f
     vx, vy, _vz = bounce["v"]
     toward = max(0.0, vx * ux + vy * uy)           # how fast the ball is closing on the player
     t_meet = gap / (speed + toward)
-    # the ball is hittable from the bounce until it bounces again, which is roughly a second of flight
-    available = flight_time + 1.0
+    # the ball is hittable from the bounce until it has risen and started to drop again, which is most of a
+    # second, and the player also has the time the ball spent in the air before it landed.
+    available = flight_time + HIT_WINDOW
     meet = (land[0] + ux * reach, land[1] + uy * reach)      # a racquet's length short of the landing point
     ok = t_meet <= available
     short = 0.0 if ok else (t_meet - available) * speed
