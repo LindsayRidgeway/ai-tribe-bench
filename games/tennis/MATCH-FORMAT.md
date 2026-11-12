@@ -332,3 +332,18 @@ the same rule every other position in the film obeys.
 
 `speed` and `step` are in the record, so "how far did they move on a ball they let go" is answerable later. Six of
 the film's twenty points end with a ball that is out, and all six now show the read.
+
+### Changing ends is now watched — built 2026-11-12
+
+Practice has no games, so the ends change every five points (`SWAP_EVERY`), and until today the picture hid the
+change in the break: the board went up, the film placed both players at the other end, and the next point started.
+The founder asked to see it instead — "walking from one baseline to the other, glancing at each other and nodding".
+
+So the break between points is now the walk, in the record (`settle`, one per point): 4.6ft/s, from where the point
+actually left them to the middle behind their own baseline, and, when they change ends, the length of the court and
+round the net post, passing each other 1.8ft apart with a nod in the 1.75 seconds around the moment they are level.
+That makes a change of ends 23-30 seconds of film rather than a one-frame swap, which is what a change of ends
+costs. MOVEMENT.md has the measurement, the two faults the fix itself introduced, and what is still placed.
+
+The film stats are unchanged by any of it — 95 shots, rallies
+`[2,1,3,2,3,4,10,9,12,7,4,1,3,2,2,5,6,2,6,11]` — because a walk between points is not a ball.

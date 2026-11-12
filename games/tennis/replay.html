@@ -235,6 +235,9 @@ function drawMarker(pt, name, north, colour){
 /* ---------- the film ---------- */
 const TRACE = 0.02;
 const shots = D.shots;
+// the last shot of each rally: the walk between points hangs off it, because that is when it happens
+const LASTN = {};
+for (const sh of shots) LASTN[sh.rally] = sh.n;
 let SEG = [];                       // one entry per shot: {shot, start, dur, cam}
 let PLAN = {};                      // who was running, from where to where, and when
 let T = 0, playing = true, T0 = performance.now();
@@ -276,6 +279,17 @@ function buildTimeline(){
       {t0: t + s.stance.t0, t1: t + s.stance.t1, from: s.stance.from, to: s.stance.to});
     if (s.watch) (PLAN[s.watch.player] = PLAN[s.watch.player] || []).push(
       {t0: t + s.watch.t0, t1: t + s.watch.t1, from: s.watch.from, to: s.watch.to});
+    // The walk between points, and at a change of ends the walk round the post: two legs, in the record, starting
+    // from where they really were when the ball died. The picture does not invent a route.
+    const rr = (D.rallies || []).find(r => r.rally === s.rally) || {};
+    if (rr.settle && s.n === LASTN[s.rally]) {
+      const dead = t + dur;
+      for (const w of rr.settle.players)
+        for (const lg of (w.legs || []))
+          (PLAN[w.name] = PLAN[w.name] || []).push({t0: dead + lg.t0, t1: dead + lg.t1, from: lg.from, to: lg.to});
+      SEG[SEG.length - 1].hold = Math.max(hold, rr.settle.dur + 0.75);   // see replay3d.html: no overlap with the
+                                                                        // walk to the line, which starts at -0.6
+    }
     t += dur + hold;
   }
 }

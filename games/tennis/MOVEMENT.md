@@ -575,14 +575,77 @@ position and the world position of both thighs, both shins and the hitting hand.
 receiver (rally 7, shot 3, three frames 0.05s apart), every number moves — root sway 0.08ft, root height 0.005 →
 −0.001 → 0.005, both thighs and both shins in motion.
 
-Then the stronger test, because three frames prove only that three frames move: every whole point, sampled at 60ms
-for 14 seconds of wall clock, comparing the full pose (root position at four decimal places, both thighs, both
-shins, the hitting hand, the yaw) against the sample before. Points 3 and 7, 227 samples each: **0.00s motionless
-for either player, and no single freeze longer than the 60ms sampling interval.** In the film as it stood before the
-fix, the same measurement would have caught a 1.26s freeze on the worst ball. Nobody is still, on any frame anyone
-has looked at.
+Then the stronger test, because three frames prove only that three frames move: the clock stepped through the film
+at 50ms and the whole pose (root position to four decimal places, both thighs, both shins, the hitting hand, the
+yaw) compared with the sample before. Across t 0.8-16 and t 5-30: **no two consecutive frames are identical — not
+one, on either player.** The first attempt at this measurement was worthless and worth recording as such: it drove
+`?point=N`, which PAUSES the film at the end of that point, so it would have reported whatever the frozen frame
+happened to say. `?debug` now exposes `window.__seek`, which is the only way to sample the film in a headless
+browser, because both `?point=` and `?shot=` stop the clock.
 
 The split step, the cross-over step, the brake and the turn-back are still unbuilt, and they are the next four
 motions on this list. A split step is what a receiver does *as* the opponent strikes — a small hop that lands just
 before they have to move — and it is not the same thing as the idle above: this is the body waiting, that is the
 body committing.
+
+
+### Walking between points, and past each other at a change of ends — built 2026-11-12
+
+The founder: "When the players switch sides, I would portray them walking from one baseline to the other, glancing
+at each other and nodding to one another as they pass."
+
+The freeze and this are the same fault seen twice. The freeze was the record holding a body still; this is the
+record not saying how a body got from one place to another at all. Between points the picture simply PLACED both
+players on their marks, and when they changed ends it placed them at the other end. Stepped at 20ms through the
+film's nineteen breaks, before the fix:
+
+| break | worst move in one 20ms step |
+| --- | --- |
+| 16 ordinary breaks | 2.8 to 9.5ft at fourteen of them, 26.3 and 30.1ft at two (a player who finished the point at the net, put back on the baseline) |
+| 3 changes of ends | 73.2, 73.9 and 79.3ft |
+
+A body that moves 79ft between one frame and the next is not a cut, because the camera never cuts: it is a pop in
+the middle of a static shot, and it happened three times a film.
+
+**The record now says how they get there** (`settle` in `lab/tennis_script.py`, one per point, carrying the legs,
+the times and the speed):
+
+- **Between points**, each of them strolls from where the point left them to the middle behind their own baseline
+  — 4.6ft/s, which is a walk. Not the 8-20ft/s of the recovery jog: a change of ends is not a jog.
+- **At a change of ends**, both walk the length of the court and **round the net post**, one on the inside line and
+  one on the outside, 1.8ft apart, and pass each other beside it. They have to: the net spans the doubles court,
+  so the only way to the other end is round the post. The record names the post, the moment they are level, and
+  the window in which they nod — the picture is not allowed to decide when a greeting happens.
+- **The break is as long as the walk.** 23, 28 and 30 seconds at the three changes of ends, 2-8 seconds otherwise.
+  The point board comes down 1.8 seconds into the break and the face card with it, because the walk is the picture
+  now and a full-screen sign over it would hide the thing that was asked for.
+- **The stroll is not the ready position.** Both arms hang and swing against the legs, and the racquet is carried
+  down by the thigh with its head forward. Measured, the first attempt left the striker of the last ball in his
+  follow-through — hand at 5.8ft, frame at 4.0ft — while he walked, because the stroke branch runs for whoever hit
+  the ball and a follow-through is not a walk. The arms now go back down before the frame is carried.
+- **The glance is a turn of the whole body**, in when they are within 22ft of each other and out once they are
+  past. The head bone could do it better and cannot yet: which local axis turns the face is the bone's own length,
+  and that cannot be measured the way a nod's sign can — a rotation about the bone's axis is invisible to the
+  bone's own direction. So the nod is a head bone and a neck, and the glance is the shoulders.
+- **The nod** is two dips of the chin (0.34 rad at the head, 0.40 of that at the neck) across the 1.75 seconds
+  around the pass, and its sign is measured per body rather than assumed: rotate the bone a little and see whether
+  the top of the head went forward or back. `?debug`'s `__headTest` does exactly that.
+
+Two faults were found by measuring the fix, and both are the same shape as the fault being fixed:
+
+- **Overlapping moves.** The next point's walk to the service line starts 0.6s before its first frame, and the walk
+  back in the record could still be running at that moment. `whereAt` interpolates each move from its own start,
+  so a 0.25s overlap put a **0.99ft step into every one of the ordinary breaks** even after the walks existed. The
+  break now has to end 0.75s after the walk back does, and
+  `test_nothing_between_points_is_placed_rather_than_walked` locks it.
+- **The walk's own start.** `from` has to be where the point LEFT them, not their mark. Anything else is the same
+  placement moved a few feet earlier in time.
+
+After the fix, the same 20ms step over every one of the nineteen breaks: **worst single-step move 0.69ft**, and
+fourteen of the nineteen are under 0.5ft. Every boundary is now a body walking at 4.6ft/s.
+
+**Still placed, and next:** 0.4-0.7ft at the first frame of a shot, on every strike. That is `reachTo` leaning the
+whole body into the ball and reaching its full value at the contact frame — correct at the strike, and arrived at
+instantaneously because the segment begins at the strike. The receiver's lean ramps in over the flight (their
+preparation is in the previous shot's segment); the striker's does not, because the striker's take-back is still
+unbuilt. Fixing it is the same job as building the take-back, and it is on the list below.

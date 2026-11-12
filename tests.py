@@ -2913,6 +2913,98 @@ class TestTennis(unittest.TestCase):
             checked += 1
         self.assertGreater(checked, 5, "no met balls in the film to check")
 
+    def test_the_walk_between_points_starts_where_the_point_ended(self):
+        """2026-11-12, the founder's note: "I would portray them walking from one baseline to the other, glancing at
+        each other and nodding to one another as they pass."
+
+        Before this the picture PLACED both players at their own baseline when a point ended, and at the other
+        baseline when they changed ends. Stepped at 20ms through the film's nineteen breaks, that was a body moving
+        2.8 to 9.5ft in a single frame at sixteen of them and 73 to 79ft at the three changes of ends. The record
+        said where everybody was and never said how they got there. So this walks the whole record the way the page
+        does — apply every move in the order it is written — and asks that each walk between points begins exactly
+        where the last one ended. A position that only appears in the picture is a placement."""
+        pos = {p["name"]: list(p["at"]) for p in self.film["start"]}
+        rally_of = {}
+        for r in self.film["rallies"]:
+            for i in r["shots"]:
+                rally_of[self.film["shots"][i]["n"]] = r["rally"]
+        walks = 0
+        for sh in self.film["shots"]:
+            for key in ("stance", "run", "watch", "recover"):
+                m = sh.get(key)
+                if m and m["player"] in pos:
+                    pos[m["player"]] = list(m["to"])
+            r = next(x for x in self.film["rallies"] if x["rally"] == sh["rally"])
+            if not (r.get("settle") and r["shots"][-1] == sh["n"]):
+                continue
+            for w in r["settle"]["players"]:
+                d = math.hypot(w["from"][0] - pos[w["name"]][0], w["from"][1] - pos[w["name"]][1])
+                self.assertLess(d, 0.06, f"rally {r['rally']}: {w['name']}'s walk starts {d:.2f}ft from where the "
+                                         f"point left them, which is a placement, not a walk")
+                self.assertGreater(len(w["legs"]), 0, f"rally {r['rally']}: {w['name']} has nowhere to walk")
+                pos[w["name"]] = list(w["to"])
+                walks += 1
+        self.assertGreater(walks, 20, "no between-point walks in the film to check")
+
+    def test_a_change_of_ends_is_walked_round_the_post_and_past_each_other(self):
+        """Two players walk round the same net post, a couple of feet apart, and the record says when they are level
+        — because the nod the founder asked for happens at that instant and the picture is not allowed to invent
+        it. The route has to go ROUND the post: the net spans the doubles court, so a straight line from one
+        baseline to the other goes through it."""
+        crosses = [r for r in self.film["rallies"] if (r.get("settle") or {}).get("kind") == "cross"]
+        self.assertGreaterEqual(len(crosses), 2, "not enough changes of ends in the film to check")
+        for r in crosses:
+            st = r["settle"]
+            self.assertIn("pass", st, f"rally {r['rally']}: a change of ends with no moment of passing")
+            self.assertIn("nod", st, f"rally {r['rally']}: a change of ends with nobody nodding")
+            lane = st["pass"]["at"][1]
+            side = 1 if lane > self.t.WIDTH / 2 else -1
+            self.assertGreater(abs(lane - self.t.WIDTH / 2), self.t.WIDTH / 2 + self.t.ALLEY - 0.01,
+                               f"rally {r['rally']}: they crossed at y={lane:.1f}, inside the net's own posts — "
+                               f"that route goes through the net")
+            vias = []
+            for w in st["players"]:
+                self.assertEqual(len(w["legs"]), 2, f"rally {r['rally']}: {w['name']}'s crossing is not two legs")
+                via = w["via"]
+                self.assertIsNotNone(via, f"rally {r['rally']}: {w['name']} crossed without going round the post")
+                self.assertAlmostEqual(via[0], self.t.NET_X, 1,
+                                       msg=f"rally {r['rally']}: the crossing point is not at the net")
+                self.assertGreater(abs(via[1] - self.t.WIDTH / 2), self.t.WIDTH / 2 + self.t.ALLEY - 0.01,
+                                   f"rally {r['rally']}: {w['name']}'s route goes through the net, not round it")
+                vias.append(via[1])
+                # they walk; nobody crosses the court at a run
+                for leg in w["legs"]:
+                    d = math.hypot(leg["to"][0] - leg["from"][0], leg["to"][1] - leg["from"][1])
+                    dur = leg["t1"] - leg["t0"]
+                    self.assertGreater(dur, 0.05, f"rally {r['rally']}: a walk with no time in it")
+                    speed = d / dur
+                    self.assertLess(speed, 6.5, f"rally {r['rally']}: the crossing is walked at {speed:.1f}ft/s, "
+                                                f"which is a recovery jog, not a walk")
+            self.assertGreater(abs(vias[0] - vias[1]), 1.0,
+                               f"rally {r['rally']}: they passed through each other, on the same line")
+            nod = st["nod"]
+            self.assertLess(nod[0], st["pass"]["t"], "the nod starts after they have passed")
+            self.assertGreater(nod[1], st["pass"]["t"], "the nod ends before they have passed")
+
+    def test_nothing_between_points_is_placed_rather_than_walked(self):
+        """The legs of every walk are in time order and do not overlap each other, and each leg leaves from where
+        the one before it arrived. Two moves overlapping is not a cosmetic fault: the picture interpolates each one
+        from its own start, so a 0.25s overlap put a 0.99ft step into every one of the film's ordinary breaks."""
+        for r in self.film["rallies"]:
+            st = r.get("settle")
+            if not st:
+                continue
+            for w in st["players"]:
+                legs = w["legs"]
+                for a, b in zip(legs, legs[1:]):
+                    self.assertAlmostEqual(a["t1"], b["t0"], 3,
+                                           msg=f"rally {r['rally']}: {w['name']}'s legs overlap or leave a gap")
+                    self.assertEqual(a["to"], b["from"],
+                                     f"rally {r['rally']}: {w['name']}'s second leg starts where the first did not end")
+                if legs:
+                    self.assertLessEqual(legs[-1]["t1"], st["dur"] + 1e-6,
+                                         f"rally {r['rally']}: the walk runs past the break it is supposed to fill")
+
     def test_a_match_nobody_plays_refuses_the_engines_it_would_ignore(self):
         """Found 2026-11-06, at the cost of two runs: `--names Greta,Hans --vendor groq --points 6` finished in
         0.08 seconds and printed a match. The default path plays the physics; it never asks a member for a shot,

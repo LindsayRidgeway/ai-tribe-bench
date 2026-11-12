@@ -382,7 +382,7 @@ function aimBone(bone, dir) {
    with the ground covered, not with the clock. That way the feet keep pace with the body however fast it is going
    — which is the whole difference between a figure that runs and a figure that is pushed along on castors.
    Nothing here is animation data; it is a rule about where the legs are given how far the player has travelled. */
-function legs(rig, phase, moving, face, turn, load, idle) {
+function legs(rig, phase, moving, face, turn, load, idle, walk) {
   // `turn` is the twist about the body's own vertical, in radians: away from the net on the wind-up, through on
   // the follow-through. It reaches the legs because a stroke is not an arm — the pelvis turns, the knees load,
   // and only then does the racquet move. Until 2026-11-11 none of that was here: the bodies stood square and the
@@ -427,7 +427,23 @@ function legs(rig, phase, moving, face, turn, load, idle) {
   set("spine", -0.05 - 0.09 * live - 0.10 * load - still * 0.02, turn * 0.35 + still * 0.03 * idleS, 0.06);
   set("hips", 0.04 * live + still * 0.02, turn * 0.30, still * 0.06 * idleS);
   chestTwist(rig, turn * 0.45);
-  arms(rig, face, phase);
+  if (walk) stroll(rig, face, phase); else arms(rig, face, phase);
+}
+
+/* Carrying a racquet across the court is not standing at the baseline. The ready pose — both arms up, the frame
+   in front of the shoulder — is a pose of somebody about to be hit at; it looks wrong in a walk, and it is what
+   the film had, because between points there was nothing to pose for. The arms hang and swing opposite the legs,
+   and the racquet is carried down by the thigh, head forward: the way people carry a racquet when they are going
+   somewhere rather than playing. */
+function stroll(rig, face, phase) {
+  const right = new THREE.Vector3().crossVectors(face, _up).normalize();
+  const dir = (f, r, u) => new THREE.Vector3().addScaledVector(face, f)
+    .addScaledVector(right, r).addScaledVector(_up, u).normalize();
+  const sw = Math.sin(phase) * 0.42;                      // the arms swing with the gait, arms against legs
+  aimBone(rig.bones["upperarm.R"], dir(-0.16 * sw, 0.26, -0.95));
+  aimBone(rig.bones["forearm.R"], dir(0.30 + 0.10 * sw, 0.12, -0.94));
+  aimBone(rig.bones["upperarm.L"], dir(0.16 * sw, 0.30, -0.95));
+  aimBone(rig.bones["forearm.L"], dir(0.26 - 0.10 * sw, 0.14, -0.95));
 }
 
 /* A player waiting for a ball does not stand with both arms hanging: the free arm is across the body, the racquet
@@ -594,15 +610,41 @@ function reachTo(rig, lead, ball, tTo) {
   if (rise > 0) rig.root.position.y += rise * r;
 }
 
+/* A nod is one joint, so it is cheap, and it is the whole of the greeting the founder asked for: two people
+   walking past each other turn to each other and nod. Which way "down" is about the head bone's own X axis is a
+   fact about the export, not about Blender, so it is settled by measurement the first time it is needed — rotate
+   the bone a little and see whether the top of the head moved forwards or backwards. Done once per body and kept
+   on the bone. */
+const _hq = new THREE.Quaternion(), _hx = new THREE.Vector3(1, 0, 0), _hn = new THREE.Vector3(0, 1, 0);
+function nodSign(rig, fwd) {
+  const b = rig.bones["head"]; if (!b) return 1;
+  if (b.userData.nodSign !== undefined) return b.userData.nodSign;
+  const rest = b.userData.rest || (b.userData.rest = b.quaternion.clone());
+  const keep = b.quaternion.clone();
+  b.quaternion.copy(rest).multiply(_hq.setFromAxisAngle(_hx, 0.4));
+  b.updateWorldMatrix(true, false);
+  const d = new THREE.Vector3(0, 1, 0).transformDirection(b.matrixWorld);
+  b.quaternion.copy(keep);
+  b.userData.nodSign = d.dot(fwd) > 0 ? 1 : -1;
+  return b.userData.nodSign;
+}
+function headPose(rig, pitch, fwd) {
+  for (const [n, k] of [["neck", 0.40], ["head", 1.0]]) {
+    const b = rig.bones[n]; if (!b) continue;
+    const rest = b.userData.rest || (b.userData.rest = b.quaternion.clone());
+    b.quaternion.copy(rest);
+    if (pitch) b.quaternion.multiply(_hq.setFromAxisAngle(_hx, pitch * k * nodSign(rig, fwd)));
+  }
+}
+
 /* ---------- the film ---------- */
 const SEG = [];
 const PLAN = {};                       // name -> [{t0,t1,from,to}] in seconds of film
-/* Where each player is at each moment of the film, when it is not where a run left them. The only thing that
-   does this is a change of ends: the founder asked for the players to swap which one is in the foreground every
-   ten points, and the camera does not move, so both of them are suddenly seventy-eight feet away. They do not
-   walk it — nobody walks it on television either; the change happens during the break, under the point board,
-   and the picture comes back to a court with the two of them at the other ends. Each entry is {t, to} in
-   seconds of film, applied instantly. */
+/* Where each player is when a change of ends has happened, as a floor under everything else: the walk round the
+   post is in the record (see `settle` below), and this only says which side of the net a body is on after it.
+   It used to BE the change of ends — "nobody walks it on television either", which was wrong twice: television
+   shows exactly this, and the founder asked for it on 2026-11-12. Keeping it costs one line and it means a record
+   with no walks in it still draws the right ends. Each entry is {t, to} in seconds of film. */
 const SWAP = {};
 /* The last shot of each rally, and who the engine says won it. A rally ends either because the shot was out (the
    hitter loses it) or because the other player could not reach a good one (the hitter wins it); a rally that runs
@@ -663,7 +705,7 @@ const WINPOS = {};
     const dur = Math.max(0.35, sh.path.length * TRACE);
     // A shot in the middle of a rally gets a beat before the next one starts; the shot that ends the rally gets
     // the point board, the pause, and then a couple of seconds on the player, which is what the 3.8 is for.
-    const hold = (LASTN[sh.rally] === sh.n && POINT[sh.rally]) ? 1.2 : 0.55;
+    let hold = (LASTN[sh.rally] === sh.n && POINT[sh.rally]) ? 1.2 : 0.55;
     const seg = { sh, start: t, dur, hold, cams: cams(sh, dur) };
     if (LASTN[sh.rally] === sh.n && POINT[sh.rally]) seg.point = POINT[sh.rally];
     SEG.push(seg);
@@ -691,6 +733,23 @@ const WINPOS = {};
     if (sh.recover) {
       (PLAN[sh.recover.player] = PLAN[sh.recover.player] || []).push(
         { t0: t + sh.recover.t0, t1: t + sh.recover.t1, from: sh.recover.from, to: sh.recover.to });
+    }
+    // The walk between points. The record now says where each of them was when the ball died and how long the
+    // walk to their place takes, so the break itself has to be as long as the walk: a break that is shorter than
+    // the walk is a body being placed at its mark, which is what the film did at sixteen of its nineteen breaks
+    // (2.8 to 9.5ft in one frame) and at every change of ends (73 to 79ft).
+    const rr = D.rallies.find(x => x.rally === sh.rally) || {};
+    if (rr.settle && LASTN[sh.rally] === sh.n) {
+      seg.settle = rr.settle;
+      const dead = t + dur;                       // the film time the ball dies: the walk starts from here
+      for (const w of rr.settle.players)
+        for (const lg of w.legs)
+          (PLAN[w.name] = PLAN[w.name] || []).push({ t0: dead + lg.t0, t1: dead + lg.t1, from: lg.from, to: lg.to });
+      // 0.75 and not 0.35: the next point's own walk to the service line starts 0.6s before its first frame, so
+      // the break has to end after the walk back does or the two moves overlap and the body is placed rather
+      // than walked — measured, a 0.99ft step at every one of the film's sixteen ordinary breaks.
+      hold = Math.max(hold, rr.settle.dur + 0.75);
+      seg.hold = hold;
     }
     t += dur + hold;
   }
@@ -913,6 +972,19 @@ function tick(now) {
     // the end this player is at *now*, from the record, not the end they began the film at
     const at = northIn(seg, pl.name);
     const { pos, moving, travelled, dir, swapped } = whereAt(pl.name, T);
+    // Between points one of them may be walking rather than playing, and at a change of ends they walk past each
+    // other. `seg.settle` is the record's account of that walk; nothing here invents a route or a time.
+    let walking = false, dpass = null, otherPos = null;
+    if (seg.settle) {
+      const mine = seg.settle.players.find(w => w.name === pl.name);
+      const rel = tl - seg.dur;                             // seconds into the break
+      if (mine && mine.legs.length && rel >= mine.legs[0].t0 - 0.02 && rel <= mine.t1 + 0.02) walking = true;
+      if (seg.settle.pass) {
+        dpass = rel - seg.settle.pass.t;
+        const on = D.players.find(x => x.name !== pl.name);
+        if (on) otherPos = whereAt(on.name, T).pos;
+      }
+    }
     rig.root.position.set(pos[0], 0, pos[1]);
     // The body is built facing +Z; a north player faces +X, a south player faces -X.
     //
@@ -942,6 +1014,15 @@ function tick(now) {
     }
     // A change of ends is a cut, not a walk: the body arrives at the other end already facing the net, because
     // the alternative is watching a player pirouette for a fifth of a second at the start of the next point.
+    // Walking past somebody at a change of ends, a player looks at them: the turn comes in when they are close
+    // and goes out again once they are past, and it is a turn of the whole body because the head bone's own axis
+    // for a face-turn is the bone's length, which cannot be aimed without knowing the export's roll.
+    if (walking && otherPos) {
+      const ox = otherPos[0] - pos[0], oz = otherPos[1] - pos[1];
+      // 18ft and two seconds either side of the pass: a glance, not a stare. At 22ft and five seconds the turn
+      // was still tracking the other player three yards after they had gone by.
+      if (Math.hypot(ox, oz) < 18 && Math.abs(dpass) < 2.2) yaw = Math.atan2(ox, oz);
+    }
     if (rig.yaw === undefined || swapped) rig.yaw = yaw;
     let dy = ((yaw - rig.yaw + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
     rig.yaw += dy * 0.22;
@@ -999,7 +1080,7 @@ function tick(now) {
       rig.root.position.y += 0.020 * (1 - Math.cos(idlePhase * 2)) * idleAmt;
       rig.root.position.y -= 0.05 * load * idleAmt;          // and the knees load as the ball arrives
     }
-    legs(rig, phase, moving, new THREE.Vector3(at ? 1 : -1, 0, 0), turn, load, idlePhase);
+    legs(rig, phase, moving, new THREE.Vector3(at ? 1 : -1, 0, 0), turn, load, idlePhase, walking);
 
     if (q.has("debug")) {
       // The racquet's own box is measured *because* it is not parented to anything: it is placed every frame and
@@ -1217,6 +1298,25 @@ function tick(now) {
         placeRacquet(rig, readyAim, _face);
       }
     }
+    if (walking) {
+      // The racquet goes down by the thigh. Whoever struck the ball that ended the point has had the stroke branch
+      // run on them this frame, and a follow-through is not a walk — measured, that arm was still up with the hand
+      // at 5.8ft and the frame at 4.0ft — so the arms go back down before the frame is carried.
+      const fwd = new THREE.Vector3(Math.sin(rig.yaw), 0, Math.cos(rig.yaw));
+      stroll(rig, new THREE.Vector3(at ? 1 : -1, 0, 0), phase);
+      const hand = rig.bones["handR"];
+      const hp = hand ? hand.getWorldPosition(new THREE.Vector3()) : rig.root.position.clone();
+      placeRacquet(rig, hp.clone().addScaledVector(_up, -1.35).addScaledVector(fwd, 0.85), fwd);
+      // The nod: two dips of the chin across three quarters of a second either side of the pass.
+      let pitch = 0;
+      if (dpass !== null && dpass > -0.75 && dpass < 1.0) {
+        const u = (dpass + 0.75) / 1.75;
+        pitch = 0.34 * Math.sin(Math.PI * u) * Math.abs(Math.sin(2 * Math.PI * u));
+      }
+      headPose(rig, pitch, fwd);
+    } else {
+      headPose(rig, 0, new THREE.Vector3(Math.sin(rig.yaw), 0, Math.cos(rig.yaw)));
+    }
   }
 
   // words
@@ -1249,7 +1349,11 @@ function tick(now) {
   // The board stays up for the whole break, not for the length of the clock hold. He asked for it to overlay the
   // court across the break rather than flash (2026-11-11), and he is right: the break is the moment the picture
   // has nothing else to say, and a sign that appears for 0.4s of a 1.2s break is a stutter, not a caption.
-  const showSign = !!(seg.point && (onCut || signAlways));
+  // ...but not across the whole break any more: the walk between points is now the picture, and he asked to see
+  // it. The board is up for the first second and a half of the break, which is as long as it takes to read, and
+  // then the court gets its players back.
+  const deepInBreak = !!(seg.settle && tl > seg.dur + 1.8);
+  const showSign = !!(seg.point && (onCut || signAlways) && !deepInBreak);
   el("sign").className = showSign ? "on" : "";
   if (showSign) {
     el("signwho").textContent = `Point to ${seg.point.winner}`;
@@ -1257,7 +1361,7 @@ function tick(now) {
     el("signctx").textContent = `rally ${sh.rally} of ${D.rallies.length} · ${D.surface} · ` +
       `last ball: ${sh.player}`;
   }
-  el("cut").className = onCut ? "on" : "";
+  el("cut").className = (onCut && !deepInBreak) ? "on" : "";
   // The card names the player the camera has cut to, and is hidden the moment the ball is in play: it is a still
   // of a person, so it may only appear when the record is not claiming to show a ball.
   const who = onCut ? (WINPOS[sh.rally] ? WINPOS[sh.rally].name : sh.player) : null;
@@ -1270,7 +1374,7 @@ function tick(now) {
       el("facename").innerHTML = `${pl.name} <span>${pl.rating.toFixed(1)}</span>`;
     }
   }
-  el("facecard").className = who ? "on" : "";
+  el("facecard").className = (who && !deepInBreak) ? "on" : "";
   if (onCut) el("cut").textContent =
     `between points · ${WINPOS[sh.rally] ? WINPOS[sh.rally].name : sh.player}`;
 
@@ -1289,9 +1393,52 @@ if (q.has("debug")) window.__pose = () => D.players.map(pl => {
   const r = rigs[pl.body];
   if (!r) return null;
   const at = n => (r.bones[n] || r.root).getWorldPosition(new THREE.Vector3()).toArray().map(v => +v.toFixed(4));
+  // the racquet is not parented to anything, so its head is read the way the page places it: butt at the palm,
+  // 1.74ft up the shaft — the same number the stroke math uses
+  const rh = r.racquet ? r.racquet.position.clone()
+    .addScaledVector(new THREE.Vector3(0, 1, 0).applyQuaternion(r.racquet.quaternion), 1.74) : null;
   return { name: pl.name, root: [r.root.position.x, r.root.position.y, r.root.position.z].map(v => +v.toFixed(4)),
-           thighL: at("thighL"), shinL: at("shinL"), handR: at("handR"), yaw: +(r.yaw || 0).toFixed(4) };
+           thighL: at("thighL"), shinL: at("shinL"), handR: at("handR"), racquet: rh ? rh.toArray().map(v => +v.toFixed(3)) : null,
+           yaw: +(r.yaw || 0).toFixed(4) };
 });
+
+/* A still cannot show motion, and the wall clock cannot be trusted in a headless browser: `?point=` and `?shot=`
+   both PAUSE the film, so a sweep of them proves nothing at all about whether anybody moves. `__seek` steps the
+   film to an exact time with the clock stopped, so a probe can sample every 50ms of FILM time rather than of wall
+   time — and `__seg` says where the breaks are, which is the only way to find a change of ends without watching
+   five minutes of tennis. `__head` is there because a nod happens at one joint. */
+if (q.has("debug")) window.__seek = (t) => { playing = false; pauseUntil = 0; firstFrame = true; T = Math.max(0, t); return T; };
+if (q.has("debug")) window.__seg = () => SEG.map(s => ({ n: s.sh.n, rally: s.sh.rally, player: s.sh.player,
+  start: +s.start.toFixed(2), dur: +s.dur.toFixed(2), hold: +s.hold.toFixed(2),
+  breakAt: +(s.start + s.dur).toFixed(2),
+  cross: s.cross ? { dur: s.cross.dur, post: s.cross.post, pass: s.cross.pass.t } : null,
+  point: s.point ? s.point.winner : null }));
+if (q.has("debug")) window.__head = () => D.players.map(pl => { const r = rigs[pl.body]; if (!r) return null;
+  const b = r.bones["head"]; if (!b) return null;
+  return { name: pl.name, pitch: +b.rotation.x.toFixed(4), roll: +b.rotation.z.toFixed(4),
+           at: b.getWorldPosition(new THREE.Vector3()).toArray().map(v => +v.toFixed(3)) }; });
+
+/* Which way a nod goes is a fact about the file, not about Blender's conventions: the bone's local axes are
+   whatever the exporter wrote. So the axes are measured instead of assumed — rotate one axis at a time and see
+   where the top of the head goes. A nod moves it forward and down; a shake moves it sideways. */
+if (q.has("debug")) window.__headTest = (axis, ang) => D.players.map(pl => {
+  const r = rigs[pl.body]; if (!r) return null;
+  const hd = r.bones["head"]; if (!hd) return null;
+  const rest = hd.userData.rest || (hd.userData.rest = hd.quaternion.clone());
+  const ax = new THREE.Vector3(axis === 0 ? 1 : 0, axis === 1 ? 1 : 0, axis === 2 ? 1 : 0);
+  hd.quaternion.copy(rest).multiply(new THREE.Quaternion().setFromAxisAngle(ax, ang));
+  // the bone's own origin does not move when the bone turns, so the thing to measure is which way the bone
+  // POINTS: a nod tilts its long axis forward, a shake tilts it sideways.
+  hd.updateWorldMatrix(true, false);
+  const up = new THREE.Vector3(0, 1, 0).transformDirection(hd.matrixWorld).toArray().map(v => +v.toFixed(3));
+  hd.quaternion.copy(rest);
+  return { name: pl.name, axis, ang, boneDir: up };
+});
+
+/* Every move the picture knows about for one player, in the order whereAt walks them. The instrument for "why is
+   this body here": a position that does not match the record is either a missing move or two moves overlapping. */
+if (q.has("debug")) window.__moves = (name) => (PLAN[name] || []).map(m => ({
+  t0: +m.t0.toFixed(2), t1: +m.t1.toFixed(2), from: m.from, to: m.to }));
 
 if (q.has("debug")) window.__audit = () => SEG.map(s => ({
   n: s.sh.n, player: s.sh.player, kind: s.sh.kind, t: s.start,

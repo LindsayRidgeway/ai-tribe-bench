@@ -26,6 +26,10 @@ import tennis as T  # noqa: E402
 CAP = 60          # the record's ceiling on a rally, stated rather than hidden
 TRACE = 0.02      # seconds between ball positions in the script
 SWAP_EVERY = 5    # points at one end before both players change ends, so neither is always the small one
+WALK = 4.6        # ft/s between points. A recovery jog is 8-20ft/s and a change of ends is not a jog: people
+                  # walk to the other end, which is why the walk takes fifteen seconds and the point takes four.
+BOARD = 1.5       # seconds the point board stays up after the ball dies, before either of them starts walking
+POST_LANE = 1.3   # feet outside the net post: you walk round the net, you do not walk through it
 SERVE_MPH = (66.0, 18.0)   # a first serve, spread; scaled down by control so a beginner does not serve like a pro
 
 
@@ -91,6 +95,80 @@ def watch_out(entry: dict, other, traj: dict, at, serving: bool, where: list, i:
     where[i] = to
 
 
+def settle(players, at, crossing: int) -> dict:
+    """What the two of them do between points, in the record rather than in the picture.
+
+    Until 2026-11-12 the picture simply PLACED both players at their own baseline when a point ended, and at the
+    other baseline when they changed ends. Measured with the clock stepped at 20ms through every one of the film's
+    19 breaks: a body moved between 2.8 and 9.5ft in a single frame at sixteen of them, and 73-79ft at the three
+    that were changes of ends. That is a pop, and it is the same class of fault as the frozen stance: the record
+    said where everybody was and never said how they got there.
+
+    Two walks, then, and they are different walks:
+
+    - Between ordinary points, each of them strolls back to the middle behind their own baseline — the few feet a
+      rally leaves between where they finished and where they stand to receive.
+    - When they change ends, both walk the length of the court, ROUND THE NET POST, and pass each other beside it.
+      That is what players do: the net spans the doubles court, so the only way to the other end is round the post,
+      and the two of them pass within a couple of feet of each other. The record says who walks round which post,
+      when each of them reaches it, and when they are level with each other, because the nod the founder asked for
+      happens at that instant and it is the record's job to say when it is.
+
+    The founder, 2026-11-12: "I would portray them walking from one baseline to the other, glancing at each other
+    and nodding to one another as they pass."
+    """
+    out = {"kind": "cross" if crossing else "back", "speed": WALK, "board": BOARD, "players": []}
+    lane = None
+    if crossing:
+        lane = -(T.ALLEY + POST_LANE) if crossing < 0 else T.WIDTH + T.ALLEY + POST_LANE
+        out["post"] = "west" if crossing < 0 else "east"
+    # The two of them reach the post together even when one has further to walk: the one who arrives early is the
+    # one who waited a beat, which is what people do when they are walking somewhere together.
+    pass_t = BOARD
+    routes = []
+    for i, pl in enumerate(players):
+        frm = (round(at[i][0], 2), round(at[i][1], 2))
+        dest = (2.0 if pl.north else T.LENGTH - 2.0, T.WIDTH / 2)
+        if crossing:
+            # the northbound walker passes on the inside of the post and the southbound one on the outside, a
+            # foot and a half apart: close enough to nod, not close enough to collide
+            off = 0.9 if pl.north else -0.9
+            via = (T.NET_X, round(lane + off, 2))
+            d1 = math.hypot(via[0] - frm[0], via[1] - frm[1])
+            d2 = math.hypot(dest[0] - via[0], dest[1] - via[1])
+            routes.append((pl, frm, via, (round(dest[0], 2), round(dest[1], 2)), d1, d2))
+            pass_t = max(pass_t + d1 / WALK, pass_t)
+        else:
+            d = math.hypot(dest[0] - frm[0], dest[1] - frm[1])
+            routes.append((pl, frm, None, (round(dest[0], 2), round(dest[1], 2)), d, 0.0))
+    end_t = 0.0
+    for pl, frm, via, dest, d1, d2 in routes:
+        if crossing:
+            t0 = max(0.0, pass_t - d1 / WALK)
+            legs = [{"t0": round(t0, 3), "t1": round(pass_t, 3), "from": list(frm), "to": list(via)},
+                    {"t0": round(pass_t, 3), "t1": round(pass_t + d2 / WALK, 3), "from": list(via), "to": list(dest)}]
+            t_end = pass_t + d2 / WALK
+        else:
+            if d1 < 0.4:      # already standing where the next point needs them
+                t0 = BOARD
+                legs = []
+                t_end = BOARD
+            else:
+                t0 = BOARD
+                t_end = BOARD + d1 / WALK
+                legs = [{"t0": round(t0, 3), "t1": round(t_end, 3), "from": list(frm), "to": list(dest)}]
+        out["players"].append({"name": pl.name, "north": pl.north, "from": list(frm), "to": list(dest),
+                               "via": list(via) if via else None, "legs": legs,
+                               "t0": round(t0, 3), "t1": round(t_end, 3),
+                               "dist": round(d1 + d2, 1), "speed": WALK})
+        end_t = max(end_t, t_end)
+    if crossing:
+        out["pass"] = {"t": round(pass_t, 3), "at": [T.NET_X, round(lane, 2)], "apart": 1.8}
+        out["nod"] = [round(pass_t - 0.75, 3), round(pass_t + 1.0, 3)]   # the greeting, at the instant they pass
+    out["dur"] = round(end_t, 3)
+    return out
+
+
 def corridor(p: T.Player, incoming, power: float, aim: float, contact, surface, wind,
              aim_x=None) -> tuple[float, float]:
     """The range of face angles that would have landed this swing in the court.
@@ -154,6 +232,15 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str,
                 pl.north = not pl.north
             where = [(2.0 if pl.north else T.LENGTH - 2.0, T.WIDTH / 2) for pl in players]
             carry = [None, None]
+        # The walk between points goes in the record of the point that has just ended, because that is when it
+        # happens: `ends_at` is where the two of them actually were when the ball died, which the reset below has
+        # already thrown away by the time the next point is built.
+        if out_rallies:
+            # Which post they walk round: the nearer one to the two of them, not a coin toss — the random stream
+            # belongs to the tennis, and spending a draw on a walk would change every ball in the film.
+            west = sum(1 for i in range(2) if ends_at[i][1] < T.WIDTH / 2)
+            crossing = -1 if west >= 1 else 1
+            out_rallies[-1]["settle"] = settle(players, ends_at, crossing if changed_ends else 0)
         # Every point in tennis begins with a serve, and until 2026-11-11 this file began every point with a
         # groundstroke struck from the baseline — a rally with no opening ball, which is why a rally could be
         # one shot long. The server alternates for now; the game's own service order (a whole game, then the
@@ -430,6 +517,9 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str,
                             "changed_ends": changed_ends})
         incoming = None
         hitter = 0
+        # where they actually are when the point ends, before the reset below puts them back on their marks: the
+        # walk between points starts from here, so a body is never placed anywhere it did not walk to
+        ends_at = [(round(w[0], 2), round(w[1], 2)) for w in where]
         where = [(2.0 if pl.north else T.LENGTH - 2.0, T.WIDTH / 2) for pl in players]
         carry = [None, None]
         last_aim = [None, None]
