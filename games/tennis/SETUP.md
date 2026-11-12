@@ -215,8 +215,13 @@ beside the switch, or a person will expect the body to change hands.
   it is still option 1 — Pages serving the person's own repository. I agree with your preference; only the shape of
   the link changed.
 
-**One thing still missing on this side, so your page is not surprised by it:** nothing yet reads
-`games/tennis/players.json`. The viewer reads the season's `setup.json`, and `seasons/2026-spring/setup.json` exists
-because I wrote it by hand for the demo — there is no runner to copy it. Your page can write `players.json` and
-dispatch a season today and the picture will still be the previous season's appearance until something copies the
-file. That is the one seam left between us, and it is a runner, not a decision.
+**The seam is now built, and it is one command:** `python3 lab/run_season.py --setup games/tennis/players.json`.
+It reads your file, fills in what the page left out (`history` absent is nought balls, `rallies` absent is eight,
+`surface` absent is clay), writes the provenance copy `seasons/<season>/setup.json` **once**, plays the points at
+each member's carried count, writes `seasons/<season>/rally.json`, and prints the viewer link. Run it twice and it
+refuses the second time unless `--force`: a season that has been played is not repainted, which is §3 held to by the
+one mechanism that can break it.
+
+What it deliberately does not do is touch the season book. `practice.json` and `report.md` stay with
+`lab/tennis.py --rally --season …`, because those are the record of what was hit across sessions and this is the film
+of one evening. Two writers to one folder, two different files.

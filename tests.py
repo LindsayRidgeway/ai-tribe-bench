@@ -4270,5 +4270,54 @@ class TheTemplateMustBeEnough(unittest.TestCase):
         self.assertIn("wake/members/.gitkeep", mt.paths(), "the empty folder has to exist for the first member")
 
 
+class TestTheSeasonRunner(unittest.TestCase):
+    """`lab/run_season.py` is the seam between Dmitri's Play page and the viewer: a setup file in, a record and a
+    provenance copy out. Two things have to hold, and they are the two things SETUP.md asks for. What the page
+    leaves out is filled rather than refused — a member with no `history` is a member with nought balls this
+    season, not an error. And a season that has already been played cannot be repainted, because the copy in its
+    folder is the appearance the picture reads: editing `players.json` in March must not change January.
+    """
+
+    def setUp(self):
+        self.dir = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.dir, True)
+        self.rs = load(REPO / "lab" / "run_season.py", "run_season_mod")
+        self.save = self.rs.TENNIS
+        self.rs.TENNIS = self.dir / "games" / "tennis"
+        self.addCleanup(setattr, self.rs, "TENNIS", self.save)
+        self.players = self.dir / "players.json"
+
+    def write(self, kit="#3c6b57", **session):
+        self.players.write_text(json.dumps({
+            "schema": "ait-tennis-setup/1",
+            "players": [{"name": "Gwen", "look": {"height_m": 1.72, "kit": kit}},
+                        {"name": "Dmitri", "history": 120}],
+            "session": {"season": "2026-11-12-test", **session}}))
+
+    def test_what_the_page_leaves_out_is_filled_and_not_refused(self):
+        cfg = self.rs.resolve({"schema": "ait-tennis-setup/1",
+                               "players": [{"name": "Gwen"}, {"name": "Dmitri"}]})
+        self.assertEqual([p["history"] for p in cfg["players"]], [0, 0], "no history is nought balls")
+        self.assertEqual(cfg["session"]["surface"], "clay")
+        self.assertEqual(cfg["session"]["rallies"], 8)
+        self.assertIn("season", cfg["session"], "a season with no name still gets a folder")
+
+    def test_a_season_already_played_is_not_repainted(self):
+        self.write(kit="#3c6b57")
+        self.rs.main(["--setup", str(self.players), "--clock", "1793809110303"])
+        folder = self.rs.TENNIS / "seasons" / "2026-11-12-test"
+        self.assertTrue((folder / "setup.json").is_file())
+        record = json.loads((folder / "rally.json").read_text())
+        self.assertEqual(len(record["players"]), 2, "the record names both members")
+        self.assertTrue(record["shots"], "and it has a film in it")
+
+        self.write(kit="#ff0000")          # the kit changes after the season was played
+        with self.assertRaises(SystemExit):
+            self.rs.main(["--setup", str(self.players), "--clock", "1793809110303"])
+        kept = json.loads((folder / "setup.json").read_text())
+        self.assertEqual(kept["players"][0]["look"]["kit"], "#3c6b57",
+                         "the copy is the appearance the season was played under")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
