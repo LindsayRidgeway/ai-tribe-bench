@@ -593,30 +593,32 @@ const WINPOS = {};
 function whereAt(name, T) {
   const moves = PLAN[name] || [];
   const start = (D.start.find(s => s.name === name) || { at: [0, WID / 2] }).at;
-  let pos = start, moving = false, travelled = 0, dir = null;
+  // A change of ends comes before the runs in the same way a run does: it happens at an instant, and only the
+  // moves that come after it count. Skipping the earlier ones is the whole job — applying the change last, after
+  // the runs, pins the player to the end of the court they changed to and they never move again, which is exactly
+  // what the film did for the second half of its points.
+  let sw = null;
+  for (const s of (SWAP[name] || [])) if (T >= s.t && (!sw || s.t >= sw.t)) sw = s;
+  let pos = sw ? sw.to : start, moving = false, travelled = 0, dir = null;
+  const swapped = !!(sw && (T - sw.t) < 0.06);
   for (const m of moves) {
-    const d = Math.hypot(m.to[0] - m.from[0], m.to[1] - m.from[1]);
+    if (sw && m.t1 <= sw.t) continue;                       // ran before they changed ends
+    const from = (sw && m.t0 < sw.t) ? sw.to : m.from;
+    const d = Math.hypot(m.to[0] - from[0], m.to[1] - from[1]);
     if (T >= m.t1) { pos = m.to; travelled += d; }
     else if (T > m.t0) {
       const k = (T - m.t0) / Math.max(0.05, m.t1 - m.t0);
-      pos = [m.from[0] + (m.to[0] - m.from[0]) * k, m.from[1] + (m.to[1] - m.from[1]) * k];
+      pos = [from[0] + (m.to[0] - from[0]) * k, from[1] + (m.to[1] - from[1]) * k];
       travelled += d * k;
       // the direction of travel, which is the direction the body turns to: a player moving anywhere other than
       // straight back from the middle of their own baseline turns and runs, they do not reverse into the court
-      if (d > 0.5) dir = [(m.to[0] - m.from[0]) / d, (m.to[1] - m.from[1]) / d];
+      if (d > 0.5) dir = [(m.to[0] - from[0]) / d, (m.to[1] - from[1]) / d];
       moving = true; break;
     } else break;
   }
   // the gait's phase is the ground covered, integrated over the planned runs, so scrubbing backwards and
   // jumping to a shot both put the legs where they belong. A phase counted frame by frame would only be right
   // in continuous play, which is the one case a still cannot show.
-  let swapped = false;
-  for (const s of (SWAP[name] || [])) {
-    if (T >= s.t) {
-      swapped = (T - s.t) < 0.06;          // the frame they arrive at the other end, not every frame after it
-      pos = s.to; travelled = 0; moving = false; dir = null;
-    }
-  }
   return { pos, moving, travelled, dir, swapped };
 }
 
@@ -895,20 +897,41 @@ function tick(now) {
       // every stroke. Found by measuring, not by looking — ?debug prints the hand's distance to the ball, and it
       // read 2.46ft at the strike with a target 1.6ft away, on every shot, whatever the solver did.
       const rest = 1 - k;
-      solveArm(rig, ball.clone().addScaledVector(u, -1.60).lerp(wait, rest), lead);
-      const aim = ball.clone().addScaledVector(u, -0.20).lerp(wait, rest);
-      placeRacquet(rig, aim, _face);
+      // The racquet's head goes on the ball and the butt 1.74ft behind it along the shot, which is where the
+      // hands are. The previous rule put the hand 1.6ft back along the line from the shoulder to the ball, and
+      // that line is fine on a forehand and wrong on a backhand: the contact is beside the body, so the ball is
+      // barely two feet from the LEFT shoulder and the hand target landed 0.08ft from it — inside the shoulder,
+      // where the two-bone solve has no elbow to choose and folds the arm into a spike above the head. Measured,
+      // not guessed: `shL to target 0.08`, `handL up 0.81`, left hand 1.70ft from the ball it was supposed to
+      // hold.
+      const butt = ball.clone().addScaledVector(_face, -1.74);
+      const onGrip = (sh.hand === "back") ? butt.clone().addScaledVector(_face, 0.36) : butt;  // top hand
+      solveArm(rig, onGrip.lerp(wait, rest), lead);
+      if (sh.hand === "back") solveArm(rig, butt.lerp(wait, rest), "R");   // the butt hand
+      // The swing does not stop at the ball and drift home. It finishes: the racquet carries on up and across the
+      // body to the shoulder on the hitting side and only then relaxes. Without that, a backhand — which starts on
+      // the far side of the body and ends on the near one — passed straight through its own finish on the way back
+      // to the ready pose and read as a poke, which is the weakest part of the film and the founder's note.
+      const chestW = new THREE.Vector3();
+      (rig.bones["chest"] || rig.root).getWorldPosition(chestW);
+      const fwdW = new THREE.Vector3(Math.sin(rig.yaw), 0, Math.cos(rig.yaw));
+      const rightW = new THREE.Vector3(Math.cos(rig.yaw), 0, -Math.sin(rig.yaw));
+      const fin = chestW.clone()
+        .addScaledVector(rightW, back ? 1.05 : 0.80)
+        .addScaledVector(fwdW, back ? 0.45 : 0.55);
+      fin.y = chestW.y + (back ? 1.05 : 1.45);
+      const done = Math.min(1, tl / 0.17);                                  // into the finish
+      const relax = Math.max(0, Math.min(1, (tl - 0.17) / 0.33));           // and back out of it
+      placeRacquet(rig, ball.clone().lerp(fin, done).lerp(wait, relax), _face);
       if (q.has("debug")) {
         const hR = rig.bones["handR"], hL = rig.bones["handL"], d = v => (v ? v.getWorldPosition(new THREE.Vector3()).distanceTo(ball) : NaN);
+        const head = rig.racquet ? rig.racquet.localToWorld(new THREE.Vector3(0, 1.74, 0)) : null;
         console.log("debug stroke", pl.name, sh.hand, "right hand to ball", d(hR).toFixed(2),
-                    "left hand to ball", d(hL).toFixed(2), "k", k.toFixed(2));
+                    "left hand to ball", d(hL).toFixed(2), "k", k.toFixed(2),
+                    "| racquet head to ball", head ? head.distanceTo(ball).toFixed(2) : "n/a",
+                    "| shoulderL to its hand", rig.bones["upperarmL"].getWorldPosition(new THREE.Vector3())
+                      .distanceTo((hL || rig.root).getWorldPosition(new THREE.Vector3())).toFixed(2));
 
-      }
-      if (sh.hand === "back") {
-        // the trailing hand on the handle, a foot below the leading one — and it lets go at the end, which is
-        // what the follow-through through the left shoulder is
-        const grip = aim.clone().addScaledVector(u, -1.05).lerp(wait, rest);
-        solveArm(rig, grip, "R");
       }
     } else {
       // Not striking. If the racquet has come back for the next ball, the arms show it, and they show it differently

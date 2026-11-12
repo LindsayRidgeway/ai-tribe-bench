@@ -275,13 +275,17 @@ function northAt(name, T){
 }
 function whereAt(name, T){
   const start = (D.start.find(p => p.name === name) || {at: [0, W/2]}).at;
-  let pos = start;
-  for (const s of (SWAP[name] || [])) if (T >= s.t) pos = s.to;
+  // the latest change of ends that has happened, if any: only the runs after it count (see replay3d.html)
+  let sw = null;
+  for (const s of (SWAP[name] || [])) if (T >= s.t && (!sw || s.t >= sw.t)) sw = s;
+  let pos = sw ? sw.to : start;
   for (const m of (PLAN[name] || [])){
+    if (sw && m.t1 <= sw.t) continue;
+    const from = (sw && m.t0 < sw.t) ? sw.to : m.from;
     if (T >= m.t1) pos = m.to;
     else if (T > m.t0){
       const k = (T - m.t0) / Math.max(0.05, m.t1 - m.t0);
-      return [m.from[0] + (m.to[0]-m.from[0])*k, m.from[1] + (m.to[1]-m.from[1])*k];
+      return [from[0] + (m.to[0]-from[0])*k, from[1] + (m.to[1]-from[1])*k];
     } else break;
   }
   return pos;
