@@ -466,11 +466,13 @@ the new test checks:
 | expert, twentieth shot of the rally | 0.6ft short — the same ball, tired legs |
 | beginner, first shot of the rally | 3.8ft short, and never in it |
 
-In the 20-point film: 109 shots, rallies `[6,2,3,1,6,18,6,2,8,2,9,3,1,8,9,9,4,3,8,1]`, and **6 of 20 points end
+In the 20-point film: 95 shots, rallies `[2,1,3,2,3,4,10,9,12,7,4,1,3,2,2,5,6,2,6,11]`, and **4 of 20 points end
 with a ball the other player could not reach** — all of them wide, and all of them described in the record
-with how many feet short and at what speed the player was running (`Gwen runs 17.4ft at 19.1ft/s and does not get
-there`). The other sixteen still end on an error of aim, which is the balance the founder asked for: not a game
-with two ways to lose, and not one with none.
+with how many feet short and at what speed the player was running (`Dmitri runs 15.6ft at 16.1ft/s and does not get
+there`). Fourteen of the rest end on an error of aim and six in the net, which is the balance the founder asked
+for: not a game with two ways to lose, and not one with none. (It was 6 out of 20 on 109 shots before the one-serve
+rule; the shot count fell because five points in twenty had been opening with a first serve that was meant to
+fail.)
 
 ### The price of the aim, on the same evening
 
@@ -495,3 +497,49 @@ hit more of them from absurd heights. `STRIKE_LOW = 2.0` and `STRIKE_HIGH = 4.5`
 shoulder, the heights a player is *happy* to take the ball at — and the search now waits for one of those if the
 ball can be reached there at all, falling back to the earliest feasible moment only when it cannot. The curve came
 back at 5.05 shots for four hundred balls, and the contact heights are a median of 2.1ft.
+
+### Why no ball in the film ever met the middle of a racquet
+
+The founder, 2026-11-12: "One weakness is that the ball visually seems to completely miss the racquet yet flies
+back as if contact had been made. My recommendation would be to position the player (and racquet) so that well-hit
+balls, at least, hit the exact center of the racquet."
+
+Three separate faults, and the first was the reason the second two were invisible.
+
+**The feet were standing on the ball.** `recover.from` was the *contact point*, not the striker's feet, so at the
+instant of the strike the body was moved onto the ball and the recovery walked them away from it. Measured with
+`?debug` at the strike frame: `feet-B 0.02`, the shoulder 0.97ft horizontally from a ball two feet off the ground.
+The arm folded into a poke above the head, and the frame — which is placed 1.74ft from the hand and aimed at the
+ball — went *past* it. That is a "completely misses the racquet" that is really a body standing on the ball.
+
+**The feet stopped a full lunge away.** With the body put back where it belonged, the record's own geometry was
+wrong in the other direction. `RACQUET_REACH = 4.5` is how far the strings are from the middle of the body when a
+player is stretched — and it was also where the feet came to rest, because `intercept()` used one number for both
+"can I get the strings to it" and "where do I stand to hit it". So every comfortable ball in the film was struck
+from a body four and a half feet away, and the arm plus frame is 3.6ft. `STANCE = 2.6` is now the second number:
+the feet run to where a player stands to play the ball, and 4.5ft is only the limit at which a lunging player can
+still touch it. The verdict is unchanged, so every point in the film is decided exactly as before; what changed is
+where the feet come to rest when the clock allows it.
+
+**The frame was anchored at the wrist.** The butt of the handle is not at the wrist bone, it is four inches along
+the shaft from it, in the palm — so the rig was reaching 3.6ft where a person reaches 3.9. `PALM = 0.35` is now
+part of the chain: the wrist is solved to a point one palm-and-shaft-length from the ball, the frame starts a palm
+further along that line, and its 1.74ft head lands on the ball.
+
+And then one number that is neither a bug nor a constant: **the reach the record allows is not the reach the body
+has.** 4.5ft from the middle of the body is a lunge; 3.9ft from the shoulder is a straight arm. The difference has
+to be *drawn*, or the frame stops six inches short of every stretched ball — which it did on 63 of the 106 strikes in the
+film that morning. `reachTo()` moves the body by exactly the gap, before the strike and after it: a stride toward the ball,
+up on the toes when the ball is overhead, capped at 1.3ft of stride and 0.95ft of rise, eased in and out over half
+a second so it is a movement rather than a teleport.
+
+Measured across every strike in the 95-shot film, at the frame the ball is struck: **91 of 95 put the middle of
+the frame within 1.5in of the middle of the ball**, and all 95 within 1.5in except four. The four are low
+backhands where the ball is so far to the player's left that the *right* arm — the hand that carries the butt —
+cannot cross far enough; the worst is 6in, which is where a real player frames it. That is a limit of this skeleton, not of the
+rule, and it is the honest shape of the thing: a two-handed backhand at full stretch is a mishit.
+
+The founder also asked for the sophisticated version — off-centre contact on the sweet spot, and the occasional
+ball off the rim, for an inexperienced player. Not built, deliberately: "unnecessary at this time", and it needs
+the same geometry to be right first. When it is built, the hook is already there: the head's distance to the ball
+is now a number the page computes every strike.

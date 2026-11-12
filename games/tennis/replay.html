@@ -269,6 +269,13 @@ function buildTimeline(){
     // took. Markers follow it, so they no longer jump from contact to contact.
     if (s.run) (PLAN[s.run.player] = PLAN[s.run.player] || []).push(
       {t0: t + s.run.t0, t1: t + Math.min(s.run.t1, dur), from: s.run.from, to: s.run.to});
+    // And the two moves that are not runs: the walk to the service line before a point, and the step and a half
+    // a receiver takes at a ball that is going out before they let it go. See replay3d.html; the record is the
+    // same record, so a page that ignores half of it draws a player standing where they are not.
+    if (s.stance) (PLAN[s.stance.player] = PLAN[s.stance.player] || []).push(
+      {t0: t + s.stance.t0, t1: t + s.stance.t1, from: s.stance.from, to: s.stance.to});
+    if (s.watch) (PLAN[s.watch.player] = PLAN[s.watch.player] || []).push(
+      {t0: t + s.watch.t0, t1: t + s.watch.t1, from: s.watch.from, to: s.watch.to});
     t += dur + hold;
   }
 }

@@ -14,6 +14,7 @@ import contextlib
 import importlib.util
 import io
 import json
+import math
 import os
 import re
 import shutil
@@ -2819,6 +2820,98 @@ class TestTennis(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.t = load(REPO / "lab" / "tennis.py", "tennis_mod")
+        # The script that turns a point into the record the page draws. Loaded separately because these checks
+        # are about the film rather than the physics: what is written down, not what is true.
+        cls.s = load(REPO / "lab" / "tennis_script.py", "tennis_script_mod")
+        cls.film = cls.s.play((400, 400), ("Dmitri", "Gwen"), 12, 1793809110303, "clay")
+
+    def test_a_point_has_one_serve_and_no_throw_away_before_it(self):
+        """The founder, 2026-11-12: "You start a lot of rallies with the player first hitting a throw-away shot.
+        That doesn't happen in rallies. If you're attempting to simulate first-serve/second-serve, I suggest you
+        save that until you implement the full set of game rules."
+
+        It was exactly that: a first serve that missed earned a second, so the first ball of most points was a
+        ball that was meant to fail — and it was in the film, because a shot is written to the record before the
+        fault is handled. One serve now, and a fault is a lost point, which is what a one-serve match is. The
+        two-serve game comes back with the scoring layer, and with both modes in the UI as he asked."""
+        serves, firsts = {}, {}
+        for sh in self.film["shots"]:
+            firsts.setdefault(sh["rally"], sh)
+            if sh["kind"] == "serve":
+                serves.setdefault(sh["rally"], []).append(sh["n"])
+        self.assertTrue(serves, "no rally in the film began with a serve")
+        for rally, ns in serves.items():
+            self.assertEqual(len(ns), 1,
+                             f"rally {rally} was served {len(ns)} times — the extra ball is the throw-away")
+        for rally, sh in firsts.items():
+            self.assertEqual(sh["kind"], "serve",
+                             f"rally {rally} opened with a {sh['kind']}, so the rally did not start with a serve")
+
+    def test_a_ball_going_out_is_watched_and_not_read_in_advance(self):
+        """The founder, 2026-11-12: "When a ball is long, you portray the receiving player as knowing in advance
+        that it will be long and not moving. A more accurate portrayal would be having the receiving player watch
+        the ball go out."
+
+        Before this the point ended the instant a shot was judged out and the receiver's record had no run in it
+        at all — they did not move and did not turn. Nobody knows where a ball is going when it leaves the
+        strings: they take the first step, and a fifth of a second later they let it go."""
+        outs = [sh for sh in self.film["shots"] if sh.get("watch")]
+        self.assertTrue(outs, "no point in the film ended on a ball that was out of court")
+        for sh in outs:
+            w = sh["watch"]
+            self.assertGreater(w["t0"], 0.0, "the receiver moved before they could have seen the ball")
+            self.assertGreater(w["step"], 0.5, "the receiver stood still on a ball that was going out")
+            fx, fy = w["from"]
+            tx, ty = w["to"]
+            lx, ly = w["land"]
+            toward = (tx - fx) * (lx - fx) + (ty - fy) * (ly - fy)
+            self.assertGreater(toward, 0.0, "the receiver's one step went away from the ball, not towards it")
+
+    def test_the_striker_is_never_standing_on_the_ball(self):
+        """`recover.from` was the contact point, not the striker's feet, so at the instant of the strike the body
+        was placed on the ball and the recovery walked away from it. Measured with ?debug at the strike frame:
+        the feet were 0.02ft from the ball and the shoulder 0.97ft from it, so the arm folded into a poke and the
+        frame — aimed at the ball from a hand 1.74ft behind it — went past it. The founder saw the result and
+        said so: "the ball visually seems to completely miss the racquet yet flies back as if contact had been
+        made." The recovery starts from the body now, which is where a recovery starts."""
+        checked = 0
+        for sh in self.film["shots"]:
+            r = sh.get("recover")
+            if not r:
+                continue
+            d = math.hypot(r["from"][0] - sh["contact"][0], r["from"][1] - sh["contact"][1])
+            # Half a foot, not zero: a volley at the net is played with the ball close to the body, and that is
+            # honest. What is not honest is 0.02ft, which is a body standing in the ball.
+            self.assertGreater(d, 0.5, f"shot {sh['n']}: the recovery starts on the ball, so the body stood in it")
+            checked += 1
+        self.assertGreater(checked, 5, "no recoveries in the film to check")
+
+    def test_the_feet_stop_a_stance_short_and_a_lunge_at_most(self):
+        """One number was doing two jobs. `RACQUET_REACH = 4.5` is how far the strings can be from the middle of
+        the body when a player is stretched, and it was also where the feet came to rest — so every comfortable
+        ball in the film was struck from a body four and a half feet away, against 3.6ft of arm and frame. That,
+        not the arm solver, is why no ball ever met the middle of a racquet. `STANCE = 2.6` is the second number:
+        where a player stands to play a ball they have time for. The verdict is unchanged — a ball still has to be
+        closed to `RACQUET_REACH` — so the physics of every point is exactly as it was."""
+        by_rally = {}
+        for sh in self.film["shots"]:
+            by_rally[(sh["rally"], sh["i"])] = sh
+        checked = 0
+        for sh in self.film["shots"]:
+            r = sh.get("run")
+            if not r or not r.get("met"):
+                continue
+            nxt = by_rally.get((sh["rally"], sh["i"] + 1))
+            if not nxt:
+                continue                      # the ball was met but the point ended without a stroke
+            c = nxt["contact"]
+            d = math.hypot(r["to"][0] - c[0], r["to"][1] - c[1])
+            self.assertLessEqual(d, self.t.RACQUET_REACH + 0.06,
+                                 f"shot {sh['n']}: the feet stopped {d:.2f}ft from the ball, past their own reach")
+            self.assertGreaterEqual(d, min(self.t.STANCE, r["dist"]) - 0.06,
+                                    f"shot {sh['n']}: the feet ran {d:.2f}ft from the ball, inside the stance")
+            checked += 1
+        self.assertGreater(checked, 5, "no met balls in the film to check")
 
     def test_a_match_nobody_plays_refuses_the_engines_it_would_ignore(self):
         """Found 2026-11-06, at the cost of two runs: `--names Greta,Hans --vendor groq --points 6` finished in

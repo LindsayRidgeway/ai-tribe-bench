@@ -57,6 +57,40 @@ def balls_for(r: float) -> float:
     return -120.0 * math.log(1.0 - s)
 
 
+def watch_out(entry: dict, other, traj: dict, at, serving: bool, where: list, i: int) -> None:
+    """What a receiver does with a ball that is going out: they start for it, read it, and let it go.
+
+    The founder, 2026-11-12: "When a ball is long, you portray the receiving player as knowing in advance that it
+    will be long and not moving. A more accurate portrayal would be having the receiving player watch the ball go
+    out." Nobody knows where a ball is going at the instant it leaves the strings. What a player does is move on
+    the first step — the same first step they take for a good ball — and then, a fifth of a second later, see the
+    length and stop. So the record gets a short move and a place to look, and the picture turns the body to follow
+    the ball instead of leaving them facing the net while it sails past.
+    """
+    # Where the ball ends up: the last traced point, which for a ball that is long is past the baseline and for a
+    # ball in the net is the tape. `land` is the first bounce and says nothing about a ball that never bounced.
+    tail = entry.get("path") or []
+    land = (tail[-1][1], tail[-1][2]) if tail else (traj.get("land") or (at[0], at[1]))
+    rx, ry = land[0] - at[0], land[1] - at[1]
+    d = math.hypot(rx, ry) or 1.0
+    spd = T.movement_speed(other)
+    read = T.reaction_time(other)
+    step = min(4.5, T.run_distance(read + 0.35, spd))       # a step and a half towards it, and no more
+    to = (at[0] + rx / d * step, at[1] + ry / d * step)
+    entry["watch"] = {
+        "player": other.name, "north": other.north,
+        "from": [round(at[0], 2), round(at[1], 2)],
+        "to": [round(to[0], 2), round(to[1], 2)],
+        "t0": round(read, 3), "t1": round(read + 0.35, 3),
+        "land": [round(land[0], 2), round(land[1], 2)],
+        "step": round(step, 1), "speed": round(spd, 1),
+        "on": "serve" if serving else "shot",
+    }
+    # They moved, so the next point starts from where they moved to — the same rule as every other position in
+    # the film, and the reason this takes `where`: the engine has to agree with the picture about where they are.
+    where[i] = to
+
+
 def corridor(p: T.Player, incoming, power: float, aim: float, contact, surface, wind,
              aim_x=None) -> tuple[float, float]:
     """The range of face angles that would have landed this swing in the court.
@@ -129,6 +163,17 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str,
         serve_no = 1          # first ball; a fault earns a second
         rallied = False
         server = players[server_i]
+        # The server stands behind the baseline near the middle of it, whatever spot the last rally left them in.
+        # The serve's contact is a point in space — up and out in front of the body — and until 2026-11-12 that
+        # point was fixed at the middle of the court whatever the feet were doing, so the two could be ten feet
+        # apart and the stroke was drawn from wherever the recovery happened to end. Measured with ?debug: the
+        # frame was 0.56ft from the ball on one serve and 7.5ft on another.
+        stance_from = where[server_i]
+        where[server_i] = (0.0 if server.north else T.LENGTH, T.WIDTH / 2)
+        stance_move = {"player": server.name, "north": server.north,
+                       "from": [round(stance_from[0], 2), round(stance_from[1], 2)],
+                       "to": [round(where[server_i][0], 2), round(where[server_i][1], 2)],
+                       "t0": -0.6, "t1": -0.05}          # the walk to the line happens in the pause between points
         # The corner is chosen once per point, at random, and both serves go there: a second serve is the same
         # intention with less pace, not a change of plan.
         serve_corner = rng.choice(T.serve_corners(server.north, server.skill("control")))
@@ -139,23 +184,31 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str,
         while length < CAP:
             p = players[hitter]
             other = players[1 - hitter]
+            # Where the striker's FEET are at the instant of the strike. Not the contact point: the ball is struck
+            # a stance or a lunge away from the body, and the recovery starts from the body. This was the contact
+            # point until 2026-11-12, which put the player's feet on the ball for the whole of their own stroke —
+            # the founder's "the ball completely misses the racquet". Measured with ?debug at the strike frame:
+            # the body stood 0.02ft from the ball and the shoulder 0.97ft horizontally from it, so the arm folded
+            # into a poke and the frame ended up past the ball on every shot in the film.
+            struck_from = where[hitter]
             swing, plan = "rally", None          # set again below; a serve sets swing = "serve"
-            serving = (hitter == server_i and serve_no <= 2 and not rallied)
+            serving = (hitter == server_i and not rallied)
             if serving:
-                # A serve is struck from 8.8ft over the baseline, not at waist height, and it is judged by the
-                # service box rather than by the court. A second serve keeps the corner and takes pace off and
-                # height on: the ball is sent four feet shorter, which is what a higher, safer serve is.
-                contact = T.contact_point(p, "serve")
-                pace = (SERVE_MPH[0] + SERVE_MPH[1] * rng.random()) \
-                    * (0.72 + 0.30 * p.skill("control")) * (1.0 if serve_no == 1 else 0.85)
-                # A second serve is not the same ball with the pace taken off. It is aimed at the middle of the
-                # same half of the box: the first serve attacks a corner because a fault costs nothing but a
-                # serve, the second one cannot afford a corner at all. Until 2026-11-11 it kept the corner and
-                # only lost 15% of its pace, and thirteen points in twenty-four were double faults at zero
-                # practice — a beginner who cannot play a point cannot be watched playing one.
-                target = (serve_corner if serve_no == 1
-                          else (T.NET_X + (T.SERVICE_LINE - 6.0) * (1.0 if p.north else -1.0),
-                                T.WIDTH / 2 + (5.5 if serve_corner[1] > T.WIDTH / 2 else -5.5)))
+                # ONE SERVE, until the game's own rules exist. A first serve that misses used to earn a second one,
+                # and the second serve is the ball that puts the rally in play — so the film spent the first shot
+                # of most points on a ball that was meant to fail. The founder, 2026-11-12: "You start a lot of
+                # rallies with the player first hitting a throw-away shot. That doesn't happen in rallies... I
+                # suggest you save that until you implement the full set of game rules. When you do, I would
+                # certainly offer the user both modes of play in the UI." So: one serve, and because there is no
+                # second ball the server cannot afford a corner — the serve is aimed inside the box, at the same
+                # place a second serve used to go, at full pace.
+                # The ball is struck up and out in front of the server's own feet, not at a fixed point on the
+                # court: 2.2ft over the line and a foot to the right of the body, 8.8ft up.
+                sx, sy = where[hitter]
+                contact = (sx + 2.2 * (1.0 if p.north else -1.0), sy + 1.1, 8.8)
+                pace = (SERVE_MPH[0] + SERVE_MPH[1] * rng.random()) * (0.72 + 0.30 * p.skill("control"))
+                target = (T.NET_X + (T.SERVICE_LINE - 5.0) * (1.0 if p.north else -1.0),
+                          T.WIDTH / 2 + (6.0 if serve_corner[1] > T.WIDTH / 2 else -6.0))
                 face, pw = T.aim_at(p, target, "serve", surface, wv, power=pace, contact=contact)
                 shot = T.strike(p, None, face=face, power=pw, aim=target[1], aim_x=target[0], shot="serve",
                                 surface=surface, wind=wv, contact=contact)
@@ -209,6 +262,9 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str,
 
             length += 1
             entry = {
+                # The stance the server walks into before the first ball: a move the picture needs and cannot
+                # infer, because it happens between points and every other position in the film comes from a run.
+                **({"stance": stance_move} if serving and length == 1 else {}),
                 "n": len(shots),
                 "rally": rally_no,
                 "i": length,
@@ -247,12 +303,11 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str,
 
             if not ok:
                 if serving:
-                    if serve_no == 1:
-                        serve_no = 2        # a fault is not a lost point: the server has a second ball
-                        continue
                     point = {"winner": other.name, "reason": f"double fault — {why}"}
-                    break
-                point = {"winner": players[1 - hitter].name, "reason": why}
+                else:
+                    point = {"winner": players[1 - hitter].name, "reason": why}
+                # And the ball that is going out is watched, not run for. See the read below.
+                watch_out(entry, other, traj, where[1 - hitter], serving, where, 1 - hitter)
                 break
             if serving:
                 rallied = True
@@ -262,19 +317,19 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str,
             # receiver actually stands. Before this the feet stayed at the contact point for the rest of the rally,
             # which is why both players drifted forward and stayed in the forecourt.
             came_in = (plan is not None and plan["kind"] == "approach") or swing == "volley"
-            spot = T.recovery_spot(p, (shot["contact"][0], shot["contact"][1]), came_in)
+            spot = T.recovery_spot(p, struck_from, came_in)
             spd = T.movement_speed(p)
-            d_rec = math.hypot(spot[0] - shot["contact"][0], spot[1] - shot["contact"][1])
+            d_rec = math.hypot(spot[0] - struck_from[0], spot[1] - struck_from[1])
             # A recovery is not bounded by the flight of the ball just struck: the player keeps moving while the
             # other one is hitting, which is most of the two seconds. Capped at 2.5s, which is a long time to jog
             # twenty feet and is where a real player would have arrived.
             t_rec = min(2.5, d_rec / max(spd, 1.0))
-            ux = (spot[0] - shot["contact"][0]) / max(d_rec, 1e-6)
-            uy = (spot[1] - shot["contact"][1]) / max(d_rec, 1e-6)
-            where[hitter] = (shot["contact"][0] + ux * spd * t_rec, shot["contact"][1] + uy * spd * t_rec)
+            ux = (spot[0] - struck_from[0]) / max(d_rec, 1e-6)
+            uy = (spot[1] - struck_from[1]) / max(d_rec, 1e-6)
+            where[hitter] = (struck_from[0] + ux * spd * t_rec, struck_from[1] + uy * spd * t_rec)
             carry[hitter] = None
             entry["recover"] = {"player": p.name, "north": p.north,
-                                "from": [round(shot["contact"][0], 2), round(shot["contact"][1], 2)],
+                                "from": [round(struck_from[0], 2), round(struck_from[1], 2)],
                                 "to": [round(where[hitter][0], 2), round(where[hitter][1], 2)],
                                 "t0": 0.0, "t1": round(t_rec, 3), "dist": round(d_rec, 1),
                                 # `in_time` is not "they got back" — they always get back inside the 2.5s cap at
@@ -319,7 +374,10 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str,
             # shows them short, which is what "beaten by the wide ball" looks like. Nobody is teleported to a
             # contact. The numbers go into the record as well, because the interesting question at the end of a
             # season is not how many points were lost but HOW MANY FEET SHORT the losing player was.
-            got_to = meet["meet"] if meet["ok"] else meet["got"]
+            # Where the feet actually came to rest. `meet` is the stance the player would take if the clock
+            # allowed it; `got` is that position when they had the time and somewhere short of it when they were
+            # rushed. The body is never placed anywhere the legs did not reach.
+            got_to = meet["got"]
             entry["run"] = {
                 "player": other.name, "north": other.north,
                 "from": [round(v, 2) for v in receiver_at],

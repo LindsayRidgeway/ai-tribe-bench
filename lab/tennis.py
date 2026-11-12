@@ -799,13 +799,14 @@ def recovery_spot(p: Player, at_hitter, came_in: bool) -> tuple[float, float]:
     return (-RECOVER_DEPTH if p.north else LENGTH + RECOVER_DEPTH, WIDTH / 2)
 
 
-def volley_contact(p: Player, traj: dict, at, reach: float = 4.5, lat: float = 3.5,
+def volley_contact(p: Player, traj: dict, at, reach: float = 3.8, lat: float = 3.5,
                    lo: float = 2.2, hi: float = 8.0, speed: float | None = None):
     """Where the incoming ball can be taken out of the air, if it can be.
 
-    A volley is struck before the bounce. The racquet sweeps a volume: about four and a half feet from the
-    middle of the body, three and a half feet to either side without moving the feet, everything below the
-    ground and everything above head height (where the shot becomes an overhead rather than a volley) excluded.
+    A volley is struck before the bounce. The racquet sweeps a VOLUME, and the volume is a radius rather than a
+    box: 3.8ft from the middle of the body — the arm, the palm and the frame with a little stretch in it — and
+    everything below the ground and everything above head height (where the shot becomes an overhead rather than
+    a volley) excluded. `lat` is unused and kept only so the call sites that name it keep working.
     The player has the flight time to get there — `speed` is how fast they move, so the volume grows with time,
     which is the difference between a volley and a reflex.
 
@@ -830,13 +831,19 @@ def volley_contact(p: Player, traj: dict, at, reach: float = 4.5, lat: float = 3
                                               # cannot reach through the net to a ball on the far side
         if not (lo <= z <= hi):               # too low to volley, or too high to be a volley
             continue
-        dx, dy = abs(x - at[0]), abs(y - at[1])
-        need = math.hypot(max(0.0, dx - reach), max(0.0, dy - lat))
+        # The racquet sweeps a RADIUS, not a box. The two separate limits this used to have — four and a half
+        # feet in front and three and a half to the side — composed into a diagonal of five and seven tenths,
+        # and a volley taken five and seven tenths of a foot from the feet is not a volley, it is a player whose
+        # arm is two feet long: measured, the frame was 0.8ft from the ball on every wide volley in the film.
+        # One radius, 3.8ft, which is the arm, the palm and the frame with a little stretch in it.
+        dx, dy = x - at[0], y - at[1]
+        d = math.hypot(dx, dy)
+        need = max(0.0, d - reach)
         if need > spd * t:                    # the legs cannot cover the gap in the time
             continue
-        # the feet: a step in, and a step across, so the ball is at the edge of the racquet's reach
-        feet = (at[0] + math.copysign(min(spd * t, max(0.0, dx - reach)), x - at[0]),
-                at[1] + math.copysign(min(spd * t, max(0.0, dy - lat)), y - at[1]))
+        # the feet: a step towards it, so the ball is at the edge of the racquet's reach
+        step = min(spd * t, need)
+        feet = (at[0] + (dx / d) * step, at[1] + (dy / d) * step) if d > 1e-6 else at
         return {"t": t, "contact": (x, y, z), "feet": feet, "step": round(need, 2)}
     return None
 
@@ -874,6 +881,7 @@ STRIKE_LOW = 2.0          # the strike zone: heights above the court a player is
 STRIKE_HIGH = 4.5         #   (waist to shoulder), which is what stops every ball being dug off the shoelaces
 FIRST_STEP = 42.0         # ft/s2: a split step and the first two strides, ~1.3g
 RACQUET_REACH = 4.5       # feet from the middle of the body to the middle of the strings, arm out and lunging
+STANCE = 2.6              # feet from the middle of the body to the ball when there is time to stand and hit it
 PLAY_PAD = 4.0            # feet outside the lines a ball can still be run to and hit; beyond that there is no stroke
 FATIGUE = 0.025           # of their speed each shot of a rally costs them at their fittest
 FATIGUE_FLOOR = 0.75      # and how far down it can go, because tired is not the same as stopped
@@ -1018,11 +1026,20 @@ def intercept(p: Player, land, flight_time: float, bounce: dict, surface: str, f
     ball, height = arc(t)
 
     clock = max(0.0, flight_time + t - react)        # the seconds of running the ball allows at this meeting
-    covered = min(need, run_distance(clock, speed))
-    short = 0.0 if ok else need - covered
+    # TWO distances, and until 2026-11-12 this function used one for both. RACQUET_REACH is how far the strings
+    # can be from the feet when the player is stretched — arm out, racquet out, a lunge — and it is what decides
+    # whether a ball is reachable at all. STANCE is where the feet stop when there IS time: a player does not go
+    # and stand at the limit of their own reach to hit a ball, they run until it is in front of them and play it
+    # from there. The feet used to stop at RACQUET_REACH, four and a half feet away, which is a full lunge — and
+    # that, not the arm solver, is why no ball in this film ever met the middle of a racquet: 4.5ft of gap
+    # against 3.6ft of arm and frame. The verdict is unchanged (a ball still has to be closed to RACQUET_REACH)
+    # so the physics of every point is the same; what changes is where the feet come to rest once they have time.
+    stand = min(STANCE, dist)
+    covered = min(max(0.0, dist - stand), run_distance(clock, speed))
+    short = max(0.0, (dist - RACQUET_REACH) - covered) if not ok else 0.0
     ux, uy = ((ball[0] - home[0]) / dist, (ball[1] - home[1]) / dist) if dist > 1e-6 else (0.0, 1.0)
-    meet = (ball[0] - ux * RACQUET_REACH, ball[1] - uy * RACQUET_REACH)   # the feet: a racquet's length short
-    got = (home[0] + ux * covered, home[1] + uy * covered)                 # as far as the legs got
+    meet = (ball[0] - ux * stand, ball[1] - uy * stand)     # the feet: a stance short of the ball, not a lunge
+    got = (home[0] + ux * covered, home[1] + uy * covered)  # as far as the legs got, which may be short of that
     why = "" if ok else (f"{max(short, 0.1):.1f}ft short of it, beaten by the "
                          f"{'wide' if abs(ball[1] - home[1]) > abs(ball[0] - home[0]) else 'deep'} ball")
     return {"ok": ok, "why": why, "meet": meet, "got": got,

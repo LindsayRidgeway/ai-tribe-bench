@@ -240,8 +240,10 @@ existed: `intercept()` answered yes to every ball in fifty points, so the record
 beaten to one. The rule, the four numbers that decide it and the measurements behind them are in `MOVEMENT.md`
 ("Nobody was ever beaten to a ball").
 
-In the 20-point film as it now stands: 109 shots, rallies `[6,2,3,1,6,18,6,2,8,2,9,3,1,8,9,9,4,3,8,1]`, six points
-end on a ball out of reach, ten on an error of aim, and four in the net. A beaten player runs as far as the clock allowed and stops short — nobody is teleported onto a contact — and
+In the 20-point film as it now stands: 95 shots, rallies `[2,1,3,2,3,4,10,9,12,7,4,1,3,2,2,5,6,2,6,11]`, four
+points end on a ball out of reach, eight on an error of aim, six in the net and two on a double fault. It was 109
+shots, six out of reach, ten on aim and four in the net before the one-serve rule was built — and five of the
+difference was throw-away serves, which were not tennis. A beaten player runs as far as the clock allowed and stops short — nobody is teleported onto a contact — and
 the record carries `need`, `have`, `short` and `legs` for the run, so a season report can say how many feet short
 the losing player was, in which direction, and how tired they were when it happened.
 
@@ -292,3 +294,41 @@ is 42ft long on a real court, not 27), the centre service line divides the two s
 sit on the baselines. Verified in the film: the two singles sidelines and the two doubles sidelines are both
 visible in the tower shot, and the ball still bounces out at 27ft — measured on the same 20 points that gave 6
 points out of reach before the paint changed, because the paint changed nothing else.
+
+### One serve per point, until the rules exist — built 2026-11-12
+
+The founder, 2026-11-12: "You start a lot of rallies with the player first hitting a throw-away shot. That doesn't
+happen in rallies. If you're attempting to simulate first-serve/second-serve, I suggest you save that until you
+implement the full set of game rules. When you do, by the way, I would certainly offer the user both modes of play
+in the UI."
+
+It was exactly that. A first serve that missed earned a second, so the first ball of most points was a ball that
+was *meant* to fail — and it was in the film, because the shot is written to the record before the fault is
+handled. Five of the old film's twenty-five serves were throw-aways.
+
+One serve now. There is no second ball, so the server cannot afford a corner: the serve is aimed inside the box —
+five feet short of the service line and six feet off the centre — at full pace. A fault is a double fault and a
+lost point, which is what a one-serve match is. At four hundred balls that is 4 points in 40; at zero practice it
+is 24 in 40, which is what a beginner's serve looks like and is the reason the 120-ball film exists.
+
+The two-serve game, with a fault costing nothing but a ball, belongs to the scoring layer (service order, a game
+per server, the tiebreak). When that is built, both modes go in the UI as he asked, and `serve_no` comes back.
+
+### A ball that is going out is watched, not run for — built 2026-11-12
+
+The founder, 2026-11-12: "When a ball is long, you portray the receiving player as knowing in advance that it will
+be long and not moving. A more accurate portrayal would be having the receiving player watch the ball go out."
+
+He was describing a hole rather than a mistake: when a shot was judged out, the point ended immediately and the
+receiver's record had no run *at all* in it, so they did not move and did not turn. Nobody knows where a ball is
+going when it leaves the strings. What a player does is take the first step — the same first step they take for a
+good ball — and a fifth of a second later see the length and stop.
+
+So the record now carries a `watch` block on the shot that goes out: the receiver's reaction time, one and a half
+steps (4.5ft at most) toward the ball's end point, and the point of the court to look at. The picture turns the
+body to follow the ball's own drawn position once they have stopped, so the turn follows the flight rather than
+pointing at the bounce mark in advance. The receiver's position for the next point is where they stopped, which is
+the same rule every other position in the film obeys.
+
+`speed` and `step` are in the record, so "how far did they move on a ball they let go" is answerable later. Six of
+the film's twenty points end with a ball that is out, and all six now show the read.

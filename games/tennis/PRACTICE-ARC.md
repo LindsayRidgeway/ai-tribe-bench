@@ -13,25 +13,30 @@ today.
 
 | balls before today | rating | mean rally | longest | balls reached | mean run | first serve | double faults |
 |---|---|---|---|---|---|---|---|
-| 0 | 1.00 | 2.62 shots | 7 | 84% | 11.3ft | 51mph | 15 of 40 |
-| 25 | 2.13 | 2.58 shots | 7 | 89% | 11.7ft | 56mph | 19 of 40 |
-| 60 | 3.36 | 2.38 shots | 5 | 89% | 13.3ft | 58mph | 11 of 40 |
-| 120 | 4.79 | 2.90 shots | 7 | 90% | 13.1ft | 63mph | 7 of 40 |
-| 250 | 6.25 | 3.83 shots | 15 | 89% | 12.4ft | 70mph | 0 of 40 |
-| 400 | 6.79 | 5.05 shots | 18 | 92% | 12.0ft | 72mph | 0 of 40 |
-| 700 | 6.98 | 4.25 shots | 14 | 91% | 11.9ft | 74mph | 1 of 40 |
+| 0 | 1.00 | 1.48 shots | 4 | 90% | 10.6ft | 55mph | 24 of 40 |
+| 25 | 2.13 | 1.85 shots | 5 | 89% | 12.4ft | 58mph | 15 of 40 |
+| 60 | 3.36 | 1.85 shots | 6 | 87% | 12.4ft | 64mph | 21 of 40 |
+| 120 | 4.79 | 2.08 shots | 6 | 98% | 12.2ft | 69mph | 16 of 40 |
+| 250 | 6.25 | 3.00 shots | 10 | 94% | 11.8ft | 72mph | 7 of 40 |
+| 400 | 6.79 | 4.08 shots | 12 | 95% | 11.9ft | 75mph | 4 of 40 |
+| 700 | 6.98 | 5.38 shots | 19 | 96% | 12.6ft | 74mph | 0 of 40 |
 
-Three things move monotonically and are visible in the picture without a single number on screen: the serve gets
-faster and stops missing, rallies get longer, and the *reason* a point ends changes completely — a beginner nets the
-ball or double-faults, a practised pair loses the point to a ball they cannot reach.
+Two columns move for the whole length of the table and are visible in the picture without a single number on
+screen: the serve gets faster (55 → 74mph) and the double faults go from most of their points to none. Rally length
+rises across the career but not in a straight line, and the old version of this table overstated the smoothness of
+it. Forty points is a small sample, the random stream is not the same at each level, and since the one-serve rule
+(2026-11-12) a fault is a lost point — so one bad serving day at level 60 reads as a short rally. What is not noise
+is the ends: at zero practice there is no rally to watch, and at seven hundred there is a nineteen-shot one.
+
+The *reason* a point ends changes species, which is the part a table cannot show and the film can.
 
 ## The three films
 
 | file | balls | rating | what you are watching |
 |---|---|---|---|
-| `demo3d-000.html` | 0 | 1.0 | 44 shots in 20 points, 12 double faults; slow serves; the return goes into the net |
-| `demo3d-120.html` | 120 | 4.8 | 49 shots, rallies exist — the serve lands, the ball comes back three times |
-| `demo3d.html` | 400 | 6.8 | 109 shots, 72mph serves, no double faults, one rally of 18 |
+| `demo3d-000.html` | 0 | 1.0 | 29 shots in 20 points, 12 double faults; slow serves; the return goes into the net |
+| `demo3d-120.html` | 120 | 4.8 | 41 shots, rallies exist — the serve lands, the ball comes back three times |
+| `demo3d.html` | 400 | 6.8 | 95 shots, 75mph serves, 2 double faults, one rally of 12 |
 
 Two films would have been the obvious choice and the wrong one: the two ends of a career are not a comparison,
 because at zero practice there is no tennis in the film at all. The middle one is what a month of Sundays buys.
@@ -42,8 +47,8 @@ None of this is a curve drawn on the table. Each column falls out of `Player.ski
 `1 − exp(−(practice + shots)/120)` for `control`, `reach` and `sweet`, and a slower curve with a sixty-ball onset
 for `prep`:
 
-- **serve pace and placement** — `SERVE_MPH`, scaled by `control`, so a beginner serves 54mph at the corner they
-  cannot hit and double-faults 40% of the time;
+- **serve pace and placement** — `SERVE_MPH`, scaled by `control`, so a beginner serves 55mph and misses the box
+  more often than not: with one serve per point, 24 of their 40 points are a double fault;
 - **movement** — `5 + 15·reach` ft/s, which is what the renderer walks the legs at, so the beginner crosses the
   court at 10ft/s and the practised player at 19;
 - **reaction** — `0.26 − 0.15·reach` seconds, which is the difference between being beaten to a ball and reaching it;
@@ -51,12 +56,13 @@ for `prep`:
 
 Every column moves in the direction a coach would want, and the *reason a point ends* changes species, which is the
 part a table cannot show and the film can. At zero practice the point is lost by the beginner: double fault, or the
-ball in the net, and nobody has to win it. At four hundred balls fourteen points in forty are lost to a ball that could not
-be reached, or to an aim that came off the side of the court. A beginner has the point taken off their own racquet;
+ball in the net, and nobody has to win it. At four hundred balls the points are lost to a ball that could not be
+reached, or to an aim that came off the side of the court. A beginner has the point taken off their own racquet;
 a practised player has it taken off them.
 
-One caveat worth keeping, because it is the honest half of the "better players miss more" argument: at the very top
-the effect is real and only just outweighed. By seven hundred balls the rally length has stopped climbing — 4.25
-against 5.05 at four hundred — because better hands win points that better legs would only have kept alive. The curve
-is not a straight line up, and it should not be: past a certain point, placement shortens rallies as much as fitness
-lengthens them.
+One caveat worth keeping, because it is the honest half of the "better players miss more" argument: past a certain
+point placement shortens rallies as fast as fitness lengthens them, and the table can then go either way. This run
+has 5.38 shots at seven hundred balls against 4.08 at four hundred; the run before the one-serve rule had 4.25
+against 5.05, the other way round, on the same code path and a different random stream. Forty points does not
+settle a question that size. The claim the arc supports is the one the founder made — that a player visibly improves
+— and not the finer claim that every column improves monotonically, which it does not.

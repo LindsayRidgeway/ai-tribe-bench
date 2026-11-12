@@ -151,7 +151,12 @@ function courtTexture() {
   const cv = document.createElement("canvas");
   cv.width = (LEN + pad * 2) * px; cv.height = (WID + ALLEY * 2 + pad * 2) * px;
   const g = cv.getContext("2d");
-  const dark = `rgb(${CLAY.map(v => Math.round(v * 0.62)).join(",")})`;
+  // Two shades of the one clay, and the lighter one is exactly the doubles rectangle: the boundary is the outer
+  // white line, not a shape of its own. The founder, 2026-11-12: "Real courts don't have such a two-color floor,
+  // and if they did, the distinguishing color would all be inside the white lines... if you're going to keep it,
+  // I would keep the lighter color inside the white lines." It was 0.62 of the clay, which read as a different
+  // material — a platform the court was sitting on. 0.82 keeps the court bounded without inventing a surface.
+  const dark = `rgb(${CLAY.map(v => Math.round(v * 0.82)).join(",")})`;
   g.fillStyle = dark; g.fillRect(0, 0, cv.width, cv.height);
   g.translate(pad * px, (pad + ALLEY) * px);
   // the playing surface is the doubles width; the singles court is a set of lines on it, not a different colour
@@ -506,6 +511,7 @@ function buildRacquet() {
    Two vectors make it, and both are already in the record: the hand, and the direction the engine says the ball
    left in. The shaft is lined up with the first, then the racquet is rolled about its own shaft until the face
    looks along the second. A racquet that only points where the hand points is a paddle. */
+const PALM = 0.35;                      // wrist to the butt of the handle, in feet: the fist, not the joint
 const _hp = new THREE.Vector3(), _shaft = new THREE.Vector3(), _n0 = new THREE.Vector3(),
       _n1 = new THREE.Vector3(), _ax = new THREE.Vector3(), _q1 = new THREE.Quaternion(),
       _up = new THREE.Vector3(0, 1, 0), _face = new THREE.Vector3(), _sh0 = new THREE.Vector3();
@@ -513,10 +519,14 @@ function placeRacquet(rig, aim, face) {
   const rac = rig.racquet, hand = rig.bones["handR"] || rig.bones["hand.R"];
   if (!rac || !hand) return;
   hand.getWorldPosition(_hp);
-  rac.position.copy(_hp);
   _shaft.subVectors(aim, _hp);
   if (_shaft.lengthSq() < 1e-6) _shaft.set(0, 1, 0);
   _shaft.normalize();
+  // The butt of the handle is not at the wrist. It sits in the palm, four inches further along the shaft than
+  // the bone that names the hand — and those four inches are the difference between a rig that reaches 3.6ft
+  // from the shoulder and a rig that reaches 3.9, which is a real player's arm and frame. Without it the frame
+  // stops short of every high ball and every serve.
+  rac.position.copy(_hp).addScaledVector(_shaft, PALM);
   rac.quaternion.setFromUnitVectors(_up, _shaft);
   // roll about the shaft until the bed's normal (the racquet's local +Z) lies along `face`
   _n0.set(0, 0, 1).applyQuaternion(rac.quaternion).addScaledVector(_shaft, -_n0.dot(_shaft));
@@ -528,6 +538,46 @@ function placeRacquet(rig, aim, face) {
   _ax.crossVectors(_n0, _n1);
   _q1.setFromAxisAngle(_shaft, Math.atan2(_ax.dot(_shaft), _n0.dot(_n1)));
   rac.quaternion.premultiply(_q1);
+  // The frame is placed every frame rather than parented, so its matrix is one draw old unless it is refreshed
+  // here. Every measurement of "where is the head" that reads matrixWorld — including ?debug's own — is then
+  // reading the previous frame, which is 1/60s of a swing. Cheap, and it makes the instrument honest.
+  rac.updateMatrixWorld(true);
+}
+
+/* The reach the record allows and the reach the body has are two different numbers, and the picture has to
+   reconcile them. RACQUET_REACH in the engine is 4.5ft from the middle of the body — arm out, frame out, a lunge
+   — and it is what decides whether a ball is worth running for. The rig can put the middle of the strings
+   3.5ft from the shoulder with the arm straight, and no further. The 4.5 includes the lunge, so the lunge has to
+   be drawn: 63 of this film's 106 strikes were reachable by the rule and outside the body, which is why the ball
+   was never on the strings. This moves the body — a stride toward the ball, and up on the toes when the ball is
+   overhead — by exactly the gap, capped, and eased in and out over half a second either side of the strike so
+   that it is a movement and not a teleport. */
+const _ras = new THREE.Vector3();
+function reachTo(rig, lead, ball, tTo) {
+  // The frame is placed at the right hand on every stroke — the butt hand — so the right shoulder is the one
+  // that has to be able to reach one shaft-length short of the ball. On a forehand that is the hitting shoulder;
+  // on a backhand it is the far one, which is why a backhand has always been the stroke this rig could not play.
+  const b = rig.bones["upperarmR"] || rig.bones["upperarm" + lead];
+  if (!b) return;
+  const r = Math.max(0, Math.min(1, 1 - Math.abs(tTo) / 0.5));
+  if (r <= 0) return;
+  const s = b.getWorldPosition(_ras);
+  const hx = ball.x - s.x, hz = ball.z - s.z, hl = Math.hypot(hx, hz) || 1;
+  // Split the gap into a stride and a rise, and then look again: moving along two axes is not moving along the
+  // line between them, so one pass leaves a hand's width of the gap behind (measured: 0.3ft on the serve, which
+  // is the stroke where the gap is nearly all vertical). Three passes close it to nothing.
+  let lean = 0, rise = 0;
+  for (let pass = 0; pass < 3; pass++) {
+    const gy = ball.y - (s.y + rise), gh = Math.hypot(ball.x - (s.x + (hx / hl) * lean), ball.z - (s.z + (hz / hl) * lean));
+    const gap = Math.hypot(gh, gy) - 3.92;      // 1.85ft of arm, 0.35ft of palm, 1.74ft of frame, and a hair
+    if (gap <= 1e-3) break;
+    // How much of the gap is up rather than out: a ball at the shoulder is a stride, a ball overhead is a jump.
+    const over = Math.max(0, Math.min(1, gy / 2.5));
+    lean = Math.min(1.30, lean + gap * (1 - 0.55 * over) * 1.05);
+    rise = Math.min(0.95, rise + gap * 0.55 * over * 1.05);
+  }
+  if (lean > 0) { rig.root.position.x += (hx / hl) * lean * r; rig.root.position.z += (hz / hl) * lean * r; }
+  if (rise > 0) rig.root.position.y += rise * r;
 }
 
 /* ---------- the film ---------- */
@@ -610,6 +660,20 @@ const WINPOS = {};
     // And the recovery: the hitter walking back to the middle behind the baseline, or forward to the net. The
     // record now says where they go and how long it takes; before this the feet stayed at the contact point for
     // the rest of the rally, which is why both players drifted forward and never came back.
+    // Walking into the serve. The one move in the film that happens between points rather than during one, and
+    // it is in the record for the same reason every other move is: the picture does not invent a position.
+    if (sh.stance) {
+      (PLAN[sh.stance.player] = PLAN[sh.stance.player] || []).push(
+        { t0: t + sh.stance.t0, t1: t + sh.stance.t1, from: sh.stance.from, to: sh.stance.to });
+    }
+    // A ball that is going out is watched rather than run for: the receiver's one-and-a-half steps toward it,
+    // and the point of the court their body turns to. The founder, 2026-11-12: "When a ball is long, you portray
+    // the receiving player as knowing in advance that it will be long and not moving. A more accurate portrayal
+    // would be having the receiving player watch the ball go out."
+    if (sh.watch) {
+      (PLAN[sh.watch.player] = PLAN[sh.watch.player] || []).push(
+        { t0: t + sh.watch.t0, t1: t + sh.watch.t1, from: sh.watch.from, to: sh.watch.to });
+    }
     if (sh.recover) {
       (PLAN[sh.recover.player] = PLAN[sh.recover.player] || []).push(
         { t0: t + sh.recover.t0, t1: t + sh.recover.t1, from: sh.recover.from, to: sh.recover.to });
@@ -850,7 +914,12 @@ function tick(now) {
     // frame is a puppet on a stick.
     const netYaw = at ? Math.PI / 2 : -Math.PI / 2;
     let yaw = netYaw;
-    if (moving && dir && !(sh.player === pl.name && tl < 0.45)) {
+    if (sh.watch && sh.watch.player === pl.name && !moving && tl > sh.watch.t1) {
+      // Stopped, and looking at the ball. Not at the net: the ball is the thing in the world, and a player who
+      // has let one go watches it land. `ballPos` is the ball's own drawn position, so the turn follows the
+      // flight rather than pointing at the bounce mark in advance.
+      yaw = Math.atan2(ballPos.x - pos[0], ballPos.z - pos[1]);
+    } else if (moving && dir && !(sh.player === pl.name && tl < 0.45)) {
       const towardNet = at ? 1 : -1;
       const along = dir[0] * towardNet;                       // > 0 is towards the net
       const onTheMiddle = Math.abs(pos[1] - WID / 2) < 6.0 &&
@@ -951,11 +1020,9 @@ function tick(now) {
       // the arm to fold into its own chest — the CCD cannot get there, and the elbow ends up by the ear, which
       // is the "statue reaching for something" the founder has been looking at. Measured with ?debug: the hand
       // was 0.86ft short of its own target on every shot.
+      reachTo(rig, lead, ball, tl);
       _face.set(sh.v0[0], sh.v0[2], sh.v0[1]).normalize();
       (rig.bones["upperarm" + lead] || rig.bones["chest"]).getWorldPosition(_sh0);
-      // The hand is 1.6ft back along the line from the shoulder to the ball, so the racquet's shaft carries the
-      // head the last of the way: the arm at contact is nearly straight and the racquet is the reach.
-      const u = ball.clone().sub(_sh0).normalize();
       // `1 - k`, not `k`: k is 1 at the strike and falls to 0 half a second later, and a lerp towards the ready
       // position by k is a hand that is at the ready position at the strike and at the ball afterwards. That is
       // the arithmetic the page has had since the arm solver was written, and it is why no frame of this game
@@ -970,8 +1037,18 @@ function tick(now) {
       // where the two-bone solve has no elbow to choose and folds the arm into a spike above the head. Measured,
       // not guessed: `shL to target 0.08`, `handL up 0.81`, left hand 1.70ft from the ball it was supposed to
       // hold.
-      const butt = ball.clone().addScaledVector(_face, -1.74);
-      const onGrip = (sh.hand === "back") ? butt.clone().addScaledVector(_face, 0.36) : butt;  // top hand
+      // The hand goes exactly one shaft-length from the ball, on the side the hitting shoulder is on. The frame
+      // is a 1.74ft lever aimed at the ball, so the head lands on the ball if and only if the hand is exactly
+      // 1.74ft from it — that is the whole geometry, and it leaves one degree of freedom: which direction.
+      // Asking for `ball - 1.74*face` (a fixed offset along the shot) is the same request only while the ball is
+      // far enough from the body for the arm to put the hand there; when it is not, the arm comes up short and
+      // the frame stops 6 to 8 inches PAST the ball, which is what the founder saw as the ball missing the
+      // racquet entirely. Measured at the strike frame before this change: hand 1.18ft from the ball, head 0.56ft
+      // from it and on the wrong side of it. Toward the shoulder cannot be on the wrong side, and it is where
+      // the hands are in a real stroke: between the body and the ball.
+      const u = ball.clone().sub(_sh0).normalize();                  // shoulder -> ball
+      const butt = ball.clone().addScaledVector(u, -(PALM + 1.74));   // the WRIST, a palm further back
+      const onGrip = (sh.hand === "back") ? ball.clone().addScaledVector(u, -(PALM + 1.38)) : butt;
       solveArm(rig, onGrip.lerp(wait, rest), lead);
       if (sh.hand === "back") solveArm(rig, butt.lerp(wait, rest), "R");   // the butt hand
       // The swing does not stop at the ball and drift home. It finishes: the racquet carries on up and across the
@@ -995,8 +1072,19 @@ function tick(now) {
       placeRacquet(rig, ball.clone().lerp(fin, done).lerp(wait, relax), _face);
       if (q.has("debug")) {
         const hR = rig.bones["handR"], hL = rig.bones["handL"], d = v => (v ? v.getWorldPosition(new THREE.Vector3()).distanceTo(ball) : NaN);
-        const head = rig.racquet ? rig.racquet.localToWorld(new THREE.Vector3(0, 1.74, 0)) : null;
-        console.log("debug stroke", pl.name, sh.hand, "right hand to ball", d(hR).toFixed(2),
+        const head = rig.racquet
+          ? rig.racquet.position.clone().add(new THREE.Vector3(0, 1, 0).applyQuaternion(rig.racquet.quaternion).multiplyScalar(1.74))
+          : null;
+        // The numbers that decide whether the ball can be on the strings at all: how far the feet are from the
+        // contact, how far the racquet-bearing shoulder is, and how high the ball is. A strike whose shoulder is
+        // more than 3.9ft from the ball is a strike no arm and frame can make.
+        { const _b = new THREE.Vector3(sh.contact[0], sh.contact[2], sh.contact[1]);
+          const _S = (rig.bones["upperarmR"] || rig.bones["chest"]).getWorldPosition(new THREE.Vector3());
+          console.log("debug geo", "shoulder-B", _S.distanceTo(_b).toFixed(2),
+            "feet-B", Math.hypot(rig.root.position.x - _b.x, rig.root.position.z - _b.z).toFixed(2),
+            "ballY", _b.y.toFixed(2), "rise", rig.root.position.y.toFixed(2)); }
+        console.log("debug stroke", pl.name, sh.hand, "tl", tl.toFixed(2),
+                    "right hand to ball", d(hR).toFixed(2),
                     "left hand to ball", d(hL).toFixed(2), "k", k.toFixed(2),
                     "| racquet head to ball", head ? head.distanceTo(ball).toFixed(2) : "n/a",
                     "| shoulderL to its hand", rig.bones["upperarmL"].getWorldPosition(new THREE.Vector3())
@@ -1076,10 +1164,11 @@ function tick(now) {
           const shift = new THREE.Vector3(0, 0, 0);
           if (sh.run && sh.run.player === pl.name) shift.set(sh.run.to[0] - pos[0], 0, sh.run.to[1] - pos[1]);
           const at = cBall.clone().sub(shift);
-          hand.lerp(at.clone().addScaledVector(outc, -1.74), thruK);
+          hand.lerp(at.clone().addScaledVector(outc, -(PALM + 1.74)), thruK);
           head.lerp(at, thruK);
         }
         const lead = back ? "L" : "R";
+        if (nxtBall) reachTo(rig, lead, at, seg.dur - tl);
         solveArm(rig, hand, lead);
         const shaftNow = head.clone().sub(hand).normalize();
         if (back) solveArm(rig, hand.clone().addScaledVector(shaftNow, 0.36), "R");   // the butt hand
@@ -1161,6 +1250,15 @@ function tick(now) {
   renderer.render(scene, camera);
   requestAnimationFrame(tick);
 }
+
+/* ?debug also exposes the one thing a still cannot show: where every striker's FEET are at the instant they
+   strike, which is what decides whether the ball can be on the frame's strings at all. One line per shot, read
+   out of the same whereAt() the film uses rather than re-derived here. The arm and the racquet are 3.6ft
+   together, so a contact further than that from the shoulder is a stroke nobody could have played. */
+if (q.has("debug")) window.__audit = () => SEG.map(s => ({
+  n: s.sh.n, player: s.sh.player, kind: s.sh.kind, t: s.start,
+  pos: whereAt(s.sh.player, s.start), contact: s.sh.contact, met: s.sh.run ? !!s.sh.run.met : null,
+}));
 
 addEventListener("resize", () => {
   camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
