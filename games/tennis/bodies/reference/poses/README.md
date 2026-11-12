@@ -124,3 +124,29 @@ record produced — and checked by looking at the render, which takes seconds in
 The founder's hair correction stands for any future sheet: **"face-framing loose pony-tail"**. Loose and framing
 the face is the character; clear of the shoulders is the measurement (the neck and shoulder-line rows of the tape
 need a silhouette without hair across them), and a loose ponytail is the only wording that has produced both.
+
+## b1 — the backhand, and the first swing sheet that worked
+
+`REQUEST-3-backhand-sequence.md` was filed 2026-11-11 with two prompts: five panels of a two-handed backhand seen
+from behind at 45 degrees, and the same from the side. Both came back on 2026-11-11 22:29 — `back-45.jpg` and
+`back-side.jpg` — and this file did not know until 2026-11-12, which is the first thing to say: a sheet that is not
+logged cannot be measured, and an unmeasured sheet is a picture.
+
+**They are right, both of them.** One woman across five panels, the whole figure and the whole racquet in frame,
+titles under the panels, no ball and no court. The arc is a two-handed backhand from prepare to recover: racquet
+across the body at hip height, up and behind the shoulder, contact out in front with both arms extended, finish over
+the left shoulder, then the racquet back to the chest. The 45-degree rear view shows the shoulder line, which is the
+one thing every earlier sheet lacked.
+
+**Why these worked when eight forehand grids did not, and it is not the wording.** The f1 series failed at the thing
+that mattered — a two-handed arc drawn for a one-handed stroke, then a fist around an invisible racquet — and the
+conclusion drawn at the end of that series was "no ninth revision; write the rule in the renderer". That conclusion
+was half wrong. What the backhand sheets change is the *camera and the patience*: a rear-oblique view where the
+shoulder line and the racquet's plane are both visible, a stroke whose arc the model already knows as a shape
+(both hands on the handle, no ambiguity about which arm does what), and a brief that asks for five named moments
+rather than six unnamed ones. Whether that travels to a one-handed forehand is untested; it should be tried with the
+same camera before the rule-in-the-renderer conclusion is taken as final.
+
+**Owed:** the measurement these exist for — elbow, wrist and racquet-to-forearm angles at the five named moments,
+taken from the same woman across the five panels, checked against what `placeRacquet` and the arm solver produce at
+contact in `replay3d.html`. Not yet done, and it is the whole point of the sheet.
