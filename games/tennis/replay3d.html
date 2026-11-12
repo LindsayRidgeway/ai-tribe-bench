@@ -533,6 +533,13 @@ for (const r of D.rallies) POINT[r.rally] = (r.point && r.point.winner) ? r.poin
 // Which shot each shot is a preparation for: the next ball the same player strikes. A receiver's racquet is coming
 // back for that ball, not for this one, so the record that says how rushed they are is the *next* entry's `rush`.
 const NEXT = {};
+/* The shot that comes next in the film, whoever strikes it — which, for the receiver of a ball, is that
+   receiver's own next shot. NEXT above is the next shot by the SAME player, which is the right record for the
+   hitter's own preparation and the wrong one for the receiver's: it named the striker's next ball, so the
+   receiver's racquet came back on the striker's rush and on the striker's side of the body, at the striker's
+   timing. Two players, one clock. */
+const AFTER = {};
+{ for (let i = 0; i + 1 < D.shots.length; i++) AFTER[D.shots[i].n] = D.shots[i + 1]; }
 { const last = {};
   for (const pl of D.players) last[pl.name] = null;
   for (let i = D.shots.length - 1; i >= 0; i--) { const s = D.shots[i]; NEXT[s.n] = last[s.player]; last[s.player] = s; } }
@@ -835,8 +842,9 @@ function tick(now) {
     // way and the other arm leads. The record now says which it is (sh.hand), because the engine has always
     // known which side of the court the contact was on and never wrote it down.
     const nxt = NEXT[sh.n];
-    const rush = isReceiver && nxt ? (nxt.rush || 0) : 0;     // how late this player's racquet is for their next ball
-    const back = (isHitter ? sh.hand === "back" : (nxt ? nxt.hand === "back" : false));
+    const recv = isReceiver ? (AFTER[sh.n] || null) : null;   // the ball this player is waiting to receive
+    const rush = recv ? (recv.rush || 0) : 0;                 // how late their racquet is for it
+    const back = (isHitter ? sh.hand === "back" : (recv ? recv.hand === "back" : false));
     const sgn = back ? -1 : 1;
     const follow = isHitter ? Math.max(0, Math.min(1, 1 - tl / 0.38)) : 0;
     // The racquet comes back on the way to the ball, not on arrival: a player who has the habit has it back for the
@@ -945,41 +953,81 @@ function tick(now) {
       const right = new THREE.Vector3(Math.cos(rig.yaw), 0, -Math.sin(rig.yaw));
       const chest = new THREE.Vector3();
       (rig.bones["chest"] || rig.root).getWorldPosition(chest);
-      const readyAim = new THREE.Vector3();
-      { const hand = rig.bones["handR"] || rig.bones["hand.R"];
-        if (hand) hand.getWorldPosition(readyAim);
-        readyAim.addScaledVector(_face, 0.70).addScaledVector(_up, 1.55); }
-      const prep = readyAim.clone();
+      // The ready hand, spelled out rather than read back off the rig: reading it off the bones made the pose
+      // depend on the frame before it, and a chain of lerps that starts from last frame's answer drifts.
+      const readyHand = chest.clone().addScaledVector(fwd, 0.55).addScaledVector(_up, 1.35);
+      // 0.75 and not 1.55: the backhand sheet's RECOVERY panel holds the racquet in front of the chest, and 1.55
+      // put the head over the player's head like a salute, which is what was on screen between points
+      const readyAim = readyHand.clone().addScaledVector(_face, 0.70).addScaledVector(_up, 0.75);
+      // The three places the racquet is on its way to the ball, from the backhand sheet of 2026-11-11
+      // (`bodies/reference/poses/back-45.jpg`), measured off the drawing in fractions of the figure's own height:
+      //   the run (PREPARATION)  hand 0.71H, head 0.66H and 0.27H behind the hands on the hitting side
+      //   the take-back          hand 0.85H, head 1.10H — above the head, which is the loop that was missing
+      //   contact                hand 0.59H, head 0.57H, hands 0.27H in front of the hips
+      //   the finish              hand 0.83H, head 1.00H, across on the other shoulder
+      // The founder named the backhand the weakest part of the film, and a stroke that goes from a hip-high
+      // racquet straight to the ball has no loop in it, which is most of what "weakest" meant.
+      const H = Math.max(4.0, rig.height);
+      const handPrep = chest.clone(), headPrep = new THREE.Vector3();
+      const handTake = chest.clone(), headTake = new THREE.Vector3();
+      if (back) {
+        handPrep.addScaledVector(right, -0.50).addScaledVector(fwd, 0.30);
+        headPrep.copy(handPrep).addScaledVector(fwd, -0.27 * H).addScaledVector(right, -0.10);
+        headPrep.y = Math.max(handPrep.y - 0.10, 0.66 * H);          // the head sits low, behind the hands
+        handTake.copy(chest).addScaledVector(right, -0.40);
+        // up and BACK, not straight up: a racquet standing vertically over the head is a serve toss, and the
+        // sheet's take-back has the head behind the shoulder line
+        headTake.copy(handTake).addScaledVector(_up, 0.24 * H).addScaledVector(fwd, -0.16 * H)
+          .addScaledVector(right, -0.10);
+      } else {
+        handPrep.addScaledVector(right, 0.85).addScaledVector(fwd, -0.20);
+        headPrep.copy(handPrep).addScaledVector(fwd, -0.24 * H).addScaledVector(right, 0.10);
+        headPrep.y = Math.max(handPrep.y - 0.18, 0.62 * H);
+        handTake.copy(chest).addScaledVector(right, 0.55);
+        headTake.copy(handTake).addScaledVector(_up, 0.26 * H).addScaledVector(fwd, -0.16 * H)
+          .addScaledVector(right, 0.15);
+      }
+      handPrep.y = Math.min(handPrep.y, 0.71 * H);
+      handTake.y = Math.max(chest.y + 0.30, 0.85 * H);
+      const prep = readyHand.clone().lerp(handPrep, windup);           // a beginner never gets here
       if (isReceiver) {
-        if (back) {
-          // across the chest: both hands on the left, racquet head back over the left hip
-          prep.copy(chest).addScaledVector(right, -0.50).addScaledVector(fwd, 0.35);
-          prep.y = chest.y - 0.30;
-        } else {
-          // open: the hitting hand back and away on the right, racquet head behind the right hip. "Too far back"
-          // (founder, 2026-11-11) was the *head* two feet behind the chest: the hand was 0.45ft back and the shaft
-          // carried it another 1.6. A prepared racquet sits behind the hip, not behind the player, and the loop
-          // that takes it properly back is the swing, which happens later and is not this.
-          prep.copy(chest).addScaledVector(right, 0.90).addScaledVector(fwd, -0.15);
-          prep.y = chest.y - 0.72;
+        // When, not whether: the take-back happens in the last half-second of the ball's flight, and the swing
+        // from there to the ball in the last of it, ending exactly on the frame the next shot starts on. A rushed
+        // player does both in less time, which is what being rushed means.
+        const swing = Math.max(0.20, 0.34 - 0.16 * rush);
+        const t0 = Math.max(0, seg.dur - swing);
+        const upK = Math.max(0, Math.min(1, (tl - t0) / (swing * 0.55)));
+        const thruK = Math.max(0, Math.min(1, (tl - (t0 + swing * 0.55)) / (swing * 0.45)));
+        const nxtBall = (recv && recv.rally === sh.rally) ? recv : null;
+        let hand = prep.clone().lerp(handTake, upK);
+        let head = readyAim.clone().lerp(headPrep, windup).lerp(headTake, upK);
+        if (nxtBall) {
+          const outc = new THREE.Vector3(nxtBall.v0[0], nxtBall.v0[2], nxtBall.v0[1]).normalize();
+          const cBall = new THREE.Vector3(nxtBall.contact[0], nxtBall.contact[2], nxtBall.contact[1]);
+          // The ball is struck where the feet will BE, not where they are: a receiver still four feet from the
+          // contact would otherwise swing at a point four feet beyond the racquet. Shift the target by the run
+          // that is still to come, so the blend ends on the contact exactly when the body arrives there.
+          const shift = new THREE.Vector3(0, 0, 0);
+          if (sh.run && sh.run.player === pl.name) shift.set(sh.run.to[0] - pos[0], 0, sh.run.to[1] - pos[1]);
+          const at = cBall.clone().sub(shift);
+          hand.lerp(at.clone().addScaledVector(outc, -1.74), thruK);
+          head.lerp(at, thruK);
         }
-        const aim = prep.clone().lerp(readyAim, 1 - windup);
         const lead = back ? "L" : "R";
-        const shaft = back
-          ? new THREE.Vector3().addScaledVector(right, -0.62).addScaledVector(fwd, -0.55).addScaledVector(_up, 0.25).normalize()
-          : new THREE.Vector3().addScaledVector(right, 0.55).addScaledVector(fwd, -0.62).addScaledVector(_up, 0.30).normalize();
-        solveArm(rig, aim.clone(), lead);
-        if (back) solveArm(rig, aim.clone().addScaledVector(shaft, 0.75), "R");
-        placeRacquet(rig, aim.clone().addScaledVector(shaft, 1.70), shaft.clone());
+        solveArm(rig, hand, lead);
+        const shaftNow = head.clone().sub(hand).normalize();
+        if (back) solveArm(rig, hand.clone().addScaledVector(shaftNow, 0.36), "R");   // the butt hand
+        placeRacquet(rig, head, _face);
         if (q.has("debug")) {
           const h = (rig.bones["hand" + lead] || rig.root).getWorldPosition(new THREE.Vector3());
-          const rel = h.clone().sub(chest);
-          const head = aim.clone().addScaledVector(shaft, 1.70).sub(chest);
+          const rel = h.clone().sub(chest), hd = head.clone().sub(chest);
           console.log("debug prep", pl.name, back ? "backhand" : "forehand", "windup", windup.toFixed(2),
-            "hand at chest+", `side ${rel.dot(right).toFixed(2)}`, `fwd ${rel.dot(fwd).toFixed(2)}`,
-            `up ${rel.y.toFixed(2)}`, "| head at chest+", `side ${head.dot(right).toFixed(2)}`,
-            `fwd ${head.dot(fwd).toFixed(2)}`, `up ${head.y.toFixed(2)}`,
-            `miss ${h.distanceTo(aim).toFixed(2)}`);
+            "up", upK.toFixed(2), "thru", thruK.toFixed(2),
+            "| hand at chest+", `side ${rel.dot(right).toFixed(2)}`, `fwd ${rel.dot(fwd).toFixed(2)}`,
+            `up ${rel.y.toFixed(2)}`, "| head at chest+", `side ${hd.dot(right).toFixed(2)}`,
+            `fwd ${hd.dot(fwd).toFixed(2)}`, `up ${hd.y.toFixed(2)}`,
+            "| head height", head.y.toFixed(2), "of", H.toFixed(2),
+            `miss ${h.distanceTo(hand).toFixed(2)}`);
         }
       } else {
         placeRacquet(rig, readyAim, _face);

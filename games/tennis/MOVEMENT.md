@@ -257,3 +257,33 @@ error against its own target, so the picture shows what the numbers say.
 - **Lateral and backward movement use the forward gait.** The running sheets (`bodies/reference/poses/run-*.jpg`)
   show the cross-over step, the brake, the back-pedal and the split step, and the renderer has none of them: one
   symmetric sine cycle, mirrored, whatever direction the player is going.
+
+### The loop, from the sheet — 2026-11-11
+
+`bodies/reference/poses/back-45.jpg` and `back-side.jpg` arrived after the note, five panels each. Measured off the
+drawing in fractions of the figure's own height:
+
+| panel | hand | racquet head |
+|---|---|---|
+| PREPARATION (running) | 0.71 H | 0.66 H, 0.27 H *behind* the hands, on the hitting side |
+| TAKE-BACK | 0.85 H | 1.10 H — above the head, angled back behind the shoulder |
+| CONTACT | 0.59 H | 0.57 H, hands 0.27 H in front of the hips |
+| FOLLOW-THROUGH | 0.83 H | 1.00 H, across on the other shoulder |
+| RECOVERY | — | in front of the chest, not above the head |
+
+Three things followed, and they are the "weakest part" the founder named:
+
+1. **There was no loop.** The racquet went from the hip straight to the ball. It now goes prep → take-back →
+   ball, timed by the flight: the take-back over the last ~0.19s and the swing into the ball over the last
+   ~0.15s of the ball's flight, ending exactly on the frame the next shot starts on, so nothing pops at the
+   cut. A rushed player does both in less time — `swing = 0.34 − 0.16·rush` — which is what being rushed means.
+2. **The waiting racquet was a salute.** The ready pose held the head 1.55ft above the hand, which put it over
+   the player's head between points. The sheet's RECOVERY panel holds it in front of the chest: 0.75ft.
+3. **The receiver was being prepared for the wrong ball.** `NEXT[n]` is the next shot by the *same* player, and
+   it was being read for the receiver — so the receiver's racquet came back on the **striker's** rush, the
+   **striker's** side of the body and the striker's timing. Two players, one clock. `AFTER[n]` is the shot that
+   comes next in the film, which for a receiver is their own ball.
+
+Measured after: at the end of the flight the racquet head is 3.22ft up and 2.99ft in front; at the contact frame
+of the next shot it is 0.68ft from the ball. Not zero — the arm is at full stretch on a ball struck a racquet's
+length from the feet — but continuous, and the missing inch is the lean that a spine would give.
