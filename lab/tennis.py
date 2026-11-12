@@ -422,7 +422,37 @@ def record_session(book: dict, *, when: str, surface: str, clock: int, players, 
 
 
 def practice_of(book: dict, name: str) -> int:
-    return int(book.get("members", {}).get(name, {}).get("balls", 0))
+    """Everything the member brings to the court: balls it hit in this season, plus balls it arrived with.
+
+    The two are counted separately and never merged, because they answer different questions. "N balls this
+    season" is the season's own claim; a member that walked in with four hundred balls from elsewhere did not
+    hit them here, and a report that added them silently would be flattering its subject by arithmetic."""
+    m = book.get("members", {}).get(name, {})
+    return int(m.get("balls", 0)) + int(m.get("carried", 0))
+
+
+def seed_practice(book: dict, values: dict[str, int], when: str) -> list[tuple[str, int]]:
+    """Give a member a history, once, before it has one in this season.
+
+    The founder asked, 2026-11-12, whether a person may put a number into a member instead of waiting for the
+    record to grow one. Yes — but what a person may put in is a *history*, not a rating: the number is balls hit,
+    the skill is still computed from it by the one formula, and the count is stored as `carried` so no report can
+    quietly present a borrowed past as this season's work. A member that already has a record in this season is
+    refused: the record wins over the flag, which is the rule this file has applied since 2026-11-04."""
+    applied = []
+    for name, n in values.items():
+        if n is None or n <= 0:
+            continue
+        m = book.setdefault("members", {}).get(name)
+        if m and (m.get("sessions") or m.get("balls")):
+            print(f"  {name}: {practice_of(book, name)} balls already in this season; the seed was not applied")
+            continue
+        entry = m or book["members"].setdefault(name, {"balls": 0, "sessions": []})
+        entry["carried"] = int(entry.get("carried", 0)) + int(n)
+        entry["seeded"] = {"when": when, "balls": int(n),
+                           "by": "a person, before this member had a record here"}
+        applied.append((name, int(n)))
+    return applied
 
 
 def season_report(season: str, override: str | None = None) -> str:
@@ -454,8 +484,25 @@ def season_report(season: str, override: str | None = None) -> str:
         who = ", ".join(f"{o} ({n}x)" for o, n in sorted(partners.items(), key=lambda kv: -kv[1]))
         out.append(f"## {name}")
         out.append("")
-        out.append(f"- {m['balls']} balls hit this season, over {len(ss)} session"
-                   f"{'' if len(ss) == 1 else 's'}" + (f"; most often with {who}" if who else "") + ".")
+        carried = int(m.get("carried", 0))
+        if m["balls"]:
+            out.append(f"- {m['balls']} balls hit this season, over {len(ss)} session"
+                       f"{'' if len(ss) == 1 else 's'}" + (f"; most often with {who}" if who else "") + ".")
+        else:
+            out.append("- No balls hit in this season yet.")
+        if carried:
+            out.append(f"- **{carried} of the {practice_of(book, name)} balls it brings were carried in from "
+                       f"before this season**, not hit here (seeded {m.get('seeded', {}).get('when', 'unknown')}). "
+                       f"Every rate below is computed from this season's sessions only; the carried balls move "
+                       f"the hands, and they are named rather than folded into the total.")
+        if not ss:
+            # A member can now be in the book before it has played — that is what seeding a history does — and the
+            # report used to index the first session unconditionally. A season's report must never crash on a
+            # member that has done nothing yet: that is the ordinary state of a new one.
+            out.append("- No session in this season yet. The balls above were carried in, and nothing here has "
+                       "been played, so there is nothing to rate and nothing to improve on.")
+            out.append("")
+            continue
         if len(ss) == 1:
             s = ss[0]
             out.append(f"- One session only ({s['surface']}, {s['in_play']}/{s['of']} balls in play, "
@@ -900,10 +947,23 @@ def run_rally(args) -> int:
     # project has fixed twice; here the file is the record and the flag is a test hook.
     book = load_season(args.season, args.season_dir) if args.season else None
     if book is not None:
+        if args.seed:
+            wanted = [int(x.strip() or 0) for x in args.seed.split(",")]
+            if len(wanted) != len(names):
+                print(f"  !! --seed needs one number per player ({len(names)}); it was ignored",
+                      file=sys.stderr)
+            else:
+                when = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+                applied = seed_practice(book, dict(zip(names, wanted)), when)
+                for n, k in applied:
+                    print(f"  {n}: starts this season with {k} balls carried in from before — recorded as "
+                          f"carried, not as hit here")
+                if applied:
+                    save_season(book, args.season, args.season_dir)
         from_file = [practice_of(book, n) for n in names]
         print(f"  season {args.season}: practice read from the file - "
               + ", ".join(f"{n} {b} balls" for n, b in zip(names, from_file))
-              + f" (--practice {args.practice} ignored)")
+              + f" (--practice {args.practice} ignored; --seed is the way to give a new member a past)")
         practice = from_file
     models = spread(([m.strip() for m in args.model.split(",")] if args.model
                      else [default_model(v) for v in vendors]), len(names), "--model")
@@ -1158,6 +1218,10 @@ def main(argv=None) -> int:
     ap.add_argument("--season", default=None,
                     help="carry practice in a file: games/tennis/seasons/<season>/practice.json")
     ap.add_argument("--season-dir", default=None, help="where that folder is, for a test or a fork")
+    ap.add_argument("--seed", default="",
+                    help="balls a member brings into a season it has not played yet, one per player, e.g. "
+                         "'300,0'. Recorded as carried, never as hit here. Ignored for a member that already "
+                         "has a record in this season: the file wins over the flag")
     ap.add_argument("--report", default=None, metavar="SEASON",
                     help="print what the season file says, with its own citations, and claim nothing more")
     ap.add_argument("--simulate", action="store_true",
