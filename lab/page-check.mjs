@@ -642,6 +642,53 @@ async function main(){
     return /in "the-trojan-war"/.test(memberFile) && /not shown here/.test(written.note) ? '' : 'the mark did not survive the round trip';
   });
 
+  /* 5 — a file written before the mark existed is read against the rooms' own records. */
+  reset();
+  seed('wake/members/Hermes/state/identity.md', '# Hermes');
+  seed('wake/members/Hermes/state/journal.md', '# Journal\n');
+  seed('wake/members/Hermes/state/state.md', '# State\n\nWakes so far: 1\nLast wake: yesterday\n');
+  seed('wake/members/Hermes/state/voice.md', 'api: deepseek\nmodel: deepseek-flash\n');
+  for (const f of ['place.md', 'open-items.md', 'memory.md']) seed('wake/members/Hermes/state/' + f, '# ' + f + '\n');
+  // what the founder's Aphrodite looked like on 2026-11-12: the room's turns with no mark of their own
+  seed('wake/members/Hermes/state/conversation.md', [
+    '# Conversation — Hermes', '',
+    '## 2026-11-12 22:30 UTC — Lindsay', '', 'a private question', '',
+    '## 2026-11-12 22:31 UTC — Hermes', '', 'a private answer', '',
+    '## 2026-11-12 22:34 UTC — Lindsay', '', 'what he asked in the room', '',
+    '## 2026-11-12 22:34 UTC — Hermes', '', 'what it answered in the room', '',
+    '## 2026-11-12 22:34 UTC — Dionysus', '', 'what somebody else said in the room', '',
+  ].join('\n'));
+  seed('chats/the-trojan-war/chat.md', '# A chat — The Trojan War\n\nMembers: Hermes, Dionysus\nFloor: claim\n');
+  seed('chats/the-trojan-war/talk.md', [
+    '# Talk — the trojan war', '',
+    '## 2026-11-12 22:34 UTC — Lindsay', '', 'what he asked in the room', '',
+    '## 2026-11-12 22:34 UTC — Hermes', '', 'what it answered in the room', '',
+    '## 2026-11-12 22:34 UTC — Dionysus [urgency 3]', '', 'what somebody else said in the room', '',
+  ].join('\n'));
+
+  const old = await run(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
+    S.owner = 'Lindsay Ridgeway';
+    S.members = ['Hermes', 'Dionysus', 'Aphrodite'].map(name => ({name, engine: 'deepseek', model: 'deepseek-flash'}));
+    S.chat = {}; S.chatRoomMatch = {}; roomTurnKeys.cache = null;
+    await loadThread('Hermes');
+    return {turns: S.chat.Hermes.length, shown: chatHTML('Hermes'), note: roomNoteHTML('Hermes')};
+  })()`).catch(e => ({error: e.message}));
+
+  check('an older file is read against the room that wrote it', () => {
+    if (old.error) return 'the page could not be asked: ' + old.error;
+    if (/what he asked in the room/.test(old.shown)) return "the person's own room question is in the private talk";
+    if (/what it answered in the room/.test(old.shown)) return "the member's own room answer is in the private talk";
+    if (/what somebody else said in the room/.test(old.shown)) return "another member's room turn is in the private talk";
+    if (!/a private answer/.test(old.shown)) return 'the private talk was emptied along with the room';
+    return '';
+  });
+  check('and it says where those turns were found, not just that they are missing', () => {
+    if (!/3 turns from .the trojan war./.test(old.note)) return `the note says: ${old.note}`;
+    if (!/found in the rooms. own records/.test(old.note)) return 'the note does not say how they were identified';
+    return '';
+  });
+
   /* the verdict */
   let bad = 0;
   for (const r of results){

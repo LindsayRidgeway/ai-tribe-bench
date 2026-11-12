@@ -197,7 +197,8 @@ const cleanRepo = (v) => String(v || '').trim()
 // two tribes can each have a Laddie. The conversation is in the repository anyway, so nothing is lost by letting
 // this browser forget it.
 function setTribe(repo, token, branch){
-  if (repo !== S.repo){ S.chat = {}; try { localStorage.removeItem('ait.chat'); } catch(_){} }
+  if (repo !== S.repo){ S.chat = {}; S.chatRoomMatch = {}; roomTurnKeys.cache = null;
+    try { localStorage.removeItem('ait.chat'); } catch(_){} }
   S.repo = repo; S.token = token; if (branch) S.branch = branch;
   rememberRepo(repo, token);
 }
@@ -1515,10 +1516,16 @@ function roomNoteHTML(name){
   const rooms = [...new Set(away.map(b => b.room).filter(Boolean))].map(r => '“' + esc(r.replace(/-/g, ' ')) + '”');
   const where = rooms.length ? ' from ' + rooms.join(', ') : ' from a room';
   const n = away.length;
+  // How the older turns were found, when they had to be: the file does not say so itself, and a count with no
+  // account of where it came from is the kind of number this project does not print.
+  const seen = (S.chatRoomMatch || {})[name];
+  const how = seen && seen.looked
+    ? ' Turns from before 2026-11-12 carry no mark; these were found in the rooms’ own records, and any the rooms no longer hold are not counted.'
+    : '';
   return `<p class="small muted" id="roomlines" style="margin:2px 0 6px">`
     + `${n} turn${n === 1 ? '' : 's'}${where} ${n === 1 ? 'is' : 'are'} in its memory and ${n === 1 ? 'is' : 'are'} `
     + `not shown here — ask ${esc(name)} about ${rooms.length === 1 ? 'that room' : 'it'}. `
-    + `<span class="muted">Turns said before 2026-11-12 are not marked, so this list can only be as complete as the file is.</span></p>`;
+    + `<span class="muted">${esc(how.trim())}</span></p>`;
 }
 
 async function showFiles(name){
@@ -2097,9 +2104,43 @@ async function loadThread(name){
               read: src.read, searched: src.searched,
               mark: h.mark, urgency: h.urgency, taken: h.taken, room: h.room};
     }).filter(x => x.content);
+    // A file written before 2026-11-12 marks nothing, and the founder's own tribe is full of those. The rooms
+    // still have their own record of what was said in them, so a turn that is in a room's `talk.md` was said in
+    // that room — matched on the same three things `chatPersist` dedupes on, so this cannot disagree with the
+    // write. Only worth the reads when this member's file shows signs of having been in a room at all.
+    const look = msgs.some(b => !b.room && b.who && b.who !== name && b.who !== personLabel());
+    let matched = 0;
+    if (look){
+      try {
+        const keys = await roomTurnKeys();
+        for (const b of msgs){
+          if (b.room) continue;
+          const hit = keys.get(`${b.at}|${b.who}|${String(b.content || '').trim().slice(0, 60)}`);
+          if (hit){ b.room = hit; matched++; }
+        }
+      } catch(e){ /* the rooms could not be read: the turns stay unmarked and the page says so */ }
+    }
+    S.chatRoomMatch = S.chatRoomMatch || {};
+    S.chatRoomMatch[name] = {looked: look, matched};
     if (msgs.length) S.chat[name] = msgs;
     return msgs;
   } catch(e){ return []; }
+}
+
+// Which turns each room holds, by the key `chatPersist` writes with — stamp, speaker, the first sixty characters.
+// Reading the rooms is the only way to know that a turn said in one of them was said in one of them; guessing from
+// the speakers alone leaves the person's own questions and the member's own answers looking like a private talk.
+async function roomTurnKeys(){
+  if (roomTurnKeys.cache) return roomTurnKeys.cache;
+  const keys = new Map();
+  const slugs = (await dirNames('chats')).filter(n => !n.startsWith('.'));
+  for (const slug of slugs.slice(0, 24)){
+    let text = '';
+    try { text = (await fileText(`${chatDir(slug)}/talk.md`)).text; } catch(e){ continue; }
+    for (const t of parseTurns(text)) keys.set(`${t.at}|${t.who}|${String(t.content || '').trim().slice(0, 60)}`, slug);
+  }
+  roomTurnKeys.cache = keys;
+  return keys;
 }
 
 // A talk has no end, so the window has to roll — but rolling used to *discard*, which is why the record of a long
@@ -3424,6 +3465,7 @@ async function chatPersist(slug, roomTurns, byName){
       await saveThread(n);
     } catch(e){ console.warn('could not save ' + n, e); }
   }
+  roomTurnKeys.cache = null;   // the rooms have changed, so what identifies a room turn has changed with them
 }
 
 /* ---- play ------------------------------------------------------------------------------- */
