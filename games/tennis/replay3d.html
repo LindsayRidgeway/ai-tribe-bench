@@ -679,10 +679,25 @@ function nearest(land) {
    for every shot. It does not hunt the ball and it does not cut per shot — a spectator's eye is not a drone. The
    only cut is between points, to a player standing about, which is also what television does. */
 function tower() {
-  // Height and distance chosen so both baselines are inside the frame: the near one 10.7 degrees below the axis,
-  // the far one 4.5 above, in a 26 degree lens. The player standing on the near baseline is then a quarter of the
-  // frame tall instead of a smudge at the edge.
-  return { eye: new THREE.Vector3(-56, 29, WID / 2), at: new THREE.Vector3(NX + 14, 0.5, WID / 2), fov: 26 };
+  // The camera is fixed at one end for the whole match, so its frame is a design decision made once. It was
+  // chosen so the two baselines were inside it, and that left the near baseline sitting on the bottom edge of
+  // the picture: a ball that landed two yards behind it bounced out of frame, which is most of the balls that
+  // beat the player standing there. The founder, 2026-11-11: "you need to show a couple of yards of court behind
+  // the closer court so that long balls, or missed shots to the closest player, have a place to bounce."
+  //
+  // So the frame is now solved rather than guessed: the bottom edge passes through a point 8ft behind the near
+  // baseline at ground level, the top edge through a point 6ft above the far baseline — a tall player's head, and
+  // also where a long ball lands — and the lens is whatever spans those two, with 10 per cent of margin. The
+  // angles are measured from the eye, in the plane the court's length lies in, which is the plane the camera's
+  // tilt lives in.
+  const E = new THREE.Vector3(-56, 29, WID / 2);
+  const below = (x, y) => Math.atan2(E.y - y, x - E.x);          // radians below horizontal, both points in front
+  const aNear = below(-8, 0);                                    // 8ft behind the near baseline, on the clay
+  const aFar = below(LEN, 6);                                    // the far baseline at head height
+  const fov = THREE.MathUtils.radToDeg(aNear - aFar) * 1.10;
+  const axis = (aNear + aFar) / 2;
+  const at = new THREE.Vector3(E.x + 150 * Math.cos(axis), E.y - 150 * Math.sin(axis), WID / 2);
+  return { eye: E, at, fov };
 }
 function between(w) {
   // w is the point's winner: {name, at, north}. The camera stands four and a half feet in front of them, sixteen

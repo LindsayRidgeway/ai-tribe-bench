@@ -166,6 +166,34 @@ Measured on the shipped film, 80 shots, 22 of them lost:
 with its trail leading back over the net, which is the ball doing the thing the founder asked for. The ball rises
 0.02 -> 0.37 -> 0.72 ft in the three samples after every out bounce, so it is a bounce and not a teleport.
 
+## The frame, and the ground behind the near baseline — built 2026-11-11
+
+> I hope it won't distort your layout, but you need to show a couple of yards of court behind the closer court so
+> that long balls, or missed shots to the closest player, have a place to bounce.
+
+It does not distort anything, because the clay was already there — the court plane is drawn 22ft larger than the
+court on every side — and only the camera was cropping it. `tower()` put the near baseline on the bottom edge of
+the picture, so a ball that landed behind it bounced out of frame: six of the twenty-two lost balls in the film,
+including every ball the far player hit long past the near player.
+
+The camera is now solved rather than guessed, because it is fixed for the whole match and its frame is a decision
+made once. Measured from the eye at (-56ft, 29ft) in the plane the court's length lies in:
+
+- the **bottom edge** passes through a point 8ft behind the near baseline at ground level;
+- the **top edge** passes through the far baseline at 6ft — a tall player's head, and where a ball long over the
+  far baseline comes down;
+- the lens is whatever spans those two, plus 10 per cent.
+
+`aNear = 31.1°`, `aFar = 9.7°` below the horizontal, so **fov 23.5°** about an axis 20.4° down, where the old
+camera used 26° about an axis 14.7° down. The court is a little smaller in the frame and a little lower, the near
+player stands rather than sits on the bottom edge, and the strip behind the near baseline is about a sixth of the
+frame height — which is what television shows, because it is where the ball goes.
+
+The ball is followed to 22ft past every line (`in_view` in the engine, the same 22ft the court is drawn by), so the
+bounce behind the near baseline is drawn, and so is the second one if it is slow enough to be in frame. Still:
+`stills/out-behind-baseline.png` — rally 1 shot 3, "long by 8ft", the ball's trail coming down past the near
+player and landing on the clay two and a half yards behind him, inside the picture.
+
 ## Ends, and which player is in the foreground — built 2026-11-11
 
 > even for rallies, it would be more interesting if half the time the male was in the foreground, and half the
