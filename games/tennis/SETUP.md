@@ -28,6 +28,12 @@ Two consequences worth stating out loud, because both were in the brief and neit
   `learned = 1 − exp(−(practice + shots) / 120)`, then `control = 0.18 + 0.74·learned`, `sweet = 0.72 + 0.26·learned`,
   `reach = 0.35 + 0.60·learned`. A slider for it would be a member with a rating nobody earned. What the page shows
   is the number the record already holds; what it lets you change is tonight's rallies.
+  **What a person may do, once, before a member has a record, is hand it a history** (`history`, below): a number of
+  balls, not a rating. The hands are then computed from that number by the same formula, so 300 balls given and 300
+  balls hit are the same hands — there is no second path into a member's ability. The count is stored as `carried`,
+  beside `balls` and never added into it, and the season report names it: “300 of the 300 balls it brings were
+  carried in from before this season, not hit here.” A borrowed past cannot be presented as this season's work, and
+  a seed offered to a member that has already played is refused — the record wins over the field.
 - **Height is recorded but does not touch the physics — yet.** `Player` in `lab/tennis.py` has no height. Making
   height change reach is the more honest model (a 2.06 m player does reach higher) and it would change every number
   in every existing season, so it is not a line to slip in: it needs its own change, its own re-measured test
@@ -45,6 +51,7 @@ Two consequences worth stating out loud, because both were in the brief and neit
   "players": [
     {
       "name": "Gwen",
+      "history": 0,
       "look": {
         "height_m": 1.72,
         "build": 0.95,
@@ -73,6 +80,7 @@ Field notes, because a spec that does not say its units is a suggestion:
 | field | unit / shape | range | read by |
 |---|---|---|---|
 | `name` | one of the tribe's members, exactly as its folder is spelled | — | physics, record, renderer |
+| `history` | **balls before this member had a record here**, applied once at the first season it plays | 0–2000 | physics (as `carried`); record (named, not folded in) |
 | `look.height_m` | metres, top of head | 1.40–2.10 | renderer (physics: not yet — see §1) |
 | `look.build` | multiplier on girth, not height | 0.85–1.25 | renderer |
 | `look.kit`, `look.skin`, `look.hair` | `#rrggbb` | any | renderer |
