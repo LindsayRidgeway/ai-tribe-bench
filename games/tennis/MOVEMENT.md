@@ -401,3 +401,72 @@ the rally that never happened — the ends *after* the last change of ends. With
 that is two flips, so the film opened with both players at each other's ends and then snapped each of them 74ft
 across the court on the first run of rally 1. Measured: `dmitri root x 76.0 at T 0.8, x 2.0 at T 2.0`. Now read off
 `north0`, the end each player was on for rally 1.
+
+## Nobody was ever beaten to a ball — built 2026-11-11
+
+The founder, same evening as the cigar: *"Do players ever fail to get to the ball, thus missing the shot and
+loosing the point? If not, they should, depending on distance to the ball, fitness, proficiency."*
+
+The answer was no, and it was not a close-run thing. `intercept()` gave the receiver the flight time **plus the
+whole hitting window** and divided the gap by the closing speed, from a perfect recovery position. In fifty points,
+not one ball was ever unreached. A rule that no ball can fail is not a rule; a game where a point can only end on an
+error of aim has one way to lose.
+
+### What the new rule is
+
+The player runs to where the ball **will be**, not to where it bounced — that is the whole reason a serve can be
+returned from twenty-five feet away. A ball that lands twenty feet in front of you carries on towards you while you
+run at it, so the gap closes from both ends. The meeting is the **first** moment at which the two clocks agree: the
+legs are finished when the ball arrives. (Searching from the *latest* moment instead finds a ball already behind the
+back fence and calls it unreachable — the same defect pointing the other way, and it produced exactly that: a first
+pass in which every serve in the game was an ace.)
+
+Four things decide it, and three of them are the founder's own list:
+
+| | the number | what it is |
+|---|---|---|
+| **distance** | `need = dist − 4.5ft` | from the body's **actual** position, which is where the last shot left it |
+| **proficiency** | `speed = 5 + 15·reach` | feet per second, and `reaction = 0.26 − 0.15·reach` — a trained player moves as the ball leaves the other racquet, a beginner is still watching when it bounces |
+| **fitness** | `legs = 1 − 0.025·(shots−1)·(1.6−reach)` | each shot of a rally, floored at 0.75; the fitter player loses less per shot |
+| **time** | the ball's own arc | `flight − reaction + t_meet`, where `t_meet` runs to the last moment the ball is between knee and shoulder height |
+
+The hitting window is not a constant, it is the **bounce's own parabola**: the ball leaves the bounce at whatever
+vertical speed the surface gave it, rises, and comes back down to `HIT_LOW = 0.5ft`. A kick serve hangs for over a
+second; a ball that skids low is hittable for a third of that, which is why a skidding ball on grass is harder to
+return than the same ball on clay — and it comes out of the surface and the spin, not out of a tuning knob.
+
+Reach is 4.5ft from the middle of the body, arm out and lunging: 2.3ft of arm plus 2.2ft of racquet is 4.5ft to the
+middle of the strings. It was 3.0ft in the first version and that single foot and a half is worth more than any
+other number here: at 3.0 the pair missed **50%** of all balls and points averaged 1.95 shots; at 4.5 they miss
+**17%** and points average 3.1. The cliff is real rather than a bug — a ball that lands a foot inside the sideline and
+then kicks away is a winner or it is not, and there is no gradient in between.
+
+A ball that has left the court is not chased. Without that line the receiver was sent thirty feet off the back fence
+after a ball that landed on the sideline and kept going: the picture showed a player running into the dark, and the
+verdict was computed against a meeting point outside the court.
+
+### What it produced
+
+Sixty rallies, 400/500 practice (rating 6.79 vs 6.91), clay:
+
+| level | mean rally | longest | balls not reached | mean miss |
+|---|---|---|---|---|
+| 400 / 500 balls | 3.1 shots | 10 | 17% | 2.4ft short |
+| 0 / 0 balls | 2.4 shots | 5 | 9% | 1.7ft short |
+
+The inversion is not a defect: a beginner loses points by hitting the ball out, and a good pair lose them by being
+beaten. That is what the two levels look like from the umpire's chair, and it is why the beginner's *shots* are
+easier to reach — they hit slower and place worse. Within a single pair the effect runs the right way, which is what
+the new test checks:
+
+| one wide ball, 15ft away, 0.9s | verdict |
+|---|---|
+| expert, first shot of the rally | reaches it, 9.7ft to run in 0.78s |
+| expert, twentieth shot of the rally | 0.6ft short — the same ball, tired legs |
+| beginner, first shot of the rally | 3.8ft short, and never in it |
+
+In the 20-point film: 61 shots, rallies `[3,4,9,3,7,5,1,1,2,2,2,1,4,2,3,2,2,4,2,2]`, and **7 of 20 points end
+with a ball the other player could not reach** — nearly all of them wide, and all of them described in the record
+with how many feet short and at what speed the player was running (`Gwen runs 17.4ft at 19.1ft/s and does not get
+there`). The other thirteen still end on an error of aim, which is the balance the founder asked for: not a game
+with two ways to lose, and not one with none.

@@ -821,52 +821,169 @@ def movement_speed(p: Player) -> float:
     return 5.0 + 15.0 * p.skill("reach")
 
 
-HIT_WINDOW = 1.0          # seconds after the bounce during which the ball can still be struck
+# ---- can they get to it, and do they ever not -----------------------------------------------
+# Until 2026-11-11 nobody in this game was ever beaten to a ball, in fifty points. `intercept` gave the receiver
+# `flight_time + HIT_WINDOW` seconds to cover `distance - reach` feet and divided the gap by the closing speed,
+# so the answer was always "yes": a ball landing seventy feet away was reachable in 0.6 seconds. The founder:
+# "Do players ever fail to get to the ball, thus missing the shot and losing the point? If not, they should,
+# depending on distance to the ball, fitness, proficiency." They should, and the three things that decide it are
+# feet to run, legs to run with, and time to do it in.
+#
+# The time is the ball's own: from the strike to the bounce (`flight_time`), less the time a body needs to turn
+# and take a first step, plus the whole of the ball's arc after the bounce, which is when it can be struck. The
+# run is not at a constant speed either — the first step is an acceleration, and a player who is twelve feet away
+# does not get to spend a second at full speed.
+#
+# The reaction is a skill, not a constant. A trained player is moving as the ball leaves the other racquet, having
+# read the swing and the toss; a beginner is still watching when it bounces. That is `0.26 - 0.15 * reach`, which
+# is 0.21 s at zero practice and 0.12 s at five hundred balls.
+REACTION_BASE = 0.26      # seconds, for a player who has never played
+REACTION_SKILL = 0.15     # of that, taken off by proficiency
+HIT_LOW = 0.5             # feet above the court: below this a ball is a dig, not a stroke
+HIT_HIGH = 9.5            # and above it, out of reach of the swing
+HIT_WINDOW_MAX = 1.2      # the cap on the flight's own window, for a bounce so high it hangs
+FIRST_STEP = 42.0         # ft/s2: a split step and the first two strides, ~1.3g
+RACQUET_REACH = 4.5       # feet from the middle of the body to the middle of the strings, arm out and lunging
+PLAY_PAD = 4.0            # feet outside the lines a ball can still be run to and hit; beyond that there is no stroke
+FATIGUE = 0.025           # of their speed each shot of a rally costs them at their fittest
+FATIGUE_FLOOR = 0.75      # and how far down it can go, because tired is not the same as stopped
+GRAVITY = 32.174          # ft/s2, for the bounce's own arc
 
 
-def intercept(p: Player, land, flight_time: float, bounce: dict, surface: str, frm=None) -> dict:
-    """Where and when the player meets the ball.
+def reaction_time(p: Player) -> float:
+    """Seconds between the ball leaving the other racquet and this player's first step."""
+    return REACTION_BASE - REACTION_SKILL * p.skill("reach")
 
-    Player and ball close on each other, so the question is when they meet, not how far the ball landed. The
-    receiver stands where they stand — the middle of their own baseline unless a caller says otherwise, because
-    after a shot a player is wherever their last contact left them; the ball lands and then travels; the player
-    runs. The speed that matters is the player's, plus how fast the ball is coming *at them* — the component of
-    the ball's velocity along the line from the landing point to the player. A ball hit straight back at you
-    closes fast and you barely have to move; a ball hit wide crosses in front of you and does not come to you at
-    all, so it is your own legs against the flight.
 
-    The first version compared the distance to the landing point against a radius that grew with skill. That got
-    short balls exactly backwards — a ball landing in the service box was 21ft away across the court and was
-    called unreachable, when in fact it bounces and comes back to you — and it failed players for something that
-    was neither visible nor theirs to control, which is the one thing a rule in this game must never do.
+def run_time(need: float, speed: float) -> float:
+    """Seconds to cover `need` feet from a standing start: accelerated to top speed, then flat out."""
+    if need <= 0.0:
+        return 0.0
+    t_top = speed / FIRST_STEP
+    d_top = 0.5 * FIRST_STEP * t_top * t_top
+    if need <= d_top:
+        return math.sqrt(2.0 * need / FIRST_STEP)
+    return t_top + (need - d_top) / speed
 
-    This returns the *meeting point*, not just a verdict, because a verdict is all a score needs and a picture
-    needs where the feet went. Until 2026-11-10 this function threw that away and the renderer, having no
-    positions to draw, showed both players standing in the middle of the baseline through every rally.
+
+def run_distance(t: float, speed: float) -> float:
+    """The inverse: feet covered in `t` seconds. A beaten player is as far along this as the clock allowed."""
+    if t <= 0.0:
+        return 0.0
+    t_top = speed / FIRST_STEP
+    d_top = 0.5 * FIRST_STEP * t_top * t_top
+    if t <= t_top:
+        return 0.5 * FIRST_STEP * t * t
+    return d_top + (t - t_top) * speed
+
+
+def hit_window(bounce: dict | None) -> tuple[float, float, float]:
+    """The stretch of time after the bounce during which this particular ball can be struck, and how high it is.
+
+    The window is the ball's own parabola, not a constant: it leaves the bounce at whatever vertical speed the
+    surface gave it, rises, and comes back down to knee height. A serve that kicks up over the shoulder hangs for
+    a second — and a ball that skids through low is hittable for a third of that, which is exactly why a skidding
+    ball on grass is harder to return than the same ball on clay. Reading it off the arc is also what stops the
+    constant from being a tuning knob: the surface and the spin are already in it.
+
+    Returns (0, last_moment_it_is_hittable, peak_height_above_HIT_LOW) — the last number is not used for the
+    decision, only for the record, so that a report can say how high the ball was when it was met.
+    """
+    v = (bounce or {}).get("v")
+    if not v or v[2] <= 0.0:                 # a net cord that dies at the foot of the net, or no bounce at all
+        return 0.0, 0.0, 0.0
+    vz = v[2]
+    disc = vz * vz - 2.0 * GRAVITY * HIT_LOW
+    if disc <= 0.0:                          # never gets up to knee height
+        return 0.0, 0.0, 0.0
+    down = (vz + math.sqrt(disc)) / GRAVITY   # the second crossing of HIT_LOW, on the way down
+    return 0.0, min(down, HIT_WINDOW_MAX), vz * vz / (2.0 * GRAVITY)
+
+
+def intercept(p: Player, land, flight_time: float, bounce: dict, surface: str, frm=None,
+              shots: int = 1) -> dict:
+    """Where and when the player meets the ball — and whether they get there at all.
+
+    The player stands where they actually stand (`frm`, which is the spot their last shot left them in), the ball
+    lands where it lands, and the question is whether the legs can close `distance - reach` feet inside the time
+    the ball allows. Three things decide it, and they are the three the founder named:
+
+    - **distance to the ball**: the feet to be covered, from the body's own position, not from the middle of the
+      baseline;
+    - **proficiency**: top speed comes from `movement_speed`, which is the skill a player has practised, and the
+      first step is an acceleration, so a short run is not a walk and a long one is not a sprint;
+    - **fitness**: a rally costs legs. Each shot of a rally takes a piece of their speed and the piece is smaller
+      for a player who has hit more balls, so a long rally is won by the fitter player as much as by the better
+      one. That is a modelling choice and it is stated here as one; there is no heart-rate model behind it.
+
+    The version before this returned "yes" for every ball in fifty points, because the time it allowed was the
+    flight time *plus* the whole hitting window and the gap it divided was measured from a perfect recovery
+    position. A rule that no ball can ever fail is not a rule, and a point that can only end on an error of aim
+    is a game with one way to lose.
+
+    Returns the meeting point as well as the verdict, because a picture needs to know where the feet went: a
+    player who cannot get there runs as far as the clock allows and the ball lands past them.
     """
     home = frm if frm is not None else (2.0 if p.north else LENGTH - 2.0, WIDTH / 2)
-    dx, dy = home[0] - land[0], home[1] - land[1]
-    distance = math.hypot(dx, dy)
-    reach = 3.0                                    # racquet and arm
-    gap = max(0.0, distance - reach)
-    speed = movement_speed(p)
-    if gap <= 0:
-        return {"ok": True, "why": "", "meet": (land[0], land[1]), "t_meet": 0.0,
-                "distance": distance, "speed": speed, "short": 0.0}
-    ux, uy = dx / distance, dy / distance
-    vx, vy, _vz = bounce["v"]
-    toward = max(0.0, vx * ux + vy * uy)           # how fast the ball is closing on the player
-    t_meet = gap / (speed + toward)
-    # the ball is hittable from the bounce until it has risen and started to drop again, which is most of a
-    # second, and the player also has the time the ball spent in the air before it landed.
-    available = flight_time + HIT_WINDOW
-    meet = (land[0] + ux * reach, land[1] + uy * reach)      # a racquet's length short of the landing point
-    ok = t_meet <= available
-    short = 0.0 if ok else (t_meet - available) * speed
-    why = "" if ok else (f"{short:.0f}ft short of it, beaten by the "
-                         f"{'wide' if abs(dy) > abs(dx) else 'deep'} ball")
-    return {"ok": ok, "why": why, "meet": meet, "t_meet": t_meet, "distance": distance,
-            "speed": speed, "short": short}
+    fresh = movement_speed(p)
+    # tired legs: the fitter player (the same practice that makes them fast) loses less per shot
+    legs = max(FATIGUE_FLOOR, 1.0 - FATIGUE * max(0, shots - 1) * (1.6 - p.skill("reach")))
+    speed = fresh * legs
+    react = reaction_time(p)
+    v = (bounce or {}).get("v") or (0.0, 0.0, 0.0)
+    vx, vy = float(v[0]), float(v[1])
+    _first, t_last, _peak = hit_window(bounce)
+
+    # The player runs not to where the ball BOUNCED but to where it will be: a ball that lands twenty feet in
+    # front of them carries on towards them while they run at it, so the gap closes from both ends. That is the
+    # whole of why a serve can be returned by someone twenty-five feet away — the bounce happens at 0.6 s and
+    # the contact at 1.1 s, and the ball has spent half a second coming to the racquet. The version of this that
+    # measured the gap to the bounce and stopped there said every serve was an ace, which is the same defect as
+    # the old one saying none ever was, pointing the other way.
+    #
+    # The meeting is the FIRST moment at which the two clocks agree: the player's legs are finished when the
+    # ball reaches them. Before that the player is still running; after it the ball is past them. Searching from
+    # the start rather than the end matters because a ball hit through the court passes the player — asking for
+    # the latest moment finds a ball already behind the back fence and calls it unreachable.
+    t, ok = 0.0, False
+    ball, dist, need, slack = (land[0], land[1]), 0.0, 0.0, -1e9
+    best = (t, 0.0, 0.0, -1e9)     # t, dist, need, slack — the best the legs can do when they fall short
+    while t <= t_last + 1e-9:
+        ball = (land[0] + vx * t, land[1] + vy * t)
+        # A ball that has left the court is not chased: it has either won the point or is about to be called out,
+        # and in neither case is there a stroke to play. Without this the receiver was sent thirty feet off the
+        # back fence after a ball that landed on the sideline and kept going — the picture showed a player
+        # running into the dark, and the verdict was computed against a meeting point outside the court.
+        if not (-PLAY_PAD <= ball[0] <= LENGTH + PLAY_PAD and -PLAY_PAD <= ball[1] <= WIDTH + PLAY_PAD):
+            break
+        dist = math.hypot(ball[0] - home[0], ball[1] - home[1])
+        need = max(0.0, dist - RACQUET_REACH)
+        slack = (flight_time + t - react) - run_time(need, speed)
+        if slack > best[3]:
+            best = (t, dist, need, slack)
+        if slack >= 0.0:
+            ok = True
+            break
+        t += 0.01
+    if not ok:
+        t, dist, need, slack = best
+
+    clock = max(0.0, flight_time + t - react)        # the seconds of running the ball allows at this meeting
+    covered = min(need, run_distance(clock, speed))
+    short = 0.0 if ok else need - covered
+    ux, uy = ((ball[0] - home[0]) / dist, (ball[1] - home[1]) / dist) if dist > 1e-6 else (0.0, 1.0)
+    meet = (ball[0] - ux * RACQUET_REACH, ball[1] - uy * RACQUET_REACH)   # the feet: a racquet's length short
+    got = (home[0] + ux * covered, home[1] + uy * covered)                 # as far as the legs got
+    height = HIT_LOW + max(0.0, v[2] * t - 0.5 * GRAVITY * t * t) if v[2] > 0.0 else 0.0
+    why = "" if ok else (f"{max(short, 0.1):.1f}ft short of it, beaten by the "
+                         f"{'wide' if abs(ball[1] - home[1]) > abs(ball[0] - home[0]) else 'deep'} ball")
+    return {"ok": ok, "why": why, "meet": meet, "got": got,
+            "ball": (ball[0], ball[1], height),
+            "t_arrive": react + run_time(need, speed),           # seconds from the strike, when the shot starts
+            "t_meet": t,                                          # and after the bounce
+            "window": t_last,
+            "distance": dist, "speed": speed, "fresh": fresh, "legs": legs,
+            "need": need, "have": clock, "short": short}
 
 
 def reachable(p: Player, land, flight_time: float, bounce: dict, surface: str) -> tuple[bool, str]:

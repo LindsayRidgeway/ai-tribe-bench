@@ -26,6 +26,7 @@ import tennis as T  # noqa: E402
 CAP = 60          # the record's ceiling on a rally, stated rather than hidden
 TRACE = 0.02      # seconds between ball positions in the script
 SWAP_EVERY = 5    # points at one end before both players change ends, so neither is always the small one
+SERVE_MPH = (66.0, 18.0)   # a first serve, spread; scaled down by control so a beginner does not serve like a pro
 
 
 def rating(balls: int) -> float:
@@ -131,7 +132,8 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str,
                 # service box rather than by the court. A second serve keeps the corner and takes pace off and
                 # height on: the ball is sent four feet shorter, which is what a higher, safer serve is.
                 contact = T.contact_point(p, "serve")
-                pace = (66.0 + 18.0 * rng.random()) * (1.0 if serve_no == 1 else 0.85)
+                pace = (SERVE_MPH[0] + SERVE_MPH[1] * rng.random()) \
+                    * (0.72 + 0.30 * p.skill("control")) * (1.0 if serve_no == 1 else 0.85)
                 # A second serve is not the same ball with the pace taken off. It is aimed at the middle of the
                 # same half of the box: the first serve attacks a corner because a fault costs nothing but a
                 # serve, the second one cannot afford a corner at all. Until 2026-11-11 it kept the corner and
@@ -288,24 +290,27 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str,
                 hitter = 1 - hitter
                 continue
 
+            # `shots=length` is the fatigue argument: the shot this player is being asked to reach is the
+            # `length`-th of the rally, and long rallies are meant to cost the slower player the next ball.
             meet = T.intercept(other, traj["land"], traj["time"], traj["bounce"], surface,
-                               frm=receiver_at)
-            available = traj["time"] + 1.0
-            # A beaten player runs as far as the time allowed and arrives late; the picture shows them short,
-            # which is what "beaten by the wide ball" looks like. Nobody is teleported to a contact.
-            reachable_dist = min(meet["distance"], meet["speed"] * available)
-            ux = (traj["land"][0] - receiver_at[0]) / max(meet["distance"], 1e-6)
-            uy = (traj["land"][1] - receiver_at[1]) / max(meet["distance"], 1e-6)
-            got_to = (receiver_at[0] + ux * reachable_dist, receiver_at[1] + uy * reachable_dist)
+                               frm=receiver_at, shots=length)
+            deadline = traj["time"] + meet["window"]     # the ball is on its way down by then and cannot be hit
+            # A beaten player runs as far as the clock allowed and arrives after the ball has gone: the picture
+            # shows them short, which is what "beaten by the wide ball" looks like. Nobody is teleported to a
+            # contact. The numbers go into the record as well, because the interesting question at the end of a
+            # season is not how many points were lost but HOW MANY FEET SHORT the losing player was.
+            got_to = meet["meet"] if meet["ok"] else meet["got"]
             entry["run"] = {
                 "player": other.name, "north": other.north,
                 "from": [round(v, 2) for v in receiver_at],
-                "to": [round(v, 2) for v in (meet["meet"] if meet["ok"] else got_to)],
-                "t0": 0.0, "t1": round(traj["time"] + meet["t_meet"], 3),
+                "to": [round(v, 2) for v in got_to],
+                "t0": 0.0, "t1": round(min(meet["t_arrive"], deadline) if meet["ok"] else deadline, 3),
                 "dist": round(meet["distance"], 1), "speed": round(meet["speed"], 1),
                 "met": bool(meet["ok"]),
+                "need": round(meet["need"], 1), "have": round(meet["have"], 2),
+                "short": round(meet["short"], 1), "legs": round(meet["legs"], 2),
             }
-            where[1 - hitter] = entry["run"]["to"] if meet["ok"] else got_to
+            where[1 - hitter] = got_to
             # The ball is met where it LANDS, and the feet stop a racquet's length short of it — which is what
             # `meet` already was, and what this line got wrong: it put the contact point on the player's own feet,
             # so every stroke in the game was struck with the body standing in the ball. The arm then folds to

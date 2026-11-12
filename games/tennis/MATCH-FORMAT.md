@@ -231,3 +231,17 @@ a rule scaled by the figure's own measured height — 6.16ft for Dmitri, 5.64ft 
 5.17ft against her 4.74 — and movement speed comes from skill alone, so the two differ only in proportion. The
 one number that is not proportional is the preparation offset, which is absolute feet from the chest: about 9%
 smaller, in proportion, on the taller body. Nothing in the renderer names a player.
+
+## How a point ends — 2026-11-11
+
+Every point now ends on one of four things, and the fourth one only became possible tonight: netted, long or wide
+(the hitter's error), or **out of reach** (a ball the receiver could not get to). Before this, only the first three
+existed: `intercept()` answered yes to every ball in fifty points, so the record never once said a player had been
+beaten to one. The rule, the four numbers that decide it and the measurements behind them are in `MOVEMENT.md`
+("Nobody was ever beaten to a ball").
+
+In the 20-point film as it now stands: 61 shots, rallies `[3,4,9,3,7,5,1,1,2,2,2,1,4,2,3,2,2,4,2,2]`, seven points
+end on a ball out of reach, nine on a mishit, three on an aim that came off the side of the court, and one in the
+net. A beaten player runs as far as the clock allowed and stops short — nobody is teleported onto a contact — and
+the record carries `need`, `have`, `short` and `legs` for the run, so a season report can say how many feet short
+the losing player was, in which direction, and how tired they were when it happened.

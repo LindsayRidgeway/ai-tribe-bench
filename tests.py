@@ -2994,7 +2994,7 @@ class TestTennis(unittest.TestCase):
         ok, why = t.reachable(p, (t.NET_X - 2.0, 1.0), 0.5,
                               {"v": (60.0, 20.0, -10.0), "speed_out": 90.0}, "hard")
         self.assertFalse(ok)
-        self.assertRegex(why, r"\d+ft short of it")
+        self.assertRegex(why, r"\d+(?:\.\d+)?ft short of it")
         # and one hit deep and slowly, which for a player standing on the baseline is a step and a half
         ok, _ = t.reachable(p, (t.NET_X - 25.0, t.WIDTH / 2), 2.0,
                             {"v": (10.0, 0.0, -8.0), "speed_out": 20.0}, "hard")
@@ -3004,6 +3004,42 @@ class TestTennis(unittest.TestCase):
         self.assertEqual(t.movement_speed(t.Player("n", True, 300)), 
                          5.0 + 15.0 * (t.Player("n", True, 300).skill("reach")),
                          "movement is not a skill any more")
+
+    def test_beaten_to_the_ball_by_distance_legs_and_proficiency(self):
+        """Until 2026-11-11 nobody in this game was ever beaten to a ball, in fifty points: `intercept` allowed
+        the flight time plus the whole hitting window and measured the gap from a perfect recovery position, so
+        every ball in every match was reachable. The founder, that evening: "Do players ever fail to get to the
+        ball, thus missing the shot and losing the point? If not, they should, depending on distance to the
+        ball, fitness, proficiency."
+
+        One wide ball, one landing point, one flight time, and three different receivers. The ball is the same
+        ball in all three cases, which is the point: what changes the verdict is who is running at it and how
+        many shots they have already run. The same ball, and the ranking is the founder's own list — the expert
+        fresh is there, the expert at the end of a long rally is two feet short, and the beginner is five feet
+        short and never had a chance.
+        """
+        import random
+        t = self.t
+        expert = t.Player("expert", True, 400, rng=random.Random(1))
+        beginner = t.Player("beginner", True, 0, rng=random.Random(1))
+        # struck away from the receiver's forehand corner, still travelling that way: it does not come to them
+        bounce = {"v": (-6.0, -26.0, 16.0), "speed_out": 32.0}
+        land, flight, home = (14.0, 6.0), 0.9, (2.0, t.WIDTH / 2)
+        fresh = t.intercept(expert, land, flight, bounce, "clay", frm=home, shots=1)
+        late = t.intercept(expert, land, flight, bounce, "clay", frm=home, shots=20)
+        novice = t.intercept(beginner, land, flight, bounce, "clay", frm=home, shots=1)
+        self.assertTrue(fresh["ok"], "the expert could not reach a ball 15ft away in three quarters of a second")
+        self.assertFalse(late["ok"], "twenty shots of rally cost a player nothing")
+        self.assertFalse(novice["ok"], "a beginner reached a ball that takes a five hundred ball player a run")
+        # and the ordering of how far short is the same ordering as the skill: expert, tired expert, beginner
+        self.assertLess(late["short"], novice["short"])
+        self.assertGreater(novice["short"], 2.0)
+        for r in (fresh, late, novice):
+            self.assertRegex(r["why"] or "0ft short of it", r"\d+(?:\.\d+)?ft short of it")
+        # the clock the ball allows is the flight plus its own arc, less this player's reaction — not a constant
+        self.assertAlmostEqual(novice["have"], 0.9 + novice["t_meet"] - t.reaction_time(beginner), places=6)
+        self.assertGreater(t.reaction_time(beginner), t.reaction_time(expert),
+                           "reaction is not a skill, so a beginner is as quick to the first step as an expert")
 
     def test_rally_length_responds_to_hands_and_to_learning(self):
         """The founder's claim, made checkable: rallies should get longer as the players develop, and not
