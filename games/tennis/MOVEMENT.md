@@ -206,10 +206,17 @@ does not.
 prepared position, blended in by the same `windup` number that the rush model produces — a player who has not
 remembered gets the ready pose and nothing else.
 
-- forehand: hand out on the **hitting side**, slightly behind, at hip height — the arm **open**. Measured:
-  chest + 0.90ft right, 0.23ft behind, 0.54ft below the chest.
-- backhand: hand **across the chest** and in front, both hands on the grip, racquet head back over the left
-  shoulder — the arm **crossing**. Measured: chest − 0.76ft (left), 0.62ft in front, level with the chest.
+- forehand: hand out on the **hitting side**, level with the body, at hip height — the arm **open**. Measured:
+  hand at chest + 0.77ft right, level, 0.43ft down; **head** at chest + 1.83ft right, 1.16ft behind, just above
+  the chest.
+- backhand: hand **across the chest** and in front, both hands on the grip, racquet head over the left hip —
+  the arm **crossing**. Measured: hand at chest − 0.72ft, 0.66ft in front, level; **head** 1.94ft to the left,
+  0.42ft behind, 0.61ft up.
+
+The first version put the forehand's racquet head **two feet** behind the chest, and the founder's note was
+"your racquet back is too far back" — a prepared racquet sits behind the hip, not behind the player. The numbers
+above are where it now is; the loop that takes it properly back is the swing, which happens later and is not
+this.
 
 Those measured offsets are the check, not the intent: `?debug` prints them, and the arm solve reports 0.00ft of
 error against its own target, so the picture shows what the numbers say.
