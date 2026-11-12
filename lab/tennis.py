@@ -515,8 +515,49 @@ def serve_verdict(shot: dict) -> tuple[bool, str]:
 SHOT_KINDS = ("cross", "line", "drop", "lob", "approach")
 
 
+REPEAT_FEET = 8.0      # two balls aimed this close together are the same ball, and nobody plays the same ball twice
+
+
+def _not_the_same_ball_twice(plan: dict, last, rng) -> dict:
+    """The founder, 2026-11-11: "Too frequently, your players hit one return after another to the same spot on the
+    court. That doesn't happen. *Maybe* twice in a row, but even that rarely."
+
+    He is right about the game and the engine was doing it because every rule in it is a rule about the *situation*
+    and the situation barely changes: the receiver recovers to the middle of their baseline after every shot, so
+    the far corner is the same corner, so the ball goes to the same place for as long as the rally lasts. A player
+    does not read a court that way. They hit the open court, and the moment they have hit it the open court is the
+    other one.
+
+    So: if this ball is within eight feet of the last ball this player aimed at in this rally, send it to the
+    mirror on the other side of the court instead — eight times in ten. The other two are the times it works, and
+    a player who never repeats is as readable as one who always does."""
+    if last is None:
+        return plan
+    t = plan["target"]
+    if math.hypot(t[0] - last[0], t[1] - last[1]) >= REPEAT_FEET:
+        return plan
+    r = rng.random()
+    if r < 0.20:
+        return plan                                  # it works sometimes
+    if r < 0.80:
+        # the other side of the court, the same length: the open court
+        y = WIDTH - t[1]
+        if not (5.0 <= y <= WIDTH - 5.0):
+            y = WIDTH / 2 + (5.5 if t[1] < WIDTH / 2 else -5.5)
+        return dict(plan, target=(t[0], y), varied="side")
+    # the same side and a different length. A rally is not a pendulum: a good player answers a wide ball with one
+    # that is deep behind them, which is the same side of the court and a different place on it, and without this
+    # the rule above turned every rally into strict left-right alternation — a different metronome from the one it
+    # replaced, which is the trap in fixing this by rule rather than by picture (measured: 38 rallies out of 59 had
+    # no two consecutive balls on the same side at all).
+    deeper = 12.0 if t[0] > NET_X else -12.0
+    x = t[0] + deeper
+    lo, hi = (NET_X + 10.0, LENGTH - 5.0) if t[0] > NET_X else (5.0, NET_X - 10.0)
+    return dict(plan, target=(min(hi, max(lo, x)), t[1]), varied="length")
+
+
 def choose_shot(p: Player, other: Player, at_hitter, at_receiver, record: dict, rng,
-                height: float | None = None) -> dict:
+                height: float | None = None, last=None) -> dict:
     """Which ball to play: kind, target, pace. Randomised within what the situation allows.
 
     Three situations, and they are the ones a player actually reads:
@@ -568,12 +609,15 @@ def choose_shot(p: Player, other: Player, at_hitter, at_receiver, record: dict, 
     fwd = 1.0 if p.north else -1.0
     pace = 1.0 if height is None else 0.80          # a volley is a punch, not a swing
     if kind == "cross":
-        return {"kind": kind, "target": cross, "power": rng.uniform(58, 76) * pace}
+        return _not_the_same_ball_twice({"kind": kind, "target": cross,
+                                         "power": rng.uniform(58, 76) * pace}, last, rng)
     if kind == "line":
-        return {"kind": kind, "target": line, "power": rng.uniform(62, 80) * pace}
+        return _not_the_same_ball_twice({"kind": kind, "target": line,
+                                         "power": rng.uniform(62, 80) * pace}, last, rng)
     if kind == "approach":
         # short and low, hit while moving in, so the hitter can get to the net behind it
-        return {"kind": kind, "target": line, "power": rng.uniform(48, 62) * pace}
+        return _not_the_same_ball_twice({"kind": kind, "target": line,
+                                         "power": rng.uniform(48, 62) * pace}, last, rng)
     if kind == "drop":
         # a short ball that dies: on the side the receiver has left, and never off the court — the mirror of a
         # receiver standing near a sideline is a target outside it, which is how four balls a match were aimed
@@ -583,10 +627,12 @@ def choose_shot(p: Player, other: Player, at_hitter, at_receiver, record: dict, 
         else:
             y = rng.choice((5.5, WIDTH - 5.5))
         depth = rng.uniform(5, 9) if height is not None else rng.uniform(8, 13)
-        return {"kind": kind, "target": (NET_X + fwd * depth, y), "power": rng.uniform(26, 34) * pace}
+        return _not_the_same_ball_twice({"kind": kind, "target": (NET_X + fwd * depth, y),
+                                         "power": rng.uniform(26, 34) * pace}, last, rng)
     # a lob: deep, high, and slow enough that it comes down inside the baseline
     y = WIDTH - 5.5 if at_receiver[1] < WIDTH / 2 else 5.5
-    return {"kind": kind, "target": (LENGTH - 6.0 if p.north else 6.0, y), "power": rng.uniform(40, 52) * pace}
+    return _not_the_same_ball_twice({"kind": kind, "target": (LENGTH - 6.0 if p.north else 6.0, y),
+                                     "power": rng.uniform(40, 52) * pace}, last, rng)
 
 
 # ---- recovery and the net ---------------------------------------------------------------------------

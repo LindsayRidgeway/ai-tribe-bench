@@ -138,7 +138,34 @@ Still not built: the racquet coming back *to the right side* as a visible pose c
 hold the ready position until the windup ramps; only the shoulders and the knees know), and the feet, which are
 still planted through the hit.
 
-## 6. What is still wrong
+## 6. Not the same ball twice
+
+The founder, 2026-11-11: "Too frequently, your players hit one return after another to the same spot on the
+court. That doesn't happen. *Maybe* twice in a row, but even that rarely."
+
+He was right, and the reason is that every rule in the engine is about the *situation*, and the situation barely
+changes: the receiver recovers to the middle of their baseline after every shot, so the far corner is the same
+corner, so the ball goes to the same place for as long as the rally lasts. Measured on three ten-point matches:
+**65 of 127 consecutive shots by the same player landed within 8ft of the one before.**
+
+`_not_the_same_ball_twice` in `lab/tennis.py`, applied to whatever `choose_shot` returns:
+
+- 20% of the time the ball is played into the same place again — the times it works, and a player who never
+  repeats is as readable as one who always does;
+- 60% of the time it goes to the other side of the court at the same length — the open court;
+- 20% of the time it stays on the same side at a different length, because a rally is not a pendulum: a good
+  player answers a wide ball with one that is deep behind them.
+
+That third branch is there because the first version of the rule mirrored everything, and mirroring everything is
+strict left-right alternation — a different metronome from the one it replaced. Measured: 38 rallies out of 59
+had no two consecutive balls on the same side of the court at all, which is not tennis either. Fixing a pattern by
+rule makes a pattern; the picture has to be checked, not just the complaint.
+
+After: **12 of 91 consecutive shots within 8ft** (9–16% depending on the run, and the honest number is the landing
+rate, which is worse than the aiming rate because two aiming points 20ft apart can land close by error). Same side
+of the court twice in a row: 32% of pairs, and one rally in sixty reached three in a row.
+
+## 7. What is still wrong
 
 - **A volley at a deep corner goes long.** Three of the seven in the sample above missed; the corner margin for
   a groundstroke is applied unchanged to a ball struck from 6ft from the net, where the same angle error covers

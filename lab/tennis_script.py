@@ -76,6 +76,8 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str) 
     # logic already computed where a player meets the ball; it now says so instead of only saying yes or no.
     where = [(2.0 if pl.north else T.LENGTH - 2.0, T.WIDTH / 2) for pl in players]
     carry = [None, None]          # the meeting point each player has been left standing at
+    # Where each player last aimed in this rally, so that a shot can avoid being the same shot again.
+    last_aim = [None, None]
     out_rallies, shots = [], []
     incoming, hitter = None, 0
     # Which side of each player's body has been losing points, so that a ball sent to one corner and a ball sent
@@ -133,7 +135,8 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str) 
                 # A ball, not a corner: which shot, to where, how hard. The corner rule is the default drive and
                 # it is still the founder's; the other four kinds are what stop twenty shots alternating left and
                 # right like a metronome (his note, 2026-11-11).
-                plan = T.choose_shot(p, other, where[hitter], where[1 - hitter], record, rng)
+                plan = T.choose_shot(p, other, where[hitter], where[1 - hitter], record, rng,
+                                     last=last_aim[hitter])
                 # At the net the ball is volleyed — taken out of the air before it bounces, at whatever height it
                 # happens to be at, which is the reason a player comes to the net at all. Whether this ball is
                 # one of those is decided when it is struck at this player, not here: see the receiving block
@@ -141,12 +144,14 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str) 
                 swing = "volley" if (incoming and incoming.get("volley")) else "rally"
                 if swing == "volley":
                     plan = T.choose_shot(p, other, where[hitter], where[1 - hitter], record, rng,
-                                         height=contact[2])
+                                         height=contact[2], last=last_aim[hitter])
                 target = plan["target"]
                 face, pw = T.aim_at(p, target, "rally", surface, wv, power=plan["power"], contact=contact)
                 shot = T.strike(p, incoming, face=face, power=pw, aim=target[1], aim_x=target[0], shot=swing,
                                 surface=surface, wind=wv, contact=contact)
                 ok, why = T.verdict(shot)
+            if plan is not None:
+                last_aim[hitter] = (target[0], target[1])
             aim = target[1]
             traj = shot["traj"]
             tpath = T.flight(shot["contact"], shot["v0"], wv, surface, cl=shot["spin"], trace=TRACE)["path"]
@@ -311,6 +316,7 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str) 
         hitter = 0
         where = [(2.0 if pl.north else T.LENGTH - 2.0, T.WIDTH / 2) for pl in players]
         carry = [None, None]
+        last_aim = [None, None]
 
     return {
         "generated": "lab/tennis_script.py — every number below came out of lab/tennis.py",
