@@ -165,6 +165,14 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str) 
                 "kind": "serve" if serving else "rally",
                 "ball": "serve" if serving else plan["kind"],
                 "swing": "serve" if serving else swing,
+                # Which side of the body the ball is on, and therefore which stroke it is. A right-hander's
+                # forehand is struck on their right-hand side of the court and their backhand on their left;
+                # until 2026-11-11 the record did not say, so the renderer solved the right arm at every ball
+                # and a player hit a forehand from their backhand corner with the racquet on the wrong side of
+                # their body. The founder saw it: "when the player hits a ball from their back-hand side, they
+                # need to use a backhand stroke."
+                "hand": ("fore" if T.side_of(shot["contact"][1], p.north) == "right" else "back")
+                        if not serving else "fore",
                 "face": round(shot["face"], 2),
                 "power": round(shot["power"], 1),
                 "aim": round(aim, 1),
@@ -265,7 +273,14 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str) 
                 "met": bool(meet["ok"]),
             }
             where[1 - hitter] = entry["run"]["to"] if meet["ok"] else got_to
-            carry[1 - hitter] = (entry["run"]["to"][0], entry["run"]["to"][1],
+            # The ball is met where it LANDS, and the feet stop a racquet's length short of it — which is what
+            # `meet` already was, and what this line got wrong: it put the contact point on the player's own feet,
+            # so every stroke in the game was struck with the body standing in the ball. The arm then folds to
+            # almost nothing (0.9ft from shoulder to ball, measured) and no amount of arm solving makes that look
+            # like a stroke. A ball is struck two to three feet from the middle of the body, with the racquet
+            # carrying it out to where it actually is.
+            carry[1 - hitter] = (traj["land"][0] if meet["ok"] else entry["run"]["to"][0],
+                                 traj["land"][1] if meet["ok"] else entry["run"]["to"][1],
                                  T.contact_point(other, "rally")[2])
             if not meet["ok"]:
                 entry["why"] += f" — {other.name} {meet['why']}"

@@ -262,7 +262,9 @@ async function loadBodies() {
     const rac = buildRacquet();
     scene.add(rac);
     rigs[name] = { root, bones, height: box.max.y - box.min.y, racquet: rac };
-    if (q.has("debug")) console.log("debug bones", name, Object.keys(bones).join(","), "height", rigs[name].height.toFixed(2));
+    if (q.has("debug")) console.log("debug bones", name, Object.keys(bones).join(","), "height", rigs[name].height.toFixed(2),
+      "| upperarmR is", bones["upperarmR"] && (bones["upperarmR"].type || "?"), "| handR is", bones["handR"] && (bones["handR"].type || "?"),
+      "| handL is", bones["handL"] && (bones["handL"].type || "?"));
   }
 }
 
@@ -285,24 +287,52 @@ function rotateWorld(bone, qWorld) {
   bone.updateMatrixWorld(true);
 }
 
-function solveArm(rig, target) {
+function solveArm(rig, target, side) {
+  /* Two-bone IK with the elbow's position solved, not searched for.
+
+     This replaces a CCD loop that rotated the forearm and the upper arm towards the target a few times. CCD finds
+     the *direction* from a joint to a target, which is fine when the target is nearly out of reach and useless
+     when it is close to the shoulder: the elbow has to fold hard, the direction barely changes, and the solve
+     stops. Measured with ?debug on every shot in the demo: the hitting hand finished 0.86ft from its own target,
+     the elbow ended up by the ear, and on a ball on the left side the left arm did not move at all — 4.03ft from
+     a target a forearm away. That is the "statue reaching for something" reading, and no number of extra passes
+     fixed it, which is what a local minimum looks like.
+
+     Law of cosines instead: the elbow sits on a circle around the shoulder-to-target axis at the angle where the
+     forearm is exactly long enough to reach the ball, and the circle is broken by a pole — the elbow points down
+     and away from the body, which is where elbows point.
+
+     a and b are read off the bones rather than assumed, so a taller member has a longer reach and a ball they
+     cannot get to produces a straight arm short of the ball instead of a torn one. */
   const { bones } = rig;
-  const hand = bones["handR"];
-  if (!hand) return;
-  for (let iter = 0; iter < 6; iter++) {
-    for (const name of ["forearmR", "upperarmR"]) {
-      const b = bones[name];
-      if (!b) continue;
-      b.getWorldPosition(tmpA);
-      hand.getWorldPosition(tmpB);
-      const v1 = tmpB.sub(tmpA).normalize();
-      const v2 = target.clone().sub(tmpA).normalize();
-      tmpQ.setFromUnitVectors(v1, v2);
-      const k = name === "upperarmR" ? 0.6 : 1.0;   // damp the shoulder so the elbow does the reaching
-      tmpQ.slerp(new THREE.Quaternion(), 1 - k);
-      rotateWorld(b, tmpQ);
-    }
-  }
+  const S = side === "L" ? "L" : "R";
+  const up = bones["upperarm" + S], fore = bones["forearm" + S], hand = bones["hand" + S];
+  if (!up || !fore || !hand) return;
+  const sr = up.getWorldPosition(new THREE.Vector3());
+  const er = fore.getWorldPosition(new THREE.Vector3());
+  const wr = hand.getWorldPosition(new THREE.Vector3());
+  const a = sr.distanceTo(er), b = er.distanceTo(wr);
+
+  if (a < 1e-4 || b < 1e-4) return;
+  const n = target.clone().sub(sr);
+  let d = n.length();
+  if (d < 1e-4) return;
+  n.normalize();
+  const reach = (a + b) * 0.995;
+  if (d > reach) d = reach;                      // out of range: a straight arm, still pointing at the ball
+  if (d < Math.abs(a - b) + 1e-3) d = Math.abs(a - b) + 1e-3;
+  // the elbow's circle: pole is down and slightly behind the player, so the elbow drops under the strike
+  const back = new THREE.Vector3(side === "L" ? -1 : 1, 0, 0);   // rough: away from the body's centre line
+  const pole = new THREE.Vector3(0, -1, 0).addScaledVector(back, 0.35);
+  const perp = pole.clone().addScaledVector(n, -pole.dot(n));
+  if (perp.lengthSq() < 1e-6) perp.set(0, 0, 1);
+  perp.normalize();
+  const cosA = (a * a + d * d - b * b) / (2 * a * d);
+  const alpha = Math.acos(Math.max(-1, Math.min(1, cosA)));
+  const elbow = sr.clone().addScaledVector(n, a * Math.cos(alpha)).addScaledVector(perp, a * Math.sin(alpha));
+  aimBone(up, elbow.clone().sub(sr));
+  const e2 = fore.getWorldPosition(new THREE.Vector3());
+  aimBone(fore, target.clone().sub(e2));
 }
 
 /* Point a bone at something, without knowing how Blender rolled it.
@@ -662,9 +692,18 @@ function tick(now) {
   let cam = seg.cams[0].cam;
   for (const c of seg.cams) if (tl >= c.at) cam = c.cam;
   if (q.has("cam")) {
-    // follow whoever is running; that is the one whose feet are worth looking at
-    const who = sh.run ? sh.run : { north: sh.north, from: [sh.contact[0], sh.contact[1]] };
-    cam = beside(who.north, (who.from || [null])[0]);
+    const mode = q.get("cam");
+    if (mode === "hit") {
+      // ?cam=hit: over the striker's own back shoulder, for looking at which arm is on the ball. ?cam=near films
+      // the runner, which is a different person from the hitter and was the reason a stroke could not be
+      // inspected from a still at all.
+      const dir = sh.north ? 1 : -1, cx = sh.contact[0], cy = sh.contact[1];
+      cam = { eye: new THREE.Vector3(cx - 13 * dir, 4.2, cy + 13), at: new THREE.Vector3(cx, 3.0, cy), fov: 30 };
+    } else {
+      // follow whoever is running; that is the one whose feet are worth looking at
+      const who = sh.run ? sh.run : { north: sh.north, from: [sh.contact[0], sh.contact[1]] };
+      cam = beside(who.north, (who.from || [null])[0]);
+    }
   }
   // A cut is a cut. Television changes shot by changing shot; it does not fly the camera from the tower to a
   // player's shoulder over half a second, which reads as a drone and is the tell of a rendered game.
@@ -711,9 +750,14 @@ function tick(now) {
     // because it knows the flight time.
     const isHitter = sh.player === pl.name;
     const isReceiver = !!(sh.run && sh.run.player === pl.name);
+    // A backhand is the same stroke played from the other side of the body, so the shoulders turn the other
+    // way and the other arm leads. The record now says which it is (sh.hand), because the engine has always
+    // known which side of the court the contact was on and never wrote it down.
+    const back = sh.hand === "back" && isHitter;
+    const sgn = back ? -1 : 1;
     const follow = isHitter ? Math.max(0, Math.min(1, 1 - tl / 0.38)) : 0;
     const windup = isReceiver ? Math.max(0, Math.min(1, (tl - (seg.dur - 0.50)) / 0.50)) : 0;
-    const turn = -1.05 * windup + 0.62 * follow;
+    const turn = sgn * (-1.05 * windup + 0.62 * follow);
     const load = Math.max(windup, follow);
     legs(rig, phase, moving, new THREE.Vector3(pl.north ? 1 : -1, 0, 0), turn, load);
 
@@ -729,12 +773,47 @@ function tick(now) {
       // A hand does not touch the ball; a racquet does. The arm is solved to a hand 1.6ft back down the line from
       // the shoulder to the ball, and the racquet's 1.74ft shaft carries the head the rest of the way — which is
       // what the stroke is. Solved to the ball itself, the arm put the hand on it and the frame 2ft past it.
-      (rig.bones["upperarmR"] || rig.bones["chest"]).getWorldPosition(_sh0);
-      const u = ball.clone().sub(_sh0).normalize();
-      solveArm(rig, ball.clone().addScaledVector(u, -1.60).lerp(wait, k));
-      const aim = ball.clone().addScaledVector(u, -0.20).lerp(wait, k);
+      //
+      // Which arm is the leading one follows the record: a backhand is taken with the left hand leading and the
+      // right hand on the handle below it, which is how the two-handed backhand that most club players own
+      // actually works, and it is also what the reference sheets kept drawing whenever the racquet crossed the
+      // body. Two hands need the *shoulders* to have turned far enough that the left arm can reach across, which
+      // is what the flipped `turn` above is for: without it the left hand is asked to cross a chest that is still
+      // facing the wrong way and the solver tears the arm out of its socket trying.
+      const lead = back ? "L" : "R";
+      // The hand goes where the RACQUET puts it, not where the arm can reach: 1.6ft back from the ball along
+      // the shaft, and the shaft lies along the direction the ball leaves in. The previous version put the hand
+      // 1.6ft back along the line from the shoulder to the ball, which for a ball struck across the body asks
+      // the arm to fold into its own chest — the CCD cannot get there, and the elbow ends up by the ear, which
+      // is the "statue reaching for something" the founder has been looking at. Measured with ?debug: the hand
+      // was 0.86ft short of its own target on every shot.
       _face.set(sh.v0[0], sh.v0[2], sh.v0[1]).normalize();
+      (rig.bones["upperarm" + lead] || rig.bones["chest"]).getWorldPosition(_sh0);
+      // The hand is 1.6ft back along the line from the shoulder to the ball, so the racquet's shaft carries the
+      // head the last of the way: the arm at contact is nearly straight and the racquet is the reach.
+      const u = ball.clone().sub(_sh0).normalize();
+      // `1 - k`, not `k`: k is 1 at the strike and falls to 0 half a second later, and a lerp towards the ready
+      // position by k is a hand that is at the ready position at the strike and at the ball afterwards. That is
+      // the arithmetic the page has had since the arm solver was written, and it is why no frame of this game
+      // has ever had a racquet on the ball: the racquet followed the same lerp and sat at the chest through
+      // every stroke. Found by measuring, not by looking — ?debug prints the hand's distance to the ball, and it
+      // read 2.46ft at the strike with a target 1.6ft away, on every shot, whatever the solver did.
+      const rest = 1 - k;
+      solveArm(rig, ball.clone().addScaledVector(u, -1.60).lerp(wait, rest), lead);
+      const aim = ball.clone().addScaledVector(u, -0.20).lerp(wait, rest);
       placeRacquet(rig, aim, _face);
+      if (q.has("debug")) {
+        const hR = rig.bones["handR"], hL = rig.bones["handL"], d = v => (v ? v.getWorldPosition(new THREE.Vector3()).distanceTo(ball) : NaN);
+        console.log("debug stroke", pl.name, sh.hand, "right hand to ball", d(hR).toFixed(2),
+                    "left hand to ball", d(hL).toFixed(2), "k", k.toFixed(2));
+
+      }
+      if (back) {
+        // the trailing hand on the handle, a foot below the leading one — and it lets go at the end, which is
+        // what the follow-through through the left shoulder is
+        const grip = aim.clone().addScaledVector(u, -1.05).lerp(wait, rest);
+        solveArm(rig, grip, "R");
+      }
     } else {
       _face.set(pl.north ? 1 : -1, 0.12, 0).normalize();   // waiting for the ball, bed open to the net
       const hand = rig.bones["handR"] || rig.bones["hand.R"];

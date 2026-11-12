@@ -65,7 +65,34 @@ the ball out of the air. The weights change with height:
 A volley is also a punch, not a swing: everything is played at 80% of the equivalent groundstroke's pace, and a
 drop volley lands 5–9ft past the net rather than 8–13.
 
-## 4. What is still wrong
+## 4. Which stroke it is — forehand or backhand
+
+The record now says: `hand: "fore" | "back"`, taken from which side of the body the contact is on, which the
+engine has always known (`side_of`) and never wrote down. The renderer needs it twice:
+
+- **the shoulders turn the other way** for a backhand — the windup and follow-through are mirrored;
+- **the other arm leads**: the left hand on the ball and the right hand on the handle below it, which is the
+  two-handed backhand most club players own and what the reference sheets kept drawing whenever the racquet
+  crossed the body.
+
+### Three bugs found by measuring the hand's distance to the ball
+
+`?debug` now prints, for the hitter, the distance from each hand to the ball at contact. It read 2.46ft on every
+shot while the target was 1.6ft away.
+
+1. **The lerp was inverted.** `target.lerp(wait, k)` with `k = 1` at the strike sends the hand to the *ready*
+   position at the moment of contact and to the ball afterwards. It should be `lerp(wait, 1 - k)`. The racquet
+   followed the same lerp, so **no frame of this game has ever had a racquet on the ball**: it sat at the chest
+   through every stroke. That is most of the "statue reaching for something" reading.
+2. **The contact point was on the player's own feet.** `carry` was the meeting point, and the meeting point is
+   where the feet stop, so the body stood in the ball and the shoulder-to-ball distance was 0.9ft. The contact
+   is now the landing point, with the feet a racquet's length short of it.
+3. **CCD could not fold.** The old solver rotated joints towards the target, which stalls when the target is
+   close to the shoulder. It is now a two-bone law-of-cosines solve with the elbow on a circle broken by a pole
+   (elbows point down), reading both bone lengths off the rig. The hand now lands 1.60ft from the ball, which
+   is what was asked for.
+
+## 5. What is still wrong
 
 - **A volley at a deep corner goes long.** Three of the seven in the sample above missed; the corner margin for
   a groundstroke is applied unchanged to a ball struck from 6ft from the net, where the same angle error covers
@@ -74,6 +101,8 @@ drop volley lands 5–9ft past the net rather than 8–13.
   ball's closing speed into the time-to-arrive, so every ball is reachable: in 50 points not one ended with
   "did not reach it". Points end on misses. The second term is wrong as written — the meeting point is fixed at
   a racquet's length short of the landing point, so closing speed cannot shorten the run.
+- **The feet are planted through the hit.** The founder's other named gap: the stride stops when the run record
+  ends, so there is no plant, no weight transfer and no push off the back foot.
 - **Lateral and backward movement use the forward gait.** The running sheets (`bodies/reference/poses/run-*.jpg`)
   show the cross-over step, the brake, the back-pedal and the split step, and the renderer has none of them: one
   symmetric sine cycle, mirrored, whatever direction the player is going.
