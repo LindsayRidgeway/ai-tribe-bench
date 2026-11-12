@@ -517,6 +517,131 @@ async function main(){
     return '';
   });
 
+  /* 3 — a member's talk shows the talk with that member, and says what it is holding back. */
+  reset();
+  seed('wake/members/Hermes/state/identity.md', '# Hermes');
+  seed('wake/members/Hermes/state/journal.md', '# Journal\n');
+  seed('wake/members/Hermes/state/state.md', '# State\n\nWakes so far: 1\nLast wake: yesterday\n');
+  seed('wake/members/Hermes/state/voice.md', 'api: deepseek\nmodel: deepseek-flash\n');
+  for (const f of ['place.md', 'open-items.md', 'memory.md']) seed('wake/members/Hermes/state/' + f, '# ' + f + '\n');
+  seed('wake/members/Hermes/state/conversation.md', [
+    '# Conversation — Hermes',
+    '',
+    '## 2026-11-12 22:30 UTC — Lindsay',
+    '',
+    'a private question',
+    '',
+    '## 2026-11-12 22:31 UTC — Hermes',
+    '',
+    'a private answer',
+    '',
+    '## 2026-11-12 22:34 UTC — Dionysus [urgency 3, in "the-trojan-war"]',
+    '',
+    'a joke said in the room',
+    '',
+    '## 2026-11-12 22:34 UTC — Lindsay [in "the-trojan-war"]',
+    '',
+    'what the person said in the room',
+    '',
+    '## 2026-11-12 22:40 UTC — Lindsay',
+    '',
+    'and a private question afterwards',
+    '',
+  ].join('\n'));
+
+  const view = await run(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
+    S.owner = 'Lindsay Ridgeway';
+    S.members = ['Hermes', 'Dionysus', 'Aphrodite'].map(name => ({name, engine: 'deepseek', model: 'deepseek-flash'}));
+    S.chat = {};
+    await loadThread('Hermes');
+    return {turns: S.chat.Hermes.length, shown: chatHTML('Hermes'), note: roomNoteHTML('Hermes'),
+            thread: threadFor(S.chat.Hermes, 100000, 'Hermes')};
+  })()`).catch(e => ({error: e.message}));
+
+  check('a private talk is what it shows, and a room turn is not', () => {
+    if (view.error) return 'the page could not be asked why: ' + view.error;
+    if (!/a private answer/.test(view.shown)) return 'the private turns are missing from the talk';
+    if (/a joke said in the room/.test(view.shown)) return "another member's sentence is still in the private talk";
+    if (/what the person said in the room/.test(view.shown)) return "the person's own room turn is still in the private talk";
+    return '';
+  });
+  check('the turns it did not show are still in its memory', () => {
+    if (view.error) return 'the page could not be asked: ' + view.error;
+    if (view.turns !== 5) return `the file was read as ${view.turns} turns instead of 5 — the room turns were dropped, not hidden`;
+    return '';
+  });
+  check('and the page says how many, and which room, so the person can ask about it', () => {
+    if (view.error) return 'the page could not be asked: ' + view.error;
+    if (!/2 turns from .the trojan war./.test(view.note)) return `the note says: ${view.note}`;
+    return '';
+  });
+  check('filtering does not renumber the bubbles a reply streams into', () => {
+    if (view.error) return 'the page could not be asked: ' + view.error;
+    // the fifth turn is the private one after the room; the reply to it is written at index 4
+    if (!/data-i="4"/.test(view.shown)) return 'the turn after the room lost its own index — a reply would stream into the wrong bubble';
+    if (/data-i="2"|data-i="3"/.test(view.shown)) return 'a hidden turn left its index behind on a visible bubble';
+    if (!/and a private question afterwards/.test(view.shown)) return 'the private turn after the room is missing';
+    return '';
+  });
+
+  check("another member's sentence is not handed to it as its own", () => {
+    if (view.error) return 'the page could not be asked: ' + view.error;
+    if (/You: a joke said in the room/.test(view.thread)) return "a room turn is in the prompt as the member's own words";
+    if (!/Dionysus \(in "the-trojan-war"\): a joke said in the room/.test(view.thread)) return 'the room turn is not attributed in the prompt: ' + view.thread.slice(0, 300);
+    if (!/You: a private answer/.test(view.thread)) return 'the member\'s own turn lost its "You:"';
+    if (!/Lindsay: a private question/.test(view.thread)) return 'the person is not named by personLabel() in the prompt';
+    return '';
+  });
+
+  /* 4 — the room's own file does not claim to be a room, and a member's file does. */
+  reset();
+  seed('wake/members/Hermes/state/identity.md', '# Hermes');
+  seed('wake/members/Hermes/state/journal.md', '# Journal\n');
+  seed('wake/members/Hermes/state/state.md', '# State\n\nWakes so far: 1\nLast wake: yesterday\n');
+  seed('wake/members/Hermes/state/voice.md', 'api: deepseek\nmodel: deepseek-flash\n');
+  for (const f of ['place.md', 'open-items.md', 'memory.md']) seed('wake/members/Hermes/state/' + f, '# ' + f + '\n');
+  seed('wake/members/Hermes/state/conversation.md', '# Conversation — Hermes\n');
+  seed('chats/the-trojan-war/talk.md', '# Talk — the trojan war\n');
+
+  const written = await run(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
+    S.owner = 'Lindsay Ridgeway';
+    S.members = [{name: 'Hermes', engine: 'deepseek', model: 'deepseek-flash'}];
+    S.chat = {};
+    CHAT.topic = 'The Trojan War'; CHAT.total = 0;
+    const turns = [
+      {role:'user', who:'Lindsay', at:'2026-11-12 22:34 UTC', content:'gentlemen, what is a hero?'},
+      {role:'assistant', who:'Hermes', at:'2026-11-12 22:34 UTC', content:'a man who is remembered', mark:'urgency 4'},
+    ];
+    await chatPersist('the-trojan-war', turns, {Hermes: turns});
+    return {shown: chatHTML('Hermes'), note: roomNoteHTML('Hermes'), turns: S.chat.Hermes.length};
+  })()`).catch(e => ({error: e.message}));
+
+  const roomFile = text('chats/the-trojan-war/talk.md') || '';
+  const memberFile = text('wake/members/Hermes/state/conversation.md') || '';
+
+  check("a member's memory of a room says which room it was", () => {
+    if (!/in "the-trojan-war"/.test(memberFile)) return 'the member file has no room mark, so the page cannot tell them apart next time';
+    return '';
+  });
+  check('the room itself is not marked as being in a room', () => {
+    if (/in "the-trojan-war"/.test(roomFile)) return "the room's own file says it is in the room";
+    if (!/urgency 4/.test(roomFile)) return "the room's file lost the member's urgency claim";
+    return '';
+  });
+  check('after a room, the private talk is still a private talk', () => {
+    if (written.error) return 'the page could not be asked: ' + written.error;
+    if (written.turns !== 2) return `the member kept ${written.turns} turns instead of 2`;
+    if (/a man who is remembered/.test(written.shown)) return 'the room turn is showing in the private talk';
+    if (!/2 turns from .the trojan war./.test(written.note)) return `the note says: ${written.note}`;
+    return '';
+  });
+  check('and reading the file back finds the room mark again', () => {
+    if (written.error) return 'the page could not be asked: ' + written.error;
+    return /in "the-trojan-war"/.test(memberFile) && /not shown here/.test(written.note) ? '' : 'the mark did not survive the round trip';
+  });
+
   /* the verdict */
   let bad = 0;
   for (const r of results){

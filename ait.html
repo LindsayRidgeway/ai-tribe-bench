@@ -519,12 +519,19 @@ function tailChars(text, budget){
 }
 
 // The conversation as the member sees it: as much of the newest talk as fits beside its notes.
-function threadFor(msgs, budget){
+function threadFor(msgs, budget, me){
   const kept = [];
   let used = 0;
   for (let i = (msgs || []).length - 1; i >= 0; i--){
     if (msgs[i].tool || !String(msgs[i].content || '').trim()) continue;
-    const one = (msgs[i].role === 'user' ? 'Lindsay: ' : 'You: ') + msgs[i].content;
+    // Who said it, decided per turn. Until 2026-11-12 every assistant turn was written `You:`, so a sentence
+    // another member said in a room came back to this member as its own — the same turn read as private speech.
+    // The founder's three gods had each other's lines in the first person before he noticed the page was doing
+    // it; the file was right and the prompt was not.
+    const b = msgs[i];
+    const who = b.role === 'user' ? personLabel()
+      : (b.who && b.who !== me ? `${b.who}${b.room ? ` (in "${b.room}")` : ''}` : 'You');
+    const one = `${who}: ${b.content}`;
     if (used + one.length > budget && kept.length) break;
     kept.unshift(one.length > budget ? one.slice(-budget) : one);
     used += Math.min(one.length, budget);
@@ -546,7 +553,7 @@ function systemPrompt(m, thread){
   const remembered = tailChars(m.memory || '', Math.floor(NOTES_MAX * 0.6));
   const notes = tailChars(m.journal || '', NOTES_MAX - remembered.length);
   const room = Math.max(2000, CHAT_CHARS - notes.length);
-  const said = thread !== undefined ? String(thread || '') : threadFor(S.chat[m.name] || [], room).slice(-room);
+  const said = thread !== undefined ? String(thread || '') : threadFor(S.chat[m.name] || [], room, m.name).slice(-room);
   const jo = notes;
   const today = new Date().toLocaleDateString('en-US', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
   return `You are ${m.name}, a member of a small tribe that lives in a git repository.
@@ -1254,7 +1261,8 @@ async function viewMember(main, name){
       · <a href="#/m/${encodeURIComponent(m.name)}" onclick="showFiles('${escq(m.name)}');return false;">its files</a></p>
 
     <h2>Talk <span class="small muted" style="font-weight:400">— its short-term memory: the newest turns are kept here, the oldest roll into its chapters</span></h2>
-    <div class="chat" id="chat">${(S.chat[m.name] || []).map(bubbleHTML).join('')}</div>
+    <div id="roomnote">${roomNoteHTML(m.name)}</div>
+    <div class="chat" id="chat">${chatHTML(m.name)}</div>
     <div class="composer">
       <textarea id="say" placeholder="Say something to ${esc(m.name)}…" autocapitalize="sentences"></textarea>
       <button class="primary" id="send">Send</button>
@@ -1478,15 +1486,39 @@ function bubbleHTML(b, showWho){
 
 function repaintChat(name){
   const box = $('chat'); if (!box) return;
-  // A turn spoken by somebody else in a room is in this member's file because it heard it, and it has to read
-  // that way: without the name above it, another member's sentences would look like its own.
-  box.innerHTML = (S.chat[name] || []).map((b, i) => {
-    const third = b.who && b.who !== name && b.who !== personLabel();
-    return `<div class="msg ${b.role === 'user' ? 'me' : 'them'}" data-i="${i}">`
-      + (third ? `<div class="small muted" style="margin-bottom:2px">${esc(b.who)}</div>` : '')
-      + `${esc(b.content)}</div>`;
-  }).join('');
+  box.innerHTML = chatHTML(name);
+  const note = $('roomnote'); if (note) note.innerHTML = roomNoteHTML(name);
   box.scrollIntoView({block:'end'});
+}
+
+// What it heard in a room is in this member's file on purpose: that is how a member remembers a room, and it is
+// what the next private talk or wake reads. But a person opening "the talk with Hermes" is asking for the talk with
+// Hermes, and on 2026-11-12 the founder found three gods and somebody else's sentences in it instead. So the view
+// separates them and says how many there are, which is the honest version of both — he wanted to know whether the
+// member remembered the room, and the answer is now on the page instead of in the symptom.
+//
+// The indices are the *real* ones. A reply streams into `.msg[data-i="<index>"]`, so a list renumbered after
+// filtering would stream into the wrong bubble, and the page would look like it was answering somebody else.
+function saidElsewhere(b, name){
+  if (b.room) return true;
+  return !!(b.who && b.who !== name && b.who !== personLabel());
+}
+
+function chatHTML(name){
+  return (S.chat[name] || []).map((b, i) => ({b, i})).filter(x => !saidElsewhere(x.b, name))
+    .map(x => bubbleHTML({...x.b, i: x.i})).join('');
+}
+
+function roomNoteHTML(name){
+  const away = (S.chat[name] || []).filter(b => saidElsewhere(b, name));
+  if (!away.length) return '';
+  const rooms = [...new Set(away.map(b => b.room).filter(Boolean))].map(r => '“' + esc(r.replace(/-/g, ' ')) + '”');
+  const where = rooms.length ? ' from ' + rooms.join(', ') : ' from a room';
+  const n = away.length;
+  return `<p class="small muted" id="roomlines" style="margin:2px 0 6px">`
+    + `${n} turn${n === 1 ? '' : 's'}${where} ${n === 1 ? 'is' : 'are'} in its memory and ${n === 1 ? 'is' : 'are'} `
+    + `not shown here — ask ${esc(name)} about ${rooms.length === 1 ? 'that room' : 'it'}. `
+    + `<span class="muted">Turns said before 2026-11-12 are not marked, so this list can only be as complete as the file is.</span></p>`;
 }
 
 async function showFiles(name){
@@ -1601,7 +1633,7 @@ function threadText(name, msgs){
     + `nothing is lost that ${name} wrote into its journal as a note.\n`;
   const body = (msgs || []).filter(b => !b.tool && String(b.content || '').trim()).map(b =>
     `\n## ${b.at || nowStamp()} — ${b.who || (b.role === 'user' ? 'Lindsay' : name)}`
-      + `${b.mark ? ' [' + b.mark + ']' : ''}\n\n${String(b.content || '').trim()}\n` + sourceLine(b)).join('');
+      + `${turnBracket(b)}\n\n${String(b.content || '').trim()}\n` + sourceLine(b)).join('');
   return head + body;
 }
 
@@ -2063,7 +2095,7 @@ async function loadThread(name){
       const src = splitSources(body);
       return {role: mine ? 'user' : 'assistant', who: h.who, content: src.content, at: heading.split(' — ')[0],
               read: src.read, searched: src.searched,
-              mark: h.mark, urgency: h.urgency, taken: h.taken};
+              mark: h.mark, urgency: h.urgency, taken: h.taken, room: h.room};
     }).filter(x => x.content);
     if (msgs.length) S.chat[name] = msgs;
     return msgs;
@@ -2088,12 +2120,23 @@ async function readChapter(name, file){
   catch(e){ return {text: '', sha: null}; }
 }
 
+// The bracket after a speaker's name. `urgency 3, not taken` is the member's own claim about the room; `in "<room>"`
+// is not a claim, it is provenance — the turn was said in a room and is in this file because this member was there.
+// Without it the file cannot be read back as anything but a private talk, which is exactly what it looked like on
+// 2026-11-12 when the founder opened a member's chat and found three Greek gods in a conversation he had not had.
+function turnBracket(b){
+  const parts = [];
+  if (b.mark) parts.push(b.mark);
+  if (b.room) parts.push(`in "${b.room}"`);
+  return parts.length ? ` [${parts.join(', ')}]` : '';
+}
+
 function turnsToText(name, msgs){
   // `who` first: in a room with three members, a turn written as the room's name would come back out of the file
   // with nobody's name on it, and the next member to read it could not tell who had said what.
   return (msgs || []).filter(b => !b.tool && String(b.content || '').trim())
     .map(b => `\n## ${b.at || nowStamp()} — ${b.who || (b.role === 'user' ? 'Lindsay' : name)}`
-      + `${b.mark ? ' [' + b.mark + ']' : ''}\n\n${String(b.content || '').trim()}\n` + sourceLine(b)).join('');
+      + `${turnBracket(b)}\n\n${String(b.content || '').trim()}\n` + sourceLine(b)).join('');
 }
 
 // The chapter a falling turn belongs to: the newest one, or a new one if the member has none.
@@ -2819,11 +2862,12 @@ async function viewChat(main, slug){
 function headingWho(heading){
   const raw = heading.split(' — ').pop().trim();
   const m = raw.match(/^(.*?)\s*\[([^\]]*)\]\s*$/);
-  if (!m) return {who: raw, mark: '', urgency: null, taken: true};
+  if (!m) return {who: raw, mark: '', urgency: null, taken: true, room: ''};
   const mark = m[2].trim();
   const u = mark.match(/urgency\s+(\d)/i);
+  const inRoom = mark.match(/in\s+"([^"]+)"/i);
   return {who: m[1].trim(), mark, urgency: u ? Number(u[1]) : null,
-          taken: !/not taken|not chosen/i.test(mark)};
+          taken: !/not taken|not chosen/i.test(mark), room: inRoom ? inRoom[1] : ''};
 }
 
 function parseTurns(text){
@@ -2835,7 +2879,7 @@ function parseTurns(text){
     const h = headingWho(heading);
     const mine = known.size ? !known.has(h.who) : h.who === personLabel();
     return {role: mine ? 'user' : 'assistant', who: h.who, at: heading.split(' — ')[0], content: body,
-            mark: h.mark, urgency: h.urgency, taken: h.taken};
+            mark: h.mark, urgency: h.urgency, taken: h.taken, room: h.room};
   }).filter(x => x.content);
 }
 
@@ -3371,7 +3415,11 @@ async function chatPersist(slug, roomTurns, byName){
     try {
       const had = await loadThread(n);
       const seen = new Set(had.map(b => `${b.at}|${b.who}|${String(b.content).slice(0, 60)}`));
-      const fresh = turns.filter(t => !seen.has(`${t.at}|${t.who}|${String(t.content).slice(0, 60)}`));
+      const fresh = turns.filter(t => !seen.has(`${t.at}|${t.who}|${String(t.content).slice(0, 60)}`))
+        // Marked with the room it was said in, on a copy: the member's file has to be readable back as two
+        // different things — what was said to it and what it heard — and the room's own file must not carry the
+        // mark, because there it would be the room saying it is a room.
+        .map(t => ({...t, room: slug}));
       S.chat[n] = had.concat(fresh);
       await saveThread(n);
     } catch(e){ console.warn('could not save ' + n, e); }

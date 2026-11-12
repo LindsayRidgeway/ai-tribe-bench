@@ -42,7 +42,10 @@ can be in at once, so it cannot live in any one of them.
 
 The same turns are also appended to each participant's own `state/conversation.md`, which is what makes "everyone
 in the room heard it" true in the only place a member can hear anything — its own memory. That is two records of one
-talk, deliberately: the room's copy is the evidence, and each member's copy is what it can actually recall.
+talk, deliberately: the room's copy is the evidence, and each member's copy is what it can actually recall. Since
+2026-11-12 those turns carry `[in "<room>"]` in the member's copy (and not in the room's, where it would be the room
+saying it is a room), because a member's memory that cannot tell *what was said to it* from *what it heard* is not a
+memory a page can show honestly: the private talk was showing three gods in a conversation the person had not had.
 
 **Two lines a turn can carry besides what it said.** A member in a conversation can look things up — `SEARCH:` and
 `FETCH:` — and what it read is written with the turn it read it for: `[read: <address>, …]` and `[searched: "<query>"]`,
