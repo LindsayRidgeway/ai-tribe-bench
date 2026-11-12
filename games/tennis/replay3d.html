@@ -765,7 +765,10 @@ function tick(now) {
   el("players").innerHTML = D.players.map(p =>
     `<div><span class="swatch" style="background:${p.north ? "#8fc6ff" : "#ffb98f"}"></span>${p.name} ` +
     `<span class="mono" style="color:var(--dim)">${p.rating.toFixed(1)} · ${p.balls} balls</span></div>`).join("");
-  const showSign = !!(seg.point && (pauseUntil > now || signAlways));
+  // The board stays up for the whole break, not for the length of the clock hold. He asked for it to overlay the
+  // court across the break rather than flash (2026-11-11), and he is right: the break is the moment the picture
+  // has nothing else to say, and a sign that appears for 0.4s of a 1.2s break is a stutter, not a caption.
+  const showSign = !!(seg.point && (onCut || signAlways));
   el("sign").className = showSign ? "on" : "";
   if (showSign) {
     el("signwho").textContent = `Point to ${seg.point.winner}`;
