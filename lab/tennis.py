@@ -103,9 +103,45 @@ def wind_vector(direction: str, speed_mph: float) -> tuple[float, float]:
 # ---- the ball -------------------------------------------------------------------------------------
 NET_ABSORBS = 0.08         # the fraction of its own speed a ball rebounds off the tape with
 NET_DROP = 0.25            # and of its vertical speed, before gravity takes the rest
+OUT_BOUNCES = 2            # bounces a ball that lands OUT is still allowed to make, for the picture
+OUT_SECONDS = 1.5          # and how long the picture may watch it do that
+VISIBLE_PAD = 22.0         # feet beyond each line that the court picture still shows, so a ball leaving frame
+                           # is not followed into the dark and does not stretch the shot by walking there
 
 
-def flight(p0, v0, wind, surface, net_check=True, cl=0.0, trace=None, bounces=1):
+def on_court(land) -> bool:
+    """Inside the lines of the court. This is the test for `is the ball out`, which is all it is used for — the
+    service box has its own, because a serve landing in the back court is a fault but is not out."""
+    return 0.0 <= land[0] <= LENGTH and 0.0 <= land[1] <= WIDTH
+
+
+def in_serve_court(land, server_north: bool) -> bool:
+    """Inside the service court on the server's side, in depth and in width but without the half. A serve into
+    the wrong box is a fault and stays one; this only decides whether the film should watch the ball bounce on."""
+    x, y = land
+    depth_ok = (NET_X < x <= NET_X + SERVICE_LINE) if server_north else (NET_X - SERVICE_LINE <= x < NET_X)
+    return depth_ok and 0.0 <= y <= WIDTH
+
+
+def in_view(pt) -> bool:
+    """Whether the picture still has the ball: the court plane is drawn 22ft wider than the court on every side,
+    and beyond that there is nothing but dark. A ball that has left is a ball the film should stop following."""
+    return (-VISIBLE_PAD <= pt[0] <= LENGTH + VISIBLE_PAD
+            and -VISIBLE_PAD <= pt[1] <= WIDTH + VISIBLE_PAD)
+
+
+def in_far_court(land, hitter_north: bool) -> bool:
+    """Inside the lines on the far side of the net from the hitter — the test for whether a groundstroke was
+    good, and the one the rally itself uses. A ball that comes down on the hitter's own side is short of the net
+    and lost, and is just as out as one beyond the baseline; the founder's "show it bouncing" applies to both,
+    and the first version of this only tested the rectangle, so a ball dumped three feet short of the net was
+    frozen at its bounce while a ball a foot long bounced away."""
+    x_ok = (NET_X < land[0] <= LENGTH) if hitter_north else (0.0 <= land[0] < NET_X)
+    return x_ok and 0.0 <= land[1] <= WIDTH
+
+
+def flight(p0, v0, wind, surface, net_check=True, cl=0.0, trace=None, bounces=1,
+           out_bounces=0, legal=None, t_max=6.0):
     """Integrate one shot. Returns where it crossed the net, where it first landed, and the ball at that
     moment. No closed form: drag makes it a numeric problem, and doing it numerically is the honest way.
 
@@ -118,7 +154,16 @@ def flight(p0, v0, wind, surface, net_check=True, cl=0.0, trace=None, bounces=1)
     `cl` is the lift coefficient from the spin: positive is topspin and pulls the ball down, negative is
     slice and holds it up. The lift is applied on the vertical axis rather than truly perpendicular to the
     flight; for a ball that is broadly travelling forward that is a good approximation, and for a lob it is
-    not — stated here rather than left for a reader to find."""
+    not — stated here rather than left for a reader to find.
+
+    `out_bounces` is picture, not judgement, and defaults to 0 so that nothing that judges a shot pays for it.
+    The ball that lands outside the lines is a lost point either way — `land` is the first bounce and stays the
+    first bounce — but a spectator sees it bounce on, and the founder asked for exactly that on 2026-11-11:
+    "When the ball is out, I suggest you show it bouncing a couple of bounces, similar to netting a shot (which
+    looks great)." This is the same shape of change as the net cord, one bounce further out. `legal` is the
+    test that decides what "out" means — the court by default, the service court for a serve — and
+    `t_max` is how long the picture is allowed to watch, because a ball bounds away off the edge of frame and
+    watching it roll in the dark is not tennis either."""
     x, y, z = p0
     vx, vy, vz = v0
     wx, wy = wind
@@ -126,7 +171,7 @@ def flight(p0, v0, wind, surface, net_check=True, cl=0.0, trace=None, bounces=1)
     net = None
     done, lands = 0, []
     path, next_sample = [], 0.0
-    while t < 6.0:
+    while t < t_max:
         rx, ry, rz = vx - wx, vy - wy, vz
         rel = math.sqrt(rx * rx + ry * ry + rz * rz)
         speed2 = vx * vx + vy * vy + vz * vz
@@ -174,11 +219,29 @@ def flight(p0, v0, wind, surface, net_check=True, cl=0.0, trace=None, bounces=1)
                 vx, vy, vz = after
                 t += f * dt
                 continue
-            return {"net": net, "land": land, "time": t + f * dt, "bounces": lands,
-                    "speed_in": math.sqrt(vx2 * vx2 + vy2 * vy2 + vz2 * vz2),
-                    "bounce": {"speed_out": math.sqrt(sum(c * c for c in after)),
-                               "v": after, "angle": math.degrees(math.atan2(after[2], math.hypot(*after[:2])))},
-                    "path": path}
+            out = {"net": net, "land": land, "time": t + f * dt, "bounces": lands,
+                   "speed_in": math.sqrt(vx2 * vx2 + vy2 * vy2 + vz2 * vz2),
+                   "bounce": {"speed_out": math.sqrt(sum(c * c for c in after)),
+                              "v": after, "angle": math.degrees(math.atan2(after[2], math.hypot(*after[:2])))},
+                   "path": path}
+            # A ball that lands outside the lines is still a ball for another second. Integrated by recursion,
+            # like the net cord and for the same reason: the same flight code, from the state at the bounce,
+            # rather than a second copy of the physics written to look like it. `out_bounces=0` on the way down
+            # is not belt and braces — without it the recursive call would test its own landings, find them out
+            # too, and bounce for ever.
+            judge = legal or on_court
+            if out_bounces and not judge(land):
+                carry = flight((land[0], land[1], 0.0), after, wind, surface, net_check=False, cl=0.0,
+                               trace=trace, bounces=out_bounces, out_bounces=0, t_max=OUT_SECONDS)
+                off = t + f * dt
+                if trace:
+                    for (tt, xx, yy, zz) in carry["path"]:
+                        if not in_view((xx, yy)):
+                            break      # gone off the edge of the picture; the film does not follow it there
+                        path.append((round(tt + off, 4), xx, yy, zz))
+                out["after_out"] = {"bounces": carry.get("bounces", []), "time": carry.get("time")}
+                out["path"] = path
+            return out
         x, y, z, vx, vy, vz = nx, ny, nz, nvx, nvy, nvz
         t += dt
         if trace and t >= next_sample:

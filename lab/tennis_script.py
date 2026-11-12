@@ -172,7 +172,15 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str,
                 last_aim[hitter] = (target[0], target[1])
             aim = target[1]
             traj = shot["traj"]
-            tpath = T.flight(shot["contact"], shot["v0"], wv, surface, cl=shot["spin"], trace=TRACE)["path"]
+            # The picture lets the ball bounce on past the lines, which the founder asked for on 2026-11-11:
+            # "When the ball is out, I suggest you show it bouncing a couple of bounces, similar to netting a
+            # shot (which looks great)." Picture only — the verdict above is already written and `land` is still
+            # the first bounce, so nothing downstream can mistake a ball that bounced twice for one that was in.
+            # A serve is out against the service court; a groundstroke is out against the lines.
+            legal = (lambda pt, n=p.north: T.in_serve_court(pt, n)) if serving \
+                else (lambda pt, n=p.north: T.in_far_court(pt, n))
+            tpath = T.flight(shot["contact"], shot["v0"], wv, surface, cl=shot["spin"], trace=TRACE,
+                             out_bounces=T.OUT_BOUNCES, legal=legal)["path"]
             # The engine's own traj carries no samples (it did not ask for a trace), so the volley lookup had an
             # empty list to search and never found a ball in the air. The traced path goes back onto the traj here.
             traj["path"] = tpath

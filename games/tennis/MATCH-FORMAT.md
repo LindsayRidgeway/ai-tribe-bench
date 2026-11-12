@@ -132,6 +132,40 @@ Not built, and it is fine: nothing rolls along the tape. A ball that clips the c
 ball that clears the net here, with no loss of speed, because the contact is a plane and not a rope. It matters
 for a lucky let; it does not matter for a point that ends.
 
+## A point that ends out of court — built 2026-11-11
+
+> When the ball is out, I suggest you show it bouncing (if it's in view) a couple of bounces, similar to netting a
+> shot (which looks great).
+
+The same fault as the net cord, one bounce further out: a ball that missed was integrated up to its landing point
+and stopped. On screen the ball fell to the line and **froze there** — the one thing a ball never does — and the
+point board came up over it. The verdict was right and the picture was a lie.
+
+- `flight()` takes `out_bounces` (default **0**, so nothing that judges a shot pays for it), a `legal` test that
+  decides what "out" means, and a `t_max` for how long the picture may watch. The ball that lands out recurses
+  from its bounce with the post-bounce velocity — the same integration, not a second copy of the physics — and
+  `land` is still the **first** bounce, so no caller can mistake a ball that bounced twice for one that was in.
+- `OUT_BOUNCES = 2`, `OUT_SECONDS = 1.5`, `VISIBLE_PAD = 22`. The pad is the point: a ball leaving the lines is
+  still travelling at 30-40 ft/s, so its second bounce is twenty to fifty feet outside the court, off the edge of
+  any fixed camera. The film follows the ball while it is over the drawn court plane (the court is drawn 22 ft
+  larger than itself on every side) and then stops, rather than walking it into the dark and stretching the shot.
+- What "out" means is per stroke, because it is not one question: a serve is out against the **service court**
+  (`in_serve_court`), a groundstroke against the lines on the **far side of the net** (`in_far_court`). The first
+  version tested the court rectangle only, which froze a ball dumped three feet short of the net at its bounce —
+  the one ball in the film that most obviously bounced on, since it stays in the middle of the picture.
+
+Measured on the shipped film, 80 shots, 22 of them lost:
+
+| | shots | duration |
+|---|---|---|
+| in, and net balls | 58 | 0.50 - 1.40 s |
+| out, ball bounces on and leaves frame | 14 | 0.90 - 2.38 s |
+| out, and slow enough to bounce twice or three times in frame | 8 | 1.18 - 1.98 s |
+
+`stills/out-bounce.png` is shot 53, "short of the net by 3ft": at 0.26 of the shot the ball is 0.4 ft off the clay
+with its trail leading back over the net, which is the ball doing the thing the founder asked for. The ball rises
+0.02 -> 0.37 -> 0.72 ft in the three samples after every out bounce, so it is a bounce and not a teleport.
+
 ## Ends, and which player is in the foreground — built 2026-11-11
 
 > even for rallies, it would be more interesting if half the time the male was in the foreground, and half the
