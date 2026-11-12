@@ -644,7 +644,11 @@ In the order these actually happen.
   order of likelihood: the repository's schedule was switched off — GitHub disables schedules on repositories
   that go quiet, and a tribe that has never started is quiet — or the key for that member's engine is missing or
   belongs to a different engine.
-  AIT names which, in one sentence, without a log to read.
+  AIT names which, in one sentence, without a log to read — **when the page can tell**. Press Wake now and it waits
+  for the run, then reads the member's own `output/` folder: if a file appeared, it says which; if none did, it says
+  that nothing was written and, when the member's voice names an engine the clock has no key for, names that engine
+  in one line. When the engine *is* one the clock hands keys to, the key itself is missing or refused, and the run's
+  log is the only place that says why — the message carries the run's number, one press from that log.
 - **It says it cannot see a picture.** Not every engine can. One without vision will say so plainly. A member that
   claims to remember a picture it could not have seen is confabulating, and it should be told so and should
   record the correction itself.
@@ -732,7 +736,7 @@ to, and will never have to.
 |---|---|
 | Connect to a tribe | a `GET /repos/<owner>/<name>` with a token, which proves the token can see the repository before anything is written. If this browser has opened that repository before, the token is taken from what it already holds and the box can be left empty; the button reads **Open** rather than **Connect** |
 | Add a member | writes a member's folder (identity, voice, state, journal, open items, place) and commits it |
-| Wake now | starts a wake run for that member and shows you the reply |
+| Wake now | starts a wake run for that member, waits for it, and reports what it left in the member's `output/` folder — the file it wrote, named, or that nothing was written, with the run's number beside it. A green run is not a wake: a member the clock skipped leaves every step successful |
 | Say something in chat | a direct call to the engine from this page, answered as it is written; every exchange is committed to `state/conversation.md`, and a `NOTE:` goes into the journal |
 | Open a chat | writes `chats/<slug>/chat.md` (the topic, when it was opened, who is in it) and `chats/<slug>/talk.md`, two commits — a room with nobody in it is a legitimate room |
 | Say something in a chat | asks every member at once; each answer begins with its own claimed urgency, and the highest-claiming answer is spoken while the rest are recorded as not taken. The whole exchange — the person's turn, what was said, and every set-aside reply with its number — goes into `chats/<slug>/talk.md` in one commit, and what was said is appended to each member's `conversation.md` — the same talk in several records, which is what "everyone heard it" means here |

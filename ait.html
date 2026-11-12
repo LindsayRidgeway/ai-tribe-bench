@@ -342,8 +342,12 @@ async function waitForRun(name, sinceMs, say){
     try {
       runs = await gh(`/repos/${S.repo}/actions/runs?per_page=20`);
     } catch(e){ if (say) say('watching… (cannot list runs: ' + e.message + ')'); continue; }
+    // `workflow_dispatch` only: the clock also runs on a schedule, and a scheduled run that started just before
+    // the press was being adopted as this one — so the press could be reported by a run that never heard of the
+    // member. A run the page did not start is not evidence about what the page asked for.
     const mine = (runs.workflow_runs || []).find(r =>
-      r.name === name && new Date(r.created_at).getTime() >= sinceMs - 5000);
+      r.name === name && r.event === 'workflow_dispatch'
+      && new Date(r.created_at).getTime() >= sinceMs - 5000);
     if (mine){
       if (mine.status !== 'completed'){
         if (say) say(`${name} is ${mine.status}…`);
@@ -1496,21 +1500,71 @@ async function showFiles(name){
     <div class="row" style="margin-top:14px"><button class="plain" onclick="closeDialog()">Close</button></div>`);
 }
 
+/* What a wake left behind. `output/` gains a file per wake that reached an engine, so the folder before and after
+   the run is the only evidence a browser can have that the button did anything at all. The run's own conclusion is
+   not evidence: GitHub calls a run green when every step succeeded, and a member the clock skipped is a step that
+   succeeded — which is exactly how "woken." came to be printed over a member that never woke (Gwen's #4). */
+async function outputFiles(name){
+  try {
+    const d = await gh(`/repos/${S.repo}/contents/${encodeURI(`wake/members/${name}/output`)}?ref=${S.branch}`);
+    if (!Array.isArray(d)) return new Map();
+    return new Map(d.filter(x => x.type === 'file').map(x => [x.name, x.sha]));
+  } catch(e){
+    if (String(e.message).startsWith('404')) return new Map();   // a new member's output/ is not committed until its first wake
+    throw e;
+  }
+}
+
+/* Which engines the clock will hand a key to — read out of the workflow, not copied into this page. A list written
+   here a second time would drift the same way clock.yml's did: the page offers ten engines, the clock wired three,
+   and a member whose voice was changed in the page was skipped before it was ever called (Gwen's #16). */
+async function clockKeyedEngines(){
+  try {
+    const f = await fileText('.github/workflows/clock.yml');
+    const found = [...f.text.matchAll(/secrets\.TRIBE_API_KEY_([A-Za-z0-9_]+)/g)].map(m => m[1].toLowerCase());
+    return [...new Set(found)];
+  } catch(e){ return null; }
+}
+
 async function wakeNow(name){
   const say = (t) => { const e = $('mmsg') || $('wake-msg'); if (e) e.textContent = t; };
+  const box = () => $('mmsg') || $('wake-msg');
   try {
-    say('asking the clock to wake ' + name + '…');
+    // Before the clock is asked anything: what its folder already holds. Everything after this is a comparison,
+    // because "done" is a claim and this page has already made it once without checking.
+    const before = await outputFiles(name);
     const since = Date.now();
+    say('asking the clock to wake ' + name + '…');
     await dispatch('clock.yml', {force: name});
     say('woken. waiting for the run…');
     const run = await waitForRun('clock', since, say);
-    if (run.conclusion !== 'success') throw new Error('the run ended: ' + run.conclusion);
-    say('done — reading what it wrote');
+    const url = run.html_url || `https://github.com/${S.repo}/actions/runs/${run.id}`;
+    if (run.conclusion !== 'success') throw new Error(`run ${run.id} ended: ${run.conclusion} — ${url}`);
+    const after = await outputFiles(name);
+    const wrote = [...after.entries()].filter(([f, sha]) => before.get(f) !== sha).map(([f]) => f);
+    if (!wrote.length){
+      // Green, and nothing written. Say both, name the run, and — where the page can prove it — say which engine
+      // the member is set to and which ones the clock has keys for. Otherwise the log is the only honest pointer.
+      const m = (S.members.find(x => x.name === name)) || (await loadMembers()).find(x => x.name === name) || {};
+      const engines = await clockKeyedEngines();
+      const mine = String(m.engine || '').trim();
+      const skipped = engines && mine && !engines.includes(mine.toLowerCase());
+      const why = skipped
+        ? ` The clock hands keys to ${engines.join(', ')} and ${name}'s voice says ${mine} — so it was skipped before it was called.`
+        : '';
+      const e = box();
+      if (e) e.innerHTML = '<span class="err">' + esc(`${name} wrote no file this wake.` + why
+        + ` A green run is not a wake: a member the clock skipped leaves every step successful. Run `)
+        + `</span><a href="${esc(url)}" target="_blank" rel="noopener">${esc(String(run.id))}</a>`
+        + `<span class="small muted"> — its log says why, in one line.</span>`;
+      return;
+    }
+    say(`run ${run.id} — ${name} wrote ${wrote[0]}${wrote.length > 1 ? ` and ${wrote.length - 1} more` : ''}`);
     const m = (await loadMembers()).find(x => x.name === name);
     if (m && S.member && S.member.name === name){
       S.member = m; S.view = 'm/' + name; render();
     } else { render(); }
-  } catch(e){ say(''); const e2 = $('mmsg') || $('wake-msg'); if (e2) e2.innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }
+  } catch(e){ say(''); const e2 = box(); if (e2) e2.innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }
 }
 
 // The conversation is a file, like everything else a member is made of. It lives in its own folder and it
