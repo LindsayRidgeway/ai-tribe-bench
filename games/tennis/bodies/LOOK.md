@@ -103,3 +103,36 @@ What they still get wrong, and both faults are the same one twice — the drawin
 
 Neither fault touches what the sheets are now for. They are the appearance reference; the swing is a rule. That
 division is what finally made the sheets useful — and it took ten of them to learn.
+
+## The cast is four, and my two descriptions were a mistake — 2026-11-11
+
+His correction:
+
+> I used your description of the Black man, but this sets up a racist-looking matchup, since the white girl is
+> frail and smiling and the Black man is muscular and scowling. For one thing, matches are never between a man and
+> a woman. You need one more of each.
+
+Both faults are mine and they compounded. I wrote "slim athletic build, warm open face" for one player and
+"broad-shouldered and powerfully built, a hard serious face" for the other, and a diffusion model renders exactly
+what a phrase like that means in its training data: a small smiling white girl and a large scowling Black man. That
+is a stock image of a racial contrast, and it is not a coincidence of wording — it is what the wording asked for.
+Separately the game had a man playing a woman, which no tournament does and no spectator would believe.
+
+The rule from here, applied to all four the same way:
+
+- **Matches are same-sex.** Two women, two men, and a match is between the two of one of them.
+- **Every player gets the same kind of description**: height, build, skin, hair, in the same order and with the
+  same grammatical weight. No adjectives that carry a character judgement — nothing "frail", nothing "hard".
+- **Every player gets the same expression**: concentrating, mouth closed, eyes on the ball. One phrase, four times.
+
+| player | height | build | skin | hair |
+|---|---|---|---|---|
+| Gwen | 1.72 m | lean, quick | fair | blond, ponytail |
+| Desi | 1.68 m | compact, strong through the shoulders | warm brown | black, cropped short |
+| Dmitri | 1.88 m | tall and rangy | deep brown | black, short |
+| Tarik | 1.80 m | solid, loose-limbed | light olive | dark, curly |
+
+The fourth body is mine to choose, and it is a woman's, which makes the women's draw Gwen and Desi and the men's
+Dmitri and Tarik. The sheets that exist (`look-gwen`, `look-dmitri`) are still usable for shape; they will be
+re-run with the neutral expression and shot as a pair for each sex, but not until the movement is right — the
+founder's instruction of the same day was to fix the movement first, and he is right.

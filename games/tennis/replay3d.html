@@ -324,8 +324,13 @@ function aimBone(bone, dir) {
    with the ground covered, not with the clock. That way the feet keep pace with the body however fast it is going
    — which is the whole difference between a figure that runs and a figure that is pushed along on castors.
    Nothing here is animation data; it is a rule about where the legs are given how far the player has travelled. */
-function legs(rig, phase, moving, face) {
+function legs(rig, phase, moving, face, turn, load) {
+  // `turn` is the twist about the body's own vertical, in radians: away from the net on the wind-up, through on
+  // the follow-through. It reaches the legs because a stroke is not an arm — the pelvis turns, the knees load,
+  // and only then does the racquet move. Until 2026-11-11 none of that was here: the bodies stood square and the
+  // arm reached sideways at the ball, which is the difference between a stroke and a grab.
   const { bones } = rig;
+  turn = turn || 0; load = load || 0;
   // A pose is a DELTA on the rest pose, not a replacement for it. bone.rotation.set(...) throws away the bone's
   // rest orientation, which in a glTF skeleton is carried by the node's own quaternion — do that to a thigh and
   // the leg swings up over the shoulder. The rest quaternion is captured once and composed with each swing.
@@ -339,7 +344,7 @@ function legs(rig, phase, moving, face) {
   // The swing is set so the foot travels as far as the body does in one step (0.42 of its height), which is what
   // stops the feet skimming along the ground. A bigger swing looks more athletic and slides; the phase is already
   // driven by distance, so the stride is honest at any speed and the legs simply cycle faster when the player runs.
-  const A = 0.45 * live, K = 0.85 * live;
+  const A = 0.45 * live * (1 + 0.45 * load), K = 0.85 * live * (1 + 0.30 * load);
   const swing = p => Math.max(0.05, Math.sin(p + 0.75));
   set("thigh.L", -A * Math.sin(phase), 0, -0.09);
   set("thigh.R", -A * Math.sin(phase + Math.PI), 0, 0.09);
@@ -347,14 +352,21 @@ function legs(rig, phase, moving, face) {
   set("shin.R", K * swing(phase + Math.PI), 0, 0);
   set("foot.L", -0.25 * (moving ? 1 : 0), 0, 0);
   set("foot.R", -0.25 * (moving ? 1 : 0), 0, 0);
-  set("spine", -0.05 - 0.09 * live, 0, 0.06);
-  set("hips", 0.04 * live, 0, 0);
+  set("spine", -0.05 - 0.09 * live - 0.10 * load, turn * 0.35, 0.06);
+  set("hips", 0.04 * live, turn * 0.30, 0);
+  chestTwist(rig, turn * 0.45);
   arms(rig, face, phase);
 }
 
 /* A player waiting for a ball does not stand with both arms hanging: the free arm is across the body, the racquet
    arm has the frame up in front of the shoulder. Both are aimed rather than rotated, so the pose survives any
    future change of bone roll. */
+const _upQ = new THREE.Quaternion();
+function chestTwist(rig, ang) {
+  const b = rig.bones["chest"]; if (!b) return;
+  const rest = b.userData.rest || (b.userData.rest = b.quaternion.clone());
+  b.quaternion.copy(rest).multiply(_upQ.setFromAxisAngle(new THREE.Vector3(0, 1, 0), ang));
+}
 function arms(rig, face, phase) {
   const right = new THREE.Vector3().crossVectors(face, _up).normalize();
   const dir = (f, r, u) => new THREE.Vector3().addScaledVector(face, f)
@@ -682,13 +694,25 @@ function tick(now) {
     const phase = 2 * Math.PI * (travelled / (0.84 * Math.max(4.0, rig.height)));
     if (q.has("debug")) console.log("debug legs", pl.name, "moving", moving, "travelled", travelled.toFixed(2),
       "phase", phase.toFixed(2), "thigh", rig.bones["thighL"] ? rig.bones["thighL"].rotation.x.toFixed(3) : "MISSING");
-    legs(rig, phase, moving, new THREE.Vector3(pl.north ? 1 : -1, 0, 0));
+    // Whose ball is it? The hitter struck at this segment's first frame, so the swing is already past contact and
+    // decays; the receiver has been waiting and winds up as the ball arrives, which the record knows to the frame
+    // because it knows the flight time.
+    const isHitter = sh.player === pl.name;
+    const isReceiver = !!(sh.run && sh.run.player === pl.name);
+    const follow = isHitter ? Math.max(0, Math.min(1, 1 - tl / 0.38)) : 0;
+    const windup = isReceiver ? Math.max(0, Math.min(1, (tl - (seg.dur - 0.50)) / 0.50)) : 0;
+    const turn = -1.05 * windup + 0.62 * follow;
+    const load = Math.max(windup, follow);
+    legs(rig, phase, moving, new THREE.Vector3(pl.north ? 1 : -1, 0, 0), turn, load);
 
     const wait = ready(rig, pl.north);
     if (sh.player === pl.name) {
       // the arm is at the ball at the strike and back at the shoulder by half a second; the solver is given a
       // target that moves rather than being switched on and off, because switching it off snaps the arm
-      const k = Math.max(0, Math.min(1, (tl - 0.26) / 0.30));
+      // The hand is on the ball at the contact frame and leaves it afterwards. The previous version ramped the
+      // solve IN from 0.26s to 0.56s, so the ball was long gone by the time the arm arrived: a follow-through
+      // with its cause removed.
+      const k = Math.max(0, Math.min(1, 1 - tl / 0.34));
       const ball = new THREE.Vector3(sh.contact[0], sh.contact[2], sh.contact[1]);
       // A hand does not touch the ball; a racquet does. The arm is solved to a hand 1.6ft back down the line from
       // the shoulder to the ball, and the racquet's 1.74ft shaft carries the head the rest of the way — which is
