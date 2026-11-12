@@ -573,8 +573,14 @@ Two motions now, and neither of them is animation data:
 Checked with a probe rather than an eye: `?debug` now exposes `window.__pose()`, which returns each player's root
 position and the world position of both thighs, both shins and the hitting hand. Sampled across a standing
 receiver (rally 7, shot 3, three frames 0.05s apart), every number moves — root sway 0.08ft, root height 0.005 →
-−0.001 → 0.005, both thighs and both shins in motion. There is no frame in the film now at which any player is
-still.
+−0.001 → 0.005, both thighs and both shins in motion.
+
+Then the stronger test, because three frames prove only that three frames move: every whole point, sampled at 60ms
+for 14 seconds of wall clock, comparing the full pose (root position at four decimal places, both thighs, both
+shins, the hitting hand, the yaw) against the sample before. Points 3 and 7, 227 samples each: **0.00s motionless
+for either player, and no single freeze longer than the 60ms sampling interval.** In the film as it stood before the
+fix, the same measurement would have caught a 1.26s freeze on the worst ball. Nobody is still, on any frame anyone
+has looked at.
 
 The split step, the cross-over step, the brake and the turn-back are still unbuilt, and they are the next four
 motions on this list. A split step is what a receiver does *as* the opponent strikes — a small hop that lands just
