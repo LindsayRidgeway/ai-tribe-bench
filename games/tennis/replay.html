@@ -81,6 +81,9 @@
 "use strict";
 const D = JSON.parse(document.getElementById("script").textContent);
 const C = D.court, L = C.length, W = C.width, NX = C.net_x;
+// The doubles alley: painted, never judged. 27ft is the court this film plays on; the extra 4.5ft each side is
+// what a real court carries for doubles (founder, 2026-11-12).
+const ALLEY = C.alley === undefined ? 4.5 : C.alley;
 
 /* ---------- the camera: a pinhole, aimed by rules, not by taste ---------- */
 function basis(eye, at){
@@ -144,7 +147,7 @@ function drawGround(colour){
   const pad = 30, step = 3;
   for (let x=-pad; x<L+pad; x+=step){
     for (let y=-pad; y<W+pad; y+=step){
-      const inside = x>=0 && y>=0 && x<L && y<W;
+      const inside = x>=0 && y>=-ALLEY && x<L && y<W+ALLEY;
       const e = 0.10;   // a hair of overlap, or the antialiased tile edges draw a grid that is not there
       const q = [[x,y,0],[x+step+e,y,0],[x+step+e,y+step+e,0],[x,y+step+e,0]];
       const pts = q.map(proj);
@@ -156,11 +159,13 @@ function drawGround(colour){
       ctx.fill();
     }
   }
+  const top = -ALLEY, bot = W + ALLEY;
   const lines = [
-    [[0,0,0],[L,0,0]], [[0,W,0],[L,W,0]],
-    [[0,0,0],[0,W,0]], [[L,0,0],[L,W,0]],
-    [[NX-C.service_line,0,0],[NX-C.service_line,W,0]],
-    [[NX+C.service_line,0,0],[NX+C.service_line,W,0]],
+    [[0,top,0],[L,top,0]], [[0,bot,0],[L,bot,0]],          // the doubles sidelines
+    [[0,0,0],[L,0,0]], [[0,W,0],[L,W,0]],                  // the singles sidelines
+    [[0,top,0],[0,bot,0]], [[L,top,0],[L,bot,0]],          // baselines run the full doubles width
+    [[NX-C.service_line,top,0],[NX-C.service_line,bot,0]],
+    [[NX+C.service_line,top,0],[NX+C.service_line,bot,0]],
     [[NX-C.service_line,W/2,0],[NX+C.service_line,W/2,0]],
   ];
   for (const [a,b] of lines){

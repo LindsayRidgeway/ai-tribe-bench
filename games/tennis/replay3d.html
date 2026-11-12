@@ -104,6 +104,12 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 const D = JSON.parse(document.getElementById("script").textContent);
 const C = D.court, LEN = C.length, WID = C.width, NX = C.net_x;
+/* The doubles alley. It is painted and never judged: every ball in this film is judged against the 27ft singles
+   court, and the two extra sidelines 4.5ft outside it are the ones a doubles match would use. The founder,
+   2026-11-12: "An actual tennis court has an additional set of lines on each side. They are out of bounds in
+   singles play but they always there, since they are in bounds in doubles play." So the clay is 36ft wide and
+   the court is 27. */
+const ALLEY = C.alley === undefined ? 4.5 : C.alley;
 const TRACE = 0.02;
 
 /* ---------- scene ---------- */
@@ -143,19 +149,23 @@ function courtTexture() {
   const px = 26;                                   // pixels per foot
   const pad = 22;
   const cv = document.createElement("canvas");
-  cv.width = (LEN + pad * 2) * px; cv.height = (WID + pad * 2) * px;
+  cv.width = (LEN + pad * 2) * px; cv.height = (WID + ALLEY * 2 + pad * 2) * px;
   const g = cv.getContext("2d");
   const dark = `rgb(${CLAY.map(v => Math.round(v * 0.62)).join(",")})`;
   g.fillStyle = dark; g.fillRect(0, 0, cv.width, cv.height);
-  g.translate(pad * px, pad * px);
+  g.translate(pad * px, (pad + ALLEY) * px);
+  // the playing surface is the doubles width; the singles court is a set of lines on it, not a different colour
   g.fillStyle = `rgb(${CLAY.join(",")})`;
-  g.fillRect(0, 0, LEN * px, WID * px);
+  g.fillRect(-ALLEY * px, -ALLEY * px, (LEN + ALLEY * 2) * px, (WID + ALLEY * 2) * px);
   g.strokeStyle = "rgba(248,246,238,.95)"; g.lineWidth = 0.30 * px; g.lineCap = "butt";
   const line = (x0, y0, x1, y1) => { g.beginPath(); g.moveTo(x0 * px, y0 * px); g.lineTo(x1 * px, y1 * px); g.stroke(); };
+  const top = -ALLEY, bot = WID + ALLEY;
+  // baselines and the service lines run the full doubles width; the singles sidelines sit inside them
+  line(0, top, LEN, top); line(0, bot, LEN, bot);
+  line(0, top, 0, bot); line(LEN, top, LEN, bot);
   line(0, 0, LEN, 0); line(0, WID, LEN, WID);
-  line(0, 0, 0, WID); line(LEN, 0, LEN, WID);
-  line(NX - C.service_line, 0, NX - C.service_line, WID);
-  line(NX + C.service_line, 0, NX + C.service_line, WID);
+  line(NX - C.service_line, top, NX - C.service_line, bot);
+  line(NX + C.service_line, top, NX + C.service_line, bot);
   line(NX - C.service_line, WID / 2, NX + C.service_line, WID / 2);
   line(0, WID / 2, 0.9, WID / 2); line(LEN - 0.9, WID / 2, LEN, WID / 2);
   const t = new THREE.CanvasTexture(cv);
@@ -164,7 +174,7 @@ function courtTexture() {
   return t;
 }
 
-const courtW = LEN + 44, courtD = WID + 44;
+const courtW = LEN + 44, courtD = WID + ALLEY * 2 + 44;
 const court = new THREE.Mesh(
   new THREE.PlaneGeometry(courtW, courtD),
   new THREE.MeshStandardMaterial({ map: courtTexture(), roughness: 0.95, metalness: 0 })
@@ -193,17 +203,19 @@ function netTexture() {
   t.wrapS = THREE.RepeatWrapping; t.repeat.set(6, 1);
   return t;
 }
-const netGeo = new THREE.PlaneGeometry(WID, C.net_centre);
+const netGeo = new THREE.PlaneGeometry(WID + ALLEY * 2, C.net_centre);
 const netMat = new THREE.MeshStandardMaterial({ map: netTexture(), transparent: true, alphaTest: 0.05,
   side: THREE.DoubleSide, roughness: 0.9 });
 const net = new THREE.Mesh(netGeo, netMat);
 net.position.set(NX, C.net_centre / 2, WID / 2);
 net.rotation.y = Math.PI / 2;
 scene.add(net);
-const cord = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.10, WID),
+const cord = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.10, WID + ALLEY * 2),
   new THREE.MeshStandardMaterial({ color: 0xf5f2e8, roughness: 0.7 }));
 cord.position.set(NX, C.net_centre, WID / 2); scene.add(cord);
-for (const z of [0, WID]) {
+// and the posts stand on the doubles sidelines, which is where a real net is hung; in singles play they would
+// carry singles sticks at the 27ft lines, and this court does not have any
+for (const z of [-ALLEY, WID + ALLEY]) {
   const post = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, C.net_posts, 10),
     new THREE.MeshStandardMaterial({ color: 0xdcd8cc, roughness: 0.6 }));
   post.position.set(NX, C.net_posts / 2, z); post.castShadow = true; scene.add(post);

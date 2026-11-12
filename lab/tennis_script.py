@@ -382,6 +382,9 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str,
         "surface": surface,
         "wind": {"direction": wind_in[0], "mph": wind_in[1], "vector": [round(v, 2) for v in wv]},
         "court": {"length": T.LENGTH, "width": T.WIDTH, "net_x": T.NET_X,
+                  # the doubles alley: painted, never judged. Its presence in the record is what stops the page
+                  # carrying its own idea of how wide a tennis court is.
+                  "alley": T.ALLEY,
                   "service_line": T.SERVICE_LINE if hasattr(T, "SERVICE_LINE") else 21.0,
                   "net_centre": T.NET_CENTRE, "net_posts": T.NET_POSTS},
         "players": [{"name": pl.name, "north": north0[i], "balls": practice[i],

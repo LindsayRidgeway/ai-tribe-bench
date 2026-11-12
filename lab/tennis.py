@@ -47,6 +47,11 @@ from rps import BASES, DEFAULT_MODEL, ask, default_model, key_for, spread  # noq
 
 # ---- court, in feet -------------------------------------------------------------------------------
 LENGTH, WIDTH = 78.0, 27.0
+# The court is 27ft wide and every match here is singles, so 27ft is what the engine judges against. The paint is
+# wider than the court: a real court carries a second sideline 4.5ft outside each of these, in bounds in doubles
+# and out in singles, and the founder asked for it on 2026-11-12 — "they always there". It is drawn and never
+# judged, which is the same rule as the run-off: WIDTH is the truth and ALLEY is scenery.
+ALLEY = 4.5
 NET_X = LENGTH / 2
 SERVICE_LINE = 21.0                      # from the net, both sides
 RALLY_CAP = 60                           # a ceiling on the record, not a rule of the game: if a rally reaches

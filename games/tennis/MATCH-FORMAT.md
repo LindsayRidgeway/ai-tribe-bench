@@ -266,3 +266,29 @@ screen ends exactly on the next racquet instead of jumping to the bounce mark. V
 **57 of 57 balls that land in now show a rise after the bounce**, the path's last point equals the next shot's
 contact for every shot in a rally, and the ball is left at a median height of 2.1ft — waist high, where a ball is
 struck.
+
+## The court is 27ft wide and the paint is 36ft — built 2026-11-12
+
+The founder: *"An actual tennis court has an additional set of lines on each side. They are out of bounds in singles
+play but they always there, since they are in bounds in doubles play."*
+
+He is right, and the omission was the kind that is invisible until someone says it: the film had been drawing the
+singles court and nothing else, which is not what a tennis court looks like from a broadcast tower. A real court is
+36ft of clay with two sidelines painted 4.5ft outside the singles lines, and a net hung on posts that stand on
+those outer lines.
+
+Two decisions, both in the direction the engine already leans:
+
+- **The paint is not judged.** `WIDTH = 27` remains the truth for every ball, every corner and every interception;
+  the alley is in the record as `court.alley = 4.5` and the page draws it. Same rule as the run-off behind the
+  baseline: scenery that the physics never reads. Which is why the alley cannot quietly become in-bounds when
+  someone tries to play doubles — that would be a change to `WIDTH`, and 21 places would have to agree.
+- **The net spans the doubles width, and the posts stand on the outer lines**, because that is where a net is
+  hung. A singles match on a real court uses singles sticks at the 27ft lines; this court has none, and the
+  twenty-seven-foot singles court is still exactly where the ball has to land.
+
+Rest of the geometry, for the record: baselines and both service lines run the full doubles width (a service line
+is 42ft long on a real court, not 27), the centre service line divides the two service boxes, and the centre marks
+sit on the baselines. Verified in the film: the two singles sidelines and the two doubles sidelines are both
+visible in the tower shot, and the ball still bounces out at 27ft — measured on the same 20 points that gave 6
+points out of reach before the paint changed, because the paint changed nothing else.
