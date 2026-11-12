@@ -974,25 +974,29 @@ function tick(now) {
       const H = Math.max(4.0, rig.height);
       const handPrep = chest.clone(), headPrep = new THREE.Vector3();
       const handTake = chest.clone(), headTake = new THREE.Vector3();
+      // The shaft is the racquet, 1.70ft from the butt to the head, so the head is the hand plus that length
+      // along a direction. The direction is the founder's, 2026-11-11: "you've implemented racquet-back at around
+      // 180 degrees. Just come back about 100 degrees" — level with the shoulder line and a little behind it, so
+      // the head is BESIDE the player and not behind their back. 100 degrees from the way they are facing is
+      // (0.97 across, 0.17 behind).
+      const prepDir = new THREE.Vector3(), takeDir = new THREE.Vector3();
       if (back) {
+        // across the chest: both hands on the left, head out to that side
         handPrep.addScaledVector(right, -0.50).addScaledVector(fwd, 0.30);
-        headPrep.copy(handPrep).addScaledVector(fwd, -0.27 * H).addScaledVector(right, -0.10);
-        headPrep.y = Math.max(handPrep.y - 0.10, 0.66 * H);          // the head sits low, behind the hands
+        prepDir.addScaledVector(right, -0.97).addScaledVector(fwd, -0.17).addScaledVector(_up, 0.15).normalize();
         handTake.copy(chest).addScaledVector(right, -0.40);
-        // up and BACK, not straight up: a racquet standing vertically over the head is a serve toss, and the
-        // sheet's take-back has the head behind the shoulder line
-        headTake.copy(handTake).addScaledVector(_up, 0.24 * H).addScaledVector(fwd, -0.16 * H)
-          .addScaledVector(right, -0.10);
+        takeDir.addScaledVector(right, -0.45).addScaledVector(fwd, -0.12).addScaledVector(_up, 0.88).normalize();
       } else {
+        // open: the hitting hand back and away on the right, head out to that side
         handPrep.addScaledVector(right, 0.85).addScaledVector(fwd, -0.20);
-        headPrep.copy(handPrep).addScaledVector(fwd, -0.24 * H).addScaledVector(right, 0.10);
-        headPrep.y = Math.max(handPrep.y - 0.18, 0.62 * H);
+        prepDir.addScaledVector(right, 0.97).addScaledVector(fwd, -0.17).addScaledVector(_up, 0.15).normalize();
         handTake.copy(chest).addScaledVector(right, 0.55);
-        headTake.copy(handTake).addScaledVector(_up, 0.26 * H).addScaledVector(fwd, -0.16 * H)
-          .addScaledVector(right, 0.15);
+        takeDir.addScaledVector(right, 0.45).addScaledVector(fwd, -0.10).addScaledVector(_up, 0.88).normalize();
       }
       handPrep.y = Math.min(handPrep.y, 0.71 * H);
       handTake.y = Math.max(chest.y + 0.30, 0.85 * H);
+      headPrep.copy(handPrep).addScaledVector(prepDir, 1.70);
+      headTake.copy(handTake).addScaledVector(takeDir, 1.70);
       const prep = readyHand.clone().lerp(handPrep, windup);           // a beginner never gets here
       if (isReceiver) {
         // When, not whether: the take-back happens in the last half-second of the ball's flight, and the swing
@@ -1031,6 +1035,8 @@ function tick(now) {
             `up ${rel.y.toFixed(2)}`, "| head at chest+", `side ${hd.dot(right).toFixed(2)}`,
             `fwd ${hd.dot(fwd).toFixed(2)}`, `up ${hd.y.toFixed(2)}`,
             "| head height", head.y.toFixed(2), "of", H.toFixed(2),
+            "| shaft", (Math.atan2(head.clone().sub(hand).dot(right), head.clone().sub(hand).dot(fwd)) * 180 / Math.PI)
+              .toFixed(0) + "deg",
             `miss ${h.distanceTo(hand).toFixed(2)}`);
         }
       } else {

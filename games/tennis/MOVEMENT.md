@@ -305,3 +305,18 @@ it because every number I had taken was a *distance*, and a mirror preserves dis
 After the fix, measured with `?debug`: forehand running, hand at chest + 0.75 side, head 1.22ft behind on that
 side; backhand running, hand at chest − 0.42 side, racquet head across and behind. The sides are now named the
 same way the engine names them.
+
+### A hundred degrees, not a hundred and eighty — 2026-11-11
+
+The founder: "On both sides, you've implemented racquet-back at around 180 degrees. Just come back about 100
+degrees."
+
+He was reading the running preparation, and he was right: the shaft was built as "1.7ft back along the court",
+i.e. straight behind the player, with the racquet head out of sight behind their back. It is now built as a
+direction and a length — the racquet is 1.70ft from butt to head, so the head is the hand plus that length along
+`(0.97 across, 0.17 behind, 0.15 up)`, which is 97 degrees from the way the player faces. The take-back is the
+same figure lifted: `(0.45 across, 0.12 behind, 0.88 up)`, about 105 degrees and above the head.
+
+Measured with `?debug`, which now prints the shaft's angle: forehand running `shaft 97deg`, head 2.15ft to the
+hitting side and 0.29ft behind the hand; backhand running `shaft -97deg`, head 1.85ft to that side. Through the
+ball the same number reads 24 degrees, so the swing passes from beside the player to in front of them.
