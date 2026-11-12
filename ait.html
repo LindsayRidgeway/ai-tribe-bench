@@ -1556,7 +1556,7 @@ async function wakeNow(name){
       if (e) e.innerHTML = '<span class="err">' + esc(`${name} wrote no file this wake.` + why
         + ` A green run is not a wake: a member the clock skipped leaves every step successful. Run `)
         + `</span><a href="${esc(url)}" target="_blank" rel="noopener">${esc(String(run.id))}</a>`
-        + `<span class="small muted"> — its log says why, in one line.</span>`;
+        + `<span class="small muted">${skipped ? '.' : ' — its log says why, in one line.'}</span>`;
       return;
     }
     say(`run ${run.id} — ${name} wrote ${wrote[0]}${wrote.length > 1 ? ` and ${wrote.length - 1} more` : ''}`);
