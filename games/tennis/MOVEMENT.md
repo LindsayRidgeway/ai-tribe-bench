@@ -287,3 +287,21 @@ Three things followed, and they are the "weakest part" the founder named:
 Measured after: at the end of the flight the racquet head is 3.22ft up and 2.99ft in front; at the contact frame
 of the next shot it is 0.68ft from the ball. Not zero — the arm is at full stretch on a ball struck a racquet's
 length from the feet — but continuous, and the missing inch is the lean that a spine would give.
+
+### The right-hand vector was the left one — 2026-11-11
+
+The founder: "You've reversed which side the racquet-back on is while running."
+
+`right = (cos θ, 0, −sin θ)` is the mirror of a person's right. For a body facing `f` with `up`, the right hand
+is at `f × up`, which for this rig is `(−cos θ, 0, sin θ)`. Every preparation, take-back and finish was therefore
+built on the wrong side of the body: a forehand ran with the racquet across the chest and a backhand ran with it
+open.
+
+The check was already in the engine, in one sentence — `side_of()`: *"A player at the north end faces +x, so
+their right hand is toward +y"*, and world +y is +z, which the page's vector pointed away from. Nothing measured
+it because every number I had taken was a *distance*, and a mirror preserves distance: the hand was exactly
+0.50ft from the chest, on the wrong side, and `?debug` reported `miss 0.00` with perfect confidence.
+
+After the fix, measured with `?debug`: forehand running, hand at chest + 0.75 side, head 1.22ft behind on that
+side; backhand running, hand at chest − 0.42 side, racquet head across and behind. The sides are now named the
+same way the engine names them.

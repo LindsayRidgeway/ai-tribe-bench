@@ -922,8 +922,12 @@ function tick(now) {
       // to the ready pose and read as a poke, which is the weakest part of the film and the founder's note.
       const chestW = new THREE.Vector3();
       (rig.bones["chest"] || rig.root).getWorldPosition(chestW);
-      const fwdW = new THREE.Vector3(Math.sin(rig.yaw), 0, Math.cos(rig.yaw));
-      const rightW = new THREE.Vector3(Math.cos(rig.yaw), 0, -Math.sin(rig.yaw));
+      const fwdW = new THREE.Vector3(Math.sin(rig.yaw), 0, Math.cos(rig.yaw));   // where the chest points
+      // right = forward x up. The previous line had it as (cos, 0, -sin), which is the LEFT: every preparation
+      // and every finish was mirrored onto the wrong side of the body. The engineer's check is the engine's own
+      // side_of(): "a player at the north end faces +x, so their right hand is toward +y" — which is +z in world
+      // terms — and this vector pointed at -z. The founder saw it on the run before any number did.
+      const rightW = new THREE.Vector3(-Math.cos(rig.yaw), 0, Math.sin(rig.yaw));
       const fin = chestW.clone()
         .addScaledVector(rightW, back ? 1.05 : 0.80)
         .addScaledVector(fwdW, back ? 0.45 : 0.55);
@@ -950,7 +954,7 @@ function tick(now) {
       // neither, which is the ready pose — the same lerp, by the same `windup`.
       _face.set(at ? 1 : -1, 0.12, 0).normalize();   // waiting for the ball, bed open to the net
       const fwd = new THREE.Vector3(Math.sin(rig.yaw), 0, Math.cos(rig.yaw));     // the way the body is facing
-      const right = new THREE.Vector3(Math.cos(rig.yaw), 0, -Math.sin(rig.yaw));
+      const right = new THREE.Vector3(-Math.cos(rig.yaw), 0, Math.sin(rig.yaw));   // forward x up, not its mirror
       const chest = new THREE.Vector3();
       (rig.bones["chest"] || rig.root).getWorldPosition(chest);
       // The ready hand, spelled out rather than read back off the rig: reading it off the bones made the pose
