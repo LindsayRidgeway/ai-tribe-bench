@@ -25,6 +25,7 @@ const PAGE = path.join(HERE, '..', 'ait.html');
 const files = new Map();          // path -> {text, sha}
 const failWrites = new Set();     // paths whose PUT is refused, to test the failure orders
 const calls = [];                 // every request, for the failure messages to be specific
+const dispatches = [];            // every workflow_dispatch, with the inputs the page sent it
 const actions = { runs: [], onPoll: null };   // what the Actions API answers, and what a run does while it runs
 
 function shaOf(text, n = 0){
@@ -57,8 +58,14 @@ function githubFetch(url, init = {}){
   calls.push(method + ' ' + p);
   // Actions: a dispatch is accepted and forgotten; the run list is what the page reads back, and its answer is
   // the only thing that decides whether a press of "Wake now" is reported as done.
-  if (/^\/repos\/[^/]+\/[^/]+\/actions\/workflows\/[^/]+\/dispatches$/.test(p))
+  if (/^\/repos\/[^/]+\/[^/]+\/actions\/workflows\/[^/]+\/dispatches$/.test(p)){
+    // A dispatch answers with nothing but a 204, so the inputs are kept here: a form that fills the wrong
+    // field is invisible from the page and from the run's conclusion, and only this can say it happened.
+    let inputs = {};
+    try { inputs = JSON.parse(init.body || '{}').inputs || {}; } catch(e){ inputs = {}; }
+    dispatches.push({workflow: decodeURIComponent(p.split('/')[6] || ''), inputs});
     return jsonResponse(204, {});
+  }
   if (/^\/repos\/[^/]+\/[^/]+\/actions\/runs$/.test(p)){
     // A run does its work between the dispatch and the poll: the callback stands in for the runner.
     if (actions.onPoll){ const once = actions.onPoll; actions.onPoll = null; once(files); }
@@ -186,7 +193,7 @@ function check(name, fn){
 }
 
 function reset(){
-  files.clear(); failWrites.clear(); calls.length = 0; store.clear();
+  files.clear(); failWrites.clear(); calls.length = 0; dispatches.length = 0; store.clear();
   actions.runs.length = 0; actions.onPoll = null;
   for (const id of ['mmsg', 'chaptsmsg', 'main']) if (elements.has(id)) elements.delete(id);
 }
@@ -333,7 +340,7 @@ async function main(){
       seed('wake/members/Lumi/state/' + f, '# ' + f + '\n');
     seed('wake/members/Lumi/output/raw-earlier.json', '{"earlier": true}');
   };
-  const runObject = (id, event) => ({id, name: 'clock', event, status: 'completed', conclusion: 'success',
+  const runObject = (id, event, name = 'clock') => ({id, name, event, status: 'completed', conclusion: 'success',
     html_url: `https://github.com/someone/tribe/actions/runs/${id}`, created_at: new Date().toISOString()});
 
   // 3a — the wake wrote nothing: the page says so, names the run, and names the engine the clock has no key for.
@@ -408,6 +415,105 @@ async function main(){
   check('a scheduled run is not adopted as the run the button started', () => {
     if (/41000000000/.test(wake3.html)) return 'the page reported the scheduled run, not the dispatched one';
     if (!/43099999999/.test(wake3.html)) return `the dispatched run is not named in: "${wake3.html}"`;
+    return '';
+  });
+
+  /* 4 — the person's seat: three numbers typed, one point played, and the member's engine the only model
+     call in it. The form is the whole of the person's input, so the two ways it can lie are a movement the
+     engine would clamp rather than play, and a green run with no point in the record at that press. */
+  const POINT = `# a point on the person's seat — 2026-11-12T21:30:00Z
+
+- **the person**: Sam, playing a movement they typed: \`FACE +6 POWER 62 AIM 12\`.
+- **the member**: Lumi, whose own engine chooses its shots (deepseek / deepseek-flash).
+
+## the point
+
+   1.1  Sam      face +6 power  62 aim 12 [clean ] -> IN, 21ft past the net, 1ft west of centre
+       the hands gave face +8.1, not +6
+`;
+
+  reset();
+  seedMember('deepseek', 'deepseek-flash');
+  seed('games/tennis/seasons/2026-spring/practice.json', '{}');
+  actions.runs.push(runObject(43111111111, 'workflow_dispatch', 'season'));
+  actions.onPoll = (m) => m.set('games/tennis/seasons/2026-spring/points/2026-11-12T21-30-00Z.md',
+                                {text: POINT, sha: 'point-one'});
+  const seat = await run(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main'; S.owner = 'Sam';
+    render = () => {};
+    S.members = [{name: 'Lumi', engine: 'deepseek', model: 'deepseek-flash'}];
+    const set = (id, v) => { document.getElementById(id).value = v; };
+    set('yface', '6'); set('ypower', '62'); set('yaim', '12'); set('ypoints', '1');
+    set('yname', 'Sam'); set('yvs', 'Lumi'); set('ysurface', 'auto'); set('yseason', '2026-spring');
+    await playPoint();
+    return {said: document.getElementById('ymsg').textContent || '',
+            html: document.getElementById('yresult').innerHTML || ''};
+  })()`);
+
+  check('the typed movement is what the form sends, field by field', () => {
+    const d = dispatches[dispatches.length - 1];
+    if (!d) return 'the press dispatched nothing';
+    if (d.workflow !== 'season.yml') return `it dispatched ${d.workflow}`;
+    const want = {shot: 'FACE 6 POWER 62 AIM 12', person: 'Sam', players: 'Lumi', season: '2026-spring',
+                  rallies: '1'};
+    for (const [k, v] of Object.entries(want)){
+      if (String(d.inputs[k] ?? '') !== v) return `${k} was ${JSON.stringify(d.inputs[k])}, not ${v}`;
+    }
+    return '';
+  });
+  check('and the point the run wrote is shown, in the run\'s own words', () => {
+    if (!/21ft past the net/.test(seat.html)) return `the page showed: "${seat.html.slice(0, 200)}"`;
+    if (!/the hands gave face \+8\.1/.test(seat.html))
+      return 'the delivered angle is missing — the person cannot learn from their own shot';
+    if (!/2026-11-12T21-30-00Z\.md/.test(seat.said)) return `the file is not named: "${seat.said}"`;
+    return '';
+  });
+
+  // 4b — a green run that wrote no point. The same rule as the wake button: the conclusion is not the evidence.
+  reset();
+  seedMember('deepseek', 'deepseek-flash');
+  seed('games/tennis/seasons/2026-spring/practice.json', '{}');
+  actions.runs.push(runObject(43222222222, 'workflow_dispatch', 'season'));
+  const seat2 = await run(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
+    render = () => {};
+    S.members = [{name: 'Lumi', engine: 'deepseek', model: 'deepseek-flash'}];
+    const set = (id, v) => { document.getElementById(id).value = v; };
+    set('yface', '6'); set('ypower', '62'); set('yaim', '12'); set('ypoints', '1');
+    set('yname', 'Sam'); set('yvs', 'Lumi'); set('ysurface', 'auto'); set('yseason', '2026-spring');
+    await playPoint();
+    return {said: document.getElementById('ymsg').textContent || '',
+            html: document.getElementById('yresult').innerHTML || ''};
+  })()`);
+
+  check('a run that wrote no point is not reported as a point played', () => {
+    if (!/wrote no point file/.test(seat2.html)) return `the page said: "${seat2.html || seat2.said}"`;
+    if (!/43222222222/.test(seat2.html)) return 'the run is not named, so the log is not one press away';
+    return '';
+  });
+  check('and the folder a point would have appeared in is named', () => {
+    if (!/games\/tennis\/seasons\/2026-spring\/points/.test(seat2.html))
+      return `the page does not say where a point would have been: "${seat2.html}"`;
+    return '';
+  });
+
+  // 4c — a movement outside the engine's range is refused before the press, and says the range.
+  reset();
+  seedMember('deepseek', 'deepseek-flash');
+  const seat3 = await run(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
+    render = () => {};
+    S.members = [{name: 'Lumi', engine: 'deepseek', model: 'deepseek-flash'}];
+    const set = (id, v) => { document.getElementById(id).value = v; };
+    set('yface', '60'); set('ypower', '62'); set('yaim', '12'); set('ypoints', '1');
+    set('yname', 'Sam'); set('yvs', 'Lumi'); set('ysurface', 'auto'); set('yseason', '2026-spring');
+    await playPoint();
+    return {html: document.getElementById('ymsg').innerHTML || ''};
+  })()`);
+
+  check('a shot the engine would clamp is refused before it is sent, naming the range', () => {
+    if (dispatches.length) return `it was sent anyway (${dispatches.length} dispatch(es))`;
+    if (!/face between -20 and 40/.test(seat3.html)) return `the message said: "${seat3.html}"`;
     return '';
   });
 

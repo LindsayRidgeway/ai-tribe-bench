@@ -3240,6 +3240,147 @@ class TestTennis(unittest.TestCase):
         self.assertIn("Nobody has hit a ball", text)
         self.assertNotIn("improved", text)
 
+    # ---- the person's seat, 2026-11-12 ------------------------------------------------------------
+    def _seat(self, command="FACE 6 POWER 62 AIM 12", names="Sam,Colette", points="1", tmp=None,
+              member_reply="FACE 5 POWER 58 AIM 14", extra=()):
+        """Run the person's seat with the member's engine stubbed, and give back what was printed.
+
+        The stub is the whole point of the fixture: it counts the calls and records the prompts, so a test can
+        say *no engine was asked for the person's shot* rather than merely that the output looks plausible.
+        """
+        import contextlib, io
+        t = self.t
+        calls = []
+
+        def fake(base, key, model, prompt, temperature=1.0):
+            calls.append(prompt)
+            return member_reply
+
+        real = t.ask
+        t.ask = fake
+        out, err = io.StringIO(), io.StringIO()
+        args = ["--person-shot", command, "--names", names, "--points", points,
+                "--clock", "1794026200910", "--vendor", "local", "--model", "m"]
+        if tmp is not None:
+            args += ["--season", "2026-spring", "--season-dir", tmp]
+        args += list(extra)
+        try:
+            with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                code = t.main(args)
+        finally:
+            t.ask = real
+        return code, out.getvalue(), err.getvalue(), calls
+
+    def test_the_persons_seat_takes_the_movement_they_typed_and_asks_no_engine_for_it(self):
+        """The founder's question, 2026-11-12: can a person be the third player on this court?
+
+        A member's shot is asked for in one line of prose; a person's is three numbers from a form. What the
+        test insists on is that the difference is *only* that: the person's line is played exactly as typed,
+        and the prompts sent to an engine are the member's alone. `You are <name>` is the first line of every
+        prompt this game writes, so a prompt addressed to the person is the failure this looks for.
+        """
+        code, out, err, calls = self._seat(command="FACE 18 POWER 80 AIM 13")
+        self.assertEqual(code, 0, err)
+        self.assertIn("face +18 power  80 aim 13", out,
+                      "the movement printed is not the movement that was typed")
+        self.assertIn("No engine was asked what to do with it", out)
+        self.assertTrue(calls, "the member across the net must be asked — that is what makes it a member")
+        for prompt in calls:
+            self.assertIn("You are Colette", prompt)
+            self.assertNotIn("You are Sam", prompt,
+                             "an engine was asked what the person should do; the seat has no engine")
+
+    def test_a_point_from_the_persons_seat_is_judged_by_the_same_verdict(self):
+        """One `verdict()`, two seats. The drill, the season and this mode all print the same sentences about
+        where a ball went, and the reason is not tidiness: a person learning this game beside the members has
+        to be corrected by the same numbers they are, or the two are playing different games with one name.
+        """
+        code, out, err, calls = self._seat(command="FACE 30 POWER 100 AIM 13", extra=("--practice", "400,20"))
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, r"long by \d+ft", "an out ball must say how far out, as the drill's verdict does")
+        self.assertIn("1 shot, taken by Colette", out, "a ball past the baseline must lose the point")
+
+        # and the in-play half of the same function, on the same court and clock, where the ball lands
+        code, out, err, calls = self._seat(command="FACE 18 POWER 80 AIM 13")
+        self.assertRegex(out, r"IN, \d+ft past the net",
+                         "the same verdict must be able to say IN, with the distance")
+
+    def test_the_person_is_a_player_in_the_season_and_a_point_is_not_an_evening(self):
+        """Two halves of one decision. The person is a player: their balls are counted, their hands steady, and
+        they appear in the season's file under their own name. And a point is not an evening of rallies: the
+        report's rates are computed over the rallies, because a five-ball point averaged into a season of
+        sixty-ball evenings would let one press of a button silence the sentence the season exists to earn.
+        """
+        t = self.t
+        tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp, True)
+        code, out, err, calls = self._seat(tmp=tmp)
+        self.assertEqual(code, 0, err)
+        book = t.load_season("2026-spring", tmp)
+        self.assertGreater(t.practice_of(book, "Sam"), 0, "the person's balls were not counted")
+        modes = {s.get("mode") for m in book["members"].values() for s in m["sessions"]}
+        self.assertIn("person", modes)
+        report = t.season_report("2026-spring", tmp)
+        self.assertIn("the person's seat", report)
+        self.assertIn("No evening of rallies in this season yet", report,
+                      "a point must not be presented as an evening of rallies")
+        self.assertNotIn("The game improved", report)
+        notes = list((Path(tmp) / "points").glob("*.md"))
+        self.assertEqual(len(notes), 1, "a point with a season must leave its own record beside it")
+        note = notes[0].read_text(encoding="utf-8")
+        self.assertIn("FACE +6 POWER 62 AIM 12", note)
+        self.assertIn("No engine was asked", note)
+        self.assertIn("mode `person`", note)
+        self.assertIn("the hands gave", note,
+                      "the file must carry the angle delivered as well as the angle asked for")
+
+    def test_a_point_file_is_never_overwritten(self):
+        """The season's rule — nothing is reset, nothing is overwritten — applied to a single point. Two
+        presses inside one second are two points, and the second one must not erase the first."""
+        t = self.t
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp, True)
+        first = t.unique_path(tmp / "2026-11-12T21-30-00Z.md")
+        self.assertEqual(first.name, "2026-11-12T21-30-00Z.md")
+        first.write_text("one", encoding="utf-8")
+        second = t.unique_path(tmp / "2026-11-12T21-30-00Z.md")
+        self.assertNotEqual(second.name, first.name)
+        self.assertEqual(first.read_text(encoding="utf-8"), "one")
+
+    def test_a_members_missing_key_is_not_blamed_on_the_person(self):
+        """The person's seat needs no key at all, so a refusal has to say *which* seat is blocked. A message
+        that reads "TRIBE_API_KEY_DEEPSEEK is not set" with no name in it would send a person looking for a key
+        of their own, and there is nothing for them to find."""
+        import contextlib, io
+        t = self.t
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
+            code = t.main(["--person-shot", "FACE 6 POWER 62 AIM 12", "--names", "Sam,Colette",
+                           "--points", "1", "--vendor", "deepseek", "--model", "deepseek-flash"])
+        self.assertEqual(code, 2)
+        said = err.getvalue()
+        self.assertIn("Colette cannot hit a ball", said, "the refusal must name whose key is missing")
+        self.assertIn("The person's shot needs no key", said)
+
+    def test_the_seat_reaches_the_court_from_the_same_form_the_members_use(self):
+        """One court, one workflow: the person's press dispatches `season.yml` like any other session, so the
+        engine key list, the season folder and the commit are the ones already there rather than a second copy
+        of them. Two names for the same engine list is how a game ends up unable to play on an engine the
+        others can — measured 2026-11-06, and not worth measuring again."""
+        if yaml is None:
+            self.skipTest("PyYAML not installed")
+        wf = yaml.safe_load((REPO / ".github" / "workflows" / "season.yml").read_text(encoding="utf-8"))
+        inputs = wf[True]["workflow_dispatch"]["inputs"]
+        self.assertIn("person", inputs)
+        self.assertIn("shot", inputs)
+        play = [s for s in wf["jobs"]["play"]["steps"] if s.get("name") == "Play"][0]
+        self.assertIn('--person-shot "$SHOT"', play["run"],
+                      "the form's movement never reaches the engine")
+        self.assertIn("SHOT", play.get("env") or {})
+        # and the person's name is not looked for on the shelf of members
+        check = [s for s in wf["jobs"]["play"]["steps"] if s.get("name") == "Which season, which two"][0]
+        self.assertIn('wake/members/$who/state', check["run"])
+
 class TestChat(unittest.TestCase):
     """The conversation page, 2026-11-04.
 
@@ -3597,6 +3738,33 @@ class TestWorkflows(unittest.TestCase):
                 if m.group(1) not in on_disk:
                     bad.append(f"{f.name}: MEMBER:-{m.group(1)}")
         self.assertEqual(bad, [], "a workflow's default member must be a member this colony has")
+
+    def test_the_persons_seat_on_the_shelf_does_not_fail_silently(self):
+        """The opponent field on the person's form is optional, and leaving it blank is the ordinary case: the
+        shelf is the list. The first version of that branch ended the step with **141 and no message** — `head -1`
+        closed the pipe, `ls` took a SIGPIPE for it, `set -o pipefail` turned that into a failed assignment, and
+        `set -e` took the step down before it wrote anything. A press that does nothing and says nothing is the
+        class of defect these workflow tests exist for, and it was found by running the step rather than by
+        reading it.
+
+        The person is not on the shelf and is never looked for there; the member is, and is checked on disk.
+        """
+        if yaml is None:
+            self.skipTest("PyYAML not installed")
+        wf = yaml.safe_load((self.WF / "season.yml").read_text(encoding="utf-8"))
+        step = [s for s in wf["jobs"]["play"]["steps"] if s.get("name") == "Which season, which two"][0]["run"]
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp, True)
+        (tmp / "wake" / "members" / "Lumi" / "state").mkdir(parents=True)
+        (tmp / "lab").mkdir()
+        (tmp / "lab" / "fixtures.txt").write_text("", encoding="utf-8")
+        env = {**os.environ, "SEASON": "2026-spring", "PLAYERS": "", "PERSON": "Sam",
+               "SHOT": "FACE 6 POWER 60 AIM 13", "GITHUB_ENV": str(tmp / "env.out")}
+        r = subprocess.run(["bash", "-c", step], cwd=tmp, env=env, capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, f"the step ended {r.returncode} saying: {r.stdout}{r.stderr}")
+        wrote = (tmp / "env.out").read_text(encoding="utf-8") if (tmp / "env.out").exists() else ""
+        self.assertIn("PLAYERS=Sam,Lumi", wrote,
+                      "the person's name and the one member on the shelf must both reach the court")
 
     def test_the_published_member_list_matches_the_shelf(self):
         """A static page cannot read a directory, so `members.json` is what its drop list is built from — and a

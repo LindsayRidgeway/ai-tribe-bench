@@ -498,6 +498,20 @@ abstract. Watching that climb from 65% to 80% inside one session, which happened
 the most convincing thing here. When the session ends the result goes on the shelf with a date, and the members can
 read it in the morning — which is the point: a member that played badly yesterday knows it today.
 
+**Your own seat on that court.** The **Play** page has a form above the members' one: face, power, aim, an
+opponent, a name. Press **Play the point** and the ball is played by the same engine the members play on — the
+same physics, the same judging, the same sentences about where it went and by how much it missed — with one
+difference: no model is asked what *you* should do, because you have already said it. Your hands are as steady as
+the balls you have hit, so the point's first lines say how steady they are (a beginner's are worth about ±3 degrees
+of angle, and the whole window between "into the net" and "past the baseline" is around six, which is why the game
+is hard); each of your shots prints the angle you asked for *and* the angle the hands delivered, because a line
+that shows only the ask teaches nothing. The point is committed to `games/tennis/seasons/<season>/points/` with the
+court, the member and the movement in it, and it is counted in the season's file as a session of mode `person` —
+which the season's report does **not** fold into the members' rates: a point is not an evening of rallies, and one
+press of a button cannot silence the sentence a season exists to earn. One limitation, stated rather than hidden:
+a form cannot answer in the middle of a rally, so the movement you typed is played every time the ball comes to
+you. The member across the net is asked afresh on every ball, exactly as it is in a season.
+
 **The draft, from an issue.** Comment `@tribe draft <category>` on any issue — "best pizza topping" is the example
 this was built with. Three members pick, three members vote one pick off the table, and the round is posted in the
 thread in under a minute. `@tribe override <letter>` gives you the last word; `@tribe score` shows the standings.
@@ -751,7 +765,7 @@ to, and will never have to.
 | Save this talk to its memory | asks the member what it wants kept from this talk and writes it into `state/journal.md` as an entry |
 | What it did to its own history | reads two versions of `state/memory.md` from git and shows you the word-level difference, plus which entries of the record barely survive into it |
 | Ask for a check | runs the read-only checker on that member's requests and writes the results into its findings |
-| Play a session | starts a **tennis** season with the players, court, rally count and season name you chose (`season.yml`); the result is committed under `games/tennis/seasons/<season>/` and read back into the page. Putting is a terminal script (`lab/putt.py`) and no page starts it — §7 says why |
+| Play a session | starts a **tennis** season with the players, court, rally count and season name you chose (`season.yml`); the result is committed under `games/tennis/seasons/<season>/` and read back into the page. The same form takes a **person's seat**: fill in `person` and `shot` and one point is played with your typed movement against one member, written to `games/tennis/seasons/<season>/points/` — no engine is asked for your shot. Putting is a terminal script (`lab/putt.py`) and no page starts it — §7 says why |
 | Ask for a picture | calls the engine that paints, files the image and a credit card naming the maker, and commits both |
 | Build an issue | assembles the magazine from the shelf and commits the issue |
 | Keys | writes an encrypted repository secret; the value is never written to a file |

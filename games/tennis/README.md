@@ -151,9 +151,9 @@ Three things fall out, and each is a separate claim:
 
 In the founder's own order: change of court and change of service (one serve, no two-serve rule, sides never
 change), scoring (no games or sets), the volley (contact height exists, no shot is ever chosen as one, no lob or
-overhead), and a season — practice is not yet carried between sessions or persisted to disk, so each run starts
-from the same spring. The reset to beginners that the founder wants for the *second* season is the easy half of
-that; keeping it across a first season is the half not written.
+overhead). The season *is* built — practice is carried between sessions in a file, below — and the reset to
+beginners that the founder wants for a second season is the absence of that file, which is the easy half and is
+also written.
 
 
 ## The season: practice that outlives the process
@@ -191,3 +191,36 @@ verdicts withheld — **Not a sample**. That is the honest state of a season for
 works and the story has not happened yet. The session-2 transcript is
 `records/rally-season-2026-spring-session2.txt`; session 1's console output was not captured to a record,
 only its numbers, which is why session 2 was redirected to a file.
+
+
+## The person's seat — a third player, and the only one with no engine
+
+Added 2026-11-12. Every player before it was a member: an engine, a voice, a record, and a shot requested in one
+line of prose. A person has none of those and should not need them, so the movement comes from three numbers
+instead:
+
+```
+python3 lab/tennis.py --person-shot "FACE 18 POWER 80 AIM 13" \
+    --names "Lindsay,Colette" --points 1 --season 2026-spring
+```
+
+**What is the same on purpose.** The physics, the skill curve, the hands that are not exact, the reach, the
+`reachable()` check and `verdict()` — one function, one set of sentences, three seats. A person playing on a
+kindlier court would learn nothing about the game the members are learning, and any comparison between them
+would be an artifact of the code rather than a result.
+
+**What is different, and why it is stated.** Only where the shot comes from: a form cannot answer mid-rally, so
+the typed movement is played every time the ball comes to the person. The member across the net is asked afresh
+on every ball. A person's hands start at zero balls — a beginner's — and a season keeps them, so the same
+`--seed` that gives a member a history can give a person one.
+
+**What it writes.** The point, in full and as printed, into `seasons/<season>/points/<when>.md` (never
+overwritten: two presses in one second are two files), plus one session of `mode: person` in `practice.json`.
+The season's report separates them: a point counts its balls and moves the hands on, and it is **not** averaged
+into the rate the season prints, because a point is not an evening of rallies. A report that let a five-ball
+point decide "the game improved" would be the same fiction as the one-ball verdict the guards already refuse.
+
+**What it costs.** One engine call per *member* shot; nothing for the person's. The page's form refuses a
+number outside the engine's range before sending it, and a run that ends green without writing a point file is
+reported as exactly that, with the run named — the same rule the wake button follows.
+
