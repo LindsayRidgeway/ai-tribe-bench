@@ -485,7 +485,7 @@ def choose_shot(p: Player, other: Player, at_hitter, at_receiver, record: dict, 
     elif behind:
         w = {"cross": 0.56, "line": 0.24, "drop": 0.06 * (0.4 + skill), "lob": 0.10, "approach": 0.04}
     else:
-        w = {"cross": 0.40, "line": 0.34, "drop": 0.16 * (0.4 + skill), "lob": 0.04, "approach": 0.06}
+        w = {"cross": 0.34, "line": 0.30, "drop": 0.14 * (0.4 + skill), "lob": 0.04, "approach": 0.18}
     total = sum(w.values())
     r = rng.random() * total
     kind = "cross"
@@ -510,6 +510,52 @@ def choose_shot(p: Player, other: Player, at_hitter, at_receiver, record: dict, 
     # a lob: deep, high, and slow enough that it comes down inside the baseline
     y = WIDTH - 5.5 if at_receiver[1] < WIDTH / 2 else 5.5
     return {"kind": kind, "target": (LENGTH - 6.0 if p.north else 6.0, y), "power": rng.uniform(40, 52)}
+
+
+# ---- recovery and the net ---------------------------------------------------------------------------
+RECOVER_DEPTH = 1.6          # feet behind the baseline a player recovers to
+VOLLEY_ZONE = 12.0           # feet from the net inside which a player is at the net, not on the baseline
+
+
+def recovery_spot(p: Player, at_hitter, came_in: bool) -> tuple[float, float]:
+    """Where the player goes after they hit, which is never where they hit from.
+
+    The founder, 2026-11-11: "the court in front of the baseline is never used by good players to receive the next
+    shot, because the opposing player will fire to one of the back corners and the receiver won't be able to get to
+    it." So a player who has been dragged wide recovers behind the baseline to the centre of the court, and the
+    `at` they are placed at is that spot, not their contact point. Before this the feet stayed wherever the ball
+    had been struck, which is why two players drifted in towards the net over a long rally and then stayed there.
+
+    A player who has just hit an approach shot goes the other way — forward, to the net — because that is what the
+    shot was for.
+    """
+    if came_in:
+        return (NET_X - 7.0 if p.north else NET_X + 7.0, WIDTH / 2)
+    return (-RECOVER_DEPTH if p.north else LENGTH + RECOVER_DEPTH, WIDTH / 2)
+
+
+def volley_contact(p: Player, traj: dict, at, reach: float = 3.0, lo: float = 2.2, hi: float = 6.5):
+    """Where the incoming ball can be taken out of the air, if it can be.
+
+    A volley is struck before the bounce, so the moment to find is the one where the ball reaches a racquet's
+    length in front of the player, still above the ground, on the player's own side of the net, and not five feet
+    off to the side of them. The height at that moment is the whole difference between a volley and a half-volley —
+    the founder's point that from the forecourt the ball's height is what decides what the player can do with it.
+
+    Second attempt, 2026-11-11. The first scanned for the ball "level with the player", which for a player facing
+    the net is a place the ball reaches twice, and it returned the frame where the ball crossed the net itself
+    forty feet from anyone's racquet. This one solves for the meeting plane, three feet in front of the player.
+    """
+    fwd = 1.0 if p.north else -1.0
+    meet_x = at[0] + reach * fwd
+    for t, x, y, z in traj["path"]:
+        if (x - NET_X) * fwd >= 0.0:          # still on the other side of the net
+            continue
+        if (x - meet_x) * fwd <= 0.0:         # the ball has reached the meeting plane
+            if abs(y - at[1]) > 5.0:
+                return None                   # wide of them by more than a step: not a volley, a chase
+            return (t, (x, y, z)) if lo <= z <= hi else None
+    return None
 
 
 def movement_speed(p: Player) -> float:

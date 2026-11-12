@@ -104,6 +104,7 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str) 
         while length < CAP:
             p = players[hitter]
             other = players[1 - hitter]
+            swing, plan = "rally", None          # set again below; a serve sets swing = "serve"
             serving = (hitter == server_i and serve_no <= 2 and not rallied)
             if serving:
                 # A serve is struck from 8.8ft over the baseline, not at waist height, and it is judged by the
@@ -116,6 +117,7 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str) 
                 face, pw = T.aim_at(p, target, "serve", surface, wv, power=pace, contact=contact)
                 shot = T.strike(p, None, face=face, power=pw, aim=target[1], aim_x=target[0], shot="serve",
                                 surface=surface, wind=wv, contact=contact)
+                swing, plan = "serve", {"kind": "serve"}
                 ok, why = T.serve_verdict(shot)
             else:
                 contact = carry[hitter] or T.contact_point(p, "rally")
@@ -127,13 +129,25 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str) 
                 # right like a metronome (his note, 2026-11-11).
                 plan = T.choose_shot(p, other, where[hitter], where[1 - hitter], record, rng)
                 target = plan["target"]
+                # At the net the ball is volleyed — taken out of the air before it bounces, at whatever height it
+                # happens to be at, which is the reason a player comes to the net at all.
+                swing = "rally"
+                if incoming and abs(where[hitter][0] - T.NET_X) < T.VOLLEY_ZONE:
+                    vol = T.volley_contact(p, incoming["traj"], where[hitter])
+                    if vol:
+                        _t_hit, contact = vol
+                        swing = "volley"
+                        plan = dict(plan, power=plan["power"] * 0.88)
                 face, pw = T.aim_at(p, target, "rally", surface, wv, power=plan["power"], contact=contact)
-                shot = T.strike(p, incoming, face=face, power=pw, aim=target[1], aim_x=target[0], shot="rally",
+                shot = T.strike(p, incoming, face=face, power=pw, aim=target[1], aim_x=target[0], shot=swing,
                                 surface=surface, wind=wv, contact=contact)
                 ok, why = T.verdict(shot)
             aim = target[1]
             traj = shot["traj"]
             tpath = T.flight(shot["contact"], shot["v0"], wv, surface, cl=shot["spin"], trace=TRACE)["path"]
+            # The engine's own traj carries no samples (it did not ask for a trace), so the volley lookup had an
+            # empty list to search and never found a ball in the air. The traced path goes back onto the traj here.
+            traj["path"] = tpath
             lo, hi = corridor(p, incoming, shot["power"], aim, shot["contact"], surface, wv, aim_x=target[0])
 
             length += 1
@@ -145,6 +159,7 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str) 
                 "north": p.north,
                 "kind": "serve" if serving else "rally",
                 "ball": "serve" if serving else plan["kind"],
+                "swing": "serve" if serving else swing,
                 "face": round(shot["face"], 2),
                 "power": round(shot["power"], 1),
                 "aim": round(aim, 1),
@@ -195,6 +210,28 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str) 
             where[1 - hitter] = entry["run"]["to"] if meet["ok"] else got_to
             carry[1 - hitter] = (entry["run"]["to"][0], entry["run"]["to"][1],
                                  T.contact_point(other, "rally")[2])
+            # Recovery. The player who has just hit does not stay where the ball was: they go back behind the
+            # baseline to the centre, or forward to the net if the shot was an approach or a volley. Their `where`
+            # becomes that spot, so the ball the other player hits next is aimed at a receiver standing where a
+            # receiver actually stands. Before this the feet stayed at the contact point for the rest of the rally,
+            # which is why both players drifted forward and stayed in the forecourt.
+            came_in = (plan is not None and plan["kind"] == "approach") or swing == "volley"
+            spot = T.recovery_spot(p, (shot["contact"][0], shot["contact"][1]), came_in)
+            spd = T.movement_speed(p)
+            d_rec = math.hypot(spot[0] - shot["contact"][0], spot[1] - shot["contact"][1])
+            # A recovery is not bounded by the flight of the ball just struck: the player keeps moving while the
+            # other one is hitting, which is most of the two seconds. Capped at 2.5s, which is a long time to jog
+            # twenty feet and is where a real player would have arrived.
+            t_rec = min(2.5, d_rec / max(spd, 1.0))
+            ux = (spot[0] - shot["contact"][0]) / max(d_rec, 1e-6)
+            uy = (spot[1] - shot["contact"][1]) / max(d_rec, 1e-6)
+            where[hitter] = (shot["contact"][0] + ux * spd * t_rec, shot["contact"][1] + uy * spd * t_rec)
+            carry[hitter] = None
+            entry["recover"] = {"player": p.name, "north": p.north,
+                                "from": [round(shot["contact"][0], 2), round(shot["contact"][1], 2)],
+                                "to": [round(where[hitter][0], 2), round(where[hitter][1], 2)],
+                                "t0": 0.0, "t1": round(t_rec, 3), "dist": round(d_rec, 1),
+                                "speed": round(spd, 1), "arrived": bool(d_rec <= spd * traj["time"])}
             if not meet["ok"]:
                 entry["why"] += f" — {other.name} {meet['why']}"
                 point = {"winner": p.name, "reason": f"{other.name} did not reach it — {meet['why']}"}

@@ -520,6 +520,13 @@ const WINPOS = {};
       (PLAN[sh.run.player] = PLAN[sh.run.player] || []).push(
         { t0: t + sh.run.t0, t1: t + Math.min(sh.run.t1, dur), from: sh.run.from, to: sh.run.to });
     }
+    // And the recovery: the hitter walking back to the middle behind the baseline, or forward to the net. The
+    // record now says where they go and how long it takes; before this the feet stayed at the contact point for
+    // the rest of the rally, which is why both players drifted forward and never came back.
+    if (sh.recover) {
+      (PLAN[sh.recover.player] = PLAN[sh.recover.player] || []).push(
+        { t0: t + sh.recover.t0, t1: t + sh.recover.t1, from: sh.recover.from, to: sh.recover.to });
+    }
     t += dur + hold;
   }
 }
