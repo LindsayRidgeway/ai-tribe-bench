@@ -187,7 +187,34 @@ frame is a puppet on a stick. Verified with `?debug`: a player running direction
 Not done: the legs still walk *forward* during a back-pedal, which is a moonwalk. Reversing the stride is the next
 thing on this list, and it is small.
 
-## 8. What is still wrong
+## 8. Which shoulder, and what the arms do on the way
+
+Two notes from the founder, 2026-11-11:
+
+> For a backhand shot, the player turns their shoulder to the direction that they are hitting the ball.
+
+> If the players are remembering "racquet back," they run with their arm open for a forehand shot, but with their
+> arm crossing in front of their body when they run towards a backhand shot.
+
+**The shoulders.** The torso rotation used to be a fixed swing: coil one way on the take-back, release the other,
+mirrored for a backhand. It now also carries the direction of the shot — the signed angle from the net-facing
+direction to the target, taken from the record's `target`, applied through the follow-through. So a backhand hit
+cross-court ends with the right shoulder coming round towards where the ball went, and a backhand down the line
+does not.
+
+**The arms, during the run.** A player who has the racquet back shows it: the leading hand is solved to a
+prepared position, blended in by the same `windup` number that the rush model produces — a player who has not
+remembered gets the ready pose and nothing else.
+
+- forehand: hand out on the **hitting side**, slightly behind, at hip height — the arm **open**. Measured:
+  chest + 0.90ft right, 0.23ft behind, 0.54ft below the chest.
+- backhand: hand **across the chest** and in front, both hands on the grip, racquet head back over the left
+  shoulder — the arm **crossing**. Measured: chest − 0.76ft (left), 0.62ft in front, level with the chest.
+
+Those measured offsets are the check, not the intent: `?debug` prints them, and the arm solve reports 0.00ft of
+error against its own target, so the picture shows what the numbers say.
+
+## 9. What is still wrong
 
 - **A volley at a deep corner goes long.** Three of the seven in the sample above missed; the corner margin for
   a groundstroke is applied unchanged to a ball struck from 6ft from the net, where the same angle error covers

@@ -800,7 +800,17 @@ function tick(now) {
     const w = Math.max(0.18, 0.55 - 0.30 * rush);
     const ramp = isReceiver ? Math.max(0, Math.min(1, (tl - (seg.dur - w)) / w)) : 0;
     const windup = Math.max(ramp, isReceiver ? (1 - rush) : 0);
-    const turn = sgn * (-1.05 * windup + 0.62 * follow);
+    // The shoulders turn something like the direction the ball is being hit in, and the two halves of the founder's
+    // note of 2026-11-11 live here and three lines down: the coil turns away from the ball on the take-back, the
+    // release turns *through towards the target*, and on a backhand that is the whole look of the stroke — the
+    // right shoulder comes round towards where the ball is going.
+    let aimDelta = 0;
+    if (isHitter && sh.target) {
+      const yawTo = Math.atan2(sh.target[0] - sh.contact[0], sh.target[1] - sh.contact[1]);
+      aimDelta = ((yawTo - netYaw + Math.PI * 3) % (Math.PI * 2)) - Math.PI;   // signed: + is to their right
+    }
+    const turn = Math.max(-1.25, Math.min(1.25,
+      sgn * (-1.05 * windup + 0.62 * follow) + aimDelta * 0.9 * follow));
     const load = Math.max(windup, follow);
     legs(rig, phase, moving, new THREE.Vector3(pl.north ? 1 : -1, 0, 0), turn, load);
 
@@ -858,12 +868,50 @@ function tick(now) {
         solveArm(rig, grip, "R");
       }
     } else {
+      // Not striking. If the racquet has come back for the next ball, the arms show it, and they show it differently
+      // on each side — the founder, 2026-11-11: "If the players are remembering 'racquet back,' they run with their
+      // arm open for a forehand shot, but with their arm crossing in front of their body when they run towards a
+      // backhand shot." Open means the racquet hand away from the body on the hitting side; crossing means both
+      // hands across the chest with the racquet head back on the far side. A player who has not remembered gets
+      // neither, which is the ready pose — the same lerp, by the same `windup`.
       _face.set(pl.north ? 1 : -1, 0.12, 0).normalize();   // waiting for the ball, bed open to the net
-      const hand = rig.bones["handR"] || rig.bones["hand.R"];
-      const aim = new THREE.Vector3();
-      if (hand) { hand.getWorldPosition(aim); }
-      aim.addScaledVector(_face, 0.70).addScaledVector(_up, 1.55);
-      placeRacquet(rig, aim, _face);
+      const fwd = new THREE.Vector3(Math.sin(rig.yaw), 0, Math.cos(rig.yaw));     // the way the body is facing
+      const right = new THREE.Vector3(Math.cos(rig.yaw), 0, -Math.sin(rig.yaw));
+      const chest = new THREE.Vector3();
+      (rig.bones["chest"] || rig.root).getWorldPosition(chest);
+      const readyAim = new THREE.Vector3();
+      { const hand = rig.bones["handR"] || rig.bones["hand.R"];
+        if (hand) hand.getWorldPosition(readyAim);
+        readyAim.addScaledVector(_face, 0.70).addScaledVector(_up, 1.55); }
+      const prep = readyAim.clone();
+      if (isReceiver) {
+        if (back) {
+          // across the chest: both hands on the left, racquet head back and up behind the left shoulder
+          prep.copy(chest).addScaledVector(right, -0.55).addScaledVector(fwd, 0.30);
+          prep.y = chest.y - 0.35;
+        } else {
+          // open: the hitting hand back and away on the right, racquet head behind the right hip
+          prep.copy(chest).addScaledVector(right, 1.05).addScaledVector(fwd, -0.45);
+          prep.y = chest.y - 0.85;
+        }
+        const aim = prep.clone().lerp(readyAim, 1 - windup);
+        const lead = back ? "L" : "R";
+        const shaft = back
+          ? new THREE.Vector3().addScaledVector(right, -0.70).addScaledVector(fwd, -0.62).normalize()
+          : new THREE.Vector3().addScaledVector(right, 0.28).addScaledVector(fwd, -0.95).normalize();
+        solveArm(rig, aim.clone(), lead);
+        if (back) solveArm(rig, aim.clone().addScaledVector(shaft, 0.75), "R");
+        placeRacquet(rig, aim.clone().addScaledVector(shaft, 1.70), shaft.clone());
+        if (q.has("debug")) {
+          const h = (rig.bones["hand" + lead] || rig.root).getWorldPosition(new THREE.Vector3());
+          const rel = h.clone().sub(chest);
+          console.log("debug prep", pl.name, back ? "backhand" : "forehand", "windup", windup.toFixed(2),
+            "hand at chest+", `side ${rel.dot(right).toFixed(2)}`, `fwd ${rel.dot(fwd).toFixed(2)}`,
+            `up ${rel.y.toFixed(2)}`, `miss ${h.distanceTo(aim).toFixed(2)}`);
+        }
+      } else {
+        placeRacquet(rig, readyAim, _face);
+      }
     }
   }
 
