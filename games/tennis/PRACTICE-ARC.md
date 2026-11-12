@@ -13,13 +13,13 @@ today.
 
 | balls before today | rating | mean rally | longest | balls reached | mean run | first serve | double faults |
 |---|---|---|---|---|---|---|---|
-| 0 | 1.00 | 2.42 shots | 5 | 91% | 11.9ft | 54mph | 16 of 40 |
-| 25 | 2.13 | 2.58 shots | 5 | 93% | 12.1ft | 58mph | 9 of 40 |
-| 60 | 3.36 | 2.33 shots | 4 | 89% | 12.8ft | 59mph | 10 of 40 |
-| 120 | 4.79 | 2.75 shots | 9 | 85% | 12.7ft | 64mph | 4 of 40 |
-| 250 | 6.25 | 2.60 shots | 7 | 80% | 13.7ft | 69mph | 1 of 40 |
-| 400 | 6.79 | 3.55 shots | 9 | 89% | 13.0ft | 72mph | 0 of 40 |
-| 700 | 6.98 | 4.70 shots | 14 | 88% | 12.5ft | 73mph | 0 of 40 |
+| 0 | 1.00 | 2.62 shots | 7 | 84% | 11.3ft | 51mph | 15 of 40 |
+| 25 | 2.13 | 2.58 shots | 7 | 89% | 11.7ft | 56mph | 19 of 40 |
+| 60 | 3.36 | 2.38 shots | 5 | 89% | 13.3ft | 58mph | 11 of 40 |
+| 120 | 4.79 | 2.90 shots | 7 | 90% | 13.1ft | 63mph | 7 of 40 |
+| 250 | 6.25 | 3.83 shots | 15 | 89% | 12.4ft | 70mph | 0 of 40 |
+| 400 | 6.79 | 5.05 shots | 18 | 92% | 12.0ft | 72mph | 0 of 40 |
+| 700 | 6.98 | 4.25 shots | 14 | 91% | 11.9ft | 74mph | 1 of 40 |
 
 Three things move monotonically and are visible in the picture without a single number on screen: the serve gets
 faster and stops missing, rallies get longer, and the *reason* a point ends changes completely — a beginner nets the
@@ -29,9 +29,9 @@ ball or double-faults, a practised pair loses the point to a ball they cannot re
 
 | file | balls | rating | what you are watching |
 |---|---|---|---|
-| `demo3d-000.html` | 0 | 1.0 | half the points are double faults; slow serves; the return goes into the net |
-| `demo3d-120.html` | 120 | 4.8 | rallies exist — the serve lands, the ball comes back three times |
-| `demo3d.html` | 400 | 6.8 | 72mph serves, no double faults, and the point is won by hitting where the other is not |
+| `demo3d-000.html` | 0 | 1.0 | 44 shots in 20 points, 12 double faults; slow serves; the return goes into the net |
+| `demo3d-120.html` | 120 | 4.8 | 49 shots, rallies exist — the serve lands, the ball comes back three times |
+| `demo3d.html` | 400 | 6.8 | 109 shots, 72mph serves, no double faults, one rally of 18 |
 
 Two films would have been the obvious choice and the wrong one: the two ends of a career are not a comparison,
 because at zero practice there is no tennis in the film at all. The middle one is what a month of Sundays buys.
@@ -49,7 +49,14 @@ for `prep`:
 - **reaction** — `0.26 − 0.15·reach` seconds, which is the difference between being beaten to a ball and reaching it;
 - **the racquet** — `prep` decides whether it comes back while running, and the renderer uses it.
 
-The one column that does *not* improve and is not supposed to is "balls reached": a practised pair misses more balls
-than a beginner because they hit the ball where the other player cannot get to it. At zero practice nobody is
-beaten to a ball — the points are lost by the beginner, not won against them. That inversion is the whole difference
-between the two levels, and it is the reason the table is worth looking at.
+Every column moves in the direction a coach would want, and the *reason a point ends* changes species, which is the
+part a table cannot show and the film can. At zero practice the point is lost by the beginner: double fault, or the
+ball in the net, and nobody has to win it. At four hundred balls fourteen points in forty are lost to a ball that could not
+be reached, or to an aim that came off the side of the court. A beginner has the point taken off their own racquet;
+a practised player has it taken off them.
+
+One caveat worth keeping, because it is the honest half of the "better players miss more" argument: at the very top
+the effect is real and only just outweighed. By seven hundred balls the rally length has stopped climbing — 4.25
+against 5.05 at four hundred — because better hands win points that better legs would only have kept alive. The curve
+is not a straight line up, and it should not be: past a certain point, placement shortens rallies as much as fitness
+lengthens them.

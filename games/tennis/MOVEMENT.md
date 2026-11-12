@@ -451,9 +451,9 @@ Forty rallies each, both players on the same number of balls, clay (`lab/practic
 
 | level | mean rally | longest | balls reached | points ending out of reach | mean miss |
 |---|---|---|---|---|---|
-| 0 balls | 2.42 shots | 5 | 91% | 3 of 40 | 1.7ft short |
-| 120 balls | 2.75 shots | 9 | 85% | 9 of 40 | 2.7ft short |
-| 400 balls | 3.55 shots | 9 | 89% | 12 of 40 | 1.5ft short |
+| 0 balls | 2.62 shots | 7 | 84% | 7 of 40 | 2.1ft short |
+| 120 balls | 2.90 shots | 7 | 90% | 6 of 40 | 6.3ft short |
+| 400 balls | 5.05 shots | 18 | 92% | 14 of 40 | 2.4ft short |
 
 The inversion is not a defect: a beginner loses points by hitting the ball out, and a good pair lose them by being
 beaten. That is what the two levels look like from the umpire's chair, and it is why the beginner's *shots* are
@@ -466,7 +466,7 @@ the new test checks:
 | expert, twentieth shot of the rally | 0.6ft short — the same ball, tired legs |
 | beginner, first shot of the rally | 3.8ft short, and never in it |
 
-In the 20-point film: 70 shots, rallies `[3,4,9,3,6,2,2,1,4,2,2,4,2,2,6,2,1,3,7,5]`, and **4 of 20 points end
+In the 20-point film: 109 shots, rallies `[6,2,3,1,6,18,6,2,8,2,9,3,1,8,9,9,4,3,8,1]`, and **6 of 20 points end
 with a ball the other player could not reach** — all of them wide, and all of them described in the record
 with how many feet short and at what speed the player was running (`Gwen runs 17.4ft at 19.1ft/s and does not get
 there`). The other sixteen still end on an error of aim, which is the balance the founder asked for: not a game
@@ -480,3 +480,18 @@ film having zero wide balls. Two feet from the paint, at 60mph, is a winner: wit
 in a hundred ended on a ball nobody could reach, and the pair's rallies fell to 2.7 shots. The floor is now 4.0ft,
 which is where a player with good hands actually aims at a corner, and it costs the wide miss only at the good end
 (6 points in 40). A beginner never sees this number: their margin is 9° of face error, four times any floor.
+
+### The strike zone — and why the first interception model flattened the learning curve
+
+The meeting is the first moment the two clocks agree, and that first moment was almost always wrong. A ball leaves
+the bounce at court level and the search found the earliest instant at which the legs could be there — which is a
+ball at ankle height. Contact heights came out between 0.5ft and 8ft, and every shot was then struck from a height
+the stroke model had never seen: a ball dug off the shoelaces and a ball taken at shoulder height were both fed to
+a groundstroke solver built around a contact at about three feet.
+
+The cost was invisible in a still and obvious in the season table: the learning curve collapsed to a flat line
+(2.55 → 3.38 shots from zero practice to four hundred) because the better player reached more balls and therefore
+hit more of them from absurd heights. `STRIKE_LOW = 2.0` and `STRIKE_HIGH = 4.5` are the strike zone — waist to
+shoulder, the heights a player is *happy* to take the ball at — and the search now waits for one of those if the
+ball can be reached there at all, falling back to the earliest feasible moment only when it cannot. The curve came
+back at 5.05 shots for four hundred balls, and the contact heights are a median of 2.1ft.

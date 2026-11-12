@@ -29,6 +29,20 @@ SWAP_EVERY = 5    # points at one end before both players change ends, so neithe
 SERVE_MPH = (66.0, 18.0)   # a first serve, spread; scaled down by control so a beginner does not serve like a pro
 
 
+def cut(path, t_cut: float, end=None):
+    """The ball's samples up to the instant it is struck, with the striking point put on the end.
+
+    The traced path runs on past the bounce (and on past the lines, for a ball that missed) because the picture
+    wants the whole arc. The shot itself ends where a racquet meets it, so the samples after that moment belong to
+    the next stroke's story, not this one's. Without the cut the ball on screen would sit at the bounce mark for
+    the rest of the shot and then jump to the racquet.
+    """
+    out = [[round(a, 3), round(b, 3), round(c, 3)] for (t, a, b, c) in path if t <= t_cut]
+    if end is not None:
+        out.append([round(end[0], 3), round(end[1], 3), round(end[2], 3)])
+    return out
+
+
 def rating(balls: int) -> float:
     """The ladder the human asked for: the engine's own learning fraction, displayed on a 1.0-7.0 scale.
 
@@ -181,8 +195,13 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str,
             # A serve is out against the service court; a groundstroke is out against the lines.
             legal = (lambda pt, n=p.north: T.in_serve_court(pt, n)) if serving \
                 else (lambda pt, n=p.north: T.in_far_court(pt, n))
+            # `after_land` keeps the integration going past the bounce so the picture has the ball coming up off
+            # the court. The founder, 2026-11-12: "When the ball hits the court before the receiving player hits
+            # it, it would be good to see it hit the court and then bounce up." It is picture only and it stops
+            # at the second bounce; the path is cut below, where the ball is actually struck.
             tpath = T.flight(shot["contact"], shot["v0"], wv, surface, cl=shot["spin"], trace=TRACE,
-                             out_bounces=T.OUT_BOUNCES, legal=legal)["path"]
+                             out_bounces=T.OUT_BOUNCES, legal=legal,
+                             after_land=T.AFTER_LAND)["path"]
             # The engine's own traj carries no samples (it did not ask for a trace), so the volley lookup had an
             # empty list to search and never found a ball in the air. The traced path goes back onto the traj here.
             traj["path"] = tpath
@@ -283,6 +302,7 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str,
                 }
                 where[1 - hitter] = vol["feet"]
                 carry[1 - hitter] = (vol["contact"][0], vol["contact"][1], vol["contact"][2])
+                entry["path"] = cut(tpath, vol["t"], vol["contact"])
                 # The height the ball is at is the fact the next shot is chosen from.
                 incoming = {"speed_in": traj["speed_in"], "traj": traj, "volley": True,
                             "height": round(vol["contact"][2], 2),
@@ -317,9 +337,14 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str,
             # almost nothing (0.9ft from shoulder to ball, measured) and no amount of arm solving makes that look
             # like a stroke. A ball is struck two to three feet from the middle of the body, with the racquet
             # carrying it out to where it actually is.
-            carry[1 - hitter] = (traj["land"][0] if meet["ok"] else entry["run"]["to"][0],
-                                 traj["land"][1] if meet["ok"] else entry["run"]["to"][1],
-                                 T.contact_point(other, "rally")[2])
+            # The ball is struck where it IS, not where it bounced: after the bounce it comes up and travels on,
+            # and the player meets it somewhere above the court a few feet past the bounce. `meet["ball"]` is that
+            # point, and it is also where the picture is cut, so the ball on screen ends exactly on the racquet of
+            # the next stroke rather than snapping back to the bounce mark.
+            carry[1 - hitter] = (meet["ball"] if meet["ok"] else (entry["run"]["to"][0], entry["run"]["to"][1],
+                                                                  T.contact_point(other, "rally")[2]))
+            entry["path"] = cut(tpath, traj["time"] + meet["t_meet"] if meet["ok"] else deadline,
+                                meet["ball"] if meet["ok"] else None)
             if not meet["ok"]:
                 entry["why"] += f" — {other.name} {meet['why']}"
                 point = {"winner": p.name, "reason": f"{other.name} did not reach it — {meet['why']}"}

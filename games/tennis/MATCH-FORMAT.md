@@ -240,7 +240,29 @@ existed: `intercept()` answered yes to every ball in fifty points, so the record
 beaten to one. The rule, the four numbers that decide it and the measurements behind them are in `MOVEMENT.md`
 ("Nobody was ever beaten to a ball").
 
-In the 20-point film as it now stands: 70 shots, rallies `[3,4,9,3,6,2,2,1,4,2,2,4,2,2,6,2,1,3,7,5]`, four points
-end on a ball out of reach, six on a mishit, four on an aim that came off the side of the court, and six in the net. A beaten player runs as far as the clock allowed and stops short — nobody is teleported onto a contact — and
+In the 20-point film as it now stands: 109 shots, rallies `[6,2,3,1,6,18,6,2,8,2,9,3,1,8,9,9,4,3,8,1]`, six points
+end on a ball out of reach, ten on an error of aim, and four in the net. A beaten player runs as far as the clock allowed and stops short — nobody is teleported onto a contact — and
 the record carries `need`, `have`, `short` and `legs` for the run, so a season report can say how many feet short
 the losing player was, in which direction, and how tired they were when it happened.
+
+## A ball that bounces before it is struck — built 2026-11-12
+
+The founder: *"When the ball hits the court before the receiving player hits it, it would be good to see it hit the
+court and then bounce up."*
+
+It was not being shown, and the reason was two things at once. `flight()` traced a shot only as far as its first
+bounce, so the picture had no arc to draw after it; and the record gave the next stroke the *landing* point as its
+contact, so even a fixed trace would have snapped the ball back to the bounce mark at the moment of the hit.
+
+So: `after_land` is a new picture-only argument to `flight()` — how many seconds of the ball's own arc to keep
+integrating after it bounces (1.4s, which is `HIT_WINDOW_MAX` plus a frame or two). It is the same shape of change
+as the net cord and the out-bounce, for the same reason: the same integration from the state at the bounce, rather
+than a second copy of the physics that merely looks like the first. `land`, `time` and `bounce` still describe the
+first bounce, because every verdict in the engine is read off those three.
+
+And the contact moved to where the ball actually is. `meet["ball"]` — the ball's position at the moment the two
+clocks agree — is now both the carry point for the next stroke and the place the traced path is cut, so the ball on
+screen ends exactly on the next racquet instead of jumping to the bounce mark. Verified across the 20-point film:
+**57 of 57 balls that land in now show a rise after the bounce**, the path's last point equals the next shot's
+contact for every shot in a rally, and the ball is left at a median height of 2.1ft — waist high, where a ball is
+struck.

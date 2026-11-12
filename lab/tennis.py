@@ -105,6 +105,8 @@ NET_ABSORBS = 0.08         # the fraction of its own speed a ball rebounds off t
 NET_DROP = 0.25            # and of its vertical speed, before gravity takes the rest
 OUT_BOUNCES = 2            # bounces a ball that lands OUT is still allowed to make, for the picture
 OUT_SECONDS = 1.5          # and how long the picture may watch it do that
+AFTER_LAND = 1.4           # seconds of the arc a ball is given AFTER it bounces in, so the picture shows it rise
+#                            (HIT_WINDOW_MAX is 1.2, so this is the whole of the window plus a frame or two)
 VISIBLE_PAD = 22.0         # feet beyond each line that the court picture still shows, so a ball leaving frame
                            # is not followed into the dark and does not stretch the shot by walking there
 
@@ -141,7 +143,7 @@ def in_far_court(land, hitter_north: bool) -> bool:
 
 
 def flight(p0, v0, wind, surface, net_check=True, cl=0.0, trace=None, bounces=1,
-           out_bounces=0, legal=None, t_max=6.0):
+           out_bounces=0, legal=None, t_max=6.0, after_land=0.0):
     """Integrate one shot. Returns where it crossed the net, where it first landed, and the ball at that
     moment. No closed form: drag makes it a numeric problem, and doing it numerically is the honest way.
 
@@ -224,12 +226,25 @@ def flight(p0, v0, wind, surface, net_check=True, cl=0.0, trace=None, bounces=1,
                    "bounce": {"speed_out": math.sqrt(sum(c * c for c in after)),
                               "v": after, "angle": math.degrees(math.atan2(after[2], math.hypot(*after[:2])))},
                    "path": path}
+            judge = legal or on_court
+            # A ball that lands IN is not over when it bounces: it comes up, and the player who is about to hit it
+            # is running at it while it is in the air. The founder, 2026-11-12: "When the ball hits the court
+            # before the receiving player hits it, it would be good to see it hit the court and then bounce up."
+            # `after_land` is how many seconds of that arc the picture gets, and it is picture only, exactly like
+            # the out-bounce below: `land`, `time` and `bounce` all still describe the FIRST bounce, because every
+            # verdict in this engine is read off those three. The caller cuts the path where the ball is struck.
+            if after_land and trace and judge(land):
+                lift = flight((land[0], land[1], 0.0), after, wind, surface, net_check=False, cl=0.0,
+                              trace=trace, bounces=1, t_max=after_land)
+                off = t + f * dt
+                for (tt, xx, yy, zz) in lift["path"]:
+                    path.append((round(tt + off, 4), xx, yy, zz))
+                out["path"] = path
             # A ball that lands outside the lines is still a ball for another second. Integrated by recursion,
             # like the net cord and for the same reason: the same flight code, from the state at the bounce,
             # rather than a second copy of the physics written to look like it. `out_bounces=0` on the way down
             # is not belt and braces — without it the recursive call would test its own landings, find them out
             # too, and bounce for ever.
-            judge = legal or on_court
             if out_bounces and not judge(land):
                 carry = flight((land[0], land[1], 0.0), after, wind, surface, net_check=False, cl=0.0,
                                trace=trace, bounces=out_bounces, out_bounces=0, t_max=OUT_SECONDS)
@@ -850,6 +865,8 @@ REACTION_SKILL = 0.15     # of that, taken off by proficiency
 HIT_LOW = 0.5             # feet above the court: below this a ball is a dig, not a stroke
 HIT_HIGH = 9.5            # and above it, out of reach of the swing
 HIT_WINDOW_MAX = 1.2      # the cap on the flight's own window, for a bounce so high it hangs
+STRIKE_LOW = 2.0          # the strike zone: heights above the court a player is happy to take the ball at
+STRIKE_HIGH = 4.5         #   (waist to shoulder), which is what stops every ball being dug off the shoelaces
 FIRST_STEP = 42.0         # ft/s2: a split step and the first two strides, ~1.3g
 RACQUET_REACH = 4.5       # feet from the middle of the body to the middle of the strings, arm out and lunging
 PLAY_PAD = 4.0            # feet outside the lines a ball can still be run to and hit; beyond that there is no stroke
@@ -953,11 +970,16 @@ def intercept(p: Player, land, flight_time: float, bounce: dict, surface: str, f
     # ball reaches them. Before that the player is still running; after it the ball is past them. Searching from
     # the start rather than the end matters because a ball hit through the court passes the player — asking for
     # the latest moment finds a ball already behind the back fence and calls it unreachable.
-    t, ok = 0.0, False
+    def arc(t):
+        """Where the ball is `t` seconds after the bounce, and how high."""
+        h = HIT_LOW + max(0.0, v[2] * t - 0.5 * GRAVITY * t * t) if v[2] > 0.0 else 0.0
+        return (land[0] + vx * t, land[1] + vy * t), h
+
+    t, ok, fallback = 0.0, False, None
     ball, dist, need, slack = (land[0], land[1]), 0.0, 0.0, -1e9
-    best = (t, 0.0, 0.0, -1e9)     # t, dist, need, slack — the best the legs can do when they fall short
+    best = (0.0, 0.0, 0.0, -1e9)     # t, dist, need, slack — the best the legs can do when they fall short
     while t <= t_last + 1e-9:
-        ball = (land[0] + vx * t, land[1] + vy * t)
+        ball, height = arc(t)
         # A ball that has left the court is not chased: it has either won the point or is about to be called out,
         # and in neither case is there a stroke to play. Without this the receiver was sent thirty feet off the
         # back fence after a ball that landed on the sideline and kept going — the picture showed a player
@@ -970,11 +992,25 @@ def intercept(p: Player, land, flight_time: float, bounce: dict, surface: str, f
         if slack > best[3]:
             best = (t, dist, need, slack)
         if slack >= 0.0:
-            ok = True
-            break
+            # Reachable — but a player does not take a ball at shin height if waiting a quarter of a second brings
+            # it to the waist. The strike zone is the reason a rally looks like tennis rather than like a series of
+            # desperate digs, and the earliest feasible moment in the search was almost always the wrong one: the
+            # first version of this handed the engine contact heights between 0.5ft and 8ft, and every shot was
+            # then struck from a height the stroke model had never seen, which flattened the learning curve it was
+            # supposed to show.
+            if STRIKE_LOW <= height <= STRIKE_HIGH:
+                ok = True
+                break
+            if fallback is None:
+                fallback = (t, dist, need, slack)
         t += 0.01
     if not ok:
-        t, dist, need, slack = best
+        if fallback is not None:
+            t, dist, need, slack = fallback
+            ok = True
+        else:
+            t, dist, need, slack = best
+    ball, height = arc(t)
 
     clock = max(0.0, flight_time + t - react)        # the seconds of running the ball allows at this meeting
     covered = min(need, run_distance(clock, speed))
@@ -982,7 +1018,6 @@ def intercept(p: Player, land, flight_time: float, bounce: dict, surface: str, f
     ux, uy = ((ball[0] - home[0]) / dist, (ball[1] - home[1]) / dist) if dist > 1e-6 else (0.0, 1.0)
     meet = (ball[0] - ux * RACQUET_REACH, ball[1] - uy * RACQUET_REACH)   # the feet: a racquet's length short
     got = (home[0] + ux * covered, home[1] + uy * covered)                 # as far as the legs got
-    height = HIT_LOW + max(0.0, v[2] * t - 0.5 * GRAVITY * t * t) if v[2] > 0.0 else 0.0
     why = "" if ok else (f"{max(short, 0.1):.1f}ft short of it, beaten by the "
                          f"{'wide' if abs(ball[1] - home[1]) > abs(ball[0] - home[0]) else 'deep'} ball")
     return {"ok": ok, "why": why, "meet": meet, "got": got,
