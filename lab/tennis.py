@@ -381,6 +381,16 @@ def strike(p: Player, incoming: dict | None, face: float, power: float, aim: flo
     # landed 21ft across, because 71ft of travel multiplies a 32ft-hypotenuse angle by more than two.
     forward = 32.0 if aim_x is None else max(1.0, abs(aim_x - p0[0]))
     azimuth = math.atan2(aim - p0[1], forward)
+    # And the racquet is not pointed exactly where they meant to point it. Until 2026-11-11 the ball left the
+    # strings on precisely the line to the target in this axis — the only error in the model was on the face,
+    # which sets the loft and so the length — and so nothing in the game ever went wide. The founder: "Why don't
+    # the players ever hit the ball out on the sides? That may be the most common way of losing a point, but it
+    # should just be the natural outcome of misjudging racquet angle." It is the same misjudgement, on the other
+    # axis of the same racquet face: a couple of feet of aim error at rally depth for good hands, ten for none.
+    if not clean:
+        azimuth += math.radians(p.rng.gauss(0, AZIMUTH_SIGMA * (1 - control)))
+        if not sweet:
+            azimuth += math.radians(p.rng.gauss(0, AZIMUTH_FRAME))
     v = speed * MPH
     vx = v * math.cos(elevation) * math.cos(azimuth) * (1 if p.north else -1)
     vy = v * math.cos(elevation) * math.sin(azimuth)
@@ -429,6 +439,15 @@ def aim_at(p: Player, target, shot: str, surface: str, wind, power: float,
 CORNER_SLACK = 4.0         # feet inside the lines for a player who can put the ball where they look
 SCATTER_PER_DEGREE = 6.0   # feet of landing error per degree of face error, measured at rally depth (~70ft)
 SCATTER_SIGMAS = 2.0       # how many of the hitter's own standard deviations to stay inside the line by
+# Across the court it is a different error and a different margin. A mis-hit racquet face throws the ball off
+# line as well as off length, and a ball off line is out at the sideline; the length error can afford two sigma
+# because a long ball still has to be cleared by a foot, but a player who aims two sigma inside the sideline
+# never misses wide at all, which is what the film did until 2026-11-11: 0 wide balls in 116 shots.
+AZIMUTH_SIGMA = 9.0        # degrees of aim error at zero control, times (1 - control)
+AZIMUTH_FRAME = 14.0       # and what a ball hit off the frame adds on top
+AZIMUTH_PER_DEGREE = 1.30  # feet of landing error across the court per degree, at rally depth
+SIDE_SIGMAS = 1.6          # how far inside the sideline to aim, in the hitter's OWN lateral sigmas
+SIDE_SLACK_MIN = 2.0       # and never closer to the paint than this
 
 
 def corners_of(north: bool, control: float = 1.0) -> tuple[tuple[float, float], tuple[float, float]]:
@@ -449,8 +468,10 @@ def corners_of(north: bool, control: float = 1.0) -> tuple[tuple[float, float], 
     """
     sd = SCATTER_PER_DEGREE * 4.0 * (1.0 - control)      # feet, one standard deviation of the landing point
     slack = min(18.0, max(CORNER_SLACK, SCATTER_SIGMAS * sd))
+    lateral = AZIMUTH_PER_DEGREE * AZIMUTH_SIGMA * (1.0 - control)   # feet, one sigma across the court
+    side = min(18.0, max(SIDE_SLACK_MIN, SIDE_SIGMAS * lateral))
     x = slack if north else LENGTH - slack
-    return ((x, slack), (x, WIDTH - slack))
+    return ((x, side), (x, WIDTH - side))
 
 
 def side_of(y: float, north: bool) -> str:

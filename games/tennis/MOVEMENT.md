@@ -320,3 +320,30 @@ same figure lifted: `(0.45 across, 0.12 behind, 0.88 up)`, about 105 degrees and
 Measured with `?debug`, which now prints the shaft's angle: forehand running `shaft 97deg`, head 2.15ft to the
 hitting side and 0.29ft behind the hand; backhand running `shaft -97deg`, head 1.85ft to that side. Through the
 ball the same number reads 24 degrees, so the swing passes from beside the player to in front of them.
+
+## 10. Why nothing ever went wide — 2026-11-11
+
+> Why don't the players ever hit the ball out on the sides? That may be the most common way of losing a point, but
+> it should just be the natural outcome of misjudging racquet angle.
+
+He was right about the fact and right about the cause. Counted over a 116-shot film: **zero** balls landed outside
+the sidelines, and the widest ball in the whole match was 1.6ft inside the paint.
+
+Two faults, both mine:
+
+1. **The error was on one axis only.** `strike()` perturbed the face angle, which sets the loft and therefore the
+   *length*, and then pointed the ball at the target's y with `atan2` and no error at all. So a misjudged racquet
+   face could make a ball long or short and never wide. A racquet face is one plane: getting it wrong throws the
+   ball off line as well as off length.
+2. **The corner margin was the same on both axes**, and it was 2 sigma of the *length* error — 8ft at the hands a
+   400-ball player has. Aiming 8ft inside the sideline with no lateral error to speak of means never missing wide.
+
+The fix is the same misjudgement applied to the other axis: `AZIMUTH_SIGMA = 9°` of aim error at zero control
+times `(1 - control)`, 14° more off the frame, about 1.3ft of landing error per degree at rally depth. The corner
+is now two margins, not one: `2 sigma` of the length error inside the baseline, and `1.6 sigma` of the *lateral*
+error inside the sideline, never nearer than 2ft to the paint.
+
+Measured over 60 points at 400/500 balls, three seeds: wide 7% of shots, long 8%, into the net 8%, mean rally
+4.3-4.8 shots — the out rate barely moved (23-26% of shots, against 22-27% before) but the *mix* did: the widest
+ball in the film used to be inside the paint and now the widest are 3ft past it. Wind is SW 6mph, so a ball aimed
+four feet inside the line drifts out on its own, which is the point.

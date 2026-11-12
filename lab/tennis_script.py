@@ -25,7 +25,7 @@ import tennis as T  # noqa: E402
 
 CAP = 60          # the record's ceiling on a rally, stated rather than hidden
 TRACE = 0.02      # seconds between ball positions in the script
-SWAP_EVERY = 10   # points at one end before both players change ends, so neither is always the small one
+SWAP_EVERY = 5    # points at one end before both players change ends, so neither is always the small one
 
 
 def rating(balls: int) -> float:

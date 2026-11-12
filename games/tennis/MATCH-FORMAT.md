@@ -142,7 +142,8 @@ the frame tall and whoever stands at the other end is a smudge. Until now that w
 the whole film. In a match the ends change on their own schedule (the end of every odd game); practice rallies
 have no games, so the count here is points, and the default is ten.
 
-- `lab/tennis_script.py --swap-every N` (default 10, `0` never flips). One line of engine: at the boundary,
+- `lab/tennis_script.py --swap-every N` (default **5** since 2026-11-11 — "every 5 rallies rather than every 10";
+  `0` never flips). One line of engine: at the boundary,
   `pl.north = not pl.north` for both players. Nothing else needed changing, because every rule downstream already
   asks the player which end they are on rather than assuming: the serve corner, which side of the body is the
   forehand, the recovery spot behind *their* baseline, and which corner is "far" all read `pl.north`.
