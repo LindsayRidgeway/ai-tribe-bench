@@ -88,3 +88,46 @@ balls to 3.3ft at 400 — practice walking the target out to the line, now true 
 Not built, and it matters: the **diagonal rule**. A real serve must cross to the opposite box (deuce court to
 deuce court). Nothing here enforces it, because the service position is the middle of the baseline and both boxes
 are equally diagonal from it. It belongs with the scoreboard, where a player stands on the correct half.
+
+## A point that ends on the tape — built 2026-11-11
+
+> When the ball hits the net, show it bouncing off and onto the court for a bounce or two before ending the point.
+
+A point that ends in the net used to end when the ball reached the net: it stopped, and the point board came up
+over a ball frozen in mid-air. That is not what a net cord is. In tennis the ball hits the tape, most of its speed
+is eaten, and it drops at the foot of the net on the hitter's own side and bounces — a second and a half of ball
+still to watch, and the reason the umpire waits before calling.
+
+- `flight()` now takes a bounce count, `bounces=1`, and keeps integrating after the first bounce until it has
+  that many. Every existing caller still asks for one bounce and gets exactly what it got before.
+- A net cord recurses instead of stopping. `NET_ABSORBS = 0.08` of the speed survives, `NET_DROP = 0.25` of the
+  vertical speed, and the horizontal velocity is **negated** — the ball comes back towards the hitter, not
+  through the net. `land` stays `None`, so every caller that reads "did not reach the court" for the verdict is
+  unchanged, and the point is still lost; the ball merely keeps existing for another half-second.
+- The dribble is returned under `after_net` (`bounces`, `time`) and appended to the traced `path`, so the
+  renderer draws it from the same integration that judged the shot. Nothing in the page needed changing: the
+  shot is longer, so the film is longer.
+
+Measured on the current demo (59 shots, 6 of them into the tape):
+
+| shot | player | bounce 1 | bounce 2 | between | ball after the tape |
+|---|---|---|---|---|---|
+| 15 | Dmitri | 2.3 ft | 5.3 ft | 0.64 s | 0.66 s |
+| 20 | Gwen | 1.0 ft | 2.1 ft | 0.64 s | 0.66 s |
+| 23 | Dmitri | 0.6 ft | 1.6 ft | 0.42 s | 0.44 s |
+| 25 | Dmitri | 3.6 ft | 7.5 ft | 0.66 s | 0.68 s |
+| 54 | Gwen | 2.7 ft | 5.3 ft | 0.66 s | 0.68 s |
+| 58 | Dmitri | 2.8 ft | 5.9 ft | 0.70 s | 0.72 s |
+
+Distance is measured from the tape towards the hitter, and the direction is checked, not assumed: every one of
+the six is on the side of the net the shot was struck from. Two bounces, between 0.6 and 7.5 ft in front of the
+net, 0.4 to 0.7 seconds apart. The still is `stills/net-dribble.png` — rally 4, shot 5, "into the net at 2.5ft,
+0.8ft under the tape", ball on the clay at the foot of the net with its trail leading back to the striker.
+
+The first version of this kept the forward velocity: at `NET_ABSORBS = 0.20` the ball sailed six feet past the
+net and at `0.06` it landed at x=40.6, still the wrong side. The bug was not the size of the damping, it was the
+sign — and it looked perfectly plausible on a still until the landing points were printed.
+
+Not built, and it is fine: nothing rolls along the tape. A ball that clips the cord and climbs over is still a
+ball that clears the net here, with no loss of speed, because the contact is a plane and not a rope. It matters
+for a lucky let; it does not matter for a point that ends.

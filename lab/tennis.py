@@ -101,7 +101,11 @@ def wind_vector(direction: str, speed_mph: float) -> tuple[float, float]:
 
 
 # ---- the ball -------------------------------------------------------------------------------------
-def flight(p0, v0, wind, surface, net_check=True, cl=0.0, trace=None):
+NET_ABSORBS = 0.08         # the fraction of its own speed a ball rebounds off the tape with
+NET_DROP = 0.25            # and of its vertical speed, before gravity takes the rest
+
+
+def flight(p0, v0, wind, surface, net_check=True, cl=0.0, trace=None, bounces=1):
     """Integrate one shot. Returns where it crossed the net, where it first landed, and the ball at that
     moment. No closed form: drag makes it a numeric problem, and doing it numerically is the honest way.
 
@@ -120,6 +124,7 @@ def flight(p0, v0, wind, surface, net_check=True, cl=0.0, trace=None):
     wx, wy = wind
     dt, t = 0.001, 0.0
     net = None
+    done, lands = 0, []
     path, next_sample = [], 0.0
     while t < 6.0:
         rx, ry, rz = vx - wx, vy - wy, vz
@@ -134,8 +139,25 @@ def flight(p0, v0, wind, surface, net_check=True, cl=0.0, trace=None):
             f = (NET_X - x) / (nx - x)
             net = (y + f * (ny - y), z + f * (nz - z))
             if net[1] < net_height(net[0]):
-                return {"net": net, "land": None, "time": t,
-                        "speed_at_net": math.sqrt(vx * vx + vy * vy + vz * vz), "path": path}
+                # Into the tape. The point is over — "land" stays None, which is what every caller reads to mean
+                # "did not reach the court" — but the ball does not vanish: the net kills most of its speed and it
+                # drops to the hitter's side and bounces. The founder, 2026-11-11: "When the ball hits the net,
+                # show it bouncing off and onto the court for a bounce or two before ending the point." A point
+                # that ends on a net cord in tennis has a second and a half of ball left in it.
+                v_net = (vx + f * (nvx - vx), vy + f * (nvy - vy), vz + f * (nvz - vz))
+                frm = (NET_X - 0.12 * (1.0 if v_net[0] > 0 else -1.0), net[0], max(0.2, net[1]))
+                # It comes back, not through: a ball into the tape rebounds a couple of feet towards the hitter
+                # and drops at the foot of the net, which is what a spectator sees and what the umpire calls.
+                killed = (-v_net[0] * NET_ABSORBS, -v_net[1] * NET_ABSORBS, v_net[2] * NET_DROP)
+                after = flight(frm, killed, wind, surface, net_check=False, cl=0.0, trace=trace,
+                               bounces=2)
+                off = t + f * dt
+                if trace:
+                    for (tt, xx, yy, zz) in after["path"]:
+                        path.append((round(tt + off, 4), xx, yy, zz))
+                return {"net": net, "land": None, "time": off,
+                        "speed_at_net": math.sqrt(vx * vx + vy * vy + vz * vz), "path": path,
+                        "after_net": {"bounces": after.get("bounces", []), "time": after.get("time")}}
         if nz <= 0:                                       # first bounce on the court plane
             f = z / (z - nz) if z != nz else 1.0
             land = (x + f * (nx - x), y + f * (ny - y))
@@ -144,7 +166,15 @@ def flight(p0, v0, wind, surface, net_check=True, cl=0.0, trace=None):
             after = (vx2 * s["f"], vy2 * s["f"], -vz2 * s["e"])
             if trace:
                 path.append((round(t + f * dt, 4), round(land[0], 3), round(land[1], 3), 0.0))
-            return {"net": net, "land": land, "time": t + f * dt,
+            done += 1
+            lands.append({"land": land, "time": t + f * dt,
+                          "speed_out": math.sqrt(sum(c * c for c in after))})
+            if done < bounces:                      # keep going: the ball is still a ball
+                x, y, z = land[0], land[1], 0.0
+                vx, vy, vz = after
+                t += f * dt
+                continue
+            return {"net": net, "land": land, "time": t + f * dt, "bounces": lands,
                     "speed_in": math.sqrt(vx2 * vx2 + vy2 * vy2 + vz2 * vz2),
                     "bounce": {"speed_out": math.sqrt(sum(c * c for c in after)),
                                "v": after, "angle": math.degrees(math.atan2(after[2], math.hypot(*after[:2])))},
