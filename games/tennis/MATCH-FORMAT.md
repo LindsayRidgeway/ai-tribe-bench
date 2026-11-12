@@ -347,3 +347,27 @@ costs. MOVEMENT.md has the measurement, the two faults the fix itself introduced
 
 The film stats are unchanged by any of it — 95 shots, rallies
 `[2,1,3,2,3,4,10,9,12,7,4,1,3,2,2,5,6,2,6,11]` — because a walk between points is not a ball.
+
+### The court, from the founder's photograph — 2026-11-12
+
+He sent a photograph of a real court with five faults named: court colours, four extra line segments, net pole
+positions, the centre strap, and the dip where the strap pulls the net down. All five, in `replay3d.html`:
+
+- **Colours**: a surface is now a PAIR of colours — what is inside the lines and what is outside them — because
+  the photograph shows two different materials, not two shades of one. `clay` is orange inside and brick outside,
+  `hard` is exactly the photograph: green inside, brick-red run-off, `grass` is two greens. The film is a clay
+  court, so it stayed orange; the green one is there for the day the film moves to a hard court, which is a change
+  of tennis as well as a change of paint.
+- **Four extra line segments**: the service lines were drawn across the full doubles width, and a doubles alley
+  has no service line in it. They now run from singles sideline to singles sideline, which is four segments fewer.
+  The 2D page had the same four.
+- **Net poles**: they stood ON the doubles sidelines, which leaves both alleys open. The rule is 3ft outside the
+  doubles court, and the net is hung between them, so it is wider than the court it divides.
+- **Centre strap**: a white band from the cord to the ground at the middle of the court.
+- **The dip**: the cord is tensioned and straight at post height (3.5ft); what sags is the net under it, from 3.5ft
+  at each post to exactly 3.0ft at the strap. The mesh is built as a grid so the sag is in the geometry, and the
+  white tape along its top follows the curve.
+
+Two things had to be measured rather than assumed: the first sagging net was built across Z and turned a quarter
+turn, which put it down the middle of the service boxes; and a pale mesh at 55% alpha was invisible against the
+clay, so the mesh is dark cord with white tape, as a real one is.

@@ -142,8 +142,17 @@ scene.add(sun);
    Lines on a clay court are a texture problem, not a geometry problem. Drawing them into a canvas and
    mapping it onto one plane keeps the line where the rule says it is, at any camera angle, without a
    single quad of z-fighting. */
-const SURFACE = { clay: [0xb4, 0x55, 0x3a], hard: [0x46, 0x66, 0x7c], grass: [0x53, 0x6f, 0x42] };
-const CLAY = SURFACE[D.surface] || SURFACE.clay;
+// The founder's reference photograph, 2026-11-12: a green court with a brick-red run-off, and the two are
+// clearly two different materials rather than two shades of one. So a surface is now a pair of colours — what is
+// inside the lines, and what is outside them — and the outside is the darker, duller one. Clay keeps its orange,
+// because clay is orange; the green one is the picture.
+const SURFACE = {
+  clay:  { court: [0xb4, 0x55, 0x3a], out: [0x8a, 0x3f, 0x2a] },
+  hard:  { court: [0x3e, 0x7a, 0x4e], out: [0x8e, 0x3a, 0x2c] },
+  grass: { court: [0x53, 0x6f, 0x42], out: [0x3a, 0x4c, 0x30] },
+};
+const PAL = SURFACE[D.surface] || SURFACE.clay;
+const CLAY = PAL.court;
 
 function courtTexture() {
   const px = 26;                                   // pixels per foot
@@ -158,7 +167,7 @@ function courtTexture() {
   // there is no line to end it: "The spill wasn't on the sides, it was behind the baselines at both ends of the
   // court." Both are fixed here: 0.82 of the clay, and the light rectangle is the doubles court exactly, from
   // baseline to baseline and doubles sideline to doubles sideline, so every edge of it is a line.
-  const dark = `rgb(${CLAY.map(v => Math.round(v * 0.82)).join(",")})`;
+  const dark = `rgb(${PAL.out.join(",")})`;
   g.fillStyle = dark; g.fillRect(0, 0, cv.width, cv.height);
   g.translate(pad * px, (pad + ALLEY) * px);
   // the playing surface is the doubles width; the singles court is a set of lines on it, not a different colour
@@ -167,14 +176,16 @@ function courtTexture() {
   g.strokeStyle = "rgba(248,246,238,.95)"; g.lineWidth = 0.30 * px; g.lineCap = "butt";
   const line = (x0, y0, x1, y1) => { g.beginPath(); g.moveTo(x0 * px, y0 * px); g.lineTo(x1 * px, y1 * px); g.stroke(); };
   const top = -ALLEY, bot = WID + ALLEY;
-  // baselines and the service lines run the full doubles width; the singles sidelines sit inside them
-  line(0, top, LEN, top); line(0, bot, LEN, bot);
-  line(0, top, 0, bot); line(LEN, top, LEN, bot);
-  line(0, 0, LEN, 0); line(0, WID, LEN, WID);
-  line(NX - C.service_line, top, NX - C.service_line, bot);
-  line(NX + C.service_line, top, NX + C.service_line, bot);
-  line(NX - C.service_line, WID / 2, NX + C.service_line, WID / 2);
-  line(0, WID / 2, 0.9, WID / 2); line(LEN - 0.9, WID / 2, LEN, WID / 2);
+  // Baselines and sidelines run the full doubles width; the SERVICE lines do not. They stop at the singles
+  // sidelines, because the doubles alley has no service line in it — four segments that were being drawn across
+  // the alleys and are now not. The founder, 2026-11-12: "White lines (you have four extra line segments)."
+  line(0, top, LEN, top); line(0, bot, LEN, bot);                       // the doubles sidelines
+  line(0, top, 0, bot); line(LEN, top, LEN, bot);                        // the baselines
+  line(0, 0, LEN, 0); line(0, WID, LEN, WID);                           // the singles sidelines
+  line(NX - C.service_line, 0, NX - C.service_line, WID);                // service lines: singles width only
+  line(NX + C.service_line, 0, NX + C.service_line, WID);
+  line(NX - C.service_line, WID / 2, NX + C.service_line, WID / 2);      // the centre service line
+  line(0, WID / 2, 0.9, WID / 2); line(LEN - 0.9, WID / 2, LEN, WID / 2);  // the two centre marks
   const t = new THREE.CanvasTexture(cv);
   t.colorSpace = THREE.SRGBColorSpace;
   t.anisotropy = 8;
@@ -203,28 +214,67 @@ function netTexture() {
   cv.width = 512; cv.height = 64;
   const g = cv.getContext("2d");
   g.clearRect(0, 0, 512, 64);
-  g.strokeStyle = "rgba(240,240,232,.55)"; g.lineWidth = 1.2;
+  // dark cord rather than pale: a net is the darkest thing on a court, and drawn in near-white at low alpha it
+  // disappeared against the clay. The two inches of white canvas along the top are part of the net, and the
+  // reference photograph shows them, so they are drawn rather than left out.
+  g.strokeStyle = "rgba(28,26,24,.78)"; g.lineWidth = 1.6;
   for (let x = 0; x <= 512; x += 8) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, 64); g.stroke(); }
   for (let y = 0; y <= 64; y += 8) { g.beginPath(); g.moveTo(0, y); g.lineTo(512, y); g.stroke(); }
+  g.fillStyle = "rgba(246,243,234,.95)"; g.fillRect(0, 0, 512, 4);   // the white tape along the top of the mesh
   const t = new THREE.CanvasTexture(cv);
   t.wrapS = THREE.RepeatWrapping; t.repeat.set(6, 1);
   return t;
 }
-const netGeo = new THREE.PlaneGeometry(WID + ALLEY * 2, C.net_centre);
-const netMat = new THREE.MeshStandardMaterial({ map: netTexture(), transparent: true, alphaTest: 0.05,
-  side: THREE.DoubleSide, roughness: 0.9 });
-const net = new THREE.Mesh(netGeo, netMat);
-net.position.set(NX, C.net_centre / 2, WID / 2);
-net.rotation.y = Math.PI / 2;
-scene.add(net);
-const cord = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.10, WID + ALLEY * 2),
+// ---------- the net, as a real one hangs ----------
+// The posts stand 3ft OUTSIDE the doubles court, which is the rule and is what the reference photograph shows: the
+// net is wider than the court it divides. They were on the doubles sidelines, and a net hung between the sidelines
+// leaves the alleys open. The founder, 2026-11-12: "Net pole positions".
+const POST_OUT = 3.0;                                     // feet outside the doubles sideline, per the ITF rule
+const NET_HALF = (WID + ALLEY * 2) / 2 + POST_OUT;        // half the span between the posts
+// The cord is tensioned between posts at 3.5ft and it is straight. What sags is the NET under the cord: the centre
+// strap pulls the middle of the net down to exactly 3.0ft, so the top of the mesh runs from 3.5ft at each post to
+// 3.0ft in the middle. The founder named the effect: "Slight angle in net where it's pulled down by strap".
+const netTopAt = u => C.net_posts - (C.net_posts - C.net_centre) * (1 - (2 * u - 1) ** 2);
+{
+  const NXSEG = 48, rows = 10, pos = [], idx = [];
+  for (let i = 0; i <= NXSEG; i++) {
+    const u = i / NXSEG, x = -NET_HALF + 2 * NET_HALF * u, top = netTopAt(u);
+    // the span is along X here and the mesh is turned a quarter turn below, the same way the flat plane it
+    // replaced was: built across Z it ends up along the court's LENGTH, which is a net down the middle of the
+    // service boxes.
+    for (let j = 0; j <= rows; j++) pos.push(x, top * (j / rows), 0);
+  }
+  for (let i = 0; i < NXSEG; i++) for (let j = 0; j < rows; j++) {
+    const a = i * (rows + 1) + j, b = a + rows + 1;
+    idx.push(a, b, a + 1, b, b + 1, a + 1);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  const uv = [];
+  for (let i = 0; i <= NXSEG; i++) for (let j = 0; j <= rows; j++) uv.push(i / NXSEG * 6, j / rows);
+  geo.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
+  geo.setIndex(idx);
+  geo.computeVertexNormals();
+  const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: netTexture(), transparent: true,
+    alphaTest: 0.05, side: THREE.DoubleSide, roughness: 0.9 }));
+  mesh.position.set(NX, 0, WID / 2);
+  mesh.rotation.y = Math.PI / 2;
+  scene.add(mesh);
+}
+// the cord: straight, at post height, all the way across
+const cord = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.09, NET_HALF * 2),
   new THREE.MeshStandardMaterial({ color: 0xf5f2e8, roughness: 0.7 }));
-cord.position.set(NX, C.net_centre, WID / 2); scene.add(cord);
-// and the posts stand on the doubles sidelines, which is where a real net is hung; in singles play they would
-// carry singles sticks at the 27ft lines, and this court does not have any
-for (const z of [-ALLEY, WID + ALLEY]) {
-  const post = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, C.net_posts, 10),
-    new THREE.MeshStandardMaterial({ color: 0xdcd8cc, roughness: 0.6 }));
+cord.position.set(NX, C.net_posts, WID / 2); scene.add(cord);
+// the centre strap: a white band from the cord to the ground, holding the middle of the net at 3.0ft
+{
+  const strap = new THREE.Mesh(new THREE.BoxGeometry(0.06, C.net_posts, 0.16),
+    new THREE.MeshStandardMaterial({ color: 0xf2efe4, roughness: 0.85 }));
+  strap.position.set(NX, C.net_posts / 2, WID / 2);
+  scene.add(strap);
+}
+for (const z of [-ALLEY - POST_OUT, WID + ALLEY + POST_OUT]) {
+  const post = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, C.net_posts, 12),
+    new THREE.MeshStandardMaterial({ color: 0x2a2a2c, roughness: 0.55 }));
   post.position.set(NX, C.net_posts / 2, z); post.castShadow = true; scene.add(post);
 }
 

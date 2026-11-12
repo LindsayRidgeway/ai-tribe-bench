@@ -164,8 +164,9 @@ function drawGround(colour){
     [[0,top,0],[L,top,0]], [[0,bot,0],[L,bot,0]],          // the doubles sidelines
     [[0,0,0],[L,0,0]], [[0,W,0],[L,W,0]],                  // the singles sidelines
     [[0,top,0],[0,bot,0]], [[L,top,0],[L,bot,0]],          // baselines run the full doubles width
-    [[NX-C.service_line,top,0],[NX-C.service_line,bot,0]],
-    [[NX+C.service_line,top,0],[NX+C.service_line,bot,0]],
+    // service lines stop at the singles sidelines: the doubles alley has no service line in it (replay3d.html)
+    [[NX-C.service_line,0,0],[NX-C.service_line,W,0]],
+    [[NX+C.service_line,0,0],[NX+C.service_line,W,0]],
     [[NX-C.service_line,W/2,0],[NX+C.service_line,W/2,0]],
   ];
   for (const [a,b] of lines){
