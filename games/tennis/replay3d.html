@@ -523,6 +523,13 @@ for (const r of D.rallies) POINT[r.rally] = (r.point && r.point.winner) ? r.poin
    ball was a winner; on an error it showed the player who had just lost the point, underneath a sign naming the
    other one, which is what he saw as reversed. Nothing is invented: the winner is wherever the record last put
    them — their own contact point, or the end of their own run. */
+// Which shot each shot is a preparation for: the next ball the same player strikes. A receiver's racquet is coming
+// back for that ball, not for this one, so the record that says how rushed they are is the *next* entry's `rush`.
+const NEXT = {};
+{ const last = {};
+  for (const pl of D.players) last[pl.name] = null;
+  for (let i = D.shots.length - 1; i >= 0; i--) { const s = D.shots[i]; NEXT[s.n] = last[s.player]; last[s.player] = s; } }
+
 const WINPOS = {};
 {
   const pos = {};
@@ -753,10 +760,17 @@ function tick(now) {
     // A backhand is the same stroke played from the other side of the body, so the shoulders turn the other
     // way and the other arm leads. The record now says which it is (sh.hand), because the engine has always
     // known which side of the court the contact was on and never wrote it down.
-    const back = sh.hand === "back" && isHitter;
+    const nxt = NEXT[sh.n];
+    const rush = isReceiver && nxt ? (nxt.rush || 0) : 0;     // how late this player's racquet is for their next ball
+    const back = (isHitter ? sh.hand === "back" : (nxt ? nxt.hand === "back" : false));
     const sgn = back ? -1 : 1;
     const follow = isHitter ? Math.max(0, Math.min(1, 1 - tl / 0.38)) : 0;
-    const windup = isReceiver ? Math.max(0, Math.min(1, (tl - (seg.dur - 0.50)) / 0.50)) : 0;
+    // The racquet comes back on the way to the ball, not on arrival: a player who has the habit has it back for the
+    // whole run, and one who does not starts it late and gets it back over a shorter and shorter window. The
+    // founder's point of 2026-11-11, and the reason a beginner's mishits are mishits rather than bad aims.
+    const w = Math.max(0.18, 0.55 - 0.30 * rush);
+    const ramp = isReceiver ? Math.max(0, Math.min(1, (tl - (seg.dur - w)) / w)) : 0;
+    const windup = Math.max(ramp, isReceiver ? (1 - rush) : 0);
     const turn = sgn * (-1.05 * windup + 0.62 * follow);
     const load = Math.max(windup, follow);
     legs(rig, phase, moving, new THREE.Vector3(pl.north ? 1 : -1, 0, 0), turn, load);
@@ -780,7 +794,7 @@ function tick(now) {
       // body. Two hands need the *shoulders* to have turned far enough that the left arm can reach across, which
       // is what the flipped `turn` above is for: without it the left hand is asked to cross a chest that is still
       // facing the wrong way and the solver tears the arm out of its socket trying.
-      const lead = back ? "L" : "R";
+      const lead = (sh.hand === "back") ? "L" : "R";
       // The hand goes where the RACQUET puts it, not where the arm can reach: 1.6ft back from the ball along
       // the shaft, and the shaft lies along the direction the ball leaves in. The previous version put the hand
       // 1.6ft back along the line from the shoulder to the ball, which for a ball struck across the body asks
@@ -808,7 +822,7 @@ function tick(now) {
                     "left hand to ball", d(hL).toFixed(2), "k", k.toFixed(2));
 
       }
-      if (back) {
+      if (sh.hand === "back") {
         // the trailing hand on the handle, a foot below the leading one — and it lets go at the end, which is
         // what the follow-through through the left shoulder is
         const grip = aim.clone().addScaledVector(u, -1.05).lerp(wait, rest);

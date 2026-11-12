@@ -92,7 +92,53 @@ shot while the target was 1.6ft away.
    (elbows point down), reading both bone lengths off the rig. The hand now lands 1.60ft from the ball, which
    is what was asked for.
 
-## 5. What is still wrong
+## 5. The racquet comes back on the way, or it does not come back in time
+
+The founder, 2026-11-11:
+
+> Inexperienced players don't know to get their racquets back as they're running, and it leads to mishits because
+> they can't get the racquet back fast enough. Good players virtually always get their racquets back while
+> running to the ball, but on the side that they'll be hitting from. I'm not sure how quickly players learn to do
+> this; after the earliest stage, they'll remember to do it more and more, but it won't be an instant
+> transformation.
+
+This is a fourth skill, `prep`, and it is not another copy of `control`. `strike` multiplies the face error by
+`1 - 0.45·rush` and the chance of hitting the strings by `1 - 0.55·rush`: a rushed player both sprays and frames.
+
+**Rush is arithmetic, not a dice roll.** The racquet takes `PREP_TIME` = 0.55 s to come back. A player with the
+habit takes it back *while* the legs work, so the run and the preparation overlap and all they need is
+`max(run, prep)`. A player without it does them one after another — run, arrive, then start the racquet — and
+needs `run + prep`. `prep` slides between the two, and `rush = (required - flight) / required`. Learning does not
+make the ball slower; it makes the two things happen at once.
+
+**The curve has an onset, and it is slower than the others.** `prep = 1 - exp(-max(0, balls - 60) / 240)`: zero
+for the first sixty balls (the earliest stage), 0.34 at 160, 0.63 at 300, 0.86 at 600. Striking a ball and
+remembering to prepare for it are different skills and do not arrive together.
+
+Measured over 30 points at each standard —
+
+| balls | shots rushed | miss rate when rushed | miss rate when set | mean rally |
+|---|---|---|---|---|
+| 0 | 25/25 | 64% | — | 2.6 |
+| 60 | 29/30 | 72% | — | 2.5 |
+| 150 | 36/37 | 78% | — | 2.7 |
+| 300 | 35/124 | 43% | 17% | 5.4 |
+| 600 | 6/172 | 50% | 16% | 6.9 |
+
+At 150 balls every ball is rushed and a rally is under three shots. That is not a bug in the arithmetic, it is
+what that standard of player is, and it means the demo has to be generated with practised players or it shows
+nothing but mistakes.
+
+**In the picture** the windup now depends on it: a prepared receiver has the racquet back and the shoulders turned
+for the whole run; a rushed one starts the backswing late, over `0.55 - 0.30·rush` seconds instead of 0.55. The
+shoulders also turn towards the side they will hit from, which is the founder's second half-sentence — "on the
+side that they'll be hitting from" — taken from the next shot's recorded hand rather than guessed.
+
+Still not built: the racquet coming back *to the right side* as a visible pose change during the run (the arms
+hold the ready position until the windup ramps; only the shoulders and the knees know), and the feet, which are
+still planted through the hit.
+
+## 6. What is still wrong
 
 - **A volley at a deep corner goes long.** Three of the seven in the sample above missed; the corner margin for
   a groundstroke is applied unchanged to a ball struck from 6ft from the net, where the same angle error covers

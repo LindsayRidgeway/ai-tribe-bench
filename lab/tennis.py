@@ -213,12 +213,42 @@ class Player:
     rng: random.Random = field(default_factory=lambda: random.Random())
 
     def skill(self, attr: str) -> float:
-        """Three attributes, all asymptotic in balls hit. The first hundred balls are worth more than the
-        next three hundred, which is what learning a motor skill looks like."""
+        """Four attributes, all asymptotic in balls hit. The first hundred balls are worth more than the
+        next three hundred, which is what learning a motor skill looks like.
+
+        `prep` is the odd one out and belongs to the founder, 2026-11-11: "inexperienced players don't know to
+        get their racquets back as they're running, and that leads to mishits because they can't get the racquet
+        back fast enough. Good players virtually always get their racquets back while running to the ball, but on
+        the side that they'll be hitting from." It has an onset — it does nothing for the first sixty balls, which
+        is the earliest stage — and then a slower curve than the others (240 rather than 120), because remembering
+        to take the racquet back is not the same skill as striking the ball and does not arrive with it. At 60
+        balls it is 0, at 160 it is 0.34, at 300 it is 0.63, at 600 it is 0.86.
+
+        It is not a second copy of `control`: a player with good hands and no preparation is rushed on every wide
+        ball, and a player with ordinary hands and good preparation is never rushed at all. The two multiply into
+        the same error only on the day they are both bad."""
         learned = 1 - math.exp(-(self.practice + self.shots) / 120.0)
         return {"control": 0.18 + 0.74 * learned,
                 "sweet": 0.72 + 0.26 * learned,
-                "reach": 0.35 + 0.60 * learned}[attr]
+                "reach": 0.35 + 0.60 * learned,
+                "prep": 1 - math.exp(-max(0.0, self.practice + self.shots - 60.0) / 240.0)}[attr]
+
+    def rush(self, run_time: float, flight_time: float) -> float:
+        """How rushed this player is on a particular ball, 0 to 1.
+
+        The racquet takes `PREP_TIME` seconds to come back, and the ball is in the air for `flight_time`. A player
+        who has learned to do it while running takes the racquet back *while* the legs are working, so the two
+        overlap and all they need is the longer of the two: `max(run, prep)`. A player who has not does them one
+        after the other — run, arrive, and only then start the racquet — and needs `run + prep`. `prep` slides
+        between the two, so the same ball, the same legs and the same court give a different answer as the habit
+        arrives. Learning does not make the ball slower; it makes the two things happen at once."""
+        owed = PREP_TIME
+        series = max(0.05, run_time) + owed          # run first, then take the racquet back
+        over = max(max(0.05, run_time), owed)        # racquet back while running
+        required = over + (1.0 - self.skill("prep")) * (series - over)
+        if flight_time >= required:
+            return 0.0
+        return max(0.0, min(1.0, (required - flight_time) / max(required, 0.2)))
 
     def hands(self, pace_in: float = 40.0) -> float:
         """Control as it is when a ball is actually coming at you. A fast ball takes away the time to set up, so
@@ -276,6 +306,9 @@ def spin_for(shot: str, face: float, power: float) -> float:
     return max(-0.12, min(0.30, 0.013 * (path - face)))
 
 
+PREP_TIME = 0.55            # seconds to take the racquet back, for a player who does not overlap it with the run
+
+
 def strike(p: Player, incoming: dict | None, face: float, power: float, aim: float,
            shot: str, surface: str, wind: tuple[float, float], clean: bool = False,
            contact=None, aim_x=None) -> dict:
@@ -284,10 +317,15 @@ def strike(p: Player, incoming: dict | None, face: float, power: float, aim: flo
     pace_in = (incoming or {}).get("speed_in", 40.0)          # mph
     # a fast ball gives less time to set up, so the same player is less accurate returning it
     control = p.hands(pace_in)
+    # And a ball they were late to the racquet for is a ball they hit worse. `rush` comes from the script, which
+    # knows the flight time and the run; it is 0 for a player who got the racquet back on the way.
+    rush = max(0.0, min(1.0, (incoming or {}).get("rush", 0.0)))
+    control *= 1.0 - 0.45 * rush
 
     if not clean:
         p.shots += 1
-    sweet = True if clean else p.rng.random() < p.skill("sweet")
+    # a rushed player frames more balls: the racquet is still travelling when the ball arrives
+    sweet = True if clean else p.rng.random() < p.skill("sweet") * (1.0 - 0.55 * rush)
     # The hands are not exact. 4 degrees of face error at the start, a third of a degree once a few hundred
     # balls have been hit; the first version used 7.5, which was wider than the whole window between 'net' and
     # 'long' at rally pace, so a beginner's results were pure noise and no amount of reading them helped.
@@ -319,7 +357,7 @@ def strike(p: Player, incoming: dict | None, face: float, power: float, aim: flo
     vz = v * math.sin(elevation)
     cl = spin_for(shot, face_actual, power_actual)
     traj = flight(p0, (vx, vy, vz), wind, surface, cl=cl)
-    return {"player": p, "shot": shot, "speed": speed, "sweet": sweet, "contact": p0,
+    return {"player": p, "shot": shot, "speed": speed, "sweet": sweet, "contact": p0, "rush": rush,
             "traj": traj, "face": face_actual, "power": power_actual, "spin": cl,
             # v0 is the ball as it left the strings, kept so a renderer can integrate the same shot
             # rather than approximate it. Nothing that existed before reads this key.

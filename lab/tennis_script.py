@@ -165,6 +165,7 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str) 
                 "kind": "serve" if serving else "rally",
                 "ball": "serve" if serving else plan["kind"],
                 "swing": "serve" if serving else swing,
+                "rush": round(float(shot.get("rush", 0.0)), 3) if not serving else 0.0,
                 # Which side of the body the ball is on, and therefore which stroke it is. A right-hander's
                 # forehand is struck on their right-hand side of the court and their backhand on their left;
                 # until 2026-11-11 the record did not say, so the renderer solved the right arm at every ball
@@ -251,7 +252,8 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str) 
                 carry[1 - hitter] = (vol["contact"][0], vol["contact"][1], vol["contact"][2])
                 # The height the ball is at is the fact the next shot is chosen from.
                 incoming = {"speed_in": traj["speed_in"], "traj": traj, "volley": True,
-                            "height": round(vol["contact"][2], 2)}
+                            "height": round(vol["contact"][2], 2),
+                            "rush": other.rush(vol["step"] / max(T.movement_speed(other), 1.0), vol["t"])}
                 hitter = 1 - hitter
                 continue
 
@@ -286,7 +288,11 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str) 
                 entry["why"] += f" — {other.name} {meet['why']}"
                 point = {"winner": p.name, "reason": f"{other.name} did not reach it — {meet['why']}"}
                 break
-            incoming = {"speed_in": traj["speed_in"], "traj": traj}
+            # How much time the other player had to get the racquet back for it. The run is the time their legs
+            # need for the ground they have to cover; the flight is the ball's own; whether those two overlap is
+            # the habit in question (Player.rush).
+            run_time = min(traj["time"], entry["run"]["dist"] / max(entry["run"]["speed"], 1.0))
+            incoming = {"speed_in": traj["speed_in"], "traj": traj, "rush": other.rush(run_time, traj["time"])}
             hitter = 1 - hitter
 
         # Credit the point to the corner it was aimed at, if the last ball is the one that decided it.
