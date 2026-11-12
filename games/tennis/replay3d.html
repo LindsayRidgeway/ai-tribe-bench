@@ -382,7 +382,7 @@ function aimBone(bone, dir) {
    with the ground covered, not with the clock. That way the feet keep pace with the body however fast it is going
    — which is the whole difference between a figure that runs and a figure that is pushed along on castors.
    Nothing here is animation data; it is a rule about where the legs are given how far the player has travelled. */
-function legs(rig, phase, moving, face, turn, load) {
+function legs(rig, phase, moving, face, turn, load, idle) {
   // `turn` is the twist about the body's own vertical, in radians: away from the net on the wind-up, through on
   // the follow-through. It reaches the legs because a stroke is not an arm — the pelvis turns, the knees load,
   // and only then does the racquet move. Until 2026-11-11 none of that was here: the bodies stood square and the
@@ -398,20 +398,34 @@ function legs(rig, phase, moving, face, turn, load) {
     const rest = b.userData.rest || (b.userData.rest = b.quaternion.clone());
     b.quaternion.copy(rest).multiply(dq.setFromEuler(de.set(x, y, z)));
   };
+  // NOBODY STANDS STILL. Until 2026-11-12 a player who had stopped was a frozen version of the walk cycle: the
+  // stride amplitude fell to 12% and the phase stopped advancing, because the phase is built from ground covered
+  // and their ground had stopped. So the figure landed in the middle of a stride and stayed there — the founder,
+  // 2026-11-12: "Do you intend for the players to freeze for an instant just before hitting the ball? In reality
+  // there would be no such pauses; real players are in motion the entire point. Even when they are waiting to
+  // receive and are already in position, they shift their weight as the ball approaches."
+  //
+  // He is right, and the freeze is an accident of that one line. So `still` fades the stride OUT — a player who
+  // has stopped does not stay mid-step — and fades in a stance that moves: the weight rocks from one leg to the
+  // other at about one cycle a second, the knees stay soft, and the pelvis rolls over the loaded leg. `idle` is
+  // film time, not distance, which is the whole point: it advances whether or not the record moves them.
+  const still = moving ? 0 : 1;
+  const idleS = Math.sin(idle || 0);
   const live = moving ? 1 : 0.12;                       // standing still is a very small version of walking
   // The swing is set so the foot travels as far as the body does in one step (0.42 of its height), which is what
   // stops the feet skimming along the ground. A bigger swing looks more athletic and slides; the phase is already
   // driven by distance, so the stride is honest at any speed and the legs simply cycle faster when the player runs.
   const A = 0.45 * live * (1 + 0.45 * load), K = 0.85 * live * (1 + 0.30 * load);
   const swing = p => Math.max(0.05, Math.sin(p + 0.75));
-  set("thigh.L", -A * Math.sin(phase), 0, -0.09);
-  set("thigh.R", -A * Math.sin(phase + Math.PI), 0, 0.09);
-  set("shin.L", K * swing(phase), 0, 0);
-  set("shin.R", K * swing(phase + Math.PI), 0, 0);
+  const stride = 1 - still;
+  set("thigh.L", -A * Math.sin(phase) * stride - still * (0.05 + 0.05 * idleS), 0, -0.09);
+  set("thigh.R", -A * Math.sin(phase + Math.PI) * stride - still * (0.05 - 0.05 * idleS), 0, 0.09);
+  set("shin.L", K * swing(phase) * stride + still * (0.20 - 0.12 * idleS) + 0.10 * load, 0, 0);
+  set("shin.R", K * swing(phase + Math.PI) * stride + still * (0.20 + 0.12 * idleS) + 0.10 * load, 0, 0);
   set("foot.L", -0.25 * (moving ? 1 : 0), 0, 0);
   set("foot.R", -0.25 * (moving ? 1 : 0), 0, 0);
-  set("spine", -0.05 - 0.09 * live - 0.10 * load, turn * 0.35, 0.06);
-  set("hips", 0.04 * live, turn * 0.30, 0);
+  set("spine", -0.05 - 0.09 * live - 0.10 * load - still * 0.02, turn * 0.35 + still * 0.03 * idleS, 0.06);
+  set("hips", 0.04 * live + still * 0.02, turn * 0.30, still * 0.06 * idleS);
   chestTwist(rig, turn * 0.45);
   arms(rig, face, phase);
 }
@@ -972,7 +986,20 @@ function tick(now) {
     const turn = Math.max(-1.25, Math.min(1.25,
       sgn * (-1.05 * windup + 0.62 * follow) + aimDelta * 0.9 * follow));
     const load = Math.max(windup, follow);
-    legs(rig, phase, moving, new THREE.Vector3(at ? 1 : -1, 0, 0), turn, load);
+    // The clock the stance moves on. One weight shift a second, and the body it moves: a player waiting for a
+    // ball is up on the balls of their feet, so the whole figure rocks sideways over the loaded leg and bobs a
+    // little. Both are switched off while they run (the gait is the motion then) and eased out over the
+    // follow-through, because a body that has just struck a ball is not idling — it is falling back into balance.
+    const idlePhase = T * 2 * Math.PI / 1.15;
+    const idleAmt = (moving ? 0 : 1) * (sh.player === pl.name ? Math.min(1, Math.max(0, tl / 0.5)) : 1);
+    if (idleAmt > 0) {
+      const sway = 0.11 * Math.sin(idlePhase) * idleAmt;
+      rig.root.position.x += -Math.cos(rig.yaw) * sway;      // right = forward x up, as in the stroke
+      rig.root.position.z += Math.sin(rig.yaw) * sway;
+      rig.root.position.y += 0.020 * (1 - Math.cos(idlePhase * 2)) * idleAmt;
+      rig.root.position.y -= 0.05 * load * idleAmt;          // and the knees load as the ball arrives
+    }
+    legs(rig, phase, moving, new THREE.Vector3(at ? 1 : -1, 0, 0), turn, load, idlePhase);
 
     if (q.has("debug")) {
       // The racquet's own box is measured *because* it is not parented to anything: it is placed every frame and
@@ -1255,6 +1282,17 @@ function tick(now) {
    strike, which is what decides whether the ball can be on the frame's strings at all. One line per shot, read
    out of the same whereAt() the film uses rather than re-derived here. The arm and the racquet are 3.6ft
    together, so a contact further than that from the shoulder is a stroke nobody could have played. */
+/* And where the bodies actually are, because "is anybody moving" is a question a still cannot answer and a
+   number can. Root position, the two thighs' world positions, and the yaw: sample it at two film times and the
+   difference is the answer. */
+if (q.has("debug")) window.__pose = () => D.players.map(pl => {
+  const r = rigs[pl.body];
+  if (!r) return null;
+  const at = n => (r.bones[n] || r.root).getWorldPosition(new THREE.Vector3()).toArray().map(v => +v.toFixed(4));
+  return { name: pl.name, root: [r.root.position.x, r.root.position.y, r.root.position.z].map(v => +v.toFixed(4)),
+           thighL: at("thighL"), shinL: at("shinL"), handR: at("handR"), yaw: +(r.yaw || 0).toFixed(4) };
+});
+
 if (q.has("debug")) window.__audit = () => SEG.map(s => ({
   n: s.sh.n, player: s.sh.player, kind: s.sh.kind, t: s.start,
   pos: whereAt(s.sh.player, s.start), contact: s.sh.contact, met: s.sh.run ? !!s.sh.run.met : null,

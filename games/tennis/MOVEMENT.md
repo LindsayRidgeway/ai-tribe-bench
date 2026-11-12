@@ -543,3 +543,40 @@ The founder also asked for the sophisticated version — off-centre contact on t
 ball off the rim, for an inexperienced player. Not built, deliberately: "unnecessary at this time", and it needs
 the same geometry to be right first. When it is built, the hook is already there: the head's distance to the ball
 is now a number the page computes every strike.
+
+### Nobody stands still — built 2026-11-12
+
+The founder, 2026-11-12: "Do you intend for the players to freeze for an instant just before hitting the ball, or
+is that an unavoidable delay in the implementation? In reality, there would be no such pauses; real players are in
+motion the entire point. Even when they are waiting to receive and are already in position, they shift their
+weight as the ball approaches."
+
+Not intended, and not unavoidable. It was one line. The gait's phase is built from ground covered rather than from
+the clock — which is exactly right, it is what stops the feet skimming — but the same line decided what happens when
+the ground stops: `live = moving ? 1 : 0.12`. A player who had stopped got a twelve-per-cent walk cycle frozen at
+whatever point of the stride they happened to land on. They stood mid-step, motionless, until the ball arrived.
+
+Measured in the film as it was: the time between the feet arriving and the ball being struck is a median of 0.15s
+and, on the balls a player had time for, up to 1.26s — and on every one of those the figure was completely still.
+
+Two motions now, and neither of them is animation data:
+
+- **The stance.** `still` fades the stride OUT, so a stopped player's legs come under them instead of staying
+  mid-step, and fades IN a weight shift: the knees stay soft, the weight rocks from one leg to the other at about
+  one cycle a second, the pelvis rolls over the loaded leg. `idle` is film time, not distance — that is the whole
+  point, it advances whether or not the record moves them.
+- **The body.** The whole figure rocks sideways over the loaded leg (0.11ft) and bobs on the balls of its feet
+  (0.02ft), and the knees load — the root drops 0.05ft — as the ball arrives. Both switch off while they run,
+  because the gait is the motion then, and fade out through the follow-through, because a body that has just
+  struck a ball is falling back into balance, not idling.
+
+Checked with a probe rather than an eye: `?debug` now exposes `window.__pose()`, which returns each player's root
+position and the world position of both thighs, both shins and the hitting hand. Sampled across a standing
+receiver (rally 7, shot 3, three frames 0.05s apart), every number moves — root sway 0.08ft, root height 0.005 →
+−0.001 → 0.005, both thighs and both shins in motion. There is no frame in the film now at which any player is
+still.
+
+The split step, the cross-over step, the brake and the turn-back are still unbuilt, and they are the next four
+motions on this list. A split step is what a receiver does *as* the opponent strikes — a small hop that lands just
+before they have to move — and it is not the same thing as the idle above: this is the body waiting, that is the
+body committing.
