@@ -347,3 +347,57 @@ Measured over 60 points at 400/500 balls, three seeds: wide 7% of shots, long 8%
 4.3-4.8 shots — the out rate barely moved (23-26% of shots, against 22-27% before) but the *mix* did: the widest
 ball in the film used to be inside the paint and now the widest are 3ft past it. Wind is SW 6mph, so a ball aimed
 four feet inside the line drifts out on its own, which is the point.
+
+## The frame that grew into a cigar — fixed 2026-11-11
+
+> Rendering of the male player starts to deteriorate around 5-7 rallies. The racquet starts to grow into a larger
+> and larger cigar shape.
+
+The racquet was never the thing that grew. Measured on the playing film, `debug racqsize` reported its own box at
+**2.20ft on its long axis on every sample**, across two loops and every rally: the frame is built in feet, placed
+at the hand every frame, and is not parented to the body, so nothing can scale it. What grows is the **arm**, and
+a `Box3` of a skinned mesh cannot see it, because skinning happens on the GPU.
+
+`rotateWorld()` composed three quaternions:
+
+```js
+bone.parent.getWorldQuaternion(tmpQ2);            // decomposed from a matrix that carries scale
+bone.quaternion.premultiply(tmpQ2).premultiply(qWorld).premultiply(inv);
+```
+
+`getWorldQuaternion()` decomposes the parent's world matrix, and the extraction assumes an orthonormal basis — on a
+matrix with *any* scale it returns a quaternion whose length is not 1. Compose three of those and the bone's own
+quaternion comes out long; a bone's matrix is `position * quaternion * scale`, so the bone silently **acquires a
+scale of |q|²**, and its children inherit it, and theirs. Positive feedback, per frame, for ever.
+
+Measured with a per-bone world-scale guard (`?debug`), same film, after eleven minutes of play:
+
+| bone | world scale (nominal 3.281) | quaternion length |
+|---|---|---|
+| `chest` | 3.281 / 3.281 / 3.281 | 1.0000 |
+| `upperarmR` | 3.280 / 3.280 / 3.280 | 0.9999 |
+| `forearmR` | 3.947 / 3.429 / **3.984** | 1.0637 |
+| `handR` | 3.958 / 4.022 / 3.373 | 1.0000 |
+| `forearmL` | 3.269 / 3.266 / 3.277 | 0.9941 |
+
+Only the bones aimed through `rotateWorld()` drift (never `chest`, which is set directly). Non-uniform, so the
+forearm and the rigid-skinned hand stretch along one axis and squash on another: a rounded lump on the end of a
+long tube, with the racquet at the end of that. Grown from 0% at T 0, 1.3% at T 76, 17% at 250s, 21% by eleven
+minutes. **A paused still never shows it** — `?t=` and `?shot=` render two frames, and two frames of drift is
+nothing — which is why four sessions of stills missed it and only a film that has been *playing* for minutes has it.
+
+The fix is two `normalize()` calls: the parent's world quaternion before it is used, and the bone's quaternion after
+the composition. Verified: over 400s of continuous play and three loops of the film, the guard fired **zero** times.
+
+The lesson is the session's recurring one with a new face: the ruler was pointed at the thing the description named.
+"Rendered on the male player, the racquet grows" is a statement about the racquet, and the racquet's box was honest
+and constant. The measurement that finds this is "does every bone in the rig report the body's own scale?", which is
+a question about the *rig*, not about the racquet.
+
+### And the ends at the first frame
+
+`"start"` in the record was built from the rally loop's local `where` list, which is left holding the position for
+the rally that never happened — the ends *after* the last change of ends. With a swap every 5 points over 20 points
+that is two flips, so the film opened with both players at each other's ends and then snapped each of them 74ft
+across the court on the first run of rally 1. Measured: `dmitri root x 76.0 at T 0.8, x 2.0 at T 2.0`. Now read off
+`north0`, the end each player was on for rally 1.

@@ -353,8 +353,15 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str,
                      "reach": round(pl.skill("reach"), 3),
                      "body": pl.name.lower()}
                     for i, pl in enumerate(players)],
-        "start": [{"name": pl.name, "north": pl.north,
-                   "at": [round(v, 2) for v in wh]} for pl, wh in zip(players, where)],
+        # Where each player stands at the FIRST frame of the film, which is the end they are on for rally 1.
+        # This read `where` — the loop-local list — which the rally loop leaves holding the position for the
+        # rally that never happened, i.e. the ends *after* the last change of ends. With a swap every 5 points
+        # and 20 points that is two flips, so the film opened with both players at each other's ends: the
+        # renderer drew them there, and the first run of the first rally snapped each of them 74ft across the
+        # court. Measured on the shipped film: dmitri root x 76.0 at T 0.8, x 2.0 at T 2.0.
+        "start": [{"name": pl.name, "north": north0[i],
+                   "at": [round(2.0 if north0[i] else T.LENGTH - 2.0, 2), round(T.WIDTH / 2, 2)]}
+                  for i, pl in enumerate(players)],
         "rallies": out_rallies,
         "shots": shots,
     }

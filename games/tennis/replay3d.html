@@ -281,9 +281,20 @@ function rotateWorld(bone, qWorld) {
   // rotation about a conjugated axis, i.e. about the wrong axis. The arm solver then "converged" by pulling the
   // hand toward a point nobody had asked for, which is a large part of why every stroke looked like a statue
   // reaching for something. Verified numerically before changing it: the old order is off by 1.19 on a unit test.
-  bone.parent.getWorldQuaternion(tmpQ2);
+  // ...and both quaternions are re-normalised, which is not housekeeping. getWorldQuaternion() decomposes the
+  // parent's world matrix, and a matrix carrying any scale at all decomposes to a quaternion that is not unit
+  // (the extraction assumes an orthonormal basis). Composing three non-unit quaternions leaves the bone's own
+  // quaternion with a length above 1, and a bone's matrix is composed as position * quaternion * scale, so the
+  // bone silently ACQUIRES a scale of |q|² — and the child inherits it on the next frame, and the child of that.
+  // Measured on the playing film (?debug, 2026-11-11): forearmR reached a world scale of 3.947/3.429/3.984
+  // against the body's 3.281 after eleven minutes, q length 1.064, and the hand — rigid-skinned to its bone —
+  // stretched with it. That is the founder's "the racquet grows into a larger and larger cigar": it is the
+  // forearm, the hand and the racquet at the end of them, drawn 20% long and 20% wide, non-uniformly, growing
+  // with every frame of every rally. A paused still never shows it, because the drift is per frame and a still
+  // has had two frames; only a film that has been playing for minutes has it.
+  bone.parent.getWorldQuaternion(tmpQ2).normalize();
   const inv = tmpQ2.clone().invert();
-  bone.quaternion.premultiply(tmpQ2).premultiply(qWorld).premultiply(inv);
+  bone.quaternion.premultiply(tmpQ2).premultiply(qWorld).premultiply(inv).normalize();
   bone.updateMatrixWorld(true);
 }
 
@@ -867,6 +878,26 @@ function tick(now) {
     const load = Math.max(windup, follow);
     legs(rig, phase, moving, new THREE.Vector3(at ? 1 : -1, 0, 0), turn, load);
 
+    if (q.has("debug")) {
+      // The racquet's own box is measured *because* it is not parented to anything: it is placed every frame and
+      // should stay 2.2ft on its long axis for ever. When the founder reported the frame growing into a cigar,
+      // this instrument said 2.20 on every sample and was right — the frame was never the thing that grew. The
+      // thing that grows is the ARM, through the quaternion length fixed in rotateWorld() above, and a Box3 of a
+      // skinned mesh cannot see it because skinning happens on the GPU. So the guard is on the BONES: every bone
+      // in the rig reports at the body's own scale (root.scale, 3.28084 feet per unit), and any bone that does
+      // not is a drift that will be a limb by the end of the film.
+      const _sc = new THREE.Vector3();
+      let worst = 0, worstBone = "-", nom = rig.root.scale.x;
+      for (const bn in rig.bones) {
+        const b = rig.bones[bn];
+        if (!b.isBone) continue;
+        _sc.setFromMatrixScale(b.matrixWorld);
+        const dev = Math.max(Math.abs(_sc.x - nom), Math.abs(_sc.y - nom), Math.abs(_sc.z - nom)) / nom;
+        if (dev > worst) { worst = dev; worstBone = bn; }
+      }
+      if (worst > 0.005) console.log("debug bonescale", pl.name, "T", T.toFixed(1),
+        "worst", worstBone, (worst * 100).toFixed(1) + "%");
+    }
     const wait = ready(rig, at);
     if (sh.player === pl.name) {
       // the arm is at the ball at the strike and back at the shoulder by half a second; the solver is given a
