@@ -120,7 +120,6 @@
     <div class="brand">A<span>IT</span></div>
     <div id="repo-label" title="Which tribe this page is in — press to switch or connect another"></div>
     <span class="chip warn" id="preview">unfinished</span>
-    <button class="plain small" id="btn-settings" hidden>Settings</button>
   </header>
   <nav id="nav" hidden>
     <button data-go="today">Today</button>
@@ -624,7 +623,6 @@ async function render(){
   const connected = !!(S.repo && S.token);
   const view = (location.hash.replace(/^#\/?/, '').split('/')[0]) || '';
   $('nav').hidden = !connected;
-  $('btn-settings').hidden = !connected;
   $('foot').hidden = !connected;
   $('preview').hidden = connected;
   $('repo-label').textContent = connected ? S.repo : '';
@@ -3552,7 +3550,10 @@ function fail(main, e){
     <button class="plain" onclick="location.hash='#/connect';render()">Reconnect</button></div>`;
 }
 
-$('btn-settings').onclick = () => setView('keys');
+// The header used to carry a "Settings" button that went to #/keys — the same destination as the Keys tab, shown
+// under the same condition, so the page had two names for one thing and a reader could reasonably expect them to
+// differ. Asked by the founder on 2026-11-11; the answer was that they never differ, so the duplicate is gone and
+// the nav is the only route to the keys.
 document.querySelectorAll('#nav button').forEach(b => b.onclick = () => setView(b.dataset.go));
 window.addEventListener('hashchange', () => render());
 
