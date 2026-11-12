@@ -438,8 +438,8 @@ return than the same ball on clay — and it comes out of the surface and the sp
 Reach is 4.5ft from the middle of the body, arm out and lunging: 2.3ft of arm plus 2.2ft of racquet is 4.5ft to the
 middle of the strings. It was 3.0ft in the first version and that single foot and a half is worth more than any
 other number here: at 3.0 the pair missed **50%** of all balls and points averaged 1.95 shots; at 4.5 they miss
-**17%** and points average 3.1. The cliff is real rather than a bug — a ball that lands a foot inside the sideline and
-then kicks away is a winner or it is not, and there is no gradient in between.
+about a sixth of them and points average 3.5. The cliff is real rather than a bug — a ball that lands a foot inside the
+sideline and then kicks away is a winner or it is not, and there is no gradient in between.
 
 A ball that has left the court is not chased. Without that line the receiver was sent thirty feet off the back fence
 after a ball that landed on the sideline and kept going: the picture showed a player running into the dark, and the
@@ -447,12 +447,13 @@ verdict was computed against a meeting point outside the court.
 
 ### What it produced
 
-Sixty rallies, 400/500 practice (rating 6.79 vs 6.91), clay:
+Forty rallies each, both players on the same number of balls, clay (`lab/practice_arc.py`):
 
-| level | mean rally | longest | balls not reached | mean miss |
-|---|---|---|---|---|
-| 400 / 500 balls | 3.1 shots | 10 | 17% | 2.4ft short |
-| 0 / 0 balls | 2.4 shots | 5 | 9% | 1.7ft short |
+| level | mean rally | longest | balls reached | points ending out of reach | mean miss |
+|---|---|---|---|---|---|
+| 0 balls | 2.42 shots | 5 | 91% | 3 of 40 | 1.7ft short |
+| 120 balls | 2.75 shots | 9 | 85% | 9 of 40 | 2.7ft short |
+| 400 balls | 3.55 shots | 9 | 89% | 12 of 40 | 1.5ft short |
 
 The inversion is not a defect: a beginner loses points by hitting the ball out, and a good pair lose them by being
 beaten. That is what the two levels look like from the umpire's chair, and it is why the beginner's *shots* are
@@ -465,8 +466,17 @@ the new test checks:
 | expert, twentieth shot of the rally | 0.6ft short — the same ball, tired legs |
 | beginner, first shot of the rally | 3.8ft short, and never in it |
 
-In the 20-point film: 61 shots, rallies `[3,4,9,3,7,5,1,1,2,2,2,1,4,2,3,2,2,4,2,2]`, and **7 of 20 points end
-with a ball the other player could not reach** — nearly all of them wide, and all of them described in the record
+In the 20-point film: 70 shots, rallies `[3,4,9,3,6,2,2,1,4,2,2,4,2,2,6,2,1,3,7,5]`, and **4 of 20 points end
+with a ball the other player could not reach** — all of them wide, and all of them described in the record
 with how many feet short and at what speed the player was running (`Gwen runs 17.4ft at 19.1ft/s and does not get
-there`). The other thirteen still end on an error of aim, which is the balance the founder asked for: not a game
+there`). The other sixteen still end on an error of aim, which is the balance the founder asked for: not a game
 with two ways to lose, and not one with none.
+
+### The price of the aim, on the same evening
+
+Making a missed ball cost a point turned a constant that had never been argued about into a policy decision. A good
+player was aiming **two feet** inside the sideline — the floor of `SIDE_SLACK_MIN`, set on 2026-11-11 to stop the
+film having zero wide balls. Two feet from the paint, at 60mph, is a winner: with the new interception, thirty points
+in a hundred ended on a ball nobody could reach, and the pair's rallies fell to 2.7 shots. The floor is now 4.0ft,
+which is where a player with good hands actually aims at a corner, and it costs the wide miss only at the good end
+(6 points in 40). A beginner never sees this number: their margin is 9° of face error, four times any floor.

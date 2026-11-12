@@ -510,7 +510,15 @@ AZIMUTH_SIGMA = 9.0        # degrees of aim error at zero control, times (1 - co
 AZIMUTH_FRAME = 14.0       # and what a ball hit off the frame adds on top
 AZIMUTH_PER_DEGREE = 1.30  # feet of landing error across the court per degree, at rally depth
 SIDE_SIGMAS = 1.6          # how far inside the sideline to aim, in the hitter's OWN lateral sigmas
-SIDE_SLACK_MIN = 2.0       # and never closer to the paint than this
+SIDE_SLACK_MIN = 4.0       # and never closer to the paint than this
+# 4.0 rather than 2.0 as of 2026-11-12, and the reason is a trade the founder named in one breath and had not
+# seen the price of. He asked, on 2026-11-11, "Why don't the players ever hit the ball out on the sides?" — and
+# the answer was the 2ft floor, which put every ball a good player hit within two feet of the paint. The moment
+# missing a ball started to cost a point (see `intercept`), those two-foot targets became winners: the pair's
+# rallies fell to 2.7 shots and 30% of points ended on a ball the other player could not reach. Four feet is
+# where a player with good hands actually aims at a corner, and it costs the wide miss only at the good end —
+# at 400 balls, 6 points in 40 still end wide. A beginner's margin is not this number at all: their scatter is
+# 9° of face error, which is four times as wide as any floor.
 
 
 def corners_of(north: bool, control: float = 1.0) -> tuple[tuple[float, float], tuple[float, float]]:

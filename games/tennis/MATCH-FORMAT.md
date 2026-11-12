@@ -240,8 +240,7 @@ existed: `intercept()` answered yes to every ball in fifty points, so the record
 beaten to one. The rule, the four numbers that decide it and the measurements behind them are in `MOVEMENT.md`
 ("Nobody was ever beaten to a ball").
 
-In the 20-point film as it now stands: 61 shots, rallies `[3,4,9,3,7,5,1,1,2,2,2,1,4,2,3,2,2,4,2,2]`, seven points
-end on a ball out of reach, nine on a mishit, three on an aim that came off the side of the court, and one in the
-net. A beaten player runs as far as the clock allowed and stops short — nobody is teleported onto a contact — and
+In the 20-point film as it now stands: 70 shots, rallies `[3,4,9,3,6,2,2,1,4,2,2,4,2,2,6,2,1,3,7,5]`, four points
+end on a ball out of reach, six on a mishit, four on an aim that came off the side of the court, and six in the net. A beaten player runs as far as the clock allowed and stops short — nobody is teleported onto a contact — and
 the record carries `need`, `have`, `short` and `legs` for the run, so a season report can say how many feet short
 the losing player was, in which direction, and how tired they were when it happened.
