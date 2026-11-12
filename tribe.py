@@ -201,6 +201,12 @@ def new(name: str, seat: str, api: str, model: str, of: str, place: str = "", pe
         return 2
     (base / "state").mkdir(parents=True)
     (base / "output").mkdir()
+    # git does not track an empty directory, so a member created with nothing in `output/` is a member whose
+    # folder loses that directory the moment it is cloned — and `validate` then fails on a fresh machine with
+    # "missing directory: .../output", which is a fault of the record rather than of the member. Found
+    # 2026-11-11 by Gwen as "members made by the page fail tribe.py validate"; the page creates the folder,
+    # the commit drops it, and the first clone is where it shows. One tracked file is the whole fix.
+    (base / "output" / ".gitkeep").write_text("", encoding="utf-8")
     (base / "state" / "identity.md").write_text(
         IDENTITY.format(name=name, seat=seat, of=of, **person_bits(person)), encoding="utf-8")
     (base / "state" / "state.md").write_text(

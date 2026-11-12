@@ -1065,6 +1065,23 @@ class TestSchema(unittest.TestCase):
         self.assertEqual(tribe.new("z", "the tester", "gemini", "gemini-3.8-flash", ""), 0)
         self.assertEqual(tribe.validate("z"), [])
 
+    def test_a_member_survives_a_copy_that_keeps_only_files(self):
+        """git does not track an empty directory, so a member created with an empty `output/` is a member
+        whose folder loses that directory at the first clone — and then `validate` refuses it on a fresh
+        machine, quoting a path the person never wrote. Gwen's F2, 2026-11-11: "members made by the page
+        fail tribe.py validate". The copy below keeps files and drops empty directories, which is what a
+        checkout does; before `.gitkeep` it reproduced her finding exactly."""
+        self.assertEqual(tribe.new("kept", "the tester", "gemini", "gemini-3.8-flash", ""), 0)
+        src, dst = tribe.MEMBERS, self.tmp / "cloned"
+        for p in sorted(src.rglob("*")):
+            if p.is_file():
+                out = dst / p.relative_to(src)
+                out.parent.mkdir(parents=True, exist_ok=True)
+                out.write_bytes(p.read_bytes())
+        self.assertFalse((dst / "kept" / "output").exists() and not any(
+            (dst / "kept" / "output").iterdir()))
+        tribe.MEMBERS = dst
+        self.assertEqual(tribe.validate("kept"), [])
     def test_a_member_may_be_given_a_name_and_not_only_a_letter(self):
         """The shipped tribe is a, b, c, and the validator lowercased the identity file but not the name it
         looked for — so `tribe.py new Tolstoy` created a member and then refused it, on an identity whose
