@@ -385,7 +385,13 @@ def placement(p: Player, receiver: Player, at, record: dict) -> tuple[float, flo
     c_north, c_south = corners_of(receiver.north, p.skill("control"))
     d = [math.hypot(c[0] - at[0], c[1] - at[1]) for c in (c_north, c_south)]
     if abs(d[0] - d[1]) >= 4.0:
-        return c_north if d[1] > d[0] else c_south
+        # The FAR corner, which is the whole rule. This comparison was inverted from the day it was written
+        # (2026-11-11: `return c_north if d[1] > d[0]` returns the corner that is nearer) so every shot went to
+        # the corner the receiver was closest to — straight at them — and two players traded balls at each other
+        # from the same side of the court for as long as the record allowed. The founder spotted it from the
+        # picture: "one shot in that position, maybe a return straight back, but almost immediately one of the
+        # players will shoot into the empty court."
+        return c_north if d[0] > d[1] else c_south
     rec = record.get(receiver.name) or {"left": [0, 0], "right": [0, 0]}
     tries = rec["left"][1] + rec["right"][1]
     if tries == 0:

@@ -39,6 +39,18 @@
   #bar .self{position:absolute;top:9px;bottom:9px;background:rgba(160,215,255,.30);
     border-left:1px solid rgba(160,215,255,.75);border-right:1px solid rgba(160,215,255,.75)}
   #bar .tick{position:absolute;top:2px;bottom:2px;width:2px;background:var(--ink)}
+  /* The break card: the founder's headshots, 2026-11-11. It stands in for the shot-technical panel while the
+     ball is dead, because a face angle is not the interesting thing about a dead ball and a face is. The ink
+     drawing sits on paper rather than floating on the court, so it reads as a card and never pretends to be a
+     camera. */
+  #facecard{position:fixed;left:34px;top:50%;transform:translateY(-50%);width:200px;background:#f4f1ea;
+    border-radius:10px;overflow:hidden;box-shadow:0 18px 40px rgba(0,0,0,.55);opacity:0;
+    transition:opacity .3s ease;pointer-events:none}
+  #facecard.on{opacity:1}
+  #facecard img{width:100%;display:block;filter:grayscale(1) contrast(1.06)}
+  #facecard .nm{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#14161a;padding:7px 10px 8px;
+    font-weight:600}
+  #facecard .nm span{color:#6b6f77;font-weight:400}
   #cut{position:fixed;top:64px;left:50%;transform:translateX(-50%);font-size:11px;letter-spacing:.22em;
     text-transform:uppercase;color:rgba(255,255,255,.55);opacity:0;transition:opacity .2s}
   #cut.on{opacity:1}
@@ -75,6 +87,7 @@
   <div class="mono" id="winline">—</div>
 </div>
 <div id="cut">between points</div>
+<div id="facecard"><img id="faceimg" alt=""><div class="nm" id="facename">—</div></div>
 <div id="sign"><div class="box"><div class="k" id="signk">point</div><div class="who" id="signwho">—</div>
   <div class="why" id="signwhy"></div><div class="ctx" id="signctx"></div></div></div>
 <div id="err"></div>
@@ -732,6 +745,19 @@ function tick(now) {
       `last ball: ${sh.player}`;
   }
   el("cut").className = onCut ? "on" : "";
+  // The card names the player the camera has cut to, and is hidden the moment the ball is in play: it is a still
+  // of a person, so it may only appear when the record is not claiming to show a ball.
+  const who = onCut ? (WINPOS[sh.rally] ? WINPOS[sh.rally].name : sh.player) : null;
+  if (who) {
+    const pl = D.players.find(x => x.name === who);
+    if (pl) {
+      const img = el("faceimg");
+      const src = `bodies/faces/${pl.body}.jpg`;
+      if (img.getAttribute("src") !== src) img.setAttribute("src", src);
+      el("facename").innerHTML = `${pl.name} <span>${pl.rating.toFixed(1)}</span>`;
+    }
+  }
+  el("facecard").className = who ? "on" : "";
   if (onCut) el("cut").textContent =
     `between points · ${WINPOS[sh.rally] ? WINPOS[sh.rally].name : sh.player}`;
 
@@ -752,7 +778,9 @@ if (q.has("t")) { T = parseFloat(q.get("t")); playing = false; }
 if (q.has("point")) {
   // a still of the boards: jump to the end of a rally and hold the sign up
   const seg = SEG.find(x => x.sh.rally === parseInt(q.get("point"), 10) && x.point);
-  if (seg) { T = seg.start + seg.dur; playing = false; signAlways = true; }
+  // +0.02 and not exactly the cut instant: at exactly `start + dur` the comparison tl >= cams[1].at is decided by
+  // floating point, so the ?point= jump showed the tower about half the time and the closeup the rest of it.
+  if (seg) { T = seg.start + seg.dur + 0.02; playing = false; signAlways = true; }
 }
 if (q.has("shot")) {
   const seg = SEG.find(x => x.sh.n === parseInt(q.get("shot"), 10));
