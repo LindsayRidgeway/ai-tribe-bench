@@ -696,3 +696,39 @@ the court and it's still there." Correct, and the earlier fix did not touch it: 
 doubles court plus `ALLEY` at each end, so 4.5ft of light clay sat behind each baseline with no line to end it. It
 is now exactly the doubles court — baseline to baseline, doubles sideline to doubles sideline — so every edge of
 the lighter shade is a white line.
+
+### The carry — 2026-11-13
+
+The founder, on the strike: *"movement of the players at the time they strike the ball is still not continuous."*
+Measured at all 570 shot boundaries, the body's step across the cut: **median 2.1ft/s, p90 20.5ft/s, 19% of cuts over
+10ft/s**, worst 50.3ft/s. A body that has arrived at full lean should not stop leaning because the shot it was
+leaning at has been replaced, and that snap is what the numbers describe.
+
+**The carry** is the fix: `reachTo` stores what the last frame actually applied (`rig.carry`) and, when the shot
+changes, eases that displacement out over 0.34s with a smoothstep while the new shot's lean is added on top of
+where the body already is. Nothing snaps to zero.
+
+Measured after: **median 1.7ft/s, p90 2.8ft/s, 2% over 10ft/s, 1% over 20.** The worst-case list collapses from
+`50.3 / 34.7 / 34.1 / 33.6 / 33.0` to `50.0 / 22.2 / 18.6 / 9.5 / 8.0`, and the single survivor —
+`r16s65 Gwen 50.0ft/s [-0.0,0.02,13.58] -> [2,0,13.5]` — is a change-of-ends settle walk that ends exactly on a shot
+boundary. That is a *placement*, not a lean.
+
+**What the carry costs, measured rather than assumed.** Racquet head to the record's own contact point, sampled
+honestly (the cut is contact, so the window is centred on `s.start`, never `s.start + s.dur`):
+
+| | closest in ±0.2s | at the cut | within 0.5ft |
+| - | - | - | - |
+| before the carry | 0.08ft median, 0.72 max | 0.10ft | 92/95 |
+| after the carry | 0.31ft median, 1.21 max | 0.36ft | 70/95 |
+
+Three inches. The mechanical reason: the carried displacement is not compensated by the stride, so a body eased
+away from the ball can leave it beyond reach and the arm solver's clamp takes it out of the racquet's length. It is
+a real cost and a small one — a ball is 2.6in across, and it buys 18ft/s of p90. **The fix is not to shrink the
+carry but to let the lean grow to cover it**, and that is written here rather than in a commit message because it is
+the next thing to do, not the last.
+
+**Instrument error worth keeping in the record, twice over.** `?point=` and `?shot=` pause the film, so nothing
+sampled against wall-clock means anything; and `__seek(t)` sets T while the *animation frame* writes the pose, so a
+read straight after a seek returns the last frame that drew. That stale read produced a fake 1987.4ft/s "placement"
+and a fake 11.43ft median racquet-to-ball. Every figure above comes from `__poseAt = t => { __seek(t); await two
+rAFs; return __pose() }`.

@@ -742,14 +742,21 @@ function placeRacquet(rig, aim, face) {
    overhead — by exactly the gap, capped, and eased in and out over half a second either side of the strike so
    that it is a movement and not a teleport. */
 const _ras = new THREE.Vector3();
-function reachTo(rig, lead, ball, tTo) {
+function reachTo(rig, lead, ball, tTo, since = 0, key = "") {
   // The frame is placed at the right hand on every stroke — the butt hand — so the right shoulder is the one
   // that has to be able to reach one shaft-length short of the ball. On a forehand that is the hitting shoulder;
   // on a backhand it is the far one, which is why a backhand has always been the stroke this rig could not play.
   const b = rig.bones["upperarmR"] || rig.bones["upperarm" + lead];
   if (!b) return;
   const r = Math.max(0, Math.min(1, 1 - Math.abs(tTo) / 0.5));
-  if (r <= 0) return;
+  if (r <= 0) {
+    if (rig.leanKey !== key) { rig.carry = rig.lean || { x: 0, y: 0, z: 0 }; rig.leanKey = key; }
+    const uu0 = Math.max(0, Math.min(1, since / 0.34)), ww0 = 1 - uu0 * uu0 * (3 - 2 * uu0);
+    const c0 = rig.carry || { x: 0, y: 0, z: 0 };
+    rig.root.position.x += c0.x * ww0; rig.root.position.y += c0.y * ww0; rig.root.position.z += c0.z * ww0;
+    rig.lean = { x: c0.x * ww0, y: c0.y * ww0, z: c0.z * ww0 };
+    return;
+  }
   const s = b.getWorldPosition(_ras);
   const hx = ball.x - s.x, hz = ball.z - s.z, hl = Math.hypot(hx, hz) || 1;
   // Split the gap into a stride and a rise, and then look again: moving along two axes is not moving along the
@@ -765,8 +772,15 @@ function reachTo(rig, lead, ball, tTo) {
     lean = Math.min(1.30, lean + gap * (1 - 0.55 * over) * 1.05);
     rise = Math.min(0.95, rise + gap * 0.55 * over * 1.05);
   }
-  if (lean > 0) { rig.root.position.x += (hx / hl) * lean * r; rig.root.position.z += (hz / hl) * lean * r; }
-  if (rise > 0) rig.root.position.y += rise * r;
+  if (rig.leanKey !== key) { rig.carry = rig.lean || { x: 0, y: 0, z: 0 }; rig.leanKey = key; }
+  const uu = Math.max(0, Math.min(1, since / 0.34)), ww = 1 - uu * uu * (3 - 2 * uu);
+  const c = rig.carry || { x: 0, y: 0, z: 0 };
+  const dx = lean > 0 ? (hx / hl) * lean * r : 0, dz = lean > 0 ? (hz / hl) * lean * r : 0;
+  const dy = rise > 0 ? rise * r : 0;
+  rig.root.position.x += dx + (c.x - dx) * ww;
+  rig.root.position.y += dy + (c.y - dy) * ww;
+  rig.root.position.z += dz + (c.z - dz) * ww;
+  rig.lean = { x: dx + (c.x - dx) * ww, y: dy + (c.y - dy) * ww, z: dz + (c.z - dz) * ww };
 }
 
 /* A nod is one joint, so it is cheap, and it is the whole of the greeting the founder asked for: two people
@@ -1322,7 +1336,7 @@ function tick(now) {
       // the arm to fold into its own chest — the CCD cannot get there, and the elbow ends up by the ear, which
       // is the "statue reaching for something" the founder has been looking at. Measured with ?debug: the hand
       // was 0.86ft short of its own target on every shot.
-      reachTo(rig, lead, ball, tl);
+      reachTo(rig, lead, ball, tl, tl, seg.rally + ":" + seg.n);
       _face.set(sh.v0[0], sh.v0[2], sh.v0[1]).normalize();
       (rig.bones["upperarm" + lead] || rig.bones["chest"]).getWorldPosition(_sh0);
       // `1 - k`, not `k`: k is 1 at the strike and falls to 0 half a second later, and a lerp towards the ready
@@ -1485,7 +1499,7 @@ function tick(now) {
           head.lerp(at, thruK);
         }
         const lead = back ? "L" : "R";
-        if (nxtBall) reachTo(rig, lead, at, seg.dur - tl);
+        if (nxtBall) reachTo(rig, lead, at, seg.dur - tl, tl, seg.rally + ":" + seg.n);
         solveArm(rig, hand, lead);
         const shaftNow = head.clone().sub(hand).normalize();
         if (back) solveArm(rig, hand.clone().addScaledVector(shaftNow, 0.36), "R");   // the butt hand
