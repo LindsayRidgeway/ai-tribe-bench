@@ -44,10 +44,6 @@ jobs:
   paint:
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    env:
-      MEMBER: ${{ inputs.member }}
-      PROMPT: ${{ inputs.prompt }}
-      WORK: ${{ inputs.work }}
     steps:
       - uses: actions/checkout@v4
 
@@ -60,6 +56,10 @@ jobs:
 
       - name: Who is asking, and with what
         id: ask
+        env:
+          MEMBER: ${{ inputs.member }}
+          PROMPT: ${{ inputs.prompt }}
+          WORK: ${{ inputs.work }}
         run: |
           set -euo pipefail
           # The member's name becomes a path, so it is checked here rather than trusted.
@@ -92,6 +92,8 @@ jobs:
       - name: Does this engine have an image model? Ask the script that knows
         env:
           API: ${{ steps.ask.outputs.api }}
+          MEMBER: ${{ inputs.member }}
+          PROMPT: ${{ inputs.prompt }}
           WORK: ${{ steps.ask.outputs.work }}
         run: |
           set -euo pipefail
@@ -106,6 +108,8 @@ jobs:
       - name: Paint, and file it with its credit
         env:
           API: ${{ steps.ask.outputs.api }}
+          MEMBER: ${{ inputs.member }}
+          PROMPT: ${{ inputs.prompt }}
           WORK: ${{ steps.ask.outputs.work }}
           TRIBE_API_KEY_OPENAI: ${{ secrets.TRIBE_API_KEY_OPENAI }}
           TRIBE_API_KEY_GEMINI: ${{ secrets.TRIBE_API_KEY_GEMINI }}
@@ -120,6 +124,8 @@ jobs:
 
       - name: Say what was asked and what answered
         if: always()
+        env:
+          MEMBER: ${{ inputs.member }}
         run: |
           set -euo pipefail
           {
@@ -138,6 +144,8 @@ jobs:
 
       - name: Commit the picture and its card together
         if: success()
+        env:
+          MEMBER: ${{ inputs.member }}
         run: |
           set -euo pipefail
           git config user.name "Model AI Tribe"

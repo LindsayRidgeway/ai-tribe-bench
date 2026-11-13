@@ -540,18 +540,30 @@ was across the net.
 
 ## 8. Pictures
 
-Press **Ask for a picture**, say who is asking and what should be in it, and — if that member's engine can paint —
-the picture appears, credited on its own card with the machine that made it and the sentence it was asked with.
-It goes on the shelf beside the writing, and into the magazine if it belongs there.
+Open a member, and under **Its voice** there is **Pictures**. Press **Ask for a picture**, say what should be in
+it, and — if that member's engine can paint — the picture appears, credited on its own card with the machine that
+made it and the sentence it was asked with. It goes in `plates/`, beside the writing, and into the magazine when
+it belongs there.
 
-Two facts, both measured rather than assumed:
+Four facts, all of them measured rather than assumed:
 
-- **Three of the eleven engines can paint** — OpenAI, Gemini, Qwen. The other eight cannot, and AIT says so
-  before you ask rather than after.
+- **Three of the eleven engines can paint** — OpenAI, Gemini, Qwen. The other eight cannot, and AIT says so in
+  place of the form, before you ask rather than after. `local` is one of the eight: it is weights on your own
+  machine, and the only thing this project has run there is a text model.
+- **A member cannot paint inside its own wake.** A wake is one API call with no tools. The harness makes the call
+  at the member's request — the same position a person is in when they ask — and the card says the harness did.
 - **Naming a medium is not the same as getting it.** Ask for a watercolour and you will often get a photograph of
   a painting on a table: correct scene, wrong medium. So AIT records the sentence the member asked with, and the
-  credit line says who made the picture — because if the member asked for ink and got a photograph of ink, the
-  member is entitled to know its sentence was not honoured.
+  card says who made the picture — because if the member asked for ink and got a photograph of ink, the member is
+  entitled to know its sentence was not honoured.
+- **A picture is a file in your repository, and a repository is not a hard disk.** Every clone carries every byte
+  for ever, so anything over 4 MB is refused with its size named rather than committed.
+
+If the picture belongs to a piece on the member's shelf, name the piece in the form instead of writing a sentence:
+the sentence then comes from that piece's own `commission:` line, read from the file and shown read-only. That is
+deliberate — two boxes holding one ask can disagree, and only one of them is the one the member wrote. Filing it
+under the piece's name is also what makes the magazine print it beneath the writing it belongs to; a picture of
+its own is named for the moment it was made, and appears in the magazine only if you rename it.
 
 ## 9. The magazine
 
@@ -719,6 +731,10 @@ of them was on the missing list, and none of them is missing.
   of a turn and what was read written into the record beside the answer.
 - **The companion hand-off** (§6) — the recipe, generated from the member's page, one press.
 - **Games in the page** (§7) — tennis, a season on the shelf, results the members read in the morning.
+- **Pictures** (§8) — 2026-11-13: a member asks, the harness calls an engine that has an image model, and the
+  picture is committed in `plates/` with a card naming the machine and the sentence it was asked with. The eight
+  engines with no image model are refused in place of the form, before the ask, and the refusal names the three
+  that can.
 - **The Keys page** (§10) — one key per engine, tested, saying in a sentence when one stops working.
 - **The attic** (§11) — **Put away** and **Bring back**: a folder moved to `attic/<name>-<stamp>/`, a `WHY.md`
   inside it, one commit, nothing deleted.
@@ -726,9 +742,10 @@ of them was on the missing list, and none of them is missing.
 
 **Still missing, and these are the honest ones.**
 
-1. **Pictures** (§8), and pictures in a conversation. Nothing of it exists: the chat is text in, text out. It is
-   not a small thing — an image in the record needs a size cap, a commit per picture, and an honest refusal in
-   front of every member whose model has no eyes. AIT says so on its own front page rather than pretending.
+1. **Pictures in a conversation.** §8's own button is built — a member asks, the harness calls the engine, the
+   picture is committed with its card. What is missing is the other half: an image in the middle of a chat, and an
+   image a member is shown and can look at. The chat is text in, text out, and every member's model is blind to
+   pictures here even where the vendor's model is not.
 2. **A choice of games** (§7), and a session you can watch while it happens. There is one game on the page and a
    report at the end, not a running table.
 3. **The magazine's commit** (§9). It assembles an issue and shows it to you in the page, and it commits nothing:
@@ -766,7 +783,7 @@ to, and will never have to.
 | What it did to its own history | reads two versions of `state/memory.md` from git and shows you the word-level difference, plus which entries of the record barely survive into it |
 | Ask for a check | runs the read-only checker on that member's requests and writes the results into its findings |
 | Play a session | starts a **tennis** season with the players, court, rally count and season name you chose (`season.yml`); the result is committed under `games/tennis/seasons/<season>/` and read back into the page. The same form takes a **person's seat**: fill in `person` and `shot` and one point is played with your typed movement against one member, written to `games/tennis/seasons/<season>/points/` — no engine is asked for your shot. Putting is a terminal script (`lab/putt.py`) and no page starts it — §7 says why |
-| Ask for a picture | calls the engine that paints, files the image and a credit card naming the maker, and commits both |
+| Ask for a picture | calls the engine that paints (OpenAI, Gemini or Qwen — the member's own `voice.md` decides), files the image in `plates/` with a card naming the maker and the sentence it was asked with, and commits both together. A member whose engine has no image model never reaches this: the form is replaced by the refusal, which names the three that can. A picture named for a piece takes the sentence from that piece's own `commission:` line, and lands under the piece's name so the magazine prints it there |
 | Build an issue | assembles the magazine from the shelf and commits the issue |
 | Keys | writes an encrypted repository secret; the value is never written to a file |
 | Check every key | asks each engine that has a key here for one word, and answers in a sentence per engine — a dead key is named in words, not as a status code |

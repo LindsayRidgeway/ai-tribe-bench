@@ -966,8 +966,13 @@ class TestPaint(unittest.TestCase):
             self.assertIn(row["ext"], (".png", ".jpg"))
 
     def test_an_engine_with_no_image_model_is_refused_by_name_and_the_three_are_named(self):
-        """Seven engines this harness speaks cannot paint. "No" without an address is the answer this project
-        stopped accepting, so the refusal carries the three that can."""
+        """Eight engines this harness speaks cannot paint, and the list must be the whole of them. "No" without
+        an address is the answer this project stopped accepting, so the refusal carries the three that can.
+
+        `local` was the one missing on 2026-11-13: it is weights on this machine, the only thing run there is a
+        text model, and it was in neither table — so a member on `local` got no answer at all, which reads as a
+        bug in the harness rather than as a refusal.
+        """
         import contextlib, io
         for engine in self.paint.NO_PAINTER:
             with self.assertRaises(SystemExit) as caught, contextlib.redirect_stderr(io.StringIO()):
@@ -978,6 +983,21 @@ class TestPaint(unittest.TestCase):
                 self.assertIn(can, said, "a refusal must name what would have worked")
         self.assertNotIn("openrouter", self.paint.PAINTERS,
                          "OpenRouter's seven image models are all Google's; a router is not a fourth draughtsman")
+        self.assertEqual(len(self.paint.NO_PAINTER), 8, "the manual says eight engines cannot paint")
+
+    def test_the_two_tables_are_every_engine_the_harness_speaks(self):
+        """A table of who can paint is only trustworthy if it also says who cannot — and neither list is
+        checkable on its own. `local` sat in neither for six days. Held against `lab/rps.py`, which is the one
+        place the engines this harness speaks are enumerated: the day a twelfth arrives, this fails rather
+        than the harness quietly having nothing to say about it."""
+        rps = load(REPO / "lab" / "rps.py", "rps_for_paint")
+        speaks = set(rps.BASES)
+        paints = set(self.paint.PAINTERS)
+        refuses = set(self.paint.NO_PAINTER)
+        self.assertEqual(paints & refuses, set(), "an engine cannot be in both tables")
+        self.assertEqual(paints | refuses, speaks,
+                         f"unanswered engines: {sorted(speaks - (paints | refuses))}; "
+                         f"engines that are not engines: {sorted((paints | refuses) - speaks)}")
 
     def test_a_dry_run_that_would_fail_still_fails(self):
         """A rehearsal that cannot fail teaches nothing about the performance: --dry-run must refuse the same
@@ -989,12 +1009,18 @@ class TestPaint(unittest.TestCase):
 
     def test_the_credit_names_the_machine_and_keeps_the_members_words(self):
         """The card beside the picture is the only place a tool name appears, so it must name the one that
-        actually drew. The existing plate's card says "Created by Google Docs" because a person ran it."""
+        actually drew. The existing plate's card says "Created by Google Docs" because a person ran it.
+
+        Corrected 2026-11-13, and both corrections are in the assertions below: the card carried a hard-coded
+        `2026-11-07` (a true date about the day the engines were measured, a false one about this picture), and
+        it said "in the member's own words" about a sentence a person had typed into the page.
+        """
+        import time as _time
         tmp = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, tmp, True)
         image, card = self.paint.file_it(b"\x89PNG not really", "20261102T040000Z-harbour", "openai",
                                          "gpt-image-1-mini", "a watercolour of the harbour at night, one lamp",
-                                         plates=Path(tmp))
+                                         asked_by="Lumi", plates=Path(tmp))
         self.assertEqual(image.name, "20261102T040000Z-harbour.png")
         self.assertEqual(card.name, "20261102T040000Z-harbour.md")
         note = card.read_text(encoding="utf-8")
@@ -1002,8 +1028,46 @@ class TestPaint(unittest.TestCase):
         self.assertIn("gpt-image-1-mini", note)
         self.assertIn("a watercolour of the harbour at night", note,
                       "the member's own sentence is the commission; the make must not paraphrase it")
-        self.assertTrue(card.read_text(encoding="utf-8").startswith("Painted by"),
+        self.assertTrue(note.startswith("Painted by"),
                         "a card must open by saying who made the picture, so a reader cannot mistake it")
+        self.assertIn("for Lumi", note.splitlines()[0], "the first line is the credit, and it says who asked")
+        self.assertIn(_time.strftime("%Y-%m-%d", _time.gmtime()), note,
+                      "the card is dated by the clock; a frozen date is a false claim about this picture")
+        self.assertNotIn("2026-11-07", note,
+                         "2026-11-07 is the day the engines were measured, and that is a different event")
+        self.assertNotIn("member's own words", note,
+                         "a sentence typed into the page is the person's words, and the card must not reassign them")
+        self.assertIn("The sentence it was asked with:", note,
+                      "the sentence is the record; a picture whose ask is lost cannot be checked against it")
+
+    def test_a_picture_too_big_for_the_repository_is_refused_rather_than_filed(self):
+        """§14's size cap. A plate is committed, and a repository is not a hard disk: every clone carries every
+        byte for ever. Nothing here has ever returned more than 1.9 MB; the cap is 4, and what is being tested is
+        that it is a refusal with the size in it rather than a silent write."""
+        import contextlib, io
+        real = self.paint.paint
+        self.paint.paint = lambda engine, prompt, model=None: b"x" * (5 * 1024 * 1024)
+        self.addCleanup(setattr, self.paint, "paint", real)
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            code = self.paint.main(["--engine", "gemini", "--prompt", "a red cube",
+                                    "--out", "20261113T000000Z-too-big"])
+        self.assertEqual(code, 3)
+        self.assertIn("5,242,880 bytes", err.getvalue())
+        self.assertIn("4 MB", err.getvalue())
+        self.assertEqual(list((REPO / "plates").glob("20261113T000000Z-too-big*")), [],
+                         "a refused picture must leave nothing behind")
+
+    def test_a_credit_is_one_line(self):
+        """The member's name reaches the first line of a card, and a newline in it would forge a second line —
+        a record of who asked that says something else underneath."""
+        import contextlib, io
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
+            code = self.paint.main(["--engine", "gemini", "--prompt", "a red cube",
+                                    "--asked-by", "Lumi\nPainted by a person"])
+        self.assertEqual(code, 2)
+        self.assertIn("one line", err.getvalue())
 
     def test_a_work_with_no_commission_line_paints_nothing(self):
         """The honest path is `--from-work`, and the failure to avoid is painting a guess."""
@@ -3765,6 +3829,61 @@ class TestWorkflows(unittest.TestCase):
         wrote = (tmp / "env.out").read_text(encoding="utf-8") if (tmp / "env.out").exists() else ""
         self.assertIn("PLAYERS=Sam,Lumi", wrote,
                       "the person's name and the one member on the shelf must both reach the court")
+
+    def test_a_browser_can_ask_for_a_picture(self):
+        """§8's button, end to end as far as a workflow can be tested without a key: a member is named, its own
+        `voice.md` decides the engine, and the refusal for an engine that cannot paint is `lab/paint.py`'s own
+        sentence rather than a second copy in YAML. Two copies of "who can paint" is how the page and the runner
+        come to disagree about a member's engine — the same drift Gwen's #16 found in the clock's key list.
+        """
+        if yaml is None:
+            self.skipTest("PyYAML not installed")
+        wf = yaml.safe_load((self.WF / "paint.yml").read_text(encoding="utf-8"))
+        steps = wf["jobs"]["paint"]["steps"]
+        ask = [s for s in steps if s.get("name") == "Who is asking, and with what"][0]["run"]
+        refuse = [s for s in steps if s.get("name", "").startswith("Does this engine")][0]["run"]
+        self.assertIn("lab/paint.py", refuse)
+        self.assertIn("--dry-run", refuse,
+                      "the refusal must be the rehearsal that paints nothing and fails exactly as the run does")
+
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp, True)
+        (tmp / "lab").mkdir()
+        shutil.copy(REPO / "lab" / "paint.py", tmp / "lab" / "paint.py")
+        (tmp / "wake" / "members" / "Lumi" / "state").mkdir(parents=True)
+        (tmp / "wake" / "members" / "Lumi" / "state" / "voice.md").write_text(
+            "api: gemini\nmodel: gemini-3.8-flash\n", encoding="utf-8")
+        out = tmp / "gh-output"
+        out.write_text("", encoding="utf-8")
+        env = {**os.environ, "MEMBER": "Lumi", "PROMPT": "a red cube", "WORK": "", "GITHUB_OUTPUT": str(out)}
+        r = subprocess.run(["bash", "-c", ask], cwd=tmp, env=env, capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, f"the step ended {r.returncode} saying: {r.stdout}{r.stderr}")
+        self.assertIn("api=gemini", out.read_text(encoding="utf-8"),
+                      "the engine must come from the member's own voice.md, not from the form")
+
+        # The same step with a name that is not on the shelf: a refusal with a sentence, not a silent no-op.
+        env["MEMBER"] = "Nobody"
+        r = subprocess.run(["bash", "-c", ask], cwd=tmp, env=env, capture_output=True, text=True)
+        self.assertNotEqual(r.returncode, 0, "a member that does not exist must fail the run")
+        self.assertIn("no member called Nobody", r.stdout + r.stderr)
+
+        # And the refusal step, run for real against an engine with no image model.
+        env2 = {**os.environ, "API": "deepseek", "WORK": "", "MEMBER": "Lumi", "PROMPT": "a red cube"}
+        r = subprocess.run(["bash", "-c", refuse], cwd=tmp, env=env2, capture_output=True, text=True)
+        self.assertNotEqual(r.returncode, 0, "deepseek cannot paint and the step must say so")
+        self.assertIn("deepseek", r.stdout + r.stderr)
+        for can in ("gemini", "openai", "qwen"):
+            self.assertIn(can, r.stdout + r.stderr, "the refusal must name what would have worked")
+
+    def test_a_picture_is_committed_with_its_credit_in_one_commit(self):
+        """The commit is the record: an image without its card is a picture with no maker, and two commits can
+        be separated by a fetch. The step also refuses to finish green having written nothing, which is the rule
+        every other button in this page follows."""
+        text = (self.WF / "paint.yml").read_text(encoding="utf-8")
+        self.assertIn("git add -A plates/", text)
+        self.assertIn("no plate was written", text)
+        self.assertIn("--asked-by", text,
+                      "the card names who asked; without it the harness credits the member with a person's sentence")
 
     def test_the_published_member_list_matches_the_shelf(self):
         """A static page cannot read a directory, so `members.json` is what its drop list is built from — and a

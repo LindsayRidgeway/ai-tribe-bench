@@ -182,6 +182,12 @@ export function loadPage(){
 }
 
 const run = (context, code) => vm.runInContext(code, context);
+// A check that needs a function the page does not have yet is a check that fails, not a harness that dies with
+// a stack trace: "the page has no Ask for a picture" is the finding, and it should be printed like the rest.
+const tryRun = async (context, code) => {
+  try { return await run(context, code); }
+  catch(e){ return {err: 'threw: ' + (e && e.message)}; }
+};
 const text = (p) => (files.get(p) || {}).text;
 
 /* ---- the checks ------------------------------------------------------------------------ */
@@ -705,7 +711,7 @@ async function main(){
     m.set('plates/20261113T170000Z.png', {text: 'not really a png', sha: 'plate-image'});
     m.set('plates/20261113T170000Z.md', {text: CARD, sha: 'plate-card'});
   };
-  const pic1 = await run(ctx, `(async () => {
+  const pic1 = await tryRun(ctx, `(async () => {
     S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main'; S.owner = 'Sam';
     render = () => {};
     S.members = [{name: 'Lumi', engine: 'gemini', model: 'gemini-3.8-flash'}];
@@ -717,6 +723,7 @@ async function main(){
   })()`);
 
   check('the sentence typed is what the form sends, to the engine the member\'s voice names', () => {
+    if (pic1.err) return pic1.err;
     const d = dispatches[dispatches.length - 1];
     if (!d) return 'the press dispatched nothing';
     if (d.workflow !== 'paint.yml') return `it dispatched ${d.workflow}`;
@@ -727,6 +734,7 @@ async function main(){
     return '';
   });
   check('and the picture is shown with the credit line that names the machine', () => {
+    if (pic1.err) return pic1.err;
     if (!/plates\/20261113T170000Z\.png/.test(pic1.said)) return `the file is not named: "${pic1.said}"`;
     if (!/Painted by gemini/.test(pic1.html)) return `the credit is not on the page: "${pic1.html.slice(0, 240)}"`;
     if (!/gemini-3\.1-flash-image/.test(pic1.html)) return 'the card does not name the model that drew';
@@ -738,7 +746,7 @@ async function main(){
   reset();
   seedMember('gemini', 'gemini-3.8-flash');
   actions.runs.push(runObject(43500000002, 'workflow_dispatch', 'paint'));
-  const pic2 = await run(ctx, `(async () => {
+  const pic2 = await tryRun(ctx, `(async () => {
     S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
     render = () => {};
     S.members = [{name: 'Lumi', engine: 'gemini', model: 'gemini-3.8-flash'}];
@@ -749,6 +757,7 @@ async function main(){
   })()`);
 
   check('a run that committed no picture is not reported as one', () => {
+    if (pic2.err) return pic2.err;
     if (!/committed no picture/.test(pic2.html)) return `the page said: "${pic2.html}"`;
     if (!/43500000002/.test(pic2.html)) return 'the run is not named, so the log is not one press away';
     if (!/plates\//.test(pic2.html)) return 'the folder a picture would have appeared in is not named';
@@ -759,7 +768,7 @@ async function main(){
   // names the three that can: "no" without an address is the answer this project stopped accepting.
   reset();
   seedMember('deepseek', 'deepseek-flash');
-  const pic3 = await run(ctx, `(async () => {
+  const pic3 = await tryRun(ctx, `(async () => {
     S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
     render = () => {};
     S.members = [{name: 'Lumi', engine: 'deepseek', model: 'deepseek-flash'}];
@@ -769,6 +778,7 @@ async function main(){
   })()`);
 
   check('an engine with no image model is refused before anything is sent', () => {
+    if (pic3.err) return pic3.err;
     if (dispatches.length) return `it was sent anyway (${dispatches.length} dispatch(es))`;
     if (!/no image model/.test(pic3.html)) return `the page said: "${pic3.html}"`;
     for (const can of ['OpenAI', 'Gemini', 'Qwen'])
@@ -790,7 +800,7 @@ async function main(){
     m.set('plates/20261101T090000Z-harbour.png', {text: 'not really a png', sha: 'plate-image-2'});
     m.set('plates/20261101T090000Z-harbour.md', {text: CARD, sha: 'plate-card-2'});
   };
-  const pic4 = await run(ctx, `(async () => {
+  const pic4 = await tryRun(ctx, `(async () => {
     S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
     render = () => {};
     S.members = [{name: 'Lumi', engine: 'gemini', model: 'gemini-3.8-flash'}];
@@ -805,6 +815,7 @@ async function main(){
   })()`);
 
   check('a piece\'s commission line is the sentence, read from the piece itself', () => {
+    if (pic4.err) return pic4.err;
     if (!/a watercolour of the harbour at night/.test(pic4.shown)) return `the box held: "${pic4.shown}"`;
     const d = dispatches[dispatches.length - 1];
     if (!d) return 'the press dispatched nothing';
@@ -819,7 +830,7 @@ async function main(){
   reset();
   seedMember('gemini', 'gemini-3.8-flash');
   seed('works/Lumi/20261102T090000Z-quiet.md', '---\ntitle: Quiet\n---\n\nno picture asked for\n');
-  const pic5 = await run(ctx, `(async () => {
+  const pic5 = await tryRun(ctx, `(async () => {
     S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
     render = () => {};
     S.members = [{name: 'Lumi', engine: 'gemini', model: 'gemini-3.8-flash'}];
@@ -832,6 +843,7 @@ async function main(){
   })()`);
 
   check('a piece with no commission line is refused before the press, and the button shuts', () => {
+    if (pic5.err) return pic5.err;
     if (!pic5.shut) return 'the button is still pressable';
     if (!/no <code>commission:<\/code> line|carries no/.test(pic5.html)) return `the page said: "${pic5.html}"`;
     return '';
