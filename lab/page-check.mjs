@@ -1017,6 +1017,59 @@ async function main(){
     return '';
   });
 
+  /* 6 — the two errors the founder's own presses produced, on 2026-11-13, on a tribe whose machinery is older
+     than the page. Neither is a fault in the physics: one is the page asking a repository for a field it does
+     not have, and the other is a run that ended in a word. Both were reported as codes. */
+  reset();
+  const older = await tryRun(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
+    // GitHub's actual refusal, as a repository one version behind this page answers it.
+    const real = gh;
+    gh = async () => { throw new Error('422 · Unexpected inputs provided: ["person", "shot"]'); };
+    try { await dispatch('season.yml', {person: 'Lindsay', shot: 'FACE 6 POWER 62 AIM 12'}); }
+    catch(e){ return {said: e.message}; }
+    finally { gh = real; }
+    return {said: 'it did not refuse'};
+  })()`);
+
+  check('a tribe older than the page is told so in words, not as 422', () => {
+    if (older.err) return older.err;
+    if (/^422/.test(older.said)) return 'the page still shows GitHub\'s code';
+    if (!/season\.yml/.test(older.said)) return `the workflow is not named: "${older.said}"`;
+    if (!/person/.test(older.said) || !/shot/.test(older.said))
+      return `the fields the repository lacks are not named: "${older.said}"`;
+    if (!/Nothing was sent/.test(older.said)) return 'it does not say that nothing happened';
+    return '';
+  });
+
+  reset();
+  seedMember('openrouter', 'deepseek-flash');
+  seed('wake/members/Dionysus/state/voice.md', 'api: deepseek\nmodel: deepseek-flash\n');
+  actions.runs.push({id: 43464439540, name: 'season', event: 'workflow_dispatch', status: 'completed',
+    conclusion: 'failure', html_url: 'https://github.com/someone/tribe/actions/runs/43464439540',
+    created_at: new Date().toISOString()});
+  const failed = await tryRun(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
+    render = () => {};
+    S.members = [{name: 'Aphrodite', engine: 'openrouter', model: 'x'}, {name: 'Dionysus', engine: 'deepseek', model: 'y'}];
+    await viewPlay(document.getElementById('main'));
+    document.getElementById('p1').value = 'Aphrodite';
+    document.getElementById('p2').value = 'Dionysus';
+    document.getElementById('season').value = '2026-spring';
+    document.getElementById('rallies').value = '8';
+    document.getElementById('surface').value = 'auto';
+    await document.getElementById('go').onclick();
+    return {html: document.getElementById('pmsg').innerHTML || ''};
+  })()`);
+
+  check('a season that ended in a word names the run, so the log is one press away', () => {
+    if (failed.err) return failed.err;
+    if (!/43464439540/.test(failed.html)) return `the run is not named: "${failed.html}"`;
+    if (!/actions\/runs\/43464439540/.test(failed.html)) return 'the run number is not a link to the run';
+    if (!/its log says why/.test(failed.html)) return `the page does not point at the log: "${failed.html}"`;
+    return '';
+  });
+
   /* the verdict */
   let bad = 0;
   for (const r of results){
