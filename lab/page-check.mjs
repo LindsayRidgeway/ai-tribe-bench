@@ -861,6 +861,13 @@ async function main(){
     if (!there.size) return 'paint.py\'s PAINTERS table could not be read — the check has gone blind';
     for (const e of there) if (!here.has(e)) return `paint.py paints with ${e} and the page does not offer it`;
     for (const e of here) if (!there.has(e)) return `the page offers ${e}, which paint.py cannot paint with`;
+    // The extension too: the page names the file before the runner writes it, and Gemini answers a jpeg.
+    const mine = run(ctx, 'PAINTERS');
+    for (const m of block.matchAll(/"([a-z0-9]+)"\s*:\s*\{[^}]*"ext"\s*:\s*"(\.[a-z]+)"/g)){
+      const [_, engine, ext] = m;
+      if (mine[engine].ext !== ext)
+        return `paint.py files ${engine} as ${ext} and the page says ${mine[engine].ext}`;
+    }
     const noBlock = (py.match(/NO_PAINTER = \(([\s\S]*?)\n\)/) || [])[1] || '';
     const cannot = [...noBlock.matchAll(/"([a-z0-9]+)"/g)].map(m => m[1]);
     if (cannot.length !== 8) return `paint.py refuses ${cannot.length} engines; the manual says eight`;

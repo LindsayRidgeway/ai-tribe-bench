@@ -183,7 +183,14 @@ const ENGINES = {
 // A wake cannot paint. A wake is one API call with no tools, so a member whose engine can draw still cannot
 // draw from inside its own turn — the harness makes the call at the member's request, which is the same
 // position a person is in when they ask. The page says so rather than implying a member lifts a brush.
-const PAINTERS = {openai: 'OpenAI', gemini: 'Gemini', qwen: 'Qwen'};
+const PAINTERS = {
+  // label and the extension each one actually returns — Gemini answers a jpeg, and a card promising `.png` for
+  // a file named `.jpg` is the small kind of wrong that teaches a reader to distrust the bigger claims.
+  openai: {label: 'OpenAI', ext: '.png'},
+  gemini: {label: 'Gemini', ext: '.jpg'},
+  qwen:   {label: 'Qwen',   ext: '.png'},
+};
+const painterNames = () => Object.values(PAINTERS).map(p => p.label).join(', ');
 
 const S = {repo:'', token:'', branch:'main', keys:{}, members:[], chat:{}, member:null, view:'today',
            owner:'', tribes:{}};
@@ -1630,7 +1637,7 @@ async function showPictures(name){
   const box = $('pictures'); if (!box) return;
   const m = S.members.find(x => x.name === name) || {};
   const engine = String(m.engine || '').trim();
-  const three = Object.values(PAINTERS).join(', ');
+  const three = painterNames();
   if (!Object.prototype.hasOwnProperty.call(PAINTERS, engine)){
     box.innerHTML = `<p class="small" style="margin:0">${esc(engine || 'its engine')} has no image model, so
       ${esc(name)} cannot paint — and this form is not going to ask it and file the refusal as a picture. The three
@@ -1652,7 +1659,7 @@ async function showPictures(name){
         <option value="">a picture of its own</option>
         ${works.map(f => `<option value="${esc(f.replace(/\.md$/, ''))}">${esc(f.replace(/\.md$/, ''))}</option>`).join('')}
       </select></div>
-      <div><label>Where it will be filed</label><div class="small muted" id="paintref">plates/&lt;a new name&gt;</div></div>
+      <div><label>Where it will be filed</label><div class="small muted" id="paintref">plates/&lt;a new name&gt;${esc(PAINTERS[engine].ext)}</div></div>
     </div>
     <div class="row" style="margin-top:14px"><button class="primary" id="paintbtn">Ask for a picture</button>
       <span class="small muted" id="paintmsg"></span></div>
@@ -1664,7 +1671,7 @@ async function showPictures(name){
     if (!sel.value){
       // Back to a picture of its own: the box is the person's again.
       prompt.readOnly = false;
-      if (ref) ref.innerHTML = 'plates/&lt;a new name&gt;';
+      if (ref) ref.innerHTML = 'plates/&lt;a new name&gt;' + esc(PAINTERS[engine].ext);
       if (btn) btn.disabled = false;
       return;
     }
@@ -1674,7 +1681,7 @@ async function showPictures(name){
     try {
       const {text} = await fileText(`works/${name}/${sel.value}.md`);
       const line = (String(text).split('\n---')[0].match(/^commission:\s*(.+)$/mi) || [])[1];
-      if (ref) ref.innerHTML = `plates/${esc(sel.value)}.png`;
+      if (ref) ref.innerHTML = `plates/${esc(sel.value)}${esc(PAINTERS[engine].ext)}`;
       if (!line){
         prompt.value = ''; prompt.readOnly = true;
         if (btn) btn.disabled = true;
@@ -1703,9 +1710,9 @@ async function askForPicture(name){
   // Nothing is dispatched, so a member with no eyes is not told its ask was sent.
   if (!Object.prototype.hasOwnProperty.call(PAINTERS, engine))
     return fail((engine || 'its engine') + ' has no image model, so nothing was asked. The engines that can paint are '
-      + Object.values(PAINTERS).join(', ') + '. Nothing was sent.');
+      + painterNames() + '. Nothing was sent.');
   if (!work && !prompt) return fail('Nothing was asked for. Write the sentence the picture is asked with. Nothing was sent.');
-  if (prompt.length > 1000) return fail('That sentence is ' + prompt.length + ' characters; keep it under 1000. Nothing was sent.');
+  if (!work && prompt.length > 1000) return fail('That sentence is ' + prompt.length + ' characters; keep it under 1000. Nothing was sent.');
   if (btn) btn.disabled = true;
   if (box) box.innerHTML = '';
   try {
