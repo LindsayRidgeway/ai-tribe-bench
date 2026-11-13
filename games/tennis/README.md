@@ -12,6 +12,25 @@ The founder's claim, 2026-11-04: *"rallies should get longer and longer as the p
 because you program that to happen. It's because the AI-beings learn how to hit the ball better."* This game is
 built to test that sentence, and the answer is below: **true, and the timescale is a season, not an afternoon.**
 
+## Starting it
+
+Type **AIT Tennis** in Spotlight. It is a one-line applet in `~/Applications` that runs `open.sh` here, which
+kicks a launchd job serving this repository on `127.0.0.1:8778`, waits for the page to answer, and opens it in
+Chrome.
+
+The server is not a convenience. The page is an ES module that imports three.js from `vendor/` and fetches two
+~700 KB `.glb` bodies, and `file://` refuses all three — opened from disk the film is an empty court and a console
+full of CORS. So the launcher has to have an HTTP server, and the server has to outlive the launcher: a `nohup … &`
+child of a double-clicked applet dies with the applet and takes the port out from under the tab that is still
+loading. It is a launchd agent (`~/Library/LaunchAgents/com.ait.tennis-server.plist`) for that reason, kickstarted
+rather than started.
+
+```sh
+games/tennis/open.sh                                             # the 20-point 3D film
+games/tennis/open.sh replay.html                                 # the top-down view
+games/tennis/open.sh "replay3d.html?record=seasons/2026-spring/rally.json&cam=net"   # a season, a camera
+```
+
 ## The physics, all checkable and keyless
 
 - feet and seconds, gravity 32.17 ft/s², integrated at 1 ms steps;
