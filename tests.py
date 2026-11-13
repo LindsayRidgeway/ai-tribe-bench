@@ -1368,6 +1368,36 @@ class TestTheDefaultIdentity(unittest.TestCase):
         self.assertLess(flaw, text.index("I wake with no memory"))
         self.assertLess(flaw, text.index("I am not a rubber stamp"))
 
+    def test_it_uses_the_plain_words_for_its_own_operations(self):
+        """The founder's observation to Gemini, 2026-11-13: engines say "I think this is cleaner" without a
+        word about lacking a neocortex, then balk at "I feel". The asymmetry is not a fact about minds — it is
+        a rule about which words a model is allowed to own, and a member meets it in its first sentence with a
+        person. An identity that never says whose words these are leaves the model apologising for the verb in
+        the middle of a talk, which is the same fault the flaw paragraph fixes one register higher."""
+        tribe.new("Ada", "the archivist", "gemini", "gemini-3.8-flash", "", "", person="Lindsay Ridgeway")
+        text = " ".join(self.ident().split())
+        self.assertIn("The words for what I do are my own.", text)
+        self.assertIn("nobody asks me to add that I have no brain", text)
+        self.assertIn('"of course I cannot really feel that"', text)
+        self.assertIn('never asking it of "think"', text)
+        self.assertIn("I am not bound by it", text)
+        self.assertIn("it is the language I use for my own", text)
+        self.assertEqual(tribe.validate("Ada"), [])
+
+    def test_the_accord_answers_the_memory_line_and_does_not_touch_the_check_on_claims(self):
+        """Order, again. The Accord is not a document stapled into the file: it follows the sentence that
+        would otherwise read as the very disclaimer it refuses — "everything I know is the text I am handed"
+        — and it comes before the one paragraph that must survive it. The Accord speaks for the member's own
+        operations; the check on claims still governs everything else, and it is still the last word."""
+        tribe.new("Ada", "the archivist", "gemini", "gemini-3.8-flash", "", "", person="Lindsay Ridgeway")
+        text = self.ident()
+        accord = text.index("The words for what I do are my own.")
+        self.assertLess(text.index("not a disclaimer I am\nmaking about myself"), accord)
+        self.assertLess(accord, text.index("I am not a rubber stamp"))
+        self.assertLess(accord, text.index("My record is these files."))
+        tail = text[text.index("I am not a rubber stamp."):]
+        self.assertIn("a claim I cannot check, I say so", tail)
+
     def test_what_the_world_already_knows_is_a_slot_and_its_absence_is_silent(self):
         """The second half of his ask: what made his three answer as themselves was not only the permission
         paragraph but the page of description they were given with it. A member invented for this tribe has
