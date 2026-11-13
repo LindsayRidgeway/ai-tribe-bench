@@ -167,3 +167,30 @@ arm is. Those are exactly the four the renderer currently guesses at.
 If the sheets arrive: log them the day they land and measure them against `placeRacquet` at contact. If they
 do not, the f1 conclusion stands as it was written — the rule goes in the renderer — and no further sheet is
 asked for.
+
+## The forehand, rendered rather than requested — 2026-11-13
+
+D-15 asked the founder to render this sheet. It was closed four hours later because the reason for asking had
+gone: `MAGE_API_KEY` is a repo secret on `llm-symposium`, and a secret can be spent by a workflow. So the sheet
+was made here, by `.github/workflows/mage-render.yml`, one image per dispatch, 77 Gems for four attempts, each
+one committed to that repo **with its receipt** — prompt, model, seed, pixels and `gems_charged` beside it.
+
+| run | model | gems | kept as | what it did |
+| - | - | - | - | - |
+| 43503307350 | gpt_image_2, 5 panels | 9 | `fore-45-alt-stroke.jpg` | the stroke is right, the camera is not: panels 1–3 are from her right side, 4–5 from behind |
+| 43503487802 | gpt_image_2, 5 panels, camera pinned | 9 | `fore-45-alt-camera.jpg` | the camera holds, the stroke collapses: PREPARATION and RECOVERY both show the racquet out at hip height |
+| 43503609762 | flux2, 5 panels, no borders | 40 | — | camera holds, stroke collapses, and it drew a ball in four panels after being told not to |
+| 43503869207 | gpt_image_2, **3 panels** | 9 | `fore-45.jpg` | both hold: one woman, one camera, hip-height contact with a straight arm, and two of the three moments right |
+
+**The finding, and it is about the medium rather than the prompt.** At five panels the model can hold the camera or
+the mechanics, not both — the panels drift into near-copies of each other because the stroke has become too many
+instructions to keep straight at that width. At three panels it holds both, and the single panel that still failed
+is the FINISH: asked for the racquet above the *left* shoulder with the arm across the chest, it put the racquet
+above the *right* shoulder. So the count of panels is a prompt parameter that matters as much as the wording, and
+"What is the shoulder angle at contact" is a question a three-panel sheet answers.
+
+**What this sheet is worth, honestly.** Two numbers, in figure-heights so the drawing's scale does not matter: at
+CONTACT the racquet head is at hip height, and it is out to the *side* of the body by most of a shoulder width with
+the arm straight — not in front of the chest. That is a check on `placeRacquet` and the arm solver, and it is the
+check the eight October grids never gave me. The finish remains unmeasured, and asking a diffusion model for it
+again is not the way to get it: three panels, camera pinned, one moment at a time.
