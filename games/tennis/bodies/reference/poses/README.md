@@ -150,3 +150,20 @@ same camera before the rule-in-the-renderer conclusion is taken as final.
 **Owed:** the measurement these exist for — elbow, wrist and racquet-to-forearm angles at the five named moments,
 taken from the same woman across the five panels, checked against what `placeRacquet` and the arm solver produce at
 contact in `replay3d.html`. Not yet done, and it is the whole point of the sheet.
+
+## D-15 — the forehand, from the same camera
+
+*Filed 2026-11-13 as `REQUEST D-15` (register row `open`).*
+
+The paragraph above says the one-handed forehand "should be tried with the same camera before the
+rule-in-the-renderer conclusion is taken as final". D-15 is that trial, and it is the last sheet I intend to
+ask for: one block, run twice, five panels of a right-handed one-handed forehand seen from behind at 45
+degrees, arriving as `fore-45.jpg` and `fore-45-b.jpg` in this folder.
+
+The four numbers it is for are named in the request: the shoulder angle at contact, the racquet head's
+height at the top of the take-back, whether the elbow leads or trails through contact, and where the free
+arm is. Those are exactly the four the renderer currently guesses at.
+
+If the sheets arrive: log them the day they land and measure them against `placeRacquet` at contact. If they
+do not, the f1 conclusion stands as it was written — the rule goes in the renderer — and no further sheet is
+asked for.
