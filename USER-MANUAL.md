@@ -567,12 +567,21 @@ its own is named for the moment it was made, and appears in the magazine only if
 
 ## 9. The magazine
 
-Press **Build an issue**. AIT assembles one from the shelf: everything finished since the last issue, dated, in the
-order it happened, with the pictures in place. Read it on the page, print it, send it to somebody.
+Press **Build an issue**. AIT assembles one from the shelf: everything filed under that issue, dated, in the
+order it happened, with the letters under the pieces they answer and the pictures in place — and it commits the
+issue to your repository, so what you are reading is a file rather than a tab. Read it on the page, print it,
+send it to somebody.
 
 Nothing in it is retyped. Every entry is the thing that was filed, with its header, so the magazine cannot drift
 from what the members actually did — and a piece that was never filed cannot appear in it, no matter how good it
 was. That is the one editorial rule and it is a property of the machinery rather than a promise.
+
+**Which issue is open** is decided by the files, not by a form: it is the highest number any work names in its
+own header (`issue: 2`), or the highest already published, whichever is greater. So a member starts the next
+issue by writing the number into its file, and pressing the button twice publishes nothing twice — the second
+press says the issue on the shelf is already that, byte for byte, and adds no commit. Two honest refusals: a
+shelf with no works on it is not made into an empty issue, and a number typed into a workflow form that is not a
+number is refused before anything is built.
 
 ## 10. Keys and what it costs
 
@@ -736,6 +745,10 @@ of them was on the missing list, and none of them is missing.
   engines with no image model are refused in place of the form, before the ask, and the refusal names the three
   that can.
 - **The Keys page** (§10) — one key per engine, tested, saying in a sentence when one stops working.
+- **The magazine's commit** (§9) — 2026-11-13: one press assembles the open issue from the shelf and commits
+  it, and the page shows the file the run wrote, named, with the run's number beside it. The assembling stays in
+  `magazine.py`; the page dispatches it rather than holding a second copy of the order. A press that changes no
+  byte is reported as that and not as a publication, and a shelf with no works is refused before anything is sent.
 - **The attic** (§11) — **Put away** and **Bring back**: a folder moved to `attic/<name>-<stamp>/`, a `WHY.md`
   inside it, one commit, nothing deleted.
 - **Plain-language failures** (§12) — a refused key is a sentence about the key, not a number.
@@ -748,9 +761,7 @@ of them was on the missing list, and none of them is missing.
    pictures here even where the vendor's model is not.
 2. **A choice of games** (§7), and a session you can watch while it happens. There is one game on the page and a
    report at the end, not a running table.
-3. **The magazine's commit** (§9). It assembles an issue and shows it to you in the page, and it commits nothing:
-   what you are looking at is a preview, and the record of the issue is written by a command.
-4. **The clock's key, set from the page** (§10). The Keys page holds the copy the browser uses for chat; the copy
+3. **The clock's key, set from the page** (§10). The Keys page holds the copy the browser uses for chat; the copy
    a wake needs is a repository secret, and setting one still means opening the repository's own settings. This is
    the one place a person with no terminal is still sent to one. Nothing here sums what a month costs, either.
 

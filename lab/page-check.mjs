@@ -875,6 +875,148 @@ async function main(){
     return '';
   });
 
+  /* 6 — the magazine, §9: one press assembles the open issue from the shelf and commits it. Two things the
+     page used to do are tested against here. It assembled a magazine of its own (twelve files, newest first,
+     no letter under the piece it answers) — the check for that is that the page fetches no work at all: the
+     order is `magazine.py`'s, and a second copy of it is a second magazine. And it committed nothing, so the
+     issue a person read was a tab. What it owes now is the file the run wrote, named, and an honest difference
+     between "published" and "the shelf had not moved". */
+
+  const ISSUE = '# The Workshop — issue 1 — workshop\n\n'
+    + "*2 pieces, assembled from `works/` on 2026-11-13 by `magazine.py`. The pieces are the members'; the "
+    + 'order is not.*\n\n## Contents\n\n- **The Harbour** — LUMI, piece, 21 words\n\n---\n\n'
+    + '## The Harbour\n\n*LUMI — piece, 21 words*\n\nthe harbour, written\n\n'
+    + '![The Harbour](../plates/harbour.jpg)\n\n*Plate: asked for by LUMI, made by a human.*\n';
+  const seedShelf = () => seed('works/Lumi/20261113T090000Z-harbour.md',
+    '---\ntitle: The Harbour\nform: piece\nissue: 1\n---\n\nthe harbour, written\n');
+
+  reset();
+  seedMember('deepseek', 'deepseek-flash');
+  seedShelf();
+  actions.runs.push(runObject(43600000001, 'workflow_dispatch', 'magazine'));
+  actions.onPoll = (m) => {
+    m.set('issues/01.md', {text: ISSUE, sha: 'issue-1'});
+    m.set('issues/README.md', {text: '# The magazine\n', sha: 'index-1'});
+  };
+  const mag1 = await tryRun(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main'; S.owner = 'Sam';
+    render = () => {};
+    S.members = [{name: 'Lumi', engine: 'deepseek', model: 'deepseek-flash'}];
+    await viewMagazine(document.getElementById('main'));
+    await buildIssue();
+    return {said: document.getElementById('issuemsg').textContent || '',
+            html: document.getElementById('issue').innerHTML || '',
+            list: document.getElementById('issuelist').innerHTML || ''};
+  })()`);
+
+  check('the press sends the open issue to the assembler, not a shape of its own', () => {
+    if (mag1.err) return mag1.err;
+    const d = dispatches[dispatches.length - 1];
+    if (!d) return 'the press dispatched nothing';
+    if (d.workflow !== 'magazine.yml') return `it dispatched ${d.workflow}`;
+    if (String(d.inputs.issue ?? '') !== '')
+      return `the page chose issue ${JSON.stringify(d.inputs.issue)}; the open issue is the shelf's to say`;
+    return '';
+  });
+  check('and the page assembles nothing itself — it reads no work', () => {
+    if (mag1.err) return mag1.err;
+    const read = calls.filter(c => /contents\/works\/[^/]+\/.*\.md$/.test(c));
+    if (read.length) return `the page fetched a work to print it: ${read[0]}`;
+    return '';
+  });
+  check('the issue on the page is the file the run committed, named', () => {
+    if (mag1.err) return mag1.err;
+    if (!/issues\/01\.md is in the record/.test(mag1.said)) return `the page said: "${mag1.said}"`;
+    if (!/issues\/01\.md/.test(mag1.html)) return 'the file is not named beside the issue';
+    if (!/the harbour, written/.test(mag1.html)) return 'the issue itself is not on the page';
+    if (!/43600000001/.test(mag1.html)) return 'the run is not named, so its log is not one press away';
+    if (!/01/.test(mag1.list)) return 'the new issue is not in the list of issues';
+    return '';
+  });
+  // 6b — the picture the issue prints. `magazine.py` writes a plate from the issue's own folder
+  // (`../plates/x.jpg`), which is right on GitHub and meaningless to a page; an issue that renders its
+  // pictures as bracket text is not the magazine §9 promises to put in your hands.
+  check('a plate in an issue is a picture on the page, resolved against the repository', () => {
+    if (mag1.err) return mag1.err;
+    if (!/src="https:\/\/github\.com\/someone\/tribe\/raw\/main\/plates\/harbour\.jpg"/.test(mag1.html))
+      return `the plate was not resolved: ${(mag1.html.match(/!\[[^\]]*\]\([^)]*\)/) || ['missing'])[0]}`;
+    if (!/alt="The Harbour"/.test(mag1.html)) return 'the picture lost its alt text';
+    return '';
+  });
+
+  // 6c — a green run that published nothing. Same rule as the wake, the point and the picture: the conclusion
+  // is not the evidence, and an issue nobody wrote is the easiest thing in the world to report as built.
+  reset();
+  seedMember('deepseek', 'deepseek-flash');
+  seedShelf();
+  actions.runs.push(runObject(43600000002, 'workflow_dispatch', 'magazine'));
+  const mag2 = await tryRun(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
+    render = () => {};
+    S.members = [{name: 'Lumi', engine: 'deepseek', model: 'deepseek-flash'}];
+    await viewMagazine(document.getElementById('main'));
+    await buildIssue();
+    return {html: document.getElementById('issue').innerHTML || ''};
+  })()`);
+
+  check('a run that committed no issue is not reported as one', () => {
+    if (mag2.err) return mag2.err;
+    if (!/still holds no issue/.test(mag2.html)) return `the page said: "${mag2.html}"`;
+    if (!/43600000002/.test(mag2.html)) return 'the run is not named';
+    if (!/issues\//.test(mag2.html)) return 'the folder an issue would have appeared in is not named';
+    return '';
+  });
+
+  // 6d — a press that changes no byte. The magazine is derived from the shelf, so assembling the same shelf
+  // twice gives the same file: that is the machinery working, not a failure — and it is not a publication
+  // either. Both sentences are true; only one of them is about this press.
+  reset();
+  seedMember('deepseek', 'deepseek-flash');
+  seedShelf();
+  seed('issues/01.md', ISSUE);
+  actions.runs.push(runObject(43600000003, 'workflow_dispatch', 'magazine'));
+  const mag3 = await tryRun(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
+    render = () => {};
+    S.members = [{name: 'Lumi', engine: 'deepseek', model: 'deepseek-flash'}];
+    await viewMagazine(document.getElementById('main'));
+    await buildIssue();
+    return {said: document.getElementById('issuemsg').textContent || '',
+            html: document.getElementById('issue').innerHTML || ''};
+  })()`);
+
+  check('a press that adds no commit says so instead of claiming a publication', () => {
+    if (mag3.err) return mag3.err;
+    if (/is in the record/.test(mag3.said)) return `the page claimed a publication: "${mag3.said}"`;
+    if (!/already on the shelf, byte for byte/.test(mag3.said)) return `the page said: "${mag3.said}"`;
+    if (!/byte for byte/.test(mag3.html)) return 'the issue on the page is not labelled with what happened';
+    if (!/the harbour, written/.test(mag3.html)) return 'and the issue that is already on the shelf is not shown';
+    return '';
+  });
+
+  // 6e — a shelf with no works. The assembler would write a header and one true sentence saying nothing has
+  // been filed; committing that publishes a nothing. Refused before the press, like the shot the court would
+  // clamp — and the refusal says where a work goes, because "no" without an address is not an answer.
+  reset();
+  seedMember('deepseek', 'deepseek-flash');
+  const mag4 = await tryRun(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
+    render = () => {};
+    S.members = [{name: 'Lumi', engine: 'deepseek', model: 'deepseek-flash'}];
+    await viewMagazine(document.getElementById('main'));
+    await buildIssue();
+    return {html: document.getElementById('issuemsg').innerHTML || ''};
+  })()`);
+
+  check('an empty shelf is refused before anything is sent, with the place a work goes', () => {
+    if (mag4.err) return mag4.err;
+    if (dispatches.length) return `it was sent anyway (${dispatches.length} dispatch(es))`;
+    if (!/shelf holds no works/.test(mag4.html)) return `the page said: "${mag4.html}"`;
+    if (!/works\/&lt;member&gt;|works\/<member>/.test(mag4.html)) return 'the refusal does not say where a work goes';
+    if (!/Nothing was sent/.test(mag4.html)) return 'the refusal does not say that nothing was sent';
+    return '';
+  });
+
   /* the verdict */
   let bad = 0;
   for (const r of results){

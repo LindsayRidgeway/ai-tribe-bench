@@ -135,9 +135,10 @@
     database and no copy of your tribe. Keys pasted for chat live in this browser only.
     <details>
       <summary>What this page does not do yet</summary>
-      <p class="small muted">Pictures (§8 of the manual) are not built. Removing a member works only by dispatch,
-      not by an attic. And a member's key reaches this page for chat but not yet the clock, so a new tribe talks
-      before it wakes.</p>
+      <p class="small muted">Pictures happen on a member's page, not inside a conversation — the chat is text in,
+      text out. There is one game on the page and a report at the end, not a table you can watch while it
+      happens. And a member's key reaches this page for chat but not yet the clock, so a new tribe talks before
+      it wakes.</p>
     </details>
     <p class="small muted">A second tribe is a second repository: <a href="#/install">install another one</a>,
     or <a href="#/connect">connect to one you already have</a>.</p>
@@ -238,6 +239,19 @@ function md(src){
     const line = raw.replace(/\s+$/, '');
     if (/^```/.test(line)){ inCode = !inCode; out += inCode ? '<pre class="file">' : '</pre>'; continue; }
     if (inCode){ out += esc(raw) + '\n'; continue; }
+    // A picture on its own line — which is how `magazine.py` prints a plate, under the piece it belongs to.
+    // The issue's path is written from `issues/` (`../plates/x.jpg`) because that is what GitHub needs to
+    // render the file there; a page has no folder, so a relative path is resolved against the repository.
+    // Only whole-line pictures: an image mid-sentence is rare in these files and a half-rendered one is worse
+    // than the brackets it came in.
+    const pic = line.match(/^!\[([^\]]*)\]\(([^)\s]+)\)$/);
+    if (pic){
+      const src = pic[2];
+      const url = /^https?:/i.test(src) ? src
+        : `https://github.com/${S.repo}/raw/${S.branch}/${src.replace(/^(\.\.\/)+/, '').replace(/^\//, '')}`;
+      out += `<img src="${esc(url)}" alt="${esc(pic[1])}" loading="lazy" style="max-width:100%;border-radius:6px">`;
+      continue;
+    }
     const li = line.match(/^\s*[-*]\s+(.*)$/);
     if (li){ if (!inList){ out += '<ul>'; inList = true; } out += '<li>' + inline(li[1]) + '</li>'; continue; }
     if (inList && !li){ out += '</ul>'; inList = false; }
@@ -312,16 +326,21 @@ async function gh(path, opts = {}, token = S.token){
   return data;
 }
 
-async function dirNames(path){
+// A folder's entries with their shas, names only for the many places that just want the list. The sha is
+// what lets a button ask "did this run change that file?" — the one piece of evidence a browser can get from
+// the repository itself, and the reason the magazine can report a publication and a no-op differently.
+async function dirEntries(path){
   try {
     const d = await gh(`/repos/${S.repo}/contents/${encodeURI(path)}?ref=${S.branch}`);
-    if (!Array.isArray(d)) return [];
-    return d.map(x => x.name);
+    if (!Array.isArray(d)) return new Map();
+    return new Map(d.map(x => [x.name, x.sha || x.type || '']));
   } catch(e){
-    if (String(e.message).startsWith('404')) return [];
+    if (String(e.message).startsWith('404')) return new Map();
     throw e;
   }
 }
+
+async function dirNames(path){ return [...(await dirEntries(path)).keys()]; }
 
 async function fileText(path){
   const d = await gh(`/repos/${S.repo}/contents/${encodeURI(path)}?ref=${S.branch}`);
@@ -346,8 +365,24 @@ function b64e(s){
 }
 
 async function dispatch(workflow, inputs){
-  await gh(`/repos/${S.repo}/actions/workflows/${workflow}/dispatches`,
-           {method:'POST', body:{ref:S.branch, inputs}});
+  // A dispatch answers with nothing at all, so the only way to tell "accepted" from "refused" is the status.
+  // 422 here has one cause worth naming: the workflow in *this* repository does not declare one of these fields,
+  // because the page is newer than the tribe it is talking to. GitHub's own words are `Unexpected inputs
+  // provided: ["person", "shot"]`, which describes our form back to us and tells a person nothing they can act
+  // on — so it is translated here, once, for every button that dispatches. Measured 2026-11-13 on the founder's
+  // tribe: the site carried the person's seat and his repository's `season.yml` predated it.
+  try {
+    await gh(`/repos/${S.repo}/actions/workflows/${workflow}/dispatches`,
+             {method:'POST', body:{ref:S.branch, inputs}});
+  } catch(e){
+    const fields = (String(e.message).match(/\[([^\]]*)\]/) || [])[1] || '';
+    if (/^422\b/.test(String(e.message)) && fields){
+      throw new Error(`this tribe's copy of ${workflow} has no field for ${fields} — the repository is older `
+        + `than this page, so the press cannot work. Nothing was sent. The machinery in the repository and `
+        + `the page have to be brought into step.`);
+    }
+    throw e;
+  }
 }
 
 async function waitForRun(name, sinceMs, say){
@@ -3738,7 +3773,17 @@ async function viewPlay(main){
       await dispatch('season.yml', {season, players: `${p1},${p2}`, rallies: String($('rallies').value || 8),
                                     surface: $('surface').value, temperature: '1.0'});
       const run = await waitForRun('season', since, t => msg.textContent = t);
-      if (run.conclusion !== 'success') throw new Error('the run ended: ' + run.conclusion);
+      if (run.conclusion !== 'success'){
+        // The run's conclusion is a word, not an explanation, and a person who reads "the run ended: failure"
+        // has been told nothing they can act on. The run is named and linked instead — its log says why in one
+        // line, and that line is the answer (today, on the founder's tribe, it was `TRIBE_API_KEY_OPENROUTER is
+        // not set, so Aphrodite cannot hit a ball. Nothing was played.`).
+        const url = run.html_url || `https://github.com/${S.repo}/actions/runs/${run.id}`;
+        msg.innerHTML = '<span class="err">' + esc('the run ended: ' + run.conclusion + '.') + '</span> '
+          + `<a href="${esc(url)}" target="_blank" rel="noopener">${esc(String(run.id))}</a>`
+          + '<span class="small muted"> — its log says why, in one line.</span>';
+        return;
+      }
       msg.textContent = 'played. reading the record';
       await readSeason(season);
     } catch(e){ msg.innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }
@@ -3758,25 +3803,46 @@ async function readSeason(season){
 
 /* ---- magazine --------------------------------------------------------------------------- */
 
+// §9's button, and two things it no longer does. It used to assemble a magazine *in the page* — twelve files,
+// newest first — which was not the issue `magazine.py` prints: no letter under the piece it answers, no plates,
+// no colophon. And it committed nothing, which §14 has listed since the manual was written: "what you are
+// looking at is a preview, and the record of the issue is written by a command." Two copies of an ordering is
+// the same defect as two tables of who can paint, so the ordering stays in Python and the page's job here is
+// to press, wait, and read back the file the run committed — by name, with the run's number beside it.
+
 async function viewMagazine(main){
   main.innerHTML = `<h1>Magazine</h1><p class="muted small">reading the shelf…</p>`;
-  const issues = (await dirNames('issues').catch(() => []))
-    .filter(n => /\.md$/.test(n) && n !== 'README.md').sort().reverse();
   const shelves = await dirNames('works').catch(() => []);
   let counts = [];
   for (const who of shelves) counts.push(`${who}: ${(await dirNames('works/' + who).catch(() => [])).length}`);
   main.innerHTML = `<h1>Magazine</h1>
-    <p class="lede">An issue is assembled from the shelf — everything finished, dated, in the order it happened.
-    Nothing in it is retyped, so a piece that was never filed cannot appear in it.</p>
+    <p class="lede">An issue is assembled from the shelf — everything filed under it, dated, in the order it
+    happened, with the letters under the pieces they answer and the pictures in place. Nothing in it is
+    retyped, so a piece that was never filed cannot appear in it.</p>
     <div class="card"><h3 style="margin-top:0">On the shelf</h3>
       <p class="small">${counts.join(' · ') || 'nothing yet'}</p>
-      <button class="plain" onclick="buildIssue()">Assemble an issue from the shelf</button></div>
+      <div class="row"><button class="plain" id="buildissue" onclick="buildIssue()">Build an issue</button>
+        <span class="small muted" id="issuemsg"></span></div>
+      <p class="small muted" style="margin:10px 0 0">One press assembles the open issue and commits it, so the
+      record of it is a file in your repository rather than this tab. Which issue is open: the highest one a
+      work names, or the highest already published. A member starts a new one by writing
+      <code>issue: 2</code> into its file's header.</p></div>
     <h2>Issues</h2>
-    <div class="card">${issues.length ? issues.map(i =>
+    <div class="card" id="issuelist"><p class="muted small">reading…</p></div>
+    <div id="issue"></div>`;
+  await listIssues();
+}
+
+async function listIssues(){
+  const card = $('issuelist'); if (!card) return;
+  const issues = (await dirNames('issues').catch(() => []))
+    .filter(n => /^\d+.*\.md$/.test(n))
+    // A number, not a string: "100.md" sorts before "99.md" as text, and the issue that is open is the highest.
+    .sort((a, b) => (parseInt(a, 10) || 0) - (parseInt(b, 10) || 0)).reverse();
+  card.innerHTML = issues.length ? issues.map(i =>
       `<div class="member" onclick="readIssue('${escq(i)}')"><div class="grow"><div class="name">${esc(i.replace('.md',''))}</div>
        <div class="small muted">published</div></div><span class="chip">read</span></div>`).join('')
-      : '<p class="muted">No issues yet.</p>'}</div>
-    <div id="issue"></div>`;
+    : '<p class="muted">No issues yet. The first press makes one.</p>';
 }
 
 async function readIssue(name){
@@ -3784,34 +3850,70 @@ async function readIssue(name){
   box.innerHTML = '<p class="muted small">reading…</p>';
   try {
     const {text} = await fileText('issues/' + name);
-    box.innerHTML = `<h2>${esc(name.replace('.md',''))}</h2><div class="prose">${md(text)}</div>`;
+    box.innerHTML = `<h2>issues/${esc(name)}</h2><div class="prose">${md(text)}</div>`;
     box.scrollIntoView({behavior:'smooth'});
   } catch(e){ box.innerHTML = `<p class="err">${esc(e.message)}</p>`; }
 }
 
 async function buildIssue(){
-  const box = $('issue');
-  box.innerHTML = '<p class="muted small">assembling…</p>';
+  const msg = $('issuemsg'), box = $('issue'), btn = $('buildissue');
+  const say = (t) => { if (msg) msg.textContent = t; };
+  const fail = (t) => { if (msg) msg.innerHTML = '<span class="err">' + esc(t) + '</span>'; };
+  // Nothing on the shelf is a refusal before the press, not an empty issue committed to the record: the
+  // assembler would write a header and one true sentence saying no works have been filed, and that is a
+  // published nothing. The runner refuses the same case for itself, so a press from anywhere else gets the
+  // same answer.
+  const shelves = await dirNames('works').catch(() => []);
+  let onShelf = 0;
+  for (const who of shelves) onShelf += (await dirNames('works/' + who).catch(() => [])).filter(f => /\.md$/.test(f)).length;
+  if (!onShelf) return fail('The shelf holds no works, so there is nothing to assemble. A member files one by '
+    + 'writing into works/<member>/ with an issue number in its header. Nothing was sent.');
+  if (btn) btn.disabled = true;
+  if (box) box.innerHTML = '';
   try {
-    const who = await dirNames('works');
-    const items = [];
-    for (const w of who){
-      const files = (await dirNames('works/' + w)).filter(f => /\.md$/.test(f));
-      for (const f of files) items.push({w, f});
+    // What the issues folder looked like before the press. The difference afterwards is the only evidence a
+    // browser can have that the run did rather than merely finished: a sha that changed, or a file that was
+    // not there. A green run that changed nothing is a real answer too — the shelf had not moved — and the
+    // two are said differently rather than both being called "built".
+    const before = await dirEntries('issues').catch(() => new Map());
+    const since = Date.now();
+    say('sent to the assembler…');
+    await dispatch('magazine.yml', {issue: ''});
+    const run = await waitForRun('magazine', since, say);
+    const url = run.html_url || `https://github.com/${S.repo}/actions/runs/${run.id}`;
+    if (run.conclusion !== 'success') throw new Error(`run ${run.id} ended: ${run.conclusion} — ${url}`);
+    const after = await dirEntries('issues').catch(() => new Map());
+    const num = (n) => parseInt(n, 10) || 0;
+    const named = [...after.keys()].filter(n => /^\d+.*\.md$/.test(n)).sort((a, b) => num(a) - num(b));
+    const changed = named.filter(n => before.get(n) !== after.get(n));
+    if (!named.length){
+      if (box) box.innerHTML = '<span class="err">'
+        + esc('the run finished and issues/ still holds no issue — nothing was published.') + '</span>'
+        + ` <a href="${esc(url)}" target="_blank" rel="noopener">${esc(String(run.id))}</a>`
+        + '<span class="small muted"> — its log says why, in one line.</span>';
+      return;
     }
-    items.sort((a, b) => (a.f < b.f ? 1 : -1));
-    const picked = items.slice(0, 12);
-    let html = `<h2>An issue, assembled now</h2><p class="small muted">${picked.length} pieces, newest first.
-      This one is assembled in the page from what is on the shelf; the project's own assembler writes it into
-      <code>issues/</code>.</p>`;
-    for (const it of picked){
-      const {text} = await fileText(`works/${it.w}/${it.f}`);
-      html += `<div class="prose" style="border-top:1px solid var(--line);padding-top:12px;margin-top:16px">
-        <p class="small muted">${esc(it.w)} · ${esc(it.f)}</p>${md(text)}</div>`;
-    }
-    box.innerHTML = html;
-    box.scrollIntoView({behavior:'smooth'});
-  } catch(e){ box.innerHTML = `<p class="err">${esc(e.message)}</p>`; }
+    // The file that changed under this press is the issue it published. When nothing changed, the issue that
+    // is open is the one to show, and the sentence says plainly that this press added no commit.
+    //
+    // "In the record", not "committed by this press": a sha can say a file changed while the press was running,
+    // and it cannot say which writer it was if the clock rebuilt the same issue a second earlier — the clock
+    // commits this same file from this same shelf. What the person is owed is the difference between a press
+    // that changed the record and one that found it already right, and that is what the two sentences say; the
+    // run's number is beside them for the log.
+    const name = changed.length ? changed[0] : named[named.length - 1];
+    const published = changed.length > 0;
+    const {text} = await fileText('issues/' + name);
+    say(published ? 'issues/' + name + ' is in the record'
+                  : 'issues/' + name + ' was already on the shelf, byte for byte — this press made no new commit');
+    if (box) box.innerHTML = `<h2>issues/${esc(name)}</h2>
+      <p class="small muted">${published ? 'in the record' : 'already on the shelf, byte for byte'} ·
+      run <a href="${esc(url)}" target="_blank" rel="noopener">${esc(String(run.id))}</a></p>
+      <div class="prose">${md(text)}</div>`;
+    await listIssues();
+    if (box && box.scrollIntoView) box.scrollIntoView({behavior:'smooth', block:'start'});
+  } catch(e){ fail(e.message); }
+  finally { if (btn) btn.disabled = false; }
 }
 
 /* ---- keys ------------------------------------------------------------------------------- */

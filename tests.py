@@ -455,6 +455,40 @@ class TestMagazine(unittest.TestCase):
     def test_an_empty_issue_says_how_to_fill_it_rather_than_pretending(self):
         self.assertIn("No works have been filed", self._issue({}))
 
+    def test_the_count_of_works_naming_an_issue_comes_from_the_assembler(self):
+        """The runner may not publish an issue with nothing in it, and it may not hold a second opinion about what
+        belongs in one. `--filed` prints the number and nothing else, so a shell can test it, and the number is
+        the one `build()` filters on — one rule, two callers.
+
+        Also the one place the "which issue is open" rule is measured: the highest number any work names wins over
+        the highest issue already on disk, which is how a member starts the next issue by writing a line.
+        """
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp, True)
+        (tmp / "works" / "a").mkdir(parents=True)
+        (tmp / "issues").mkdir()
+        shutil.copy(REPO / "magazine.py", tmp / "magazine.py")
+        (tmp / "works" / "a" / "one.md").write_text(
+            "---\ntitle: One\nform: piece\nissue: 1\n---\n\nx\n", encoding="utf-8")
+        (tmp / "works" / "a" / "two.md").write_text(
+            "---\ntitle: Two\nform: piece\nissue: 2\n---\n\nx\n", encoding="utf-8")
+
+        def cli(*args: str) -> str:
+            r = subprocess.run([sys.executable, "magazine.py", *args], cwd=tmp,
+                               capture_output=True, text=True)
+            self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+            return r.stdout.strip()
+
+        self.assertEqual(cli("--issue", "1", "--filed"), "1")
+        self.assertEqual(cli("--issue", "2", "--filed"), "1")
+        # An issue nobody has written for: zero, and nothing else, so the shell can refuse on it.
+        self.assertEqual(cli("--issue", "3", "--filed"), "0")
+        self.assertEqual(cli("--current"), "2", "the shelf opens the issue, not the disk alone")
+        # A work with no `issue:` line is issue 1 — the same default `build()` uses, not a second convention.
+        (tmp / "works" / "a" / "three.md").write_text(
+            "---\ntitle: Three\n---\n\nx\n", encoding="utf-8")
+        self.assertEqual(cli("--issue", "1", "--filed"), "2")
+
 
     def test_a_cited_file_that_is_private_is_not_reported_as_on_the_shelf(self):
         tmp = Path(tempfile.mkdtemp())
@@ -3884,6 +3918,129 @@ class TestWorkflows(unittest.TestCase):
         self.assertIn("no plate was written", text)
         self.assertIn("--asked-by", text,
                       "the card names who asked; without it the harness credits the member with a person's sentence")
+
+    def test_build_an_issue_publishes_and_does_not_publish_a_nothing(self):
+        """§9's button, end to end as far as a workflow can be tested without a shelf full of strangers.
+
+        Two defects are being closed at once, and they are different defects. §14 has listed the third since the
+        manual was written — "it assembles an issue and shows it to you in the page, and it commits nothing" —
+        and the page's own assembly was not the magazine `magazine.py` prints: twelve files, newest first, no
+        letter under the piece it answers. So the press dispatches the assembler, and what it must never do is
+        commit an issue with nothing in it: `build()` will happily write a header and one true sentence saying no
+        works have been filed, and a published nothing is worse than a refusal.
+        """
+        if yaml is None:
+            self.skipTest("PyYAML not installed")
+        wf = yaml.safe_load((self.WF / "magazine.yml").read_text(encoding="utf-8"))
+        steps = wf["jobs"]["build"]["steps"]
+        which = [s for s in steps if s.get("name", "").startswith("Which issue")][0]["run"]
+        assemble = [s for s in steps if s.get("name", "").startswith("Assemble it")][0]["run"]
+        self.assertIn("magazine.py --issue", assemble)
+        self.assertIn("--write", assemble, "the press must write the issue, not print it into a log")
+
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp, True)
+        shutil.copy(REPO / "magazine.py", tmp / "magazine.py")
+        (tmp / "works" / "Lumi").mkdir(parents=True)
+        out = tmp / "gh-output"
+
+        def step(given: str, extra: dict | None = None) -> subprocess.CompletedProcess:
+            out.write_text("", encoding="utf-8")
+            env = {**os.environ, "GIVEN": given, "GITHUB_OUTPUT": str(out), **(extra or {})}
+            return subprocess.run(["bash", "-c", which], cwd=tmp, env=env, capture_output=True, text=True)
+
+        # A work that names issue 1, and no issue on disk: the open issue is the one the work names.
+        (tmp / "works" / "Lumi" / "20261113T090000Z-first.md").write_text(
+            "---\ntitle: First\nform: piece\nissue: 1\n---\n\nthe first thing\n", encoding="utf-8")
+        r = step("")
+        self.assertEqual(r.returncode, 0, f"the step ended {r.returncode} saying: {r.stdout}{r.stderr}")
+        wrote = out.read_text(encoding="utf-8")
+        self.assertIn("issue=1", wrote)
+        self.assertIn("filed=1", wrote)
+
+        # A work that names issue 2 opens issue 2 — from the shelf, not from a form.
+        (tmp / "works" / "Lumi" / "20261113T100000Z-second.md").write_text(
+            "---\ntitle: Second\nform: piece\nissue: 2\n---\n\nthe second thing\n", encoding="utf-8")
+        r = step("")
+        self.assertEqual(r.returncode, 0, f"the step ended {r.returncode} saying: {r.stdout}{r.stderr}")
+        self.assertIn("issue=2", out.read_text(encoding="utf-8"),
+                      "the open issue is the highest a work names, not the lowest or the last published")
+
+        # Nothing names issue 3, so there is nothing to publish — and the message says how a work is filed.
+        r = step("3")
+        self.assertNotEqual(r.returncode, 0, "an issue with no works must not be committed")
+        self.assertIn("nothing to assemble", r.stdout + r.stderr)
+        self.assertIn("works/", r.stdout + r.stderr, "a refusal that does not say where a work goes is a dead end")
+
+        # A shelf with no works at all: the same refusal, before anything is built.
+        for f in (tmp / "works" / "Lumi").glob("*.md"):
+            f.unlink()
+        r = step("")
+        self.assertNotEqual(r.returncode, 0, "a shelf with no works has no issue in it")
+        self.assertIn("nothing to assemble", r.stdout + r.stderr)
+
+        # And a form value that is not a number is refused, not turned into a path.
+        r = step("../etc")
+        self.assertNotEqual(r.returncode, 0, "an issue is a number")
+        self.assertIn("an issue is a number", r.stdout + r.stderr)
+
+    def test_the_issue_is_committed_and_only_the_issue(self):
+        """One commit, `issues/` and nothing else, and an honest branch for the press that changed no byte.
+
+        A rebuild that produces the same file is the magazine's own promise working — every published file is a
+        function of the record — so it is not a failure. It is also not a publication, and the page tells the two
+        apart by the sha of the file it read back, which is why this step does not have to fail to say so.
+        """
+        text = (self.WF / "magazine.yml").read_text(encoding="utf-8")
+        self.assertIn("git add issues/", text,
+                      "the issue and its index are the run's; a `git add -A` would commit whatever else moved")
+        self.assertNotIn("git add -A", text)
+        self.assertIn("nothing to commit", text)
+        self.assertIn("git pull -q --rebase", text, "the shelf moves: a push must survive the clock's last wake")
+        self.assertIn("press again", text,
+                      "an issue assembled from a tree that is no longer the branch must not be pushed as if it were")
+
+    def test_the_magazine_button_is_named_the_way_the_book_names_it(self):
+        """§9 says "Press **Build an issue**" and the appendix has a row called `Build an issue`. The page's
+        button said "Assemble an issue from the shelf", which is the same operation under a second name — and a
+        reader holding the book on their knees is the one who pays for that. The name is the promise.
+        """
+        html = (REPO / "ait.html").read_text(encoding="utf-8")
+        self.assertIn(">Build an issue<", html)
+        self.assertNotIn("Assemble an issue", html)
+        self.assertIn("| Build an issue |", (REPO / "USER-MANUAL.md").read_text(encoding="utf-8"))
+
+
+    def test_the_shelf_list_does_not_die_on_a_pipe_or_a_bench_file(self):
+        """The two members are picked from the shelf when the form names none, and that one line failed twice
+        over in a colony that is not this bench.
+
+        `head -2` exits once it has its lines; the `while` loop above it then writes into a closed pipe; `ls` takes
+        the SIGPIPE; `set -o pipefail` turns that into a failed assignment and `set -e` takes the step down — exit
+        141, no message. In the bench the race usually went the other way, which is why nothing noticed. And
+        `lab/fixtures.txt` is the *bench's* own list of test members: a tribe made from the template has no such
+        file, so a shipped workflow that requires one is a workflow that only works where it was written.
+
+        Run the step, in a three-member colony with no fixtures file, rather than reading it. Found 2026-11-13
+        while answering the founder, whose two-member press had already reached the engine and failed for an
+        unrelated reason — the next press with the form blank would have died here.
+        """
+        if yaml is None:
+            self.skipTest("PyYAML not installed")
+        wf = yaml.safe_load((self.WF / "season.yml").read_text(encoding="utf-8"))
+        step = [s for s in wf["jobs"]["play"]["steps"] if s.get("name") == "Which season, which two"][0]["run"]
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp, True)
+        for who in ("Aphrodite", "Dionysus", "Hermes"):
+            (tmp / "wake" / "members" / who / "state").mkdir(parents=True)
+        self.assertFalse((tmp / "lab" / "fixtures.txt").exists())
+        env = {**os.environ, "SEASON": "2026-spring", "PLAYERS": "", "PERSON": "", "SHOT": "",
+               "GITHUB_ENV": str(tmp / "env.out")}
+        r = subprocess.run(["bash", "-c", step], cwd=tmp, env=env, capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, f"the step ended {r.returncode} saying: {r.stdout}{r.stderr}")
+        wrote = (tmp / "env.out").read_text(encoding="utf-8")
+        self.assertIn("PLAYERS=Aphrodite,Dionysus", wrote,
+                      "the first two on a stranger's shelf must reach the court without a bench file")
 
     def test_the_published_member_list_matches_the_shelf(self):
         """A static page cannot read a directory, so `members.json` is what its drop list is built from — and a
