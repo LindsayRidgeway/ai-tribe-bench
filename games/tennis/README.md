@@ -31,6 +31,15 @@ games/tennis/open.sh replay.html                                 # the top-down 
 games/tennis/open.sh "replay3d.html?record=seasons/2026-spring/rally.json&cam=net"   # a season, a camera
 ```
 
+## On a phone
+
+The film renders in a phone's browser — `stills/phone-390x844.png` is this page at 390x844 in a phone emulation, drawn
+without changes: the camera keeps its own framing because it is a perspective camera with the viewport's aspect, and
+the two cards at the bottom still fit. What a phone does **not** have is a way to fetch it. The page is served over
+HTTP because a browser refuses ES modules and binary `.glb` fetches from `file://`, and on this machine that means the
+Mac's server and a phone on the same wifi. GitHub Pages removes that requirement entirely and is the intended answer;
+it is switched on per repository, not per page.
+
 ## The physics, all checkable and keyless
 
 - feet and seconds, gravity 32.17 ft/s², integrated at 1 ms steps;
