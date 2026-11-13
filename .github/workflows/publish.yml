@@ -6,9 +6,14 @@ name: publish
 # `netlify deploy` needs an account token and the founder's laptop was the only place it lived. That made
 # every change end at "ready to ship, needs him" — a queue with one server, and the queue was his evening.
 #
-# Credits, which is why the default is a preview: the free team holds 300 deploy credits a month, a
-# *production* deploy costs 15 of them (so twenty and the site pauses), and preview deploys are free. A
-# preview gives its own URL to test against. Promotion is therefore a second, deliberate press.
+# Credits, which is why the default is a preview. A free team holds a **credit limit of 300 a month**; a
+# *production* deploy costs 15 of them and a preview deploy costs nothing. Two things that sentence hides,
+# both checked against Netlify's own pricing page on 2026-11-13: the 300 is not a deploy budget — bandwidth
+# is 20 credits a GB and compute 10 a GB-hour, so ~20 GB of traffic costs what twenty production deploys do —
+# and when a month's credits are gone the site is **paused until the next billing cycle**, not billed. A card
+# on file changes nothing on the free plan; even on a paid plan the top-up (auto recharge) is off by default.
+# A preview gives its own URL to test against, so promotion is a second, deliberate press — worth 15 credits
+# when the queue has accumulated user-facing changes, wasteful once per commit.
 #
 # The secret it needs, once: NETLIFY_AUTH_TOKEN on this repository (Settings -> Secrets and variables ->
 # Actions). It is a Netlify personal access token: User settings -> Applications -> Personal access tokens.

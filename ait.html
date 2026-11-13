@@ -176,6 +176,15 @@ const ENGINES = {
   anthropic:  {label:'Anthropic',  model:'claude-haiku-5-5',      kind:'anthropic', base:'https://api.anthropic.com/v1'},
 };
 
+// Which engines have an image model. Measured with one prompt and one key each on 2026-11-07, and it is not a
+// guess: `lab/paint.py` holds the same three and makes the call, and `lab/page-check.mjs` fails if these two
+// tables ever disagree. The other eight engines have no image model at all.
+//
+// A wake cannot paint. A wake is one API call with no tools, so a member whose engine can draw still cannot
+// draw from inside its own turn — the harness makes the call at the member's request, which is the same
+// position a person is in when they ask. The page says so rather than implying a member lifts a brush.
+const PAINTERS = {openai: 'OpenAI', gemini: 'Gemini', qwen: 'Qwen'};
+
 const S = {repo:'', token:'', branch:'main', keys:{}, members:[], chat:{}, member:null, view:'today',
            owner:'', tribes:{}};
 
@@ -1301,6 +1310,10 @@ kept whole: not summarised, not rewritten</span></span>
       <button class="plain small" style="font-weight:400" onclick="editVoice('${escq(name)}')">change</button></h2>
     <div class="card" id="voice"><p class="small muted">reading its voice…</p></div>
 
+    <h2>Pictures <span class="small muted" style="font-weight:400">— §8: a member asks, the harness calls the
+      image model, and the card says which machine drew</span></h2>
+    <div class="card" id="pictures"><p class="small muted">reading its shelf…</p></div>
+
     <h2>What it is <span class="small muted" style="font-weight:400">— its identity: the file every prompt begins with</span>
       <button class="plain small" style="font-weight:400" onclick="editIdentity('${escq(name)}')">edit</button></h2>
     <div class="card" id="ident"><p class="small muted">reading…</p></div>
@@ -1311,6 +1324,7 @@ kept whole: not summarised, not rewritten</span></span>
   showVoice(name).catch(() => {});
   showIdentity(name).catch(() => {});
   showChapters(name).catch(() => {});
+  showPictures(name).catch(() => {});
 
   // The comparison reads two API endpoints; it must not delay the talk, and a failure is a footnote.
   compareMemories(name).catch(e => {
@@ -1604,6 +1618,128 @@ async function wakeNow(name){
       S.member = m; S.view = 'm/' + name; render();
     } else { render(); }
   } catch(e){ say(''); const e2 = box(); if (e2) e2.innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }
+}
+
+/* ---- pictures ------------------------------------------------------------------------------ */
+
+// §8's button. Three things it must not do: ask an engine that cannot paint, commit a picture without the
+// sentence it was asked with, and call a green run a picture. The first is refused here before anything is
+// sent; the second is the workflow's card; the third is the rule the wake button and the tennis button
+// already follow — the evidence is a file that was not there before, named.
+async function showPictures(name){
+  const box = $('pictures'); if (!box) return;
+  const m = S.members.find(x => x.name === name) || {};
+  const engine = String(m.engine || '').trim();
+  const three = Object.values(PAINTERS).join(', ');
+  if (!Object.prototype.hasOwnProperty.call(PAINTERS, engine)){
+    box.innerHTML = `<p class="small" style="margin:0">${esc(engine || 'its engine')} has no image model, so
+      ${esc(name)} cannot paint — and this form is not going to ask it and file the refusal as a picture. The three
+      engines that can are ${esc(three)}. Change its voice above and the form appears here.</p>`;
+    return;
+  }
+  const works = (await dirNames(`works/${name}`).catch(() => []))
+    .filter(f => /\.md$/.test(f) && f !== 'README.md').sort().reverse();
+  box.innerHTML = `
+    <p class="small muted" style="margin-top:0">A wake is one API call with no tools, so a member cannot draw
+    inside its own turn: the harness asks ${esc(engine)} at ${esc(name)}'s request, files the picture in
+    <code>plates/</code> with a card naming the machine and the sentence it was asked with, and commits both
+    together. The sentence is kept because naming a medium is not getting it — ask for a watercolour and you may
+    be handed a photograph of a painting.</p>
+    <label>The sentence it is asking with</label>
+    <textarea id="paintprompt" rows="2" placeholder="a watercolour of the harbour at night, one lamp, no lettering"></textarea>
+    <div class="grid two">
+      <div><label>For a piece on its shelf (optional)</label><select id="paintwork">
+        <option value="">a picture of its own</option>
+        ${works.map(f => `<option value="${esc(f.replace(/\.md$/, ''))}">${esc(f.replace(/\.md$/, ''))}</option>`).join('')}
+      </select></div>
+      <div><label>Where it will be filed</label><div class="small muted" id="paintref">plates/&lt;a new name&gt;</div></div>
+    </div>
+    <div class="row" style="margin-top:14px"><button class="primary" id="paintbtn">Ask for a picture</button>
+      <span class="small muted" id="paintmsg"></span></div>
+    <div id="paintresult"></div>`;
+  $('paintwork').onchange = async () => {
+    const sel = $('paintwork'), prompt = $('paintprompt'), msg = $('paintmsg'), ref = $('paintref');
+    const btn = $('paintbtn');
+    msg.textContent = ''; msg.className = 'small muted';
+    if (!sel.value){
+      // Back to a picture of its own: the box is the person's again.
+      prompt.readOnly = false;
+      if (ref) ref.innerHTML = 'plates/&lt;a new name&gt;';
+      if (btn) btn.disabled = false;
+      return;
+    }
+    // A piece's plate is filed under the piece's own name, and the sentence is the piece's commission line —
+    // read from the file, not typed again here, because two copies of an ask can disagree and only one of them
+    // would be the one the member wrote.
+    try {
+      const {text} = await fileText(`works/${name}/${sel.value}.md`);
+      const line = (String(text).split('\n---')[0].match(/^commission:\s*(.+)$/mi) || [])[1];
+      if (ref) ref.innerHTML = `plates/${esc(sel.value)}.png`;
+      if (!line){
+        prompt.value = ''; prompt.readOnly = true;
+        if (btn) btn.disabled = true;
+        msg.innerHTML = '<span class="err">That piece carries no <code>commission:</code> line, so there is nothing asked for. Pick another, or ask for a picture of its own.</span>';
+        return;
+      }
+      prompt.value = line.trim(); prompt.readOnly = true;
+      if (btn) btn.disabled = false;
+    } catch(e){
+      prompt.readOnly = false;
+      msg.innerHTML = '<span class="err">' + esc('Could not read that piece: ' + e.message) + '</span>';
+    }
+  };
+  $('paintbtn').onclick = () => askForPicture(name);
+}
+
+async function askForPicture(name){
+  const msg = $('paintmsg'), box = $('paintresult'), btn = $('paintbtn');
+  const say = (t) => { if (msg) msg.textContent = t; };
+  const fail = (t) => { if (msg) msg.innerHTML = '<span class="err">' + esc(t) + '</span>'; };
+  const m = S.members.find(x => x.name === name) || {};
+  const engine = String(m.engine || '').trim();
+  const work = String((($('paintwork') || {}).value) || '');
+  const prompt = String((($('paintprompt') || {}).value) || '').trim();
+  // The refusal comes first and says what would have worked — the same shape as the shot the court would clamp.
+  // Nothing is dispatched, so a member with no eyes is not told its ask was sent.
+  if (!Object.prototype.hasOwnProperty.call(PAINTERS, engine))
+    return fail((engine || 'its engine') + ' has no image model, so nothing was asked. The engines that can paint are '
+      + Object.values(PAINTERS).join(', ') + '. Nothing was sent.');
+  if (!work && !prompt) return fail('Nothing was asked for. Write the sentence the picture is asked with. Nothing was sent.');
+  if (prompt.length > 1000) return fail('That sentence is ' + prompt.length + ' characters; keep it under 1000. Nothing was sent.');
+  if (btn) btn.disabled = true;
+  if (box) box.innerHTML = '';
+  try {
+    const before = new Set(await dirNames('plates').catch(() => []));
+    const since = Date.now();
+    say('asked ' + engine + ' on ' + name + "'s behalf…");
+    await dispatch('paint.yml', {member: name, prompt: work ? '' : prompt, work});
+    const run = await waitForRun('paint', since, say);
+    const url = run.html_url || `https://github.com/${S.repo}/actions/runs/${run.id}`;
+    if (run.conclusion !== 'success') throw new Error(`run ${run.id} ended: ${run.conclusion} — ${url}`);
+    const after = await dirNames('plates').catch(() => []);
+    const made = after.filter(f => !before.has(f) && /\.(png|jpe?g|webp|gif)$/i.test(f)).sort();
+    if (!made.length){
+      if (box) box.innerHTML = '<span class="err">'
+        + esc('the run finished and committed no picture — nothing new appeared in plates/.') + '</span>'
+        + ` <a href="${esc(url)}" target="_blank" rel="noopener">${esc(String(run.id))}</a>`
+        + '<span class="small muted"> — its log says why, in one line.</span>';
+      return;
+    }
+    const file = made[0], stem = file.replace(/\.[^.]+$/, '');
+    const card = await fileText('plates/' + stem + '.md').catch(() => ({text: ''}));
+    // The picture itself, from the repository. A private repository will not render it here, so the link to the
+    // file is always beside it: the record is the file, and the picture on the page is a convenience.
+    const raw = `https://github.com/${S.repo}/raw/${S.branch}/plates/${encodeURIComponent(file)}`;
+    const blob = `https://github.com/${S.repo}/blob/${S.branch}/plates/${encodeURIComponent(file)}`;
+    say('the picture is in the record: plates/' + file);
+    if (box) box.innerHTML = `<img src="${esc(raw)}" alt="the picture ${esc(name)} asked for" loading="lazy"
+        style="max-width:100%;border-radius:6px" onerror="this.style.display='none'">
+      <div class="prose">${md(card.text || '')}</div>
+      <p class="small muted"><code>plates/${esc(file)}</code> — <a href="${esc(blob)}" target="_blank"
+        rel="noopener">open the file in the repository</a></p>`;
+    if (box && box.scrollIntoView) box.scrollIntoView({behavior:'smooth', block:'start'});
+  } catch(e){ fail(e.message); }
+  finally { if (btn) btn.disabled = false; }
 }
 
 // The conversation is a file, like everything else a member is made of. It lives in its own folder and it

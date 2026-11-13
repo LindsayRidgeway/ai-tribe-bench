@@ -689,6 +689,173 @@ async function main(){
     return '';
   });
 
+  /* 5 — pictures, §8: an engine that can paint, a picture committed with its credit line and the sentence it
+     was asked with, and a plain refusal in front of the eight engines that cannot. The page cannot paint (the
+     commit needs the runner's credential), so what it owes the person is the right ask, a refusal that names
+     what would have worked, and a picture that is only called a picture when a file says so. */
+
+  const CARD = 'Painted by gemini (gemini-3.1-flash-image) for Lumi, 2026-11-13 17:00 UTC — the harness made '
+    + 'the call; a wake has no tools and cannot.\nThe sentence it was asked with: a watercolour of the harbour '
+    + 'at night, one lamp, no lettering\n';
+
+  reset();
+  seedMember('gemini', 'gemini-3.8-flash');
+  actions.runs.push(runObject(43500000001, 'workflow_dispatch', 'paint'));
+  actions.onPoll = (m) => {
+    m.set('plates/20261113T170000Z.png', {text: 'not really a png', sha: 'plate-image'});
+    m.set('plates/20261113T170000Z.md', {text: CARD, sha: 'plate-card'});
+  };
+  const pic1 = await run(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main'; S.owner = 'Sam';
+    render = () => {};
+    S.members = [{name: 'Lumi', engine: 'gemini', model: 'gemini-3.8-flash'}];
+    document.getElementById('paintwork').value = '';
+    document.getElementById('paintprompt').value = 'a watercolour of the harbour at night, one lamp, no lettering';
+    await askForPicture('Lumi');
+    return {said: document.getElementById('paintmsg').textContent || '',
+            html: document.getElementById('paintresult').innerHTML || ''};
+  })()`);
+
+  check('the sentence typed is what the form sends, to the engine the member\'s voice names', () => {
+    const d = dispatches[dispatches.length - 1];
+    if (!d) return 'the press dispatched nothing';
+    if (d.workflow !== 'paint.yml') return `it dispatched ${d.workflow}`;
+    if (String(d.inputs.member) !== 'Lumi') return `member was ${JSON.stringify(d.inputs.member)}`;
+    if (String(d.inputs.prompt) !== 'a watercolour of the harbour at night, one lamp, no lettering')
+      return `prompt was ${JSON.stringify(d.inputs.prompt)}`;
+    if (String(d.inputs.work ?? '') !== '') return `work was ${JSON.stringify(d.inputs.work)}`;
+    return '';
+  });
+  check('and the picture is shown with the credit line that names the machine', () => {
+    if (!/plates\/20261113T170000Z\.png/.test(pic1.said)) return `the file is not named: "${pic1.said}"`;
+    if (!/Painted by gemini/.test(pic1.html)) return `the credit is not on the page: "${pic1.html.slice(0, 240)}"`;
+    if (!/gemini-3\.1-flash-image/.test(pic1.html)) return 'the card does not name the model that drew';
+    return '';
+  });
+
+  // 5b — a green run that committed no picture. Same rule as the wake and the point: the conclusion is not the
+  // evidence, and a picture nobody wrote is the easiest thing in the world to report as done.
+  reset();
+  seedMember('gemini', 'gemini-3.8-flash');
+  actions.runs.push(runObject(43500000002, 'workflow_dispatch', 'paint'));
+  const pic2 = await run(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
+    render = () => {};
+    S.members = [{name: 'Lumi', engine: 'gemini', model: 'gemini-3.8-flash'}];
+    document.getElementById('paintwork').value = '';
+    document.getElementById('paintprompt').value = 'a red cube';
+    await askForPicture('Lumi');
+    return {html: document.getElementById('paintresult').innerHTML || ''};
+  })()`);
+
+  check('a run that committed no picture is not reported as one', () => {
+    if (!/committed no picture/.test(pic2.html)) return `the page said: "${pic2.html}"`;
+    if (!/43500000002/.test(pic2.html)) return 'the run is not named, so the log is not one press away';
+    if (!/plates\//.test(pic2.html)) return 'the folder a picture would have appeared in is not named';
+    return '';
+  });
+
+  // 5c — a member whose engine has no image model. Refused before anything is dispatched, in a sentence that
+  // names the three that can: "no" without an address is the answer this project stopped accepting.
+  reset();
+  seedMember('deepseek', 'deepseek-flash');
+  const pic3 = await run(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
+    render = () => {};
+    S.members = [{name: 'Lumi', engine: 'deepseek', model: 'deepseek-flash'}];
+    document.getElementById('paintprompt').value = 'a red cube';
+    await askForPicture('Lumi');
+    return {html: document.getElementById('paintmsg').innerHTML || ''};
+  })()`);
+
+  check('an engine with no image model is refused before anything is sent', () => {
+    if (dispatches.length) return `it was sent anyway (${dispatches.length} dispatch(es))`;
+    if (!/no image model/.test(pic3.html)) return `the page said: "${pic3.html}"`;
+    for (const can of ['OpenAI', 'Gemini', 'Qwen'])
+      if (!pic3.html.includes(can)) return `the refusal does not name ${can}, which would have worked`;
+    if (!/Nothing was sent/.test(pic3.html)) return 'the refusal does not say that nothing was sent';
+    return '';
+  });
+
+  // 5d — a picture for a piece on the shelf: the sentence is the piece's own commission line, read from the
+  // file and shown, not typed a second time. Two copies of one ask can disagree, and only one of them is the
+  // one the member wrote.
+  reset();
+  seedMember('gemini', 'gemini-3.8-flash');
+  seed('works/Lumi/20261101T090000Z-harbour.md',
+    '---\ntitle: The Harbour\ncommission: a watercolour of the harbour at night, one lamp, no lettering\n---\n\n'
+    + 'the harbour, written\n');
+  actions.runs.push(runObject(43500000003, 'workflow_dispatch', 'paint'));
+  actions.onPoll = (m) => {
+    m.set('plates/20261101T090000Z-harbour.png', {text: 'not really a png', sha: 'plate-image-2'});
+    m.set('plates/20261101T090000Z-harbour.md', {text: CARD, sha: 'plate-card-2'});
+  };
+  const pic4 = await run(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
+    render = () => {};
+    S.members = [{name: 'Lumi', engine: 'gemini', model: 'gemini-3.8-flash'}];
+    await showPictures('Lumi');
+    const sel = document.getElementById('paintwork');
+    sel.value = '20261101T090000Z-harbour';
+    await sel.onchange();
+    const shown = document.getElementById('paintprompt').value;
+    await askForPicture('Lumi');
+    return {shown, said: document.getElementById('paintmsg').textContent || '',
+            html: document.getElementById('paintresult').innerHTML || ''};
+  })()`);
+
+  check('a piece\'s commission line is the sentence, read from the piece itself', () => {
+    if (!/a watercolour of the harbour at night/.test(pic4.shown)) return `the box held: "${pic4.shown}"`;
+    const d = dispatches[dispatches.length - 1];
+    if (!d) return 'the press dispatched nothing';
+    if (String(d.inputs.work) !== '20261101T090000Z-harbour') return `work was ${JSON.stringify(d.inputs.work)}`;
+    if (String(d.inputs.prompt ?? '') !== '') return 'the sentence was sent a second time, so two copies can disagree';
+    if (!/plates\/20261101T090000Z-harbour\.png/.test(pic4.said)) return `the plate is not named: "${pic4.said}"`;
+    return '';
+  });
+
+  // 5e — a piece that asked for no picture. The page must not press: the workflow would refuse, and a person
+  // who pressed and read "that piece carries no commission line" has been told after asking, not before.
+  reset();
+  seedMember('gemini', 'gemini-3.8-flash');
+  seed('works/Lumi/20261102T090000Z-quiet.md', '---\ntitle: Quiet\n---\n\nno picture asked for\n');
+  const pic5 = await run(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
+    render = () => {};
+    S.members = [{name: 'Lumi', engine: 'gemini', model: 'gemini-3.8-flash'}];
+    await showPictures('Lumi');
+    const sel = document.getElementById('paintwork');
+    sel.value = '20261102T090000Z-quiet';
+    await sel.onchange();
+    return {html: document.getElementById('paintmsg').innerHTML || '',
+            shut: !!document.getElementById('paintbtn').disabled};
+  })()`);
+
+  check('a piece with no commission line is refused before the press, and the button shuts', () => {
+    if (!pic5.shut) return 'the button is still pressable';
+    if (!/no <code>commission:<\/code> line|carries no/.test(pic5.html)) return `the page said: "${pic5.html}"`;
+    return '';
+  });
+
+  // 5f — the page holds a copy of who can paint, and a copy is a thing that drifts. This check is the only
+  // reason the copy is allowed to exist: it reads `lab/paint.py` and fails when the two tables disagree, so a
+  // fourth engine (or a painter that loses its image model) cannot leave the page offering a button that
+  // cannot work, or refusing a member who could have painted.
+  check('the page\'s table of painters is lab/paint.py\'s table, not a memory of it', () => {
+    const py = fs.readFileSync(path.join(HERE, '..', 'lab', 'paint.py'), 'utf8');
+    const block = (py.match(/PAINTERS = \{([\s\S]*?)\n\}/) || [])[1] || '';
+    const there = new Set([...block.matchAll(/^\s*"([a-z0-9]+)"\s*:/gm)].map(m => m[1]));
+    const here = new Set(Object.keys(run(ctx, 'PAINTERS')));
+    if (!there.size) return 'paint.py\'s PAINTERS table could not be read — the check has gone blind';
+    for (const e of there) if (!here.has(e)) return `paint.py paints with ${e} and the page does not offer it`;
+    for (const e of here) if (!there.has(e)) return `the page offers ${e}, which paint.py cannot paint with`;
+    const noBlock = (py.match(/NO_PAINTER = \(([\s\S]*?)\n\)/) || [])[1] || '';
+    const cannot = [...noBlock.matchAll(/"([a-z0-9]+)"/g)].map(m => m[1]);
+    if (cannot.length !== 8) return `paint.py refuses ${cannot.length} engines; the manual says eight`;
+    for (const e of cannot) if (here.has(e)) return `${e} is refused and offered at once`;
+    return '';
+  });
+
   /* the verdict */
   let bad = 0;
   for (const r of results){
