@@ -2663,7 +2663,7 @@ async function addMember(){
   let rooms = [];
   try { rooms = (await dirNames('soil')).filter(n => !n.startsWith('.')); } catch(e){}
   const owner = await ownerName();
-  NEW = {step: owner ? 'name' : 'person', name:'', seat:'', engine:'', place:'', rooms, person: owner};
+  NEW = {step: owner ? 'name' : 'person', name:'', seat:'', about:'', engine:'', place:'', rooms, person: owner};
   openDialog(dialogAdmin());
 }
 
@@ -2696,6 +2696,15 @@ when someone asks.</p>
         <button class="primary" onclick="adminAnswer()">Next</button>
       </div>
       <p class="small" style="margin:10px 0 0"><a href="#" onclick="adminBack();return false;">Back</a></p>`;
+  } else if (d.step === 'about'){
+    body = `<p class="dlog">If ${esc(d.name)} is someone the world already knows — a god, a character, a figure
+out of a book or a history — paste what is written about it here, and it becomes part of who it is.
+If it is someone new, skip this; it will be told nothing about itself beyond what you have said.</p>
+      <textarea id="ans" rows="8" autofocus placeholder="Who it is, in a nutshell — a paragraph, or a few sections."
+        style="width:100%;margin-top:10px">${esc(d.about || '')}</textarea>
+      <div class="row" style="margin-top:10px"><button class="primary" onclick="adminAnswer()">Next</button></div>
+      <p class="small" style="margin:10px 0 0"><a href="#" onclick="adminSkipAbout();return false;">Skip it —
+${esc(d.name)} is someone new</a></p>`;
   } else if (d.step === 'engine'){
     body = `<p class="dlog">Which engine should ${esc(d.name)} borrow? Each is a company whose model does its thinking.</p>
       <div class="grid">${['gemini','deepseek','groq','openai','qwen','openrouter'].map(e =>
@@ -2714,6 +2723,8 @@ line of its <code>place.md</code>.</p><button class="primary" onclick="pickPlace
 
   name    ${esc(d.name)}
   for     ${esc(d.seat)}
+  knows   ${d.about ? 'what is written about it — ' + d.about.length.toLocaleString() + ' characters, pasted'
+                    : 'nothing yet — it is someone new'}
   engine  ${esc(d.engine)}
   room    ${esc(d.place || '(none)')}
   talks to you, ${esc(d.person || 'unnamed — "the person who keeps this tribe"')}
@@ -2744,11 +2755,21 @@ function adminAnswer(){
     d.name = text; d.step = 'seat';
   } else if (d.step === 'seat'){
     if (text.length < 3){ box.placeholder = 'A little more than that.'; box.value = ''; return; }
-    d.seat = text; d.step = 'engine';
+    d.seat = text; d.step = 'about';
+  } else if (d.step === 'about'){
+    // Pasted text, not a sentence: the page keeps it as typed, wrapped where the person wrapped it. The one
+    // thing it does not keep is leading and trailing whitespace, because that arrives with every copy-paste
+    // and would put a blank line at the top of the member's identity for ever.
+    // "skip" is accepted as a word because the manual writes this question as a conversation, and a person
+    // reading it types what it says; the link underneath is for the one who would rather press something.
+    if (/^(skip|nothing|none|no)$/i.test(text)){ adminSkipAbout(); return; }
+    d.about = text; d.step = 'engine';
   }
   $('dlg').innerHTML = dialogAdmin();
   const again = $('ans'); if (again) again.focus();
 }
+
+function adminSkipAbout(){ NEW.about = ''; NEW.step = 'engine'; $('dlg').innerHTML = dialogAdmin(); }
 
 function adminSkipPerson(){ NEW.person = ''; NEW.step = 'name'; $('dlg').innerHTML = dialogAdmin(); }
 
@@ -2775,14 +2796,34 @@ async function makeMember(){
   msg.textContent = 'asking the repository to make ' + d.name + '…';
   try {
     const since = Date.now();
-    const inputs = {name: d.name, seat: d.seat, engine: d.engine, model: '', place: d.place || '',
+    const inputs = {name: d.name, seat: d.seat, about: d.about || '', engine: d.engine, model: '', place: d.place || '',
                     person: d.person || ''};
-    await dispatch('new-member.yml', inputs);
+    let older = false;
+    try {
+      await dispatch('new-member.yml', inputs);
+    } catch(e){
+      // A tribe made from a template older than this page has no `about` field, and GitHub refuses the whole
+      // dispatch rather than the field. Refusing to make the member would turn a missing new question into a
+      // tribe that cannot add members at all, so the description is dropped and *said to be* dropped — the
+      // member exists, and the text has a home on its own page (What it is → Edit this). Never silently:
+      // a paste that vanished without a sentence is the fault this project keeps finding.
+      if (!/no field for/.test(String(e.message)) || !/"about"/.test(String(e.message))) throw e;
+      delete inputs.about; older = true;
+      await dispatch('new-member.yml', inputs);
+      msg.textContent = 'this tribe’s form is older than the page — made without what is written about it…';
+    }
     msg.textContent = 'made the request. waiting for the run…';
     const run = await waitForRun('new-member', since, t => msg.textContent = t);
     if (run.conclusion !== 'success') throw new Error('the run ended: ' + run.conclusion +
       ' — most often a name that was taken, or a room that does not exist');
     await loadMembers();
+    if (older){
+      msg.innerHTML = `The run ended: ${esc(d.name)} exists. This tribe’s copy of the form is older than this `
+        + `page, so <b>what is written about ${esc(d.name)} was not saved</b> — the member was made without `
+        + `it. Paste it into its identity instead: Members → ${esc(d.name)} → <i>What it is</i> → `
+        + `<i>Edit this</i>. <a href="#" onclick="closeDialog();return false;">Close</a>`;
+      return;
+    }
     closeDialog();
     location.hash = '#/today'; render();
   } catch(e){ msg.innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }

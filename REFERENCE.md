@@ -62,7 +62,7 @@ the design: a person can audit any part of a participant's mind in a text editor
 
 | file | what it is | who writes it |
 |---|---|---|
-| `identity.md` | who it is. A few paragraphs, in its own voice. | you, once |
+| `identity.md` | who it is. A few paragraphs, in its own voice: its seat, who it talks to, the paragraph that lets it be the figure it is seated as, and — when it is a figure — what is written about it. Written once by `tribe.py new` from `--seat`, `--person` and `--about`. | you, once |
 | `voice.md` | two lines: which **engine** it borrows (`api:` and `model:`), and its register. | you, when an engine is retired |
 | `beat.md` | what it is interested in, as opposed to what it has been asked. Its standing angle. | the participant |
 | `place.md` | where it works — `workshop`, `garden`, whatever the tribe's setting is. | you, once |

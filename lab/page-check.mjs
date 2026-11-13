@@ -1070,6 +1070,114 @@ async function main(){
     return '';
   });
 
+  /* 7 — adding a member, and the two paragraphs that are not the same for every member. The founder used it on
+     2026-11-12 and found the hole: an identity that never lets a member be the figure it is seated as makes the
+     model argue with its own prompt. He pasted the missing paragraph into three Greek gods by hand. The page now
+     asks for what is known about the member, and this checks that the question exists, that skipping it sends
+     nothing rather than a heading over nothing, and that the paste reaches the workflow exactly as typed. */
+  reset();
+  seed('wake/members/.gitkeep', '');
+  actions.runs.push(runObject(43700000001, 'workflow_dispatch', 'new-member'));
+  const made = await tryRun(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main'; S.owner = 'Sam'; S.members = [];
+    S.keys = {gemini: {key: 'k'}};
+    render = () => {};
+    await addMember();
+    document.getElementById('ans').value = 'Aphrodite'; adminAnswer();
+    document.getElementById('ans').value = 'Goddess of love'; adminAnswer();
+    const asked = document.getElementById('dlg').innerHTML || '';
+    document.getElementById('ans').value = 'Aphrodite (The Anchor of Emotion and Charm)\\n\\n• heart of the group';
+    adminAnswer();
+    pickEngine('gemini'); pickPlace('workshop');
+    const confirm = document.getElementById('dlg').innerHTML || '';
+    await makeMember();
+    return {asked, confirm};
+  })()`);
+  const madeSent = dispatches[dispatches.length - 1] || {};
+
+  check('the form asks what the world already knows about the member', () => {
+    if (made.err) return made.err;
+    if (!/<textarea/.test(made.asked)) return `the seat question led to something with no box to paste into: ${made.asked.slice(0, 200)}`;
+    if (!/someone new/.test(made.asked)) return 'it does not say what skipping means, so skipping looks like a mistake';
+    if (!/knows/.test(made.confirm)) return 'the sheet read back before writing does not mention it';
+    return '';
+  });
+  check('and the paste reaches the workflow as typed, under the member it is about', () => {
+    if (made.err) return made.err;
+    const d = madeSent;
+    if (d.workflow !== 'new-member.yml') return `it dispatched ${d.workflow}`;
+    if (String(d.inputs.about ?? '') !== 'Aphrodite (The Anchor of Emotion and Charm)\n\n• heart of the group')
+      return `about was ${JSON.stringify(d.inputs.about)}`;
+    if (String(d.inputs.seat) !== 'Goddess of love') return `seat was ${JSON.stringify(d.inputs.seat)}`;
+    return '';
+  });
+
+  reset();
+  seed('wake/members/.gitkeep', '');
+  actions.runs.push(runObject(43700000002, 'workflow_dispatch', 'new-member'));
+  const skipped = await tryRun(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main'; S.owner = 'Sam'; S.members = [];
+    S.keys = {gemini: {key: 'k'}};
+    render = () => {};
+    await addMember();
+    document.getElementById('ans').value = 'Ada'; adminAnswer();
+    document.getElementById('ans').value = 'the archivist'; adminAnswer();
+    adminSkipAbout();
+    pickEngine('gemini'); pickPlace('workshop');
+    const confirm = document.getElementById('dlg').innerHTML || '';
+    await makeMember();
+    return {confirm};
+  })()`);
+  const skippedSent = dispatches[dispatches.length - 1] || {};
+
+  check('and skipping it sends nothing, not an empty heading', () => {
+    if (skipped.err) return skipped.err;
+    if (String((skippedSent.inputs || {}).about ?? '') !== '')
+      return `about was ${JSON.stringify((skippedSent.inputs || {}).about)}`;
+    if (!/nothing yet/.test(skipped.confirm)) return `the sheet does not say it is someone new: ${skipped.confirm.slice(-300)}`;
+    return '';
+  });
+
+  // 7c — the tribe is older than the page. Every tribe installed from a template published before this question
+  // has no `about` field, and GitHub refuses the whole dispatch rather than the field. Refusing to make the member
+  // would turn one missing question into a tribe that cannot add members at all; dropping the paste silently is
+  // the fault this project keeps finding. So it is made without it, and the page says so and says where to paste.
+  reset();
+  seed('wake/members/.gitkeep', '');
+  actions.runs.push(runObject(43700000003, 'workflow_dispatch', 'new-member'));
+  const olderTribe = await tryRun(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main'; S.owner = 'Sam'; S.members = [];
+    S.keys = {gemini: {key: 'k'}};
+    render = () => {};
+    const real = gh; let first = true;
+    gh = async (p, init) => {
+      if (first && /dispatches$/.test(String(p))){ first = false;
+        throw new Error('422 · Unexpected inputs provided: ["about"]'); }
+      return real(p, init);
+    };
+    await addMember();
+    document.getElementById('ans').value = 'Hermes'; adminAnswer();
+    document.getElementById('ans').value = 'the messenger god'; adminAnswer();
+    document.getElementById('ans').value = 'Hermes (The Ultimate Facilitator)\\n\\n• he bridges the gap';
+    adminAnswer();
+    pickEngine('gemini'); pickPlace('workshop');
+    await makeMember();
+    gh = real;
+    return {said: document.getElementById('dmsg').innerHTML || ''};
+  })()`);
+
+  check('a tribe older than the question still gets its member, and is told what was not saved', () => {
+    if (olderTribe.err) return olderTribe.err;
+    // The refused dispatch never reaches the fake repository — a throw has no fetch behind it — so what can be
+    // seen here is the retry: one dispatch, and it must not carry the field the workflow does not declare.
+    if (dispatches.length !== 1) return `${dispatches.length} dispatch(es); the retry did not happen`;
+    if ('about' in (dispatches[0].inputs || {})) return 'the retry still carried the field the repository refuses';
+    if (String(dispatches[0].inputs.name) !== 'Hermes') return 'the retry is not the same member';
+    if (!/was not saved/.test(olderTribe.said)) return `the page did not say the description was dropped: "${olderTribe.said}"`;
+    if (!/Edit this/.test(olderTribe.said)) return 'it does not say where the text can still go';
+    return '';
+  });
+
   /* the verdict */
   let bad = 0;
   for (const r of results){

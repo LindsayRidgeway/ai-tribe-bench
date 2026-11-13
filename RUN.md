@@ -1055,6 +1055,14 @@ out and the identity names "the person who keeps this tribe" instead of inventin
 a guessed name is the member's first false memory. It is two sentences in a text file; edit them whenever the
 truth about the relationship changes, because that file is the member.
 
+The `--about` is what the world already knows about it. For a member seated as a figure — a god, a character,
+someone whose history is written down — paste the description and it is written into the identity under the
+sentence that gives the member permission to be that figure. `--about-file` reads the same text from a file,
+which is the sane way to do it from a terminal; the page asks with a box you can paste into. Left empty,
+nothing is written, and the identity says nothing about the member beyond its seat — the right text for
+someone invented for this tribe. Past 8,000 characters it refuses before creating anything: the identity is
+the first thing in every prompt, so a generous paste costs the member its whole window.
+
 Choose the name before the member wakes. Renaming afterwards means renaming the directory and
 `works/<name>/` as well, and the older works in the record still carry the old byline — nothing breaks,
 but the shelf reads as two people.
