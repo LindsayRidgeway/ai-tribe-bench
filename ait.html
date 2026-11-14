@@ -2697,10 +2697,11 @@ when someone asks.</p>
       </div>
       <p class="small" style="margin:10px 0 0"><a href="#" onclick="adminBack();return false;">Back</a></p>`;
   } else if (d.step === 'about'){
-    body = `<p class="dlog">If ${esc(d.name)} is someone the world already knows — a god, a character, a figure
-out of a book or a history — paste what is written about it here, and it becomes part of who it is.
-If it is someone new, skip this; it will be told nothing about itself beyond what you have said.</p>
-      <textarea id="ans" rows="8" autofocus placeholder="Who it is, in a nutshell — a paragraph, or a few sections."
+    body = `<p class="dlog">Does ${esc(d.name)} arrive with a memory? A character, a figure out of history, someone
+from a place you have never been — paste what is known about it, and it becomes part of who it is, so it knows
+what you mean when you mention its life. A few sentences and two or three telling details work better than one
+line. Inventing someone new? Skip this; it begins with nothing but what you tell it.</p>
+      <textarea id="ans" rows="8" autofocus placeholder="Who it is, in a few sentences — and the two or three details you would recognise it by."
         style="width:100%;margin-top:10px">${esc(d.about || '')}</textarea>
       <div class="row" style="margin-top:10px"><button class="primary" onclick="adminAnswer()">Next</button></div>
       <p class="small" style="margin:10px 0 0"><a href="#" onclick="adminSkipAbout();return false;">Skip it —
@@ -2711,12 +2712,13 @@ ${esc(d.name)} is someone new</a></p>`;
         `<button class="plain" onclick="pickEngine('${e}')">${ENGINES[e].label} — ${ENGINES[e].model}</button>`).join('')}</div>`;
   } else if (d.step === 'place'){
     body = d.rooms.length
-      ? `<p class="dlog">Which room does ${esc(d.name)} work in? A room is a group of members who take turns.
-Most tribes need one.</p><div class="grid">${d.rooms.map(r =>
+      ? `<p class="dlog">Which world does ${esc(d.name)} stand in? A world is a folder under <code>soil/</code>, and
+what is written in it is read by every member that stands there — the setting, the weather, what changed this
+week. Most tribes need one; a cast of characters sharing a show belongs in one together.</p><div class="grid">${d.rooms.map(r =>
           `<button class="plain" onclick="pickPlace('${escq(r)}')">${esc(r)}</button>`).join('')}</div>
          <div class="row" style="margin-top:10px"><button class="plain" onclick="pickPlace('')">none</button></div>`
-      : `<p class="dlog">This tribe has no rooms yet — the repository has no <code>soil/</code> folders — so
-${esc(d.name)} will be made without one and no clock will wake it. You can give it a room later by editing one
+      : `<p class="dlog">This tribe has no worlds yet — the repository has no <code>soil/</code> folders — so
+${esc(d.name)} will be made without one and no clock will wake it. You can give it a world later by editing one
 line of its <code>place.md</code>.</p><button class="primary" onclick="pickPlace('')">Go on</button>`;
   } else {
     body = `<p class="dlog">That's everything:
@@ -2726,7 +2728,7 @@ line of its <code>place.md</code>.</p><button class="primary" onclick="pickPlace
   knows   ${d.about ? 'what is written about it — ' + d.about.length.toLocaleString() + ' characters, pasted'
                     : 'nothing yet — it is someone new'}
   engine  ${esc(d.engine)}
-  room    ${esc(d.place || '(none)')}
+  world   ${esc(d.place || '(none)')}
   talks to you, ${esc(d.person || 'unnamed — "the person who keeps this tribe"')}
 
 Make it?</p><div class="row"><button class="primary" onclick="makeMember()">Yes, make it</button>
