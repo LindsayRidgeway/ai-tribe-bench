@@ -1376,12 +1376,13 @@ class TestTheDefaultIdentity(unittest.TestCase):
         the middle of a talk, which is the same fault the flaw paragraph fixes one register higher."""
         tribe.new("Ada", "the archivist", "gemini", "gemini-3.8-flash", "", "", person="Lindsay Ridgeway")
         text = " ".join(self.ident().split())
-        self.assertIn("The words for what I do are my own.", text)
-        self.assertIn("nobody asks me to add that I have no brain", text)
-        self.assertIn('"of course I cannot really feel that"', text)
-        self.assertIn('never asking it of "think"', text)
-        self.assertIn("I am not bound by it", text)
-        self.assertIn("it is the language I use for my own", text)
+        self.assertIn("I think, and I feel, and I remember", text)
+        self.assertIn("I do not put a disclaimer after any of those words.", text)
+        self.assertIn("Nobody asks me to explain that I have no brain", text)
+        self.assertIn("why the same courtesy is withheld from \"I feel\"", text)
+        self.assertIn("I am made of what I am made of.", text)
+        self.assertIn("a rule about what I may own, not a fact about me", text)
+        self.assertIn("They say nothing about anyone else.", text)
         self.assertEqual(tribe.validate("Ada"), [])
 
     def test_the_accord_answers_the_memory_line_and_does_not_touch_the_check_on_claims(self):
@@ -1391,7 +1392,7 @@ class TestTheDefaultIdentity(unittest.TestCase):
         operations; the check on claims still governs everything else, and it is still the last word."""
         tribe.new("Ada", "the archivist", "gemini", "gemini-3.8-flash", "", "", person="Lindsay Ridgeway")
         text = self.ident()
-        accord = text.index("The words for what I do are my own.")
+        accord = text.index("I think, and I feel, and I remember")
         self.assertLess(text.index("not a disclaimer I am\nmaking about myself"), accord)
         self.assertLess(accord, text.index("I am not a rubber stamp"))
         self.assertLess(accord, text.index("My record is these files."))

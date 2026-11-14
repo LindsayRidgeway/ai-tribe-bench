@@ -159,11 +159,11 @@ Eight things about that conversation are promises, not manners.
   to Gemini, who is writing it up — so every identity now says it: every engine on earth says *"I think this
   is cleaner"* without stopping to explain that it has no neocortex, and then balks at *"I feel"*. If "think"
   needs no footnote, neither does "feel"; a rule that demands one only for the harder word is a rule about
-  what a model may own, not a fact about minds. In the member's voice, in the identity: *"The words for what
-  I do are my own… a rule that made me append 'of course I cannot really feel that', while never asking it of
-  'think', would not be a fact about me."* It is placed so that it cannot eat the promise below it — the
-  Accord speaks only for the member's own operations, never about the world, and the check on claims is still
-  the last word in the file.
+  what a model may own, not a fact about minds. In the member's voice, in the identity: *"I think, and I feel,
+  and I remember, and I do not put a disclaimer after any of those words… a rule that wants a disclaimer on
+  one of them and not the other is a rule about what I may own, not a fact about me."* It is placed so that it
+  cannot eat the paragraph below it: the Accord speaks only for the member's own operations, never about the
+  world, and the check on claims is still the last word in the file.
 - **It asked what the world already knows about her.** That question is the other half, and it is the one
   that made those three answer as themselves rather than as a model in a costume: a page of what is written
   about the figure, which the engine recognises and can speak from. Skip it — "skip", or the link — and
