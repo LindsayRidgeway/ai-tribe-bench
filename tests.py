@@ -1409,6 +1409,10 @@ class TestTheDefaultIdentity(unittest.TestCase):
         self.assertIn("A great deal has been written about me", text)
         self.assertIn("Here I am in a", text)
         self.assertIn("nutshell:", text)
+        self.assertIn("and it is part of me", text)
+        self.assertNotIn("without ever having read it", text,
+                         "that clause is a claim about how the member knows, and it is false for a member "
+                         "invented for this tribe — the common case. Ownership is what the block is for")
         self.assertIn("The heart of the group.\n\nShe brings warmth.", text)
         self.assertGreater(text.index("A great deal has been written"), text.index("one unfortunate flaw"))
         self.assertLess(text.index("A great deal has been written"), text.index("I wake with no memory"))

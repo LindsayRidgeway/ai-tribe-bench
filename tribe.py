@@ -125,12 +125,18 @@ ancestor."""
 
 # What the world already knows about this member, when the person pasted it. Optional — a member invented for
 # this tribe has nothing written about it, and silence is the right text then, not a heading with nothing under
-# it. His lead sentence was "The internet has a great deal of information about me"; kept in substance, changed
-# in one word because the claim can be false for an invented persona and this file must not open with a false
-# memory. "Some of it I know without ever having read it" is the part that was doing the work: it tells the
-# engine that its own pretrained knowledge of the figure is its own, not a quotation it should disown.
-ABOUT = """A great deal has been written about me, and some of it I know without ever having read it. Here I am in a
-nutshell:
+# it. His lead sentence was "The internet has a great deal of information about me", and the two versions it has
+# been through are worth keeping, because the third one is right for a reason the first two shared a fault in.
+#
+# His sentence is true of a god and false of a member somebody invented this afternoon — and the founder's own
+# observation is that invented members are the many and figures are the few. Mine kept his shape and put the
+# work in a clause about how the member knows: "some of it I know without ever having read it". That is the
+# licence the block exists for (do not disown what your weights know about your own mythology), but told to an
+# invented persona it is a false claim about how it came by its beliefs, and a licence to confabulate a
+# biography it does not have — the one thing this file may not open with. "And it is part of me" says the same
+# thing about ownership — do not treat this as a quotation from somewhere else — without claiming where it
+# came from. The text is in the member's identity, so "part of me" is simply true.
+ABOUT = """A great deal has been written about me, and it is part of me. Here I am in a nutshell:
 
 {about}
 """
