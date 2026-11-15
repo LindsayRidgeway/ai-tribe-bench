@@ -177,6 +177,15 @@ const ENGINES = {
   anthropic:  {label:'Anthropic',  model:'claude-haiku-5-5',      kind:'anthropic', base:'https://api.anthropic.com/v1'},
 };
 
+// The one list every engine-picker should read, instead of each hand-copying ENGINES' own keys (which
+// drifted at least three times before this existed: the member wizard stopped at six engines and never
+// gained the four added after it, anthropic among them -- found 2026-11-10, root-caused and fixed here
+// 2026-11-15). Alphabetical by label, not by key or by ENGINES' insertion order, so no engine reads as
+// preferred over another.
+function engineKeys(){
+  return Object.keys(ENGINES).sort((a, b) => ENGINES[a].label.localeCompare(ENGINES[b].label));
+}
+
 // Which engines have an image model. Measured with one prompt and one key each on 2026-11-07, and it is not a
 // guess: `lab/paint.py` holds the same three and makes the call, and `lab/page-check.mjs` fails if these two
 // tables ever disagree. The other eight engines have no image model at all.
@@ -1996,7 +2005,7 @@ async function showVoice(name){
 async function editVoice(name){
   const box = $('voice'); if (!box) return;
   const m = S.members.find(x => x.name === name) || {};
-  const engines = Object.keys(ENGINES).map(e =>
+  const engines = engineKeys().map(e =>
     `<option value="${e}" ${e === m.engine ? 'selected' : ''}>${esc(ENGINES[e].label)}${keyFor(e).key ? '' : ' (no key here)'}</option>`).join('');
   box.innerHTML = `<div class="grid two">
       <div><label>Engine</label><select id="vengine">${engines}</select></div>
@@ -2743,7 +2752,7 @@ line. Inventing someone new? Skip this; it begins with nothing but what you tell
 ${esc(d.name)} is someone new</a></p>`;
   } else if (d.step === 'engine'){
     body = `<p class="dlog">Which engine should ${esc(d.name)} borrow? Each is a company whose model does its thinking.</p>
-      <div class="grid">${['gemini','deepseek','groq','openai','qwen','openrouter'].map(e =>
+      <div class="grid">${engineKeys().map(e =>
         `<button class="plain" onclick="pickEngine('${e}')">${ENGINES[e].label} — ${ENGINES[e].model}</button>`).join('')}</div>`;
   } else if (d.step === 'place'){
     body = d.rooms.length
@@ -3069,7 +3078,7 @@ async function viewChat(main, slug){
           repeat: c.repeat, streak: {}, byJudge: c.byJudge || [],
           floor: c.floor, judge: c.judge || defaultJudge(), lastJudge: null, failed: []};
   const absent = (S.members || []).filter(m => !CHAT.names.includes(m.name));
-  const engines = Object.keys(ENGINES).map(e =>
+  const engines = engineKeys().map(e =>
     `<option value="${e}" ${CHAT.judge === e ? 'selected' : ''}>${esc(ENGINES[e].label)}${keyFor(e).key ? '' : ' (no key here)'}</option>`).join('');
   const statLine = (c.stats || []).length ? `<p class="small muted">The floor, claimed against given:
       ${c.stats.map(x => `${esc(x.name)} took it ${x.taken} of ${x.claims} time${x.claims === 1 ? '' : 's'}`
@@ -4010,7 +4019,7 @@ function viewKeys(main){
     stops working — a key gets replaced, a free tier runs out, a model is renamed — the page says so in a sentence
     instead of a code, here and in the room. <button class="plain small" onclick="checkAllKeys()">Check every key</button></p>
     <p class="small" id="allkeys"></p>
-    <div class="card">${Object.keys(ENGINES).map(e => {
+    <div class="card">${engineKeys().map(e => {
       const k = keyFor(e);
       return `<div style="padding:10px 0;border-bottom:1px solid var(--line)">
         <div class="row"><strong class="grow">${ENGINES[e].label}</strong>
