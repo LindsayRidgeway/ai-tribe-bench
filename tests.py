@@ -4121,8 +4121,33 @@ class TestWorkflows(unittest.TestCase):
 
     WF = REPO / ".github" / "workflows"
 
-    def test_no_workflow_carries_a_list_of_member_names(self):
-        """The Run-workflow form used to offer a `type: choice` drop list of member names. Two things were wrong
+    def test_a_workflow_that_forwards_one_key_forwards_them_all(self):
+        """The environment a step sees is written by hand, one engine at a time, so it falls behind the members.
+
+        `season.yml` forwarded four keys — DeepSeek, Gemini, Qwen, OpenAI — and the founder's Aphrodite runs on
+        OpenRouter. Measured 2026-11-15 in his own tribe: he set the secret, pressed Play, and the run said
+        `TRIBE_API_KEY_OPENROUTER is not set, so Aphrodite cannot hit a ball` — a sentence that is honest about
+        the environment and false about the world, which is the worst kind. A member's engine is a fact about the
+        member; a workflow cannot know which engines a tribe will use, so it must forward every key the harness
+        speaks. The rule is checkable without deciding which workflows "call an engine": if a workflow names one
+        TRIBE_API_KEY, it names them all.
+        """
+        if yaml is None:
+            self.skipTest("PyYAML not installed")
+        rps = load(REPO / "lab" / "rps.py", "rps_for_keys")
+        speaks = {e for e in rps.BASES if e != "local"}     # loopback weights have no key to forward
+        bad = []
+        for f in sorted(self.WF.glob("*.yml")):
+            text = f.read_text(encoding="utf-8")
+            named = set(re.findall(r"TRIBE_API_KEY_([A-Z]+)", text))
+            if not named:
+                continue
+            missing = sorted(speaks - {n.lower() for n in named})
+            if missing:
+                bad.append(f"{f.name}: forwards {len(named)} of {len(speaks)} keys, missing {', '.join(missing)}")
+        self.assertEqual(bad, [], "a workflow that forwards one engine's key must forward the rest; "
+                                  "otherwise a member on the missing engine is told the key is not set")
+    def test_no_workflow_carries_a_list_of_member_names(self):        """The Run-workflow form used to offer a `type: choice` drop list of member names. Two things were wrong
         with it, and only the first was obvious.
 
         It was stale the first time anybody added a member. And it could not be repaired by the workflow that
@@ -4936,6 +4961,69 @@ class ThePageIsCheckedByDrivingIt(unittest.TestCase):
         r = subprocess.run([node, str(REPO / "lab" / "page-check.mjs")],
                            cwd=REPO, capture_output=True, text=True, timeout=120)
         self.assertEqual(r.returncode, 0, "the page failed its own checks:\n" + r.stdout + r.stderr)
+
+
+class TheRecordIsNotAKeyring(unittest.TestCase):
+    """A key pasted into a file, not into the browser. The founder's question on 2026-11-15 was about keys kept
+    in the repository; the amendment that followed found the path nobody had written down — his own features are
+    commit channels (Edit its identity, the `--about` paste, a journal entry, a note in `works/`), and the same
+    files are the prompt, so a key in `identity.md` is not only public, it is *sent* to whichever vendor that
+    member runs on, every wake, for as long as the line sits there.
+
+    The rule the check is built to obey: refuse and name the file. Never redact — a record edited behind its
+    owner's back to protect itself has stopped being a record."""
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        self.old = tribe.MEMBERS
+        tribe.MEMBERS = self.tmp / "members"
+        tribe.MEMBERS.mkdir()
+        tribe.new("Ada", "the archivist", "gemini", "gemini-3.8-flash", "", "")
+
+    def tearDown(self):
+        tribe.MEMBERS = self.old
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def state(self, name="journal.md"):
+        return tribe.MEMBERS / "Ada" / "state" / name
+
+    def test_a_planted_key_is_named_by_file_and_line_and_never_quoted(self):
+        text = self.state().read_text(encoding="utf-8")
+        self.state().write_text(text + "\nthe key is sk-proj-abcdEFGH1234ijklMNOP5678qrst\n", encoding="utf-8")
+        line = len(text.splitlines()) + 2
+        hits = tribe.scan_credentials("Ada")
+        self.assertEqual(len(hits), 1, hits)
+        self.assertIn("journal.md", hits[0])
+        self.assertIn(f"line {line}", hits[0])
+        self.assertIn("OpenAI or DashScope", hits[0])
+        # The finding must be findable without the finding printing the secret into a log, a CI page or a
+        # screenshot — the same reason the Keys page shows four characters and no more.
+        self.assertNotIn("abcdEFGH1234", hits[0])
+        self.assertTrue(any("revoke it" in b for b in tribe.validate("Ada")))
+
+    def test_a_sentence_about_keys_is_not_a_key(self):
+        """The false positive is the whole risk: a check that cries wolf is a check people switch off. Every
+        line here is something a member of this colony could plausibly write, and none of them is a credential."""
+        prose = ("I keep my key in Settings → Secrets and variables → Actions.\n"
+                 "The secret is called TRIBE_API_KEY_DEEPSEEK and only the run sees it.\n"
+                 "She asked whether sk- prefixed strings are a problem, and they are if they are real.\n"
+                 "model: deepseek-flash\n")
+        self.state().write_text(prose, encoding="utf-8")
+        self.assertEqual(tribe.scan_credentials("Ada"), [])
+        self.assertEqual(tribe.validate("Ada"), [])
+
+    def test_it_reads_the_whole_member_and_not_only_the_state_folder(self):
+        out = tribe.MEMBERS / "Ada" / "output" / "letter.md"
+        out.write_text("token ghp_aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789\n", encoding="utf-8")
+        hits = tribe.scan_credentials("Ada")
+        self.assertEqual(len(hits), 1, hits)
+        self.assertIn("output/letter.md", hits[0])
+
+    def test_a_picture_is_not_a_key(self):
+        """`output/` also holds images, and a PNG is bytes that may contain anything. Text files only."""
+        (tribe.MEMBERS / "Ada" / "output" / "plate.png").write_bytes(
+            b"\x89PNG\r\n\x1a\n" + b"sk-proj-abcdEFGH1234ijklMNOP5678qrst")
+        self.assertEqual(tribe.scan_credentials("Ada"), [])
 
 
 class TheTemplateMustBeEnough(unittest.TestCase):

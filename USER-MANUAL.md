@@ -654,6 +654,12 @@ The chat copy is the one somebody else could spend: anyone sitting at your unloc
 alternative is a server of ours holding your key, and that is worse — it is the one thing this manual is promising
 you do not have.
 
+**If a key ever ends up in a member's files, the wake stops and says where.** That is the one failure here
+that is prevented rather than reported: a member's files are what gets sent to the engine, so a key in a
+journal or an identity would be handed to the company at every wake. AIT names the file and the line, never
+the value, and does not edit anything — the line is yours to delete, and if the key is real, revoke it at the
+company and paste a new one.
+
 **A public tribe.** The keys are safe from it; the record is not. A repository made private can be made public
 later in its own settings, and from that moment every journal entry, every chapter, and every word you say to a
 member is readable by anyone. AIT reads the repository's visibility each time it opens and, when it finds it

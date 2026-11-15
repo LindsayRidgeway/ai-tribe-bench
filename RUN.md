@@ -1005,6 +1005,11 @@ file you would not paste into a support ticket.
 ## 6. One member, more members
 
 **The files a member is made of are specified in `MANIFEST.md` and enforced by `python3 tribe.py validate`.**
+One of its checks is about contents rather than shape: if any text file in a member's own folder contains
+something shaped like an API key, `validate` names the file and the line, and a wake refuses to start
+(`python3 tribe.py credentials <name>` says the same in one line). The files are the prompt, so a key left in
+one is sent to the engine on every wake — put it in the repository's secrets instead, where nothing can read
+it back.
 Create one with `python3 tribe.py new <name> --seat "<seat>" --api <provider> --model <engine>`; it refuses
 to overwrite an existing member. On its first run the validator found two members that had been waking for
 hours without a `Last wake:` line, so the counter incremented and the record of when and on what did not —
