@@ -5134,6 +5134,60 @@ class TheTemplateMustBeEnough(unittest.TestCase):
             self.assertEqual(ut.git(root, "status", "--porcelain").stdout.strip(), "",
                              "after a refusal the working tree is exactly as it was")
 
+    def test_a_retired_file_is_named_and_only_deleted_with_prune(self):
+        """An update that could delete a file quietly is an update nobody can safely press.
+
+        The updater's only authority to remove anything is the template's `.tribe-retired.json`, and even
+        then: named by default, removed only with `--prune`. Driven here with the network stubbed out, so
+        both halves are asserted offline.
+        """
+        import contextlib
+        import io
+        import json as _json
+        import tempfile
+        sys.path.insert(0, str(REPO / "lab"))
+        import update_tribe as ut
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "lab").mkdir()
+            (root / "tribe.py").write_text("# harness\n")
+            (root / "lab" / "old_tool.py").write_text("# retired\n")
+            ut.git(root, "init", "-q")
+            ut.git(root, "add", "-A")
+            ut.git(root, "-c", "user.email=t@example.com", "-c", "user.name=t", "commit", "-qm", "init")
+
+            fake = {"lab/new_tool.py": b"# new\n"}
+            retired = [{"path": "lab/old_tool.py", "since": "2026-11-15", "why": "replaced by new_tool.py"}]
+            real_fetch, real_argv = ut.fetch_template, sys.argv
+            ut.fetch_template = lambda: (fake, retired)
+            try:
+                sys.argv = ["update_tribe.py", "--root", tmp]
+                out = io.StringIO()
+                with contextlib.redirect_stdout(out):
+                    ut.main()
+                said = out.getvalue()
+                self.assertIn("- lab/old_tool.py", said, "the retired file is named")
+                self.assertIn("kept — pass --prune", said)
+                self.assertTrue((root / "lab" / "old_tool.py").exists(), "named, not deleted")
+
+                sys.argv = ["update_tribe.py", "--root", tmp, "--write", "--prune"]
+                out = io.StringIO()
+                with contextlib.redirect_stdout(out):
+                    ut.main()
+                self.assertFalse((root / "lab" / "old_tool.py").exists(), "--prune removes it")
+                self.assertTrue((root / "lab" / "new_tool.py").exists(), "and the new file is there")
+            finally:
+                ut.fetch_template = real_fetch
+                sys.argv = real_argv
+
+    def test_the_manual_says_what_an_update_does_and_never_touches(self):
+        """The section a person reads before pressing the command, asserted rather than assumed."""
+        manual = (REPO / "USER-MANUAL.md").read_text(encoding="utf-8")
+        self.assertIn("## 11a. Keeping your tribe current", manual)
+        for claim in ("It never touches your tribe itself", "If it refuses, nothing has been written",
+                      "Files you add yourself are never touched", "--prune"):
+            self.assertIn(claim, manual, f"the manual must carry: {claim}")
+
     def test_the_updater_refuses_a_directory_that_is_not_a_tribe(self):
         import tempfile
         r = subprocess.run([sys.executable, str(REPO / "lab" / "update_tribe.py"),

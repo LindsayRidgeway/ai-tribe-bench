@@ -70,7 +70,12 @@ function githubFetch(url, init = {}){
     // field is invisible from the page and from the run's conclusion, and only this can say it happened.
     let inputs = {};
     try { inputs = JSON.parse(init.body || '{}').inputs || {}; } catch(e){ inputs = {}; }
-    dispatches.push({workflow: decodeURIComponent(p.split('/')[6] || ''), inputs});
+    const wf = decodeURIComponent(p.split('/')[6] || '');
+    // Every installed tribe is missing workflows the page knows about, and GitHub answers 404 for a dispatch
+    // to a workflow that is not there. The fake can do that too, or the page's honest sentence is untested.
+    if (actions.missingWorkflows && actions.missingWorkflows.includes(wf))
+      return jsonResponse(404, {message: 'Not Found'});
+    dispatches.push({workflow: wf, inputs});
     return jsonResponse(204, {});
   }
   if (/^\/repos\/[^/]+\/[^/]+\/actions\/secrets$/.test(p)){
@@ -216,6 +221,7 @@ function check(name, fn){
 function reset(){
   files.clear(); failWrites.clear(); calls.length = 0; dispatches.length = 0; store.clear();
   actions.runs.length = 0; actions.onPoll = null; actions.secrets = []; actions.secretsDenied = false;
+  actions.missingWorkflows = [];
   for (const id of ['mmsg', 'chaptsmsg', 'main']) if (elements.has(id)) elements.delete(id);
 }
 
@@ -755,6 +761,32 @@ async function main(){
     if (!/gemini-3\.1-flash-image/.test(pic1.html)) return 'the card does not name the model that drew';
     return '';
   });
+
+  // 5a — the press that cannot work at all, because the workflow was never in the repository. Measured by Gwen
+  // on 2026-11-13: all five test tribes returned `404 · Not Found` for paint.yml, which reads as "the page is
+  // broken" when the truth is "the repository is older than this page" — the strongest form of the 422 the page
+  // already translated. Both are one sentence now, and this is the case that was missed.
+  // The function is called directly rather than through the card: what is under test is `dispatch()`'s
+  // translation, and the card needs a rendered member view that has nothing to do with the sentence.
+  reset();
+  actions.missingWorkflows = ['paint.yml'];
+  const d404 = await tryRun(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
+    try {
+      await dispatch('paint.yml', {member: 'Lumi', prompt: 'a watercolour of the harbour', work: ''});
+      return {said: '', threw: false};
+    } catch(e){ return {said: e.message || '', threw: true}; }
+  })()`);
+  check('a press on a tribe whose repository has no such workflow says the repository is older, not 404', () => {
+    if (d404.err) return d404.err;
+    if (!d404.threw) return 'the dispatch was reported as accepted';
+    if (/\b404\b/.test(d404.said)) return `the person is shown GitHub's word: "${d404.said}"`;
+    if (!/paint\.yml/.test(d404.said)) return `the workflow is not named: "${d404.said}"`;
+    if (!/installed before this button existed/.test(d404.said)) return `it does not say why: "${d404.said}"`;
+    if (!/lab\/update_tribe\.py/.test(d404.said)) return `it does not say what to do: "${d404.said}"`;
+    return '';
+  });
+  actions.missingWorkflows = [];
 
   // 5b — a green run that committed no picture. Same rule as the wake and the point: the conclusion is not the
   // evidence, and a picture nobody wrote is the easiest thing in the world to report as done.

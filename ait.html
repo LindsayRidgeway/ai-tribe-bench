@@ -490,6 +490,16 @@ async function dispatch(workflow, inputs){
              {method:'POST', body:{ref:S.branch, inputs}});
   } catch(e){
     const fields = (String(e.message).match(/\[([^\]]*)\]/) || [])[1] || '';
+    if (/^404\b/.test(String(e.message))){
+      // A missing workflow is the strongest form of the 422 above, and it is the form *every* installed tribe
+      // is in until it is updated: the page ships features whose workflow the repository has never had. GitHub
+      // says `404 · Not Found`, which reads as "the page is broken" when the truth is "the repository is older".
+      // Measured 2026-11-13 by Gwen on tribe-gwen: §8's Ask for a picture returned 404 on all five test tribes.
+      throw new Error(`${workflow} is not in this tribe's repository at all — it was installed before this `
+        + `button existed, so the press cannot work. Nothing was sent. Run this in the repository `
+        + `(lab/update_tribe.py, then --write) or install again from the page; the manual's "Keeping your `
+        + `tribe current" is the short version.`);
+    }
     if (/^422\b/.test(String(e.message)) && fields){
       throw new Error(`this tribe's copy of ${workflow} has no field for ${fields} — the repository is older `
         + `than this page, so the press cannot work. Nothing was sent. The machinery in the repository and `

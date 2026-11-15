@@ -206,6 +206,8 @@ def main() -> int:
 
     want = paths()
     missing = [p for p in want if not (ROOT / p).is_file()]
+    if not (ROOT / ".tribe-retired.json").is_file():
+        missing.append(".tribe-retired.json")
     if a.check:
         for p in missing:
             print(f"missing: {p}")
@@ -233,6 +235,12 @@ def main() -> int:
         dst.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(ROOT / p, dst)
     (out / "README.md").write_text(TEMPLATE_README)
+    # The retired list is the updater's only authority for deleting anything, so it must travel with the
+    # template and must be reproducible from this bench like every other file. It is not in FILES because a
+    # tribe never receives it: `update_tribe.py` reads it out of the tarball and keeps it out of the copy.
+    retired = ROOT / ".tribe-retired.json"
+    if retired.is_file():
+        shutil.copy2(retired, out / ".tribe-retired.json")
     print(f"built {out}: {len(want) - len(missing)} files")
     if missing:
         return 1
