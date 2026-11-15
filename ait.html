@@ -797,6 +797,34 @@ words, the page has a button that asks you to write the entry, and you may tell 
 
 /* ---- views ----------------------------------------------------------------------------- */
 
+// A sentence that has to survive the repaint. `render()` rebuilds the view from state, so a message written
+// into the old DOM is written into an element that no longer exists — and only the *success* paths call
+// render(), because a failure returns before it. That is why an error stayed on the page and a success
+// vanished two lines after it was shown: three sites, found by Gwen on 2026-11-13 (#21). The rule now: write
+// it after the render, into the element that exists now.
+let FLASH = null;   // {id, text} — a sentence a repaint has to carry, not erase
+
+function sayAfter(id, text, html){
+  const el = document.getElementById(id);
+  if (!el) return false;
+  if (html) el.innerHTML = text; else el.textContent = text;
+  return true;
+}
+
+// `flash()` is sayAfter with a memory: the sentence is held in state and `render()` writes it again after it has
+// rebuilt the view. Writing after one render is not enough — `loadMembers()` can trigger another, and in a browser
+// the press itself re-renders — so the sentence has to belong to the view rather than to an element that may be
+// replaced a moment later. It forgets itself after a few seconds, because a message that never leaves is a message
+// that will one day be read as the state of the world (Gwen's #21, found 2026-11-13).
+function flash(id, text){
+  FLASH = {id, text};
+  sayAfter(id, text);
+  setTimeout(() => { if (FLASH && FLASH.text === text) FLASH = null; }, 12000);
+}
+function applyFlash(){
+  if (FLASH) sayAfter(FLASH.id, FLASH.text);
+}
+
 function setView(v){ S.view = v; location.hash = '#/' + v; render(); }
 
 function nav(current){
@@ -805,7 +833,15 @@ function nav(current){
   });
 }
 
+// `render()` is the wrapper that guarantees one thing: a sentence in FLASH is written after the view is built,
+// whichever branch built it. The body has several early returns (one per view), so a call at the end of the body
+// would never run for most of them — which is how a message ends up written into an element that no longer exists.
 async function render(){
+  await renderBody();
+  applyFlash();
+}
+
+async function renderBody(){
   const main = $('main');
   const connected = !!(S.repo && S.token);
   const view = (location.hash.replace(/^#\/?/, '').split('/')[0]) || '';
@@ -2055,9 +2091,9 @@ async function retellMemory(name){
     try { sha = (await fileText(`wake/members/${name}/state/memory.md`)).sha; } catch(e){}
     await putText(`wake/members/${name}/state/memory.md`, text + '\n',
       `memory: ${name} retold its memory from the record`, sha);
-    say('done. Its retelling is in memory.md; the record it came from is untouched.');
     await loadMembers();
     render();
+    flash('mmsg', 'done. Its retelling is in memory.md; the record it came from is untouched.');
     compareMemories(name).catch(() => {});
   } catch(e){ say(''); const e2 = $('mmsg'); if (e2) e2.innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }
 }
@@ -2755,9 +2791,9 @@ async function fileConversation(name){
     save();
     try { await saveThread(name); } catch(e){}
     const kept = (await chapterFiles(name)).length;
-    say(`filed. The talk is kept in chapter ${kept}, and the entry is in its journal.`);
     await loadMembers();
     render();
+    flash('mmsg', `filed. The talk is kept in chapter ${kept}, and the entry is in its journal.`);
   } catch(e){ say(''); const e2 = $('mmsg'); if (e2) e2.innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }
 }
 
@@ -3181,6 +3217,9 @@ async function saveFloor(floor, judge, repeat){
       cur.sha);
     CHAT.floor = floor; CHAT.judge = judge; CHAT.repeat = rep; CHAT.streak = {};
     render();
+    flash('tmsg', floor === 'judge'
+      ? `saved. In this room a judge decides the floor (${judge}), nobody speaking ${rep ? rep + '\u00d7 in a row' : 'twice in a row'}.`
+      : 'saved. In this room the floor goes to the member whose claim stands.');
   } catch(e){ if (msg) msg.innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }
 }
 

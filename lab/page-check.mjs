@@ -1540,6 +1540,43 @@ async function main(){
 
   /* the verdict */
   let bad = 0;
+  /* 22 — the sentence that survives the repaint. `render()` rebuilds the view, so a success written into the
+     old DOM is written into an element that no longer exists; only the success paths call render(), because a
+     failure returns before it — which is why an error stayed on the page and a success vanished two lines later.
+     Gwen found it in a browser on 2026-11-13 (#21). The fake deletes the element on render here, which is the
+     one thing `reset()` did that a per-check stub did not: model the rewrite. */
+  reset();
+  seed('wake/members/Lumi/state/identity.md', '# Lumi');
+  seed('wake/members/Lumi/state/journal.md', '# Journal\n');
+  seed('wake/members/Lumi/state/state.md', '# State\n\nWakes so far: 3\nLast wake: yesterday\n');
+  seed('wake/members/Lumi/state/voice.md', 'api: deepseek\nmodel: deepseek-flash\n');
+  for (const f of ['place.md', 'open-items.md', 'memory.md', 'conversation.md']) seed('wake/members/Lumi/state/' + f, '# ' + f + '\n');
+  const survived = await tryRun(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
+    S.keys = {deepseek: {key: 'k'}};
+    S.owner = 'Sam';
+    S.members = [{name: 'Lumi', engine: 'deepseek', model: 'deepseek-flash', journal: ''}];
+    S.chat.Lumi = [{role:'user', at:'2026-11-12 19:00 UTC', content:'Keep this.'},
+                   {role:'assistant', at:'2026-11-12 19:01 UTC', content:'Kept.'}];
+    // The rewrite, as the page experiences it: the view is rebuilt and the element starts empty. Written with the
+    // page's own API on purpose - a stub that reached into the harness's element map threw inside the page and the
+    // error surfaced as an empty message, which is the same symptom as the bug being tested.
+    render = () => { const el = document.getElementById('mmsg'); if (el){ el.textContent = ''; el.innerHTML = ''; } applyFlash(); };
+    let threw = '';
+    try { await fileConversation('Lumi'); } catch(e){ threw = e.message; }
+    render();     // and then one more repaint, which is what the page does as the press finishes
+    return {said: (document.getElementById('mmsg').textContent || ''), threw,
+            keys: (S.chat.Lumi || []).length};
+  })()`);
+  check('a success message outlives the repaint that follows it, not just the first one', () => {
+    if (survived.err) return survived.err;
+    if (process.env.AIT_DEBUG) return 'DEBUG ' + JSON.stringify(survived) + ' inMap=' + elements.has('mmsg') + ' mapText=' + JSON.stringify(((elements.get('mmsg')||{}).textContent)||'');
+    if (!/filed/.test(survived.said)) return `the sentence is gone after render(): "${survived.said}"`;
+    if (!/chapter/.test(survived.said)) return `it does not say where: "${survived.said}"`;
+    return '';
+  });
+
+
   for (const r of results){
     if (r.ok) console.log('PASS  ' + r.name);
     else { bad++; console.log('FAIL  ' + r.name + (r.why ? '\n        ' + r.why : '')); }

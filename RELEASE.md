@@ -15,6 +15,24 @@ no round is repeated because a round you spend twice is worth half.
   place I had to guess becomes a line in the sheet. The sheet currently promises thirty minutes; that
   promise is a claim until this is done.
 
+
+## 0.5. Every commit names the side of the split it lives on
+
+Gwen's finding, 2026-11-13, and it cost five testers a round of contradictory reports. This project has
+three places a change can live, and they reach a tester differently:
+
+| side | reaches a tester | how |
+|---|---|---|
+| **page** | at once, on every tribe | the site is served once; a reload is enough |
+| **bench** | never, on its own | the bench is the project's own repository |
+| **tribe** | only when that tribe updates | `lab/update_tribe.py`, run by its owner |
+
+A retest is only meaningful if the tester knows which side was changed. So the first word of a commit
+message, or the first line of the note that carries the sha, says it: `page:`, `bench:`, `tribe:`, or
+`template:` for a publish. "Same tribe, same key" is true for a page fix and silently false for anything in
+the machinery — a tester retesting a tribe-side patch on a tribe that cannot receive it will report
+*still broken* about work that is done, and be right about what she can see.
+
 ## 1. The founder, as a stranger
 
 Read `RUN.md` §1–§4 and mark the first place you would close it. Not an edit — a measurement. Three lines
