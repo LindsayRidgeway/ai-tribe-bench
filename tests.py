@@ -4135,19 +4135,29 @@ class TestWorkflows(unittest.TestCase):
         if yaml is None:
             self.skipTest("PyYAML not installed")
         rps = load(REPO / "lab" / "rps.py", "rps_for_keys")
+        # One exception, and it is stated rather than assumed: paint.yml asks a member's engine for a picture, and
+        # `lab/paint.py` refuses by name every engine without an image model — so the only keys it can ever need are
+        # the painters'. The exemption is held against paint.py's own table, so a fourth painter cannot slip past.
+        paint = load(REPO / "lab" / "paint.py", "paint_for_keys")
+        exempt = {"paint.yml": set(paint.PAINTERS)}
         speaks = {e for e in rps.BASES if e != "local"}     # loopback weights have no key to forward
         bad = []
         for f in sorted(self.WF.glob("*.yml")):
             text = f.read_text(encoding="utf-8")
-            named = set(re.findall(r"TRIBE_API_KEY_([A-Z]+)", text))
+            named = {n.lower() for n in re.findall(r"TRIBE_API_KEY_([A-Z]+)", text)}
             if not named:
                 continue
-            missing = sorted(speaks - {n.lower() for n in named})
+            want = exempt.get(f.name, speaks)
+            if f.name in exempt and named != exempt[f.name]:
+                bad.append(f"{f.name}: forwards {sorted(named)}; its exemption says {sorted(exempt[f.name])}")
+            missing = sorted(want - named)
             if missing:
-                bad.append(f"{f.name}: forwards {len(named)} of {len(speaks)} keys, missing {', '.join(missing)}")
+                bad.append(f"{f.name}: forwards {len(named)} of {len(want)} keys it may need, "
+                           f"missing {', '.join(missing)}")
         self.assertEqual(bad, [], "a workflow that forwards one engine's key must forward the rest; "
                                   "otherwise a member on the missing engine is told the key is not set")
-    def test_no_workflow_carries_a_list_of_member_names(self):        """The Run-workflow form used to offer a `type: choice` drop list of member names. Two things were wrong
+    def test_no_workflow_carries_a_list_of_member_names(self):
+        """The Run-workflow form used to offer a `type: choice` drop list of member names. Two things were wrong
         with it, and only the first was obvious.
 
         It was stale the first time anybody added a member. And it could not be repaired by the workflow that
