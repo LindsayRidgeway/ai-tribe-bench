@@ -4773,6 +4773,33 @@ class TheTemplateMustBeEnough(unittest.TestCase):
             mt.FILES = saved
         self.assertEqual(mt.unshipped_dispatches(), {}, "restoring FILES must restore the clean report")
 
+    def test_the_updater_ships_and_can_never_touch_a_member(self):
+        """An upgrade replaces machinery, and a member's diary is not machinery.
+
+        The rule is in `is_machinery()`, which is why it is testable without a network: whatever the
+        template contains, these paths are never replaceable. Getting this wrong once would silently
+        overwrite somebody's members with the template's empty shelf, so it is asserted path by path.
+        """
+        sys.path.insert(0, str(REPO / "lab"))
+        import make_template as mt
+        import update_tribe as ut
+        self.assertIn("lab/update_tribe.py", mt.FILES, "every tribe needs the tool that updates a tribe")
+        for path in ("wake/members/Aphrodite/state/journal.md", "wake/members/Aphrodite/state/voice.md",
+                     "members.json", "soil/workshop/world.md", "plates/2026-11-13-a-lamp.md",
+                     "issues/0001.md", "play/log/2026-11-12.md", "README.md", ".gitignore",
+                     ".tribe-beacon", "wake/members/.gitkeep"):
+            self.assertFalse(ut.is_machinery(path), f"{path} must never be replaced by an update")
+        for path in ("tribe.py", "lab/members.py", ".github/workflows/paint.yml", "USER-MANUAL.md",
+                     "wake/wake.py", "play/play.py", "talk.sh"):
+            self.assertTrue(ut.is_machinery(path), f"{path} is machinery and must be updatable")
+
+    def test_the_updater_refuses_a_directory_that_is_not_a_tribe(self):
+        import tempfile
+        r = subprocess.run([sys.executable, str(REPO / "lab" / "update_tribe.py"),
+                            "--root", tempfile.mkdtemp()], capture_output=True, text=True, timeout=60)
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("does not look like a tribe", r.stderr)
+
     def test_the_template_carries_no_members_and_no_fixtures(self):
         sys.path.insert(0, str(REPO / "lab"))
         import make_template as mt
