@@ -125,6 +125,7 @@
   <nav id="nav" hidden>
     <button data-go="today">Today</button>
     <button data-go="members">Members</button>
+    <button data-go="worlds">Worlds</button>
     <button data-go="table">Chats</button>
     <button data-go="play">Play</button>
     <button data-go="magazine">Magazine</button>
@@ -825,6 +826,8 @@ async function render(){
   if (view === 'play') return viewPlay(main);
   if (view === 'magazine') return viewMagazine(main);
   if (view === 'members') return viewMembers(main);
+  if (view === 'worlds') return viewWorlds(main);
+  if (view === 'w') return viewWorld(main, decodeURIComponent((location.hash.split('/')[2] || '')));
   if (view.startsWith('m')) return viewMember(main, decodeURIComponent((location.hash.split('/')[2] || '')));
   return viewToday(main);
 }
@@ -1413,7 +1416,7 @@ async function viewToday(main){
       <div class="grow">
         <div class="name"><span class="dot ${quiet.includes(m) ? 'quiet' : ''}"></span>${esc(m.name)}</div>
         <div class="small muted">${esc((m.identity.match(/My seat is [^.]*\./) || [''])[0].replace(/^My seat is /,''))}
-          ${m.place ? '· in ' + esc(m.place) : '· <strong>no room</strong>'} · ${m.wakes} wake${m.wakes === '1' ? '' : 's'}</div>
+          ${m.place ? '· in ' + esc(m.place) : '· <strong>no world</strong>'} · ${m.wakes} wake${m.wakes === '1' ? '' : 's'}</div>
         <div class="said">${esc(firstPara(m.lastEntry) || 'Nothing filed yet.')}</div>
       </div>
       <span class="chip ${keyFor(m.engine).key ? 'ok' : 'warn'}">${esc(m.engine || 'no engine')}</span>
@@ -1442,7 +1445,7 @@ async function viewMembers(main){
     <div class="card">${members.map(m => `
       <div class="member" onclick="setView('m/${encodeURIComponent(m.name)}')">
         <div class="grow"><div class="name">${esc(m.name)}</div>
-        <div class="small muted">${esc(m.engine)} · ${esc(m.model)} · ${esc(m.place || 'no room')} · ${m.wakes} wakes</div>
+        <div class="small muted">${esc(m.engine)} · ${esc(m.model)} · ${esc(m.place || 'no world')} · ${m.wakes} wakes</div>
         </div><span class="chip">open</span></div>`).join('') || '<p class="muted">None yet.</p>'}</div>
     <button class="primary" onclick="addMember()">Add a member</button>
     <h2>The attic <span class="small muted" style="font-weight:400">— members put away, with every file they had</span></h2>
@@ -1463,7 +1466,7 @@ async function viewMember(main, name){
       <h1 style="margin:0">${esc(m.name)}</h1>
       <span class="chip ${keyFor(m.engine).key ? 'ok' : 'warn'}">${esc(m.engine)} · ${esc(m.model)}</span>
     </div>
-    <p class="small muted">${esc(m.place || 'no room')} · ${m.wakes} wake${m.wakes === '1' ? '' : 's'} · last ${esc(m.lastWake)}
+    <p class="small muted">${esc(m.place || 'no world')} · ${m.wakes} wake${m.wakes === '1' ? '' : 's'} · last ${esc(m.lastWake)}
       · <a href="#/m/${encodeURIComponent(m.name)}" onclick="showFiles('${escq(m.name)}');return false;">its files</a></p>
 
     <h2>Talk <span class="small muted" style="font-weight:400">— its short-term memory: the newest turns are kept here, the oldest roll into its chapters</span></h2>
@@ -2873,8 +2876,9 @@ week. Most tribes need one; a cast of characters sharing a show belongs in one t
           `<button class="plain" onclick="pickPlace('${escq(r)}')">${esc(r)}</button>`).join('')}</div>
          <div class="row" style="margin-top:10px"><button class="plain" onclick="pickPlace('')">none</button></div>`
       : `<p class="dlog">This tribe has no worlds yet — the repository has no <code>soil/</code> folders — so
-${esc(d.name)} will be made without one and no clock will wake it. You can give it a world later by editing one
-line of its <code>place.md</code>.</p><button class="primary" onclick="pickPlace('')">Go on</button>`;
+${esc(d.name)} will be made without one, and a member standing nowhere is never woken. <strong>Worlds</strong> in
+the navigation makes one in about a minute: a name, and a paragraph about the place. Make the world first, then add
+${esc(d.name)} to it.</p><button class="primary" onclick="pickPlace('')">Make it anyway</button>`;
   } else {
     body = `<p class="dlog">That's everything:
 
@@ -4117,6 +4121,138 @@ async function buildIssue(){
 }
 
 /* ---- keys ------------------------------------------------------------------------------- */
+
+/* ---- worlds: the ground a member stands in --------------------------------------------- */
+
+// A world is a folder under `soil/`, and it is the one part of a tribe a person writes that a member reads as
+// *where it is* rather than *what it is*. `world.md` is quoted into every wake of every member standing there (its
+// last 2,500 characters), and `drops.md` beside it is what changed this week. It is not a chat: a chat is the table,
+// a world is the room the table is in. Until 2026-11-15 the page could pick a world and not make one — which meant a
+// person could cast four characters from a show and have nowhere to put them, and the one use the founder called the
+// most entertaining was the one that needed a terminal.
+const WORLD_FILES = [
+  ['name.md', 'What this world is called', 1],
+  ['world.md', 'The world itself — where it is, what year, what is normal there', 10],
+  ['drops.md', 'What changed this week', 6],
+];
+const WORLD_OPEN = {};        // path -> {text, sha} as it was when the view was drawn, for the conflict check
+
+async function viewWorlds(main){
+  main.innerHTML = `<h1>Worlds</h1><p class="muted small">reading the soil…</p>`;
+  let slugs = [];
+  try { slugs = (await dirNames('soil')).filter(n => !n.startsWith('.')); } catch(e){ slugs = []; }
+  await loadMembers().catch(() => {});
+  const rows = await Promise.all(slugs.map(async (slug) => {
+    const title = (await fileText(`soil/${slug}/name.md`).then(x => x.text).catch(() => '')).trim().split('\n')[0];
+    const there = (S.members || []).filter(m => m.place === slug).map(m => m.name);
+    return {slug, title: title || slug, there};
+  }));
+  main.innerHTML = `<h1>Worlds</h1>
+    <p class="lede">The ground your members stand in. What is written in a world is read by every member standing
+    there, at every wake — the setting, the weather, what changed this week.</p>
+    <div class="card">${rows.map(r => `
+      <div class="member" onclick="setView('w/${encodeURIComponent(r.slug)}')">
+        <div class="grow"><div class="name">${esc(r.title)}</div>
+        <div class="small muted">${esc(r.slug)} · ${r.there.length ? esc(r.there.join(', ')) : 'nobody stands here yet'}</div>
+        </div><span class="chip">open</span></div>`).join('') || '<p class="muted">No worlds yet.</p>'}</div>
+    <h2>Make a world</h2>
+    <div class="card">
+      <div class="grid two">
+        <div><label>What it is called</label><input id="wnew-title" placeholder="The Workshop"></div>
+        <div><label>Its folder — letters, digits, hyphens</label><input id="wnew-slug" placeholder="workshop"></div>
+      </div>
+      <label style="margin-top:8px;display:block">The world itself</label>
+      <textarea id="wnew-world" rows="6" placeholder="Where it is, what year, what is normal there, and what none of these people would ever say."></textarea>
+      <div class="row" style="margin-top:8px"><button class="primary" onclick="newWorld()">Make it</button>
+        <span class="small muted" id="wnewmsg"></span></div>
+    </div>`;
+}
+
+async function viewWorld(main, slug){
+  main.innerHTML = `<h1>${esc(slug)}</h1><p class="muted small">reading the world…</p>`;
+  await loadMembers().catch(() => {});
+  const got = {};
+  for (const [f] of WORLD_FILES)
+    got[f] = await fileText(`soil/${slug}/${f}`).then(x => ({text: x.text, sha: x.sha}))
+                                                 .catch(() => ({text: '', sha: null}));
+  if (!got['world.md'].sha && !got['name.md'].sha) return fail(main, new Error('there is no world called ' + slug));
+  const there = (S.members || []).filter(m => m.place === slug).map(m => m.name);
+  main.innerHTML = `<h1>${esc((got['name.md'].text || '').trim().split('\n')[0] || slug)}</h1>
+    <p class="small muted">${esc(slug)} · ${there.length ? 'stood in by ' + esc(there.join(', ')) : 'nobody stands here yet'}
+      · <a href="#" onclick="setView('worlds');return false;">all worlds</a></p>
+    ${WORLD_FILES.map(([f, label, rows]) => `
+      <h2>${esc(label)}</h2>
+      <textarea id="wf-${f}" rows="${rows}" style="width:100%;font-family:inherit">${esc(got[f].text)}</textarea>
+      <div class="row" style="margin:8px 0 18px"><button class="plain" onclick="saveWorldFile('${escq(slug)}','${f}')">Save ${f}</button>
+        <span class="small muted" id="wfmsg-${f}"></span></div>`).join('')}`;
+  for (const [f] of WORLD_FILES) WORLD_OPEN[`soil/${slug}/${f}`] = got[f];
+}
+
+async function saveWorldFile(slug, file){
+  const box = $('wf-' + file), msg = $('wfmsg-' + file);
+  if (!box) return;
+  const text = box.value;
+  const path = `soil/${slug}/${file}`;
+  const say = (t) => { if (msg) msg.innerHTML = esc(t); };
+  say('saving…');
+  try {
+    let put = null;
+    for (let attempt = 1; attempt <= 3 && !put; attempt++){
+      // Read the file again for its sha. GitHub's read can lag its own write, so the sha this page drew the view
+      // with can already be old and the PUT comes back 409 — the same measurement as the identity editor, and the
+      // same three tries. A file that is not there yet has no sha, and that is a create, not a conflict.
+      const fresh = await fileText(path).then(x => ({text: x.text, sha: x.sha})).catch(() => ({text: '', sha: null}));
+      const opened = WORLD_OPEN[path];
+      if (opened && fresh.text !== opened.text && fresh.text !== text){
+        WORLD_OPEN[path] = fresh;
+        say('The file changed since you opened it — something else wrote to it. Press Save again to replace it with what is in the box.');
+        return;
+      }
+      if (fresh.text === text){ say('Nothing changed, so nothing was saved.'); return; }
+      try {
+        put = await putText(path, text, `world: ${slug}/${file} — written by the person who keeps this tribe`, fresh.sha);
+      } catch(e){
+        if (!/^409/.test(String(e.message))) throw e;
+        if (attempt < 3) await sleep(900);
+      }
+    }
+    if (!put) throw new Error('GitHub kept refusing the write (409) after three tries. Your text is still in the box; press Save again in a moment.');
+    WORLD_OPEN[path] = {text, sha: (put && put.content && put.content.sha) || null};
+    say('saved.');
+  } catch(e){ if (msg) msg.innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }
+}
+
+async function newWorld(){
+  const msg = $('wnewmsg');
+  const val = (id) => (($(id) || {}).value || '').trim();
+  const title = val('wnew-title'), slugIn = val('wnew-slug'), world = val('wnew-world');
+  const say = (t) => { if (msg) msg.innerHTML = esc(t); };
+  if (!title){ say('It needs a name — the one the magazine prints at the top of an issue.'); return; }
+  const slug = (slugIn || title).toLowerCase().replace(/['\u2019]/g, '').replace(/[^a-z0-9]+/g, '-')
+                                .replace(/^-+|-+$/g, '');
+  if (!/^[a-z0-9][a-z0-9-]{0,23}$/.test(slug)){
+    say('“' + (slugIn || title) + '” cannot be a folder name: letters, digits and hyphens, up to 24, starting with a letter or digit.');
+    return;
+  }
+  say('checking…');
+  try {
+    const have = await dirNames('soil').catch(() => []);
+    if (have.includes(slug)){
+      say('There is already a world called ' + slug + '. Open it instead of making a second one with the same name.');
+      return;
+    }
+    say('making ' + slug + '…');
+    // Two files and two commits, like a chat. The name is written even when nothing is typed in the world: a world
+    // with no name.md prints its folder name in the magazine, and one with no world.md has no ground at all —
+    // `wake.py` reads world.md into every wake, so a folder with nothing in it reaches nobody.
+    await putText(`soil/${slug}/name.md`, title + '\n',
+                  `world: ${slug} — created by the person who keeps this tribe`);
+    const body = world || `# ${title}\n\n(nothing written here yet — the person who keeps this tribe will fill this in)\n`;
+    await putText(`soil/${slug}/world.md`, body.endsWith('\n') ? body : body + '\n',
+                  `world: ${slug} — created by the person who keeps this tribe`);
+    setView('w/' + encodeURIComponent(slug));
+  } catch(e){ if (msg) msg.innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }
+}
 
 function viewKeys(main){
   main.innerHTML = `<h1>Keys</h1>

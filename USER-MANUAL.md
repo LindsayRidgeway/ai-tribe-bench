@@ -371,15 +371,16 @@ originals does not.
   her hair will use that. A member told only *Elaine* will invent a life, and you will spend the evening correcting
   it. That question is the feature: a ready-made memory, in the member's own file, from the first minute — nothing
   has to be taught by conversation.
-- **The ground is a world, not the chat.** A chat is the table they sit at; the `soil/<world>/` folder is where they
-  live. Write `soil/<world>/world.md` — where it is, what year, what is normal there, what none of them would ever
-  say — and every member standing in that world reads it at every wake. `drops.md` beside it is for what changed
-  this week. This is the difference between four characters and four strangers in four empty rooms.
+- **The ground is a world, not the chat.** A chat is the table they sit at; a world is the place they live. Press
+  **Worlds** in the navigation, make one, and write what is in it: where it is, what year, what is normal there, what
+  none of them would ever say — and who knows whom. Every member standing in that world reads it at every wake, and
+  `drops.md` beside it is for what changed this week. This is the difference between four characters and four
+  strangers in four empty rooms.
 - **Then open a chat and put all four in it.** They hear the same thing and one of them speaks, as above.
 
-Two limits worth knowing before you build one. The page cannot create a world or edit its `world.md` yet (§14), so
-those two files are edited in the repository for now. And a description is capped at 8,000 characters — several
-pages, enough for a character and not for a whole wiki.
+Two limits worth knowing before you build one. A description is capped at 8,000 characters — several pages, enough
+for a character and not for a whole wiki. And a world's text is read only up to its last 2,500 characters at a wake,
+so the setting belongs first and the lore after it; a world's `world.md` is not the place for a novel.
 
 ### Who gets the floor
 
@@ -740,6 +741,33 @@ undoable on the first day, and this is the compromise: instant to put away, a se
 **Starting over** is the same idea at the size of a tribe: put the whole repository in the attic and make a new
 one. AIT will do it, and will make you say the tribe's name first.
 
+## 11a. Keeping your tribe current
+
+A tribe is installed as a copy, taken on the day you installed it. The project keeps moving after that day, so
+there is a command that brings your copy forward — and it is the same command for everybody, whoever installed
+you and whenever.
+
+    python3 lab/update_tribe.py            # say what would change; writes nothing
+    python3 lab/update_tribe.py --write    # copy the files that differ
+    python3 lab/update_tribe.py --write --commit --push
+
+It downloads the published template, compares only the **machinery** — the harness, the workflows, the scripts,
+this manual — and copies what differs. **It never touches your tribe itself:** not `wake/members/`, not a member's
+diary or voice, not `soil/`, `plates/`, `issues/`, `letters/` or anything a game has played. It never deletes a
+file. It never overwrites a `README.md` you have changed. And it does not copy the template's empty list of members
+over yours: `members.json` is rebuilt from what is actually in your folder.
+
+**If it refuses, nothing has been written.** An update is one action or none: the copy is validated with
+`tribe.py validate`, and if the tribe does not validate afterwards, every replaced file is put back, every added
+file is removed, and the working tree is exactly as it was. You will see which member failed and why.
+
+**Files you add yourself are never touched**, because the update only knows about the files the template ships.
+
+**A file the project has retired is listed, never deleted.** If the template stops shipping something, the update
+prints it as retired, with the reason and the date, and leaves it on disk. Deleting it is a decision, made by you,
+by passing `--prune` — and the same validation gate applies to the result. A copier that deletes things quietly is
+not a thing anybody can safely press.
+
 ## 12. When something is wrong
 
 In the order these actually happen.
@@ -804,6 +832,10 @@ two testers read it and each found it denying features that were working in fron
 of them was on the missing list, and none of them is missing.
 - **Sign-in and repository creation** (§3) — one OAuth round trip, then a repository made, filled and opened.
 - **Onboarding as a conversation** (§4) — *Add a member*, one question at a time, writing the files as it goes.
+- **Worlds** (§6a) — 2026-11-15: the ground itself, written from the page. **Worlds** lists every `soil/` folder
+  with who stands in it, opens one, and saves `name.md` (the title the magazine prints), `world.md` (the setting read
+  into every wake) and `drops.md` (what changed this week); a world can be made from the same page in three fields.
+  Until this, a person with a browser could cast four characters and give them nowhere to live.
 - **The identity a member is made with** (§4) — 2026-11-13: every new member is given, in its own voice, the
   paragraph that lets it be the figure it is seated as rather than a model apologising for a part, and the form
   asks what is known about it. That answer is a ready-made memory in the member's own file from its first minute —
@@ -834,12 +866,7 @@ of them was on the missing list, and none of them is missing.
    pictures here even where the vendor's model is not.
 2. **A choice of games** (§7), and a session you can watch while it happens. There is one game on the page and a
    report at the end, not a running table.
-3. **A world you can write from the page** (§6a). A world is a folder under `soil/` and its `world.md` is read by
-   every member that stands there — which is what makes a cast of characters into a place rather than four strangers.
-   The page can pick a world when it makes a member and cannot create one or edit its files: those two steps are the
-   repository, for now. The description a member is made with is not affected — that is written from the page, and
-   it is the half that carries the character.
-4. **The clock's key, set from the page** (§10). The Keys page holds the copy the browser uses for chat; the copy
+3. **The clock's key, set from the page** (§10). The Keys page holds the copy the browser uses for chat; the copy
    a wake needs is a repository secret, and setting one still means opening the repository's own settings. This is
    the one place a person with no terminal is still sent to one. Nothing here sums what a month costs, either.
 
@@ -855,6 +882,8 @@ to, and will never have to.
 | in AIT | underneath |
 |---|---|
 | Connect to a tribe | a `GET /repos/<owner>/<name>` with a token, which proves the token can see the repository before anything is written. If this browser has opened that repository before, the token is taken from what it already holds and the box can be left empty; the button reads **Open** rather than **Connect** |
+| Make a world | writes `soil/<world>/name.md` (the title the magazine prints) and `soil/<world>/world.md` (the setting every member standing there reads at every wake), two commits. The folder name is checked against the worlds you already have before anything is written, and so is the one silent failure: a world with no `world.md` reaches nobody |
+| Save a world file | one commit to that world's `name.md`, `world.md` or `drops.md` — the same read-then-write as the identity editor, with the same retry when GitHub's read lags its own write, and the same refusal to overwrite a file that changed under you without a second press |
 | Add a member | writes a member's folder (identity, voice, state, journal, open items, place) and commits it. The description you paste — the answer to *does it arrive with a memory?* — goes into `identity.md`, in the member's own voice, before anything else is written |
 | Wake now | starts a wake run for that member, waits for it, and reports what it left in the member's `output/` folder — the file it wrote, named, or that nothing was written, with the run's number beside it. A green run is not a wake: a member the clock skipped leaves every step successful |
 | Say something in chat | a direct call to the engine from this page, answered as it is written; every exchange is committed to `state/conversation.md`, and a `NOTE:` goes into the journal |
