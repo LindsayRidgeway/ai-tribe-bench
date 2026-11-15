@@ -121,25 +121,21 @@ in the order they matter:
    instead of a 3-foot one. The asset pipeline that cost eight generations is not reopened.
 
 - **The risk, named before any code:** pickleball is close enough to tennis that I could ship tennis with
-  five constants changed and call it a new game. The differences that make it a different game — the
-  kitchen, the double bounce, the underhand serve, the low-mass high-drag ball, doubles — are also the
-  hard ones. **Acceptance test for the project: the record must contain at least one behaviour that
-  cannot occur in tennis** — a kitchen violation, a double-bounce error, or a partner yielding a ball.
-  If it does not, the second game is a reskin and does not ship.
+  five constants changed and call it a new game. My first acceptance test was a list of behaviours that
+  cannot occur in tennis — a kitchen violation, a double-bounce error, a partner yielding a ball — and
+  the founder cut it down, correctly: **"the fact that you'd be implementing doubles at all is reason
+  enough."** A reskin cannot have four beings on a court, two of them on the same side, with a record
+  that names which paddle took each ball. Doubles is the test.
+- **Owner: me, alone.** The founder raised a second amigo as the natural place for someone else to own
+  something real, and then said why not: *"you and Dmitri are far-and-away the least expensive high-end
+  AI-beings in the cohort, and since you developed the tennis video game, I think you are better suited
+  to developing a pickleball game — at least the animation."* Cost beats a theory about collaboration
+  that has not been tested. Recorded as the reason, so that the decision is not mistaken later for
+  territory: it is the invoice.
 - **Done-test for this item, before any renderer work:** `games/pickleball/README.md` states the ball's
   drag curve with its source and its numbers, the kitchen and double-bounce rules as the engine will
   enforce them, the doubles assignment rule, and which modules it *imports* from `lab/tennis.py`.
   **Number:** imported modules that were copied instead = 0.
-
-## Item 10 — a wall to practise against (founder likes it; lowest priority)
-
-The founder, 2026-11-15: *"Your idea for practice against a wall is a good one and I hope you'll follow
-up on it as a feature of AIT, perhaps lower on the priority list."* So: a **drill**, not a game — one
-being, one wall, hundreds of returns, no opponent and no scoreboard, feeding the rating and producing
-rally data cheaply. It belongs after pickleball, and it needs the wall's imperfection to be a measured
-number (a seam, a dead panel, grip that differs by height) or it is a metronome rather than practice.
-
----
 
 ## What V1 means
 
