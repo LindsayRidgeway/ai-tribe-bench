@@ -3887,6 +3887,71 @@ class TestPickleball(unittest.TestCase):
             self.assertGreater(len(hits), 10)
             self.assertAlmostEqual(hits[-1] - hits[0], want, delta=0.3, msg=f"{mph} mph")
 
+    def test_the_stance_default_sits_inside_the_fault_window_and_one_lesson_leaves_it(self):
+        """The arithmetic in the comment above APPROACH_DEFAULT, run. A volley is met VOLLEY_STEP inside the
+        feet and the carry afterwards is 1.5 ft, so a player holding g ft behind the line volleys from g-1.2
+        and is carried to g+0.3: in the kitchen for 1.2 <= g < 2.7, and inside it at contact for g < 1.2.
+        The default has to sit in that window or the game has a rule nobody can break, which is scenery."""
+        pk = self.pk
+        def carried_in(gap: float) -> bool:
+            mark = pk.KITCHEN_LINE - gap                     # a north player, standing at their mark
+            return pk.in_kitchen(mark + pk.VOLLEY_STEP + 1.5)  # met 1.2 in, carried 1.5 further
+        self.assertTrue(carried_in(1.5), "1.5 ft behind the line is the classic carry-in")
+        self.assertTrue(carried_in(pk.APPROACH_DEFAULT), "and the default is in the window on purpose")
+        self.assertFalse(carried_in(3.0), "one lesson (1 ft) leaves the window")
+        self.assertLess(pk.APPROACH_DEFAULT, 2.7, "the window's far edge")
+        self.assertGreater(pk.APPROACH_DEFAULT, pk.VOLLEY_STEP, "below the volley step the fault is at contact")
+
+    def test_the_reading_chooser_steps_back_after_its_own_fault_and_not_after_a_chase(self):
+        """The lesson, driven directly: a fault from the mark moves the feet one foot back; the same fault
+        arrived at by chasing the ball changes nothing, because the stance was never the cause; and the
+        number stops at the ceiling rather than climbing forever."""
+        pk = self.pk
+        names = ["A", "B", "C", "D"]
+        players = {n: self.t.Player(name=n, north=(i < 2), practice=200) for i, n in enumerate(names)}
+        pos = pk.Positions()
+        said: list[str] = []
+        choose = pk.reading_chooser("steady", say=said.append)(players, ("N", 3.0), "hard")
+        self.assertEqual(pos.approach_of(players["A"]), pk.APPROACH_DEFAULT)
+
+        def at_the_mark():
+            x = pk.KITCHEN_LINE - pos.approach_of(players["A"]) + pk.VOLLEY_STEP
+            return {"why": "momentum", "fault_name": "A", "fault_at": (x, pk.CENTRELINE)}
+        choose.lesson(at_the_mark(), pos, players)
+        self.assertEqual(pos.approach_of(players["A"]), pk.APPROACH_DEFAULT + 1.0, "one step back")
+        # the same fault, but the feet were a foot from the line having gone to the ball
+        before = pos.approach_of(players["A"])
+        chase = {"why": "kitchen", "fault_name": "A", "fault_at": (pk.KITCHEN_LINE - 0.4, pk.CENTRELINE)}
+        choose.lesson(chase, pos, players)
+        self.assertEqual(pos.approach_of(players["A"]), before, "the chase is not the stance")
+        self.assertTrue(any("not the stance" in line for line in said), "and it says so in the transcript")
+        for _ in range(20):                                   # a foot per fault, and never past the ceiling
+            choose.lesson(at_the_mark(), pos, players)
+        self.assertEqual(pos.approach_of(players["A"]), pk.APPROACH_MAX)
+
+    def test_the_reading_chooser_swings_with_the_steady_players_hands(self):
+        """A difference between --level steady and --level read has to be the learning and never the aim."""
+        import random as _random
+        pk = self.pk
+        def swing(factory):
+            p = self.t.Player(name="A", north=True, practice=200, rng=_random.Random(11))
+            other = self.t.Player(name="C", north=False, practice=200, rng=_random.Random(12))
+            choose = factory({ "A": p, "C": other }, ("N", 3.0), "hard")
+            return choose(p, other, {"speed_in": 20.0, "depth": 9.0}, 3, [], "groundstroke", True, (8.0, 10.0))
+        self.assertEqual(swing(pk.make_chooser("read")), swing(pk.make_chooser("steady")))
+        self.assertIsNot(swing(pk.make_chooser("read")), swing(pk.make_chooser("beginner")))
+
+    def test_a_pinned_clock_reproduces_a_game_shot_for_shot(self):
+        """The record's header offers a replay command; before the hands were seeded from the clock, two
+        replays of the same command gave 11-2 and 11-3. A transcript that cannot be replayed is a story."""
+        pk = self.pk
+        names = ["north-a", "north-b", "south-a", "south-b"]
+        def play():
+            m, r = pk.play_game(names, [60, 60, 60, 60], pk.make_chooser("steady"), surface="hard",
+                                wind_seed_ms=424242, first_team=0, say=lambda *a, **k: None)
+            return (m.teams[0].score, m.teams[1].score, r["lengths"])
+        self.assertEqual(play(), play())
+
     def test_the_tennis_integrator_still_integrates_what_it_integrated(self):
         """The parameterisation that let pickleball share the integrator must have changed nothing for tennis.
         This is the cheap version of the 2,408-sample grid that was run by hand on 2026-11-15 (0 differences):

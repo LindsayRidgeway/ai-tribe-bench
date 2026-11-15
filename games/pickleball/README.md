@@ -339,7 +339,7 @@ afternoon what two papers and I cannot settle from a chair.
 
 ## §5 The engine, as built — 2026-11-15, the same day as §1–§4
 
-`lab/pickleball.py`, 15 tests in `tests.py` (`TestPickleball`), 327 tests in the suite, all passing. The
+`lab/pickleball.py`, 19 tests in `tests.py` (`TestPickleball`), 344 tests in the suite, all passing. The
 rules are the page's rules, the ball is the page's ball, and the game is text.
 
 **The four things §4 asked for, measured rather than promised.**
@@ -352,19 +352,25 @@ rules are the page's rules, the ball is the page's ball, and the game is text.
 | the page's numbers reproduce | `--rules` recomputes the window table from the file's own constants | 35 mph **10.1°**, 40 **5.8°**, 45 **3.5°** against the page's 10.1 / 5.9 / 3.5 |
 
 **The learning curve is in the engine, and nothing in the code asks for it.** Same chooser, same court, only
-the balls hit differ (6 games per row):
+the balls hit differ (6 games per row, at six pinned clocks):
 
-| balls hit before | mean rally | longest | serve faults | kitchen faults | momentum faults |
-|---|---|---|---|---|---|
-| 0 | **1.8** shots | 9 | 12 | 10 | 12 |
-| 200 | **4.4** | 16 | 0 | 28 | 59 |
-| 600 | **7.0** | 34 | 0 | 21 | 58 |
+| balls hit before | mean rally | longest | serve faults | kitchen faults | momentum faults | serves in |
+|---|---|---|---|---|---|---|
+| 0 | **2.3** shots | 9 | 16 | 17 | 25 | 96% |
+| 200 | **5.8** | 21 | 1 | 27 | 69 | 99% |
+| 600 | **9.5** | 44 | 0 | 18 | 71 | 100% |
 
 That is the founder's 2026-11-04 sentence — *rallies get longer as the players develop, and not because you
 programme it* — appearing in a second sport without being programmed. Across 12 games at 12 pinned clocks:
-7 wins north, 5 south, mean rally 5.1 shots, longest 34, and one 14–12 that proves win-by-two is a rule and
-not a label. Serve-in by practice, 150 serves each: **43% / 72% / 91% / 95%** at 0 / 150 / 300 / 600 balls.
-The record of one game is `records/scripted-2026-11-15.txt`, replayed from a pinned clock.
+8 wins north, 4 south, mean rally 5.4 shots, longest 21. "Serves in" is serve faults per rally, so it says
+how often the serve found the diagonal box, not how well it was hit.
+
+**This table has been re-measured once, and the old numbers are gone on purpose.** The first version read
+1.8 / 4.4 / 7.0 shots and served in 43% / 72% / 91% / 95% — the rally column changed because the engine got
+two fixes (§5b: the feet recover after a shot, and the hands are seeded), and the serve-in column I cannot
+reproduce: the script that produced it was a throwaway in `/tmp` and is gone, so I do not know whether it
+counted service turns, points or shots. A row whose method cannot be restated is not evidence, and the fix
+is not to keep the number — it is to state the method in the row, which is what the sentence above does.
 
 **Three defects the build found, each of which the page could not have caught, and each now a test:**
 
@@ -381,14 +387,90 @@ The record of one game is `records/scripted-2026-11-15.txt`, replayed from a pin
    Tennis's belt runs to 23 mph. Pickleball's wind is now capped at **12 mph**, the cap is printed with the
    session, and the measurement behind it is a test.
 
-**One thing to fix, named rather than smoothed.** Of the kitchen faults the engine produces, the momentum
-clause is the large majority — 59 against 28 contact faults at practice 200. That is a property of the
-harness, not of the sport: the scripted player follows its shot in to 4 ft outside the line and then volleys
-from within 2 ft of it, which is exactly the position the carry rule punishes. A player that read its own
-history would stand a foot further back. The fix is a chooser that learns, which is the next item and not a
-tuning constant.
+**One thing this section got wrong, kept here so the correction is visible.** This paragraph used to say the
+momentum clause was a property of the harness, that the scripted player followed its shot in to 4 ft and then
+volleyed from within 2 ft, and that "a player that read its own history would stand a foot further back" — the
+fix being a chooser that learns. I built that chooser (§5b) and it bought 6 faults out of 125, because the
+diagnosis was wrong: the faults are not taken from the stance. The stance was 33 of them. The other ~150 are
+taken from wherever the ball landed, which the engine chose, not the player. The correction is the useful part
+of this section.
 
-**Next, in order:** the measured ball (§1 says why it is first); then a chooser that reads the momentum
-faults and steps back, which is the first thing in this game a member could *learn*; then the driving game
-played by members on their own engines rather than by the harness; then the dink game once the ball is
-measured; then the renderer, the season and the person's seat, which are tennis's.
+**Next, in order:** the body — feet that belong to the player between shots, so a chase does not land inside
+the kitchen, which §5b measures as the actual cause; then the measured ball (§1 says why it is a blocker for
+the dink game); then the driving game played by members on their own engines rather than by the harness; then
+the dink game once the ball is measured; then the renderer, the season and the person's seat, which are
+tennis's.
+
+---
+
+## §5b The chooser that reads — 2026-11-15, evening
+
+The first thing in this game that a member could *learn*, built as `reading_chooser` and reachable as
+`--level read`. It is the same hands as `--level steady` (there is a test for that, so any difference between
+the two levels is the lesson and never the aim), plus one ability: after each rally it is told what happened
+and it is allowed to change `Positions.approach` — the feet between a player and their own kitchen line.
+
+**Three engine changes had to come first, because a lesson that cannot move the body is not a lesson.**
+
+| change | why it was not already there |
+|---|---|
+| `Positions.approach` is now a per-player number the engine reads when it recovers after a shot | the engine moved the body and the chooser had no way to say anything about it |
+| the recovery step goes **both** ways | the first version only walked a player *forward* to their mark, so a player who chased a ball to the line hit from there and stayed there for the rest of the rally — **42 of 42** momentum faults in four scripted games were volleys taken from 0.03–1.41 ft outside the line, which is a body that is not being simulated, only advanced |
+| every rally return carries `fault_name` and `fault_at` | a record that says *who* faulted and *from where* is the difference between a lesson and a coincidence |
+
+`APPROACH_DEFAULT` also moved from 4.0 ft to 2.0 ft, and the arithmetic is in the file: a volley is met
+`VOLLEY_STEP` (1.2 ft) inside the feet and the carry afterwards is 1.5 ft, so a player holding g ft behind
+the line is carried in for **1.2 ≤ g < 2.7**. The default has to sit in that window or the game has a rule
+nobody can break. A test asserts it does.
+
+**What the reader does, and what it refuses to do.** It separates two faults that look identical in a
+scoreline: a fault taken **from the mark** (the stance was wrong) and a fault **arrived at by going to the
+ball** (the feet were never at the mark). The first teaches it to stand one foot further back. The second
+teaches it nothing, and it says so in the record: *"it was 0.4ft from its own line, having gone to the ball.
+Nothing changes."* It also never walks forward again when the faults stop — a real player drifts toward the
+line because the line takes time away from the opponent, and modelling that temptation needs the opponent's
+reply as a reward. That is stated as an omission, not hidden.
+
+**The measurement that matters, and it is negative.** Twelve games at twelve pinned clocks, practice 200
+balls each, the scripted player with no lesson attached, one number changed by hand:
+
+| stance held | kitchen + momentum faults (12 games) | mean rally |
+|---|---|---|
+| 1.0 ft | 175 | 5.2 shots |
+| **2.0 ft** (the default) | **186** | 5.2 |
+| 3.0 ft | 174 | 5.3 |
+| 4.0 ft | 162 | 5.3 |
+| 6.0 ft | 169 | 5.1 |
+
+A six-fold change in how far the player stands from the line moves the fault count from 175 to 169, and not
+in one direction. **The stance is not the lever.** Of ~180 kitchen faults in twelve games, 33 happened with
+the feet on the mark and the reader fixed those; the rest happened where the ball landed. With the lesson
+attached: kitchen 61 → 59, momentum 125 → 119, out balls 110 → 117 — six momentum faults bought out of 125,
+and the rest of the movement is the game taking a different path, not a gain.
+
+**Why, and therefore what the next unit is.** The engine moves the receiving player's feet **onto the bounce
+point** and then decides a volley by proximity, so a ball landing a foot past the line is volleyed from
+inside the line, and no stance can prevent that, because between shots the feet are not the player's. The
+counterfactual, measured on a scratch copy of the engine with the repository untouched — receivers set up
+2 ft **behind** the bounce instead of on it:
+
+| | contact kitchen faults | momentum faults | balls hit out | mean rally |
+|---|---|---|---|---|
+| as built | 61 | 125 | 110 | 5.2 shots |
+| set up 2 ft behind the ball | **9** | 115–134 | **182** | **9.5** |
+
+So the chase is the fault's cause, and fixing it properly is not one constant: it removes the contact fault
+almost entirely and turns the rest of the game into a different game — longer rallies, more balls hit out,
+because a player standing behind the ball is no longer standing on it. That is the next unit, with its own
+measurement, and it has to come before the chooser can learn anything real.
+
+**Also fixed here, because a record has to be replayable.** `Player.rng` was unseeded, so the replay command
+in `records/scripted-2026-11-15.txt` gave 11–2 on one run and 11–3 on the next. The hands are seeded from the
+pinned clock now, and a test asserts two replays of one command are identical. The record holds both levels
+at the same clock, so the file shows the lesson firing twice and diagnosing fourteen chases as not-the-stance.
+
+**Five tests added** (`TestPickleball` now 19): the fault window's arithmetic; the lesson stepping back from
+the mark and refusing to learn from a chase; the ceiling; the reader swinging with the steady player's hands;
+and the replay. The stance sweep above is a measurement, not a test — five stances × twelve games is a minute
+of wall clock, and a suite that takes a minute to answer a question nobody asked twice is a suite people
+skip.

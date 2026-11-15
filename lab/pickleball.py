@@ -74,6 +74,7 @@ WIND_CAP = 12.0                          # mph. The clock's own wind rule runs t
                                          # reaches 49.5 ft in still air, 35.6 ft into a 12 mph headwind, and
                                          # 27.5 ft into 20 mph — short of the kitchen line, so no legal serve
                                          # exists at all. Capped, and the cap is printed with the session.
+VOLLEY_STEP = 1.2                         # ft a player steps in to meet a ball in the air
 VOLLEY_ZONE = 4.0                        # ft outside the kitchen line: a player standing this close takes a
                                          # deep ball out of the air, and further back lets it bounce
 
@@ -433,11 +434,32 @@ def serve_first(match: Match, first_team: int) -> None:
 
 
 # ---- one rally -------------------------------------------------------------------------------------
+APPROACH_DEFAULT = 2.0                   # ft outside the player's own kitchen line that they hold. Two feet is
+                                         # where the sport tells you to stand — close enough to take time away —
+                                         # and it is *inside* the fault window, which is the point: see below
+APPROACH_MAX = 9.0                       # the deepest a frightened player will stand and still call it doubles
+# The fault window, and why the default sits inside it. A volley is met VOLLEY_STEP (1.2 ft) inside where the
+# feet were, and the carry afterwards is 1.5 ft forward, so a player holding g feet behind the line volleys
+# from g-1.2 and is carried to g+0.3: they are in the kitchen for 1.2 <= g < 2.7 (and inside it at contact for
+# g < 1.2). A default of 2.0 is in that window, so the game has a fault to learn from; the reader in
+# `reading_chooser` steps out of it with one lesson. A default of 4.0 — the first number I wrote — was outside
+# the window, and a rule nobody can break is not a rule, it is scenery.
+
+
 @dataclass
 class Positions:
     """One point per player, not a body. Advanced toward the ball by `movement_speed`, which is the same
-    function the tennis engine uses; that is what makes the kitchen a decision instead of a boundary."""
+    function the tennis engine uses; that is what makes the kitchen a decision instead of a boundary.
+
+    `approach` is the one number a player can change about *themselves*: how close to the kitchen line they
+    stand after hitting. It lives here rather than in the chooser because the engine, not the chooser, moves
+    the body — and a lesson that cannot move the body is not a lesson. A reader that has been carried into the
+    kitchen by its own volley raises it; see `reading_chooser`."""
     at: dict[str, tuple[float, float]] = field(default_factory=dict)
+    approach: dict[str, float] = field(default_factory=dict)
+
+    def approach_of(self, p: Player) -> float:
+        return self.approach.setdefault(p.name, APPROACH_DEFAULT)
 
     def home(self, p: Player) -> tuple[float, float]:
         """Where a player waits: a couple of feet behind their own kitchen line in a dink exchange, or on
@@ -495,8 +517,7 @@ def play_rally(match: Match, players: dict[str, Player], pos: "Positions", choos
         can_volley = may_volley and deep_ball and 0 < feet_from_kitchen_line(here[0]) <= VOLLEY_ZONE
         shot_kind = "serve" if shot_no == 0 else ("volley" if can_volley else "groundstroke")
         if shot_kind == "volley":
-            step = 1.2
-            contact_pos = (here[0] + (step if p.north else -step), here[1])
+            contact_pos = (here[0] + (VOLLEY_STEP if p.north else -VOLLEY_STEP), here[1])
         else:
             contact_pos = here
         face, power, aim = choose(p, players.get(_opponent_name(match, players, p.name)), incoming,
@@ -514,16 +535,20 @@ def play_rally(match: Match, players: dict[str, Player], pos: "Positions", choos
         if shot_kind == "volley" and in_kitchen(contact_pos[0]):
             say(f"       -- fault: volleyed from inside the kitchen "
                 f"({abs(contact_pos[0] - NET_X):.1f}ft from the net; the line is at {KITCHEN:.1f}ft)")
-            return {"shots": shot_no, "why": "kitchen", "fault_by": hitter_team, "winner": 1 - hitter_team}
+            return {"shots": shot_no, "why": "kitchen", "fault_by": hitter_team, "fault_name": p.name,
+                    "fault_at": (round(contact_pos[0], 2), round(contact_pos[1], 2)),
+                    "winner": 1 - hitter_team}
         if not ok:
             say(f"       -- {p.name} faulted: {why}")
-            return {"shots": shot_no, "why": "out", "fault_by": hitter_team, "winner": 1 - hitter_team}
+            return {"shots": shot_no, "why": "out", "fault_by": hitter_team, "fault_name": p.name,
+                    "winner": 1 - hitter_team}
         t = shot["traj"]
         land = t["land"]
         if shot_no == 1 and not in_service_area(land, p.north, contact_pos[1]):
             say(f"       -- fault: the serve did not land in the diagonal service area "
                 f"(the kitchen line is at {KITCHEN_LINE:.0f}ft and {NET_X + KITCHEN:.0f}ft)")
-            return {"shots": shot_no, "why": "serve", "fault_by": hitter_team, "winner": 1 - hitter_team}
+            return {"shots": shot_no, "why": "serve", "fault_by": hitter_team, "fault_name": p.name,
+                    "winner": 1 - hitter_team}
         bounced[not p.north] = True                  # it landed, so that side has had its bounce
         if shot_no == 1:
             receiver = match.receiver()
@@ -534,7 +559,8 @@ def play_rally(match: Match, players: dict[str, Player], pos: "Positions", choos
                                  home_x=3.0, court_len=LENGTH, court_wid=WIDTH)
         if not can:
             say(f"       -- point: {rp.name} is {why_not}")
-            return {"shots": shot_no, "why": "unreachable", "fault_by": None, "winner": hitter_team}
+            return {"shots": shot_no, "why": "unreachable", "fault_by": None, "fault_name": receiver,
+                    "winner": hitter_team}
         pos.at[rp.name] = pos.move_toward(rp, land, t["time"] + 0.4)
         # the volley's momentum: the rules say a player carried into the kitchen after a volley has faulted,
         # even though the ball is already dead. Adjudicated on the position the follow-through leaves them in.
@@ -545,11 +571,19 @@ def play_rally(match: Match, players: dict[str, Player], pos: "Positions", choos
                 say(f"       -- fault: {p.name} was carried into the kitchen by the volley's momentum "
                     f"({abs(carried - NET_X):.1f}ft from the net, inside the {KITCHEN:.0f}ft line) — "
                     f"the ball was already dead")
-                return {"shots": shot_no, "why": "momentum", "fault_by": hitter_team, "winner": 1 - hitter_team}
-        if shot_kind == "groundstroke":                 # follow the shot in: the pickleball approach step
+                return {"shots": shot_no, "why": "momentum", "fault_by": hitter_team, "fault_name": p.name,
+                        "fault_at": (round(contact_pos[0], 2), round(contact_pos[1], 2)),
+                        "winner": 1 - hitter_team}
+        if shot_kind == "groundstroke":                 # the approach step, and the recovery that must pair
             line_x = KITCHEN_LINE if p.north else NET_X + KITCHEN
-            want_x = line_x - 4.0 if p.north else line_x + 4.0
-            if (p.north and pos.get(p)[0] < want_x) or (not p.north and pos.get(p)[0] > want_x):
+            gap = pos.approach_of(p)
+            want_x = line_x - gap if p.north else line_x + gap
+            # Both directions, and that is a defect fix, not a kindness. The first version only moved a player
+            # *forward* to their mark, so a player who chased a ball to the kitchen line hit from there and
+            # stayed there for the rest of the rally — 42 momentum faults in four scripted games, every one of
+            # them a volley taken from between 0.03 and 1.41 ft outside the line. A pickleball player recovers
+            # after the shot; a body that only walks forward is a body that is not being simulated.
+            if abs(pos.get(p)[0] - want_x) > 0.25:
                 pos.move_toward(p, (want_x, pos.get(p)[1]), 1.0)
         incoming = dict(t["bounce"])
         incoming["speed_in"] = t["bounce"]["speed_out"] / MPH
@@ -557,7 +591,7 @@ def play_rally(match: Match, players: dict[str, Player], pos: "Positions", choos
         hitter = receiver
         if shot_no >= RALLY_CAP:
             say(f"       -- rally of {shot_no}; the record's ceiling, not the game's.")
-            return {"shots": shot_no, "why": "cap", "fault_by": None, "winner": None}
+            return {"shots": shot_no, "why": "cap", "fault_by": None, "fault_name": None, "winner": None}
 
 
 def _opponent_name(match: Match, players: dict[str, Player], name: str) -> str:
@@ -586,9 +620,13 @@ def play_game(names: list[str], practice: list[int], choose_factory, surface: st
     ms = wind_seed_ms if wind_seed_ms is not None else int(datetime.now(timezone.utc).timestamp() * 1000)
     wind_in = wind_for(ms)
     wind_vec = wind_vector(*wind_in)
+    # The hands are seeded from the same millisecond count as the wind, so a pinned clock reproduces a game
+    # shot for shot. It did not, until this line: the record's header offered a replay command and two replays
+    # gave 11-2 and 11-3, because `Player.rng` defaults to an unseeded Random. A transcript that cannot be
+    # replayed is a story about a game.
     players = {}
     for i, n in enumerate(names):
-        players[n] = Player(name=n, north=(i < 2), practice=practice[i])
+        players[n] = Player(name=n, north=(i < 2), practice=practice[i], rng=random.Random(ms * 4 + i))
     pos = Positions()
     raw_dir, raw_speed = wind_at(ms)
     capped = f" (clock said {raw_speed:.0f}, capped at {WIND_CAP:.0f}: see the file's wind note)" \
@@ -602,11 +640,20 @@ def play_game(names: list[str], practice: list[int], choose_factory, surface: st
     results = {n: [] for n in names}
     lengths = []
     rally_no = 0
+    rallies: list[dict] = []
     while not match.over():
         rally_no += 1
         r = play_rally(match, players, pos, choose, surface, wind_vec, wind_in, say=say,
                        rally_no=rally_no, history=history)
-        lengths.append(r["shots"])
+        length = r["shots"]
+        rallies.append(r)
+        lengths.append(length)
+        # A chooser that reads is a chooser with a lesson method: after the rally, it is told what happened and
+        # is allowed to change the one thing a player can change about themselves — where they stand. The engine
+        # still moves the body; a chooser with no `lesson` is simply never taught anything.
+        lesson = getattr(choose, "lesson", None)
+        if lesson is not None:
+            lesson(r, pos, players)
         serving_team = match.serving
         if r["fault_by"] is None and r["winner"] is None:          # the record's ceiling: no score either way
             outcome = "no score (ceiling)"
@@ -622,11 +669,18 @@ def play_game(names: list[str], practice: list[int], choose_factory, surface: st
             say("  !! 200 rallies and no winner: the engine has a defect, not the players")
             break
     winner = 0 if match.teams[0].score > match.teams[1].score else 1
+    kinds: dict[str, int] = {}
+    for r in rallies:
+        kinds[r["why"]] = kinds.get(r["why"], 0) + 1
+    say(f"  faults: " + (", ".join(f"{k} {v}" for k, v in sorted(kinds.items())) or "none"))
     say(f"  game: {match.teams[winner].names[0]}/{match.teams[winner].names[1]} "
         f"{match.teams[winner].score}-{match.teams[1 - winner].score} "
         f"({rally_no} rallies, mean {sum(lengths) / len(lengths):.1f} shots)")
+    # `rallies` is the game's own history — every rally's {shots, why, fault_by, fault_name, winner} — so a
+    # chooser can read what it did rather than be told. §5 of the page records the fault I measured with it.
     return match, {"results": results, "lengths": lengths, "wind": wind_in, "clock": ms,
-                   "surface": surface, "why": r["why"] if lengths else "none"}
+                   "surface": surface, "why": r["why"] if lengths else "none",
+                   "rallies": rallies}
 
 
 # ---- the seats: a scripted player, a member, or a person --------------------------------------------
@@ -661,6 +715,74 @@ def scripted_chooser(level: str = "steady"):
             return face, power, target[1]
         return choose
     return factory
+
+
+def reading_chooser(level: str = "steady", say=print):
+    """The first chooser in this game that reads what it did, and the first thing in pickleball worth learning.
+
+    Every chooser before this one is blind. It aims, the ball goes, a rule fires, and the next rally starts with
+    the fault forgotten — so a scripted player can be carried into the kitchen forty times in a game and hold the
+    same stance on the last point as on the first. This one is handed each rally (`play_game` calls its `lesson`)
+    and it changes the one thing a player can change about *themselves*: `Positions.approach`, the feet between
+    their own kitchen line and their feet.
+
+    What it does not do, and why, because the omissions are the design:
+      - it does not compute the safe distance. The arithmetic is in the comment above `APPROACH_DEFAULT` and it
+        is one line; a player that derives it is a calculator, and a lesson that arrives without a fault is a
+        lesson about nothing. It steps back one foot per fault and finds out.
+      - it does not step *forward* again when the faults stop. A real player drifts to the line because the line
+        takes time away from the opponent, and modelling that temptation would need the opponent's reply as a
+        reward — which is the next unit, not this one. So the number is monotone, and that is stated.
+      - the kitchen fault at contact and the momentum fault after it are the same mistake about the same square
+        foot of ground, so both are read. The serve fault, the out ball and the unreachable ball are not: they
+        are about hands, power and legs, and a lesson about the kitchen that taught those would be teaching noise.
+    """
+    base = scripted_chooser(level)
+    STEP = 1.0                            # ft per fault: one step back, like a person, not a solver
+
+    def factory(players, wind_in, surface):
+        choose = base(players, wind_in, surface)
+        lessons: dict[str, list[str]] = {}
+
+        def lesson(r, positions, roster):
+            if r.get("why") not in ("momentum", "kitchen"):
+                return
+            name = r.get("fault_name")
+            if not name or name not in roster:
+                return
+            p = roster[name]
+            before = positions.approach_of(p)
+            # Whose fault was it — the stance or the chase? A player who was standing on their own mark and got
+            # carried in has a stance problem, and stepping back is the answer. A player who arrived at the line
+            # chasing a ball that landed there and volleyed it from 0.2ft outside has a *chase* problem, and
+            # stepping their mark back would not have touched it: their feet were never at the mark. Without this
+            # test the number climbs to the ceiling as a standing apology for faults it cannot fix.
+            line_x = KITCHEN_LINE if p.north else NET_X + KITCHEN
+            mark_x = line_x - before if p.north else line_x + before
+            at = r.get("fault_at")
+            if at is not None and abs(at[0] - mark_x) > VOLLEY_STEP + 0.3:
+                say(f"       == {name} reads its own fault ({r['why']}) and it was not the stance: it was "
+                    f"{abs(at[0] - line_x):.1f}ft from its own line, having gone to the ball. Nothing changes.")
+                return
+            after = min(APPROACH_MAX, before + STEP)
+            positions.approach[name] = after
+            if after == before:               # already as far back as it will go: say so, do not pretend
+                say(f"       == {name} has nowhere further back to stand ({after:.0f}ft, the ceiling)")
+                return
+            say(f"       == {name} reads its own fault ({r['why']}): {before:.0f}ft behind the line was too "
+                f"close. Standing {after:.0f}ft back from here.")
+            lessons.setdefault(name, []).append(f"{r['why']} at {before:.0f}ft -> {after:.0f}ft")
+
+        choose.lesson = lesson
+        choose.lessons = lessons
+        return choose
+    return factory
+
+
+def make_chooser(level: str):
+    """A demo's chooser. `read` is the steady player's hands with a lesson attached, so a difference between
+    `--level steady` and `--level read` is the learning and never the aim."""
+    return reading_chooser("steady") if level == "read" else scripted_chooser(level)
 
 
 def member_chooser_pb(engines: dict, surface, wind_in, history, fell_back):
@@ -814,7 +936,9 @@ def main(argv=None) -> int:
                          "mistaken for a match a member played")
     ap.add_argument("--clock", type=int, default=None,
                     help="pin the wind to a millisecond count, so a record can be replayed")
-    ap.add_argument("--level", default="steady", choices=["beginner", "steady", "hard"])
+    ap.add_argument("--level", default="steady", choices=["beginner", "steady", "hard", "read"],
+                    help="`read` is the steady hands with a lesson attached: it reads its own kitchen faults "
+                         "and steps back from the line")
     ap.add_argument("--practice", default=None, help="balls hit before this session, one per name")
     ap.add_argument("--seed", default=None, help="give a new member a past: balls carried in")
     ap.add_argument("--surface", default="hard", choices=sorted(SURFACES))
@@ -842,9 +966,13 @@ def main(argv=None) -> int:
             practice = [0, 0, 0, 0]
         for g in range(max(1, args.game)):
             print(f"\n-- game {g + 1}")
-            play_game(names, practice, scripted_chooser(args.level), surface=args.surface,
+            play_game(names, practice, make_chooser(args.level), surface=args.surface,
                       first_team=g % 2, wind_seed_ms=args.clock)
-        print("\n  a scripted game: the rules are exercised, the learning is not. No season was written.")
+        if args.level == "read":
+            print("\n  a scripted game with a lesson: the rules are exercised and the stance is learned. "
+                  "No season was written.")
+        else:
+            print("\n  a scripted game: the rules are exercised, the learning is not. No season was written.")
         return 0
 
     # a members' game: engines, a season file, and a record
