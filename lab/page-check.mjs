@@ -24,6 +24,7 @@ const PAGE = path.join(HERE, '..', 'ait.html');
 
 const files = new Map();          // path -> {text, sha}
 const failWrites = new Set();     // paths whose PUT is refused, to test the failure orders
+const clashWrites = new Set();    // paths whose PUT answers 409: somebody else wrote the file since it was read
 const calls = [];                 // every request, for the failure messages to be specific
 const dispatches = [];            // every workflow_dispatch, with the inputs the page sent it
 const actions = { runs: [], onPoll: null, secrets: [], secretsDenied: false };
@@ -35,8 +36,27 @@ const repoMeta = {private: true};
 // `secrets` are the NAME cards the repository will admit to holding — never values, which GitHub does not
 // return to anyone. `secretsDenied` stands in for a token without admin, which is a real and silent case.
 
-function shaOf(text, n = 0){
-  return crypto.createHash('sha1').update(text + ':' + n).digest('hex');
+/* Content, not identity: git's blob sha is a hash of the file and of nothing else, so two files with the same text
+   have the same sha — in this fake as in a real repository. The page's update compares those shas and treats equality
+   as "no change", and a fake that salted them per file would make that comparison untestable. */
+function shaOf(text){
+  return crypto.createHash('sha1').update(String(text)).digest('hex');
+}
+
+/* The template, as a repository the page can read without a token: a head commit, the files at it, and earlier
+   commits by sha — which is what makes "did the owner edit this file?" answerable. `sha: null` stands for a template
+   that cannot be read at all (private, no network), where the page must say so rather than say "up to date". */
+const tpl = {sha: null, files: new Map(), refs: new Map()};
+function seedTemplate(p, text, ref){
+  if (!ref) tpl.files.set(p, text);
+  else {
+    if (!tpl.refs.has(ref)) tpl.refs.set(ref, new Map());
+    tpl.refs.get(ref).set(p, text);
+  }
+}
+function templateTree(ref){
+  if (!ref || ref === tpl.sha || ref === 'head' || ref === 'main') return tpl.files;
+  return tpl.refs.get(ref) || null;
 }
 function seed(p, text){ files.set(p, {text, sha: shaOf(text, files.size)}); }
 function listing(prefix){
@@ -88,6 +108,21 @@ function githubFetch(url, init = {}){
     return jsonResponse(200, {workflow_runs: actions.runs.slice()});
   }
 
+  if (/^\/repos\/[^/]+\/[^/]+\/commits\/main$/.test(p)){
+    if (!tpl.sha) return jsonResponse(404, {message: 'Not Found'});
+    return jsonResponse(200, {sha: tpl.sha, commit: {message: 'the template'}});
+  }
+  const tm = p.match(/^\/repos\/([^/]+)\/([^/]+)\/git\/trees\/(.+)$/);
+  if (tm){
+    const tree = tm[2] === 'ai-tribe-template' ? templateTree(decodeURIComponent(tm[3])) : files;
+    if (!tree) return jsonResponse(404, {message: 'Not Found'});
+    // The tribe's map holds {text, sha}; the template's holds the text. A tree entry is the sha of the content either
+    // way, and getting that wrong here would make every comparison in the page's update look like an edit.
+    const body = k => { const v = tree.get(k); return typeof v === 'string' ? v : (v || {}).text || ''; };
+    return jsonResponse(200, {sha: tpl.sha, tree: [...tree.keys()].map(k =>
+      ({path: k, type: 'blob', mode: '100644', sha: shaOf(body(k))}))});
+  }
+
   const m = p.match(/^\/repos\/([^/]+)\/([^/]+)(?:\/contents\/?(.*))?$/);
   if (!m) return jsonResponse(404, {message: 'Not Found'});
   const rest = m[3] || '';
@@ -97,6 +132,15 @@ function githubFetch(url, init = {}){
     return jsonResponse(200, meta);
   }
 
+  // The template is read by the page and never written by it, so it answers from its own shelf: a read of a template
+  // path must never be answered with a tribe file that happens to have the same name.
+  if (m[2] === 'ai-tribe-template'){
+    const shelf = templateTree(u.searchParams.get('ref')) || new Map();
+    if (method === 'GET' && shelf.has(rest))
+      return jsonResponse(200, {content: Buffer.from(shelf.get(rest)).toString('base64'),
+                                sha: shaOf(shelf.get(rest)), path: rest});
+    return jsonResponse(404, {message: 'Not Found'});
+  }
   if (method === 'GET'){
     if (files.has(rest)) return jsonResponse(200, {content: Buffer.from(files.get(rest).text).toString('base64'),
                                                   sha: files.get(rest).sha, path: rest});
@@ -107,12 +151,13 @@ function githubFetch(url, init = {}){
 
   if (method === 'PUT'){
     if (failWrites.has(rest)) return jsonResponse(500, {message: 'the repository said no'});
+    if (clashWrites.has(rest)) return jsonResponse(409, {message: 'sha does not match'});
     const body = JSON.parse(init.body || '{}');
     const text = Buffer.from(String(body.content || ''), 'base64').toString('utf8');
     const prev = files.get(rest);
     if (body.sha && prev && body.sha !== prev.sha) return jsonResponse(409, {message: 'sha does not match'});
     if (body.sha && !prev) return jsonResponse(409, {message: 'sha does not match'});
-    files.set(rest, {text, sha: shaOf(text, files.size + 1)});
+    files.set(rest, {text, sha: shaOf(text)});
     return jsonResponse(200, {content: {sha: files.get(rest).sha}});
   }
   return jsonResponse(404, {message: 'Not Found'});
@@ -219,7 +264,8 @@ function check(name, fn){
 }
 
 function reset(){
-  files.clear(); failWrites.clear(); calls.length = 0; dispatches.length = 0; store.clear();
+  files.clear(); failWrites.clear(); clashWrites.clear(); calls.length = 0; dispatches.length = 0; store.clear();
+  tpl.sha = null; tpl.files.clear(); tpl.refs.clear();
   actions.runs.length = 0; actions.onPoll = null; actions.secrets = []; actions.secretsDenied = false;
   actions.missingWorkflows = [];
   for (const id of ['mmsg', 'chaptsmsg', 'main']) if (elements.has(id)) elements.delete(id);
@@ -1691,6 +1737,162 @@ async function main(){
     return '';
   });
 
+
+  /* 12 — the write, UPDATE.md step 3. What an update may touch is the template's manifest; whether it may replace a
+     file is decided by comparing the tribe's copy against the commit it came from; a file somebody edited is left
+     alone and said so; and `members.json`, which is a list derived from the shelf, is never written at all because
+     the template's copy of it is empty. Every check here drives the page's own functions against the fake. */
+  const HEAD = 'a'.repeat(40), OLD = 'b'.repeat(40);
+  const WOLD = '# wake.py\n\nversion = 1\n', WNEW = '# wake.py\n\nversion = 2\n';
+  const TOLD = '# tribe.py\n\ndef main(): return 0\n', TNEW = '# tribe.py\n\ndef main(): return 1\n';
+  function seedUpdate(opts = {}){
+    reset();
+    tpl.sha = HEAD;
+    seedTemplate('.tribe-manifest.json', JSON.stringify({schema: 'ait-manifest/1',
+      files: ['wake/wake.py', 'tribe.py', 'USER-MANUAL.md']}));
+    seedTemplate('wake/wake.py', WNEW);
+    seedTemplate('tribe.py', opts.tribeUpstream || TOLD);
+    seedTemplate('USER-MANUAL.md', '# manual v2\n');
+    // what the tribe was given when it installed: the OLD template commit
+    seedTemplate('wake/wake.py', WOLD, OLD);
+    seedTemplate('tribe.py', TOLD, OLD);
+    seedTemplate('USER-MANUAL.md', '# manual v1\n', OLD);
+    // the tribe
+    seed('wake/wake.py', WOLD);
+    seed('tribe.py', opts.tribe || TOLD);
+    seed('USER-MANUAL.md', '# manual v1\n');
+    seed('members.json', '[{"name":"Lumi"}]\n');
+    seed('wake/members/Lumi/state/journal.md', '# Journal\n\nI wrote a paper boat.\n');
+    if (opts.version !== null)
+      seed('.ait/version.json', JSON.stringify({schema:'ait-version/1', template:'LindsayRidgeway/ai-tribe-template',
+        installed_from: OLD, updated_to: opts.version || null, updated_at: '2026-11-10T00:00:00Z'}) + '\n');
+  }
+  const settle = (code) => run(ctx, `(async () => { S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
+    ${code} })()`);
+
+  // 12a — the plan, and what it refuses to include
+  seedUpdate();
+  const plan1 = await settle(`const p = await updatePlan();
+    return {writes: p.writes.map(f => f.path), adds: p.adds.map(f => f.path), kept: p.kept, waiting: p.waiting,
+            said: planSentence(p), provable: p.provable};`);
+  check('an update names the files that changed and not the ones that did not', () => {
+    if (plan1.err) return plan1.err;
+    if (!plan1.writes.includes('wake/wake.py') || !plan1.writes.includes('USER-MANUAL.md'))
+      return 'the changed files are not in the plan: ' + JSON.stringify(plan1.writes);
+    if (plan1.writes.includes('tribe.py')) return 'a file with identical content was listed as changed';
+    return '';
+  });
+  check('nothing on the plan is outside the template\'s manifest', () => {
+    const outside = plan1.writes.filter(p => !['wake/wake.py', 'tribe.py', 'USER-MANUAL.md'].includes(p));
+    if (outside.length) return 'the plan would write ' + outside.join(', ');
+    if (plan1.writes.some(p => p === 'members.json')) return 'the plan would write members.json';
+    return '';
+  });
+
+  // 12b — the write, and what it does to the record
+  seedUpdate();
+  const wrote1 = await settle(`let threw = ''; let r = {done:[], clash:[], p:{kept:[],waiting:[]}};
+    try { r = await applyUpdate(); } catch(e){ threw = e.message; }
+    return {threw, done: r.done, clash: r.clash, said: updateReport(r),
+            wake: (await fileText('wake/wake.py')).text,
+            members: (await fileText('members.json')).text,
+            version: JSON.parse((await fileText('.ait/version.json')).text)};`);
+  check('pressing update writes the manifest files and leaves the tribe\'s own list alone', () => {
+    if (wrote1.err) return wrote1.err;
+    if (process.env.AIT_DEBUG) return 'DEBUG ' + JSON.stringify(wrote1).slice(0,600);
+    if (wrote1.wake !== WNEW) return 'wake/wake.py was not replaced with the template\'s copy';
+    if (wrote1.members !== '[{"name":"Lumi"}]\n') return 'members.json was overwritten: ' + JSON.stringify(wrote1.members);
+    if (text('wake/members/Lumi/state/journal.md') !== '# Journal\n\nI wrote a paper boat.\n')
+      return 'a member\'s journal was touched';
+    return '';
+  });
+  check('the version record says which template the tribe now runs, and keeps where it came from', () => {
+    if (wrote1.err) return wrote1.err;
+    if (wrote1.version.updated_to !== HEAD) return 'updated_to is ' + wrote1.version.updated_to;
+    if (wrote1.version.installed_from !== OLD) return 'installed_from was rewritten to ' + wrote1.version.installed_from;
+    return '';
+  });
+  const after1 = await settle(`const u = await updateCheck(); return {state: u.state, said: updateSentence(u)};`);
+  check('after a successful write the page reports the tribe as current', () => {
+    if (after1.err) return after1.err;
+    if (after1.state !== 'current') return 'the state is ' + after1.state + ': ' + after1.said;
+    return '';
+  });
+
+  // 12c — a file the owner edited is kept, and the rest still land
+  seedUpdate({tribe: '# tribe.py\n\ndef main(): return 99   # mine\n'});
+  const edited = await settle(`const p = await updatePlan();
+    const r = await applyUpdate();
+    return {kept: p.kept, done: r.done, said: updateReport(r),
+            tribe: (await fileText('tribe.py')).text};`);
+  check('a file somebody edited is left alone, and the update says which one', () => {
+    if (edited.err) return edited.err;
+    if (!edited.kept.includes('tribe.py')) return 'tribe.py was not recognised as edited here: ' + JSON.stringify(edited.kept);
+    if (edited.tribe.indexOf('mine') < 0) return 'the edited file was overwritten';
+    if (!edited.done.includes('wake/wake.py')) return 'the update stopped at the first edited file';
+    if (!/left alone because you had changed/i.test(edited.said)) return 'the report does not say why: ' + edited.said;
+    return '';
+  });
+
+  // 12d — the template that publishes no manifest cannot update anything
+  reset();
+  tpl.sha = HEAD;
+  seed('wake/wake.py', WOLD);
+  const nomani = await settle(`let why = ''; try { await applyUpdate(); } catch(e){ why = e.message; }
+    return {why, calls: null};`);
+  check('a template with no list of files updates nothing and says why', () => {
+    if (nomani.err) return nomani.err;
+    if (!/does not publish/i.test(nomani.why)) return 'the refusal does not name the reason: "' + nomani.why + '"';
+    if (text('wake/wake.py') !== WOLD) return 'a file was written anyway';
+    return '';
+  });
+
+  // 12e — a template that cannot be read is not "up to date"
+  reset();
+  seed('wake/wake.py', WOLD);
+  const unreachable = await settle(`let why = ''; try { await updatePlan(); } catch(e){ why = e.message; }
+    return {why};`);
+  check('a template the page cannot read refuses the update in a sentence', () => {
+    if (unreachable.err) return unreachable.err;
+    if (!/could not be read/i.test(unreachable.why)) return 'the refusal says: "' + unreachable.why + '"';
+    return '';
+  });
+
+  // 12f — no version record: files may be added, no file may be replaced
+  seedUpdate({version: null});
+  const nv = await settle(`const p = await updatePlan();
+    return {writes: p.writes.map(f=>f.path), waiting: p.waiting, provable: p.provable, said: planSentence(p)};`);
+  check('a tribe that does not record where it came from may gain files and lose none', () => {
+    if (nv.err) return nv.err;
+    if (nv.writes.length) return 'it would replace ' + nv.writes.join(', ') + ' without being able to prove anything';
+    if (!nv.waiting.includes('wake/wake.py')) return 'the files it cannot judge are not named';
+    return '';
+  });
+
+  // 12g — a file written by somebody else between the plan and the write
+  seedUpdate();
+  clashWrites.add('USER-MANUAL.md');
+  const raced = await settle(`const r = await applyUpdate();
+    return {done: r.done, clash: r.clash, said: updateReport(r)};`);
+  check('a file that changed between the plan and the write is not overwritten', () => {
+    if (raced.err) return raced.err;
+    if (!raced.clash.includes('USER-MANUAL.md')) return 'the 409 was not noticed: ' + JSON.stringify(raced.clash);
+    if (raced.done.includes('USER-MANUAL.md')) return 'a clashing file was reported as written';
+    if (!/changed while the page was reading/i.test(raced.said)) return 'the report does not say it: ' + raced.said;
+    return '';
+  });
+
+  // 12h — the button exists when there is something to update, and not otherwise
+  const ui = await settle(`const a = (UPDATE = {state:'behind', sha:'${HEAD}'}) && updBlock();
+    UPDATE = {state:'current', sha:'${HEAD}'};
+    const b = updBlock();
+    return {behind: /update/i.test(a) && /updmsg/.test(a), current: b};`);
+  check('the page offers an update only when the check found one', () => {
+    if (ui.err) return ui.err;
+    if (!ui.behind) return 'the behind state draws no button';
+    if (ui.current) return 'the current state still draws one: ' + ui.current;
+    return '';
+  });
 
   for (const r of results){
     if (r.ok) console.log('PASS  ' + r.name);

@@ -5387,6 +5387,46 @@ class TheTemplateMustBeEnough(unittest.TestCase):
         self.assertEqual(r.returncode, 1)
         self.assertIn("does not look like a tribe", r.stderr)
 
+    def test_the_manifest_is_generated_from_the_same_list_that_builds_a_tribe(self):
+        """The page will write only what this file names, so it has to be the whitelist and not a copy of it."""
+        import json as _json
+        import tempfile
+        sys.path.insert(0, str(REPO / "lab"))
+        import make_template as mt
+        man = _json.loads((REPO / ".tribe-manifest.json").read_text()) if (REPO / ".tribe-manifest.json").is_file() else None
+        with tempfile.TemporaryDirectory() as td:
+            out = Path(td) / "tpl"
+            subprocess.run([sys.executable, str(REPO / "lab" / "make_template.py"), "--out", str(out)],
+                           check=True, capture_output=True, timeout=120)
+            built = _json.loads((out / ".tribe-manifest.json").read_text())
+        self.assertEqual(built["schema"], "ait-manifest/1")
+        self.assertEqual(built["files"], mt.manifest(), "the published manifest must be the whitelist, sorted")
+        for p in built["files"]:
+            self.assertTrue((REPO / p).is_file(), f"the manifest names {p}, which does not exist")
+
+    def test_the_manifest_never_names_a_file_an_update_could_lose(self):
+        """members.json is a list derived from the shelf and the template's copy is empty. Writing it would delete
+        every member an owner has, which is the one way an "update" could destroy a tribe."""
+        sys.path.insert(0, str(REPO / "lab"))
+        import make_template as mt
+        import update_tribe as ut
+        man = mt.manifest()
+        for path in ("members.json", ".gitignore", "README.md", "wake/members/.gitkeep",
+                     "issues/README.md", "letters/README.md", "plates/README.md"):
+            self.assertNotIn(path, man, f"{path} must never be on the manifest an update writes from")
+        for path in man:
+            self.assertTrue(ut.is_machinery(path), f"the manifest names {path}, which the updater calls content")
+
+    def test_the_page_never_writes_a_path_the_manifest_does_not_name(self):
+        """The page's list comes from the template at run time; this is the bench's half of the same promise, and it
+        fires on the shape of the code rather than on a browser: every write in the update goes through the loop
+        over `want`, and `want` is the manifest."""
+        page = (REPO / "ait.html").read_text()
+        body = page.split("async function applyUpdate(", 1)[1].split("\nasync function stampVersion", 1)[0]
+        self.assertIn("for (const f of [...p.writes, ...p.adds])", body)
+        self.assertNotIn("members.json", body, "the write must not name members.json anywhere")
+        self.assertIn("readManifest()", page.split("async function updatePlan(", 1)[1].split("return {head", 1)[0])
+
     def test_the_template_carries_no_members_and_no_fixtures(self):
         sys.path.insert(0, str(REPO / "lab"))
         import make_template as mt

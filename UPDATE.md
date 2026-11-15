@@ -89,15 +89,53 @@ the last resort is one click and the work is done by a runner rather than by the
   built `?ref=${S.branch}`, so a state restored from storage without a branch asked GitHub for `?ref=undefined` and
   got a 404 that reads exactly like a missing file: the check said a file was absent when it was present.
 
-**Not built, and the reason it is last:** the write. It is the only part that can lose work, so it waits until the
-check has been watched in use — and until `.ait/version.json` and the manifest have been in a real tribe long
-enough to be sure they are the shape a write wants. **Also untested: the install path that stamps a brand-new
-tribe.** Testing it makes a repository, which is a thing to do deliberately rather than in passing.
+**Step 3, the write — built 2026-11-15, in the page.** Four decisions, and the first one is what makes the rest
+safe:
+
+- **The list is the template's, published, not the page's.** `lab/make_template.py` now emits `.tribe-manifest.json`
+  into the template: the paths an update may write, sorted, generated from the same `FILES` whitelist that builds a
+  new tribe. The page fetches it and writes nothing it does not name. Three lists carrying the same names in two
+  languages is how a whitelist starts lying; `update_tribe.py`'s `is_machinery()` and this manifest are checked
+  against each other in `tests.py`.
+- **`members.json` is not on it, and that is the point.** It is a list derived from the shelf, and the template's copy
+  of it is empty — writing it would delete every member an owner has. That is the single way an "update" could
+  destroy a tribe, so it is excluded by name and by a test. Same for `.gitignore`, the template `README.md`, and the
+  READMEs and `.gitkeep` that hold empty folders open.
+- **A file is replaced only if the tribe never touched it.** `.ait/version.json` names the commit the tribe came
+  from; that commit's tree says what each file was then. Same blob sha as then means nobody edited it — so it is
+  replaced. A different sha means somebody did — so it is left alone and reported by name. With no version record
+  there is no proof, and then an update may **add** files and replace none. That is the difference between an update
+  and a gamble.
+- **Two presses, and the first one writes nothing.** "A newer template exists" is a sentence people learn to
+  ignore; "2 files will be replaced; 1 left alone because you changed it" is one they can act on. The first press
+  produces that sentence from a real read of both trees (three requests, not one per file), the second press writes
+  one commit per file, each message naming the template sha, and stamps `.ait/version.json` last — because a tribe
+  whose files moved and whose record did not would be told the same thing on every reload, forever.
+
+Refusals, each of which writes nothing and says so: the template publishes no manifest (*"this template does not
+publish a list of the files an update may write, so nothing is written"*), the template cannot be read, the manifest
+is empty. A **409** — somebody wrote that file between the plan and the write — stops that file, leaves it alone,
+keeps going for the others, and the report says which.
+
+**What is not done, deliberately:** it does not update itself on connect. The rule at the top of this file says
+silent when the update can be proven not to touch data, and the page can now prove it — but the proof has been run
+against a fake GitHub and not yet against eight real tribes, and a wrong manifest in a live page commits to
+somebody's repository. Once one real tribe has been updated by a press (`tribe-desi` is the candidate), making it
+automatic on connect is one line: call `applyUpdate()` from `ensureUpdateNote()` when the plan has no `kept` and no
+`waiting`.
+
+**Tested by `lab/page-check.mjs`, 11 new checks** against a fake GitHub that also answers for the template: the plan
+names changed files and not identical ones; nothing outside the manifest is written; `members.json` and a member's
+journal are untouched by an update; the version record gains `updated_to` and keeps `installed_from`; the check
+afterwards says *current*; an edited file is kept while the rest still land; no manifest, no write; an unreadable
+template is a sentence and not "up to date"; a tribe with no version record replaces nothing; a 409 is noticed and
+reported; and the button appears only when there is something to update. That is 82 checks in all.
 
 ## Order of work
 
 1. `.ait/version.json` written at install time by the Install button, and read back on connect. *(cheap, no risk)*
 2. The check and the content diff, displayed and never acted on. *(cheap; a fortnight of real use tells us whether
    the notice fires too often)*
-3. The silent write, behind the manifest, refusing modified files. *(the only part that can lose work, so it goes
-   last and it ships with the 409 refusal tested)*
+3. ~~The silent write, behind the manifest, refusing modified files.~~ **Built 2026-11-15**: the write is behind
+   the manifest, refuses modified files, and reports a 409 file by file. Its own last step is making it automatic on
+   connect, which waits for one real tribe to have been updated by a press.
