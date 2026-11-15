@@ -1823,14 +1823,18 @@ async function main(){
   seedUpdate({tribe: '# tribe.py\n\ndef main(): return 99   # mine\n'});
   const edited = await settle(`const p = await updatePlan();
     const r = await applyUpdate();
-    return {kept: p.kept, done: r.done, said: updateReport(r),
+    return {kept: p.kept, done: r.done, said: updateReport(r), plan: planSentence(p),
             tribe: (await fileText('tribe.py')).text};`);
   check('a file somebody edited is left alone, and the update says which one', () => {
     if (edited.err) return edited.err;
-    if (!edited.kept.includes('tribe.py')) return 'tribe.py was not recognised as edited here: ' + JSON.stringify(edited.kept);
+    if (!edited.kept.includes('tribe.py')) return 'tribe.py was not recognised as differing: ' + JSON.stringify(edited.kept);
     if (edited.tribe.indexOf('mine') < 0) return 'the edited file was overwritten';
-    if (!edited.done.includes('wake/wake.py')) return 'the update stopped at the first edited file';
-    if (!/left alone because you had changed/i.test(edited.said)) return 'the report does not say why: ' + edited.said;
+    if (!edited.done.includes('wake/wake.py')) return 'the update stopped at the first differing file';
+    if (!/left alone/i.test(edited.said)) return 'the report does not say it was left alone: ' + edited.said;
+    if (!/differ from the version this tribe records/i.test(edited.said))
+      return 'the report claims to know whether it was edited: ' + edited.said;
+    if (!/lab\/update_tribe\.py/.test(edited.plan))
+      return 'the plan does not say which tool replaces a file it will not decide about: ' + edited.plan;
     return '';
   });
 

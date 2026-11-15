@@ -103,9 +103,13 @@ safe:
   READMEs and `.gitkeep` that hold empty folders open.
 - **A file is replaced only if the tribe never touched it.** `.ait/version.json` names the commit the tribe came
   from; that commit's tree says what each file was then. Same blob sha as then means nobody edited it — so it is
-  replaced. A different sha means somebody did — so it is left alone and reported by name. With no version record
-  there is no proof, and then an update may **add** files and replace none. That is the difference between an update
-  and a gamble.
+  replaced. A different sha is left alone and named — and the sentence says *it differs from the version this tribe
+  records*, not *you changed it*, because a copy older than the record looks exactly like an edit from here and a
+  guess about somebody's own files is the worst kind of wrong. With no record, or one its files contradict, an
+  update may **add** files and replace none.
+- **The record moves with the files.** `lab/update_tribe.py` now stamps `.ait/version.json` in the same press and
+  the same commit, so a tribe updated from a terminal is not a tribe whose page believes a version its files
+  contradict. Measured before the fix, on `tribe-desi`: ten untouched files reported as the owner's edits.
 - **Two presses, and the first one writes nothing.** "A newer template exists" is a sentence people learn to
   ignore; "2 files will be replaced; 1 left alone because you changed it" is one they can act on. The first press
   produces that sentence from a real read of both trees (three requests, not one per file), the second press writes

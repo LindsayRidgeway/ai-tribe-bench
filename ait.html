@@ -522,7 +522,10 @@ async function updatePlan(){
     if (mine === up) continue;                       // same content, whatever the two commits are
     if (!mine){ adds.push({path, sha: null}); continue; }
     if (credible && base.get(path) === mine) writes.push({path, sha: mine});
-    else if (credible && base.get(path)) kept.push(path);   // edited here since the template gave it
+    // Differs from the version this tribe records. That is either an edit made here or a copy older than the record,
+    // and the page cannot tell them apart — so it says both and overwrites neither. A wrong guess here is a guess
+    // about somebody's own files.
+    else if (credible && base.get(path)) kept.push(path);
     else waiting.push(path);                                // no proof: the record does not vouch for this path
   }
   return {head, from, writes, adds, kept, waiting, missing, provable: credible, agree, shared: shared.length};
@@ -536,7 +539,7 @@ function planSentence(p){
   const bits = [];
   if (touch) bits.push(`${touch} file${touch === 1 ? '' : 's'} will be replaced`);
   if (p.adds.length) bits.push(`${p.adds.length} of them new to this tribe`);
-  if (p.kept.length) bits.push(`${p.kept.length} left alone because ${p.kept.length === 1 ? 'you changed it' : 'you changed them'} (${p.kept.slice(0,3).join(', ')}${p.kept.length > 3 ? '…' : ''})`);
+  if (p.kept.length) bits.push(`${p.kept.length} left alone: ${p.kept.length === 1 ? 'it differs' : 'they differ'} from the version this tribe records (${p.kept.slice(0,3).join(', ')}${p.kept.length > 3 ? '…' : ''}) — an edit here, or a copy older than the record, and the page cannot tell which, so it replaces neither; \`python3 lab/update_tribe.py --write\` compares the files themselves`);
   if (p.waiting.length && p.provable) bits.push(`${p.waiting.length} cannot be checked because the template does not have ${p.waiting.length === 1 ? 'it' : 'them'} at the commit this tribe came from`);
   else if (p.waiting.length) bits.push(`${p.waiting.length} not replaced: this tribe's record of which template it came from does not match its files (${p.agree} of ${p.shared} unchanged), so nothing is replaced — \`python3 lab/update_tribe.py --write\` compares the files themselves and is not fooled by the record`);
   if (p.missing.length) bits.push(`${p.missing.length} named by the template and absent from it`);
@@ -578,7 +581,7 @@ function updateReport(r){
   const parts = [];
   if (r.done && r.done.length) parts.push(`${r.done.length} file${r.done.length === 1 ? '' : 's'} updated`);
   if (r.clash && r.clash.length) parts.push(`${r.clash.length} changed while the page was reading ${r.clash.length === 1 ? 'it' : 'them'}, so ${r.clash.length === 1 ? 'it was' : 'they were'} left alone (${r.clash.slice(0,3).join(', ')})`);
-  if (r.p && r.p.kept && r.p.kept.length) parts.push(`${r.p.kept.length} left alone because you had changed ${r.p.kept.length === 1 ? 'it' : 'them'}`);
+  if (r.p && r.p.kept && r.p.kept.length) parts.push(`${r.p.kept.length} left alone (they differ from the version this tribe records)`);
   if (r.p && r.p.waiting && r.p.waiting.length) parts.push(`${r.p.waiting.length} not replaced because ${r.p.provable ? 'the template no longer has ' : 'this tribe\'s version record does not match '}${r.p.waiting.length === 1 ? 'it' : 'them'}`);
   if (!parts.length) return 'Nothing was changed.';
   const tail = (r.clash && r.clash.length) || (r.p && (r.p.kept.length || r.p.waiting.length))
