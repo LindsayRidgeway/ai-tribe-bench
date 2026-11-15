@@ -1460,6 +1460,84 @@ async function main(){
     return '';
   });
 
+  /* item 9, 2026-11-15 — what pressing Let them talk does, said before it is pressed.
+     The founder could not work out the Rounds list or that button (his #3/#6, 2026-11-12). The panel explained the
+     mechanic — "4 calls a round; it stops when nobody has anything the judge would choose" — to a person who wanted
+     the effect, and everything that says what a round *is* sat in paragraphs below the control, which a person who
+     pressed it had already scrolled past. Three facts now come before the button: a round is one question to
+     everybody at once, they answer on their own without hearing each other, and one answer is said aloud while the
+     rest are kept. The wording is the page's, not the manual's, because the page is where the press happens. */
+  reset();
+  seed('wake/members/Hermes/state/identity.md', '# Hermes');
+  seed('wake/members/Hermes/state/journal.md', '# Journal\n');
+  seed('wake/members/Hermes/state/state.md', '# State\n\nWakes so far: 1\n');
+  seed('wake/members/Hermes/state/voice.md', 'api: deepseek\nmodel: deepseek-flash\n');
+  for (const f of ['place.md', 'open-items.md', 'memory.md']) seed('wake/members/Hermes/state/' + f, '# ' + f + '\n');
+  seed('wake/members/Dionysus/state/identity.md', '# Dionysus');
+  seed('wake/members/Dionysus/state/journal.md', '# Journal\n');
+  seed('wake/members/Dionysus/state/state.md', '# State\n\nWakes so far: 1\n');
+  seed('wake/members/Dionysus/state/voice.md', 'api: deepseek\nmodel: deepseek-flash\n');
+  for (const f of ['place.md', 'open-items.md', 'memory.md']) seed('wake/members/Dionysus/state/' + f, '# ' + f + '\n');
+  seed('chats/the-trojan-war/chat.md', '# A chat — The Trojan War\n\nMembers: Hermes, Dionysus\nFloor: claim\n');
+  seed('chats/the-trojan-war/talk.md', '# Talk — the trojan war\n\n## 2026-11-12 22:30 UTC — Lindsay\n\nwhat is a hero?\n');
+
+  const claimRoom = await tryRun(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main'; S.owner = 'Lindsay Ridgeway';
+    S.members = []; CHAT = {};
+    await viewChat(document.getElementById('main'), 'the-trojan-war');
+    return {html: document.getElementById('main').innerHTML};
+  })()`);
+
+  check('the round control says what a round is, above the button that starts one', () => {
+    if (claimRoom.err) return claimRoom.err;
+    const html = String(claimRoom.html);
+    const says = html.indexOf('A round is one');
+    const button = html.indexOf('startLoop(');
+    if (says < 0) return 'the room view does not say what a round is';
+    if (button < 0) return 'there is no button to compare against';
+    if (!(says < button)) return 'the sentence is below the button, so it is read after the press';
+    if (!/none of them hearing the others first/.test(html)) return 'it does not say that members answer without hearing each other';
+    if (!/highest urgency is the one said aloud/.test(html)) return 'it does not say who is said aloud';
+    if (!/kept in the file and not\s+said/.test(html)) return 'it does not say what happens to the answers that lose';
+    return '';
+  });
+
+  check('and the caveat that keeps the claim honest survives the trim', () => {
+    if (claimRoom.err) return claimRoom.err;
+    if (!/claim, not a measurement/.test(String(claimRoom.html))) return 'the claim-is-not-a-measurement sentence is gone';
+    return '';
+  });
+
+  reset();
+  seed('wake/members/Hermes/state/identity.md', '# Hermes');
+  seed('wake/members/Hermes/state/journal.md', '# Journal\n');
+  seed('wake/members/Hermes/state/state.md', '# State\n\nWakes so far: 1\n');
+  seed('wake/members/Hermes/state/voice.md', 'api: deepseek\nmodel: deepseek-flash\n');
+  for (const f of ['place.md', 'open-items.md', 'memory.md']) seed('wake/members/Hermes/state/' + f, '# ' + f + '\n');
+  seed('wake/members/Dionysus/state/identity.md', '# Dionysus');
+  seed('wake/members/Dionysus/state/journal.md', '# Journal\n');
+  seed('wake/members/Dionysus/state/state.md', '# State\n\nWakes so far: 1\n');
+  seed('wake/members/Dionysus/state/voice.md', 'api: deepseek\nmodel: deepseek-flash\n');
+  for (const f of ['place.md', 'open-items.md', 'memory.md']) seed('wake/members/Dionysus/state/' + f, '# ' + f + '\n');
+  seed('chats/the-trojan-war/chat.md', '# A chat — The Trojan War\n\nMembers: Hermes, Dionysus\nFloor: judge\nJudge: gemini\nRepeat: 1\n');
+  seed('chats/the-trojan-war/talk.md', '# Talk — the trojan war\n\n## 2026-11-12 22:30 UTC — Lindsay\n\nwhat is a hero?\n');
+
+  const judgeRoom = await tryRun(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main'; S.owner = 'Lindsay Ridgeway';
+    S.members = []; CHAT = {};
+    await viewChat(document.getElementById('main'), 'the-trojan-war');
+    return {html: document.getElementById('main').innerHTML};
+  })()`);
+
+  check('in a room where a judge decides, the same sentence names the judge instead', () => {
+    if (judgeRoom.err) return judgeRoom.err;
+    const html = String(judgeRoom.html);
+    if (!/The judge then picks the one answer that is said aloud/.test(html)) return 'the judge variant of the sentence is missing';
+    if (/highest urgency is the one said aloud/.test(html)) return 'it promises a claim vote in a room where the judge decides';
+    if (!/kept in the file and not\s+said/.test(html)) return 'it does not say what happens to the answers the judge did not pick';
+    return '';
+  });
+
   /* the verdict */
   let bad = 0;
   for (const r of results){

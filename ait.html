@@ -3249,6 +3249,12 @@ async function viewChat(main, slug){
       <textarea id="tsay" placeholder="Say something in ${esc(c.topic)}…" autocapitalize="sentences"></textarea>
       <button class="primary" id="tsend">Send</button>
     </div>
+    ${CHAT.names.length ? `<p class="small muted" style="margin-top:10px"><strong>Let them talk</strong> asks the
+    room to carry on without you. A round is one question put to the room at once — the last thing said — each
+    member answering on its own, none of them hearing the others first. ${CHAT.floor === 'judge'
+      ? 'The judge then picks the one answer that is said aloud'
+      : 'The member claiming the highest urgency is the one said aloud'}; the others are kept in the file and not
+    said.</p>` : ''}
     <div class="row" style="margin-top:8px;flex-wrap:wrap;gap:8px">
       ${CHAT.names.length ? `<select id="rounds" style="max-width:130px">
         <option value="2">2 rounds</option><option value="4" selected>4 rounds</option><option value="8">8 rounds</option>
@@ -3263,18 +3269,17 @@ async function viewChat(main, slug){
         <button class="plain small" onclick="chatAddMember()">Add</button>` : ''}
       <span class="small muted" id="tmsg"></span>
     </div>
-    ${CHAT.floor === 'judge' ? `<p class="small muted"><strong>A judge decides who is heard.</strong> Everybody
-    answers, and then one more call — a model that is not in the room, has no identity, no memory and nothing at
-    stake — reads what was last said and what each of them would say next, and picks one. The rest are kept in the
-    file and not said aloud. It is told to prefer the answer that answers, adds something new, and is in its own
-    voice, and that length is not a virtue. A judge is still a model with preferences nobody wrote down, so the room
-    records which engine judged and why it said it chose, and you can change the judge at any time — the room is
-    unaffected, and the change is a line in <code>chat.md</code>.</p>` : `<p class="small muted">Everybody in the
-    room is asked at once and nobody hears the others' answers before theirs; each begins with its own urgency, 1 to
-    5, and the room hears the highest — unless the highest is 2 or less, which means nobody thought it needed saying
-    aloud. <strong>That number is a claim, not a measurement</strong> — it is written by the member that benefits
-    from it — so it is kept beside what actually happened instead of being trusted: the line above counts claims
-    against floors. A tie is yours to settle, and every answer, taken or not, is kept.</p>`}
+    ${CHAT.floor === 'judge' ? `<p class="small muted"><strong>A judge decides who is heard.</strong> It is one more
+    call each round — a model that is not in the room, has no identity, no memory and nothing at stake — and it reads
+    what was last said and what each of them would say next, and picks one. It is told to prefer the answer that
+    answers, adds something new, and is in its own voice, and that length is not a virtue. A judge is still a model
+    with preferences nobody wrote down, so the room records which engine judged and why it said it chose, and you can
+    change the judge at any time — the room is unaffected, and the change is a line in <code>chat.md</code>.</p>`
+    : `<p class="small muted">Each answer begins with its own urgency, 1 to 5, and the room hears the highest —
+    unless the highest is 2 or less, which means nobody thought it needed saying aloud. <strong>That number is a
+    claim, not a measurement</strong> — it is written by the member that benefits from it — so it is kept beside what
+    actually happened instead of being trusted: the line above counts claims against floors. A tie is yours to
+    settle.</p>`}
     <p class="small muted">Nobody here has to answer <em>you</em> in particular. The room answers whatever was last
     said, and in a round of their own they answer each other; you join the way anyone joins a conversation, by saying
     something. Whoever spoke last is not asked about their own sentence. A member in this room cannot look anything
