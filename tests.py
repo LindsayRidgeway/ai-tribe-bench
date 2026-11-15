@@ -4793,6 +4793,38 @@ class TheTemplateMustBeEnough(unittest.TestCase):
                      "wake/wake.py", "play/play.py", "talk.sh"):
             self.assertTrue(ut.is_machinery(path), f"{path} is machinery and must be updatable")
 
+    def test_an_update_that_does_not_validate_is_rolled_back(self):
+        """A copy is a transaction: either the tribe validates afterwards or nothing was written.
+
+        The machinery is a set of scripts that import each other, and half of them being new is exactly
+        the state a copy leaves behind for an instant. The gate is the validator, and this test drives it
+        with a real git repository: one replaced file, one added file, and a tree that fails validation.
+        """
+        import tempfile
+        sys.path.insert(0, str(REPO / "lab"))
+        import update_tribe as ut
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            ut.git(root, "init", "-q")
+            (root / "tribe.py").write_text("# old\n")
+            (root / "members.json").write_text("{\"members\": []}\n")
+            ut.git(root, "add", "-A")
+            ut.git(root, "-c", "user.email=t@example.com", "-c", "user.name=t", "commit", "-qm", "init")
+            # an update that would replace tribe.py with something that cannot run, and add a script
+            (root / "tribe.py").write_text("this is not python(")
+            (root / "lab").mkdir()
+            (root / "lab" / "new.py").write_text("# added by the update\n")
+            (root / "members.json").write_text("{\"members\": [{\"name\": \"ghost\"}]}")
+            ok, said = ut.validates(root)
+            self.assertFalse(ok, "a broken tribe must not validate")
+            ut.roll_back(root, ["tribe.py"], ["lab/new.py"])
+            self.assertEqual((root / "tribe.py").read_text(), "# old\n", "the replaced file comes back")
+            self.assertFalse((root / "lab" / "new.py").exists(), "the added file is removed")
+            self.assertIn("\"members\": []", (root / "members.json").read_text(),
+                          "the regenerated list is restored with the machinery that derives it")
+            self.assertEqual(ut.git(root, "status", "--porcelain").stdout.strip(), "",
+                             "after a refusal the working tree is exactly as it was")
+
     def test_the_updater_refuses_a_directory_that_is_not_a_tribe(self):
         import tempfile
         r = subprocess.run([sys.executable, str(REPO / "lab" / "update_tribe.py"),
