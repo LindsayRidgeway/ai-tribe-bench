@@ -1985,7 +1985,7 @@ function threadText(name, msgs){
   const head = `# Conversation — ${name}\n\nWhat has been said lately. The oldest turns fall out of this file; `
     + `nothing is lost that ${name} wrote into its journal as a note.\n`;
   const body = (msgs || []).filter(b => !b.tool && String(b.content || '').trim()).map(b =>
-    `\n## ${b.at || nowStamp()} — ${b.who || (b.role === 'user' ? 'Lindsay' : name)}`
+    `\n## ${b.at || nowStamp()} — ${b.who || (b.role === 'user' ? personLabel() : name)}`
       + `${turnBracket(b)}\n\n${String(b.content || '').trim()}\n` + sourceLine(b)).join('');
   return head + body;
 }
@@ -2522,7 +2522,7 @@ function turnsToText(name, msgs){
   // `who` first: in a room with three members, a turn written as the room's name would come back out of the file
   // with nobody's name on it, and the next member to read it could not tell who had said what.
   return (msgs || []).filter(b => !b.tool && String(b.content || '').trim())
-    .map(b => `\n## ${b.at || nowStamp()} — ${b.who || (b.role === 'user' ? 'Lindsay' : name)}`
+    .map(b => `\n## ${b.at || nowStamp()} — ${b.who || (b.role === 'user' ? personLabel() : name)}`
       + `${turnBracket(b)}\n\n${String(b.content || '').trim()}\n` + sourceLine(b)).join('');
 }
 
@@ -3308,18 +3308,29 @@ function parseTurns(text){
     const heading = nl < 0 ? part : part.slice(0, nl);
     const body = (nl < 0 ? '' : part.slice(nl + 1)).trim();
     const h = headingWho(heading);
-    const mine = known.size ? !known.has(h.who) : h.who === personLabel();
+    // With the member list loaded, anyone who is not a member is the person — which is how a chapter written
+    // before 2026-11-15 still reads correctly although the name on it is wrong. The `Lindsay` case is for a page
+    // that has no member list yet: those chapters are the person's too, and nothing writes that name any more.
+    const mine = known.size ? !known.has(h.who) : (h.who === personLabel() || h.who === LEGACY_PERSON);
     return {role: mine ? 'user' : 'assistant', who: h.who, at: heading.split(' — ')[0], content: body,
             mark: h.mark, urgency: h.urgency, taken: h.taken, room: h.room};
   }).filter(x => x.content);
 }
 
+// The name the page wrote for a turn with no `who` until 2026-11-15 — whoever owned the code, not whoever was
+// talking. Nothing writes it any more; it is kept so that a chapter written then still reads as the person's
+// turn, and so the defect is a word in the source rather than a story in somebody's journal.
+const LEGACY_PERSON = 'Lindsay';
+
 // The person's name as the transcript writes it: the first word of the name GitHub gave us, so that a tribe kept
-// by someone else does not have its own conversations signed `Lindsay`. Only a tribe that never recorded a name
-// falls back to it, and then only because every transcript already written here uses it.
+// by someone else does not have its own conversations signed with the founder's. When the page does not know the
+// name it writes `the person`: vague, and true, and never somebody else's name in a stranger's record. It was the
+// founder's name here until 2026-11-15 — item 7 of the founder's queue — and the defect was invisible because
+// every tribe that exists today is his; the first stranger's tribe would have signed its own questions `Lindsay`,
+// in the one file that claims to be what happened.
 function personLabel(){
   const o = String(S.owner || '').trim();
-  return o ? o.split(/\s+/)[0] : 'Lindsay';
+  return o ? o.split(/\s+/)[0] : 'the person';
 }
 
 // The reply arrives as `URGENCY: 3` and then the answer. The line is machinery and the page does not print it,
@@ -4432,6 +4443,12 @@ window.addEventListener('hashchange', () => render());
     try { noteVisibility(await gh(`/repos/${S.repo}`)); }
     catch(e){ S.repo = ''; S.token = ''; }
   }
+
+  // Who the page will call the person in the files it writes. One request, best effort, and only when this browser
+  // has never learned it — the chapter and the conversation are read by the member, so a wrong name there is not a
+  // cosmetic slip. Asked here rather than at the first send, because a send cannot wait for it and a chapter
+  // cannot be un-written. If GitHub will not say, the page writes `the person`, which is vague and true.
+  if (S.repo && S.token && !S.owner) ownerName().catch(() => {});
 
   // A link to a tribe (?tribe=owner/repo) is a request to be *in* that tribe, not a suggestion for a form. Until
   // 2026-11-09 it only pre-filled a box on a page nobody with a tribe was sent to, so the address of a person's

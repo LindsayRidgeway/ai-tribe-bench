@@ -1389,6 +1389,77 @@ async function main(){
     return '';
   });
 
+  /* item 7, 2026-11-15 — whose name goes on the person's turn.
+     `turnsToText` and `threadText` filed any turn with no `who` under the literal `Lindsay`. In the founder's own
+     tribe that is right by accident — he is Lindsay — and in anybody else's it puts a stranger's name on somebody
+     else's questions, in the two files that claim to be what happened: the chapter, and the member's memory of the
+     talk. `personLabel()` already existed and was already used in the prompt; the writers were never pointed at it. */
+  reset();
+  seed('wake/members/Lumi/state/identity.md', '# Lumi');
+  seed('wake/members/Lumi/state/journal.md', '# Journal\n');
+  seed('wake/members/Lumi/state/state.md', '# State\n\nWakes so far: 3\nLast wake: yesterday\n');
+  seed('wake/members/Lumi/state/voice.md', 'api: deepseek\nmodel: deepseek-flash\n');
+  seed('wake/members/Lumi/state/conversation.md', '# Conversation — Lumi\n');
+  for (const f of ['place.md', 'open-items.md', 'memory.md']) seed('wake/members/Lumi/state/' + f, '# ' + f + '\n');
+
+  const sams = await tryRun(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main'; S.keys = {deepseek: {key: 'k'}};
+    S.owner = 'Sam Okonkwo';
+    S.members = [{name: 'Lumi', engine: 'deepseek', model: 'deepseek-flash', journal: ''}];
+    S.chat.Lumi = [
+      {role:'user', at:'2026-11-15 18:00 UTC', content:'is anyone there?'},
+      {role:'assistant', at:'2026-11-15 18:01 UTC', content:'I am here.'},
+    ];
+    const thread = threadText('Lumi', S.chat.Lumi);
+    await fileConversation('Lumi');
+    return {thread};
+  })()`);
+
+  const samChapters = [...files.keys()].filter(p => /^wake\/members\/Lumi\/state\/talk\/\d{3}-.*\.md$/.test(p));
+  const samChapter = samChapters.length ? text(samChapters[0]) : '';
+
+  check("a chapter in somebody else's tribe is signed with that person's name", () => {
+    if (sams.err) return sams.err;
+    if (!/— Sam\n/.test(samChapter)) return `the person's turn is headed: ${(samChapter.match(/^## .*$/m) || ['nothing'])[0]}`;
+    if (/Lindsay/.test(samChapter)) return "the founder's name is on a stranger's chapter";
+    if (!/— Lumi\n/.test(samChapter)) return "the member's own turn lost its name";
+    return '';
+  });
+  check('and so is the conversation file the member reads every wake', () => {
+    if (sams.err) return sams.err;
+    if (!/— Sam\n/.test(String(sams.thread))) return `the file says: ${(String(sams.thread).match(/^## .*$/m) || ['nothing'])[0]}`;
+    if (/Lindsay/.test(String(sams.thread))) return "the founder's name is in a stranger's conversation file";
+    if (!/— Lumi\n/.test(String(sams.thread))) return 'the member signed its own turn with something else';
+    return '';
+  });
+
+  // What to do about the chapters already written. Nothing: they are not rewritten, and they do not need to be —
+  // the reader never depended on the name. With the member list loaded, anyone who is not a member is the person,
+  // so `— Lindsay` in somebody else's chapter still reads as that person's turn. The check is here because the
+  // answer to "and the ones already written?" should be a test rather than a promise.
+  const legacy = await tryRun(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main'; S.owner = 'Sam Okonkwo';
+    S.members = [{name: 'Lumi', engine: 'deepseek', model: 'deepseek-flash'}];
+    const filed = parseTurns('# Talk — Lumi\\n\\n## 2026-11-12 22:30 UTC — Lindsay\\n\\nan old question\\n\\n'
+      + '## 2026-11-12 22:31 UTC — Lumi\\n\\nan old answer\\n');
+    S.members = [];   // a page whose member list has not loaded: the fallback is the only thing left to go on
+    const bare = parseTurns('## 2026-11-12 22:30 UTC — Lindsay\\n\\nan old question\\n');
+    S.owner = '';      // and a page that has never been told who the person is
+    return {filed: filed.map(t => t.role), bare: bare.map(t => t.role), label: personLabel()};
+  })()`);
+
+  check("a chapter already signed `Lindsay` still reads as the person's turn", () => {
+    if (legacy.err) return legacy.err;
+    if (legacy.filed.join(',') !== 'user,assistant') return `with the member list loaded the roles are: ${legacy.filed}`;
+    if (legacy.bare.join(',') !== 'user') return `with no member list the old heading reads as: ${legacy.bare}`;
+    return '';
+  });
+  check('a page that does not know the person writes no name at all rather than the wrong one', () => {
+    if (legacy.err) return legacy.err;
+    if (legacy.label === 'Lindsay') return 'the founder\'s name is still the fallback';
+    return '';
+  });
+
   /* the verdict */
   let bad = 0;
   for (const r of results){
