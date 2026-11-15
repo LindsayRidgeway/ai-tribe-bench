@@ -26,7 +26,9 @@ const files = new Map();          // path -> {text, sha}
 const failWrites = new Set();     // paths whose PUT is refused, to test the failure orders
 const calls = [];                 // every request, for the failure messages to be specific
 const dispatches = [];            // every workflow_dispatch, with the inputs the page sent it
-const actions = { runs: [], onPoll: null };   // what the Actions API answers, and what a run does while it runs
+const actions = { runs: [], onPoll: null, secrets: [], secretsDenied: false };
+// `secrets` are the NAME cards the repository will admit to holding — never values, which GitHub does not
+// return to anyone. `secretsDenied` stands in for a token without admin, which is a real and silent case.
 
 function shaOf(text, n = 0){
   return crypto.createHash('sha1').update(text + ':' + n).digest('hex');
@@ -65,6 +67,10 @@ function githubFetch(url, init = {}){
     try { inputs = JSON.parse(init.body || '{}').inputs || {}; } catch(e){ inputs = {}; }
     dispatches.push({workflow: decodeURIComponent(p.split('/')[6] || ''), inputs});
     return jsonResponse(204, {});
+  }
+  if (/^\/repos\/[^/]+\/[^/]+\/actions\/secrets$/.test(p)){
+    if (actions.secretsDenied) return jsonResponse(403, {message: 'Must have admin rights to Repository.'});
+    return jsonResponse(200, {total_count: actions.secrets.length, secrets: actions.secrets.map(n => ({name: n}))});
   }
   if (/^\/repos\/[^/]+\/[^/]+\/actions\/runs$/.test(p)){
     // A run does its work between the dispatch and the poll: the callback stands in for the runner.
@@ -200,7 +206,7 @@ function check(name, fn){
 
 function reset(){
   files.clear(); failWrites.clear(); calls.length = 0; dispatches.length = 0; store.clear();
-  actions.runs.length = 0; actions.onPoll = null;
+  actions.runs.length = 0; actions.onPoll = null; actions.secrets = []; actions.secretsDenied = false;
   for (const id of ['mmsg', 'chaptsmsg', 'main']) if (elements.has(id)) elements.delete(id);
 }
 
@@ -1062,11 +1068,46 @@ async function main(){
     return {html: document.getElementById('pmsg').innerHTML || ''};
   })()`);
 
-  check('a season that ended in a word names the run, so the log is one press away', () => {
+  check('a season that ended in a word names the run, and the secret the repository is missing', () => {
     if (failed.err) return failed.err;
     if (!/43464439540/.test(failed.html)) return `the run is not named: "${failed.html}"`;
     if (!/actions\/runs\/43464439540/.test(failed.html)) return 'the run number is not a link to the run';
-    if (!/its log says why/.test(failed.html)) return `the page does not point at the log: "${failed.html}"`;
+    // The repository here holds no secrets, so the page can prove why the run had nothing to think with — and it
+    // must say which names, because "add a key" to a person holding eight is not an instruction.
+    if (!/TRIBE_API_KEY_OPENROUTER/.test(failed.html)) return `the missing key is not named: "${failed.html}"`;
+    if (!/TRIBE_API_KEY_DEEPSEEK/.test(failed.html)) return 'the second member\'s key is not named';
+    if (!/Keys tab/.test(failed.html)) return 'the page does not say that the Keys tab is not the repository\'s copy';
+    return '';
+  });
+
+  // 6b — and when the token cannot see the secret list, the page claims nothing: it falls back to the run's link.
+  // A token without admin is an ordinary case, and a page that guessed would be inventing the reason a run failed.
+  reset();
+  seedMember('openrouter', 'deepseek-flash');
+  seed('wake/members/Dionysus/state/voice.md', 'api: deepseek\nmodel: deepseek-flash\n');
+  actions.secretsDenied = true;
+  actions.runs.push({id: 43464439541, name: 'season', event: 'workflow_dispatch', status: 'completed',
+    conclusion: 'failure', html_url: 'https://github.com/someone/tribe/actions/runs/43464439541',
+    created_at: new Date().toISOString()});
+  const denied = await tryRun(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
+    render = () => {};
+    S.members = [{name: 'Aphrodite', engine: 'openrouter', model: 'x'}, {name: 'Dionysus', engine: 'deepseek', model: 'y'}];
+    await viewPlay(document.getElementById('main'));
+    document.getElementById('p1').value = 'Aphrodite';
+    document.getElementById('p2').value = 'Dionysus';
+    document.getElementById('season').value = '2026-spring';
+    document.getElementById('rallies').value = '8';
+    document.getElementById('surface').value = 'auto';
+    await document.getElementById('go').onclick();
+    return {html: document.getElementById('pmsg').innerHTML || ''};
+  })()`);
+
+  check('when the page cannot see the secrets it names no reason, only the run', () => {
+    if (denied.err) return denied.err;
+    if (!/43464439541/.test(denied.html)) return `the run is not named: "${denied.html}"`;
+    if (/TRIBE_API_KEY/.test(denied.html)) return 'the page named a secret it could not see';
+    if (!/its log says why/.test(denied.html)) return `the fallback is missing: "${denied.html}"`;
     return '';
   });
 

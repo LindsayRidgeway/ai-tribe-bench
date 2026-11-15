@@ -342,6 +342,40 @@ async function dirEntries(path){
 
 async function dirNames(path){ return [...(await dirEntries(path)).keys()]; }
 
+// A run that ends in `failure` is a dead end for a person with no terminal: the page can link the log, but the log
+// is a wall of green lines and the sentence inside it is one line. Worse, the reason a run has nothing to think
+// with is usually that the repository has no key — and the page *says* "a key for wakes must also be a secret in
+// the repository" in small print on the Keys tab, which is where a person sets it in this browser and believes
+// they are done. Measured 2026-11-14: the founder set two keys on the Keys tab, said "all the required keys are
+// now provided", and the repository had none.
+//
+// So the page asks the repository which secrets it has. Names only — GitHub never returns a value, and an admin
+// token is needed to see even the names. When it cannot see them (403, a token without admin) this returns null
+// and every caller degrades to the run's link, which is the honest fallback: no claim without evidence.
+async function repoSecrets(){
+  // Asked afresh every time, deliberately: a cache would keep saying "there is no key" after the person has just
+  // added one in another tab, which is a stale claim of exactly the kind this page keeps being cured of. It costs
+  // one request, and only when something has already failed.
+  try {
+    const d = await gh(`/repos/${S.repo}/actions/secrets`);
+    return new Set((d.secrets || []).map(x => x.name));
+  } catch(e){ return null; }
+}
+
+// The sentence a failed run deserves, when the page can prove which names are missing. Empty string when it
+// cannot, so a caller appends nothing rather than guessing.
+async function missingKeys(engines){
+  const have = await repoSecrets();
+  if (!have) return '';
+  const want = [...new Set(engines.map(e => String(e || '').trim()).filter(Boolean))]
+    .filter(e => e !== 'local')
+    .map(e => 'TRIBE_API_KEY_' + e.toUpperCase())
+    .filter(n => !have.has(n));
+  if (!want.length) return '';
+  return ` This repository has no ${want.join(' and no ')} secret, so the run had nothing to think with. `
+    + `Add it under Settings → Secrets and variables → Actions — the Keys tab holds this browser's copy for chat, `
+    + `and a run needs the repository's.`;
+}
 async function fileText(path){
   const d = await gh(`/repos/${S.repo}/contents/${encodeURI(path)}?ref=${S.branch}`);
   if (Array.isArray(d)) throw new Error(path + ' is a folder');
@@ -1757,7 +1791,8 @@ async function askForPicture(name){
     await dispatch('paint.yml', {member: name, prompt: work ? '' : prompt, work});
     const run = await waitForRun('paint', since, say);
     const url = run.html_url || `https://github.com/${S.repo}/actions/runs/${run.id}`;
-    if (run.conclusion !== 'success') throw new Error(`run ${run.id} ended: ${run.conclusion} — ${url}`);
+    if (run.conclusion !== 'success')
+      throw new Error(`run ${run.id} ended: ${run.conclusion} — ${url}.` + await missingKeys([engine]));
     const after = await dirNames('plates').catch(() => []);
     const made = after.filter(f => !before.has(f) && /\.(png|jpe?g|webp|gif)$/i.test(f)).sort();
     if (!made.length){
@@ -3728,7 +3763,8 @@ async function playPoint(){
                                   season, temperature: '1.0'});
     const run = await waitForRun('season', since, say);
     const url = run.html_url || `https://github.com/${S.repo}/actions/runs/${run.id}`;
-    if (run.conclusion !== 'success') throw new Error(`run ${run.id} ended: ${run.conclusion} — ${url}`);
+    if (run.conclusion !== 'success')
+      throw new Error(`run ${run.id} ended: ${run.conclusion} — ${url}.` + await missingKeys([member]));
     const after = await dirNames(folder).catch(() => []);
     const wrote = after.filter(f => /\.md$/.test(f) && !before.has(f)).sort();
     if (!wrote.length){
@@ -3822,9 +3858,10 @@ async function viewPlay(main){
         // line, and that line is the answer (today, on the founder's tribe, it was `TRIBE_API_KEY_OPENROUTER is
         // not set, so Aphrodite cannot hit a ball. Nothing was played.`).
         const url = run.html_url || `https://github.com/${S.repo}/actions/runs/${run.id}`;
+        const engines = [p1, p2].map(n => (S.members.find(m => m.name === n) || {}).engine);
         msg.innerHTML = '<span class="err">' + esc('the run ended: ' + run.conclusion + '.') + '</span> '
           + `<a href="${esc(url)}" target="_blank" rel="noopener">${esc(String(run.id))}</a>`
-          + '<span class="small muted"> — its log says why, in one line.</span>';
+          + `<span class="small muted">${esc(await missingKeys(engines) || ' — its log says why, in one line.')}</span>`;
         return;
       }
       msg.textContent = 'played. reading the record';
