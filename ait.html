@@ -121,6 +121,7 @@
     <div id="repo-label" title="Which tribe this page is in — press to switch or connect another"></div>
     <span class="chip warn" id="preview">unfinished</span>
   </header>
+  <div id="visnote" class="notice" hidden></div>
   <nav id="nav" hidden>
     <button data-go="today">Today</button>
     <button data-go="members">Members</button>
@@ -203,7 +204,7 @@ const PAINTERS = {
 const painterNames = () => Object.values(PAINTERS).map(p => p.label).join(', ');
 
 const S = {repo:'', token:'', branch:'main', keys:{}, members:[], chat:{}, member:null, view:'today',
-           owner:'', tribes:{}};
+           owner:'', tribes:{}, isPrivate:null};   // null = this page has not been told; see noteVisibility()
 
 // Which tribes this browser has been in, and the credential it used for each. Without this there is exactly one
 // way back to a tribe you have already opened: retype its name and paste a token. Found 2026-11-09, when the
@@ -227,6 +228,14 @@ function setTribe(repo, token, branch){
     try { localStorage.removeItem('ait.chat'); } catch(_){} }
   S.repo = repo; S.token = token; if (branch) S.branch = branch;
   rememberRepo(repo, token);
+}
+
+// What GitHub says about the repository itself. One field of one response the page already makes: `private`.
+// `null` means the page was not told, which is a third state and is rendered as silence.
+function noteVisibility(info){
+  const p = info && info.private;
+  S.isPrivate = (p === true) ? true : (p === false) ? false : null;
+  return S.isPrivate;
 }
 
 /* ---- tiny helpers ---------------------------------------------------------------------- */
@@ -795,6 +804,8 @@ async function render(){
   $('repo-label').textContent = connected ? S.repo : '';
   $('repo-label').onclick = connected ? () => setView('connect') : null;
 
+  paintVisibility(connected);
+
   // Install and connect belong to everybody, connected or not: the first is the address you give a stranger,
   // and a person who already has a tribe may want a second one — or may be looking at a stale bookmark while
   // holding a token. Neither may be reachable only by not being signed in.
@@ -1006,10 +1017,13 @@ function viewInstall(main){
         <p class="small muted" style="margin:0 0 10px">The tribe lives under your name, in your account, so that it
         is yours and not mine.</p>
         <button class="primary" id="gh">Sign in with GitHub</button>
-        <p class="small muted" style="margin:8px 0 0">One permission screen. It asks for access to your
-        repositories, because GitHub has no narrower permission that lets a new one be created; this page asks
-        GitHub about nothing but the tribe you name below. You can revoke it from your GitHub settings at any
-        time; if you do, AIT stops and your tribe does not.</p>
+        <p class="small muted" style="margin:8px 0 0">One permission screen, and it is the widest thing this
+        project asks of you, so it is worth saying exactly: signing in hands this page a token that can read and
+        write <em>every</em> repository you can write to, settings included. It is that wide because GitHub has no
+        narrower permission that allows a new repository to be created — and AIT asks GitHub about nothing but the
+        tribe you name below. <strong>If you would rather hand over less, use a token instead:</strong> three
+        permissions, no settings, no deletion. Either one can be revoked from your GitHub settings at any time; if
+        you do, AIT stops and your tribe does not.</p>
         <p class="small" style="margin:12px 0 0"><a href="#" id="usetoken">Use a token instead</a></p>
         <div id="tokbox" hidden style="margin-top:10px">
           <p class="small muted" style="margin:0 0 8px">A <strong>token</strong> is a password for this page, made
@@ -1017,7 +1031,9 @@ function viewInstall(main){
           <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">new
           token</a> — with <em>Repository access: All repositories</em> and three permissions, each
           <em>Read and write</em>: <strong>Repository creation</strong>, <strong>Contents</strong>,
-          <strong>Actions</strong>.</p>
+          <strong>Actions</strong>. Creation is why it cannot start out narrowed to one repository; it still cannot
+          change a repository's settings or delete one, which is the difference from signing in. Once your tribe
+          exists you can replace it with a token that reaches only that repository.</p>
           <input id="tok" type="password" placeholder="paste the token" autocapitalize="off" spellcheck="false">
         </div>
         <p class="small" id="who" style="margin:8px 0 0"></p>
@@ -1311,6 +1327,7 @@ or <a href="#/today" onclick="WANT='';WANT_WHY='';return true;">stay in ${esc(S.
     try {
       const info = await gh(`/repos/${repo}`, {}, token);
       setTribe(repo, token, info.default_branch || 'main');
+      noteVisibility(info);
       WANT = ''; WANT_WHY = '';
       save();
       const ms = await loadMembers();
@@ -1345,6 +1362,7 @@ async function switchTribe(repo){
   try {
     const info = await gh(`/repos/${repo}`, {}, t);
     setTribe(repo, t, info.default_branch || 'main');
+    noteVisibility(info);
     try { history.replaceState(null, '', location.pathname + '?tribe=' + repo); } catch(_){}
     WANT = ''; WANT_WHY = '';
     location.hash = '#/today'; render();
@@ -1352,6 +1370,22 @@ async function switchTribe(repo){
     WANT = repo; WANT_WHY = e.message;
     location.hash = '#/connect'; render();
   }
+}
+
+// A public tribe is a public diary. GitHub is asked once per page load (in the boot block, and again on connect and
+// on a switch) and the answer is kept in S.isPrivate; when it is "public" the page says so on every view, because it
+// is a fact about the record and not about one screen. Three answers, not two — true, false, and "not known": a page
+// that could not ask (no network, a token that cannot see the repository) must not accuse the owner of publishing
+// anything. A named function rather than six lines inside render(), so the sentence has a test that can reach it.
+function paintVisibility(connected = true){
+  const vis = $('visnote');
+  if (!vis) return;
+  const show = !!(connected && S.isPrivate === false);
+  vis.hidden = !show;
+  vis.innerHTML = show ? '<strong>This tribe is public.</strong> Anyone on the internet can read the repository: '
+    + 'every member\'s journal, and every word you say to a member. The API keys are not in it — the chat copy is in '
+    + 'this browser and the clock\'s copy is a repository secret — but nothing else said here is private. Make it '
+    + 'private again under the repository\'s Settings → General.' : '';
 }
 
 async function viewToday(main){
@@ -4249,7 +4283,7 @@ window.addEventListener('hashchange', () => render());
   }
 
   if (S.repo && S.token){
-    try { await gh(`/repos/${S.repo}`); }
+    try { noteVisibility(await gh(`/repos/${S.repo}`)); }
     catch(e){ S.repo = ''; S.token = ''; }
   }
 
@@ -4266,6 +4300,7 @@ window.addEventListener('hashchange', () => render());
         try {
           const info = await gh(`/repos/${wantTribe}`, {}, tok);
           setTribe(wantTribe, tok, info.default_branch || 'main');
+          noteVisibility(info);
           try { history.replaceState(null, '', location.pathname + '?tribe=' + wantTribe + location.hash); } catch(_){}
         } catch(e){ WANT = wantTribe; WANT_WHY = e.message; }
       }

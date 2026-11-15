@@ -27,6 +27,11 @@ const failWrites = new Set();     // paths whose PUT is refused, to test the fai
 const calls = [];                 // every request, for the failure messages to be specific
 const dispatches = [];            // every workflow_dispatch, with the inputs the page sent it
 const actions = { runs: [], onPoll: null, secrets: [], secretsDenied: false };
+// What GitHub says about the repository itself. `private` is the one field the page reads out of it, and on
+// 2026-11-15 it read nothing: an owner could turn a tribe public and the page went on saying nothing while the
+// record — every journal, every word said to a member — became readable by anyone. Kept here so a check can
+// answer either way, and absent (`undefined`) for the third case, a page that was never told.
+const repoMeta = {private: true};
 // `secrets` are the NAME cards the repository will admit to holding — never values, which GitHub does not
 // return to anyone. `secretsDenied` stands in for a token without admin, which is a real and silent case.
 
@@ -81,7 +86,11 @@ function githubFetch(url, init = {}){
   const m = p.match(/^\/repos\/([^/]+)\/([^/]+)(?:\/contents\/?(.*))?$/);
   if (!m) return jsonResponse(404, {message: 'Not Found'});
   const rest = m[3] || '';
-  if (!rest) return jsonResponse(200, {full_name: m[1] + '/' + m[2], default_branch: 'main'});
+  if (!rest){
+    const meta = {full_name: m[1] + '/' + m[2], default_branch: 'main'};
+    if (repoMeta.private !== undefined) meta.private = repoMeta.private;
+    return jsonResponse(200, meta);
+  }
 
   if (method === 'GET'){
     if (files.has(rest)) return jsonResponse(200, {content: Buffer.from(files.get(rest).text).toString('base64'),
@@ -1218,6 +1227,54 @@ async function main(){
     if (!/Edit this/.test(olderTribe.said)) return 'it does not say where the text can still go';
     return '';
   });
+
+  /* 8 — a public tribe says so; a private one says nothing; a page that was never told says nothing either.
+     The owner's question, 2026-11-15: "can't they later make their repos public, possibly without realizing
+     that they are exposing..." Nothing warned them, because nothing read the one field that answers it. */
+  const connectTo = async (priv) => {
+    reset();
+    seed('wake/members/.gitkeep', '');
+    repoMeta.private = priv;
+    return tryRun(ctx, `(async () => {
+      S.repo = ''; S.token = ''; S.isPrivate = null; S.keys = {}; S.members = [];
+      location.hash = '#/connect';
+      await viewConnect(document.getElementById('main'));
+      document.getElementById('repo').value = 'someone/tribe';
+      document.getElementById('token').value = 't';
+      await document.getElementById('go').onclick();
+      paintVisibility(true);          // render() is stubbed out by the checks above; this is the line it calls
+      const n = document.getElementById('visnote');
+      // the fake element keeps innerHTML and does not parse it, so the sentence is read from there
+      return {isPrivate: S.isPrivate, note: (n.innerHTML || n.textContent || ''), hidden: n.hidden};
+    })()`);
+  };
+
+  const inPublic = await connectTo(false);
+  check('a public tribe is named as public, above every view', () => {
+    if (inPublic.err) return inPublic.err;
+    if (inPublic.isPrivate !== false) return `the page kept isPrivate=${JSON.stringify(inPublic.isPrivate)} after GitHub said the repository is public`;
+    if (inPublic.hidden) return 'the notice stays hidden in a public tribe';
+    if (!/public/i.test(inPublic.note)) return `the notice does not say public: "${inPublic.note.slice(0, 200)}"`;
+    if (!/journal/i.test(inPublic.note)) return 'it does not say what becomes readable';
+    return '';
+  });
+
+  const inPrivate = await connectTo(true);
+  check('a private tribe is not accused of being public', () => {
+    if (inPrivate.err) return inPrivate.err;
+    if (inPrivate.isPrivate !== true) return `isPrivate=${JSON.stringify(inPrivate.isPrivate)}`;
+    if (!inPrivate.hidden) return `a private tribe carries a warning: "${inPrivate.note.slice(0, 120)}"`;
+    return '';
+  });
+
+  const inUnknown = await connectTo(undefined);
+  check('a page that was never told says nothing, rather than guessing', () => {
+    if (inUnknown.err) return inUnknown.err;
+    if (inUnknown.isPrivate !== null) return `isPrivate=${JSON.stringify(inUnknown.isPrivate)} — an absent field is not a public repository`;
+    if (!inUnknown.hidden) return `a warning appeared without an answer: "${inUnknown.note.slice(0, 120)}"`;
+    return '';
+  });
+  repoMeta.private = true;
 
   /* the verdict */
   let bad = 0;

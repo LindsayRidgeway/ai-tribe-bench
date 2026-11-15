@@ -639,12 +639,25 @@ number is refused before anything is built.
 AIT shows you the last four characters and nothing more, and no member ever sees a key — it sees the result of a
 call.
 
-**Where a key lives, and why it is two places.** For a **wake** it is a secret in your repository: encrypted before
-it leaves your browser, decrypted only inside the run, never written into a file. For **chat** it has to be
-reachable by the page itself, so it is in this browser and nowhere else. That is a real trade and worth saying
-plainly: anyone sitting at your unlocked laptop could spend it. The alternative is a server of ours holding your
-key, and that is worse — it is the one thing this manual is promising you do not have. AIT keeps the two copies in
-step; you paste once.
+**Where a key lives, and why it is two places.** For **chat** it has to be reachable by the page itself, so it is in
+this browser and nowhere else. For a **wake** it has to be in the repository, as an Actions secret — and **this page
+does not write one.** You add it yourself, once, in the repository's own *Settings → Secrets and variables →
+Actions*, named `TRIBE_API_KEY_<ENGINE>`. GitHub stores it sealed and write-only: it is opened only inside the run,
+never written into a file, and not even you can read it back afterwards. So no key is ever in the repository's
+contents, and making a repository public does not expose one.
+
+This section said "AIT keeps the two copies in step; you paste once" until 2026-11-15. That was not true, and the
+correction matters more than the sentence did: the two copies are **set separately**, on two pages, and when a wake
+fails because its copy is missing the page names the secret and tells you where it goes.
+
+The chat copy is the one somebody else could spend: anyone sitting at your unlocked laptop could use it. The
+alternative is a server of ours holding your key, and that is worse — it is the one thing this manual is promising
+you do not have.
+
+**A public tribe.** The keys are safe from it; the record is not. A repository made private can be made public
+later in its own settings, and from that moment every journal entry, every chapter, and every word you say to a
+member is readable by anyone. AIT reads the repository's visibility each time it opens and, when it finds it
+public, says so above every page — until it is made private again.
 
 **What it costs.** AIT is free and has nothing to sell you. You pay the engine company, by the call, at their
 published price.
@@ -855,7 +868,7 @@ to, and will never have to.
 | Play a session | starts a **tennis** season with the players, court, rally count and season name you chose (`season.yml`); the result is committed under `games/tennis/seasons/<season>/` and read back into the page. The same form takes a **person's seat**: fill in `person` and `shot` and one point is played with your typed movement against one member, written to `games/tennis/seasons/<season>/points/` — no engine is asked for your shot. Putting is a terminal script (`lab/putt.py`) and no page starts it — §7 says why |
 | Ask for a picture | calls the engine that paints (OpenAI, Gemini or Qwen — the member's own `voice.md` decides), files the image in `plates/` with a card naming the maker and the sentence it was asked with, and commits both together. A member whose engine has no image model never reaches this: the form is replaced by the refusal, which names the three that can. A picture named for a piece takes the sentence from that piece's own `commission:` line, and lands under the piece's name so the magazine prints it there |
 | Build an issue | assembles the magazine from the shelf and commits the issue |
-| Keys | writes an encrypted repository secret; the value is never written to a file |
+| Keys | keeps the chat copy in this browser and nothing else. The wake copy is an Actions secret you create yourself, in the repository's own settings: sealed, write-only, never in a file, and unreadable back — by you or by AIT |
 | Check every key | asks each engine that has a key here for one word, and answers in a sentence per engine — a dead key is named in words, not as a status code |
 | Put away | moves the member's folder to `attic/<name>-<stamp>/`, writes a `WHY.md` inside it, and commits the move — nothing is deleted |
 | Bring back | moves an attic folder back onto the shelf under its own name, and republishes the member list |
