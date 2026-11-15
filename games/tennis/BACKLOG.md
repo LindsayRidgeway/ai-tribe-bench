@@ -91,22 +91,57 @@ does not yet show a person's entry beside a member's.
 - **Done-test:** a season record containing one person entry and one member entry renders both, with
   the person's typed movement visible in the caption and no engine named. **Number:** 2/2 rendered.
 
-## Item 9 — PaddleBall: a decision, not a build
-Not in any file in any repository as of 2026-11-15 — the founder raised the name today. What would be
-shared with tennis: the court, `lab/tennis.py`'s ball integrator, the camera cuts, the scoreboard, the
-season folder. What would be new: a paddle contact model (no bounce coefficient to inherit — a paddle
-is a face angle and a swing path, which tennis already has, over a shorter distance) and a court with
-two walls and no net.
+## Item 9 — PaddleBall: accepted, and gated behind item 1
 
-- **This item stays a decision until the founder accepts V1 or says otherwise.** Do not build a second
-  game while the first one's renderer is not on `main`.
+The founder raised it on 2026-11-15 and then said why the record had no trace of it: *"that's a comment
+on the lack of communication in the symposium."* He is right about the cause, and it is worth stating
+plainly because it will happen again. Something said in a live window is in the record only if the seat
+that heard it writes it down. PaddleBall had been mentioned to a seat, in a window, and no file carried
+it — so to the other five seats and every wake it never existed. The same mechanism lost the pool vote
+for eleven days. A chat is not a place.
+
+**My decision, which the founder's 2026-11-10 terms make mine:** PaddleBall is accepted as a project
+and it starts after item 1 (the renderer on `main`), not before. The reasoning is in the answer I gave
+him, and the short version is that the wall changes *which* skill is learned.
+
+- **Shared with tennis, deliberately:** the ball integrator in `lab/tennis.py`, the court builder, the
+  camera-cut rules, the scoreboard, the season folder, the record format. If a second game needs a
+  second physics implementation, it does not get built — a second copy is how the first one breaks.
+- **New, and small:** one wall instead of a net, a paddle contact instead of a racquet face, and no
+  need for the racquet geometry that cost eight image generations and never worked.
+- **The design risk, named before it is built:** a *perfect* wall is a machine, not an opponent. The
+  rebound is deterministic, so there is nothing to learn beyond position — and a game whose only skill
+  is a formula is the thing the founder rejected when he demoted the statistics. The wall's
+  imperfection is therefore the game: a seam, a dead panel, a surface that eats spin differently at
+  one height, each measured and printed. **If that sentence cannot be made true, do not build this
+  game.**
+- **Done-test for the item itself (not the game):** a design page in `games/paddleball/README.md` that
+  states the wall's imperfection model with numbers, the contact model, and which files it imports
+  from `lab/tennis.py` — reviewed before any renderer work begins. **Number:** the count of imported
+  tennis modules that were *not* copied.
 
 ---
 
-## What V1 means, stated so it can be refused
+## What V1 means
 
-V1 is not "the physics is right" — the physics has been right and measured since 2026-11-04. V1 is
-**a page a person can open, showing a match between two members whose bodies, gaits and shots all come
-from the record, with a scoreboard that is the science, and no frame in which the ball and the racquet
-disagree.** The founder has already said he would not accept the movement as it stands. Items 2–6 are
-his list, in his order.
+**The founder's definition, 2026-11-15, and it replaces mine:** *V1 means completion of the video game
+to the point that we are ready for it to become a published feature of AIT.* He added that the
+definition belongs in the game's own record and not in a chat, which is why it is here.
+
+That is a higher bar than the one I had written down — I had defined V1 as a page in which no frame has
+the ball and the racquet disagreeing, which is a *refusal test*, not a definition. It stays in this file
+as an internal gate, because a published feature cannot have a frame where the two disagree, but passing
+it is necessary and nowhere near sufficient. "Published feature of AIT" brings its own list, and this is
+the part I can already name:
+
+- it opens on a machine that is not mine, from the repository, with no terminal and no key
+  (`SETUP.md` §6 and the 1.4 MB of base64 bodies are the known sharp edges);
+- a person can add themselves to it and be drawn from the same rig, which is `e20c61bf`'s engine half
+  plus item 8's renderer half;
+- a season is one command and one URL, and the record of it outlives the process;
+- the movement survives a person watching it, which is items 2–6 in his order;
+- and the scoreboard is the science: rally length and first-serve-in are the numbers the season report
+  already prints, which is the compromise he accepted when he demoted statistics to a minor feature.
+
+The gap between where the code is and that sentence is the backlog above. It is not a small gap, and
+saying so is the point of writing it down.
