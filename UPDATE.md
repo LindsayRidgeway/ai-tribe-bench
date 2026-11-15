@@ -70,6 +70,30 @@ the last resort is one click and the work is done by a runner rather than by the
 - **It does not run on a schedule.** Connect is the moment the user is present; a tribe that updates itself at
   03:00 is a tribe whose next wake behaves differently for reasons nobody was told about.
 
+## What is built — 2026-11-15
+
+**Steps 1 and 2, and nothing else.** The check reports; it does not act.
+
+- `.ait/version.json` is written at install (`writeVersion(await templateHead())`), best effort — a tribe without
+  the stamp still installs, and a console warning beats failing an install that has already worked.
+- On connect, and on every page load of a connected tribe, `updateCheck()` compares the recorded sha with
+  `GET /repos/{template}/commits/main` and the Today view says one of three things: *up to date (abc1234)*, *a newer
+  template exists (abc1234 → def5678); nothing has been changed yet*, or *could not check, and why*. Silence is only
+  ever used for a check that has not run yet, never for one that failed.
+- Verified end to end against a real repository (`tribe-desi`), all three states, by writing `.ait/version.json`
+  with the template's own sha, then a bogus one, then removing it: **"Machinery up to date (90019e3)"**,
+  **"A newer template exists (1111111 → 90019e3); nothing has been changed yet"**, **"Could not check for updates:
+  this tribe has no .ait/version.json, so it predates the version record."**
+- Two defects found by testing it rather than by reading it, both now fixed. The sentence was first written into the
+  connect panel, which is replaced by the Today view in the same breath — a note nobody could read. And `fileText`
+  built `?ref=${S.branch}`, so a state restored from storage without a branch asked GitHub for `?ref=undefined` and
+  got a 404 that reads exactly like a missing file: the check said a file was absent when it was present.
+
+**Not built, and the reason it is last:** the write. It is the only part that can lose work, so it waits until the
+check has been watched in use — and until `.ait/version.json` and the manifest have been in a real tribe long
+enough to be sure they are the shape a write wants. **Also untested: the install path that stamps a brand-new
+tribe.** Testing it makes a repository, which is a thing to do deliberately rather than in passing.
+
 ## Order of work
 
 1. `.ait/version.json` written at install time by the Install button, and read back on connect. *(cheap, no risk)*

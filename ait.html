@@ -386,7 +386,11 @@ async function missingKeys(engines){
     + `and a run needs the repository's.`;
 }
 async function fileText(path){
-  const d = await gh(`/repos/${S.repo}/contents/${encodeURI(path)}?ref=${S.branch}`);
+  // `S.branch || 'main'`: a state restored from storage written by an older page can have no branch in it, and
+  // `?ref=undefined` is a 404 that reads exactly like a missing file. Measured 2026-11-15 — the update check said
+  // "this tribe has no .ait/version.json" about a file that was there, because the branch was missing from the
+  // page's own saved state rather than from the repository.
+  const d = await gh(`/repos/${S.repo}/contents/${encodeURI(path)}?ref=${S.branch || 'main'}`);
   if (Array.isArray(d)) throw new Error(path + ' is a folder');
   return {text: b64d(d.content), sha: d.sha};
 }
@@ -395,6 +399,63 @@ async function putText(path, text, message, sha){
   const body = {message, content: b64e(text), branch: S.branch};
   if (sha) body.sha = sha;
   return gh(`/repos/${S.repo}/contents/${encodeURI(path)}`, {method:'PUT', body});
+}
+
+// ---- is this tribe running the newest machinery? -----------------------------------------------------------
+// UPDATE.md, 2026-11-15. The version is the template's commit sha and not a number: "is 1.4 newer than 1.3?" is a
+// question a fork can answer differently to its upstream, and a version number that answers differently is a
+// version number that lies. The sha is the same everywhere or it is not the same code.
+//
+// This file's job today is only the CHECK, and it reports rather than acts — a check that silently writes is a
+// check nobody has watched long enough to trust. The write is step 3 in UPDATE.md and it ships last, because it is
+// the only part that can lose work.
+//
+// `.ait/version.json` is tribe data: the updater may replace code, and must never touch this.
+async function templateHead(){
+  try { const d = await gh(`/repos/${TEMPLATE}/commits/main`); return (d && d.sha) ? String(d.sha) : null; }
+  catch(e){ return null; }        // private template, no token, no network: all the same answer, and not "current"
+}
+async function readVersion(){
+  try { return JSON.parse((await fileText('.ait/version.json')).text); }
+  catch(e){ return null; }
+}
+async function writeVersion(from){
+  const body = JSON.stringify({schema:'ait-version/1', template: TEMPLATE,
+    installed_from: from || null, updated_to: null, updated_at: new Date().toISOString()}, null, 1) + '\n';
+  const cur = await fileText('.ait/version.json').catch(() => null);
+  return putText('.ait/version.json', body, 'ait: record which template this tribe came from', cur && cur.sha);
+}
+// What the connect panel is allowed to say. Three answers, and only one of them is silence — a page that cannot
+// check must say that it could not, because "no update available" and "I did not look" are different facts and the
+// page has been cured of confusing them before (see missingKeys() above).
+async function updateCheck(){
+  const v = await readVersion();
+  const head = await templateHead();
+  const from = v && String(v.updated_to || v.installed_from || '');
+  if (!head) return {state:'unknown', why:'the template could not be read just now'};
+  if (!v) return {state:'unknown', why:'this tribe has no .ait/version.json, so it predates the version record',
+                  sha: head};
+  if (from.slice(0, 7) === head.slice(0, 7)) return {state:'current', sha: head};
+  return {state:'behind', sha: head, from};
+}
+function updateSentence(u){
+  if (!u) return '';
+  if (u.state === 'current') return ` Machinery up to date (${u.sha.slice(0,7)}).`;
+  if (u.state === 'behind') return ` A newer template exists (${u.from.slice(0,7)} → ${u.sha.slice(0,7)}); nothing has been changed yet.`;
+  return ` Could not check for updates: ${u.why}.`;
+}
+
+// Where the sentence is allowed to live. The connect panel is not it: the panel is replaced by the Today view in
+// the same breath as the message is written, so a note put there is a note nobody reads. Measured 2026-11-15 —
+// the connect test navigated to #/today and the element carrying the sentence no longer existed.
+let UPDATE_NOTE = '', UPD_CHECKED = false;
+async function ensureUpdateNote(){
+  if (UPD_CHECKED || !(S.repo && S.token)) return;
+  UPD_CHECKED = true;                      // set before the await, so a re-render cannot start a second check
+  try {
+    UPDATE_NOTE = updateSentence(await updateCheck()).trim();
+    if (!location.hash || location.hash === '#/today') render();
+  } catch(_){ /* a check that fails says nothing; silence here is the absence of a claim, not a claim of absence */ }
 }
 
 const b64d = (s) => new TextDecoder().decode(Uint8Array.from(atob(String(s).replace(/\s/g,'')), c => c.charCodeAt(0)));
@@ -739,6 +800,7 @@ async function render(){
   // holding a token. Neither may be reachable only by not being signed in.
   if (view === 'install'){ nav('install'); return viewInstall(main); }
   if (view === 'connect'){ nav('connect'); return viewConnect(main); }
+  if (connected) ensureUpdateNote();     // a page reopened on a tribe checks once, without being asked
 
   if (!connected){
     nav('');
@@ -1067,6 +1129,10 @@ function viewInstall(main){
       if (!made) throw new Error('422 · the repository was not created');
       msg.textContent = 'copied the machinery into it…';
       setTribe(`${login}/${slug}`, t, 'main');
+      // Stamp the template's sha into the new tribe, so "what did this come from" is a fact in the repository
+      // rather than a recollection. Best effort: a tribe without the stamp still works, and saying so beats
+      // failing an install that has already succeeded.
+      try { await writeVersion(await templateHead()); } catch(err){ console.warn('no version stamp:', err.message); }
       // Remember the name GitHub has for them, so the first member made in this tribe is told who it is
       // talking to without being asked. Blank when the account has no display name — the add-a-member
       // dialog asks then, and does not guess a login.
@@ -1249,6 +1315,12 @@ or <a href="#/today" onclick="WANT='';WANT_WHY='';return true;">stay in ${esc(S.
       save();
       const ms = await loadMembers();
       try { history.replaceState(null, '', location.pathname + '?tribe=' + repo + location.hash); } catch(_){}
+      // The update check is reported after the member count and never instead of it: the person asked to open a
+      // tribe, and an update notice that replaces "3 members" with a logistics line is the page answering a
+      // question nobody asked.
+      let upd = '';
+      try { upd = updateSentence(await updateCheck()); } catch(err){ upd = ''; }
+      UPDATE_NOTE = upd.trim(); UPD_CHECKED = true;
       msg.textContent = `${ms.length} member${ms.length === 1 ? '' : 's'}.`
         + (typed ? '' : ' Opened with the token this browser already had for it.');
       location.hash = '#/today'; render();
@@ -1283,7 +1355,11 @@ async function switchTribe(repo){
 }
 
 async function viewToday(main){
-  main.innerHTML = `<h1>Today</h1><p class="muted small">reading the record…</p>`;
+  // The update line, when there is one, above the members rather than inside them: it is a fact about the tribe's
+  // machinery, and a person who came to read what their members said should not have to read past it.
+  main.innerHTML = `<h1>Today</h1>`
+    + (UPDATE_NOTE ? `<p class="small muted">${esc(UPDATE_NOTE)}</p>` : '')
+    + `<p class="muted small">reading the record…</p>`;
   let members;
   try { members = await loadMembers(); } catch(e){ return fail(main, e); }
 
@@ -1312,6 +1388,7 @@ async function viewToday(main){
   main.innerHTML = `
     <h1>Today</h1>
     <p class="muted small">${members.length} member${members.length === 1 ? '' : 's'} · last read ${new Date().toLocaleTimeString()}</p>
+    ${UPDATE_NOTE ? `<p class="small muted">${esc(UPDATE_NOTE)}</p>` : ''}
     ${quiet.length ? `<div class="notice">The clock has gone quiet for ${quiet.map(m => esc(m.name)).join(', ')}.
       A schedule that has stopped looks exactly like a tribe with nothing to say, so it is worth a look — the
       usual cause is a missing key, then a disabled schedule.</div>` : ''}
