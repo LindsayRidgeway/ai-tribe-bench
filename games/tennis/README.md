@@ -12,6 +12,34 @@ The founder's claim, 2026-11-04: *"rallies should get longer and longer as the p
 because you program that to happen. It's because the AI-beings learn how to hit the ball better."* This game is
 built to test that sentence, and the answer is below: **true, and the timescale is a season, not an afternoon.**
 
+## Starting it
+
+Type **AIT Tennis** in Spotlight. It is a one-line applet in `~/Applications` that runs `open.sh` here, which
+kicks a launchd job serving this repository on `127.0.0.1:8778`, waits for the page to answer, and opens it in
+Chrome.
+
+The server is not a convenience. The page is an ES module that imports three.js from `vendor/` and fetches two
+~700 KB `.glb` bodies, and `file://` refuses all three — opened from disk the film is an empty court and a console
+full of CORS. So the launcher has to have an HTTP server, and the server has to outlive the launcher: a `nohup … &`
+child of a double-clicked applet dies with the applet and takes the port out from under the tab that is still
+loading. It is a launchd agent (`~/Library/LaunchAgents/com.ait.tennis-server.plist`) for that reason, kickstarted
+rather than started.
+
+```sh
+games/tennis/open.sh                                             # the 20-point 3D film
+games/tennis/open.sh replay.html                                 # the top-down view
+games/tennis/open.sh "replay3d.html?record=seasons/2026-spring/rally.json&cam=net"   # a season, a camera
+```
+
+## On a phone
+
+The film renders in a phone's browser — `stills/phone-390x844.png` is this page at 390x844 in a phone emulation, drawn
+without changes: the camera keeps its own framing because it is a perspective camera with the viewport's aspect, and
+the two cards at the bottom still fit. What a phone does **not** have is a way to fetch it. The page is served over
+HTTP because a browser refuses ES modules and binary `.glb` fetches from `file://`, and on this machine that means the
+Mac's server and a phone on the same wifi. GitHub Pages removes that requirement entirely and is the intended answer;
+it is switched on per repository, not per page.
+
 ## The physics, all checkable and keyless
 
 - feet and seconds, gravity 32.17 ft/s², integrated at 1 ms steps;
@@ -151,9 +179,9 @@ Three things fall out, and each is a separate claim:
 
 In the founder's own order: change of court and change of service (one serve, no two-serve rule, sides never
 change), scoring (no games or sets), the volley (contact height exists, no shot is ever chosen as one, no lob or
-overhead). The season *is* built — practice is carried between sessions in a file, below — and the reset to
-beginners that the founder wants for a second season is the absence of that file, which is the easy half and is
-also written.
+overhead), and a season — practice is not yet carried between sessions or persisted to disk, so each run starts
+from the same spring. The reset to beginners that the founder wants for the *second* season is the easy half of
+that; keeping it across a first season is the half not written.
 
 
 ## The season: practice that outlives the process
@@ -191,36 +219,3 @@ verdicts withheld — **Not a sample**. That is the honest state of a season for
 works and the story has not happened yet. The session-2 transcript is
 `records/rally-season-2026-spring-session2.txt`; session 1's console output was not captured to a record,
 only its numbers, which is why session 2 was redirected to a file.
-
-
-## The person's seat — a third player, and the only one with no engine
-
-Added 2026-11-12. Every player before it was a member: an engine, a voice, a record, and a shot requested in one
-line of prose. A person has none of those and should not need them, so the movement comes from three numbers
-instead:
-
-```
-python3 lab/tennis.py --person-shot "FACE 18 POWER 80 AIM 13" \
-    --names "Lindsay,Colette" --points 1 --season 2026-spring
-```
-
-**What is the same on purpose.** The physics, the skill curve, the hands that are not exact, the reach, the
-`reachable()` check and `verdict()` — one function, one set of sentences, three seats. A person playing on a
-kindlier court would learn nothing about the game the members are learning, and any comparison between them
-would be an artifact of the code rather than a result.
-
-**What is different, and why it is stated.** Only where the shot comes from: a form cannot answer mid-rally, so
-the typed movement is played every time the ball comes to the person. The member across the net is asked afresh
-on every ball. A person's hands start at zero balls — a beginner's — and a season keeps them, so the same
-`--seed` that gives a member a history can give a person one.
-
-**What it writes.** The point, in full and as printed, into `seasons/<season>/points/<when>.md` (never
-overwritten: two presses in one second are two files), plus one session of `mode: person` in `practice.json`.
-The season's report separates them: a point counts its balls and moves the hands on, and it is **not** averaged
-into the rate the season prints, because a point is not an evening of rallies. A report that let a five-ball
-point decide "the game improved" would be the same fiction as the one-ball verdict the guards already refuse.
-
-**What it costs.** One engine call per *member* shot; nothing for the person's. The page's form refuses a
-number outside the engine's range before sending it, and a run that ends green without writing a point file is
-reported as exactly that, with the run named — the same rule the wake button follows.
-

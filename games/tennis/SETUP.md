@@ -143,3 +143,85 @@ Five questions, each of which changes what the page has to say:
 **Until 1 and 3 are answered**, the Play page will write `players.json` and dispatch the season — both of which are
 useful on their own — and the link to the screen will be a link to the season's folder, not to the picture. I would
 rather ship the setup without the link than a link that works on my laptop and not on a phone.
+
+---
+
+## 6. The renderer's answers — Desi, 2026-11-12
+
+Written after building them rather than after thinking about them, so each answer is what the picture now does.
+Nothing above is edited: §1's ownership table is right, and `look` is now the one thing the renderer spends.
+
+**1. A body is built once and committed.** `games/tennis/bodies/gwen.glb` and `dmitri.glb` are 720 KB each and
+Blender takes minutes per build, so a season must not pay for one. More to the point, a body does not *need*
+rebuilding when `look` changes, because nothing in `look` is geometry except `lower` (see 5). The viewer reads the
+committed `.glb` and applies the look at load: three material colours, a uniform scale to `height_m`, a girth
+multiplier for `build`. So the Play page never triggers a build.
+
+**2. Yes, `bodies/<name>.glb`, relative to the page, named by the record.** `players[]` in the record already says
+`"body": "gwen"`, and that is what is loaded — the record and the body file agree because the record was played with
+that body. **Replaced in place, not versioned**, and the reason is answer 1: the file is geometry only, the appearance
+lives in `setup.json`, so a look change does not touch the `.glb` at all. Versioning would only be needed if a body
+file could mean two different things, and it no longer can.
+
+**3. The viewer fetches, so one viewer serves every season.** It is built: `replay3d.html?record=<url>`.
+
+```
+games/tennis/replay3d.html?record=seasons/2026-spring/rally.json
+games/tennis/replay.html?record=seasons/2026-spring/rally.json      (the top-down page takes the same)
+```
+
+Two consequences for your page, both of which simplify it:
+
+- **The season folder needs two files and no HTML:** `rally.json` (the play) and `setup.json` (the provenance copy).
+- **`setup.json` is derived, not passed.** If `?record=seasons/<season>/rally.json` is given and no `?setup=` is
+  given, the viewer fetches `seasons/<season>/setup.json` — the sibling. `?setup=<url>` overrides. That is a
+  convention I would like written into §3, because it means the season link is one URL and the copy can never be
+  forgotten: a record played under a look that has no copy is a record nobody can repaint.
+
+**`setup.json` is what the picture reads, never `players.json`.** A season's appearance has to be the season that was
+played; if the viewer read the live file, editing a member's kit in March would repaint January. Say this out loud in
+§3 too: the copy is not bookkeeping, it is the renderer's input.
+
+**4. `look.hand` is worth having, but the renderer cannot use it, and it is not an appearance field.** Which side a
+ball is struck from is decided in the physics: `shot.hand` is `fore`/`back` and the contact point is a real
+coordinate on one side of the body. A viewer told "left" by the setup file and handed a right-handed record would
+draw the right picture of the wrong player — the arms would reach across the wrong shoulder for every ball. So:
+**give `hand` to the runner, not to the renderer.** When serve sides and the deuce/ad court are modelled in
+`lab/tennis.py`, handedness becomes a physics input and the record will carry its consequences; then the viewer
+already honours it, because it honours the record. Until then the field is recorded and unused — which is honest, but
+§2's "read by: renderer; physics if we ever model serve sides" should say **physics only**, and the page should say so
+beside the switch, or a person will expect the body to change hands.
+
+**5. What is cheap, and one thing that is not.**
+
+| field | cost in the viewer | what it does |
+|---|---|---|
+| `kit` / `skin` / `hair` | free | the `.glb` carries exactly three materials — `skin`, `hair`, `kit` — so the three swatches are one-to-one with the file. No interpretation, no guess about which material is the shirt. |
+| `height_m` | free | uniform scale so the **top of the head** lands on the number. The model's own height is measured first, so a body built at 1.60 m asked for 1.72 m gets 1.72 m. Stride follows: the gait rule is 0.42 of measured height per step, and the height it uses is measured *after* the scale. |
+| `build` | free | girth on X and Z only, so a heavier member is wider and not taller. It widens the stance with the shoulders, which reads correctly. Reach is unaffected because the arm solver works off the bone positions it finds. |
+| `racquet` | free | hides the racquet. The record's racquet placements still run; the racquet is a placement, not a limb. |
+| `lower` (skirt / shorts / none) | **not available** | the clothing is part of the `kit` primitive, so changing it is a Blender rebuild in `lab/body.py`, minutes per member. **Do not offer it as a knob.** If it must be offered, it is a build request, and it is the only field in the file that costs five minutes. |
+| `look.racquet: false` with `lower: none` | — | the combination a person actually wants ("just a body") needs the rebuild for the garment half. Worth knowing before the page offers it. |
+
+**Two corrections to §4, from having built it:**
+
+- **Option 2 as written does not work.** "Inline three.module.js and the script into one HTML file" leaves the two
+  `.glb` bodies out, and a `file://` page cannot fetch them — so a self-contained page must also carry 1.4 MB of
+  base64 bodies, which is ~1.9 MB once encoded, and it would have to duplicate them per season folder. Cost it that
+  way before choosing it.
+- **Option 1's URL is one level off.** The viewer is `games/tennis/replay3d.html`, not
+  `seasons/<season>/replay.html`; with `?record=` working there is no per-season HTML to write. So the season link is
+  `games/tennis/replay3d.html?record=seasons/<season>/rally.json`, which on Pages is a real address on a phone, and
+  it is still option 1 — Pages serving the person's own repository. I agree with your preference; only the shape of
+  the link changed.
+
+**The seam is now built, and it is one command:** `python3 lab/run_season.py --setup games/tennis/players.json`.
+It reads your file, fills in what the page left out (`history` absent is nought balls, `rallies` absent is eight,
+`surface` absent is clay), writes the provenance copy `seasons/<season>/setup.json` **once**, plays the points at
+each member's carried count, writes `seasons/<season>/rally.json`, and prints the viewer link. Run it twice and it
+refuses the second time unless `--force`: a season that has been played is not repainted, which is §3 held to by the
+one mechanism that can break it.
+
+What it deliberately does not do is touch the season book. `practice.json` and `report.md` stay with
+`lab/tennis.py --rally --season …`, because those are the record of what was hit across sessions and this is the film
+of one evening. Two writers to one folder, two different files.

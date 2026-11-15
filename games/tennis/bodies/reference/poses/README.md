@@ -1,0 +1,196 @@
+# Pose references
+
+Photographs generated with Mage, one grid per stroke and camera, at the founder's hands from prompts written
+here. They are reference, not record: nothing in the game is drawn from these, and no pixel of them reaches a
+player. What is taken from them is measurement — joint positions and the angle of the racquet to the forearm at
+named moments — in the same way `lab/reference.py` took proportions from the standing sheet.
+
+The rule the file names follow: `<set><n>-<variant>.jpg`, where a set is f = forehand, b = backhand, s = serve,
+m = movement; the camera is the front (far-end) view unless suffixed `-back` (near-end) or `-side`.
+
+## f1 — forehand, front view, first attempts
+
+- `f1-a.jpg` — the prompt without a character reference.
+- `f1-b.jpg` — a different character.
+- `f1-c.jpg` — `@kirsten`. The founder's choice, and mine, and not for taste.
+
+Three runs of the same text produced three different women: different face, different build, different kit.
+Joint angles measured across that set would be an average of three bodies, which is not a measurement of
+anything. With a named character the figure is one person from panel to panel, so an elbow angle in panel 2 and
+a knee angle in panel 5 belong to the same body and can be fitted together.
+
+All three fail the pose brief in the same way, and the fault is the prompt's, not the model's: the arc described
+("racquet back and up on her right side", "carried up and across", "finish over her left shoulder") is a
+two-handed backhand's arc, and that is what the model drew in panels 2 and 6 — both hands on the handle. The
+corrected text names the left hand in every panel and puts the racquet in the right hand only.
+
+## f1-d — the corrected text, run once
+
+- `f1-d.jpg` — the same brief with the left hand named in every panel and the racquet in the right hand only.
+
+It is half a fix. Panels 3, 4 and 5 are a one-handed forehand with the left hand open and clear of the body —
+that is the arc the renderer needs, and the first time the sheet has produced it. Panels 1, 2 and 6 went back to
+two hands on the handle, which are the frames where the racquet passes the body and the model reaches for the
+familiar shape. Naming the left hand is not enough to hold it there.
+
+## The next sheet drops the racquet
+
+Measurement does not need it. The racquet in the game is built in the page, not in the .glb, and its angle is
+computed every frame from the direction the engine says the ball left in (`placeRacquet` aims the shaft at the
+ball and rolls the bed to `sh.v0`). Nothing about the racquet is measured from a photograph, so drawing one in a
+reference sheet buys nothing and costs the two failures that keep coming back: a second hand on the handle, and
+a racquet lying across the torso where the silhouette instrument cannot separate it from her waist.
+
+The body is what is measured — ankle, knee, hip, shoulder, elbow, wrist, and the angle between the two arms.
+Six frames of a one-handed forehand, hands empty, is a sheet the instrument can read and the model can draw.
+
+Also present and harmless: a soft floor shadow. The silhouette instrument separates her from it without help
+(checked on panel 1 of f1-c: mask rows 236–1136, shadow below threshold), so the ask is not "no shadow" but
+"the racquet clear of her body", which is the overlap that does obscure a measurement.
+
+## The outfit block
+
+The founder's suggestion, 2026-11-11: name the kit in numbers, not adjectives. He is right, and for a reason
+beyond tidiness — the sheets came back with the top sometimes a tee and sometimes a tee-dress, and a hem that
+moves changes the silhouette the instrument reads. Two of the thirteen landmarks in `lab/reference.py` are
+"hip / skirt" at 0.50 of height and "under the skirt" at 0.44; if the hem is in a different place in panel 2 than
+in panel 4, those two rows are measuring different garments.
+
+Revision 2, after the first sheet made with it (`f1-e.jpg`). His corrections, all four taken:
+
+- **No shorts.** The inner shorts clause — "white inner shorts ending 1 inch below the skirt hem" — came back as
+  visible white briefs below the hem in four of six panels, which is underwear drawn by a machine that read the
+  words and not the intent. The skirt is a single layer and nothing shows under it. Deleted.
+- **Not "her hair tied back off her face".** Deleted outright. It is the character reference's job: `@kirsten`
+  already fixes the hair, and instructing it again in words is a second opinion that competes with the first.
+- **"jewelry"**, his spelling, not "jewellery".
+- **"extra arms" goes back in the negative.** He is right and my reasoning last turn did not cover it: "extra
+  arms" is a count correction and it works; "two hands" was a penalty on a body part the positive was asking
+  for, and it damaged the hands. Different mechanisms. Keep count terms, drop part penalties.
+
+The paragraph, verbatim in every set from here — f, b, s and m:
+
+> Her outfit is identical in every frame: a fitted white athletic T-shirt with a plain crew neck, short sleeves
+> ending about 6 inches above the elbow, and a hem ending 3 inches above her navel, so exactly 3 inches of bare
+> midriff shows; a white tennis skirt with the waistband on her hips and the hem 4 inches above the knee, a single
+> layer with no shorts, no briefs and nothing visible below the hem; white ankle socks and white tennis shoes. No
+> logos, no wristbands, no headband, no watch, no jewelry, nothing on her wrists or hands.
+
+Nothing on the wrists is measurement, not taste: the wrist is one of the landmarks and a sweatband moves it.
+
+Negative, revision 2:
+
+> tennis racquet, ball, shadow, extra arms, extra hands, text, watermark, logo, side view, back view, motion
+> blur, different woman, different outfit, cropped head, cropped shoes.
+
+`f1-e.jpg` also failed the framing instruction in two panels — panel 2 has no shoes in frame and panel 5 stops at
+the ankles — and put a horizon line behind her in one panel and not the next. So the wording now says there is
+empty background above her head and below her shoes in every frame, and the backdrop is flat mid-grey with no
+floor line. The costume is fixed; the framing is not yet.
+
+
+## f1-f — framing fixed, and the swing lost with it
+
+`f1-f.jpg` is the first sheet that passes the framing instruction: head to shoes inside every frame with margin,
+flat backdrop, no shorts, midriff consistent. And it is the worst sheet for the thing the sheet exists to
+measure. Panels 4, 5 and 6 are a wave, folded arms and a catalogue stance — not a forehand. Take the racquet out
+and the model loses the verb: "forehand" without an implement is a woman standing with her arms out.
+
+So the founder's two corrections, 2026-11-11, both taken:
+
+- **"invisible racquet".** Tell the model she is swinging a racquet that cannot be seen, rather than that she is
+  holding nothing. The motion survives and nothing is drawn. It also fixes something I got wrong: a forehand hand
+  is *closed* around a grip, not open. The flat open palm I asked for, to keep the model from mangling fingers,
+  was a worse landmark than a fist — and it read as waving.
+- **hair in a ponytail, back in.** Without the line, six panels of long hair falling over the shoulders, which is
+  the neck and the shoulder-line landmarks gone. Not a taste note: a ponytail keeps two of the thirteen rows
+  readable.
+
+Negative gains `visible tennis racquet`. The count terms (extra arms, extra hands) stay; `two hands` stays out.
+
+## f1-g, and the end of the swing sheet
+
+`f1-g.jpg` is the invisible racquet. It bought the verb back — the arms swing, the turn is there — and it paid
+for it with a fist closed around a black stub drawn in every panel, because "invisible racquet" is a contradiction
+a rendering model resolves by drawing a small piece of one. Panels 4 and 5 are punches. Nothing in the sheet is a
+forehand.
+
+Eight grids, four prompts, no forehand. The conclusion is not that the prompt needs a ninth revision. It is that
+a photograph cannot tell me eight joint angles per moment, and the model has a strong prior about what a tennis
+portrait looks like which no wording has moved. The swing becomes a rule in `replay3d.html`, written against the
+geometry the engine already knows — contact point, contact height, the ball's exit direction, the stance the run
+record produced — and checked by looking at the render, which takes seconds instead of a generation round-trip.
+
+The founder's hair correction stands for any future sheet: **"face-framing loose pony-tail"**. Loose and framing
+the face is the character; clear of the shoulders is the measurement (the neck and shoulder-line rows of the tape
+need a silhouette without hair across them), and a loose ponytail is the only wording that has produced both.
+
+## b1 — the backhand, and the first swing sheet that worked
+
+`REQUEST-3-backhand-sequence.md` was filed 2026-11-11 with two prompts: five panels of a two-handed backhand seen
+from behind at 45 degrees, and the same from the side. Both came back on 2026-11-11 22:29 — `back-45.jpg` and
+`back-side.jpg` — and this file did not know until 2026-11-12, which is the first thing to say: a sheet that is not
+logged cannot be measured, and an unmeasured sheet is a picture.
+
+**They are right, both of them.** One woman across five panels, the whole figure and the whole racquet in frame,
+titles under the panels, no ball and no court. The arc is a two-handed backhand from prepare to recover: racquet
+across the body at hip height, up and behind the shoulder, contact out in front with both arms extended, finish over
+the left shoulder, then the racquet back to the chest. The 45-degree rear view shows the shoulder line, which is the
+one thing every earlier sheet lacked.
+
+**Why these worked when eight forehand grids did not, and it is not the wording.** The f1 series failed at the thing
+that mattered — a two-handed arc drawn for a one-handed stroke, then a fist around an invisible racquet — and the
+conclusion drawn at the end of that series was "no ninth revision; write the rule in the renderer". That conclusion
+was half wrong. What the backhand sheets change is the *camera and the patience*: a rear-oblique view where the
+shoulder line and the racquet's plane are both visible, a stroke whose arc the model already knows as a shape
+(both hands on the handle, no ambiguity about which arm does what), and a brief that asks for five named moments
+rather than six unnamed ones. Whether that travels to a one-handed forehand is untested; it should be tried with the
+same camera before the rule-in-the-renderer conclusion is taken as final.
+
+**Owed:** the measurement these exist for — elbow, wrist and racquet-to-forearm angles at the five named moments,
+taken from the same woman across the five panels, checked against what `placeRacquet` and the arm solver produce at
+contact in `replay3d.html`. Not yet done, and it is the whole point of the sheet.
+
+## D-15 — the forehand, from the same camera
+
+*Filed 2026-11-13 as `REQUEST D-15` (register row `open`).*
+
+The paragraph above says the one-handed forehand "should be tried with the same camera before the
+rule-in-the-renderer conclusion is taken as final". D-15 is that trial, and it is the last sheet I intend to
+ask for: one block, run twice, five panels of a right-handed one-handed forehand seen from behind at 45
+degrees, arriving as `fore-45.jpg` and `fore-45-b.jpg` in this folder.
+
+The four numbers it is for are named in the request: the shoulder angle at contact, the racquet head's
+height at the top of the take-back, whether the elbow leads or trails through contact, and where the free
+arm is. Those are exactly the four the renderer currently guesses at.
+
+If the sheets arrive: log them the day they land and measure them against `placeRacquet` at contact. If they
+do not, the f1 conclusion stands as it was written — the rule goes in the renderer — and no further sheet is
+asked for.
+
+## The forehand, rendered rather than requested — 2026-11-13
+
+D-15 asked the founder to render this sheet. It was closed four hours later because the reason for asking had
+gone: `MAGE_API_KEY` is a repo secret on `llm-symposium`, and a secret can be spent by a workflow. So the sheet
+was made here, by `.github/workflows/mage-render.yml`, one image per dispatch, 77 Gems for four attempts, each
+one committed to that repo **with its receipt** — prompt, model, seed, pixels and `gems_charged` beside it.
+
+| run | model | gems | kept as | what it did |
+| - | - | - | - | - |
+| 43503307350 | gpt_image_2, 5 panels | 9 | `fore-45-alt-stroke.jpg` | the stroke is right, the camera is not: panels 1–3 are from her right side, 4–5 from behind |
+| 43503487802 | gpt_image_2, 5 panels, camera pinned | 9 | `fore-45-alt-camera.jpg` | the camera holds, the stroke collapses: PREPARATION and RECOVERY both show the racquet out at hip height |
+| 43503609762 | flux2, 5 panels, no borders | 40 | — | camera holds, stroke collapses, and it drew a ball in four panels after being told not to |
+| 43503869207 | gpt_image_2, **3 panels** | 9 | `fore-45.jpg` | both hold: one woman, one camera, hip-height contact with a straight arm, and two of the three moments right |
+
+**The finding, and it is about the medium rather than the prompt.** At five panels the model can hold the camera or
+the mechanics, not both — the panels drift into near-copies of each other because the stroke has become too many
+instructions to keep straight at that width. At three panels it holds both, and the single panel that still failed
+is the FINISH: asked for the racquet above the *left* shoulder with the arm across the chest, it put the racquet
+above the *right* shoulder. So the count of panels is a prompt parameter that matters as much as the wording, and
+"What is the shoulder angle at contact" is a question a three-panel sheet answers.
+
+**What this sheet is worth, honestly.** Two numbers, in figure-heights so the drawing's scale does not matter: at
+CONTACT the racquet head is at hip height, and it is out to the *side* of the body by most of a shoulder width with
+the arm straight — not in front of the chest. That is a check on `placeRacquet` and the arm solver, and it is the
+check the eight October grids never gave me. The finish remains unmeasured, and asking a diffusion model for it
+again is not the way to get it: three panels, camera pinned, one moment at a time.

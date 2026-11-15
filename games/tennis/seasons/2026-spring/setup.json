@@ -1,0 +1,41 @@
+{
+  "schema": "ait-tennis-setup/1",
+  "written": "2026-11-12T19:57:00Z",
+  "written_by": "the renderer, by hand — there is no runner yet (see SETUP.md §6)",
+  "players": [
+    {
+      "name": "Gwen",
+      "history": 0,
+      "look": {
+        "height_m": 1.72,
+        "build": 0.95,
+        "kit": "#3c6b57",
+        "skin": "#e2b49a",
+        "hair": "#c9a24a",
+        "lower": "skirt",
+        "racquet": true,
+        "hand": "right"
+      }
+    },
+    {
+      "name": "Dmitri",
+      "history": 0,
+      "look": {
+        "height_m": 1.88,
+        "build": 1.06,
+        "kit": "#26324a",
+        "skin": "#6b4630",
+        "hair": "#141210",
+        "lower": "shorts",
+        "racquet": true,
+        "hand": "right"
+      }
+    }
+  ],
+  "session": {
+    "season": "2026-spring",
+    "surface": "clay",
+    "rallies": 20,
+    "temperature": 1.0
+  }
+}
