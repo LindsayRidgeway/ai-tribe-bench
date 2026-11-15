@@ -732,3 +732,26 @@ sampled against wall-clock means anything; and `__seek(t)` sets T while the *ani
 read straight after a seek returns the last frame that drew. That stale read produced a fake 1987.4ft/s "placement"
 and a fake 11.43ft median racquet-to-ball. Every figure above comes from `__poseAt = t => { __seek(t); await two
 rAFs; return __pose() }`.
+
+### The plant, first half — 2026-11-14
+
+The founder's named gap: *"the feet are planted through the hit"* — as a criticism. The stride stops when the run
+record ends and contact is the segment's first frame, so a body arrived and swung on a frozen stride, and the only
+vertical motion through the strike was the `load` term, which dipped the root 0.05ft as the ball came.
+
+Built: the weight goes **up** through the strike. A single stateless term, `0.12 * sin(pi * tl/0.22)`, peaking
+0.12ft just after contact and back to zero by 0.22s — stateless on purpose, because a blended version cannot be
+replayed by a probe that seeks backwards, and an unverifiable change is what this file has already paid for once.
+
+Measured over 40 shots (`/tmp/plant.mjs`, sampling root height at the cut, +0.11s and +0.22s): **median rise
+0.122ft at the peak and 0.004ft of net change by 0.22s** — a rise and a settle, which is what weight going through
+a stroke looks like. Thirty-one of forty land between 0.06 and 0.20ft; the nine above are shots where `reachTo`'s
+own rise for a high ball stacks on top, and that is the pre-existing behaviour, not the new term.
+
+Continuity did not regress: the 570-boundary probe reads **median 1.7ft/s, p90 2.8, 2% over 10, 1% over 20** — the
+same as the carry's own figures, and the sin term enters and leaves contact with zero slope at both ends.
+
+**What is still missing, stated so it is not mistaken for done:** the *feet*. There is no front-foot plant and no
+push off the back foot, because `legs()` is handed a `turn` and a `load` but not which foot is which — a stance has
+a front foot and a back foot and the record does not currently name either. That is the next half, and it needs a
+`stance` field out of the engine before the renderer can use one.

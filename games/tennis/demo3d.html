@@ -1337,6 +1337,15 @@ function tick(now) {
       // is the "statue reaching for something" the founder has been looking at. Measured with ?debug: the hand
       // was 0.86ft short of its own target on every shot.
       reachTo(rig, lead, ball, tl, tl, seg.rally + ":" + seg.n);
+      // THE PLANT. Contact is this segment's first frame and the run ends there, so until now the body arrived and
+      // swung on whatever stride the gait froze in: no weight transfer, no push off the back foot, and the load
+      // constant dipped the root 0.05ft rather than raising it. A stroke is powered from the ground, so the weight
+      // goes DOWN into the front foot and UP through the strike — one rise and settle across 0.22s, peaking at
+      // 0.12ft a little after contact. Stateless on purpose: it is a function of `tl` and nothing else, because a
+      // blended version cannot be replayed by a probe that seeks backwards, and an unverifiable change is the
+      // failure this file has already paid for once.
+      const _plant = Math.max(0, Math.min(1, tl / 0.22));
+      rig.root.position.y += 0.12 * Math.sin(Math.PI * _plant);
       _face.set(sh.v0[0], sh.v0[2], sh.v0[1]).normalize();
       (rig.bones["upperarm" + lead] || rig.bones["chest"]).getWorldPosition(_sh0);
       // `1 - k`, not `k`: k is 1 at the strike and falls to 0 half a second later, and a lerp towards the ready

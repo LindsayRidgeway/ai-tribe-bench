@@ -9,7 +9,13 @@ order, and it does not move to the next item until the done-test passes. Each it
 failure mode of unsupervised work is a plausible-looking change with no number behind it — the carry that silently
 nulled Gwen's arm is the precedent.
 
-## 1. The plant through the hit
+## 1. The plant through the hit — **half done, 2026-11-14**
+
+*Built: the weight rises through the strike (`0.12*sin(pi*tl/0.22)`; median rise 0.122ft, back to 0.004ft by
+0.22s, continuity unchanged). **Owed: the feet** — no front-foot plant and no push off the back foot, because
+`legs()` is not told which foot is the front one. That needs a `stance` field in the record first.*
+
+The original statement of the item follows.
 
 The stride stops when the run record ends, so a player arrives, swings and leaves without ever putting weight on a
 foot. In tennis the stroke is *powered* by the plant: front foot down, hips turn, back foot pushes.
