@@ -35,6 +35,8 @@ FILES = """
 .github/workflows/attic.yml
 .github/workflows/play.yml
 .github/workflows/season.yml
+.github/workflows/paint.yml
+.github/workflows/magazine.yml
 tribe.py
 brief.py
 check.py
@@ -52,6 +54,7 @@ play/log.py
 lab/members.py
 lab/tennis.py
 lab/rps.py
+lab/paint.py
 issues/README.md
 letters/README.md
 plates/README.md
@@ -111,6 +114,77 @@ def unshipped(include_dirs: bool = True) -> dict[str, list[str]]:
     return {k: v for k, v in workflow_refs().items() if k not in shipped}
 
 
+CODE_SUFFIXES = (".py", ".html", ".mjs", ".sh")
+
+
+def dispatched() -> dict[str, list[str]]:
+    """Workflow names the shipped code starts, mapped to the shipped files that start them.
+
+    `unshipped()` above watches the direction *inside* a workflow: a shipped workflow that runs a script
+    nobody added. This watches the direction the owner actually presses: a file we ship offers a button and
+    names the workflow behind it. If that workflow is not on the list, the press is a promise with no
+    machinery behind it — `paint.yml` and `magazine.yml` were both missing until 2026-11-14 while
+    `USER-MANUAL.md` §8 and §9 shipped in full and described both cards, and `--check` passed, because it
+    only ever asked whether the files already on the list existed.
+
+    Only code is scanned, never the manual: prose names instruments like `lab/chat.py` that a tribe is
+    deliberately not given, and a check that fires on a correct sentence is a check somebody switches off.
+
+    `ait.html` is scanned by name rather than through the list, because it is *not* in a tribe's
+    repository: the page is served once, from the project's own site, and it is the one file every
+    owner of every tribe uses. A workflow it names must exist in the repository the button will reach.
+    """
+    out: dict[str, list[str]] = {}
+    page = ROOT / "ait.html"
+    candidates = list(FILES) + (["ait.html"] if page.is_file() else [])
+    for p in candidates:
+        path = ROOT / p
+        if not p.endswith(CODE_SUFFIXES) or not path.is_file():
+            continue
+        text = path.read_text(errors="replace")
+        for m in re.finditer(r"""['"]([a-z0-9_-]+\.yml)['"]""", text):
+            owners = out.setdefault(m.group(1), [])
+            if p not in owners:
+                owners.append(p)
+    return out
+
+
+def unshipped_dispatches() -> dict[str, list[str]]:
+    """Workflows the shipped code starts that the template would not contain."""
+    return {k: v for k, v in dispatched().items() if f".github/workflows/{k}" not in FILES}
+
+
+def unshipped_imports() -> dict[str, list[str]]:
+    """Local modules a shipped script imports and the template would not contain.
+
+    The same silent failure as `unshipped()`, one step earlier: not a workflow calling a missing script,
+    but a script calling a missing module. Nothing in this repository notices, because here it imports.
+
+    Both shapes are caught, because both are in use: `from lab.x import …`, and `sys.path.insert(...)` then
+    `from x import …` — which is how `tribe.py` reads the model table out of `lab/rps.py` to decide whether
+    a new member can ever answer. That one is wrapped in `except Exception: return ""`, so a missing module
+    is not an error there, it is a member created and unable to speak, which is the defect its own comment
+    describes. A name only counts as local when `lab/<name>.py` exists on this bench, so no stdlib import
+    can ever trip this.
+    """
+    local = {p.stem for p in (ROOT / "lab").glob("*.py")}
+    out: dict[str, list[str]] = {}
+    for p in FILES:
+        path = ROOT / p
+        if not p.endswith(".py") or not path.is_file():
+            continue
+        text = path.read_text(errors="replace")
+        for m in re.finditer(r"^\s*(?:from|import)\s+(?:lab\.)?([A-Za-z0-9_]+)", text, re.M):
+            if m.group(1) not in local:
+                continue
+            want = f"lab/{m.group(1)}.py"
+            if want not in FILES:
+                owners = out.setdefault(want, [])
+                if p not in owners:
+                    owners.append(p)
+    return out
+
+
 def paths() -> list[str]:
     out = list(FILES)
     for d in DIRS:
@@ -138,7 +212,13 @@ def main() -> int:
         bad = unshipped()
         for script, wfs in bad.items():
             print(f"a workflow runs {script}, which the template does not ship ({', '.join(wfs)})")
-        return 1 if (missing or bad) else 0
+        no_wf = unshipped_dispatches()
+        for wf, where in no_wf.items():
+            print(f"{', '.join(where)} starts {wf}, which the template does not ship")
+        no_mod = unshipped_imports()
+        for mod, where in no_mod.items():
+            print(f"{', '.join(where)} imports {mod}, which the template does not ship")
+        return 1 if (missing or bad or no_wf or no_mod) else 0
 
     out = Path(a.out)
     if out.exists():

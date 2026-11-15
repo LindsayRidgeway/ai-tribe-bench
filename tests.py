@@ -4742,6 +4742,37 @@ class TheTemplateMustBeEnough(unittest.TestCase):
         self.assertEqual(missing, [], "whitelisted but not on disk")
         self.assertEqual(mt.unshipped(), {}, "a shipped workflow runs a script the template does not ship")
 
+    def test_every_workflow_the_page_starts_ships(self):
+        """The button on the page is a promise; the workflow behind it is the machinery.
+
+        Found 2026-11-14: `paint.yml` and `magazine.yml` were absent from the whitelist while the shipped
+        manual described §8 Pictures and §9 the magazine in full, so a new owner could press both and get
+        nothing — and `--check` passed 40/40 the whole time, because it only asked whether the files on the
+        list existed. This is the assertion that would have failed.
+        """
+        sys.path.insert(0, str(REPO / "lab"))
+        import make_template as mt
+        self.assertEqual(mt.unshipped_dispatches(), {},
+                         "the page starts a workflow the template does not ship")
+
+    def test_the_new_checks_actually_fire_when_a_workflow_is_left_out(self):
+        """A check nobody has seen fail is a check nobody knows works."""
+        sys.path.insert(0, str(REPO / "lab"))
+        import make_template as mt
+        saved = mt.FILES[:]
+        try:
+            mt.FILES = [f for f in saved
+                        if f not in (".github/workflows/paint.yml", ".github/workflows/magazine.yml",
+                                     "lab/paint.py", "lab/rps.py")]
+            self.assertIn("paint.yml", mt.unshipped_dispatches())
+            self.assertIn("magazine.yml", mt.unshipped_dispatches())
+            self.assertEqual(mt.unshipped_imports().get("lab/rps.py"),
+                             ["tribe.py", "lab/tennis.py"],
+                             "the model table is read out of lab/rps.py behind an except: pass")
+        finally:
+            mt.FILES = saved
+        self.assertEqual(mt.unshipped_dispatches(), {}, "restoring FILES must restore the clean report")
+
     def test_the_template_carries_no_members_and_no_fixtures(self):
         sys.path.insert(0, str(REPO / "lab"))
         import make_template as mt
