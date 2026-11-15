@@ -1118,8 +1118,9 @@ function viewInstall(main){
     belongs to a member, not to a tribe, and a Gemini member and a DeepSeek member need keys from different
     companies. So the first thing after install is <em>Add a member</em>, which asks for a name, an engine, and
     that engine's key — and offers the page where the key comes from. One honest gap: that key is held in this
-    browser for chat, and handing the same key to the clock, as a repository secret, is the next thing I wire.
-    So a fresh tribe will talk before it wakes.</div>`;
+    browser, for chat. Waking on its own needs the same key as a <strong>repository secret</strong>, which this page
+    cannot write for you — add it under Settings → Secrets and variables → Actions, and <strong>Today</strong> will
+    tell you plainly if you have not. So a fresh tribe will talk before it wakes.</div>`;
 
   const tok = $('tok'), name = $('tname'), msg = $('imsg'), btn = $('install');
   let login = '';
@@ -1457,6 +1458,30 @@ async function viewToday(main){
   const quiet = members.filter(m => m.lastWake === 'never' ||
     (isNaN(Date.parse(m.lastWake)) ? false : Date.now() - Date.parse(m.lastWake) > 30 * 3600e3));
 
+  // Which of these members the clock cannot reach, from the two facts the page can actually read. `null` when it
+  // cannot see them (no workflow, a token without admin) — and then the page says nothing at all, which is the
+  // same rule the public/private note follows: silence instead of an accusation it cannot support.
+  const gaps = await clockGaps(members).catch(() => null);
+  const armed = (gaps && gaps.length) ? (() => {
+    const named = (arr) => arr.map(g => `${esc(g.name)} (${esc(g.engine)})`).join(', ');
+    const noKey = gaps.filter(g => g.secret), unreachable = gaps.filter(g => !g.secret && !g.local);
+    const weights = gaps.filter(g => g.local);
+    const secrets = [...new Set(noKey.map(g => g.secret))];
+    return `<div class="notice"><strong>${gaps.length === 1 ? 'A member here' : gaps.length + ' members here'}`
+      + ` will never wake on the clock.</strong> `
+      + (noKey.length ? `${named(noKey)} ${noKey.length === 1 ? 'is' : 'are'} on an engine with no key in this `
+          + `repository — add ${secrets.map(s => `<code>${esc(s)}</code>`).join(' and ')} under `
+          + `Settings → Secrets and variables → Actions. The Keys tab holds this browser's copy, for chat; a `
+          + `scheduled run can only read the repository's. ` : '')
+      + (unreachable.length ? `${named(unreachable)} ${unreachable.length === 1 ? 'is' : 'are'} on an engine this `
+          + `tribe's own clock does not hand a key to, which means the copy in the repository is older than this `
+          + `page. ` : '')
+      + (weights.length ? `${named(weights)} ${weights.length === 1 ? 'runs' : 'run'} on weights on your own `
+          + `machine, and the clock runs on GitHub, which has none. ` : '')
+      + `A run that skips a member leaves every step successful, so nothing else on this page would tell you.`
+      + `</div>`;
+  })() : '';
+
   const rows = members.map(m => `
     <div class="member" onclick="setView('m/${encodeURIComponent(m.name)}')">
       <div class="grow">
@@ -1472,9 +1497,10 @@ async function viewToday(main){
     <h1>Today</h1>
     <p class="muted small">${members.length} member${members.length === 1 ? '' : 's'} · last read ${new Date().toLocaleTimeString()}</p>
     ${UPDATE_NOTE ? `<p class="small muted">${esc(UPDATE_NOTE)}</p>` : ''}
+    ${armed}
     ${quiet.length ? `<div class="notice">The clock has gone quiet for ${quiet.map(m => esc(m.name)).join(', ')}.
       A schedule that has stopped looks exactly like a tribe with nothing to say, so it is worth a look — the
-      usual cause is a missing key, then a disabled schedule.</div>` : ''}
+      usual cause is ${gaps && gaps.length ? 'a schedule GitHub has disabled' : 'a missing key, then a disabled schedule'}.</div>` : ''}
     <div class="card">${rows}</div>
     <div class="row" style="margin-top:14px">
       <button class="primary" onclick="addMember()">Add a member</button>
@@ -1822,6 +1848,28 @@ async function clockKeyedEngines(){
     const found = [...f.text.matchAll(/secrets\.TRIBE_API_KEY_([A-Za-z0-9_]+)/g)].map(m => m[1].toLowerCase());
     return [...new Set(found)];
   } catch(e){ return null; }
+}
+
+/* The quietest failure this product has: a tribe whose clock is not armed wakes nobody, every run stays green —
+   a member that was skipped leaves every step successful — and the page said nothing until one member had been
+   silent for thirty hours, and then guessed at the cause. Both facts needed to replace the guess are already on
+   this page: which engines the clock forwards, read out of its own workflow, and which secret names the
+   repository holds. Null when it can see neither, because a page that cannot check must not accuse. */
+async function clockGaps(members){
+  const engines = await clockKeyedEngines();
+  const have = await repoSecrets();
+  if (!engines || !have) return null;
+  const gaps = [];
+  for (const m of members || []){
+    const e = String(m.engine || '').trim().toLowerCase();
+    if (!e) continue;
+    // Weights on somebody's own machine: no key to miss, and nothing a runner can reach.
+    if (e === 'local'){ gaps.push({name: m.name, engine: e, secret: '', local: true}); continue; }
+    if (!engines.includes(e)){ gaps.push({name: m.name, engine: e, secret: ''}); continue; }
+    const secret = 'TRIBE_API_KEY_' + e.toUpperCase();
+    if (!have.has(secret)) gaps.push({name: m.name, engine: e, secret});
+  }
+  return gaps;
 }
 
 async function wakeNow(name){

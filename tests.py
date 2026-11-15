@@ -841,6 +841,43 @@ class TestPlates(unittest.TestCase):
             if old_dir is not None:
                 tribe.MEMBERS = old_dir
 
+    def test_the_vendors_with_keys_are_read_from_the_environment_not_from_a_list(self):
+        """`clock.yml` named three engines by hand -- deepseek, gemini, qwen -- directly under the ten secrets the
+        same step forwards. So a member on Anthropic or OpenRouter was skipped by the chooser every turn while the
+        step held its key, and the log said `keys for: deepseek`: true about the list, false about the world. It is
+        the four-of-ten `env:` defect one line lower, and the cure is the same -- the list is read from the thing it
+        describes. Measured 2026-11-15; `tribe.py next --keyed-from-env` is what the clock runs now."""
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp, True)
+        for m, vendor, place in (("e", "anthropic", "shop"), ("f", "openrouter", "bus")):
+            st = tmp / "wake" / "members" / m / "state"
+            st.mkdir(parents=True)
+            (st / "voice.md").write_text(f"api: {vendor}\nmodel: m-{m}\n", encoding="utf-8")
+            (st / "place.md").write_text(f"place: {place}\n", encoding="utf-8")
+            (st / "state.md").write_text("- Wakes so far: 0\n- Last wake: (never) UTC\n", encoding="utf-8")
+            (st / "journal.md").write_text("", encoding="utf-8")
+            (st / "open-items.md").write_text("# Open items -- there are none\n", encoding="utf-8")
+        old_dir = getattr(tribe, "MEMBERS", None)
+        # Any key the machine running the suite happens to have must not leak into the reading.
+        saved = {k: os.environ.pop(k) for k in list(os.environ) if k.startswith("TRIBE_API_KEY_")}
+        try:
+            tribe.MEMBERS = tmp / "wake" / "members"
+            self.assertEqual(tribe.keyed_from_env(), "", "no key in the environment is no vendor")
+            os.environ["TRIBE_API_KEY_ANTHROPIC"] = "not-a-real-key"
+            self.assertEqual(tribe.keyed_from_env(), "anthropic")
+            self.assertEqual([r[1] for r in tribe.next_up(keyed=tribe.keyed_from_env())], ["e"],
+                             "the member whose engine the environment has a key for is the one woken")
+            os.environ["TRIBE_API_KEY_OPENROUTER"] = "not-a-real-key"
+            self.assertEqual(tribe.keyed_from_env(), "anthropic openrouter")
+            self.assertEqual(sorted(r[1] for r in tribe.next_up(keyed=tribe.keyed_from_env())), ["e", "f"],
+                             "a second engine with a key in the repository is not skipped")
+        finally:
+            if old_dir is not None:
+                tribe.MEMBERS = old_dir
+            for k in [k for k in os.environ if k.startswith("TRIBE_API_KEY_")]:
+                os.environ.pop(k)
+            os.environ.update(saved)
+
     def test_a_members_own_heading_is_not_printed_twice(self):
         """The magazine prints `## Title` above every piece, and most members start their file with
         `# Title`. The result was a title, a byline, and the same title again — visible in every issue,
@@ -4231,6 +4268,21 @@ class TestWorkflows(unittest.TestCase):
                            f"missing {', '.join(missing)}")
         self.assertEqual(bad, [], "a workflow that forwards one engine's key must forward the rest; "
                                   "otherwise a member on the missing engine is told the key is not set")
+    def test_the_clock_asks_the_tool_which_keys_it_has(self):
+        """The step that decides whose turn it is must not carry its own list of vendors.
+
+        It did until 2026-11-15: three engines written by hand under ten forwarded secrets, so the runner held a
+        key the chooser had never heard of and a member on that engine was skipped every turn -- with the log
+        saying `keys for: deepseek`. A list of what is present, kept by hand, is a copy of the environment it runs
+        in; the fix is to read the environment. This is the guard: the file calls the flag, and no `KEYED=` list of
+        engines comes back.
+        """
+        src = (self.WF / "clock.yml").read_text(encoding="utf-8")
+        self.assertIn("--keyed-from-env", src, "the clock is back to guessing which keys it has")
+        self.assertNotIn('KEYED="$KEYED', src, "a hand-written vendor list is back in the clock")
+        for engine in ("deepseek", "gemini", "qwen"):
+            self.assertNotIn(f'KEYED="$KEYED {engine}"', src)
+
     def test_no_workflow_carries_a_list_of_member_names(self):
         """The Run-workflow form used to offer a `type: choice` drop list of member names. Two things were wrong
         with it, and only the first was obvious.

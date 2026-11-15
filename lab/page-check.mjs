@@ -1576,6 +1576,83 @@ async function main(){
     return '';
   });
 
+  /* the clock's key, 2026-11-15 — the page says when a member will never wake, instead of guessing 30 hours later.
+     The founder's own evening: two keys on the Keys tab, "all the required keys are now provided", and a
+     repository with none. The page's Keys tab holds this browser's copy; a scheduled run can only read the
+     repository's. The page already knew how to read the repository's secret *names* (after a failed run) and how
+     to read the engines the clock forwards — this is the same two facts, asked before anything fails. */
+  const CLOCK_YML = ['.github/workflows/clock.yml', 'name: clock\njobs:\n  wake:\n    steps:\n'
+    + ['deepseek','gemini','qwen','openai','groq','openrouter','cerebras','mistral','together','anthropic']
+        .map(e => `      - run: echo\n        env:\n          TRIBE_API_KEY_${e.toUpperCase()}: \${{ secrets.TRIBE_API_KEY_${e.toUpperCase()} }}`)
+        .join('\n') + '\n'];
+  const plantMember = (name, api) => {
+    seed(`wake/members/${name}/state/identity.md`, `# ${name}`);
+    seed(`wake/members/${name}/state/journal.md`, '# Journal\n');
+    seed(`wake/members/${name}/state/state.md`, '# State\n\nWakes so far: 2\nLast wake: 2026-11-15 12:00 UTC\n');
+    seed(`wake/members/${name}/state/voice.md`, `api: ${api}\nmodel: someone's-model\n`);
+    for (const f of ['place', 'open-items', 'memory']) seed(`wake/members/${name}/state/${f}.md`, '# ' + f + '\n');
+  };
+
+  reset();
+  seed(CLOCK_YML[0], CLOCK_YML[1]);
+  plantMember('Lumi', 'deepseek');
+  plantMember('Wisp', 'local');
+  const unarmed = await tryRun(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main'; S.owner = 'Sam';
+    await viewToday(document.getElementById('main'));
+    return document.getElementById('main').innerHTML;
+  })()`);
+
+  check('a member whose engine has no key in the repository is named, with the secret to add', () => {
+    if (unarmed.err) return unarmed.err;
+    const html = String(unarmed);
+    if (!/will never wake on the clock/.test(html)) return 'the page says nothing about a clock that cannot wake anyone';
+    if (!/TRIBE_API_KEY_DEEPSEEK/.test(html)) return 'it does not name the secret the repository is missing';
+    if (!/Settings .* Secrets and variables .* Actions/s.test(html)) return 'it does not say where a repository secret goes';
+    if (!/Keys tab holds this browser.s copy/.test(html)) return 'it does not say why the key on the Keys tab is not enough';
+    return '';
+  });
+  check('and weights on your own machine are told apart from a missing key', () => {
+    if (unarmed.err) return unarmed.err;
+    const html = String(unarmed);
+    if (!/Wisp \(local\)/.test(html)) return 'the local member is not named';
+    if (!/weights on your own machine/.test(html)) return 'a member on weights is given the missing-key sentence, which is not its problem';
+    if (!/the clock runs on GitHub, which has none/.test(html)) return 'it does not say why a runner cannot reach weights';
+    return '';
+  });
+
+  reset();
+  seed(CLOCK_YML[0], CLOCK_YML[1]);
+  plantMember('Lumi', 'deepseek');
+  actions.secrets = ['TRIBE_API_KEY_DEEPSEEK'];
+  const armedRoom = await tryRun(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main'; S.owner = 'Sam';
+    await viewToday(document.getElementById('main'));
+    return document.getElementById('main').innerHTML;
+  })()`);
+
+  check('a repository that holds the key is not accused of missing it', () => {
+    if (armedRoom.err) return armedRoom.err;
+    if (/will never wake on the clock/.test(String(armedRoom))) return 'the page warns about a clock that is armed';
+    return '';
+  });
+
+  reset();
+  seed(CLOCK_YML[0], CLOCK_YML[1]);
+  plantMember('Lumi', 'deepseek');
+  actions.secretsDenied = true;
+  const blind = await tryRun(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main'; S.owner = 'Sam';
+    await viewToday(document.getElementById('main'));
+    return document.getElementById('main').innerHTML;
+  })()`);
+
+  check('a token that cannot see the secrets is told nothing rather than told a guess', () => {
+    if (blind.err) return blind.err;
+    if (/will never wake on the clock/.test(String(blind))) return 'the page accuses a repository it could not read';
+    return '';
+  });
+
   /* the verdict */
   let bad = 0;
   /* 22 — the sentence that survives the repaint. `render()` rebuilds the view, so a success written into the
