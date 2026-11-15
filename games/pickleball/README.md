@@ -339,7 +339,7 @@ afternoon what two papers and I cannot settle from a chair.
 
 ## §5 The engine, as built — 2026-11-15, the same day as §1–§4
 
-`lab/pickleball.py`, 19 tests in `tests.py` (`TestPickleball`), 344 tests in the suite, all passing. The
+`lab/pickleball.py`, 19 tests in `tests.py` (`TestPickleball`), 346 tests in the suite, all passing. The
 rules are the page's rules, the ball is the page's ball, and the game is text.
 
 **The four things §4 asked for, measured rather than promised.**
