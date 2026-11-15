@@ -228,6 +228,9 @@ only. This was not a look — it was the game refusing to model the thing that m
 
   Through points (150 a pairing, same seed): at 300 balls 24% and 38% of the balls each player had to get to were
   not reached; at 600 balls 22% and 22%. The old rule: 0% in every cell, at every skill level, which is the defect.
+  **Re-measured after the shot chooser came over (Item 14, same day): 3-5% of balls, and 31 points in 60 ending on a
+  beat rather than a miss.** A point is ten shots now instead of two, so most balls are reached and the *points*
+  are still won; the band in the done-test above was a proxy for that and the proxy has stopped meaning anything.
 - **Guard:** met. A player with `reach=0.35` reaches 74% of the fixed population — the 70% floor, and only just.
   The radius is what bought it: at 3.0ft the same population was 40% reached and beginner points were 56% not
   reached, which is the guard doing its job. The 7.0ft is generous on purpose and the reason is written in the code:
@@ -327,6 +330,39 @@ functions in the record generator's call list that exist, and rally length befor
 decision this needs, and it is not mine:** the longer engine is where the records came from, so merging is the
 direction that keeps the films; but merging is also how the last three days of movement work on main would be
 lost if it is done by copying files. It has to be done function by function, with the suite green after each.
+
+
+**What came over first, and what it measured.** The shot chooser is one port and it is done: `hands()`, `corners_of`,
+`side_of`, `placement`, `serve_corners`, `_not_the_same_ball_twice`, `choose_shot` and `recovery_spot` are on main,
+and `play_point` now carries both players' feet (`where`), chooses each ball from the situation, and recovers the
+hitter behind the baseline — or in behind an approach — before the next ball is chosen. The interception is asked
+about the position their legs actually left them in, which is what `interception(frm=…)` was for.
+
+| | before the port | after |
+|---|---|---|
+| median point, 300 balls | 2 shots | **10 shots** (mean 13.2, longest 40+) |
+| median point, 600 balls | 2 | **11** |
+| serve in | 23-38% | 93% at 300 and 600, 42% at 0 |
+| points ending on a beat rather than a miss | 13/60 | **31/60** |
+| balls not reached, per ball | 22% | 3-5% |
+
+That last row is worth saying plainly: Item 10's "10-30% of balls not reached" was written for a game where a point
+was two shots, and once a point is ten shots the same rule gives 3-5% of balls and half the points. The band was a
+proxy for "points do not all end on misses", and they no longer do. Nothing was retuned to hit it.
+
+**And the port found two arithmetic bugs that had been in every shot ever played here.** (1) `strike` computed the
+azimuth as `atan2(aim - y, 32.0)` — thirty-two feet, for every shot in the game, whether the ball had fifty feet to
+travel or seventy. The lateral error was therefore proportional to the length of the shot, so a corner aimed four
+feet inside the sideline landed six feet outside it, which is why every miss list in this file says "wide". It takes
+`aim_dist` now, and `aim_at` passes the real distance. (2) A serve's depth is set by how hard it is hit, not by the
+face — `aim_at` bisects the face and leaves the power alone, which is right for a ball struck from three feet and
+wrong for one struck from 8.8. That is why serving a corner meant serving into the net. `aim_serve` bisects power at
+a chosen face.
+
+**Still owed in this item:** the rest of the longer engine — `intercept` (superseded by `interception` and not to be
+ported), `volley_contact`, `hit_window` and the tracing `flight` — and `lab/tennis_script.py` running against main.
+The serve is also now visibly a 50mph arc rather than a tennis serve, because it has no toss and no overhead: that
+is the movement list's item 3, and it is why serve-in is 93% and not 65%.
 
 ## What V1 means
 
