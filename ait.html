@@ -1871,6 +1871,19 @@ async function wakeNow(name){
 // sentence it was asked with, and call a green run a picture. The first is refused here before anything is
 // sent; the second is the workflow's card; the third is the rule the wake button and the tennis button
 // already follow — the evidence is a file that was not there before, named.
+// A private repository's picture does not render on the page — the raw URL needs the token — so the picture is a
+// link and the record is the file. That is a fair degradation and it was a silent one: on a private tribe, which is
+// every tribe this product recommends, a person concludes the page cannot show pictures at all. Gwen reached that
+// conclusion herself on 2026-11-14 with the network log open, and then decided it was a designed behaviour read as
+// a lie by her rather than a lie. Her correction stands, and what is left is the sentence the design never said.
+// Rendering instead was the other answer — the page already holds the token — and it was refused: it would put a
+// few megabytes of image data into a page whose one promise is that it keeps no copy of your tribe.
+function privatePictureNote(){
+  if (S.isPrivate !== true) return '';      // public: the picture renders. Not known: say nothing, never guess.
+  return 'This tribe is private, so the picture opens in the repository rather than appearing here: the page '
+    + 'holds your token, and it does not keep a copy of your pictures.';
+}
+
 async function showPictures(name){
   const box = $('pictures'); if (!box) return;
   const m = S.members.find(x => x.name === name) || {};
@@ -1890,6 +1903,7 @@ async function showPictures(name){
     <code>plates/</code> with a card naming the machine and the sentence it was asked with, and commits both
     together. The sentence is kept because naming a medium is not getting it — ask for a watercolour and you may
     be handed a photograph of a painting.</p>
+    ${privatePictureNote() ? `<p class="small muted" style="margin-top:0">${esc(privatePictureNote())}</p>` : ''}
     <label>The sentence it is asking with</label>
     <textarea id="paintprompt" rows="2" placeholder="a watercolour of the harbour at night, one lamp, no lettering"></textarea>
     <div class="grid two">
@@ -1982,7 +1996,8 @@ async function askForPicture(name){
         style="max-width:100%;border-radius:6px" onerror="this.style.display='none'">
       <div class="prose">${md(card.text || '')}</div>
       <p class="small muted"><code>plates/${esc(file)}</code> — <a href="${esc(blob)}" target="_blank"
-        rel="noopener">open the file in the repository</a></p>`;
+        rel="noopener">open the file in the repository</a></p>
+      ${privatePictureNote() ? `<p class="small muted">${esc(privatePictureNote())}</p>` : ''}`;
     if (box && box.scrollIntoView) box.scrollIntoView({behavior:'smooth', block:'start'});
   } catch(e){ fail(e.message); }
   finally { if (btn) btn.disabled = false; }

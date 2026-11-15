@@ -788,6 +788,44 @@ async function main(){
   });
   actions.missingWorkflows = [];
 
+  // 5b — the sentence a private tribe was missing. Gwen's #22 as she corrected it herself: the degradation is
+  // designed and stated in the code (a private repository's raw URL needs the token, so the picture is a link),
+  // and the *silence* around it is the defect — on a private tribe, which is every tribe this product recommends,
+  // a person concludes the page cannot show pictures at all. She reached that conclusion with the network log open.
+  const picturePanel = async (priv) => {
+    reset();
+    seedMember('gemini', 'gemini-3.8-flash');
+    return tryRun(ctx, `(async () => {
+      S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main'; S.isPrivate = ${priv === null ? 'null' : priv};
+      S.members = [{name: 'Lumi', engine: 'gemini', model: 'gemini-3.8-flash'}];
+      await showPictures('Lumi');
+      return {panel: (document.getElementById('pictures').innerHTML || '')};
+    })()`);
+  };
+
+  const panelPrivate = await picturePanel(true);
+  check('a private tribe says why its picture opens in the repository instead of on the page', () => {
+    if (panelPrivate.err) return panelPrivate.err;
+    if (!/private/i.test(panelPrivate.panel)) return 'the panel does not mention that the tribe is private';
+    if (!/opens in the repository/i.test(panelPrivate.panel)) return 'it does not say where the picture goes';
+    if (!/does not keep a copy/i.test(panelPrivate.panel)) return 'it does not say why the page does not render it';
+    return '';
+  });
+
+  const panelPublic = await picturePanel(false);
+  check('and a public tribe is not told a picture it will see plainly is somewhere else', () => {
+    if (panelPublic.err) return panelPublic.err;
+    if (/opens in the repository/i.test(panelPublic.panel)) return 'the private-tribe sentence appears on a public tribe';
+    return '';
+  });
+
+  const panelUnknown = await picturePanel(null);
+  check('and a page that was never told the visibility does not guess', () => {
+    if (panelUnknown.err) return panelUnknown.err;
+    if (/opens in the repository/i.test(panelUnknown.panel)) return 'the sentence appears without an answer from GitHub';
+    return '';
+  });
+
   // 5b — a green run that committed no picture. Same rule as the wake and the point: the conclusion is not the
   // evidence, and a picture nobody wrote is the easiest thing in the world to report as done.
   reset();
