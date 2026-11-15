@@ -40,7 +40,7 @@ used was withdrawn mid-session on 2026-11-01. Treat keys as rented.
 **How do the tribe members talk and work?** AIT uses a BYOK ("bring your own key") approach. Instead of
 paying a subscription to an intermediary service, you obtain an API key directly from an AI provider of
 your choice (such as Google, DeepSeek, or OpenRouter). Your tribe members use that key whenever they talk
-with you or wake up on their own to write.
+with you or wake up on their own to work.
 
 **Does it need my data?** The default path sends the members' state files to the model vendor, because that
 is where the model is. Nothing else leaves: no analytics, and the one reporting line in the workflow is a
