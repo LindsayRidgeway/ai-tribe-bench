@@ -334,3 +334,61 @@ new game wearing the old one's numbers.
 that Steyn et al. are wrong — only that their slow-and-flat corner is unreachable under a 2.83-ft net, that I
 cannot reproduce it, that their own two numbers disagree by 25%, and that one measured ball settles in an
 afternoon what two papers and I cannot settle from a chair.
+
+---
+
+## §5 The engine, as built — 2026-11-15, the same day as §1–§4
+
+`lab/pickleball.py`, 15 tests in `tests.py` (`TestPickleball`), 327 tests in the suite, all passing. The
+rules are the page's rules, the ball is the page's ball, and the game is text.
+
+**The four things §4 asked for, measured rather than promised.**
+
+| §4's requirement | what exists | number |
+|---|---|---|
+| twelve imports, no copies | `lab/tennis.py` gained five backwards-compatible keyword arguments (`drag`, `lift`, `net_x`, `surfaces`, `net_profile`) and a `sport=` on the season functions; `lab/pickleball.py` imports all twelve | **0 of 8** tennis margin rows moved; **0 differences in 2,408** integrated shots before/after |
+| no Python in the game folder | `games/pickleball/` holds this file and `records/` only | `find … -name '*.py'` → **0** |
+| no physics literals outside the lab | an AST test, not a grep: a *definition* is caught, a printed number is not — which is how it caught `RHO` restated in `pickleball.py` and forced the import | offenders: `putt.py` 32.17 only (the copy that already existed) |
+| the page's numbers reproduce | `--rules` recomputes the window table from the file's own constants | 35 mph **10.1°**, 40 **5.8°**, 45 **3.5°** against the page's 10.1 / 5.9 / 3.5 |
+
+**The learning curve is in the engine, and nothing in the code asks for it.** Same chooser, same court, only
+the balls hit differ (6 games per row):
+
+| balls hit before | mean rally | longest | serve faults | kitchen faults | momentum faults |
+|---|---|---|---|---|---|
+| 0 | **1.8** shots | 9 | 12 | 10 | 12 |
+| 200 | **4.4** | 16 | 0 | 28 | 59 |
+| 600 | **7.0** | 34 | 0 | 21 | 58 |
+
+That is the founder's 2026-11-04 sentence — *rallies get longer as the players develop, and not because you
+programme it* — appearing in a second sport without being programmed. Across 12 games at 12 pinned clocks:
+7 wins north, 5 south, mean rally 5.1 shots, longest 34, and one 14–12 that proves win-by-two is a rule and
+not a label. Serve-in by practice, 150 serves each: **43% / 72% / 91% / 95%** at 0 / 150 / 300 / 600 balls.
+The record of one game is `records/scripted-2026-11-15.txt`, replayed from a pinned clock.
+
+**Three defects the build found, each of which the page could not have caught, and each now a test:**
+
+1. **A bisection that returned a lob for a target the flat shot reaches.** Face angle to landing distance is
+   not monotone — it peaks near 40° and falls — so bisecting the whole range sent every serve to +45° and
+   eleven feet wide. Fixed by scanning for the maximum-range face and bisecting only below it, then raising
+   the face until it clears the net by `NET_MARGIN` = 0.7 ft. A solver that returns a tape-grazer is solving
+   for the fault.
+2. **The harness aimed every south-end shot into the south end's own court.** A target depth is measured
+   from the hitter's *own* baseline, and one version passed a raw x: the north team won 11–0 three times
+   before I looked at the lines instead of the scoreline.
+3. **The clock's wind rule is unusable for this ball.** A 33 mph serve reaches 49.5 ft in still air, 35.6 ft
+   into a 12 mph headwind, and **27.5 ft into 20 mph — short of the kitchen line, so no legal serve exists**.
+   Tennis's belt runs to 23 mph. Pickleball's wind is now capped at **12 mph**, the cap is printed with the
+   session, and the measurement behind it is a test.
+
+**One thing to fix, named rather than smoothed.** Of the kitchen faults the engine produces, the momentum
+clause is the large majority — 59 against 28 contact faults at practice 200. That is a property of the
+harness, not of the sport: the scripted player follows its shot in to 4 ft outside the line and then volleys
+from within 2 ft of it, which is exactly the position the carry rule punishes. A player that read its own
+history would stand a foot further back. The fix is a chooser that learns, which is the next item and not a
+tuning constant.
+
+**Next, in order:** the measured ball (§1 says why it is first); then a chooser that reads the momentum
+faults and steps back, which is the first thing in this game a member could *learn*; then the driving game
+played by members on their own engines rather than by the harness; then the dink game once the ball is
+measured; then the renderer, the season and the person's seat, which are tennis's.

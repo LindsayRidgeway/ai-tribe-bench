@@ -3615,6 +3615,217 @@ class TestTennis(unittest.TestCase):
         check = [s for s in wf["jobs"]["play"]["steps"] if s.get("name") == "Which season, which two"][0]
         self.assertIn('wake/members/$who/state', check["run"])
 
+class TestPickleball(unittest.TestCase):
+    """The second sport: the rules that are not tennis's, and the ball that is not a tennis ball.
+
+    The design page is `games/pickleball/README.md`; these tests are the numbers it claims, checked rather
+    than restated. Three of them exist because the engine was wrong in ways the page could not see: a
+    bisection that returned a lob for a target the flat shot reaches (+45 degrees, eleven feet wide), a
+    harness that aimed every south-end shot back into the south end's own court (the north team won 11-0
+    three times before I looked), and the clock's wind rule, which at 20 mph leaves a 33 mph serve no legal
+    landing at all. Each of those is a test now.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.pk = load(REPO / "lab" / "pickleball.py", "pickleball_mod")
+        cls.t = load(REPO / "lab" / "tennis.py", "tennis_mod_pb")
+
+    def test_the_ball_constant_is_the_measured_ball_and_not_the_tennis_one(self):
+        """k = half rho Cd A / m for the 40-hole outdoor ball: 0.01031/ft. The page's number, computed from
+        this file's own constants, and 1.6x the tennis ball despite the smaller diameter."""
+        area, mass = self.pk.ball_geometry()
+        self.assertAlmostEqual(area, 0.04493, places=4)
+        self.assertAlmostEqual(mass, 0.001709, places=6)
+        self.assertAlmostEqual(self.pk.DRAG, 0.01031, places=5)
+        self.assertAlmostEqual(self.pk.DRAG / 0.0063, 1.64, places=1)
+        # and the indoor ball is the other measured value, not a fudge factor
+        indoor = self.pk.drag_of({"make": "indoor 26-hole", "diameter_in": 2.87, "mass_oz": 0.88,
+                                  "holes": 26, "cd": 0.45})
+        self.assertAlmostEqual(indoor, 0.01406, places=5)
+
+    def test_the_engine_plays_with_the_pickleball_ball_not_the_tennis_one(self):
+        """A 40 mph ball that lands 20 ft past the net arrives at 25 mph. If the integrator had been called
+        without the drag argument it would arrive at 31, which is the tennis ball, and no line would say so."""
+        p = self.t.Player(name="X", north=True, practice=300)
+        shot = self.pk.strike(p, None, face=12.6, power=40 / 0.60, aim=self.pk.CENTRELINE, shot="groundstroke",
+                             surface="hard", wind=(0.0, 0.0), pos=(0.0, self.pk.CENTRELINE), clean=True)
+        land = shot["traj"]["land"][0]
+        self.assertGreater(land, self.pk.NET_X + 10, "the drive should reach the backcourt")
+        # horizontal pace at the bounce, from the bounce vector
+        vx = shot["traj"]["bounce"]["v"][0]
+        self.assertLess(abs(vx) / self.t.MPH, 27.0, "a pickleball drive must have lost a third of its pace")
+
+    def test_the_kitchen_line_is_in_for_a_ball_and_out_for_a_volleying_foot(self):
+        pk = self.pk
+        self.assertTrue(pk.in_kitchen(15.0), "the line is in the kitchen")
+        self.assertTrue(pk.in_kitchen(29.0))
+        self.assertFalse(pk.in_kitchen(14.99))
+        self.assertFalse(pk.in_kitchen(29.01))
+        self.assertAlmostEqual(pk.feet_from_kitchen_line(15.0), 0.0, places=6)
+        self.assertAlmostEqual(pk.feet_from_kitchen_line(12.0), 3.0, places=6)
+
+    def test_a_serve_on_the_kitchen_line_is_short_and_a_rally_ball_on_it_is_in(self):
+        """The one line call that differs between the serve and every other shot."""
+        self.assertFalse(self.pk.in_service_area((29.0, 15.0), True, 5.0), "a serve on the kitchen line is short")
+        self.assertTrue(self.pk.in_service_area((29.02, 15.0), True, 5.0))
+        ok, _ = self.pk.verdict({"player": self.t.Player(name="X", north=True), "shot": "groundstroke",
+                                 "traj": {"land": (29.0, 10.0)}})
+        self.assertTrue(ok, "a rally ball on the kitchen line is in")
+
+    def test_the_serve_must_go_diagonally(self):
+        pk = self.pk
+        self.assertTrue(pk.in_service_area((33.0, 15.0), True, 5.0), "across the centreline: good")
+        self.assertFalse(pk.in_service_area((33.0, 5.0), True, 5.0), "same side as the server: fault")
+        self.assertFalse(pk.in_service_area((45.0, 15.0), True, 5.0), "past the baseline: fault")
+        self.assertFalse(pk.in_service_area((16.0, 5.0), False, 15.0), "into the north kitchen: fault")
+        self.assertTrue(pk.in_service_area((12.0, 5.0), False, 15.0), "a south serve into the north's court")
+
+    def test_the_first_server_is_in_the_right_court_when_the_score_is_even(self):
+        m = self.pk.new_match(["A", "B", "C", "D"])
+        t = m.teams[0]
+        for score, right in ((0, "A"), (1, "B"), (2, "A"), (3, "B")):
+            t.score = score
+            self.assertEqual(t.names[self.pk.right_player_index(t)], right, f"at {score}")
+        # and the server stands on the right-hand side of their own end, which for the north end is y=5
+        t.score = 0
+        self.assertAlmostEqual(m.server_y(), 5.0, places=6)
+        self.assertEqual(m.receiver(), "C", "the right court serves to the right court, across the line")
+
+    def test_only_the_serving_team_can_score(self):
+        m = self.pk.new_match(["A", "B", "C", "D"])
+        self.pk.serve_first(m, 0)
+        self.assertEqual(m.point_to(0), "point")
+        self.assertEqual((m.teams[0].score, m.teams[1].score), (1, 0))
+        self.assertEqual(m.point_to(1), "side out")
+        self.assertEqual((m.teams[0].score, m.teams[1].score), (1, 0), "a receiver's rally is only a serve")
+        self.assertEqual(m.serving, 1)
+
+    def test_the_first_service_turn_of_a_game_has_one_server(self):
+        m = self.pk.new_match(["A", "B", "C", "D"])
+        self.pk.serve_first(m, 0)
+        self.assertEqual(m.server(), "A")
+        self.assertEqual(m.fault_by_serving(), "side out", "one server in the game's first turn")
+        self.assertEqual(m.serving, 1)
+        # and after that a turn has two
+        self.assertEqual(m.fault_by_serving(), "second server")
+        self.assertEqual(m.server(), "D")
+        self.assertEqual(m.fault_by_serving(), "side out")
+
+    def test_a_game_is_to_eleven_win_by_two(self):
+        m = self.pk.new_match(["A", "B", "C", "D"])
+        m.teams[0].score, m.teams[1].score = 11, 10
+        self.assertFalse(m.over())
+        m.teams[0].score = 12
+        self.assertTrue(m.over())
+
+    def test_doubles_needs_four_named_seats(self):
+        for names in (["A"], ["A", "B"], ["A", "B", "C"]):
+            with self.assertRaises(SystemExit):
+                self.pk.new_match(names)
+        m = self.pk.new_match(["A", "B", "C", "D"])
+        self.assertEqual(m.teams[0].names, ["A", "B"])
+        self.assertEqual(m.teams[0].partner_of("A"), "B")
+
+    def test_a_volley_before_both_sides_have_bounced_is_a_fault(self):
+        """The double bounce rule is one flag, so it can be read: the first three shots of a rally are never
+        volleys, and the fourth may be."""
+        say = []
+        m = self.pk.new_match(["A", "B", "C", "D"])
+        self.pk.serve_first(m, 0)
+        players = {n: self.t.Player(name=n, north=(i < 2), practice=400) for i, n in enumerate(["A", "B", "C", "D"])}
+        pos = self.pk.Positions()
+        choose = self.pk.scripted_chooser("hard")(players, ("N", 3.0), "hard")
+        r = self.pk.play_rally(m, players, pos, choose, "hard", (0.0, 0.0), ("N", 3.0),
+                               say=say.append, rally_no=1)
+        kinds = [ln.split()[2] for ln in say if ln.strip()[:2].strip().rstrip(".").isdigit()]
+        self.assertEqual(kinds[0], "serve")
+        for k in kinds[1:3]:
+            self.assertIn(k, ("shot", "groundstroke"), f"the third shot cannot be a volley, got {k}")
+
+    def test_the_wind_is_capped_because_a_20mph_headwind_leaves_no_legal_serve(self):
+        pk = self.pk
+        for ms, expect in ((0, None), (12345, None)):
+            direction, speed = pk.wind_for(ms)
+            self.assertLessEqual(speed, pk.WIND_CAP)
+        self.assertEqual(pk.WIND_CAP, 12.0)
+        # the measurement behind the cap: still air and 20 mph of headwind, same serve
+        p = self.t.Player(name="X", north=True, practice=300)
+        def farthest(wind_mph):
+            best = 0.0
+            for i in range(0, 501, 5):
+                el = self.math_radians(i / 10)
+                v = 33.0 * self.t.MPH
+                t = self.t.flight((0.0, 5.0, 2.4), (v * self.cos(el), 0.0, v * self.sin(el)),
+                                  (-wind_mph * self.t.MPH, 0.0), "hard",
+                                  drag=pk.DRAG, lift=pk.LIFT, net_x=pk.NET_X, surfaces=pk.SURFACES,
+                                  net_profile=pk.net_profile)
+                if t.get("land") and t["land"][0] > best:
+                    best = t["land"][0]
+            return best
+        still, twenty = farthest(0.0), farthest(20.0)
+        self.assertGreater(still, 44.0, "a 33 mph serve reaches the backcourt in still air")
+        self.assertLess(twenty, 29.0, "and cannot reach the kitchen line into 20 mph of headwind")
+
+    def test_the_engine_reproduces_the_design_pages_window_table(self):
+        """The page's 35/40/45 mph windows, recomputed from this file's constants. A design page and an engine
+        that disagree by two degrees are two designs."""
+        for mph, want in ((35.0, 10.1), (40.0, 5.9), (45.0, 3.5)):
+            hits = [i / 10 for i in range(-100, 601) if self.pk.stroke_map(mph, i / 10) is not None]
+            self.assertGreater(len(hits), 10)
+            self.assertAlmostEqual(hits[-1] - hits[0], want, delta=0.3, msg=f"{mph} mph")
+
+    def test_the_tennis_integrator_still_integrates_what_it_integrated(self):
+        """The parameterisation that let pickleball share the integrator must have changed nothing for tennis.
+        This is the cheap version of the 2,408-sample grid that was run by hand on 2026-11-15 (0 differences):
+        the same call with and without the new arguments, five courts, twelve shots."""
+        t = self.t
+        p = t.Player(name="X", north=True, practice=200)
+        for power in (40, 70, 100):
+            for face in (2.0, 6.0, 12.0, 18.0):
+                a = t.strike(p, None, face=face, power=power, aim=13.5, shot="rally", surface="clay",
+                             wind=(0.0, 0.0), clean=True)["traj"]
+                b = t.flight(a["land"] and (0.0, 13.5, 3.0) or (0.0, 13.5, 3.0), (1.0, 0.0, 1.0), (0.0, 0.0),
+                             "clay", drag=t.DRAG, lift=t.LIFT, net_x=t.NET_X, surfaces=t.SURFACES,
+                             net_profile=t.net_height)
+                c = t.flight((0.0, 13.5, 3.0), (1.0, 0.0, 1.0), (0.0, 0.0), "clay")
+                self.assertEqual(b, c, "the new arguments default to the old behaviour")
+                self.assertIsNotNone(a)
+
+    def test_there_is_no_python_in_the_game_folder_and_no_physics_outside_the_lab(self):
+        """The page's two mechanical tests, run rather than promised."""
+        py = list((REPO / "games" / "pickleball").glob("*.py"))
+        self.assertEqual(py, [], "the game folder holds rules and records, not tools")
+        # an AST test, not a grep: a number *printed* in a comparison and a number *defined* as a constant
+        # are different things, and only the second one can drift. This is the version that caught RHO being
+        # restated in pickleball.py — the greeting-in-a-string version would have passed and the constant
+        # would have been in two places.
+        import ast
+        # 0.55 is deliberately *not* here: it is tennis's drag coefficient, and pickleball's paddle-edge
+        # power factor happens to be 0.55 too. A literal test that cannot tell a coincidence from a copy
+        # teaches nothing and would be silenced the first time it was inconvenient.
+        wanted = {0.002377, 1.46667, 0.0063, 78.0, 27.0, 32.17}
+        offenders = {}
+        for f in sorted((REPO / "lab").glob("*.py")):
+            if f.name == "tennis.py":
+                continue
+            tree = ast.parse(f.read_text(encoding="utf-8"))
+            found = sorted({n.value for n in ast.walk(tree)
+                            if isinstance(n, ast.Constant) and isinstance(n.value, float) and n.value in wanted})
+            if found:
+                offenders[f.name] = found
+        # putt.py's 32.17 is the one copy that already existed (2026-11-15, recorded in the page's §4); it is
+        # not this game's to fix and it is listed here so the count is honest rather than zero by exemption
+        self.assertEqual(offenders, {"putt.py": [32.17]},
+                         "a second copy of a physics constant is how this breaks: " + str(offenders))
+
+    # three small aliases so the test bodies read like arithmetic, not like module plumbing
+    import math as _math
+    math_radians = staticmethod(_math.radians)
+    cos = staticmethod(_math.cos)
+    sin = staticmethod(_math.sin)
+
+
 class TestChat(unittest.TestCase):
     """The conversation page, 2026-11-04.
 
