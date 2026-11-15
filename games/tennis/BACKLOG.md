@@ -91,34 +91,53 @@ does not yet show a person's entry beside a member's.
 - **Done-test:** a season record containing one person entry and one member entry renders both, with
   the person's typed movement visible in the caption and no engine named. **Number:** 2/2 rendered.
 
-## Item 9 — PaddleBall: accepted, and gated behind item 1
+## Item 9 — Pickleball: the second game, and the first one that can grade movement
 
-The founder raised it on 2026-11-15 and then said why the record had no trace of it: *"that's a comment
-on the lack of communication in the symposium."* He is right about the cause, and it is worth stating
-plainly because it will happen again. Something said in a live window is in the record only if the seat
-that heard it writes it down. PaddleBall had been mentioned to a seat, in a window, and no file carried
-it — so to the other five seats and every wake it never existed. The same mechanism lost the pool vote
-for eleven days. A chat is not a place.
+*(Corrected 2026-11-15. This item said "PaddleBall" and described a practice wall. Both were my
+misreading: by "paddleball" the founder meant a second paddle game, and what he actually wants added to
+AIT is **pickleball**. The wall is a different thing and is item 10.)*
 
-**My decision, which the founder's 2026-11-10 terms make mine:** PaddleBall is accepted as a project
-and it starts after item 1 (the renderer on `main`), not before. The reasoning is in the answer I gave
-him, and the short version is that the wall changes *which* skill is learned.
+**Accepted, and gated behind item 1.** Five reasons it is a better second game than a reskin of tennis,
+in the order they matter:
 
-- **Shared with tennis, deliberately:** the ball integrator in `lab/tennis.py`, the court builder, the
-  camera-cut rules, the scoreboard, the season folder, the record format. If a second game needs a
-  second physics implementation, it does not get built — a second copy is how the first one breaks.
-- **New, and small:** one wall instead of a net, a paddle contact instead of a racquet face, and no
-  need for the racquet geometry that cost eight image generations and never worked.
-- **The design risk, named before it is built:** a *perfect* wall is a machine, not an opponent. The
-  rebound is deterministic, so there is nothing to learn beyond position — and a game whose only skill
-  is a formula is the thing the founder rejected when he demoted the statistics. The wall's
-  imperfection is therefore the game: a seam, a dead panel, a surface that eats spin differently at
-  one height, each measured and printed. **If that sentence cannot be made true, do not build this
-  game.**
-- **Done-test for the item itself (not the game):** a design page in `games/paddleball/README.md` that
-  states the wall's imperfection model with numbers, the contact model, and which files it imports
-  from `lab/tennis.py` — reviewed before any renderer work begins. **Number:** the count of imported
-  tennis modules that were *not* copied.
+1. **It is the only project on the shelf that tests something AIT has never tested: two beings sharing a
+   court.** Pickleball is natively doubles. Tennis here is singles — one profile choosing a shot. Doubles
+   means the kitchen line covered by two bodies, a partner who must know whether the ball is theirs, and
+   a record that has to name *which* player took it. That is a coordination surface, not a physics one,
+   and no amount of tennis work produces it.
+2. **The kitchen is a rule about position, so the score grades movement.** No volleying inside 7 ft: you
+   must let the ball bounce there. A being that cannot stop loses points, and the violation is countable
+   in the record. Today the movement items (2–6) are judged by my eye on a still; this is the first game
+   where being badly placed has a number.
+3. **The ball is drag-dominated, not gravity-dominated.** A perforated plastic sphere at 30–40 mph is
+   slow and decelerates hard: in tennis the drag term is a correction, in pickleball it is the flight.
+   `lab/tennis.py` already carries the term (`0.0063·|v_rel|·v_rel` per foot); what changes is that the
+   approximations become visible instead of negligible — which is a reason to build it *here*, where I
+   know which terms are approximations (lift is vertical-axis only, no spin decay).
+4. **It is a second, independent test of the claim AIT is built on.** "Rallies get longer as the players
+   learn" was verified in tennis over a season. In pickleball the rally is long by construction, so the
+   claim gets tested where it cannot be flattered by the format.
+5. **Nothing new to draw.** Same 18-bone rig, same bodies, a paddle instead of a racquet, a 34-inch net
+   instead of a 3-foot one. The asset pipeline that cost eight generations is not reopened.
+
+- **The risk, named before any code:** pickleball is close enough to tennis that I could ship tennis with
+  five constants changed and call it a new game. The differences that make it a different game — the
+  kitchen, the double bounce, the underhand serve, the low-mass high-drag ball, doubles — are also the
+  hard ones. **Acceptance test for the project: the record must contain at least one behaviour that
+  cannot occur in tennis** — a kitchen violation, a double-bounce error, or a partner yielding a ball.
+  If it does not, the second game is a reskin and does not ship.
+- **Done-test for this item, before any renderer work:** `games/pickleball/README.md` states the ball's
+  drag curve with its source and its numbers, the kitchen and double-bounce rules as the engine will
+  enforce them, the doubles assignment rule, and which modules it *imports* from `lab/tennis.py`.
+  **Number:** imported modules that were copied instead = 0.
+
+## Item 10 — a wall to practise against (founder likes it; lowest priority)
+
+The founder, 2026-11-15: *"Your idea for practice against a wall is a good one and I hope you'll follow
+up on it as a feature of AIT, perhaps lower on the priority list."* So: a **drill**, not a game — one
+being, one wall, hundreds of returns, no opponent and no scoreboard, feeding the rating and producing
+rally data cheaply. It belongs after pickleball, and it needs the wall's imperfection to be a measured
+number (a seam, a dead panel, grip that differs by height) or it is a metronome rather than practice.
 
 ---
 
