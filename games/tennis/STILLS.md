@@ -34,3 +34,17 @@ The page takes three query parameters, all of which pause the film so the still 
 `?cam=near` puts the camera beside the near baseline for looking at feet. `?cam=hit` goes over the striker's own
 shoulder, and `?cam=net` stands square on to the net from the side — which is the only way to see whether the
 headband follows the sag and whether the centre strap reaches the ground.
+
+## A record the page has to fetch
+
+`?record=` is the other half of that: the page fetches a season's `rally.json` instead of the copy baked into the
+demo films, and `?setup=` beside it says which body and which look each player has.
+
+```sh
+"…/Google Chrome" --headless=new … --screenshot=games/tennis/stills/out-of-reach.png \
+  "http://localhost:8778/games/tennis/replay3d.html?record=records/rally-out-of-reach.json&shot=92&at=0.55"
+```
+
+`stills/out-of-reach.png` is the first still of a point that is *lost* rather than missed: the ball is past the
+player and the caption says how far short of it they were. It took a record rebuilt by `lab/tennis_record.py`,
+because no record on this branch had ever had a ball nobody reached.

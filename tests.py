@@ -3615,6 +3615,81 @@ class TestTennis(unittest.TestCase):
         check = [s for s in wf["jobs"]["play"]["steps"] if s.get("name") == "Which season, which two"][0]
         self.assertIn('wake/members/$who/state', check["run"])
 
+class TestTheRecordSaysThePlayerWasBeaten(unittest.TestCase):
+    """Item 13 of the tennis backlog. The 3D viewer has always been able to print "and does not get there" and
+    never had a record with one in it, because the record's reaching arithmetic was a second model, living in a
+    generator this branch does not have. These tests hold the two ends of the fix together: one interception that
+    both the scoreline and the picture read, and a record whose rallies cannot outlive a ball nobody reached."""
+
+    def setUp(self):
+        import importlib
+        import random as _random
+        self.random = _random
+        sys.path.insert(0, str(REPO / "lab"))
+        self.T = importlib.import_module("tennis")
+        self.R = importlib.import_module("tennis_record")
+        self.record_path = REPO / "games" / "tennis" / "seasons" / "2026-spring" / "rally.json"
+
+    def test_one_interception_and_no_second_model(self):
+        """`reachable` is the yes/no built on `interception`, so they cannot disagree — a renderer that draws a
+        player arriving short and a scoreline that says "did not reach" are the same arithmetic or they are two
+        accounts of one point. Checked against a ball the player cannot get to and one they can."""
+        p = self.T.Player("beginner", True, 0, rng=self.random.Random(5))
+        hard = ((self.T.NET_X - 2.0, 1.0), 0.5, {"v": (60.0, 20.0, -10.0), "speed_out": 90.0})
+        easy = ((self.T.NET_X - 25.0, self.T.WIDTH / 2), 2.0, {"v": (10.0, 0.0, -8.0), "speed_out": 20.0})
+        for land, ft, bounce in (hard, easy):
+            ok, why = self.T.reachable(p, land, ft, bounce, "hard")
+            m = self.T.interception(p, land, ft, bounce, "hard")
+            self.assertEqual(ok, m["ok"])
+            self.assertEqual(why, m["why"])
+        m = self.T.interception(p, hard[0], hard[1], hard[2], "hard")
+        self.assertFalse(m["ok"])
+        self.assertGreater(m["short_ft"], 0.0)
+        self.assertAlmostEqual(m["short"], m["need"] - m["have"], places=9,
+                               msg="the shortfall in seconds is not the difference of the two numbers the "
+                                   "record writes down, so a reader cannot check the miss by hand")
+
+    def test_a_beaten_player_stops_more_than_a_racquet_from_the_ball(self):
+        """The picture's side of the claim. Wherever the record says `met: false`, the feet it puts on the court
+        must be further from the ball than the arm and racquet can cover — otherwise the viewer would be drawing
+        somebody standing in the ball and calling it a miss."""
+        rec = json.loads(self.record_path.read_text(encoding="utf-8"))
+        out, _notes = self.R.decide(rec)
+        misses = [s for s in out["shots"] if (s.get("run") or {}).get("met") is False]
+        self.assertTrue(misses, "no ball in the whole record was out of reach — the rule is not in the pipeline")
+        for s in misses:
+            run = s["run"]
+            self.assertGreater(run["gap"], self.T.RACQUET_REACH,
+                               f"shot {s['n']}: the feet stop {run['gap']}ft from the ball, inside a racquet")
+            self.assertGreater(run["short"], 0.0)
+            self.assertGreater(run["need"], run["have"])
+            self.assertIn("short of it", s["why"])
+
+    def test_no_rally_has_a_shot_after_a_ball_nobody_reached(self):
+        """The invariant that makes a season report and a film the same story: if a ball was out of reach the
+        point is over, so nothing may follow it. Before this, the record carried shots that happened after a beat
+        — a rally that continued from a ball nobody got to, which reads as a player hitting from the wrong place."""
+        rec = json.loads(self.record_path.read_text(encoding="utf-8"))
+        out, _notes = self.R.decide(rec)
+        shots = out["shots"]
+        for rally in out["rallies"]:
+            for k in rally["shots"][:-1]:
+                run = shots[k].get("run") or {}
+                self.assertIsNot(run.get("met"), False,
+                                 f"rally {rally['rally']} continues past shot {shots[k]['n']}, which nobody "
+                                 f"reached")
+            last = shots[rally["shots"][-1]]
+            run = last.get("run") or {}
+            # Three ways a rally can end, and every one of them is named in the record. `record` is the honest
+            # one: the film's own boundary — the old model called that ball 0.3ft short and stopped, and this one
+            # says it was reached, so the rally has no shot to continue with. It is labelled rather than papered
+            # over, because a rally that ends for no stated reason is the defect this test exists to catch.
+            self.assertIn(rally.get("ended"), ("out", "beat", "record"))
+            if rally["ended"] == "beat":
+                self.assertIs(run.get("met"), False, f"rally {rally['rally']} is labelled a beat and is not one")
+            if rally["ended"] == "out":
+                self.assertIs(last.get("in"), False, f"rally {rally['rally']} is labelled out and the ball is in")
+
 class TestPickleball(unittest.TestCase):
     """The second sport: the rules that are not tennis's, and the ball that is not a tennis ball.
 

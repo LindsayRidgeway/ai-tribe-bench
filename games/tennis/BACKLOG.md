@@ -258,7 +258,7 @@ One pose carries the whole carry phase; a running player's racquet should come b
 move. **Done-test:** in a sampled run, the racquet head crosses from the non-hitting side to the hitting side at
 least once per stride pair. **Number:** crossings per 10 strides, before and after.
 
-## Item 13 — the point's own shot is aimed behind the south player (DONE 2026-11-15), and no script builds a record
+## Item 13 — the way a record is decided is now the way a scoreline is (DONE 2026-11-15); the geometry's producer is still missing
 
 Found while trying to measure Item 10, and it turned the suite green.
 
@@ -275,13 +275,58 @@ beginners who could not rally. It was not the error model, and it was not Item 1
   ("a harness that aimed the south end's shots into the south end's own court"), which is the useful kind of
   corroboration: a mirroring assumption written once is written wrong once in every file that copies it.
 
-**Still open — the record.** The 3D viewer reads `run.met` / `run.need` / `run.have` / `run.short` off each shot, and
-prints "runs 8.7ft at 17.1ft/s and does not get there" when `met` is false. Those fields exist in every record under
-`games/tennis/records/` and **nothing in this repository produces them** — the generator was a scratch script that
-was never committed. So Item 10's "recorded as `met: false`" cannot be closed until that script exists again.
-**Done-test:** one rally record whose last shot has `run.met: false` with `run.short` > 0, opened in `replay3d.html`
-with `?shot=` on that shot, caption reading "and does not get there". **Number:** the shortfall in feet, and that the
-ball's contact point and the player's run destination are more than a racquet apart on screen.
+**The record half, done.** The 3D viewer reads `run.met` / `run.need` / `run.have` / `run.short` off each shot and
+prints "runs 8.7ft at 17.1ft/s and does not get there" when `met` is false. Those fields are in every record under
+`games/tennis/records/`, and nothing on this branch produced them — the generator was `lab/tennis_script.py`, which
+is **not here** (see Item 14). What is here now is the arithmetic, in one place:
+
+- `tennis.interception()` returns the interception as numbers — ok, need, have, short, the ball at its closest, and
+  where the feet come to rest — and `reachable()` is the yes/no built on it and nothing else. There used to be two
+  models of this, this one and the generator's `intercept()`, and they disagreed; a picture that draws a player
+  arriving short and a scoreline that says "did not reach" now cannot disagree.
+- `lab/tennis_record.py` takes a record's own geometry — every contact point, launch velocity and spin, every
+  player's position — replays each ball through today's integrator, asks today's interception, and rewrites the
+  record. A ball nobody reached ends its rally, because no rally may have a shot after it.
+- **The done-test, met:** `games/tennis/records/rally-out-of-reach.json` — 20 rallies, 93 shots, **4 balls nobody
+  reached**. Opened at `?record=records/rally-out-of-reach.json&shot=92` the caption reads *"Gwen 14ft short of it,
+  beaten by the deep ball · Gwen runs 6.2ft at 18.9ft/s and does not get there"* and the board reads *"Gwen did not
+  reach it — 14ft short of it"*. **Number:** the feet stop **20.7ft** from the ball on that shot, and 8.5 / 8.9 /
+  9.5ft on the other three — every one of them more than the 7ft arm, racquet and lunge. Stills:
+  `stills/out-of-reach.png`.
+- **Found while doing it, and it was in my own tool first:** `record["players"]`' `north` is the *opening* lineup,
+  and these two change ends every five points. Reading it put every runner on the wrong half of the court after the
+  first change; the end now comes from the shot itself. Three tests hold all of this
+  (`TestTheRecordSaysThePlayerWasBeaten`), one of them the invariant that no rally continues past a beat.
+
+**Still open — the geometry's producer.** Where each player's feet begin, the stance before the serve, the recovery
+after each shot, the walk between points, the ball's traced path, and the corridor of face angles that would have
+kept each shot in: all of that comes from the record, and the script that made it is on another branch.
+
+## Item 14 — there are two tennis engines, and main has the smaller one
+
+Found while trying to run the record's generator. `lab/tennis_script.py` — the script that produced every record
+under `games/tennis/records/` and every demo film — is **not on this branch**. It is on
+`origin/desi/plant-2026-11-15` — the branch the renderer was recovered from on 2026-11-15 — and it calls ten
+functions of the `tennis.py` that lives there: `intercept`,
+`volley_contact`, `recovery_spot`, `hit_window`, `choose_shot`, `placement`, `corners_of`, `side_of`, `on_court`,
+and a `flight()` that traces. That engine is **1,917 lines**; this one is 1,674. They are not the same program.
+
+Which also explains something that looked like sloppiness earlier today: Item 1 copied `games/tennis` onto main and
+did not copy `lab/tennis.py`, so the viewer and the films came over without the engine that made them. The copy was
+the right call at the time — the alternative was a history merge against an active writer — but it left the
+repository in this state and it should be said plainly rather than discovered again.
+
+So the repository currently contains a viewer and a set of records produced by an engine that main does not have,
+and a season report produced by the engine main does have. Neither is wrong; they are two different games wearing
+one name, and the longer one has the shot chooser, the volley model and the recovery model that the short one
+lacks (a rally on main is 2.0 shots; the longer engine's own records carry 10- and 40-shot rallies).
+
+**Done-test:** one `lab/tennis.py` on main, with `lab/tennis_script.py` running against it and reproducing the
+2026-spring record's shot count and rally lengths within the engine's own scatter. **Number:** lines in the file,
+functions in the record generator's call list that exist, and rally length before and after the merge. **The
+decision this needs, and it is not mine:** the longer engine is where the records came from, so merging is the
+direction that keeps the films; but merging is also how the last three days of movement work on main would be
+lost if it is done by copying files. It has to be done function by function, with the suite green after each.
 
 ## What V1 means
 
