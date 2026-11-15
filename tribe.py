@@ -555,6 +555,13 @@ def api_of(d: Path) -> str:
     return ""
 
 
+# What the last `next_up()` refused to wake, and why — so the command's own summary does not contradict the
+# line above it. On 2026-11-15 `next` printed "Probe is on gemini and this repository has no key for it" and then,
+# two lines later, "every member was skipped: no member has a voice.md, or none has a key here": the guess landing
+# on top of the fact, in the first message a new owner reads.
+LAST_SKIPPED: list[tuple[str, str]] = []
+
+
 def keyed_from_env(prefix: str = "TRIBE_API_KEY_") -> str:
     """The vendors this process actually has a key for, read off its own environment.
 
@@ -579,6 +586,7 @@ def next_up(force: str = "", keyed: str = "") -> list[tuple[str, str, str]]:
     which is arbitrary and *recorded* as arbitrary — the alternative (a roster in a file) is a roster
     somebody edits to favour somebody.
     """
+    LAST_SKIPPED.clear()
     forced = [n.strip() for n in force.replace(",", " ").split() if n.strip()]
     if forced:
         # The human's hand on the glass: name a member and it wakes now, wherever it stands. Every ant
@@ -633,6 +641,7 @@ def next_up(force: str = "", keyed: str = "") -> list[tuple[str, str, str]]:
     for name, vendor in skipped:
         print(f"   {name} is on {vendor} and this repository has no key for it — skipped, not failed",
               file=sys.stderr)
+    LAST_SKIPPED[:] = skipped
     return out
 
 
@@ -881,6 +890,8 @@ def main() -> int:
             elif not member_dirs():
                 print("   there are no members at all — `tribe.py new <name>` makes the first one.",
                       file=sys.stderr)
+            elif LAST_SKIPPED:
+                pass   # the lines above named each member and its engine; a generic guess would bury them
             else:
                 print("   every member was skipped: no member has a voice.md, or none has a key here. "
                       "`tribe.py status` shows which.", file=sys.stderr)
