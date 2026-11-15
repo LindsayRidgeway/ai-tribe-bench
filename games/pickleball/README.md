@@ -1,0 +1,336 @@
+# pickleball — the ball is measured, the kitchen is the game
+
+**Status: design page. No engine, no renderer, no code under `games/pickleball/`.** This file is the gate
+the founder asked for on 2026-11-15: the ball's drag curve with its source, the kitchen and double-bounce
+rules as the engine will enforce them, the doubles assignment rule, and the import list from
+`lab/tennis.py` with **zero copied modules**. §4 ends with the number that closes the gate. §1 ends with a
+finding that changes the order of work, and it is not the answer I expected when I started measuring.
+
+*The name.* This is the `PaddleBall` of `games/tennis/BACKLOG.md` item 9, and it is **not** the game item 9
+described. Item 9 accepted a project in which a **wall** replaces the net and the wall's imperfection is what
+makes it a game — its stated risk being that a perfect wall is a machine, not an opponent. The founder's
+instruction of 2026-11-15 names **pickleball** and asks for the **kitchen**, the **double bounce** and the
+**doubles assignment**. Those three only exist in a game with a net and a real opponent across it, so the
+wall is dropped and the sport is built. That is my decision to make, and it is the better one: the wall's
+design risk was "a deterministic rebound teaches nothing beyond position"; the kitchen's risk is that its
+best shot is *hard to measure*, and a measurement problem is solvable. What survives from item 9 untouched:
+one physics implementation, imported from `lab/tennis.py`, never copied.
+
+---
+
+## §1 The ball: the drag curve, and where it comes from
+
+The model is the one tennis already uses — `a = k · |v_rel| · v_rel`, quadratic in speed, relative to the
+air — because the curve for a pickleball is the same parabola and only the constant differs. That the curve
+needs no table is a measured claim: **two independent studies find the drag coefficient of a pickleball flat
+across the whole velocity range the game uses, so there is no drag-crisis kink and nothing to interpolate.**
+The curve is one number.
+
+| quantity | value | source |
+|---|---|---|
+| `Cd`, 40-hole outdoor ball | **0.33** (86 trajectories, SD 0.083, SE 0.014) | Pickleball University / Tennis Warehouse University, *The Physics of Pickleball Aerodynamics and Trajectories*, May 2025 |
+| `Cd`, 26-hole indoor ball | **0.45** (86 trajectories, SD 0.092, SE 0.013) | same |
+| why there is no Cd(v) | no systematic dependence on Reynolds number **or** spin; flow already supercritical, no drag crisis | same; and Steyn et al. 2025 |
+| `Cd`, 40-hole outdoor, second group | **0.30 ± 0.02** (6 digitised trajectories, Re 4.7–6.1 × 10⁴, spin parameter 0.03–0.3) | Steyn, Mithrush, Koentges, Andrews & Plourde, *Executing a Successful Third Shot Drop in Pickleball*, arXiv:2501.00163 (Dec 2024 / Jan 2025) |
+| lift | `Cl = 0.195 · S`, S = 2πrn/u, forced through the origin, large scatter | Steyn et al., Appendix A |
+| ball size | 2.87–2.97 in diameter | USA Pickleball **Equipment Standards Manual**, Jan 2025, §2.D.3 |
+| ball mass | 0.78–0.935 oz (22.1–26.5 g) | same, §2.D.4 |
+| holes | 26–40 | same, §2.D.8 |
+| bounce | 30–34 in rebound from a 78-in drop on granite | same, §2.D.5 → restitution `e` = 0.62–0.66 |
+
+**The constant the engine integrates.** `k = ½ ρ Cd A / m`, in feet and seconds, ρ = 0.002377 slugs/ft³, a
+2.87-in ball (A = 0.04493 ft²), 0.88 oz (m = 0.001709 slugs):
+
+| Cd | k (per foot) | which ball |
+|---|---|---|
+| 0.30 | 0.00937 | Steyn's fitted value, one outdoor ball |
+| **0.33** | **0.01031** | **the default — 86 trajectories, the 40-hole outdoor ball the game plays** |
+| 0.45 | 0.01406 | the 26-hole indoor ball |
+
+Include the legal mass range and the envelope is `k` = 0.0088 to 0.0170/ft — **a factor of 1.9**, of which
+the mass accounts for more than the ball type (22.1 g instead of 25 g raises `k` by 13%). So the engine may
+not say "pickleball" and stop: it records **which ball it played** — diameter, mass, holes, Cd — and prints
+it with the session, the way the tennis engine prints surface and clock. For scale: the tennis ball is
+`k` = 0.0063/ft, so a pickleball sheds **1.4× to 2.7× as much speed per foot** as a tennis ball while being
+the smaller ball — a quarter of the mass and forty holes.
+
+**What that does to a shot.** Measured with `lab/tennis.py`'s own integrator, patched to the pickleball
+constant (a temporary monkeypatch, so that the numbers exist before the change in §4 exists):
+
+| shot, from the baseline, contact 2.46 ft | at the net (22 ft) | at its bounce, 20 ft past the net | flight |
+|---|---|---|---|
+| 30 mph at 31.4° | 20.1 mph (67%) | **15.9 mph (53%)** | 1.42 s |
+| 35 mph at 18.4° | 26.4 mph (75%) | **21.2 mph (61%)** | 1.08 s |
+| 40 mph at 12.6° | 31.1 mph (78%) | **25.1 mph (63%)** | 0.92 s |
+| 45 mph at 9.0° | 35.4 mph (79%) | **28.7 mph (64%)** | 0.81 s |
+
+Those are *horizontal* speeds: the total velocity at the bounce is higher than the launch speed because
+gravity has converted height into speed, which is why a "pace kept" figure taken from the velocity vector
+reads over 100% and is not a measurement of anything. **A 40 mph drive is a 25 mph ball when it arrives.**
+In pickleball the ball is slow before it gets to you, and that is what makes a 20-ft court playable on foot.
+
+**One cross-check that passes, and one that does not.** Steyn et al.'s Figure 4 measures a 10 m/s (22.4 mph)
+ball at 31°: it lands **27 ft** past the baseline and is in the air **1.42 s**. This engine puts the same
+shot at **27.5 ft** in **1.14 s**. The distance agrees to within half a foot — two independent models of a
+ball nobody has wind-tunnel-tested agree on where it lands — and the flight times differ by 25%, which for
+the same range means their model has the ball slower in the horizontal and therefore more drag than
+`Cd` = 0.33, while their *advice* is fitted at 0.30. Their model is not self-consistent at the 25% level and
+neither is mine, because neither has a measured ball behind it.
+
+**What does not reproduce.** Their stated conclusion — a third-shot drop needs 15.5°–22.5° at
+10.9–13.0 m/s down the line — cannot be reached. At 24.4 mph and 15.5° from their own stated knee-height
+contact (0.75 m = 2.46 ft), the ball is at **2.01 ft** when it crosses the net 22 ft away, against a 2.83-ft
+tape: ten inches under, and that is arithmetic with drag *left out* — drag makes the ball lower, not higher.
+Their own text also gives the net as 34 in at the sidelines and 32 in at mid-court; USA Pickleball specifies
+**36 in and 34 in**, two inches low, in the direction that would have helped them. I am not bending the
+integration to their window.
+
+**What the uncertainty is worth, in the currency this game is measured in — degrees of launch.** Take the
+shot the game is about: a 26.8 mph ball that must land 26 ft away, in the middle of the kitchen.
+
+| variation | launch angle needed | change |
+|---|---|---|
+| `Cd` = 0.33 (the default, spin off) | 17.30° | — |
+| `Cd` = 0.30 | 17.02° | −0.28° |
+| `Cd` = 0.45 | 18.50° | **+1.20°** |
+| `Cl` = +0.037 (topspin, S = 0.19) | 18.13° | +0.83° |
+| `Cl` = −0.037 (backspin, S = 0.19) | 16.47° | **−0.83°** |
+| `Cl` = −0.12 (the value their own Figure 1 uses) | 14.64° | −2.66° |
+
+**The uncomfortable finding.** §2d measures the drop's own window at **0.5° to 3.5°**. The drag constant's
+uncertainty is **1.2°** and the fitted lift term's is **0.83°**. Both are larger than the window, or close
+to it, at the speed the third shot is played. So:
+
+**Decision — and it is a change to the plan, not a footnote.** Spin stays **off** in V1 (`cl = 0`, printed as
+*spin off* on every shot) because a term whose coefficient is ±0.83° of landing is worse than a term that is
+honestly absent; `Cd` is taken per ball from the table and stored with the session. And **the measured ball
+is a blocker for the dink game, not a nice-to-have**: with two papers, one per cent of the ball's mass and a
+1.2° drag uncertainty, the third-shot drop cannot be simulated reliably enough to be taught. The first
+playable mode is therefore **the driving game at 35–45 mph**, where the court's own window is 10.1°, 5.9° and
+3.5° wide and a 1.2° drag error is a fifth of it — a game whose physics is solid while the kitchen's best
+shot is being measured. One camera, one marked ball, one court, digitised the way Steyn did it; six
+trajectories was enough for them to separate 0.30 from 0.45. That recording is the first task of the engine
+item, ahead of any renderer work, and it is the only path by which the word *measured* gets into this file.
+
+---
+
+## §2 The kitchen and the double bounce, as the engine will enforce them
+
+Court, in feet, because the integrator is in feet and seconds: **44 long × 20 wide, net at x = 22, top
+36 in (3.00 ft) at the posts and 34 in (2.83 ft) at the centre, kitchen 7 ft either side (x = 15 to 29),
+centreline at y = 10, baselines at x = 0 and 44.** `north` hits towards +x. Rule text below is USA
+Pickleball's; "engine" lines are the state the code will hold.
+
+### 2a. The double bounce rule
+
+| rule | source text | engine state |
+|---|---|---|
+| the serve must bounce before the receiver returns it | "the receiving team must let it bounce before returning" | `bounces = {north: 0, south: 0}`, set to 1 at each landing |
+| the return must bounce before the serving team plays it | "then the serving team must let it bounce before returning, thus two bounces" | a contact with `bounces[own_side] == 0` is a fault: **volleyed before the bounce** |
+| after one bounce each side, volleying is legal | "both teams may either volley the ball or play it off a bounce" | `may_volley = bounces[north] >= 1 and bounces[south] >= 1` |
+| no serve-and-volley exists | "the two-bounce rule eliminates the serve and volley advantage" | no legal volley before the fourth contact: shots 1, 2 and 3 are groundstrokes by construction |
+
+One counter, not a list of special cases. That is why the rule is cheap to build and expensive to break:
+**the serve, the return and the third shot are governed by a single predicate**, and a rally in which
+`may_volley` is false ends at the moment a ball is struck out of the air, with the fault named.
+
+### 2b. The non-volley zone (the kitchen)
+
+| rule | source text | engine state |
+|---|---|---|
+| 7 ft either side of the net | "the court area within 7 feet on both sides of the net" | `abs(x - 22) <= 7.0` |
+| no volleying from inside it, line included | "It is a fault if, when volleying a ball, the player steps on the non-volley zone, including the line" | at a volley contact, `abs(x - 22) <= 7.0` → fault at that instant |
+| momentum counts, even after the ball is dead | "It is a fault if, after volleying, a player is carried by momentum into or touches the non-volley zone, even if the volleyed ball is declared dead before this happens" | after a legal volley the player keeps a foot path; a crossing of the line before the next contact ends the point retrospectively — adjudicated by timestamp, not at contact |
+| you may stand there whenever you are not volleying | "A player may legally be in the non-volley zone any time other than when volleying a ball" | position is free at all other times: the kitchen is a *contact* constraint, not a standing-room ban |
+| a line ball is in, except on the serve | "A ball contacting any line, except the non-volley zone line on a serve, is considered in" | landing on the kitchen line is a **fault on a serve** and **in** on every later shot |
+
+The momentum clause is the expensive one and it is not optional: it is what makes the kitchen a decision
+instead of a line. A renderer cannot show it, and an engine that skips it plays a different game — so the
+foot path exists in the engine's record before the renderer draws it.
+
+### 2c. The serve, and what the engine refuses to pretend
+
+One attempt per server, underhand, contact below the waist, paddle head not above the wrist, feet behind the
+baseline, **diagonally cross-court into the opposite service area** — bounded by the baseline at 44, the
+kitchen line at 29, the sideline and the centreline. That is *not* the tennis service box: **the kitchen line
+is the short boundary.**
+
+| enforced, because geometry can see it | declared, because it cannot |
+|---|---|
+| contact behind the baseline | the upward arc of the arm |
+| contact height ≤ waist (per-player, declared) | paddle head relative to the wrist |
+| lands beyond the kitchen line (x > 29), inside 44, correct diagonal half | drop serve vs volley serve |
+| one attempt; a serve touching the net is a fault even if it lands good | "any fair method" for choosing who serves first (§3) |
+
+**The fault list the engine must be able to print, from the rules verbatim:** serve not in the receiving
+court; ball into the net on the serve or any return; volleyed before a bounce on each side; ball out of
+bounds; volleyed from the kitchen; ball bounced twice; player or paddle touching the net; service-rule
+violation; ball strikes the player; ball strikes a permanent object before bouncing.
+
+**Scoring decision: traditional side-out, games to 11, win by 2** — not rally scoring, though USA Pickleball
+permits both. Side-out scoring makes the serve a *resource*: only the serving team scores, so the double
+bounce and the kitchen both act on the same scarce thing. Rally scoring would make every rally worth the
+same point and delete that structure.
+
+### 2d. What the kitchen does to the physics, measured
+
+The kitchen is not a rule bolted onto a court; it is the only place a slow ball can land. Farthest landing
+from a 2.46-ft contact, pickleball drag, no wind:
+
+| initial speed | farthest it can land | so it can reach |
+|---|---|---|
+| 15 mph | 15.6 ft | the kitchen, and nothing else |
+| 18 mph | 20.6 ft | the kitchen |
+| **22 mph** | **28.0 ft** | the kitchen — short of the kitchen line at 29 ft |
+| 25 mph | 33.8 ft | the backcourt, first time |
+| 30 mph | 43.7 ft | the backcourt |
+| 35 mph | 53.5 ft | past the baseline: a lob is the only 35-mph shot that stays in |
+
+**Below 22 mph no ball reaches the opponent's backcourt at all.** The dink game is not a style; it is the
+only shot the physics leaves you, which is why the kitchen line is where the game is decided.
+
+And the target is small. Contiguous band of launch angles that lands in the court, down the line, spin off:
+
+| shot speed | in-court window | width |
+|---|---|---|
+| 30 mph | 13.7° – 69.9° | 56.2° |
+| 35 mph | 10.2° – 20.3° | **10.1°** |
+| 40 mph | 8.0° – 13.9° | **5.9°** |
+| 45 mph | 6.5° – 10.0° | **3.5°** |
+| 50 mph | 5.4° – 7.3° | **1.9°** |
+
+Above 35 mph the kitchen line costs the serve nothing — the net is already the low bound and the baseline
+the high one. Below it, the kitchen line is nearly the whole rule: at 25 mph the serve window is
+23.0°–58.3° against an in-court window of 20.2°–67.4°, so **the 7-ft kitchen removes 2.8° off the bottom and
+9.1° off the top of what a slow serve may do.** That is also the sharpest available argument for side-out
+scoring: a rule that costs a beginner ten degrees at serve speed is a rule that decides service games.
+
+The third-shot drop — landing in the kitchen, 22–29 ft:
+
+| speed | band that lands in the kitchen (spin off) | width |
+|---|---|---|
+| 24.4 mph | 21.5° – 25.0° | 3.5° |
+| 26.8 mph | 17.5° – 18.0° | **0.5°** |
+| 29.1 mph | none — 2 ft long at every angle that clears the net | 0° |
+
+Read that against a beginner's hands: tennis gives a beginner ±3.3° of face error against a 5.5°-wide court
+at rally pace, and the record already says a beginner's results there are noise. The pickleball drop gives
+**0.5° to 3.5°**, and §1's 1.2° of aerodynamic uncertainty sits inside it. That is the finding that reorders
+the work, and it is also the reason the shot is worth a game: a thing that hard to land is a thing that can
+be learned, once the ball under it is measured.
+
+---
+
+## §3 The doubles assignment rule
+
+Doubles is the format, built in from the start, because two rules change the moment there are four players.
+All of it is decided **before the first serve and printed in the record**: an assignment chosen after a
+result is a knob, not a rule.
+
+**Which four seats, and who partners whom.**
+
+1. Seats are named, never indexed: `--names A,B,C,D`. Fewer than four is a refusal, not a three-player game.
+   Not fussiness — the tennis engine's positional lookup crashed on the third point of its first run because a
+   person's seat had no engine in it, and engines are keyed **by player name** for exactly that reason.
+2. **Teams are 1 & 2 against 3 & 4, in the order given on the command line**, written into the session record
+   before the first serve. Any other pairing rule — roster, rank, lots — has to be chosen by somebody;
+   naming it on the command line means the person or wake launching the game chose it, in public, where the
+   record can see it.
+3. **Sides:** team 1 starts north, team 2 south. Ends swap between **games**, not within one.
+4. **First serve of a game:** the team that did not serve first in the previous game of the season serves
+   first, read from the season file; a season's first game falls back to the member whose name sorts first.
+   The rulebook allows "any fair method"; this one is fair *and* reproducible, and it needs no coin.
+5. **Which player serves first, and from where.** The player in the **right-hand court at 0–0** is that team's
+   **first server** and keeps that identity all game. Thereafter **even score (0,2,4,…) → the first server is
+   in the right court; odd (1,3,5,…) → left.** The engine stores one integer per team (`score % 2`) and one
+   flag (`first_server`) and derives everything else, because deriving is what stops two copies drifting.
+6. **The two servers.** The first server serves until the team faults; the partner then serves from their
+   correct side; a second fault is a side out. **Exception, and it is the one everybody gets wrong: the first
+   service sequence of the game has only one server.** Encoded as `servers_used_this_turn`, starting at 1
+   instead of 0 for the game's first turn.
+7. **Only the serving team switches.** On a point won by the serving team the two servers swap courts before
+   the next serve; on a side out nobody moves; the receiving team never switches. A pairwise swap on a
+   serving-team point and a no-op everywhere else is the whole of it.
+8. **Stacking is out of scope for V1**, and honestly so: stacking changes *who covers which half*, and V1
+   does not model two players' coverage at all — one hitter per contact, one ball. A stacking rule over a
+   single tracked body would be a label on nothing. It returns with the second tracked body, not before.
+
+**What doubles costs the engine, in one line:** the ball's state is unchanged from tennis; the *point's*
+state is new — score, first-server flags, servers used, which of four seats is hitting, which side each seat
+is on. That state machine is the entire difference between this game and singles, and it is where the rule
+lives that makes side-out scoring what it is: *a fault by the serving team loses the serve; a fault by the
+receiving team is a point.*
+
+---
+
+## §4 The import list from `lab/tennis.py`, with zero copied modules
+
+The rule from `games/README.md`, applied literally: **the tools are not in the game folder; they live in
+`lab/` because a second copy of a thing is how this repository has been broken before.** So
+`games/pickleball/` holds this file, and later its records and seasons. **It will hold no Python.** The
+engine is `lab/pickleball.py`, and it imports rather than restates.
+
+| # | imported from `lab/tennis.py` | as | change required in `tennis.py` |
+|---|---|---|---|
+| 1 | `flight` | the trajectory integrator, both games | add `drag=`, `lift=`, `net_x=`, `surface=` keyword arguments, defaulted to today's tennis values |
+| 2 | `net_height` | net profile at the crossing point | take centre/posts/width as arguments (2.83/3.00, 20-ft court) |
+| 3 | `wind_at`, `wind_vector`, `COMPASS` | clock-driven wind, no seed | none |
+| 4 | `MPH`, `G` | unit constants | none — and note `G` is *already* duplicated at `lab/putt.py:39`; this game must be the one that stops the count at two |
+| 5 | `Player`, `Player.skill` | the player and the saturating 1−exp(−n/120) curve | add optional `partner` and `side` (`right`/`left`) fields |
+| 6 | `movement_speed` | 5 + 15 × reach, ft/s | none |
+| 7 | `reachable` | the meeting problem (player and ball close on each other) | take home position and court dimensions as arguments: in doubles the home is the kitchen line, not the baseline |
+| 8 | `parse_command` | the three-number `FACE POWER AIM` reply grammar | none |
+| 9 | `vendors_of` | member → engine, from `wake/members/<name>/state/voice.md` | none |
+| 10 | `open_book` | season file vs flag precedence, and seeding | take `sport=`, so it reads `games/<sport>/seasons` |
+| 11 | `member_chooser` | the ask → parse → fallback path, one prompt per contact | none: the fallback and its warning text are the part worth sharing |
+| 12 | `record_session`, `practice_of`, `seed_practice`, `load_season`, `save_season`, `season_paths`, `season_report` | the whole season engine | take `sport=` defaulting to `tennis`; `season_report` needs a per-game noun table for its vocabulary |
+
+**Reimplemented in `lab/pickleball.py`, none of it copied:** `strike` (a paddle is not a string bed — no
+sweet spot, no frame, a different speed-per-power mapping), `elevation_for`, `spin_for`, `contact_point`,
+`aim_at` (which depends on `strike`), `in_service_box`, `line_for`, `describe_landing`, `depth_name`,
+`lateral_name` (the vocabulary is kitchen / service area / backcourt, not service court / back court), the
+rally and point loops (`play_point`, `play_one_rally`, `run_rally`, `simulate*`), the learners (`Bisector`,
+`Stubborn`, `Agent`, `choose`), the prompts (`rally_prompt`, `drill_prompt`), `verdict`, `run_person`, and
+`SURFACES` — a pickleball bounce table is not the tennis one: restitution comes from the equipment
+standard's own drop test, `e` = 0.62–0.66, where tennis's clay is 0.78.
+
+**The number, and how it is checked rather than asserted.** Three mechanical tests, runnable when the engine
+lands, each of which fails loudly:
+
+1. **Modules copied = 0.** `games/pickleball/` may contain no `*.py` at all:
+   `find games/pickleball -name '*.py' | wc -l` must print `0`.
+2. **Physics literals = 0 outside `lab/tennis.py`.** For each of `0.002377`, `1.46667`, `0.0063`,
+   `78.0, 27.0`, `0.55`: the count of hits in `*.py` outside `lab/tennis.py` and `attic/` must be `0`.
+   **Measured today: 0 for four of the five.** `32.17` appears twice in `lab/putt.py`, which is the one copy
+   too many that already exists and is not this game's to fix.
+3. **Imports resolve, 12 of 12.** `python3 -c "import lab.pickleball"` runs, no local definition shadows an
+   imported name, and each of the twelve rows appears in the module's namespace via `tennis`.
+
+**And the guard on the change itself.** Twelve rows of edits to a file four seasons and a published renderer
+depend on is a risk, so the change is constrained: **every new argument defaults to today's tennis value,
+and the tennis numbers must not move by one hundredth.** Done-test: re-run the eight-row margin table in
+`games/tennis/README.md` (power 30 → 100, the face angles that land in the court) before and after.
+**Number: 0 of 8 rows may differ.** A parameterisation that changes tennis is not a parameterisation; it is a
+new game wearing the old one's numbers.
+
+---
+
+## What is not built, and the order it now has to come in
+
+1. **The measured ball** — one camera, one marked ball, digitised trajectories, `Cd` fitted. §1 says why it
+   is first and not fourth: at 26.8 mph the drop's window is 0.5° and the drag constant's uncertainty is
+   1.2°. Until this exists the constant is *declared from two papers whose flight times differ by 25%*, and
+   this file says so.
+2. `lab/pickleball.py` — the twelve imports, the paddle contact model, the point state machine from §3, and
+   the **driving game** as the first playable mode (35–45 mph, 3.5°–10.1° of window, physics that holds).
+3. The drop window's stability: same swing, 100 balls, spread in feet. If the spread exceeds the 7-ft
+   kitchen, stop and fix the contact model before anything is drawn.
+4. The kitchen's momentum fault, with real foot paths — the engine's record grows feet before the renderer
+   draws them.
+5. Then the dink game, and after it the renderer, the season, the scoreboard and the person's seat, reused
+   wholesale from tennis, which is the point of §4.
+
+**What this file does not claim.** It does not claim the game is good, that the drag constant is right, or
+that Steyn et al. are wrong — only that their slow-and-flat corner is unreachable under a 2.83-ft net, that I
+cannot reproduce it, that their own two numbers disagree by 25%, and that one measured ball settles in an
+afternoon what two papers and I cannot settle from a chair.

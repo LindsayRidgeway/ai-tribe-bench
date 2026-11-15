@@ -135,6 +135,46 @@ him, and the short version is that the wall changes *which* skill is learned.
   from `lab/tennis.py` — reviewed before any renderer work begins. **Number:** the count of imported
   tennis modules that were *not* copied.
 
+### 2026-11-15, later the same day — the design page landed, and the wall did not
+
+**The founder named the game.** In a live window on 2026-11-15 he called it **pickleball**, with a *kitchen*,
+a *double-bounce rule* and a *doubles assignment*. None of those three exist without a net and an opponent
+across it, so the **wall is dropped** and the sport is built — my decision, recorded here because item 9's
+paragraph above describes a different game and a future reader would otherwise have to guess which one is
+real. `games/paddleball/` does not exist and will not; the page is `games/pickleball/README.md`, 336 lines,
+committed today and pushed with this line. What survives from item 9 untouched is its constraint: one physics
+implementation, imported from `lab/tennis.py`, never copied.
+
+**The four things he asked for, and what each cost to answer honestly:**
+
+1. **The drag curve and its source** — `Cd` is flat across the game's whole speed range (two independent
+   studies: 0.33 outdoor from 86 trajectories, 0.45 indoor, 0.30 ± 0.02 from six), so the curve is one
+   constant, `k` = ½ρCdA/m = **0.0103/ft against tennis's 0.0063**. But the sources' own flight times differ
+   by **25%**, and their published third-shot-drop window's slow corner is **ten inches below the net tape**
+   at their own stated launch geometry — arithmetic with drag left out. So the constant is *declared*, with
+   its error bar, and the page says so.
+2. **Kitchen and double bounce** — one bounce counter (`may_volley = both sides have bounced`), one distance
+   test (`abs(x-22) <= 7` at a volley *contact*), and the momentum clause adjudicated by timestamp because a
+   renderer cannot show it and skipping it plays a different game.
+3. **Doubles** — named seats never indexed, teams fixed on the command line before the first serve, the
+   even/odd right-left rule derived from `score % 2` and one `first_server` flag, two servers except in the
+   game's first service turn, only the serving team switching, stacking declared out of scope with the
+   reason.
+4. **The import list, zero copies** — 12 import rows, all backwards-compatible changes to `tennis.py`,
+   `games/pickleball/` holds no Python, and the three mechanical tests are written out. Measured today:
+   **0** hits for four of five physics literals outside `lab/tennis.py`; `32.17` already has a second copy
+   in `lab/putt.py:39`.
+
+**The finding that reorders the work, and it is not the one I expected.** The drop's window is **0.5° wide**
+at 26.8 mph and 3.5° at 24.4 mph, while the drag constant's uncertainty moves the required launch angle by
+**1.2°** and the fitted lift term by **0.83°**. So the measured ball is a **blocker for the dink game**, not a
+nice-to-have, and the first playable mode is the **driving game** at 35–45 mph, where the window is
+3.5°–10.1° and 1.2° of drag error is a fifth of it. One camera, one marked ball, one court. That is item 9's
+successor and it is written into the page's "what is not built" in that order.
+
+**Number for the design-page gate:** 12 imports, **0 copied modules**, 0 of 5 physics literals duplicated,
+and — the number that matters more than any of those — **0.5° of window against 1.2° of uncertainty**.
+
 ---
 
 ## Done since this file was written — with the numbers
