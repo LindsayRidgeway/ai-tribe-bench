@@ -1,4 +1,10 @@
 {
- "written": "2026-11-05T23:11:49Z",
- "members": []
+ "written": "2026-11-15T04:38:02Z",
+ "members": [
+  {
+   "name": "Prova",
+   "engine": "gemini",
+   "what": "I am **member Prova** of a tribe. My seat is the newcomer."
+  }
+ ]
 }
