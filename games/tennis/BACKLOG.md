@@ -201,21 +201,49 @@ measurement that justifies it, because a claim without a number is the thing thi
   failed (the finish, drawn over the wrong shoulder), so the sheet's value is the CONTACT pose: racquet head at hip
   height, out to the side by most of a shoulder width, arm straight.
 
-## Item 10 — nobody is ever beaten
+## Item 10 — nobody is ever beaten — DONE 2026-11-15, see the numbers below
 
-`reachable()` passes the closing speed into a meeting point fixed a racquet's length short of the landing point, so
-every ball is reachable: in 50 sampled points, **not one** ended with "did not reach it". Points end on misses only.
-This is not a look — it is the game refusing to model the thing that makes tennis a contest.
+`reachable()` passed the closing speed into a meeting point fixed a racquet's length short of the landing point, so
+every ball was reachable: in 50 sampled points, **not one** ended with "did not reach it". Points ended on misses
+only. This was not a look — it was the game refusing to model the thing that makes tennis a contest.
 
-- **Do:** replace the closing-speed shortcut with a real interception: step the ball's plan position after the
-  bounce (0.02s steps, until the second bounce), and call it reachable only if the player could arrive by then at
-  `movement_speed` plus a racquet's length. A ball that crosses away from the player becomes a winner, recorded as
-  `met: false`.
-- **Done-test:** over 50 points, 10–30% of balls are *not* reached by the weaker player, and the reason string names
-  the wide vs deep ball correctly. **Number:** reach-rate before and after, per player; and the effect on the
-  learning curve (`test_rally_length_responds_to_hands_and_to_learning` must not get worse).
-- **Guard:** a beginner must still be able to play a rally. If the reach-rate for `reach=0.35` drops below 70%, the
-  model is too harsh and the racquet radius is wrong, not the idea.
+- **Done:** `lab/tennis.py`. The closing-speed shortcut and its `+1.0` second of grace are gone. The ball is now
+  stepped through its own post-bounce life in 0.02s slices, with the same quadratic drag the flight uses, until it
+  bounces a second time or climbs above 9ft; at every slice the question is the only one that matters: *can the
+  player be within a racquet's length of the ball by then?* The player is given `flight_time` of running before the
+  ball bounces, plus the ball's remaining life after it, less two costs the old rule ignored — `REACTION` 0.25s
+  (the split step: nobody leaves on the opponent's contact) and `SETTLE` 0.20s (the brake: a ball met at a sprint is
+  a frame, not a shot). `RACQUET_REACH` 7.0ft is a standing lunge, three feet of arm and racquet plus the first step.
+- **Number, and the instrument matters more than the number.** Through points, the reach-rate is partly a measure of
+  how long the point lasted — a point that ends early has fewer balls to ask about. So the headline is a *fixed*
+  population: 600 balls the engine itself struck, with the hands taken out of it so they are balls that are actually
+  in the court, every skill level asked about the same 600.
+
+  | balls hit | speed | old rule: not reached | new rule: not reached |
+  |---|---|---|---|
+  | 0 (reach 0.35) | 10.2 ft/s | 0% | **26%** |
+  | 100 | 15.3 | 0% | 11% |
+  | 300 | 18.5 | 0% | 6% |
+  | 600 | 19.2 | 0% | **5%** |
+
+  Through points (150 a pairing, same seed): at 300 balls 24% and 38% of the balls each player had to get to were
+  not reached; at 600 balls 22% and 22%. The old rule: 0% in every cell, at every skill level, which is the defect.
+- **Guard:** met. A player with `reach=0.35` reaches 74% of the fixed population — the 70% floor, and only just.
+  The radius is what bought it: at 3.0ft the same population was 40% reached and beginner points were 56% not
+  reached, which is the guard doing its job. The 7.0ft is generous on purpose and the reason is written in the code:
+  this model gives the player no anticipation, and the step is charged for twice, here and as `REACTION`.
+- **Learning curve:** `test_rally_length_responds_to_hands_and_to_learning` was **red** when this item started
+  (9.083 not greater than 11.625). It is **green** now, and so is the rest of the suite — 330 tests, OK. The reason
+  is not the interception; it is the bug the interception's measurement found (see Item 13).
+- **The reason string** names the direction of the miss at the closest moment, not at the landing point. Every beat
+  in a match came out *wide* (12 of 12 in one 50-point sample): a ball that goes past you in this model goes past
+  you sideways, because the one thing it always does is keep coming down the court, and the deep beat is the rare
+  one. `test_a_rally_ends_only_for_a_reason_a_player_can_see` still forces a deep one and still gets the word.
+- **Not done, and it is Item 13:** the record carries no `met: false` yet. `reachable()` now decides it and
+  `play_point` already writes "X takes the point", but the JSON the 3D viewer reads (`run.met`, `run.need`,
+  `run.have`, `run.short`) is built by a script that is not in this repository — the existing records contain those
+  fields and nothing produces them. The viewer's caption already handles a miss ("runs 8.7ft at 17.1ft/s and does not
+  get there"); no record has ever had one.
 
 ## Item 11 — the volley to a deep corner goes long
 
@@ -229,6 +257,31 @@ mean landing distance inside the baseline, before and after.
 One pose carries the whole carry phase; a running player's racquet should come back to the hitting side as they
 move. **Done-test:** in a sampled run, the racquet head crosses from the non-hitting side to the hitting side at
 least once per stride pair. **Number:** crossings per 10 strides, before and after.
+
+## Item 13 — the point's own shot is aimed behind the south player (DONE 2026-11-15), and no script builds a record
+
+Found while trying to measure Item 10, and it turned the suite green.
+
+**The defect.** `play_point` chose the target depth as `NET_X + rng.uniform(4, 34)` for both seats. For a north
+player that is 4–34ft past the net; for a south player it is 4–34ft *behind them*, because the net is at the far
+end. The face search then bisected onto the tallest face it had, and the ball landed on the hitter's own side. Every
+south return was a ball hit backwards. Over 50 points a match averaged **1.2 shots** and the record read as two
+beginners who could not rally. It was not the error model, and it was not Item 10.
+
+- **Done:** the depth is mirrored by the hitter's end. Matches went from 1.2 to **2.0** shots a point, and
+  `test_rally_length_responds_to_hands_and_to_learning` went from red (9.083 not greater than 11.625) to green.
+  `python3 -m unittest tests`: **330 tests, OK** — the whole suite, not just Tennis.
+- **Also worth recording:** the pickleball body hit the same bug in their own harness on the same afternoon
+  ("a harness that aimed the south end's shots into the south end's own court"), which is the useful kind of
+  corroboration: a mirroring assumption written once is written wrong once in every file that copies it.
+
+**Still open — the record.** The 3D viewer reads `run.met` / `run.need` / `run.have` / `run.short` off each shot, and
+prints "runs 8.7ft at 17.1ft/s and does not get there" when `met` is false. Those fields exist in every record under
+`games/tennis/records/` and **nothing in this repository produces them** — the generator was a scratch script that
+was never committed. So Item 10's "recorded as `met: false`" cannot be closed until that script exists again.
+**Done-test:** one rally record whose last shot has `run.met: false` with `run.short` > 0, opened in `replay3d.html`
+with `?shot=` on that shot, caption reading "and does not get there". **Number:** the shortfall in feet, and that the
+ball's contact point and the player's run destination are more than a racquet apart on screen.
 
 ## What V1 means
 

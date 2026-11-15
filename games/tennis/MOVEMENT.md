@@ -779,3 +779,34 @@ coefficient gets solved against a target of 0.20–0.30ft at the toe, not eyebal
 
 **Not regressed:** legs only. The root, the hand and the racquet are untouched by this change, so the 570-boundary
 continuity probe and the racquet-to-ball figure both stand as they were.
+
+### The brake, and the reaction, in the reach rule — 2026-11-15
+
+Two of the four motions are not drawn yet and are now *charged* by the engine, which is worth separating from the
+renderer work because the number is different in kind: this one decides whether a point ends.
+
+Until today `reachable()` asked how fast the player and the ball were closing on each other and gave a second of
+grace, so every ball in every point was reachable — 0% of 600 sampled balls were out of reach, at every skill level.
+It now steps the ball's own post-bounce plan in 0.02s slices and asks at each one whether the player can be within a
+racquet's length of it by then.
+
+**The two numbers that are not distance:**
+
+| cost | seconds | what it is | what it costs a 19ft/s player |
+|---|---|---|---|
+| `REACTION` | 0.25 | the split step: you do not leave on the opponent's contact, you leave a quarter-second later | 4.8ft |
+| `SETTLE` | 0.20 | the brake: a ball met at a full sprint is a frame, not a shot — the feet plant first | 3.8ft |
+
+Together they are 8.6ft on a 27ft-wide court, which is most of the width of the singles court, and that is the
+honest size of what the old rule was handing out for free. The brake is Item 5 in the movement list; this is the
+same brake, in the place where it decides a score instead of a silhouette.
+
+**Measured, on 600 balls the engine struck (hands out, so they are balls that are in):** a player who has hit
+nothing reaches 74% of them at 10.2ft/s; one with six hundred balls reaches 95% at 19.2ft/s. Before: 100%, at every
+skill, including the beginner. In 150-point matches a member at 300 and at 600 balls is beaten on 18–28% of the
+balls they have to get to.
+
+**What is still not real about it:** the player is assumed to start from the middle of their own baseline every
+time, with no memory of where the last shot left them, and with no anticipation — the real player knows roughly
+where the ball is going before it leaves your strings, and that is why `RACQUET_REACH` is 7.0ft rather than the
+3.0ft of arm and racquet. Both assumptions are written in the code where they are used, not here.
