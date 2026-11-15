@@ -1882,6 +1882,24 @@ async function main(){
     return '';
   });
 
+  // 12g-2 — a record the files contradict is not evidence, and the page says which tool is not fooled by it
+  seedUpdate({tribe: '# tribe.py\n\n# rewritten by hand, or by a version this tribe never came from\n'});
+  for (const [path, text] of [['wake/wake.py', '# wake.py\n\n# old, from a commit the record does not name\n'],
+                              ['USER-MANUAL.md', '# manual, from somewhere else\n']]) seed(path, text);
+  const liar = await settle(`const p = await updatePlan();
+    return {writes: p.writes.map(f=>f.path), waiting: p.waiting, provable: p.provable,
+            agree: p.agree, shared: p.shared, said: planSentence(p),
+            r: updateReport(await applyUpdate())};`);
+  check('a version record its own files contradict replaces nothing, and names the tool that does not use it', () => {
+    if (liar.err) return liar.err;
+    if (liar.provable) return 'the record was believed: ' + liar.agree + '/' + liar.shared + ' agree';
+    if (liar.writes.length) return 'it would replace ' + liar.writes.join(', ') + ' on a record it cannot trust';
+    if (liar.waiting.length !== 3) return 'the files it will not judge are not all named: ' + JSON.stringify(liar.waiting);
+    if (!/lab\/update_tribe\.py/.test(liar.said)) return 'the sentence does not name the tool that compares contents: ' + liar.said;
+    if (!/does not match its files/.test(liar.said)) return 'the sentence does not say why: ' + liar.said;
+    return '';
+  });
+
   // 12h — the button exists when there is something to update, and not otherwise
   const ui = await settle(`const a = (UPDATE = {state:'behind', sha:'${HEAD}'}) && updBlock();
     UPDATE = {state:'current', sha:'${HEAD}'};

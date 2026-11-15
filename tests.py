@@ -5387,6 +5387,32 @@ class TheTemplateMustBeEnough(unittest.TestCase):
         self.assertEqual(r.returncode, 1)
         self.assertIn("does not look like a tribe", r.stderr)
 
+    def test_the_updater_records_which_version_it_copied(self):
+        """Two updaters and one record. A tribe updated from a terminal whose record still names the commit it was
+        installed from is a tribe whose page compares its files against a version they never came from."""
+        import json as _json
+        import tempfile
+        sys.path.insert(0, str(REPO / "lab"))
+        import update_tribe as ut
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            rel = ut.stamp_version(root, "c" * 40)
+            self.assertEqual(rel, ".ait/version.json")
+            first = _json.loads((root / rel).read_text())
+            self.assertEqual(first["schema"], "ait-version/1")
+            self.assertEqual(first["updated_to"], "c" * 40)
+            self.assertEqual(first["installed_from"], "c" * 40)
+            self.assertEqual(first["template"], "LindsayRidgeway/ai-tribe-template")
+            ut.stamp_version(root, "d" * 40)
+            second = _json.loads((root / rel).read_text())
+            self.assertEqual(second["updated_to"], "d" * 40)
+            self.assertEqual(second["installed_from"], "c" * 40,
+                             "an update must not rewrite where the tribe came from")
+            # and the page reads a stamp of the same shape, because it is the same file
+            page = (REPO / "ait.html").read_text()
+            self.assertIn("ait-version/1", page)
+            self.assertIn(".ait/version.json", page)
+
     def test_the_manifest_is_generated_from_the_same_list_that_builds_a_tribe(self):
         """The page will write only what this file names, so it has to be the whitelist and not a copy of it."""
         import json as _json

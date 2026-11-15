@@ -505,6 +505,15 @@ async function updatePlan(){
   const theirs = await treeOf(TEMPLATE, head);
   const ours = await treeOf(S.repo, S.branch || 'main');
   const base = from ? await treeOf(TEMPLATE, from).catch(() => null) : null;
+  // Is the record credible? A tribe installed before the record existed has none; a tribe whose record names a
+  // commit it never came from has a wrong one; and a tribe updated from a terminal before the updater stamped what
+  // it had done has one that has since gone stale. All three look the same from here — most of the machinery does
+  // not match what the record says it was. When that is so, the page stops replacing and says which tool is not
+  // fooled by a record, because reporting a dozen untouched files as "things you changed" is a lie a person will
+  // believe, and the lie is about their own repository.
+  const shared = want.filter(p => theirs.has(p) && ours.has(p));
+  const agree = shared.filter(p => base && base.get(p) === ours.get(p)).length;
+  const credible = !!(base && shared.length >= 3 && agree * 2 >= shared.length);
   const writes = [], adds = [], kept = [], waiting = [], missing = [];
   for (const path of want){
     const up = theirs.get(path);
@@ -512,11 +521,11 @@ async function updatePlan(){
     const mine = ours.get(path);
     if (mine === up) continue;                       // same content, whatever the two commits are
     if (!mine){ adds.push({path, sha: null}); continue; }
-    if (base && base.get(path) === mine) writes.push({path, sha: mine});
-    else if (base && base.get(path)) kept.push(path); // edited here since the template gave it
-    else waiting.push(path);                          // no proof: the version record does not name this path
+    if (credible && base.get(path) === mine) writes.push({path, sha: mine});
+    else if (credible && base.get(path)) kept.push(path);   // edited here since the template gave it
+    else waiting.push(path);                                // no proof: the record does not vouch for this path
   }
-  return {head, from, writes, adds, kept, waiting, missing, provable: !!base};
+  return {head, from, writes, adds, kept, waiting, missing, provable: credible, agree, shared: shared.length};
 }
 
 // The plan, in one sentence a person can act on. Every branch says what will happen rather than that something is
@@ -528,7 +537,8 @@ function planSentence(p){
   if (touch) bits.push(`${touch} file${touch === 1 ? '' : 's'} will be replaced`);
   if (p.adds.length) bits.push(`${p.adds.length} of them new to this tribe`);
   if (p.kept.length) bits.push(`${p.kept.length} left alone because ${p.kept.length === 1 ? 'you changed it' : 'you changed them'} (${p.kept.slice(0,3).join(', ')}${p.kept.length > 3 ? '…' : ''})`);
-  if (p.waiting.length) bits.push(`${p.waiting.length} cannot be checked because this tribe does not record which template it came from`);
+  if (p.waiting.length && p.provable) bits.push(`${p.waiting.length} cannot be checked because the template does not have ${p.waiting.length === 1 ? 'it' : 'them'} at the commit this tribe came from`);
+  else if (p.waiting.length) bits.push(`${p.waiting.length} not replaced: this tribe's record of which template it came from does not match its files (${p.agree} of ${p.shared} unchanged), so nothing is replaced — \`python3 lab/update_tribe.py --write\` compares the files themselves and is not fooled by the record`);
   if (p.missing.length) bits.push(`${p.missing.length} named by the template and absent from it`);
   return bits.join('; ') + '.';
 }
@@ -569,7 +579,7 @@ function updateReport(r){
   if (r.done && r.done.length) parts.push(`${r.done.length} file${r.done.length === 1 ? '' : 's'} updated`);
   if (r.clash && r.clash.length) parts.push(`${r.clash.length} changed while the page was reading ${r.clash.length === 1 ? 'it' : 'them'}, so ${r.clash.length === 1 ? 'it was' : 'they were'} left alone (${r.clash.slice(0,3).join(', ')})`);
   if (r.p && r.p.kept && r.p.kept.length) parts.push(`${r.p.kept.length} left alone because you had changed ${r.p.kept.length === 1 ? 'it' : 'them'}`);
-  if (r.p && r.p.waiting && r.p.waiting.length) parts.push(`${r.p.waiting.length} not replaced because this tribe records no template to compare ${r.p.waiting.length === 1 ? 'it' : 'them'} against`);
+  if (r.p && r.p.waiting && r.p.waiting.length) parts.push(`${r.p.waiting.length} not replaced because ${r.p.provable ? 'the template no longer has ' : 'this tribe\'s version record does not match '}${r.p.waiting.length === 1 ? 'it' : 'them'}`);
   if (!parts.length) return 'Nothing was changed.';
   const tail = (r.clash && r.clash.length) || (r.p && (r.p.kept.length || r.p.waiting.length))
     ? ' Nothing that was already yours was disturbed.' : '';
