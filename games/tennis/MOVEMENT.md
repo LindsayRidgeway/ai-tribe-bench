@@ -755,3 +755,27 @@ same as the carry's own figures, and the sin term enters and leaves contact with
 push off the back foot, because `legs()` is handed a `turn` and a `load` but not which foot is which — a stance has
 a front foot and a back foot and the record does not currently name either. That is the next half, and it needs a
 `stance` field out of the engine before the renderer can use one.
+
+### The plant, the feet — 2026-11-14
+
+The root rise is measured (0.122ft, above). The feet are half-built and the honest half is worth stating plainly,
+because the number that was supposed to prove it cannot see it.
+
+**What is in the code:** the back knee flexes through the follow-through — `0.30 * heel` added to the back shin,
+where `heel` is the hitter's own clock (0 at contact, 1 by 0.33s), and the back foot is `sh.hand` read as a stance:
+a forehand is struck with the left foot forward and the right foot back, a two-handed backhand the other way round.
+
+**What is measured:** with the root's own rise subtracted, the back ankle rises **0.05ft** from that knee bend. The
+arithmetic explains it: a shin of length L rotated by θ raises the ankle by L(1−cosθ), which is quadratic — 0.30rad
+buys five hundredths of a foot. A real two-to-three-inch heel lift needs θ≈0.55, and at 0.55 the silhouette read as
+a deeper bend, so it was put back to 0.30 rather than shipped on a guess.
+
+**What is owed, and it is an instrument before it is a pose:** the only point below the ankle in this rig is the
+toe, and `__pose()` does not return it. Rotating the FOOT bone is invisible to every probe here — the ankle *is* the
+bone's origin, so it does not move when the bone turns — which is exactly the kind of blind spot that produced four
+foot revisions nobody could check. So: `__pose()` gains a toe point (`footBone origin + 0.45 * its own direction`),
+`__audit()` gains `hand` so a probe can name the back foot instead of guessing which ankle is higher, and then the
+coefficient gets solved against a target of 0.20–0.30ft at the toe, not eyeballed.
+
+**Not regressed:** legs only. The root, the hand and the racquet are untouched by this change, so the 570-boundary
+continuity probe and the racquet-to-ball figure both stand as they were.

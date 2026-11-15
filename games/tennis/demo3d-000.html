@@ -579,10 +579,20 @@ function legs(rig, phase, moving, face, turn, load, idle, walk) {
   const stride = 1 - still;
   set("thigh.L", -A * Math.sin(phase) * stride - still * (0.05 + 0.05 * idleS), 0, -0.09);
   set("thigh.R", -A * Math.sin(phase + Math.PI) * stride - still * (0.05 - 0.05 * idleS), 0, 0.09);
-  set("shin.L", K * swing(phase) * stride + still * (0.20 - 0.12 * idleS) + 0.10 * load, 0, 0);
-  set("shin.R", K * swing(phase + Math.PI) * stride + still * (0.20 + 0.12 * idleS) + 0.10 * load, 0, 0);
-  set("foot.L", -0.25 * (moving ? 1 : 0), 0, 0);
-  set("foot.R", -0.25 * (moving ? 1 : 0), 0, 0);
+  // THE BACK FOOT COMES UP ON THE TOE. A stroke finishes with the back heel off the ground, and until now nothing
+  // in this file could make that true: the shin was driven by `load`, which is the same on both legs, so the legs
+  // bent together and the back foot stayed flat. `plantHeel` is the hitter's own clock (0 at contact, 1 by 0.33s)
+  // and `plantBack` says which leg is behind — a forehand is struck with the left foot forward and the right foot
+  // back, a two-handed backhand the other way round, which is `sh.hand` read as a stance rather than an arm.
+  const heel = rig.plantHeel || 0, bk = rig.plantBack || "";
+  set("shin.L", K * swing(phase) * stride + still * (0.20 - 0.12 * idleS) + 0.10 * load + (bk === "L" ? 0.30 * heel : 0), 0, 0);
+  set("shin.R", K * swing(phase + Math.PI) * stride + still * (0.20 + 0.12 * idleS) + 0.10 * load + (bk === "R" ? 0.30 * heel : 0), 0, 0);
+  // The heel itself is the FOOT bone: rotating the shin swings the ankle sideways, which is why bending the back
+  // knee alone moved the ankle 0.05ft and looked like nothing. The sign of a foot rotation is not in any comment
+  // here, so it is a constant with a probe behind it (`/tmp/foot.mjs`) rather than a guess buried in a line.
+  const HEEL = 0;
+  set("foot.L", -0.25 * (moving ? 1 : 0) + (bk === "L" ? HEEL * 0.45 * heel : 0), 0, 0);
+  set("foot.R", -0.25 * (moving ? 1 : 0) + (bk === "R" ? HEEL * 0.45 * heel : 0), 0, 0);
   set("spine", -0.05 - 0.09 * live - 0.10 * load - still * 0.02, turn * 0.35 + still * 0.03 * idleS, 0.06);
   set("hips", 0.04 * live + still * 0.02, turn * 0.30, still * 0.06 * idleS);
   chestTwist(rig, turn * 0.45);
@@ -1249,6 +1259,9 @@ function tick(now) {
     const recv = isReceiver ? (AFTER[sh.n] || null) : null;   // the ball this player is waiting to receive
     const rush = recv ? (recv.rush || 0) : 0;                 // how late their racquet is for it
     const back = (isHitter ? sh.hand === "back" : (recv ? recv.hand === "back" : false));
+    // Which foot is behind, and how far up on the toe it is. Stateless, like the root rise: a function of `tl`.
+    rig.plantBack = isHitter ? (back ? "L" : "R") : null;
+    rig.plantHeel = isHitter ? Math.max(0, Math.min(1, (tl - 0.05) / 0.28)) : 0;
     const sgn = back ? -1 : 1;
     const follow = isHitter ? Math.max(0, Math.min(1, 1 - tl / 0.38)) : 0;
     // The racquet comes back on the way to the ball, not on arrival: a player who has the habit has it back for the
@@ -1633,8 +1646,11 @@ if (q.has("debug")) window.__pose = () => D.players.map(pl => {
   // 1.74ft up the shaft — the same number the stroke math uses
   const rh = r.racquet ? r.racquet.position.clone()
     .addScaledVector(new THREE.Vector3(0, 1, 0).applyQuaternion(r.racquet.quaternion), 1.74) : null;
+  // ankL/ankR are here for the plant: "the back foot comes up on the toe" is a claim about the ANKLE's height, and
+  // until the ankle is readable a foot change can only be looked at, which is how four foot revisions got shipped.
   return { name: pl.name, root: [r.root.position.x, r.root.position.y, r.root.position.z].map(v => +v.toFixed(4)),
-           thighL: at("thighL"), shinL: at("shinL"), handR: at("handR"), racquet: rh ? rh.toArray().map(v => +v.toFixed(3)) : null,
+           thighL: at("thighL"), shinL: at("shinL"), ankL: at("footL"), ankR: at("footR"),
+           handR: at("handR"), racquet: rh ? rh.toArray().map(v => +v.toFixed(3)) : null,
            yaw: +(r.yaw || 0).toFixed(4) };
 });
 

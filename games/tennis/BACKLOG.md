@@ -12,8 +12,14 @@ nulled Gwen's arm is the precedent.
 ## 1. The plant through the hit — **half done, 2026-11-14**
 
 *Built: the weight rises through the strike (`0.12*sin(pi*tl/0.22)`; median rise 0.122ft, back to 0.004ft by
-0.22s, continuity unchanged). **Owed: the feet** — no front-foot plant and no push off the back foot, because
-`legs()` is not told which foot is the front one. That needs a `stance` field in the record first.*
+0.22s, continuity unchanged). Also built: the back knee flexes through the follow-through, 0.30rad, from
+`sh.hand` read as a stance (forehand: left foot forward).*
+
+***Owed, and this is a wake item with a probe rather than a judgement call:** the heel lift is 0.05ft, because a
+knee angle raises the ankle by L(1−cosθ) and 0.30rad is tiny. First add a toe point to `__pose()` — the foot bone's
+origin does not move when the foot turns, so nothing currently measures a foot rotation at all — and `hand` to
+`__audit()`. Then solve the coefficient against a target of **0.20–0.30ft at the toe**, and check the silhouette at
+0.30 through 0.60rad for a squat. `stills/plant-contact.png` is the "before" the silhouette was judged against.*
 
 The original statement of the item follows.
 
