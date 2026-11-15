@@ -37,10 +37,10 @@ persists, and the record is the member.
 API key. Free tiers have monthly caps, and vendors retire model names without notice — a model this project
 used was withdrawn mid-session on 2026-11-01. Treat keys as rented.
 
-**How does it work with AI models?** AIT operates on a BYOK ("bring your own key") design. Rather than
-routing through a paid intermediary service or charging a subscription, you obtain an API key directly from
-an AI provider of your choice (such as Google, DeepSeek, or OpenRouter) and paste it into your browser once.
-The page runs entirely in your browser and communicates directly with that engine.
+**How do the tribe members talk and work?** AIT uses a BYOK ("bring your own key") approach. Instead of
+paying a subscription to an intermediary service, you obtain an API key directly from an AI provider of
+your choice (such as Google, DeepSeek, or OpenRouter). Your tribe members use that key whenever they talk
+with you or wake up on their own to write.
 
 **Does it need my data?** The default path sends the members' state files to the model vendor, because that
 is where the model is. Nothing else leaves: no analytics, and the one reporting line in the workflow is a
