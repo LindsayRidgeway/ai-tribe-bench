@@ -14,6 +14,7 @@ import contextlib
 import importlib.util
 import io
 import json
+import math
 import os
 import re
 import shutil
@@ -3726,6 +3727,136 @@ class TestTheRecordSaysThePlayerWasBeaten(unittest.TestCase):
                 self.assertIs(run.get("met"), False, f"rally {rally['rally']} is labelled a beat and is not one")
             if rally["ended"] == "out":
                 self.assertIs(last.get("in"), False, f"rally {rally['rally']} is labelled out and the ball is in")
+
+class TestTheVolley(unittest.TestCase):
+    """Item 14 of the tennis backlog, second move: the ball taken out of the air.
+
+    `choose_shot` has had volley weights since the chooser was ported, and there was nothing in this engine that
+    could volley — a player standing seven feet from the net waited for the ball to bounce, and the interception
+    was asked about a bounce point a net player never reaches, so every approach was scored as a point lost. The
+    model that came over from the longer engine is one radius rather than a box, and it is asked *before* the
+    interception, because a volley is the point at which the bounce does not happen.
+
+    What these hold: the contact is above the ground, below the head, on the hitter's own side of the net and
+    earlier than the bounce; a ball the legs cannot cover is not volleyed however close the racquet would be; and
+    the trace that makes any of it possible draws the ball without moving it."""
+
+    def setUp(self):
+        import importlib
+        import random as _random
+        self.random = _random
+        sys.path.insert(0, str(REPO / "lab"))
+        self.T = importlib.import_module("tennis")
+
+    def _path(self, x0, x1, y, z0, z1, n=40, t0=0.05, dt=0.02):
+        """A ball on its way from the south end to the north one, sampled the way a trace samples it."""
+        out = []
+        for i in range(n):
+            f = i / (n - 1)
+            out.append((round(t0 + i * dt, 3), round(x0 + (x1 - x0) * f, 3), round(y, 3),
+                        round(z0 + (z1 - z0) * f, 3)))
+        return out
+
+    def test_the_ball_is_taken_out_of_the_air_before_it_bounces(self):
+        """The whole claim of a volley in one assertion set: the contact is earlier than the bounce, it is inside
+        the band the racquet occupies, it is on the hitter's side of the net, and the feet are within a reach of
+        it. A volley scored at or after the bounce is a groundstroke with a nicer word on it."""
+        t = self.T
+        p = t.Player("X", north=True, practice=300)
+        feet = (t.NET_X - 6.0, t.WIDTH / 2)                 # six feet from the net, on their own side
+        path = self._path(t.NET_X + 3.0, t.NET_X - 5.0, t.WIDTH / 2, 2.6, 3.4)
+        vol = t.volley_contact(p, path, feet)
+        self.assertIsNotNone(vol, "a ball crossing the net at racquet height six feet away was not volleyed")
+        self.assertLess(vol["t"], path[-1][0], "a volley cannot be struck after the last sample the ball has")
+        self.assertTrue(t.VOLLEY_LOW <= vol["contact"][2] <= t.VOLLEY_HIGH,
+                        f"contact at {vol['contact'][2]}ft is outside the band the racquet can take it in")
+        self.assertGreaterEqual((t.NET_X - vol["contact"][0]), 2.0,
+                                "the ball was taken before it had crossed the net")
+        self.assertLessEqual(math.hypot(vol["contact"][0] - vol["feet"][0],
+                                        vol["contact"][1] - vol["feet"][1]),
+                             t.VOLLEY_REACH + 1e-6,
+                             "the feet were drawn outside a racquet's length of the ball")
+
+    def test_a_ball_the_legs_cannot_cover_is_not_volleyed_however_close_the_racquet_is(self):
+        """The legs are the limit, not the arm: a player standing twelve feet across the court from a ball that
+        arrives in half a second does not volley it, and must not be drawn doing so."""
+        t = self.T
+        p = t.Player("X", north=True, practice=0)
+        path = self._path(t.NET_X + 3.0, t.NET_X - 5.0, t.WIDTH / 2, 2.6, 3.4, t0=0.05)
+        self.assertIsNone(t.volley_contact(p, path, (t.NET_X - 6.0, 1.0)),
+                          "a beginner twelve feet away volleyed a ball in a few tenths of a second")
+
+    def test_a_ball_above_the_head_is_an_overhead_and_that_is_not_built(self):
+        """The band is two limits, and each one is a different shot: above eight feet it is an overhead, below
+        2.2 it is dug off the ground. Neither is a volley, and the model says so instead of taking them."""
+        t = self.T
+        p = t.Player("X", north=True, practice=300)
+        feet = (t.NET_X - 6.0, t.WIDTH / 2)
+        high = self._path(t.NET_X + 3.0, t.NET_X - 5.0, t.WIDTH / 2, 9.0, 11.0)
+        low = self._path(t.NET_X + 3.0, t.NET_X - 5.0, t.WIDTH / 2, 0.4, 1.4)
+        self.assertIsNone(t.volley_contact(p, high, feet), "an overhead was volleyed")
+        self.assertIsNone(t.volley_contact(p, low, feet), "a ball at ankle height was volleyed")
+
+    def test_the_trace_draws_the_ball_without_moving_it(self):
+        """`trace` is a renderer's sample rate and a volley's only evidence, so it must be an observation: the
+        same shot integrated with it and without it lands in the same place at the same time. A path that
+        changed the ball would be a second integration, which is how this repository has been broken before."""
+        t = self.T
+        kw = dict(face=6.0, power=62.0, aim=t.WIDTH / 2, shot="forehand", surface="hard", wind=(0.0, 0.0))
+        # Two players with the same seed rather than one player struck twice: `strike` applies the hands' error
+        # from the player's own rng, so the second call on one player is a different shot and would have blamed
+        # the trace for the error. Same seed, same error, same ball — the only difference is the sampling.
+        plain = t.strike(t.Player("X", north=True, practice=300, rng=self.random.Random(3)), None, **kw)
+        traced = t.strike(t.Player("X", north=True, practice=300, rng=self.random.Random(3)), None,
+                          trace=0.02, **kw)
+        a, b = plain["traj"], traced["traj"]
+        self.assertEqual(a["land"], b["land"], "the trace moved the ball")
+        self.assertAlmostEqual(a["time"], b["time"], places=9)
+        self.assertAlmostEqual(a["speed_in"], b["speed_in"], places=9)
+        path = b["path"]
+        self.assertGreater(len(path), 20, "a 0.02s trace of a shot that lasts half a second is ten samples")
+        for (t0, x0, y0, z0), (t1, x1, y1, z1) in zip(path, path[1:]):
+            self.assertGreater(t1, t0, "the trace is not in the order it happened")
+        self.assertTrue(all(z >= -0.01 for _, _, _, z in path), "the trace draws the ball under the court")
+        self.assertLessEqual(path[-1][0], b["time"] + 0.02 + 1e-9,
+                             "the trace runs on after the ball has bounced")
+
+    def test_the_default_reach_is_this_games_reach(self):
+        """The `reach` argument was borrowed from the pickleball body, which needs a three-foot paddle where a
+        racquet covers seven. It defaults to the tennis number, and that is the only reason the tennis arithmetic
+        is allowed to grow an argument: every tennis record and every tennis test must run what it always ran."""
+        t = self.T
+        p = t.Player("X", north=True, practice=200, rng=self.random.Random(7))
+        land, ft, bounce = (t.NET_X + 8.0, 9.0), 1.4, {"v": (18.0, 3.0, -7.0), "speed_out": 22.0}
+        same = t.interception(p, land, ft, bounce, "hard")
+        same_explicit = t.interception(p, land, ft, bounce, "hard", reach=t.RACQUET_REACH)
+        self.assertEqual(same, same_explicit, "the default reach is not this game's reach")
+        shorter = t.interception(p, land, ft, bounce, "hard", reach=3.0)
+        self.assertLessEqual(same["short_ft"], shorter["short_ft"],
+                             "a shorter paddle cannot make a ball easier to reach")
+
+    def test_a_point_played_at_the_net_contains_a_volley(self):
+        """The end-to-end version, and the one the page can be read off: `line_for` prints the shot it was, so a
+        volley in a transcript is a volley that happened. Pinned surface, wind, clock-free rng and practice, so
+        the count is a fact about the engine rather than a fact about the day."""
+        t = self.T
+        rng = self.random.Random(5)
+        server = t.Player("A", north=True, practice=300, rng=self.random.Random(1))
+        receiver = t.Player("C", north=False, practice=300, rng=self.random.Random(2))
+        volleys = shots = 0
+        for _ in range(40):
+            lines = t.play_point(server, receiver, "hard", (0.0, 0.0), ("N", 0.0), rng)
+            for line in lines:
+                if " hits " in line:
+                    shots += 1
+                    if line.split(" hits ")[1].startswith("volley"):
+                        volleys += 1
+        self.assertGreater(volleys, 0,
+                           f"forty points on a hard court at 300 balls and not one ball taken out of the air "
+                           f"({shots} shots: the volley model is not in the point)")
+        self.assertLess(volleys, shots,
+                         "every shot was a volley, which is not a rally — the bounce is not being played")
+
 
 class TestPickleball(unittest.TestCase):
     """The second sport: the rules that are not tennis's, and the ball that is not a tennis ball.

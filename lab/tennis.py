@@ -104,7 +104,7 @@ def wind_vector(direction: str, speed_mph: float) -> tuple[float, float]:
 
 # ---- the ball -------------------------------------------------------------------------------------
 def flight(p0, v0, wind, surface, net_check=True, cl=0.0, drag=None, lift=None, net_x=None,
-           surfaces=None, net_profile=None):
+           surfaces=None, net_profile=None, trace=None):
     """Integrate one shot. Returns where it crossed the net, where it first landed, and the ball at that
     moment. No closed form: drag makes it a numeric problem, and doing it numerically is the honest way.
 
@@ -119,6 +119,10 @@ def flight(p0, v0, wind, surface, net_check=True, cl=0.0, drag=None, lift=None, 
     those numbers in is copying the loop, which is how this repository has been broken before. Every one of
     them defaults to this game's own value, so a tennis call that passes none of them integrates exactly what
     it integrated before the arguments existed (2,408-point grid, 0 differences; tests.py asserts it)."""
+    # `trace` is a number of seconds, a 0.02 of them: the ball's position every that often, which is what a
+    # renderer draws and what a volley needs — the question "can the racquet reach the ball *before* it bounces"
+    # cannot be asked of a bounce point. Brought over with the volley model, 2026-11-16 (Item 14).
+    path, next_sample = ([] if trace else None), 0.0
     DRAG_ = DRAG if drag is None else drag
     LIFT_ = LIFT if lift is None else lift
     NET_X_ = NET_X if net_x is None else net_x
@@ -130,6 +134,9 @@ def flight(p0, v0, wind, surface, net_check=True, cl=0.0, drag=None, lift=None, 
     dt, t = 0.001, 0.0
     net = None
     while t < 6.0:
+        if trace and t >= next_sample:
+            path.append((round(t, 3), round(x, 3), round(y, 3), round(z, 3)))
+            next_sample += trace
         rx, ry, rz = vx - wx, vy - wy, vz
         rel = math.sqrt(rx * rx + ry * ry + rz * rz)
         speed2 = vx * vx + vy * vy + vz * vz
@@ -142,7 +149,7 @@ def flight(p0, v0, wind, surface, net_check=True, cl=0.0, drag=None, lift=None, 
             f = (NET_X_ - x) / (nx - x)
             net = (y + f * (ny - y), z + f * (nz - z))
             if net[1] < net_height_(net[0]):
-                return {"net": net, "land": None, "time": t,
+                return {"net": net, "land": None, "time": t, "path": path,
                         "speed_at_net": math.sqrt(vx * vx + vy * vy + vz * vz)}
         if nz <= 0:                                       # first bounce on the court plane
             f = z / (z - nz) if z != nz else 1.0
@@ -150,13 +157,13 @@ def flight(p0, v0, wind, surface, net_check=True, cl=0.0, drag=None, lift=None, 
             vx2, vy2, vz2 = vx + f * (nvx - vx), vy + f * (nvy - vy), vz + f * (nvz - vz)
             s = SURF_[surface]
             after = (vx2 * s["f"], vy2 * s["f"], -vz2 * s["e"])
-            return {"net": net, "land": land, "time": t + f * dt,
+            return {"net": net, "land": land, "time": t + f * dt, "path": path,
                     "speed_in": math.sqrt(vx2 * vx2 + vy2 * vy2 + vz2 * vz2),
                     "bounce": {"speed_out": math.sqrt(sum(c * c for c in after)),
                                "v": after, "angle": math.degrees(math.atan2(after[2], math.hypot(*after[:2])))}}
         x, y, z, vx, vy, vz = nx, ny, nz, nvx, nvy, nvz
         t += dt
-    return {"net": net, "land": None, "lost": True}
+    return {"net": net, "land": None, "lost": True, "path": path}
 
 
 def net_height(y: float, centre: float | None = None, posts: float | None = None,
@@ -296,7 +303,7 @@ def spin_for(shot: str, face: float, power: float) -> float:
 
 def strike(p: Player, incoming: dict | None, face: float, power: float, aim: float,
            shot: str, surface: str, wind: tuple[float, float], clean: bool = False,
-           aim_dist: float | None = None) -> dict:
+           aim_dist: float | None = None, at=None, trace=None) -> dict:
     """Movement in, ball out. The player supplies a face angle in degrees (negative closed), a power in
     per-cent and an aim offset in feet; everything else is physics plus the player's skill."""
     control = p.skill("control")
@@ -321,7 +328,9 @@ def strike(p: Player, incoming: dict | None, face: float, power: float, aim: flo
     # 100% of swing sends the ball at 105mph, a hard forehand; 30% is a 32mph push. The first version used
     # 1.32mph per point, so 100% meant 132mph and every number on the page was a fiction.
     speed = max(8.0, power_actual * 1.05)
-    p0 = contact_point(p, shot)
+    # `at` is where the racquet actually meets the ball, for the one shot that is not struck from a place the
+    # figure can compute: a volley is struck out of the air, wherever the ball happened to be.
+    p0 = contact_point(p, shot) if at is None else at
     # the player turns to aim; the face angle sets the loft, not the direction. A first version made the
     # face angle steer as well, and a serve aimed at the right box landed thirty feet wide. Aim is absolute
     # across the court (feet from the west sideline), not relative to the ball, because a serve struck four
@@ -337,23 +346,25 @@ def strike(p: Player, incoming: dict | None, face: float, power: float, aim: flo
     vy = v * math.cos(elevation) * math.sin(azimuth)
     vz = v * math.sin(elevation)
     cl = spin_for(shot, face_actual, power_actual)
-    traj = flight(p0, (vx, vy, vz), wind, surface, cl=cl)
+    traj = flight(p0, (vx, vy, vz), wind, surface, cl=cl, trace=trace)
     return {"player": p, "shot": shot, "speed": speed, "sweet": sweet, "contact": p0,
             "traj": traj, "face": face_actual, "power": power_actual, "spin": cl}
 
 
-def aim_at(p: Player, target, shot: str, surface: str, wind, power: float) -> tuple[float, float]:
+def aim_at(p: Player, target, shot: str, surface: str, wind, power: float, at=None) -> tuple[float, float]:
     """The player's intent, translated into movement: what face angle and power send the ball to that spot.
     This is what a competent player does by feel and a beginner cannot do at all — so the *error* is applied
     afterwards, by `strike`, from the player's control."""
     lo, hi = -20.0, 40.0
     fwd = 1.0 if p.north else -1.0        # "past the target" is +x for one end and -x for the other
-    p0 = contact_point(p, shot)
+    # `at` is where the racquet actually meets the ball, for the one shot that is not struck from a place the
+    # figure can compute: a volley is struck out of the air, wherever the ball happened to be.
+    p0 = contact_point(p, shot) if at is None else at
     dist = math.hypot(target[0] - p0[0], target[1] - p0[1])
     for _ in range(22):
         mid = (lo + hi) / 2
         probe = strike(p, None, face=mid, power=power, aim=target[1],
-                       shot=shot, surface=surface, wind=wind, clean=True, aim_dist=dist)
+                       shot=shot, surface=surface, wind=wind, clean=True, aim_dist=dist, at=at)
         land = probe["traj"].get("land")
         if land is None:
             lo = mid                       # still in the net: hit up more
@@ -403,7 +414,7 @@ def movement_speed(p: Player) -> float:
 
 def interception(p: Player, land, flight_time: float, bounce: dict, surface: str,
                  home_x: float | None = None, court_len: float | None = None,
-                 court_wid: float | None = None, frm=None) -> dict:
+                 court_wid: float | None = None, frm=None, reach: float | None = None) -> dict:
     """The interception itself, as numbers: did the player get there, how much of the ground did the clock
     allow, and where do the feet come to rest.
 
@@ -425,6 +436,11 @@ def interception(p: Player, land, flight_time: float, bounce: dict, surface: str
     called unreachable, when in fact it bounces and comes back to you — and it failed players for something that
     was neither visible nor theirs to control, which is the one thing a rule in this game must never do."""
     court_w = WIDTH if court_wid is None else court_wid
+    # `reach` is how far the paddle (or the racquet) covers beyond the feet. Tennis's 7 ft is a lunge and an
+    # extended arm; pickleball's is 3 ft, because the paddle is 15 in and the ball weighs 25 g. A second sport
+    # with a different body must be able to say so rather than borrow this one's stretch — and the default is
+    # the tennis number, so every tennis record and every tennis test runs the arithmetic it always ran.
+    reach = RACQUET_REACH if reach is None else reach
     if frm is not None:
         hx, hy = frm[0], frm[1]
     else:
@@ -452,7 +468,7 @@ def interception(p: Player, land, flight_time: float, bounce: dict, surface: str
     while t <= 4.0:
         if z <= RACQUET_HIGH:           # a ball above nine feet is not intercepted, it is smashed — later
             gap = math.hypot(hx - x, hy - y)
-            need = max(0.0, gap - RACQUET_REACH) / speed + SETTLE
+            need = max(0.0, gap - reach) / speed + SETTLE
             have = flight_time + t - REACTION
             short = need - have
             if best is None or short < best[0]:
@@ -461,7 +477,7 @@ def interception(p: Player, land, flight_time: float, bounce: dict, surface: str
                 return {"ok": True, "need": need, "have": have, "short": 0.0, "short_ft": 0.0,
                         "dx": hx - x, "dy": hy - y, "speed": speed, "at": flight_time + t,
                         "meet": (round(x, 3), round(y, 3), round(z, 3)), "gap": gap,
-                        "got": _run_to((hx, hy), (x, y), max(0.0, gap - RACQUET_REACH)), "why": ""}
+                        "got": _run_to((hx, hy), (x, y), max(0.0, gap - reach)), "why": ""}
         if t > 0.0 and z <= 0.0:        # the second bounce: the ball is dead and the chance has gone
             break
         rel = math.sqrt(vx * vx + vy * vy + vz * vz)
@@ -498,9 +514,9 @@ def _run_to(frm, to, ground: float):
 
 def reachable(p: Player, land, flight_time: float, bounce: dict, surface: str,
               home_x: float | None = None, court_len: float | None = None,
-              court_wid: float | None = None, frm=None) -> tuple[bool, str]:
+              court_wid: float | None = None, frm=None, reach: float | None = None) -> tuple[bool, str]:
     """Did the player get to it, and if not, the sentence that says by how much and which way."""
-    m = interception(p, land, flight_time, bounce, surface, home_x, court_len, court_wid, frm)
+    m = interception(p, land, flight_time, bounce, surface, home_x, court_len, court_wid, frm, reach)
     return m["ok"], m["why"]
 
 
@@ -918,6 +934,47 @@ def choose_shot(p: Player, other: Player, at_hitter, at_receiver, record: dict, 
                                      "power": rng.uniform(40, 52) * pace}, last, rng)
 
 
+# ---- the volley -------------------------------------------------------------------------------------
+# A ball taken out of the air, before it bounces. The model is one radius rather than a box: the arm, the palm
+# and the frame with a little stretch in it, below head height (above that it is an overhead, which is not
+# built) and above the ground (below that it is a dig). The legs get the flight time to close the gap, which is
+# the difference between a volley and a reflex. Ported from the longer engine, 2026-11-16 (Item 14); it is here
+# because `choose_shot` has had volley weights since the chooser came over and there was nothing to take out of
+# the air — a player standing 7ft from the net still waited for the ball to bounce.
+VOLLEY_REACH = 3.8         # feet from the middle of the body: arm, palm and frame, with a stretch
+VOLLEY_LOW = 2.2           # feet. Below this the ball is dug off the ground, not volleyed
+VOLLEY_HIGH = 8.0          # feet. Above this it is an overhead, and an overhead is not built yet
+HIT_WINDOW_MAX = 1.2       # s, the cap on how long a ball is hittable after its bounce
+
+
+def volley_contact(p: Player, path, at, reach: float = VOLLEY_REACH,
+                   lo: float = VOLLEY_LOW, hi: float = VOLLEY_HIGH):
+    """Where the ball can be taken out of the air, if it can be: the earliest moment the racquet can physically
+    reach it, which is what a player coming forward actually does.
+
+    The first version scanned for the ball "level with the player", a place the ball reaches twice; the second
+    solved for a fixed meeting plane three feet in front of the stance, which put the contact four feet past the
+    net where the ball is still on its way up at seven feet. This one takes the earliest reachable sample and
+    returns None when there is none — which is not a failure: it means the ball bounces and becomes a
+    groundstroke, and the caller plays that instead."""
+    fwd = 1.0 if p.north else -1.0
+    spd = movement_speed(p)
+    for t, x, y, z in path or ():
+        if (NET_X - x) * fwd < 2.0:            # still on the far side of the net, or on the cord itself
+            continue
+        if not (lo <= z <= hi):
+            continue
+        dx, dy = x - at[0], y - at[1]
+        d = math.hypot(dx, dy)
+        need = max(0.0, d - reach)
+        if need > spd * t:                     # the legs cannot cover the gap in the time
+            continue
+        step = min(spd * t, need)
+        feet = (at[0] + (dx / d) * step, at[1] + (dy / d) * step) if d > 1e-6 else at
+        return {"t": t, "contact": (x, y, z), "feet": feet, "step": round(need, 2), "height": z}
+    return None
+
+
 def recovery_spot(p: Player, at_hitter, came_in: bool) -> tuple[float, float]:
     """Where the player goes after they hit, which is never where they hit from.
 
@@ -987,7 +1044,7 @@ def play_point(server: Player, receiver: Player, surface: str, wind_vec, wind_in
     face, power = aim_serve(server, c, surface, wind_vec, face=rng.uniform(4.0, 8.0))
     _p0 = contact_point(server, "serve")
     shot = strike(server, None, face=face, power=power, aim=c[1], shot="serve", surface=surface, wind=wind_vec,
-                  aim_dist=math.hypot(c[0] - _p0[0], c[1] - _p0[1]))
+                  trace=0.02, aim_dist=math.hypot(c[0] - _p0[0], c[1] - _p0[1]))
     server.serves += 1
     lines.append(line_for(shot, receiver.name, surface, wind_in))
     t = shot["traj"]
@@ -1001,22 +1058,36 @@ def play_point(server: Player, receiver: Player, surface: str, wind_vec, wind_in
     incoming["speed_in"] = t["bounce"]["speed_out"] / MPH
 
     for shot_no in range(1, RALLY_CAP + 1):
-        if shot_no > 1:
-            ok, why = reachable(receiver, t["land"], t["time"], t["bounce"], surface,
-                                frm=where[receiver.name])
-            if not ok:
-                lines.append(f"{receiver.name} is {why} — {server.name} takes the point.")
-                server.winners += 1
-                return lines
         at_net = abs(where[receiver.name][0] - NET_X) < VOLLEY_ZONE
+        vol = None
+        if shot_no > 1:
+            # A player standing in the forecourt takes the ball out of the air if the racquet can reach it there.
+            # Asked BEFORE the interception, because the interception starts at the bounce and a volley is the
+            # point at which the bounce does not happen: asking "can they get to where it lands" of a net player
+            # is how every volley used to be scored as a lost point.
+            if at_net:
+                vol = volley_contact(receiver, t.get("path"), where[receiver.name])
+            if vol is None:
+                ok, why = reachable(receiver, t["land"], t["time"], t["bounce"], surface,
+                                    frm=where[receiver.name])
+                if not ok:
+                    lines.append(f"{receiver.name} is {why} — {server.name} takes the point.")
+                    server.winners += 1
+                    return lines
+        if vol is not None:
+            where[receiver.name] = vol["feet"]
+            at = vol["contact"]
+            kind = "volley"
+        else:
+            at = None
+            kind = rng.choice(["forehand", "backhand", "backhand", "forehand"])
         plan = choose_shot(receiver, server, where[receiver.name], where[server.name], record, rng,
-                           height=3.6 if at_net else None, last=last[receiver.name])
+                           height=vol["height"] if vol else None, last=last[receiver.name])
         last[receiver.name] = plan["target"]
-        kind = "volley" if at_net else rng.choice(["forehand", "backhand", "backhand", "forehand"])
-        face, power = aim_at(receiver, plan["target"], kind, surface, wind_vec, power=plan["power"])
-        _p0 = contact_point(receiver, kind)
+        face, power = aim_at(receiver, plan["target"], kind, surface, wind_vec, power=plan["power"], at=at)
+        _p0 = contact_point(receiver, kind) if at is None else at
         shot = strike(receiver, incoming, face=face, power=power, aim=plan["target"][1],
-                      shot=kind, surface=surface, wind=wind_vec,
+                      shot=kind, surface=surface, wind=wind_vec, at=at, trace=0.02,
                       aim_dist=math.hypot(plan["target"][0] - _p0[0], plan["target"][1] - _p0[1]))
         lines.append(line_for(shot, server.name, surface, wind_in))
         t = shot["traj"]
