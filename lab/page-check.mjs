@@ -1877,12 +1877,24 @@ async function main(){
   seedUpdate();
   clashWrites.add('USER-MANUAL.md');
   const raced = await settle(`const r = await applyUpdate();
-    return {done: r.done, clash: r.clash, said: updateReport(r)};`);
+    const v = JSON.parse((await fileText('.ait/version.json')).text);
+    const u = await updateCheck();
+    return {done: r.done, clash: r.clash, stamped: r.stamped, said: updateReport(r),
+            updated_to: v.updated_to, state: u.state};`);
   check('a file that changed between the plan and the write is not overwritten', () => {
     if (raced.err) return raced.err;
     if (!raced.clash.includes('USER-MANUAL.md')) return 'the 409 was not noticed: ' + JSON.stringify(raced.clash);
     if (raced.done.includes('USER-MANUAL.md')) return 'a clashing file was reported as written';
     if (!/changed while the page was reading/i.test(raced.said)) return 'the report does not say it: ' + raced.said;
+    return '';
+  });
+  check('an update that could not finish does not claim the tribe is current', () => {
+    if (raced.err) return raced.err;
+    if (raced.stamped) return 'the record was stamped after a file was left behind';
+    if (raced.updated_to === HEAD) return 'the record says the tribe runs the new template';
+    if (raced.updated_to !== null) return 'the record was rewritten to ' + JSON.stringify(raced.updated_to);
+    if (raced.state !== 'behind') return 'the next load would say ' + raced.state + ' and never offer the file again';
+    if (!/offered again/i.test(raced.said)) return 'the report does not say the update will be offered again: ' + raced.said;
     return '';
   });
 

@@ -561,10 +561,15 @@ async function applyUpdate(){
     try { await putText(f.path, text, msg, f.sha); done.push(f.path); }
     catch(e){ if (/\b409\b/.test(String(e.message || ''))) clash.push(f.path); else throw e; }
   }
-  // The stamp is last and is the only claim that the update happened. A tribe whose files moved but whose record did
-  // not would check again on the next reload and be told the same thing forever.
-  try { await stampVersion(p.head); } catch(e){ /* said below rather than thrown: the files are already written */ }
-  return {p, done, clash};
+  // The stamp is the claim "this tribe runs <sha>", so it is written only when every file landed. Stamping after a
+  // 409 is the quiet version of the failure this whole design exists to avoid: the record would say the tribe is
+  // current, the update would never be offered again, and the file somebody else wrote would stay the old one for
+  // good. Found 2026-11-16 by asking what the record says after the clash test rather than by watching it pass — the
+  // test checked that the clashing file was left alone and never asked whether the tribe still knew it was behind.
+  if (!clash.length){
+    try { await stampVersion(p.head); } catch(e){ /* the files landed; a record that could not be written is said below */ }
+  }
+  return {p, done, clash, stamped: !clash.length};
 }
 async function stampVersion(to){
   const cur = await fileText('.ait/version.json').catch(() => null);
@@ -584,8 +589,11 @@ function updateReport(r){
   if (r.p && r.p.kept && r.p.kept.length) parts.push(`${r.p.kept.length} left alone (they differ from the version this tribe records)`);
   if (r.p && r.p.waiting && r.p.waiting.length) parts.push(`${r.p.waiting.length} not replaced because ${r.p.provable ? 'the template no longer has ' : 'this tribe\'s version record does not match '}${r.p.waiting.length === 1 ? 'it' : 'them'}`);
   if (!parts.length) return 'Nothing was changed.';
-  const tail = (r.clash && r.clash.length) || (r.p && (r.p.kept.length || r.p.waiting.length))
-    ? ' Nothing that was already yours was disturbed.' : '';
+  const tail = (r.clash && r.clash.length)
+    ? ' Nothing that was already yours was disturbed. This tribe still records the version it was, so the update will '
+      + 'be offered again and will write the file that changed under it.'
+    : (r.p && (r.p.kept.length || r.p.waiting.length))
+      ? ' Nothing that was already yours was disturbed.' : '';
   return parts.join('; ') + '.' + tail;
 }
 
