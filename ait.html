@@ -205,7 +205,7 @@ const PAINTERS = {
 const painterNames = () => Object.values(PAINTERS).map(p => p.label).join(', ');
 
 const S = {repo:'', token:'', branch:'main', keys:{}, members:[], chat:{}, member:null, view:'today',
-           owner:'', tribes:{}, isPrivate:null};   // null = this page has not been told; see noteVisibility()
+           owner:'', tribes:{}, app:'', isPrivate:null};   // null = this page has not been told; see noteVisibility()
 
 // Which tribes this browser has been in, and the credential it used for each. Without this there is exactly one
 // way back to a tribe you have already opened: retype its name and paste a token. Found 2026-11-09, when the
@@ -304,7 +304,7 @@ function nowStamp(){
 
 function save(){
   localStorage.setItem('ait', JSON.stringify({repo:S.repo, token:S.token, keys:S.keys, owner:S.owner || '',
-                                             tribes:S.tribes || {}}));
+                                             tribes:S.tribes || {}, app:S.app || ''}));
   // An unfiled conversation is kept here too: a person who reloads the page should not lose what a
   // member said, even though only filing it puts it in the record.
   try {
@@ -315,7 +315,7 @@ function save(){
 }
 function load(){ try{ const j = JSON.parse(localStorage.getItem('ait') || '{}');
   S.repo = j.repo || ''; S.token = j.token || ''; S.keys = j.keys || {}; S.owner = j.owner || '';
-  S.tribes = j.tribes || {}; }catch(e){}
+  S.tribes = j.tribes || {}; S.app = j.app || ''; }catch(e){}
   try { S.chat = JSON.parse(localStorage.getItem('ait.chat') || '{}'); } catch(e){ S.chat = {}; } }
 
 /* ---- the GitHub door ------------------------------------------------------------------- */
@@ -1129,6 +1129,12 @@ const TEMPLATE = 'LindsayRidgeway/ai-tribe-template';
 // Public, and it may be public: the client id is in the page by design. The secret that goes with it
 // lives in the site's environment and only the auth function ever sees it.
 const GH_CLIENT = 'Ov23liKyiakrCEg8jTn9';
+// The GitHub App. Where the OAuth app above hands back one token that can write every repository a person
+// owns, this one hands back a token that reaches only the repositories that person granted it. That is the
+// whole reason it exists, and it is why the sign-in that matters (Connect, on a second device) uses this id
+// and not the one above. Public by design, like the other.
+const GH_APP = '';
+const GH_APP_SLUG = 'ait';
 const FN = (name) => '/.netlify/functions/' + name;
 
 let OAUTH = '';          // a token obtained by signing in, not yet used for an install
@@ -1149,6 +1155,7 @@ function signIn(where){
   u.searchParams.set('state', where + '.' + Math.random().toString(36).slice(2, 10));
   try {
     sessionStorage.setItem('ait.state', u.searchParams.get('state'));
+    sessionStorage.removeItem('ait.app');
     // The name typed before signing in costs a person a keystroke, and the round trip through GitHub is a full page
     // load that would otherwise throw it away — the field came back as "my-tribe" under a page that had just been
     // told otherwise. Found by the founder on the live page, 2026-11-11: "it's ignored, and you have to type it on
@@ -1157,6 +1164,53 @@ function signIn(where){
   } catch(_){}
   location.href = u.toString();
 }
+
+// The same round trip, with the App's id and no `scope`: an App's permissions are fixed when it is registered,
+// so a scope parameter here would be asking a question GitHub does not accept an answer to.
+function signInApp(where){
+  if (!GH_APP){ alert('This copy of the page has no GitHub App registered yet.'); return; }
+  const u = new URL('https://github.com/login/oauth/authorize');
+  u.searchParams.set('client_id', GH_APP);
+  u.searchParams.set('state', where + '.' + Math.random().toString(36).slice(2, 10));
+  try { sessionStorage.setItem('ait.state', u.searchParams.get('state')); } catch(_){}
+  // Which of the two ids asked. The exchange endpoint is the same for both; only the pair of credentials differs,
+  // and the function reads this flag to know which pair it is holding.
+  try { sessionStorage.setItem('ait.app', '1'); } catch(_){}
+  location.href = u.toString();
+}
+
+// What this account has already given the App. Two answers matter, and the second one is the state a person
+// cannot diagnose from a blank list: nobody has installed it yet.
+async function appRepos(token){
+  const out = [];
+  const insts = (await gh('/user/installations', {}, token)).installations || [];
+  for (const i of insts){
+    const r = await gh(`/user/installations/${i.id}/repositories?per_page=100`, {}, token);
+    for (const x of (r.repositories || [])){ if (out.length < 40) out.push(x); }
+  }
+  return out;
+}
+
+// A repository is a tribe when it carries the manifest every tribe is generated with. One request, and a 404 is
+// the ordinary answer rather than a failure.
+async function isTribe(full, token){
+  try { await gh(`/repos/${full}/contents/.tribe-manifest.json`, {}, token); return true; }
+  catch(_){ return false; }
+}
+
+// The App's token for this browser: the one just handed back by the sign-in, or the one kept from last time. It
+// is kept because otherwise every reload would ask the person to sign in again, which is the annoyance this whole
+// change exists to remove — and it reaches only the repositories they granted.
+const appTok = () => OAUTH || S.app || '';
+
+// Opening one of them. The App's token is the credential for every repository it covers, so there is nothing
+// per-tribe to keep beyond the name — and the token stays in memory and in this browser, never in the markup.
+window.openAppTribe = (repo, branch) => {
+  setTribe(repo, appTok(), branch || 'main');
+  save();
+  location.hash = '#/today';
+  render();
+};
 
 // A member needs the words, not the markup. A regex cannot do this job: an attribute value containing
 // a ">" survives a tag-strip, which is how a page's inline menu JSON ended up in front of a member
@@ -1467,10 +1521,27 @@ function viewConnect(main){
         <button class="plain small" onclick="${r === S.repo ? `location.hash='#/today';render()` : `switchTribe('${escq(r)}')`}">${esc(r)}</button>
         <span class="small muted">${r === S.repo ? 'the one this page opens · ' + opened(v) : opened(v)}</span></div>`).join('')}
     </div>` : '';
+  // Sign-in first, paste second. The App's token reaches the repositories a person granted and nothing else —
+  // narrower than any token they would make by hand for this job — and it is the only way for a second device to
+  // learn what the first one already knows without carrying a secret across.
+  const appBlock = !GH_APP ? '' : `
+    <div class="card" style="margin-bottom:12px">
+      <p class="small" style="margin:0 0 10px"><strong>Sign in with GitHub</strong> — this browser then lists every
+      tribe that account has already given AIT access to. Nothing to paste, and on a second device the list is
+      simply there.</p>
+      <div class="row"><button class="primary" id="ghapp">${appTok() ? 'Look again' : 'Sign in with GitHub'}</button>
+      <span class="small muted" id="appmsg">${appTok() ? 'signed in — looking…' : ''}</span></div>
+      <div id="applist"></div>
+      <p class="small muted" style="margin:10px 0 0">The sign-in reaches the repositories you tick when GitHub asks
+      — no others, and narrower than a classic token, which can write everything you own. Change what it reaches at
+      any time at
+      <a href="https://github.com/settings/installations" target="_blank" rel="noopener">GitHub → Installations</a>.</p>
+    </div>`;
   main.innerHTML = `
     <p class="small"><a href="#/">← back</a></p>
     <h1>Connect a tribe</h1>
     <p class="lede">The repository it lives in, and a token that can see it.</p>
+    ${appBlock}
     <div class="card">
       <label for="repo">Repository</label>
       <input id="repo" placeholder="your-name/your-tribe" autocapitalize="off" autocorrect="off" spellcheck="false">
@@ -1504,6 +1575,45 @@ or <a href="#/today" onclick="WANT='';WANT_WHY='';return true;">stay in ${esc(S.
     </div>`;
 
   $('repo').value = want || S.repo || '';
+
+  if (GH_APP){
+    const ghb = $('ghapp');
+    if (ghb) ghb.onclick = () => { if (appTok()) paintApp(); else signInApp('connect'); };
+    if (appTok()) paintApp();
+  }
+
+  // The list the whole change is about. Asked of GitHub every time rather than remembered, because the grant can
+  // be narrowed at github.com between one visit and the next, and a list that lies about what is still open is
+  // worse than a list that takes a second.
+  async function paintApp(){
+    const box = $('applist'), msg = $('appmsg');
+    if (!box || !msg) return;
+    msg.className = 'small muted';
+    msg.textContent = 'asking GitHub which tribes this account can open…';
+    box.innerHTML = '';
+    try {
+      const repos = await appRepos(appTok());
+      if (!repos.length){
+        msg.innerHTML = 'This account has not given AIT access to a repository yet. ' +
+          `<a href="https://github.com/apps/${GH_APP_SLUG}/installations/new" target="_blank" rel="noopener">Install it</a>, choose <strong>All repositories</strong>, and come back to this page.`;
+        return;
+      }
+      const tribes = [];
+      for (const r of repos){ if (await isTribe(r.full_name, appTok())) tribes.push(r); }
+      if (!tribes.length){
+        msg.textContent = 'Signed in. None of the ' + repos.length + ' repositories it reaches is a tribe.';
+        return;
+      }
+      msg.textContent = tribes.length + (tribes.length === 1 ? ' tribe' : ' tribes') + '.';
+      box.innerHTML = `<p class="small muted" style="margin:10px 0 2px">Tribes this GitHub account can open</p>` +
+        tribes.map(r => `<div class="row" style="justify-content:space-between;padding:6px 0">
+          <button class="plain small" onclick="openAppTribe('${escq(r.full_name)}','${escq(r.default_branch || 'main')}')">${esc(r.full_name)}</button>
+          <span class="small muted">${S.repo === r.full_name ? 'the one this page opens' : (r.private ? 'private' : 'public')}</span></div>`).join('');
+    } catch(e){
+      msg.className = 'err';
+      msg.textContent = 'GitHub would not answer: ' + e.message;
+    }
+  }
   // What the box already knows. The founder's question, twice: the page can answer "which credential" before
   // anybody presses anything, so it should say so rather than wait to be told twice — and where it holds one, it
   // should not show a token field and an explanation of what a token is at all. He is right that a page carrying a
@@ -4724,14 +4834,17 @@ window.addEventListener('hashchange', () => render());
       if (saved) want = saved.split('.')[0];
       sessionStorage.removeItem('ait.state');
     } catch(_){}
+    let wasApp = false;
+    try { wasApp = sessionStorage.getItem('ait.app') === '1'; sessionStorage.removeItem('ait.app'); } catch(_){}
     q.delete('state');
     try { history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString() : '')); } catch(_){}
     try {
       const r = await fetch(FN('auth'), {method:'POST', headers:{'content-type':'application/json'},
-                                         body: JSON.stringify({code})});
+                                         body: JSON.stringify({code, app: wasApp})});
       const d = await r.json();
       if (!d.access_token) throw new Error(d.error || 'GitHub sent no token');
       OAUTH = d.access_token;
+      if (wasApp){ S.app = OAUTH; save(); }
       location.hash = '#/' + want;
     } catch(e){
       location.hash = '#/install';
