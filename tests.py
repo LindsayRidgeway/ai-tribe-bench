@@ -5387,6 +5387,48 @@ class TheTemplateMustBeEnough(unittest.TestCase):
         self.assertEqual(r.returncode, 1)
         self.assertIn("does not look like a tribe", r.stderr)
 
+    def test_the_bench_and_the_page_agree_on_what_an_update_would_do(self):
+        """`lab/repos.py verdict()` and `ait.html`'s updatePlan() are the same rule written twice, in two languages,
+        for one reason: the page runs in a browser and the report runs from a terminal. Two copies of a rule is how
+        this project's whitelist drifted, so the three cases each implementation gets wrong are pinned here, and
+        the page's own three are in lab/page-check.mjs against the same shapes."""
+        sys.path.insert(0, str(REPO / "lab"))
+        import repos
+        man = ["wake/wake.py", "tribe.py", "USER-MANUAL.md"]
+        theirs = {"wake/wake.py": "n1", "tribe.py": "n2", "USER-MANUAL.md": "n3"}
+        # (1) no record: files may be added, nothing may be replaced
+        ours = {"wake/wake.py": "o1", "tribe.py": "o2", "USER-MANUAL.md": "o3"}
+        r = repos.verdict(man, ours, theirs, None)
+        self.assertEqual(r["replace"], [])
+        self.assertEqual(len(r["unjudged"]), 3)
+        self.assertFalse(r["credible"])
+        # (2) a credible record: one file untouched since it and replaced, one differing from it and left alone,
+        #     one already identical to the template and not mentioned at all
+        theirs2 = dict(theirs, **{"USER-MANUAL.md": "o3"})
+        base = {"wake/wake.py": "o1", "tribe.py": "old2", "USER-MANUAL.md": "o3"}
+        r = repos.verdict(man, ours, theirs2, base)
+        self.assertTrue(r["credible"], "two of three matching the record is a credible record")
+        self.assertEqual(r["replace"], ["wake/wake.py"])
+        self.assertEqual(r["kept"], ["tribe.py"])
+        self.assertEqual(r["add"], [], "a file already identical to the template is not work")
+        # (3) a record its files contradict: nothing is replaced
+        base = {"wake/wake.py": "x1", "tribe.py": "x2", "USER-MANUAL.md": "x3"}
+        r = repos.verdict(man, ours, theirs, base)
+        self.assertFalse(r["credible"])
+        self.assertEqual(r["replace"], [])
+        self.assertEqual(len(r["unjudged"]), 3)
+        # and a file the tribe does not have is an addition, not a replacement, in every case
+        r = repos.verdict(man, {"tribe.py": "o2"}, theirs, {})
+        self.assertIn("wake/wake.py", r["add"])
+        self.assertEqual(r["agree"], 0)
+
+    def test_the_report_only_counts_repositories_that_are_tribes(self):
+        """`llm-symposium` is a keeper and not a tribe. Counting it would have reported the commons as 29 files
+        behind the machinery — a number that makes a report worth ignoring."""
+        src = (REPO / "lab" / "repos.py").read_text()
+        self.assertIn('if ours is not None and "tribe.py" not in ours:', src)
+        self.assertNotIn('if kind not in ("tester", "demo", "keep")', src)
+
     def test_the_updater_records_which_version_it_copied(self):
         """Two updaters and one record. A tribe updated from a terminal whose record still names the commit it was
         installed from is a tribe whose page compares its files against a version they never came from."""

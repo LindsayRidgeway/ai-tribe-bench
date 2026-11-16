@@ -652,6 +652,13 @@ Actions*, named `TRIBE_API_KEY_<ENGINE>`. GitHub stores it sealed and write-only
 never written into a file, and not even you can read it back afterwards. So no key is ever in the repository's
 contents, and making a repository public does not expose one.
 
+**Why the page cannot do this for you**, since it plainly knows the key you just pasted. GitHub accepts a secret only
+in a form sealed with that repository's own public key, and sealing is a piece of cryptography the page would have to
+carry and run itself — in a single file that anyone can read, guarding the one thing here worth stealing. A mistake in
+it would either leak a key or break arming in a way nothing would notice. So the page does the four things it can do:
+it says plainly that the copy is missing, it names the exact secret, it links to the page that takes it, and it reads
+the repository again when you come back rather than remembering what it saw.
+
 This section said "AIT keeps the two copies in step; you paste once" until 2026-11-15. That was not true, and the
 correction matters more than the sentence did: the two copies are **set separately**, on two pages, and when a wake
 fails because its copy is missing the page names the secret and tells you where it goes.

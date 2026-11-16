@@ -1656,6 +1656,9 @@ async function main(){
     if (!/TRIBE_API_KEY_DEEPSEEK/.test(html)) return 'it does not name the secret the repository is missing';
     if (!/Settings .* Secrets and variables .* Actions/s.test(html)) return 'it does not say where a repository secret goes';
     if (!/Keys tab holds this browser.s copy/.test(html)) return 'it does not say why the key on the Keys tab is not enough';
+    if (!/https:\/\/github\.com\/someone\/tribe\/settings\/secrets\/actions\/new/.test(html))
+      return 'it says where the secret goes but does not take the person there';
+    if (!/Read again/.test(html)) return 'it does not say the notice is re-read rather than remembered';
     return '';
   });
   check('and weights on your own machine are told apart from a missing key', () => {

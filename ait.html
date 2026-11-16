@@ -1650,9 +1650,13 @@ async function viewToday(main){
     return `<div class="notice"><strong>${gaps.length === 1 ? 'A member here' : gaps.length + ' members here'}`
       + ` will never wake on the clock.</strong> `
       + (noKey.length ? `${named(noKey)} ${noKey.length === 1 ? 'is' : 'are'} on an engine with no key in this `
-          + `repository — add ${secrets.map(s => `<code>${esc(s)}</code>`).join(' and ')} under `
-          + `Settings → Secrets and variables → Actions. The Keys tab holds this browser's copy, for chat; a `
-          + `scheduled run can only read the repository's. ` : '')
+          + `repository — add ${secrets.map(s => `<code>${esc(s)}</code>`).join(' and ')} on `
+          + `<a href="${esc(secretsUrl())}" target="_blank" rel="noopener">this repository's Actions secrets page</a> `
+          + `(Settings → Secrets and variables → Actions), then press <em>Read again</em>: the notice is checked `
+          + `from the repository, not remembered. The Keys tab holds this browser's copy, for chat; a scheduled `
+          + `run can only read the repository's, and this page cannot write one — GitHub will only accept a secret `
+          + `sealed with the repository's own key, and sealing is not something a page that anyone can read should `
+          + `be doing to your API keys. ` : '')
       + (unreachable.length ? `${named(unreachable)} ${unreachable.length === 1 ? 'is' : 'are'} on an engine this `
           + `tribe's own clock does not hand a key to, which means the copy in the repository is older than this `
           + `page. ` : '')
@@ -2023,6 +2027,14 @@ async function outputFiles(name){
 /* Which engines the clock will hand a key to — read out of the workflow, not copied into this page. A list written
    here a second time would drift the same way clock.yml's did: the page offers ten engines, the clock wired three,
    and a member whose voice was changed in the page was skipped before it was ever called (Gwen's #16). */
+// Where a person actually adds the key the clock needs. A link rather than an instruction: "Settings → Secrets
+// and variables → Actions" is three clicks and a search, and the page already knows the repository's name. What the
+// page still cannot do is write that secret: GitHub accepts one only sealed with the repository's own key, and
+// sealing means shipping a cryptographic implementation in a page anyone can read — a bug in which would either
+// break arming silently or leak the key. The person pastes it on the page that owns it; the page says when it is
+// armed and re-reads rather than remembering.
+const secretsUrl = () => `https://github.com/${S.repo}/settings/secrets/actions/new`;
+
 async function clockKeyedEngines(){
   try {
     const f = await fileText('.github/workflows/clock.yml');
