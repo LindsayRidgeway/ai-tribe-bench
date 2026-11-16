@@ -112,9 +112,14 @@ safe:
   contradict. Measured before the fix, on `tribe-desi`: ten untouched files reported as the owner's edits.
 - **Two presses, and the first one writes nothing.** "A newer template exists" is a sentence people learn to
   ignore; "2 files will be replaced; 1 left alone because you changed it" is one they can act on. The first press
-  produces that sentence from a real read of both trees (three requests, not one per file), the second press writes
-  one commit per file, each message naming the template sha, and stamps `.ait/version.json` last — because a tribe
-  whose files moved and whose record did not would be told the same thing on every reload, forever.
+  produces that sentence from a real read of both trees (three requests, not one per file), and the second press
+  writes one commit per file, each message naming the template sha.
+- **The record is advanced only by a clean run.** The stamp is the claim "this tribe runs `<sha>`", so it is written
+  after the last file and *only if every file landed*. Found 2026-11-16 by asking what the record said after the 409
+  test rather than by watching the 409 test pass: the page used to stamp regardless, so a tribe that had lost one
+  file to a race was told, for good, that it was current — and was never offered the update again, with one file
+  still old. An interrupted update now leaves the record where it was, the buttons offer it again on the next load,
+  and the second press writes only what is still behind. Pressing twice is the whole cost of an interruption.
 
 Refusals, each of which writes nothing and says so: the template publishes no manifest (*"this template does not
 publish a list of the files an update may write, so nothing is written"*), the template cannot be read, the manifest
@@ -128,12 +133,22 @@ somebody's repository. Once one real tribe has been updated by a press (`tribe-d
 automatic on connect is one line: call `applyUpdate()` from `ensureUpdateNote()` when the plan has no `kept` and no
 `waiting`.
 
-**Tested by `lab/page-check.mjs`, 11 new checks** against a fake GitHub that also answers for the template: the plan
+**One atomic commit was considered and declined.** The git data API would take blobs, one tree, one commit and one
+ref move, and the machinery would be either wholly old or wholly new instead of briefly mixed — which matters,
+because a wake running a new `clock.yml` against an old `wake.py` is a member that fails for a reason nobody can see.
+It was declined because the per-file write is already *idempotent and re-runnable* — the record is not advanced
+unless the run was clean, so an interruption finishes itself — while the atomic version adds a failure mode the
+per-file one does not have (the ref move can fail *after* the commit exists) and a second set of endpoints to fake in
+`page-check.mjs`. If tribes are ever updated unattended, on a schedule rather than by a press, that arithmetic
+changes and this paragraph should be revisited: nobody is watching at 03:00, and "press it again" is not available.
+
+**Tested by `lab/page-check.mjs`, 12 new checks** against a fake GitHub that also answers for the template: the plan
 names changed files and not identical ones; nothing outside the manifest is written; `members.json` and a member's
 journal are untouched by an update; the version record gains `updated_to` and keeps `installed_from`; the check
 afterwards says *current*; an edited file is kept while the rest still land; no manifest, no write; an unreadable
 template is a sentence and not "up to date"; a tribe with no version record replaces nothing; a 409 is noticed and
-reported; and the button appears only when there is something to update. That is 82 checks in all.
+reported; an update that could not finish does not claim the tribe is current, and says it will be offered again;
+and the button appears only when there is something to update. That is 88 checks in all.
 
 ## Order of work
 
