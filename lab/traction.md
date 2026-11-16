@@ -1,6 +1,6 @@
 # Traction — LindsayRidgeway/ai-tribe-bench
 
-*Rebuilt 2026-11-09T17:48:39Z by `lab/traction.py`. Public data only: logins and dates, never addresses.*
+*Rebuilt 2026-11-16T17:27:15Z by `lab/traction.py`. Public data only: logins and dates, never addresses.*
 
 **Stars** 0 · **Forks** 0 · **Watchers** 0
 
