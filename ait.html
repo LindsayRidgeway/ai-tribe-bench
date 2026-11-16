@@ -1302,13 +1302,14 @@ function viewInstall(main){
         takes you to GitHub to make one: a few minutes, and the email you verify must be one you can open right
         now.</p>
         <button class="primary" id="gh">Sign in with GitHub</button>
-        <p class="small muted" style="margin:8px 0 0">One permission screen, and it is the widest thing this
-        project asks of you, so it is worth saying exactly: signing in hands this page a token that can read and
-        write <em>every</em> repository you can write to, settings included. It is that wide because the sign-in that can
-        create a repository asks for everything you can write to — and AIT asks GitHub about nothing but the tribe
-        you name below. <strong>If you would rather hand over less, use a token instead:</strong> three
-        permissions, no settings, no deletion. Either one can be revoked from your GitHub settings at any time; if
-        you do, AIT stops and your tribe does not.</p>
+        <p class="small muted" style="margin:8px 0 0">One screen, and one choice inside it: <strong>which of your
+        repositories AIT may work in</strong>. In the ones you allow, it can read and write files, and read and write
+        the workflows that wake a member. It cannot change a repository's settings and it cannot delete one — that is
+        the whole of what it asks. <strong>For a first tribe, choose All repositories</strong>: the tribe does not
+        exist yet, so GitHub has nothing for you to tick. Once it exists you can narrow the permission to that one
+        repository at <a href="https://github.com/settings/installations" target="_blank" rel="noopener">your
+        installations</a>, and AIT carries on working. Revoking it there stops AIT and does not touch your
+        tribe.</p>
         <p class="small" style="margin:12px 0 0"><a href="#" id="usetoken">Use a token instead</a></p>
         <div id="tokbox" hidden style="margin-top:10px">
           <p class="small muted" style="margin:0 0 8px">A <strong>token</strong> is a password for this page, made
@@ -1322,6 +1323,10 @@ function viewInstall(main){
           <input id="tok" type="password" placeholder="paste the token" autocapitalize="off" spellcheck="false">
         </div>
         <p class="small" id="who" style="margin:8px 0 0"></p>
+        <p class="err" id="noinst" hidden style="margin:8px 0 0">GitHub has not let AIT into your account yet, so
+        there is nothing it can make a repository in. <a href="https://github.com/apps/${GH_APP_SLUG}/installations/new"
+        target="_blank" rel="noopener">Choose your repositories</a> — <strong>All repositories</strong> — then press
+        Sign in again. Nothing is lost.</p>
       </div>
     </div>
 
@@ -1362,19 +1367,34 @@ function viewInstall(main){
 
   const tok = $('tok'), name = $('tname'), msg = $('imsg'), btn = $('install');
   let login = '';
-  const current = () => OAUTH || (tok ? tok.value.trim() : '');
+  const current = () => OAUTH || (tok ? tok.value.trim() : '') || (S.app || '');
   const slugOf = v => (v.trim().replace(/[^a-zA-Z0-9._-]/g, '-') || 'my-tribe');
 
   if (OAUTH){
     $('gh').hidden = true;
     $('usetoken').hidden = true;
   }
-  $('gh').onclick = () => signIn('install');
+  // The App is the door: its permissions are the four the tribe is made of, and a person can narrow it to one
+  // repository afterwards. The older sign-in asks for everything they can write to and is not shown while an App
+  // exists — it stays in the code only for a copy of the page that has none.
+  $('gh').onclick = () => (GH_APP ? signInApp('install') : signIn('install'));
   $('usetoken').onclick = (e) => {
     e.preventDefault();
     $('tokbox').hidden = false; $('usetoken').hidden = true;
     if (tok) tok.focus();
   };
+
+  // Whether GitHub has let the App in at all. Only asked of a token the App handed this browser: a pasted token
+  // needs no installation, and asking would hide the steps from the one route that never needed them.
+  let installed = null;
+  async function checkInstalled(t){
+    installed = null;
+    if (!t || !S.app || t !== S.app) return;
+    try {
+      const d = await gh('/user/installations', {}, t);
+      installed = (d.installations || []).length > 0;
+    } catch(_){ installed = null; }
+  }
 
   function place(){
     const slug = slugOf(name.value);
@@ -1382,12 +1402,14 @@ function viewInstall(main){
     const url = location.href.split('#')[0].split('?')[0] + '?tribe=' + (login || 'YOUR-ACCOUNT') + '/' + slug;
     // The name is asked after the account exists, not before: a form box whose answer cannot be checked yet is a
     // question the page is asking itself.
+    const ready = !!login && installed !== false;
     const s2 = $('step2'), s3 = $('step3'), sh = $('step2hint');
-    if (s2) s2.hidden = !login;
-    if (s3) s3.hidden = !login;
-    if (sh) sh.hidden = !!login;
+    if (s2) s2.hidden = !ready;
+    if (s3) s3.hidden = !ready;
+    if (sh) sh.hidden = ready;
+    const ni = $('noinst'); if (ni) ni.hidden = installed !== false;
     const a = $('tlink'); a.textContent = url; a.href = url;
-    btn.disabled = !(login && current());
+    btn.disabled = !(ready && current());
   }
 
   let timer = null, myName = '';
@@ -1403,9 +1425,11 @@ function viewInstall(main){
       $('who').className = 'small';
       $('who').innerHTML = 'Signed in as <strong>@' + esc(login) + '</strong>' +
         (me.name ? ' — ' + esc(me.name) : '') + '. Is that you?';
+      await checkInstalled(t);
     } catch(e){
       $('who').className = 'err';
       $('who').textContent = 'That token could not be read: ' + e.message;
+      installed = null;
     }
     place();
   }
@@ -1476,7 +1500,10 @@ function explainInstallError(e, slug){
     return 'GitHub is throttling new repositories from this account — it says the request came too quickly, not '
       + 'that anything is wrong with the name. Nothing was created. Wait a minute and press Install again.';
   if (m.startsWith('401')) return 'GitHub did not accept that token. Copy it again — a token is shown once, and an expired one is the usual cause.';
-  if (m.startsWith('403')) return 'The token is real but not allowed to create a repository. It needs Repository creation (read and write) — and Contents. A classic token with the repo scope also works.';
+  if (m.startsWith('403')) return 'GitHub refused to create the repository: the sign-in is real, but not allowed to'
+    + ' do that. Two causes in practice — AIT is let into only some of your repositories, so it cannot make a new one'
+    + ' (open your installations, choose All repositories, press Install again); or the token you pasted lacks'
+    + ' Repository creation and Contents, both read and write.';
   if (m.startsWith('422')) return `GitHub refused the name “${slug}”. You may already have a repository called that, or the name may not be allowed. Try another.`;
   if (m.startsWith('404')) return 'GitHub answered 404, which here usually means the token cannot see the template repository. Check that the token can read public repositories and that Repository creation is granted.';
   return m;
