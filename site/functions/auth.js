@@ -10,7 +10,7 @@
 const CLIENT_ID = 'Ov23liKyiakrCEg8jTn9';
 // The GitHub App's id, filled in when the app is registered. Same exchange endpoint, different pair of
 // credentials, and a much narrower token: the repositories the person granted, and nothing else.
-const CLIENT_ID_APP = '';
+const CLIENT_ID_APP = 'Iv23li2mawmqYoatDmeD';
 
 const CORS = {
   'access-control-allow-origin': '*',
