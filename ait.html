@@ -1325,17 +1325,19 @@ function viewInstall(main){
       </div>
     </div>
 
-    <div class="step">
+    <p class="small muted" id="step2hint" style="margin:14px 0 0">Then you name it, and press one button.</p>
+
+    <div class="step" id="step2" hidden>
       <div class="n">2</div>
       <div class="b">
         <h3>What to call it</h3>
-        <input id="tname" value="${esc(keptName() || 'my-tribe')}" autocapitalize="off" spellcheck="false">
+        <input id="tname" value="${esc(keptName())}" placeholder="my-tribe" autocapitalize="off" spellcheck="false">
         <p class="small muted" style="margin:6px 0 0">Your repository will be <code id="tpath">github.com/YOUR-ACCOUNT/my-tribe</code>,
         and it will be private. You never have to open it. Your link afterwards is this same page, pointed at it.</p>
       </div>
     </div>
 
-    <div class="step">
+    <div class="step" id="step3" hidden>
       <div class="n">3</div>
       <div class="b">
         <h3>Install</h3>
@@ -1378,6 +1380,12 @@ function viewInstall(main){
     const slug = slugOf(name.value);
     $('tpath').textContent = 'github.com/' + (login || 'YOUR-ACCOUNT') + '/' + slug;
     const url = location.href.split('#')[0].split('?')[0] + '?tribe=' + (login || 'YOUR-ACCOUNT') + '/' + slug;
+    // The name is asked after the account exists, not before: a form box whose answer cannot be checked yet is a
+    // question the page is asking itself.
+    const s2 = $('step2'), s3 = $('step3'), sh = $('step2hint');
+    if (s2) s2.hidden = !login;
+    if (s3) s3.hidden = !login;
+    if (sh) sh.hidden = !!login;
     const a = $('tlink'); a.textContent = url; a.href = url;
     btn.disabled = !(login && current());
   }
