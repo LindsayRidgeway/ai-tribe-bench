@@ -4187,6 +4187,30 @@ class TestPickleball(unittest.TestCase):
             return (m.teams[0].score, m.teams[1].score, r["lengths"])
         self.assertEqual(play(), play())
 
+    def test_no_rally_runs_to_the_engines_ceiling(self):
+        """The guard this turn needed, and did not have. `RALLY_CAP` = 120 shots is the record's ceiling, not a
+        rule: a rally that reaches it scores nobody, so a cap hit in a demo is a bug report.
+
+        On 2026-11-16 I replaced the receiving model with an honest body — the receiver's feet stop where their
+        legs stop instead of being assigned the ball's landing point, and the leftover time is spent walking
+        back to a stance (`/tmp` patch, reverted; §5c of the page). It is the right model and it made the game
+        unplayable in a way nothing in the suite could see: defence never broke, the mean rally went to 26.7
+        shots at practice 600, one rally hit the cap, and the only fault left in the game was the ball hit out.
+        That is what this test is for — not "is it right", but "is it still a game".
+        """
+        pk = self.pk
+        names = ["north-a", "north-b", "south-a", "south-b"]
+        for practice, ceiling in ((0, 20), (200, 30), (600, 60)):
+            longest, caps = 0, 0
+            for g in range(2):
+                m, r = pk.play_game(names, [practice] * 4, pk.make_chooser("steady"), surface="hard",
+                                    wind_seed_ms=104729 * (g + 1), first_team=g % 2, say=lambda *a, **k: None)
+                longest = max(longest, max(r["lengths"]))
+                caps += sum(1 for x in r["rallies"] if x["why"] == "cap")
+            self.assertEqual(caps, 0, f"a rally reached the {pk.RALLY_CAP}-shot ceiling at practice {practice}")
+            self.assertLess(longest, ceiling, f"longest rally at practice {practice}")
+            self.assertGreater(longest, 1, "and the game has rallies, not one shot and a fault")
+
     def test_the_tennis_integrator_still_integrates_what_it_integrated(self):
         """The parameterisation that let pickleball share the integrator must have changed nothing for tennis.
         This is the cheap version of the 2,408-sample grid that was run by hand on 2026-11-15 (0 differences):

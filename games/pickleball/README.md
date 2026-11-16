@@ -339,7 +339,7 @@ afternoon what two papers and I cannot settle from a chair.
 
 ## §5 The engine, as built — 2026-11-15, the same day as §1–§4
 
-`lab/pickleball.py`, 19 tests in `tests.py` (`TestPickleball`), 346 tests in the suite, all passing. The
+`lab/pickleball.py`, 20 tests in `tests.py` (`TestPickleball`), 365 tests in the suite, all passing. The
 rules are the page's rules, the ball is the page's ball, and the game is text.
 
 **The four things §4 asked for, measured rather than promised.**
@@ -474,3 +474,67 @@ the mark and refusing to learn from a chase; the ceiling; the reader swinging wi
 and the replay. The stance sweep above is a measurement, not a test — five stances × twelve games is a minute
 of wall clock, and a suite that takes a minute to answer a question nobody asked twice is a suite people
 skip.
+
+---
+
+## §5c The body, tried and reverted — 2026-11-16
+
+§5b ended with "the next unit is the body: feet that belong to the player between shots". I built it. It is
+the right model and it made the game unplayable, so it is not on main — the patch is 157 lines and was
+reverted the same day. What follows is the measurement, because a negative result that is measured is worth
+more than a working tree that is quietly wrong.
+
+**What the body was.** Three changes to `play_rally`:
+
+1. **the receiver's feet stop where their legs stop.** `interception` — tennis's own arithmetic, the function
+   the renderer draws and the scoreline judges — replaces `pos.at[receiver] = land`. The old line assigned
+   the ball's *landing point* to a human being, and then asked whether a foot standing on that point is in the
+   kitchen.
+2. **the leftover time buys the stance.** `have - need` from the same call is how early the player arrived;
+   they spend it walking back to `line ± approach`. A player who arrives early chooses where to stand; a
+   player who arrives late does not.
+3. **a volley is planted, and the reach is this sport's.** The old engine stepped the player 1.2 ft *toward
+   the net* to meet every ball in the air — not what a volley is — and used tennis's 7 ft reach. 6.0 ft is the
+   same construction as tennis's 7 (arm 2.5 + paddle 1.35 + lunge 2.2); I first wrote 3.0, forgot the lunge,
+   and 69% of rallies ended "nobody could reach it".
+
+**What it did, in the order I measured it** (12 games per row at pinned clocks, practice 200, the scripted
+player, nothing else changed):
+
+| variant | stance | unreachable | kitchen | momentum | out | mean rally |
+|---|---|---|---|---|---|---|
+| body, reach 3.0, volley still steps in | 2.0 | **158** of ~230 rallies | 0 | 540 | 35 | 2.9 |
+| body, reach 3.0, volley planted | 1.0 | 136 | 0 | 203 | 72 | 3.0 |
+| body, reach 3.0, volley planted | 2.0 | 169 | 0 | 0 | 85 | 10.1 |
+| body, reach 6.0, volley planted (6 games) | 2.0 | 79 | 0 | 0 | 47 | 12.1 |
+| body, reach 6.0, volley planted (6 games) | 4.0 | **1** | 0 | 0 | **226** | **34.9** |
+
+And the learning curve under the last variant, four games per row: **2.6 / 15.1 / 26.7** shots at 0 / 200 /
+600 balls, with the longest rally at practice 600 hitting the 120-shot ceiling. The 6 ft reach and the planted
+volley together make a defence that never breaks: nobody is ever out of position, so the only fault left in
+the sport is the ball hit out, and rallies run until somebody does.
+
+**Two things the engine does not have, and both are needed before the feet can be honest.**
+
+- **A stretched contact has to cost something.** Today a player who meets the ball at the edge of their reach
+  strikes it exactly as well as a player standing over it; only their `control` skill and the hands' own error
+  matter. That is why the honest body produced a perfect defence: being stretched was free.
+- **A high ball has to be attackable.** `can_volley` requires the incoming ball to be *deep*
+  (`depth > 6`), so a short, high ball — the ball a dink rally is waiting for — can never be attacked, and a
+  dink exchange has no way to end except an error. Real pickleball ends those points by speeding the ball up.
+
+**And the lesson from §5b dissolved.** With honest feet at the default 2 ft stance, the reading chooser's
+lesson never fires: `--level read` and `--level steady` play the identical game (same clock, same score, same
+faults, zero lessons). The carry-in faults it learned to avoid were faults the *teleport* manufactured — 540
+of them in twelve games, from a stance nobody would coach. A lesson that disappears when the engine stops
+lying was a lesson about the engine, not about pickleball. That is worth knowing before building three more
+of them.
+
+**What is on main instead.** Nothing changed in `lab/pickleball.py`; the engine is the one §5 describes. The
+one artefact kept is a test — `test_no_rally_runs_to_the_engines_ceiling` — which asserts that no rally at
+0 / 200 / 600 balls reaches `RALLY_CAP` and that the longest stays under 20 / 30 / 60 shots. The variant above
+fails it at the last row, which is exactly the failure that nothing in the suite could see before. A game can
+be wrong and still pass; it cannot be *not a game* and pass.
+
+**Next, in order:** the stretched-contact penalty and the attack on the high ball (both are shot-quality
+rules, not physics), then the body again on top of them, then the measured ball and the dink game.
