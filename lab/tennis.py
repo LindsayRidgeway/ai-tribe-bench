@@ -54,6 +54,8 @@ SERVICE_LINE = 21.0                      # from the net, both sides
 RALLY_CAP = 60                           # a ceiling on the record, not a rule of the game: if a rally reaches
                                          # it the line says so, rather than the game quietly ending it
 NET_CENTRE, NET_POSTS = 3.0, 3.5
+ALLEY = 4.5                              # feet of doubles alley outside each sideline: the court the founder's
+                                         # photograph has, and the pavement a player walks round the net post on
 G = 32.17
 MPH = 1.46667                            # mph to feet per second. 0.44704 is mph to metres per second; the
                                          # first version used it directly and every shot flew at a third of
@@ -77,6 +79,15 @@ SURFACES = {                             # restitution (height) and friction (pa
     "grass": {"e": 0.60, "f": 0.92, "note": "low bounce, fast"},
 }
 COMPASS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
+# ---- what the picture does after a ball has been judged ------------------------------------------
+# None of these change a verdict. They are the seconds of ball that are left after the point is already decided,
+# and they exist for one reason: a spectator has to be able to see *why*. Ported from the longer engine with the
+# picture half of `flight()`, 2026-11-16 (Item 14).
+NET_ABSORBS = 0.08         # the fraction of its own speed a ball rebounds off the tape with
+NET_DROP = 0.25            # and of its vertical speed, before gravity takes the rest
+OUT_SECONDS = 1.5          # how long the picture may watch a ball that landed out bounce away
+VISIBLE_PAD = 22.0         # feet beyond each line the court picture still shows, so a ball leaving frame is not
+                           # followed into the dark and does not stretch the shot by walking there
 
 
 def surface_at(ms: int) -> str:
@@ -104,7 +115,8 @@ def wind_vector(direction: str, speed_mph: float) -> tuple[float, float]:
 
 # ---- the ball -------------------------------------------------------------------------------------
 def flight(p0, v0, wind, surface, net_check=True, cl=0.0, drag=None, lift=None, net_x=None,
-           surfaces=None, net_profile=None, trace=None):
+           surfaces=None, net_profile=None, trace=None, bounces=1, out_bounces=0, legal=None,
+           t_max=6.0, after_land=0.0, net_cord=False):
     """Integrate one shot. Returns where it crossed the net, where it first landed, and the ball at that
     moment. No closed form: drag makes it a numeric problem, and doing it numerically is the honest way.
 
@@ -118,10 +130,21 @@ def flight(p0, v0, wind, surface, net_check=True, cl=0.0, drag=None, lift=None, 
     its own — pickleball's ball is lighter, perforated and has a 44x20 court, and the alternative to passing
     those numbers in is copying the loop, which is how this repository has been broken before. Every one of
     them defaults to this game's own value, so a tennis call that passes none of them integrates exactly what
-    it integrated before the arguments existed (2,408-point grid, 0 differences; tests.py asserts it)."""
-    # `trace` is a number of seconds, a 0.02 of them: the ball's position every that often, which is what a
-    # renderer draws and what a volley needs — the question "can the racquet reach the ball *before* it bounces"
-    # cannot be asked of a bounce point. Brought over with the volley model, 2026-11-16 (Item 14).
+    it integrated before the arguments existed (2,408-point grid, 0 differences; tests.py asserts it).
+
+    `trace` is a number of seconds, a 0.02 of them: the ball's position every that often, which is what a
+    renderer draws and what a volley needs — the question "can the racquet reach the ball *before* it bounces"
+    cannot be asked of a bounce point.
+
+    Everything after `trace` is PICTURE and defaults to off, because none of it changes a verdict and a report
+    should not pay for a film: `bounces` is how many bounces the ball is followed through (the ball is still a
+    ball), `out_bounces` and `legal` are the founder's "show it bouncing a couple of bounces" for a ball that
+    landed outside the lines, `after_land` is the same for a ball that landed IN — the bounce-up the receiving
+    player is running at, asked for 2026-11-12 — and `net_cord` is the tape's own rebound, asked for 2026-11-11:
+    a point that ends on the net has a second and a half of ball left in it. `land`, `time`, `bounce` and every
+    verdict stay the FIRST bounce; the extra bounces come back as `bounces` and in the tail of `path`.
+    `t_max` is how long the picture is allowed to watch, because a ball bounds away off the edge of frame and
+    watching it roll in the dark is not tennis either."""
     path, next_sample = ([] if trace else None), 0.0
     DRAG_ = DRAG if drag is None else drag
     LIFT_ = LIFT if lift is None else lift
@@ -133,9 +156,10 @@ def flight(p0, v0, wind, surface, net_check=True, cl=0.0, drag=None, lift=None, 
     wx, wy = wind
     dt, t = 0.001, 0.0
     net = None
-    while t < 6.0:
+    done, lands, first_out = 0, [], None
+    while t < t_max:
         if trace and t >= next_sample:
-            path.append((round(t, 3), round(x, 3), round(y, 3), round(z, 3)))
+            path.append((round(t, 4), round(x, 3), round(y, 3), round(z, 3)))
             next_sample += trace
         rx, ry, rz = vx - wx, vy - wy, vz
         rel = math.sqrt(rx * rx + ry * ry + rz * rz)
@@ -149,20 +173,86 @@ def flight(p0, v0, wind, surface, net_check=True, cl=0.0, drag=None, lift=None, 
             f = (NET_X_ - x) / (nx - x)
             net = (y + f * (ny - y), z + f * (nz - z))
             if net[1] < net_height_(net[0]):
-                return {"net": net, "land": None, "time": t, "path": path,
-                        "speed_at_net": math.sqrt(vx * vx + vy * vy + vz * vz)}
-        if nz <= 0:                                       # first bounce on the court plane
+                # Into the tape. The point is over — "land" stays None, which is what every caller reads to mean
+                # "did not reach the court" — but the ball does not vanish: the tape kills most of its speed and
+                # it comes back and drops at the foot of the net, which is what a spectator sees and the umpire
+                # calls. Off by default; a record asks for it and gets the same integrator, from the state at the
+                # cord, rather than a second copy of the physics written to look like one.
+                out = {"net": net, "land": None, "time": t, "path": path,
+                       "speed_at_net": math.sqrt(vx * vx + vy * vy + vz * vz)}
+                if net_cord:
+                    v_net = (vx + f * (nvx - vx), vy + f * (nvy - vy), vz + f * (nvz - vz))
+                    frm = (NET_X_ - 0.12 * (1.0 if v_net[0] > 0 else -1.0), net[0], max(0.2, net[1]))
+                    killed = (-v_net[0] * NET_ABSORBS, -v_net[1] * NET_ABSORBS, v_net[2] * NET_DROP)
+                    after = flight(frm, killed, wind, surface, net_check=False, cl=0.0, trace=trace,
+                                   drag=DRAG_, lift=LIFT_, net_x=NET_X_, surfaces=SURF_,
+                                   net_profile=net_height_, bounces=2, t_max=OUT_SECONDS)
+                    off = t + f * dt
+                    for (tt, xx, yy, zz) in after.get("path") or ():
+                        path.append((round(tt + off, 4), xx, yy, zz))
+                    out["time"] = off
+                    out["after_net"] = {"bounces": after.get("bounces", []), "time": after.get("time")}
+                return out
+        if nz <= 0:                                       # a bounce on the court plane
             f = z / (z - nz) if z != nz else 1.0
             land = (x + f * (nx - x), y + f * (ny - y))
             vx2, vy2, vz2 = vx + f * (nvx - vx), vy + f * (nvy - vy), vz + f * (nvz - vz)
             s = SURF_[surface]
             after = (vx2 * s["f"], vy2 * s["f"], -vz2 * s["e"])
-            return {"net": net, "land": land, "time": t + f * dt, "path": path,
-                    "speed_in": math.sqrt(vx2 * vx2 + vy2 * vy2 + vz2 * vz2),
-                    "bounce": {"speed_out": math.sqrt(sum(c * c for c in after)),
-                               "v": after, "angle": math.degrees(math.atan2(after[2], math.hypot(*after[:2])))}}
+            if trace:
+                path.append((round(t + f * dt, 4), round(land[0], 3), round(land[1], 3), 0.0))
+            done += 1
+            lands.append({"land": land, "time": t + f * dt,
+                          "speed_out": math.sqrt(sum(c * c for c in after))})
+            out = {"net": net, "land": land, "time": t + f * dt, "path": path,
+                   "speed_in": math.sqrt(vx2 * vx2 + vy2 * vy2 + vz2 * vz2),
+                   "bounce": {"speed_out": math.sqrt(sum(c * c for c in after)),
+                              "v": after, "angle": math.degrees(math.atan2(after[2], math.hypot(*after[:2])))}}
+            if done == 1:
+                first_out = out             # the first bounce is the one every verdict reads, kept in hand
+            if done < bounces:                    # keep going: the ball is still a ball
+                x, y, z = land[0], land[1], 0.0
+                vx, vy, vz = after
+                t += f * dt
+                continue
+            if bounces > 1:
+                out["bounces"] = lands
+            judge = legal or on_court
+            # A ball that lands IN is not over when it bounces: it comes up, and the player who is about to hit it
+            # is running at it while it is in the air. Picture only — the caller cuts the path where it is struck.
+            if after_land and trace and judge(land):
+                rise = flight((land[0], land[1], 0.0), after, wind, surface, net_check=False, cl=0.0,
+                              trace=trace, drag=DRAG_, lift=LIFT_, net_x=NET_X_, surfaces=SURF_,
+                              net_profile=net_height_, bounces=1, t_max=after_land)
+                off = t + f * dt
+                for (tt, xx, yy, zz) in rise.get("path") or ():
+                    path.append((round(tt + off, 4), xx, yy, zz))
+            # A ball that lands outside the lines is still a ball for another second and a half. Returned as the
+            # same integrator from the state at the bounce, with `out_bounces=0` on the way down so the recursive
+            # call does not test its own landings, find them out too, and bounce for ever.
+            if out_bounces and not judge(land):
+                carry = flight((land[0], land[1], 0.0), after, wind, surface, net_check=False, cl=0.0,
+                               trace=trace, drag=DRAG_, lift=LIFT_, net_x=NET_X_, surfaces=SURF_,
+                               net_profile=net_height_, bounces=out_bounces, out_bounces=0,
+                               t_max=OUT_SECONDS)
+                off = t + f * dt
+                for (tt, xx, yy, zz) in carry.get("path") or ():
+                    if not in_view((xx, yy)):
+                        break         # gone off the edge of the picture; the film does not follow it there
+                    path.append((round(tt + off, 4), xx, yy, zz))
+                out["after_out"] = {"bounces": carry.get("bounces", []), "time": carry.get("time")}
+            return out
         x, y, z, vx, vy, vz = nx, ny, nz, nvx, nvy, nvz
         t += dt
+    # Out of time with the ball still bouncing: a ball that has already landed has NOT been lost, and saying so
+    # would throw away the one landing every verdict reads. The picture is allowed to run out of seconds; the
+    # court is not allowed to lose the bounce it saw. (Found 2026-11-16 by asking `bounces=2, t_max=1.5` what it
+    # returned: `land: None` for a ball that had plainly landed at 1.06s. The longer engine had the same bug.)
+    if first_out is not None:
+        first_out["path"] = path
+        if lands:
+            first_out["bounces"] = lands
+        return first_out
     return {"net": net, "land": None, "lost": True, "path": path}
 
 
@@ -347,7 +437,10 @@ def strike(p: Player, incoming: dict | None, face: float, power: float, aim: flo
     vz = v * math.sin(elevation)
     cl = spin_for(shot, face_actual, power_actual)
     traj = flight(p0, (vx, vy, vz), wind, surface, cl=cl, trace=trace)
-    return {"player": p, "shot": shot, "speed": speed, "sweet": sweet, "contact": p0,
+    # `v0` is the ball's velocity off the strings, and it is on the return because a record has to be replayable:
+    # `lab/tennis_record.py` rebuilds a film's every arc from `contact` and `v0` through today's integrator, and
+    # without the second half of that pair a record is a picture no engine can re-judge. Added 2026-11-16, Item 14.
+    return {"player": p, "shot": shot, "speed": speed, "sweet": sweet, "contact": p0, "v0": (vx, vy, vz),
             "traj": traj, "face": face_actual, "power": power_actual, "spin": cl}
 
 
@@ -945,6 +1038,31 @@ VOLLEY_REACH = 3.8         # feet from the middle of the body: arm, palm and fra
 VOLLEY_LOW = 2.2           # feet. Below this the ball is dug off the ground, not volleyed
 VOLLEY_HIGH = 8.0          # feet. Above this it is an overhead, and an overhead is not built yet
 HIT_WINDOW_MAX = 1.2       # s, the cap on how long a ball is hittable after its bounce
+HIT_LOW = 0.5              # feet above the court: below this a ball is a dig, not a stroke
+
+
+def hit_window(bounce: dict | None) -> tuple[float, float, float]:
+    """The stretch of time after the bounce during which this particular ball can be struck, and how high it is.
+
+    The window is the ball's own parabola, not a constant: it leaves the bounce at whatever vertical speed the
+    surface gave it, rises, and comes back down to knee height. A serve that kicks up over the shoulder hangs for
+    a second — and a ball that skids through low is hittable for a third of that, which is exactly why a skidding
+    ball on grass is harder to return than the same ball on clay. Reading it off the arc is also what stops the
+    constant from becoming a tuning knob: the surface and the spin are already in it.
+
+    Returns (0, last_moment_it_is_hittable, peak_height_above_HIT_LOW) — the last number is not used for the
+    decision, only for a record, so that a report can say how high the ball was when it was met. Ported from the
+    longer engine, 2026-11-16 (Item 14); `interception` does not call it, because it steps the ball's own plan
+    instead, but a recorder that describes a shot wants the number and should not compute it a second way."""
+    v = (bounce or {}).get("v")
+    if not v or v[2] <= 0.0:                 # a net cord that dies at the foot of the net, or no bounce at all
+        return 0.0, 0.0, 0.0
+    vz = v[2]
+    disc = vz * vz - 2.0 * G * HIT_LOW
+    if disc <= 0.0:                          # never gets up to knee height
+        return 0.0, 0.0, 0.0
+    down = (vz + math.sqrt(disc)) / G         # the second crossing of HIT_LOW, on the way down
+    return 0.0, min(down, HIT_WINDOW_MAX), vz * vz / (2.0 * G)
 
 
 def volley_contact(p: Player, path, at, reach: float = VOLLEY_REACH,
@@ -1012,6 +1130,39 @@ def in_service_box(land, server_north: bool, side: str) -> bool:
     depth_ok = (NET_X < x <= NET_X + SERVICE_LINE) if server_north else (NET_X - SERVICE_LINE <= x < NET_X)
     left = y > WIDTH / 2 if server_north else y < WIDTH / 2
     return depth_ok and (left if side == "left" else not left) and 0 <= y <= WIDTH
+
+
+def on_court(land) -> bool:
+    """Inside the lines of the court. This is the test for "is the ball out", which is all it is used for — the
+    service box has its own, because a serve landing in the back court is a fault but is not out."""
+    return 0.0 <= land[0] <= LENGTH and 0.0 <= land[1] <= WIDTH
+
+
+def in_serve_court(land, server_north: bool) -> bool:
+    """Inside the service court on the server's side, in depth and in width but without the half. A serve into
+    the wrong box is a fault and stays one; this only decides whether the picture should watch the ball bounce on,
+    which is why it does not need the side `in_service_box` takes."""
+    x, y = land
+    depth_ok = (NET_X < x <= NET_X + SERVICE_LINE) if server_north else (NET_X - SERVICE_LINE <= x < NET_X)
+    return depth_ok and 0.0 <= y <= WIDTH
+
+
+def in_far_court(land, hitter_north: bool) -> bool:
+    """Inside the lines on the far side of the net from the hitter — the test for whether a groundstroke was good,
+    and the one a rally's picture uses. A ball that comes down on the hitter's own side is short of the net and
+    lost, and is just as out as one beyond the baseline: the founder's "show it bouncing" applies to both, and a
+    test that only read the rectangle would freeze a ball dumped three feet short of the net while letting a ball
+    a foot long bounce away."""
+    x_ok = (NET_X < land[0] <= LENGTH) if hitter_north else (0.0 <= land[0] < NET_X)
+    return x_ok and 0.0 <= land[1] <= WIDTH
+
+
+def in_view(pt) -> bool:
+    """Whether the picture still has the ball: the court plane is drawn `VISIBLE_PAD` feet wider than the court on
+    every side, and beyond that there is nothing but dark. A ball that has left is a ball the film should stop
+    following."""
+    return (-VISIBLE_PAD <= pt[0] <= LENGTH + VISIBLE_PAD
+            and -VISIBLE_PAD <= pt[1] <= WIDTH + VISIBLE_PAD)
 
 
 def play_point(server: Player, receiver: Player, surface: str, wind_vec, wind_in, rng) -> list[str]:
@@ -1154,6 +1305,33 @@ def verdict(shot: dict) -> tuple[bool, str]:
     return True, (f"IN, {depth:.0f}ft past the net, {abs(lat):.0f}ft {'east' if lat > 0 else 'west'} of centre, "
                   f"arrives at {t['speed_in'] / MPH:.0f}mph and comes up at "
                   f"{t['bounce']['speed_out'] / MPH:.0f}mph")
+
+
+def serve_verdict(shot: dict) -> tuple[bool, str]:
+    """In the service box or not, and how far from it.
+
+    A serve is not judged by `verdict`. To `verdict` a ball that lands ten feet past the service line is inside the
+    court and therefore good, which is true of every other shot and false of this one. The box is the whole of the
+    rule, and the number reported is the distance to the line that was missed, in feet, for the same reason an out
+    groundstroke reports it: a player corrects a number. Ported from the longer engine, 2026-11-16 (Item 14) —
+    `play_point` still decides its own serves, but a transcript that says "fault" without saying how far is a
+    transcript nobody can learn from."""
+    t = shot["traj"]
+    p = shot["player"]
+    fwd = 1.0 if p.north else -1.0
+    if t.get("land") is None:
+        if t.get("net"):
+            return False, f"fault — into the net at {t['net'][1]:.1f}ft, needs more height"
+        return False, "fault — lost"
+    x, y = t["land"]
+    depth = (x - NET_X) * fwd                    # feet past the net, along the serve
+    if depth <= 0:
+        return False, f"fault — into the net, {abs(depth):.1f}ft short"
+    if depth > SERVICE_LINE:
+        return False, f"fault — {depth - SERVICE_LINE:.1f}ft past the service line"
+    if not (0.0 <= y <= WIDTH):
+        return False, "fault — wide"
+    return True, f"in — {SERVICE_LINE - depth:.1f}ft inside the service line"
 
 
 def drill_prompt(p: Player, other: str, history: list[str], incoming: dict | None,
