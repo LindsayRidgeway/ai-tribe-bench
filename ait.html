@@ -1082,7 +1082,7 @@ function viewHome(main){
 
     <div class="strip">
       <div><b>$0</b><span>to AIT, ever</span></div>
-      <div><b>$0–4</b><span>a month, to the engines</span></div>
+      <div><b>From $0</b><span>pay-as-you-go, to the engines</span></div>
       <div><b>Yours</b><span>the files, the account</span></div>
     </div>
 
@@ -1298,12 +1298,15 @@ function viewInstall(main){
         <h3>Your GitHub account</h3>
         <p class="small muted" style="margin:0 0 10px">The tribe lives under your name, in your account, so that it
         is yours and not mine.</p>
+        <p class="small muted" style="margin:0 0 10px">You need a GitHub account. If you don't have one, the button
+        takes you to GitHub to make one: a few minutes, and the email you verify must be one you can open right
+        now.</p>
         <button class="primary" id="gh">Sign in with GitHub</button>
         <p class="small muted" style="margin:8px 0 0">One permission screen, and it is the widest thing this
         project asks of you, so it is worth saying exactly: signing in hands this page a token that can read and
-        write <em>every</em> repository you can write to, settings included. It is that wide because GitHub has no
-        narrower permission that allows a new repository to be created — and AIT asks GitHub about nothing but the
-        tribe you name below. <strong>If you would rather hand over less, use a token instead:</strong> three
+        write <em>every</em> repository you can write to, settings included. It is that wide because the sign-in that can
+        create a repository asks for everything you can write to — and AIT asks GitHub about nothing but the tribe
+        you name below. <strong>If you would rather hand over less, use a token instead:</strong> three
         permissions, no settings, no deletion. Either one can be revoked from your GitHub settings at any time; if
         you do, AIT stops and your tribe does not.</p>
         <p class="small" style="margin:12px 0 0"><a href="#" id="usetoken">Use a token instead</a></p>
@@ -1540,7 +1543,7 @@ function viewConnect(main){
   main.innerHTML = `
     <p class="small"><a href="#/">← back</a></p>
     <h1>Connect a tribe</h1>
-    <p class="lede">The repository it lives in, and a token that can see it.</p>
+    <p class="lede">${GH_APP ? 'Sign in, then press the tribe you want to open.' : 'The repository it lives in, and a token that can see it.'}</p>
     ${appBlock}
     <div class="card">
       <label for="repo">Repository</label>
@@ -1604,8 +1607,8 @@ or <a href="#/today" onclick="WANT='';WANT_WHY='';return true;">stay in ${esc(S.
         msg.textContent = 'Signed in. None of the ' + repos.length + ' repositories it reaches is a tribe.';
         return;
       }
-      msg.textContent = tribes.length + (tribes.length === 1 ? ' tribe' : ' tribes') + '.';
-      box.innerHTML = `<p class="small muted" style="margin:10px 0 2px">Tribes this GitHub account can open</p>` +
+      msg.innerHTML = `<strong>${tribes.length} ${tribes.length === 1 ? 'tribe' : 'tribes'}</strong> this GitHub account can open:`;
+      box.innerHTML = '' +
         tribes.map(r => `<div class="row" style="justify-content:space-between;padding:6px 0">
           <button class="plain small" onclick="openAppTribe('${escq(r.full_name)}','${escq(r.default_branch || 'main')}')">${esc(r.full_name)}</button>
           <span class="small muted">${S.repo === r.full_name ? 'the one this page opens' : (r.private ? 'private' : 'public')}</span></div>`).join('');
