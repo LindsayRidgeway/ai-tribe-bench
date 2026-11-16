@@ -1027,7 +1027,12 @@ async function renderBody(){
   $('nav').hidden = !connected;
   $('foot').hidden = !connected;
   $('preview').hidden = connected;
-  $('repo-label').textContent = connected ? S.repo + '  ⌄' : '';
+  // The header says the tribe's name, not the account's: a person on their own page knows who they are, and the owner's
+  // login ate the width until the caret that says "this is a control" was cut off by the ellipsis.
+  $('repo-label').textContent = connected ? (S.repo.split('/')[1] || S.repo) + '  ⌄' : '';
+  $('repo-label').title = connected
+    ? S.repo + ' — press to switch tribe, connect another, or sign in on this device'
+    : 'Which tribe this page is in — press to switch or connect another';
   $('repo-label').onclick = connected ? () => setView('connect') : null;
 
   paintVisibility(connected);
@@ -1285,6 +1290,27 @@ async function searchWeb(q){
   return {query: d.query || q, text: String(d.text || '').slice(0, 7000), results: d.results || []};
 }
 
+// Two answers this page has to be able to give, both of them from GitHub rather than from hope: is the new
+// repository inside the App's installation, and can the files in it actually be read. They are separate questions
+// because the answers differ — that is the whole of the bug found on 2026-11-16.
+async function enrolRepo(full, repoId, t){
+  try {
+    const owner = String(full).split('/')[0].toLowerCase();
+    const insts = (await gh('/user/installations', {}, t)).installations || [];
+    const inst = insts.find(i => String((i.account || {}).login || '').toLowerCase() === owner);
+    if (!inst) return false;
+    let id = repoId;
+    if (!id){ try { id = (await gh(`/repos/${full}`, {}, t)).id; } catch(_){ return false; } }
+    if (!id) return false;
+    await gh(`/user/installations/${inst.id}/repositories/${id}`, {method:'PUT'}, t);
+    return true;
+  } catch(_){ return false; }
+}
+async function canRead(full, t){
+  try { await gh(`/repos/${full}/contents/members.json`, {}, t); return true; }
+  catch(_){ return false; }
+}
+
 function viewInstall(main){
   main.innerHTML = `
     <p class="small"><a href="#/">← back</a></p>
@@ -1445,10 +1471,10 @@ function viewInstall(main){
       if (!login){ await whoami(); if (!login) throw new Error('the token could not be read'); }
       // One retry, and only for a throttle: pressing again is exactly what a person does, and doing it for
       // them — while saying that is what is happening — is the difference between a hiccup and a dead end.
-      let made = false;
+      let made = false, created = null;
       for (let attempt = 1; attempt <= 2; attempt++){
         try {
-          await gh(`/repos/${TEMPLATE}/generate`, {method:'POST',
+          created = await gh(`/repos/${TEMPLATE}/generate`, {method:'POST',
             body:{owner:login, name:slug, private:true, description:'A tribe. AIT reads it; the members live in it.'}}, t);
           made = true; break;
         } catch(err){
@@ -1461,8 +1487,25 @@ function viewInstall(main){
         }
       }
       if (!made) throw new Error('422 · the repository was not created');
+      // A repository that did not exist cannot have been ticked when the App was let in, so it is enrolled in the same
+      // installation that created it — one repository, the one the person just asked for. Without this the create
+      // succeeds and every read afterwards fails, and the page would have shown that as a tribe with no members. It
+      // did, on 2026-11-16: a narrowed installation produced probe-tribe and then could not read a byte of it.
+      const full = (created && created.full_name) || `${login}/${slug}`;
+      msg.textContent = 'letting AIT into the new repository…';
+      const enrolled = await enrolRepo(full, created && created.id, t);
+      if (!await canRead(full, t)){
+        setTribe(full, t, 'main'); save();
+        $('done').hidden = false;
+        msg.className = 'err';
+        msg.textContent = enrolled
+          ? 'The repository was made, and AIT added it to the repositories you allow — but GitHub still will not let it read the files. Nothing is lost. Open your installations, make sure this repository is ticked, then open the link below.'
+          : 'The repository was made, private, with the machinery in it — but AIT is only allowed into repositories you ticked, and this one did not exist when you chose. Open your installations, tick '
+            + slug + ', then open the link below. Nothing is lost.';
+        place(); btn.disabled = false; return;
+      }
       msg.textContent = 'copied the machinery into it…';
-      setTribe(`${login}/${slug}`, t, 'main');
+      setTribe(full, t, 'main');
       // Stamp the template's sha into the new tribe, so "what did this come from" is a fact in the repository
       // rather than a recollection. Best effort: a tribe without the stamp still works, and saying so beats
       // failing an install that has already succeeded.
