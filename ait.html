@@ -1027,7 +1027,7 @@ async function renderBody(){
   $('nav').hidden = !connected;
   $('foot').hidden = !connected;
   $('preview').hidden = connected;
-  $('repo-label').textContent = connected ? S.repo : '';
+  $('repo-label').textContent = connected ? S.repo + '  ⌄' : '';
   $('repo-label').onclick = connected ? () => setView('connect') : null;
 
   paintVisibility(connected);
@@ -1545,7 +1545,9 @@ function viewConnect(main){
     <h1>Connect a tribe</h1>
     <p class="lede">${GH_APP ? 'Sign in, then press the tribe you want to open.' : 'The repository it lives in, and a token that can see it.'}</p>
     ${appBlock}
-    <div class="card">
+    ${GH_APP ? `<p class="small" style="margin:14px 0 0"><a href="#" id="usepaste">Or open a repository by name
+    and token</a> — the door that needs nothing of AIT's.</p>` : ''}
+    <div class="card" id="pastecard"${GH_APP ? ' hidden' : ''}>
       <label for="repo">Repository</label>
       <input id="repo" placeholder="your-name/your-tribe" autocapitalize="off" autocorrect="off" spellcheck="false">
       <div id="ctokbox">
@@ -1582,8 +1584,18 @@ or <a href="#/today" onclick="WANT='';WANT_WHY='';return true;">stay in ${esc(S.
   if (GH_APP){
     const ghb = $('ghapp');
     if (ghb) ghb.onclick = () => { if (appTok()) paintApp(); else signInApp('connect'); };
+    const up = $('usepaste');
+    if (up) up.onclick = (e) => {
+      e.preventDefault();
+      const c = $('pastecard'); if (c) c.hidden = false;
+      up.hidden = true;
+      const r = $('repo'); if (r) r.focus();
+    };
     if (appTok()) paintApp();
   }
+  // A link to a tribe this browser cannot open is the one case where the token box must be on screen without being
+  // asked for: the reason GitHub gave is useless without a way to answer it.
+  if (WANT && $('pastecard')) $('pastecard').hidden = false;
 
   // The list the whole change is about. Asked of GitHub every time rather than remembered, because the grant can
   // be narrowed at github.com between one visit and the next, and a list that lies about what is still open is
