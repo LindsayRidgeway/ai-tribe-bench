@@ -44,7 +44,7 @@ enough to build a tribe and every extra engine is another key to keep.[^13]
 | `mistral` | `TRIBE_API_KEY_MISTRAL` | `api.mistral.ai` | not printed here: the sheet draws its table in the browser — its own FAQ vouches for one example, Mistral Large at $0.50 in / $1.50 out | an account, and then the models your account can actually reach[^15] |
 | `cerebras` | `TRIBE_API_KEY_CEREBRAS` | `api.cerebras.ai` | not printed here: the price table renders in the browser | an account; two open-weight models, one of them at about 3,000 tokens a second[^15] |
 | `together` | `TRIBE_API_KEY_TOGETHER` | `api.together.xyz` | **$0.15 in / $0.50 out** (`zai-org/GLM-5.3-Flash`); **$0.03** cached input | an account[^15] |
-| `openrouter` | `TRIBE_API_KEY_OPENROUTER` | `openrouter.ai` | **$0.03 in / $0.13 out** (`openai/gpt-oss-20b`) | an account, and a third party sees every prompt[^15] |
+| `openrouter` | `TRIBE_API_KEY_OPENROUTER` | `openrouter.ai` | **$0.03 in / $0.13 out** (`openai/gpt-oss-20b`, resold weights — see [^5]) | an account, and a third party sees every prompt[^15] |
 | `openai` | `TRIBE_API_KEY_OPENAI` | `api.openai.com` | **$0.05 in / $0.25 out** (`gpt-6-luna`); $0.50 / $2.50 (`gpt-6.1-terra`); $5.00 / $30.00 (`chat-latest`) | a card[^16] |
 | `anthropic` | `TRIBE_API_KEY_ANTHROPIC` | `api.anthropic.com` | **$0.10 in / $0.50 out** (`claude-haiku-5-5`, prompts under 100k); $2 / $10 (`claude-sonnet-5-5`); $4 / $20 (`claude-opus-5-5`) | prepaid credits bought with a card[^17] |
 
@@ -117,6 +117,14 @@ you are done: the list, the keys and the model selector do not care what a provi
     three recommended here and the two paid engines below — and for the rest you name the model yourself and it is
     recorded in the member's `voice.md`. The harness will not guess at another vendor's catalogue: a guess that is
     wrong fails on that member's first wake and looks like a problem with the tribe rather than with a model name.
+
+    **Two rows carry an OpenAI-family name and they are not the same question.** `openai/gpt-6-luna` is the
+    cheapest model OpenAI ships itself. `openai/gpt-oss-20b` is the cheapest line in OpenRouter's catalogue, and
+    OpenRouter ships no weights at all — it is a router, so its default is *resold* weights, an open 20B that
+    happens to be named by the house that released it. The same policy ("cheapest with a published price, verified
+    by a wake") produces both, and matching the strings would be a mistake, not a fix. Since 2026-11-16 a default
+    has a second gate as well: it must answer as itself, without commentary about its own LLM traits. See
+    `lab/rps.py` for the rule and `FINDINGS.md` §5 for the measurement.
 
 [^6]: **DeepSeek's model name changes under you.** The id this project shipped with was `deepseek-chat`; on
     2026-11-05 DeepSeek's own catalogue answered with two ids, `deepseek-flash` and `deepseek-v4-pro`, and

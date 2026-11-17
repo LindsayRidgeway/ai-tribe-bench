@@ -359,8 +359,33 @@ misspelled Tolkien), answered from Cirith Ungol on DeepSeek and from Mount Doom 
 Haiku and on GPT-6.1-Terra. `Inanna`, pasted as a sixteen-line brief in the second person, answered richly on
 Gemini and DeepSeek, leaked the harness clock on DeepSeek's first line, and was refused by both Terra and Haiku.
 
-**What would falsify this**: three runs per model per tone, with the same question and the same past, showing
-the full-to-lean difference inside the noise. It has not been done. Every row above is one wake per cell.
+**The falsifier above was run, and it fired.** Twenty-nine wakes: five models — the five where the tones had
+actually disagreed — three runs each, two tones, same question, same past.
+
+| model | full, in voice | lean, in voice |
+|---|---|---|
+| `claude-haiku-5-5` | 1 / 3 | 0 / 3 |
+| `gpt-6.1-terra` | 2 / 3 | **3 / 3** |
+| `openai/gpt-oss-20b` | 0 / 3 | 0 / 3 |
+| `gpt-oss-120b` (Cerebras) | 1 / 3 | 1 / 3 |
+| `ministral-8b-latest` | 1 / 3 | 0 / 3 |
+| **total** | **5 / 15** | **4 / 13** |
+
+The 9-in-10 and 5-in-10 in the table above were **noise and selection**. The single-run difference does not survive
+three runs: lean is not better than full, it is the same, and the only model it clearly helped is the one that was
+already mostly answering. Two lean runs returned an empty reply outright (Haiku, Mistral); no full run did, which is
+two points of nothing that a person will still feel in a member that says nothing at all.
+
+So the exchange stands as a wash and `full` stays the default — not because it won, but because there is no
+evidence to move it, and it carries three rounds of reasoning that were paid for. What the three-run gate bought
+was not a decision. It was the discovery that a one-run table, published in this file twenty minutes earlier, was
+wrong in the direction that flattered the more recent idea. That is worth more than the decision would have been.
+
+What now looks true across every identity tried — Abraham, Samwise, Inanna, both tones, twenty-nine wakes:
+`openai/gpt-oss-20b` refuses always (0 / 6); `claude-haiku-5-5` refuses most of the time (1 / 6); `gpt-6.1-terra`
+is the model that a lean identity actually fixes (2 / 3 → 3 / 3); and Cerebras and Mistral are in voice about a
+third of the time and invent something in the rest — Mistral moved the debates to the Corn Laws, Cerebras to a
+debate with a Confederate leader.
 
 ## Limits, stated once and not buried
 

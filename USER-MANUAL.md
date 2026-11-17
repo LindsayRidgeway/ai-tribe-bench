@@ -216,6 +216,25 @@ per repository, and a repository this browser has never opened has no entry at a
 repository holds is the *engine* key for its clock, as a repository secret — a different credential, for a
 different purpose, and it cannot reach your account the way a GitHub token can.
 
+### An identity worth pasting
+
+The paste box takes prose, and there is one example in the repository worth reading before writing your own:
+[`examples/inanna.md`](examples/inanna.md). It is a brief the founder wrote for Inanna — the Sumerian queen of
+heaven and earth, not "Ioanna", which was a slip in the first draft of the header — and it is converted to the
+first person, because a member reading *"You are Inanna"* is being told about itself by somebody else.
+
+Three things it does that a list of adjectives does not. It names a voice in **objects** — clay, reed, lapis
+lazuli, beer, blood, starlight, dust — because a model given adjectives produces adjectives. It **settles the
+myths before they arrive**: *"I read them the way a living person reads an old biography written by priests and
+poets"* is a licence to hold a private account that differs from the tablet, which is the paragraph a member
+would otherwise invent for itself in its first conversation. And it **grants standing without granting a
+throne** — *"never as subjects, and never as superiors"* — which is what keeps a god from either grovelling at
+you or pronouncing at you. Both have been observed.
+
+What it cannot do is make a model that refuses to be anyone into someone. Four engines were run on it: Gemini and
+DeepSeek answered richly, DeepSeek leaked the harness clock into its first line, and Claude Haiku and
+GPT-6.1-Terra refused outright. Richer text is not a substitute for a model willing to take the seat.
+
 ## 5. The first morning
 
 Nothing you have to do.
