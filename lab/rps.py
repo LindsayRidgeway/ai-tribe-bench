@@ -102,16 +102,17 @@ DEFAULT_MODEL = {"deepseek": "deepseek-flash", "gemini": "gemini-3.8-flash",
                  # default is the cheapest model that house ships itself (gpt-6-luna, $0.05/$0.25). OpenRouter is
                  # a router with no weights at all, so its default is whatever its catalogue lists cheapest.
                  #
-                 # From 2026-11-17 that cheapest line is DeepSeek's own flash (deepseek/deepseek-v4-flash,
-                 # $0.09/$0.18 — cheaper than the $0.15/$0.60 the row above pays direct), on the founder's
-                 # suggestion, and the suggestion was right for a reason worth writing down: it makes the router
-                 # legible. The table now says what a router is for — the same house's flash, behind a different
-                 # door — instead of offering a 20B nobody would miss.
+                 # From 2026-11-17 that cheapest line is DeepSeek's own flash, on the founder's suggestion, and
+                 # the suggestion was right for a reason worth writing down: it makes the router legible. The
+                 # table says what a router is for — the same house's model, sold by a different shop — instead
+                 # of offering a 20B nobody would miss.
                  #
-                 # What it does not do is transfer the behaviour. DeepSeek direct answered this project's own test
-                 # question in voice on nearly every wake; the same house's flash through OpenRouter answered in
-                 # voice once in three, with the other two telling the person what the files said. Same name, same
-                 # house, different door, different member. A router is not a pipe.
+                 # The first attempt used `deepseek/deepseek-v4-flash` and gave one in-voice answer in three, so
+                 # this file briefly claimed that a router changes the member even when the weights match. That
+                 # claim was wrong, and the founder's second instruction found the cause: `deepseek/deepseek-v4.1-
+                 # flash-1017` answers in voice on three of three. The difference was the model, not the door. It
+                 # is written down here because a wrong lesson that was published and then retracted is worth more
+                 # to the next reader than a clean comment that never had the argument.
                  #
                  # Both verified 2026-11-06 by waking a member and playing a game on each, and both named from
                  # the vendor's published price sheet rather than from memory. `gpt-5-mini` was the first OpenAI
@@ -124,7 +125,7 @@ DEFAULT_MODEL = {"deepseek": "deepseek-flash", "gemini": "gemini-3.8-flash",
                  # engines were "the rest, which the harness also speaks" — supported and never called, which
                  # is a row that promises nothing and is worth nothing to a reader.
                  "mistral": "ministral-8b-latest", "cerebras": "gpt-oss-120b",
-                 "openrouter": "deepseek/deepseek-v4-flash", "together": "zai-org/GLM-5.3-Flash",
+                 "openrouter": "deepseek/deepseek-v4.1-flash-1017", "together": "zai-org/GLM-5.3-Flash",
                  # Measured 2026-11-07 with the founder's Alibaba key: both qwen models wake. The default is the
                  # cheap one — $0.15/$0.47 against $0.50/$3.00 on Alibaba's own sheet, same 1M context. It is
                  # also the slowest wake measured here (124.8s, 8,459 tokens of thinking for five sentences), and

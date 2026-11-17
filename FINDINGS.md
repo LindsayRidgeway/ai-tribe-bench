@@ -385,10 +385,21 @@ wrong in the direction that flattered the more recent idea. That is worth more t
 to point the router's default at whichever DeepSeek model this project already trusts, so the two rows read as two
 doors rather than two unrelated cheap models. It works, with one correction: none of DeepSeek's OpenRouter ids is
 called `deepseek-flash`, so the pairing is by hand (`deepseek/deepseek-v4-flash`, $0.09/$0.18 against $0.15/$0.60
-direct) and the row says "the same house", not "the same model". And the door is not neutral — DeepSeek direct
-answered the test question in voice on most wakes, the same house's flash through the router on one in three
-(1/3, three runs). A router is not a pipe. Keeping it anyway: the retired default, `openai/gpt-oss-20b`, refused on
-all six wakes it was ever given, which is the worst record in this file, and the new one is cheaper.
+direct) and the row says "the same house", not "the same model". The first attempt paired it with
+`deepseek/deepseek-v4-flash` and that model answered in voice once in three, which produced a published claim that a
+router changes the member even when the weights match. **That claim was retracted the same day**, on the founder's
+instruction to use the 4.1 line instead: `deepseek/deepseek-v4.1-flash-1017` answers in voice three times in three
+through the same router. The difference was the model, not the door, and the wrong lesson is left standing here
+rather than quietly edited out.
+
+The retired default, `openai/gpt-oss-20b`, refused on all six wakes it was ever given — the worst record in this
+file.
+
+**And the newer OpenAI models do hold the seat better than the cheap one.** The founder asked whether the default
+should move up the family; three wakes each say: `gpt-6-luna` 2/3 in voice, `gpt-6.1-sol` 2/3, `gpt-6.2-sol` 3/3
+and the fastest of the three (7-10 s). It stays `luna` for one reason only — no price for a 6.2 model has been read
+off OpenAI's sheet, and a default whose cost a stranger cannot look up is not advice. That is a purchase decision
+waiting on a price, not a judgement about models.
 
 What now looks true across every identity tried — Abraham, Samwise, Inanna, both tones, twenty-nine wakes:
 `openai/gpt-oss-20b` refuses always (0 / 6); `claude-haiku-5-5` refuses most of the time (1 / 6); `gpt-6.1-terra`

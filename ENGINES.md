@@ -44,7 +44,7 @@ enough to build a tribe and every extra engine is another key to keep.[^13]
 | `mistral` | `TRIBE_API_KEY_MISTRAL` | `api.mistral.ai` | not printed here: the sheet draws its table in the browser — its own FAQ vouches for one example, Mistral Large at $0.50 in / $1.50 out | an account, and then the models your account can actually reach[^15] |
 | `cerebras` | `TRIBE_API_KEY_CEREBRAS` | `api.cerebras.ai` | not printed here: the price table renders in the browser | an account; two open-weight models, one of them at about 3,000 tokens a second[^15] |
 | `together` | `TRIBE_API_KEY_TOGETHER` | `api.together.xyz` | **$0.15 in / $0.50 out** (`zai-org/GLM-5.3-Flash`); **$0.03** cached input | an account[^15] |
-| `openrouter` | `TRIBE_API_KEY_OPENROUTER` | `openrouter.ai` | **$0.09 in / $0.18 out** (`deepseek/deepseek-v4-flash`, the same house as the row above, resold — see [^5]) | an account, and a third party sees every prompt[^15] |
+| `openrouter` | `TRIBE_API_KEY_OPENROUTER` | `openrouter.ai` | **$0.036 in / $0.50 out** (`deepseek/deepseek-v4.1-flash-1017` — DeepSeek's own flash, resold, see [^5]) | an account, and a third party sees every prompt[^15] |
 | `openai` | `TRIBE_API_KEY_OPENAI` | `api.openai.com` | **$0.05 in / $0.25 out** (`gpt-6-luna`); $0.50 / $2.50 (`gpt-6.1-terra`); $5.00 / $30.00 (`chat-latest`) | a card[^16] |
 | `anthropic` | `TRIBE_API_KEY_ANTHROPIC` | `api.anthropic.com` | **$0.10 in / $0.50 out** (`claude-haiku-5-5`, prompts under 100k); $2 / $10 (`claude-sonnet-5-5`); $4 / $20 (`claude-opus-5-5`) | prepaid credits bought with a card[^17] |
 
@@ -118,22 +118,26 @@ you are done: the list, the keys and the model selector do not care what a provi
     recorded in the member's `voice.md`. The harness will not guess at another vendor's catalogue: a guess that is
     wrong fails on that member's first wake and looks like a problem with the tribe rather than with a model name.
 
-    **A default is a model this project has actually woken, and two rows show why the word "engine" is doing two
-    jobs.** `openai/gpt-6-luna` is the cheapest model OpenAI ships itself. OpenRouter ships no weights at all — it
-    is a router — so its default is whatever its catalogue lists cheapest, and since 2026-11-17 that is DeepSeek's
-    own flash line at $0.09/$0.18, cheaper than the $0.15/$0.60 the DeepSeek row pays direct. The table is now
-    legible in a way it was not: two doors to the same house's flash, at two prices, and you can see what the
-    middleman costs and what he charges for it.
+    **A default is a model this project has actually woken.** Since 2026-11-16 it has to pass two tests: it must
+    wake, and it must answer as itself — in the member's voice, without commentary about being a model, about its
+    files, or about where its words came from. `lab/rps.py` holds the rule, `FINDINGS.md` §5 the measurement.
 
-    What the row will not claim is that the two doors give you the same member. Asked this project's own test
-    question, DeepSeek direct answered in voice on nearly every wake and DeepSeek's flash through OpenRouter
-    answered in voice once in three, telling the person what its files said on the other two. Same name, same
-    house, different member. A router is not a pipe, and it is not a discount either: every prompt in a routed
-    wake is read by the router and by whoever is hosting the weights that hour[^15].
+    The cheapest model that wakes is not always the cheapest model that passes the second test, so the price
+    column and the model column can pull in different directions. `openai/gpt-6-luna` is the cheapest model OpenAI
+    sells at $0.05/$0.25, and on the test question it answered in voice two wakes in three. OpenAI also sells
+    `gpt-6.2-sol`, which answered three in three and is faster — and which is *not* the default here, because no
+    price for it has been read off a sheet, and a default whose cost a stranger cannot look up is not advice.
 
-    Since 2026-11-16 a default has a second gate as well: it must answer as itself, without commentary about its
-    own LLM traits. `lab/rps.py` holds the rule; `FINDINGS.md` §5 holds the measurement, including the table that
-    was published and then retracted.
+    OpenRouter is the row where this gets legible, because it is not a model house at all. It is a shop: you hand
+    it a model name and it passes your request to somebody who owns the weights. Its default is now DeepSeek's own
+    flash, the same model the DeepSeek row above names, at $0.036 in and $0.50 out against $0.15 and $0.60 direct.
+    Same model, different shop, lower price — and what you pay instead is privacy: the shop and the host both read
+    every prompt, and when the row breaks it is not the model that broke.
+
+    A caution this page earned the hard way. The first pairing used `deepseek/deepseek-v4-flash` through the same
+    shop and answered in voice once in three, and this note briefly claimed that a routed wake changes the member
+    even when the weights match. The second pairing, `deepseek/deepseek-v4.1-flash-1017`, answers three in three.
+    The difference was the model, not the shop.
 
 [^6]: **DeepSeek's model name changes under you.** The id this project shipped with was `deepseek-chat`; on
     2026-11-05 DeepSeek's own catalogue answered with two ids, `deepseek-flash` and `deepseek-v4-pro`, and
