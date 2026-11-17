@@ -205,7 +205,7 @@ const PAINTERS = {
 const painterNames = () => Object.values(PAINTERS).map(p => p.label).join(', ');
 
 const S = {repo:'', token:'', branch:'main', keys:{}, members:[], chat:{}, member:null, view:'today',
-           owner:'', tribes:{}, app:'', isPrivate:null};   // null = this page has not been told; see noteVisibility()
+           owner:'', tribes:{}, app:'', isPrivate:null, need:{}};   // null = this page has not been told; see noteVisibility()
 
 // Which tribes this browser has been in, and the credential it used for each. Without this there is exactly one
 // way back to a tribe you have already opened: retype its name and paste a token. Found 2026-11-09, when the
@@ -304,7 +304,7 @@ function nowStamp(){
 
 function save(){
   localStorage.setItem('ait', JSON.stringify({repo:S.repo, token:S.token, keys:S.keys, owner:S.owner || '',
-                                             tribes:S.tribes || {}, app:S.app || ''}));
+                                             tribes:S.tribes || {}, app:S.app || '', need:S.need || {}}));
   // An unfiled conversation is kept here too: a person who reloads the page should not lose what a
   // member said, even though only filing it puts it in the record.
   try {
@@ -315,7 +315,7 @@ function save(){
 }
 function load(){ try{ const j = JSON.parse(localStorage.getItem('ait') || '{}');
   S.repo = j.repo || ''; S.token = j.token || ''; S.keys = j.keys || {}; S.owner = j.owner || '';
-  S.tribes = j.tribes || {}; S.app = j.app || ''; }catch(e){}
+  S.tribes = j.tribes || {}; S.app = j.app || ''; S.need = j.need || {}; }catch(e){}
   try { S.chat = JSON.parse(localStorage.getItem('ait.chat') || '{}'); } catch(e){ S.chat = {}; } }
 
 /* ---- the GitHub door ------------------------------------------------------------------- */
@@ -1495,17 +1495,14 @@ function viewInstall(main){
       msg.textContent = 'letting AIT into the new repository…';
       const enrolled = await enrolRepo(full, created && created.id, t);
       if (!await canRead(full, t)){
-        setTribe(full, t, 'main'); save();
-        $('done').hidden = false;
-        msg.className = 'err';
-        // "Open your installations" is GitHub's word for a page, and a person who has never used an app has no reason
-        // to know it. The page that decides this is one link away, and the link is the sentence.
-        msg.innerHTML = 'The repository was made — private, with the machinery in it, and nothing lost. What is missing'
-          + ' is permission: GitHub is only letting AIT read the repositories you ticked, and this one did not exist'
-          + ' when you chose. <a href="https://github.com/settings/installations" target="_blank" rel="noopener">Open'
-          + ' GitHub\'s page for apps you have let in</a>, press <strong>Configure</strong> beside <strong>AIT'
-          + ' Tribe</strong>, tick <strong>' + esc(slug) + '</strong>, save, then open the link below.';
-        place(); btn.disabled = false; return;
+        // The founder's judgement on the paragraph that used to stand here: it explained the locked door and left the
+        // person holding nothing to do. So the tribe goes into the list with the others, and the row itself carries
+        // the one action that opens it. Nothing is lost either way — the repository exists and is private.
+        setTribe(full, t, 'main');
+        S.need = S.need || {}; S.need[full] = 1; save();
+        flash('cflash', 'Made ' + full + ' — GitHub has not let AIT into it yet. The line beside it has the one thing to press.');
+        setView('connect');
+        return;
       }
       msg.textContent = 'copied the machinery into it…';
       setTribe(full, t, 'main');
@@ -1601,9 +1598,14 @@ function viewConnect(main){
   const list = mine.length ? `<div class="card" style="margin-top:12px">
       <p class="small" style="margin:0 0 6px"><strong>Tribes this browser has been in</strong> — one press switches,
       with the credential this browser already used for it.</p>
-      ${mine.map(([r, v]) => `<div class="row" style="justify-content:space-between;padding:6px 0">
+      ${mine.map(([r, v]) => {
+        const stuck = !!(S.need && S.need[r]);
+        return `<div class="row" style="justify-content:space-between;padding:6px 0">
         <button class="plain small" onclick="${r === S.repo ? `location.hash='#/today';render()` : `switchTribe('${escq(r)}')`}">${esc(r)}</button>
-        <span class="small muted">${r === S.repo ? 'the one this page opens · ' + opened(v) : opened(v)}</span></div>`).join('')}
+        <span class="small${stuck ? '' : ' muted'}">${stuck
+          ? 'made, but GitHub has not let AIT into it — <a href="https://github.com/settings/installations" target="_blank" rel="noopener">tick it here</a>'
+          : (r === S.repo ? 'the one this page opens · ' + opened(v) : opened(v))}</span></div>`;
+      }).join('')}
     </div>` : '';
   // Sign-in first, paste second. The App's token reaches the repositories a person granted and nothing else —
   // narrower than any token they would make by hand for this job — and it is the only way for a second device to
@@ -1625,6 +1627,7 @@ function viewConnect(main){
     <p class="small"><a href="#/">← back</a></p>
     <h1>Connect a tribe</h1>
     <p class="lede">${GH_APP ? 'Sign in, then press the tribe you want to open.' : 'The repository it lives in, and a token that can see it.'}</p>
+    <p class="small" id="cflash" style="margin:10px 0 0"></p>
     ${appBlock}
     ${GH_APP ? `<p class="small" style="margin:14px 0 0"><a href="#" id="usepaste">Or open a repository by name
     and token</a> — the door that needs nothing of AIT's.</p>` : ''}
@@ -1797,6 +1800,7 @@ async function switchTribe(repo){
   try {
     const info = await gh(`/repos/${repo}`, {}, t);
     setTribe(repo, t, info.default_branch || 'main');
+    if (S.need && S.need[repo]){ delete S.need[repo]; save(); }
     noteVisibility(info);
     try { history.replaceState(null, '', location.pathname + '?tribe=' + repo); } catch(_){}
     WANT = ''; WANT_WHY = '';
