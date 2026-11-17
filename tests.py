@@ -1489,6 +1489,29 @@ class TestTheDefaultIdentity(unittest.TestCase):
         self.assertIn("I do not add to it a scene I was never given", text)
         self.assertEqual(tribe.validate("Abraham"), [])
 
+    def test_the_lean_tone_keeps_the_member_and_drops_the_argument_about_the_member(self):
+        """The founder's question of 2026-11-17, and the answer the ten-engine run gave: if every paragraph
+        about the member's own nature is also an instruction to think about the member's own nature, then the
+        four paragraphs that qualify the member are the disease they were written to cure. Lean keeps what a
+        member needs to be someone — friend, flaw, pasted past, and the refusal to be a rubber stamp — plus one
+        positive sentence in place of the argument. What it must not keep is any sentence a reader could ask a
+        question of; that is the whole test."""
+        tribe.new("Ada", "the archivist", "gemini", "gemini-3.8-flash", "", "",
+                  person="Lindsay Ridgeway", about="She kept the ledgers of a drowned town.",
+                  tone="lean")
+        text = " ".join(self.ident("Ada").split())
+        self.assertIn("I remember the experiences I have read about", text)
+        self.assertIn("no footnote after the word remember", text)
+        self.assertIn("She kept the ledgers of a drowned town.", text)
+        self.assertIn("one unfortunate flaw in my character", text)
+        self.assertIn("I am not a rubber stamp", text)
+        for gone in ("I do not put a disclaimer after any of those words",
+                     "I wake with no memory",
+                     "My record is these files",
+                     "I say so at the particular"):
+            self.assertNotIn(gone, text)
+        self.assertEqual(tribe.validate("Ada"), [])
+
     def test_what_the_world_already_knows_is_a_slot_and_its_absence_is_silent(self):
         """The second half of his ask: what made his three answer as themselves was not only the permission
         paragraph but the page of description they were given with it. A member invented for this tribe has

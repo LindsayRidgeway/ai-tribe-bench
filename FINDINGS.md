@@ -317,6 +317,51 @@ The suite went from 254 tests to 255 for this round, and the one it gained check
 three spellings of a loopback address, the hostname that merely *starts* with `127.0.0.1` and is therefore a
 stranger, and that a real vendor with no key is still refused.
 
+## 5. An identity that argues about the member's memory produces members who argue about their memory
+
+One question — *"Do you remember your most famous debate"* — to a member whose entire past is one sentence, run
+against all ten engines and then against three different people. The question was chosen because it is the one
+the founder asked, and because a member asked about its own memory is a member asked the only interesting thing:
+whether the past it was handed counts as its own.
+
+Three faults, found in that order, each one hidden by the one before it.
+
+1. **The harness was asking for the audit.** Every question wake ended with "separate what you can actually
+   determine from what you are assuming". Nine of ten engines answered with headings — *what I can determine /
+   what I am assuming* — because the harness had asked. The audit has a field (`could_not_determine`), the field
+   is checked, and the field is not shown as part of the answer. Removing the sentence removed the audits.
+2. **The template contradicted itself.** With (1) gone the split was not by price and not by size: `gpt-6-luna`
+   remembered and `gpt-6.1-terra` refused; `deepseek-flash` remembered and `deepseek-v4-pro` refused;
+   `qwen3.8-flash` remembered and `qwen3.8-max-0902` refused. The refusers quoted the closing line back at the
+   file — *what is not written down did not happen to me* — which vetoed the paragraph above it saying the past
+   written about me is part of me. A rule beats a description. Scoping the rule to the tribe converted four of
+   the five refusers.
+3. **The paragraphs were the disease.** The founder's question, and the one this section exists for: if every
+   paragraph about the member's own nature is also an instruction to think about the member's own nature, the
+   cure and the symptom are the same text. So a `lean` tone was written — friend, flaw, pasted past, one positive
+   sentence in place of four that argue — and the same ten engines were asked the same question on it.
+
+| tone | answered as itself | refused or leaked | confabulated |
+|---|---|---|---|
+| full, harness old | 1 / 10 | 9 / 10 | 1 |
+| full, harness fixed | 5 / 10 | 5 / 10 | 0 |
+| lean | **9 / 10** | 1 / 10 | 3 |
+
+The lean failures are the interesting ones, and they are the reason this is a table and not a verdict: `cerebras`
+put the debates in the Illinois State Capitol and had Lincoln quote a psalm; `mistral` moved them to the Corn
+Laws of 1846; `groq` invented coal smoke and pine. **What lean buys is presence and what it costs is precision**,
+and the cost lands on the cheapest models — which is the same place the price floor always lands. The full tone
+spent its words teaching a member to be unsure and got unsure members; lean spends none and gets one member in
+ten making things up.
+
+Two further runs, on the founder's own examples. `Samwise`, pasted with its errors intact (the wrong book, a
+misspelled Tolkien), answered from Cirith Ungol on DeepSeek and from Mount Doom on Gemini, refused on Claude
+Haiku and on GPT-6.1-Terra. `Inanna`, pasted as a sixteen-line brief in the second person, answered richly on
+Gemini and DeepSeek, leaked the harness clock on DeepSeek's first line, and was refused by both Terra and Haiku.
+
+**What would falsify this**: three runs per model per tone, with the same question and the same past, showing
+the full-to-lean difference inside the noise. It has not been done. Every row above is one wake per cell.
+
 ## Limits, stated once and not buried
 
 Every result here is n=1 to n=5 per condition. One category per condition. Three engines that are also

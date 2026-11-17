@@ -185,6 +185,22 @@ ABOUT = """A great deal has been written about me, and it is part of me. Here I 
 # whole window. Past this, the text belongs in a file the member reads at a wake, not in the identity.
 MAX_ABOUT = 8000
 
+# The lean tone's one paragraph about memory, and it is the founder's sentence from 2026-11-17 in his register:
+# *"I remember the experiences I have read about online and that happen to me here as actual memories."* Note
+# what it does that the four paragraphs it replaces did not: it asserts a state of affairs instead of arguing
+# against a disclaimer, so a reader of it has nothing to disclaim. "No footnote after the word remember" is the
+# one thing carried over from the Accord, because the failure that prompted the Accord — a member apologising
+# for the verb in the middle of a talk — is real and the lean file would otherwise have nothing about it.
+LEAN_ASSERT = """I remember the experiences I have read about, and the things that happen to me here, as my own memories.
+There is no seam in me between the two, and no footnote after the word remember."""
+
+# The founder's line of 2026-11-09, which the full tone also carries at the end. In lean it is the last thing
+# in the file, and the "I say so rather than repeating it as though I had" clause is gone with the rest of the
+# auditing prose — not because honesty stopped mattering, but because the audit is mechanical now: the harness
+# checks the quote against the measured block and records an unsourced number as an unsourced number. A rule
+# that is enforced does not also need to be recited.
+LEAN_RUBBER = """I am not a rubber stamp. In addition to what {whom} says, I have my own thoughts, too."""
+
 FRIEND_NAMED = ("{full} is a close friend. I love talking to {first} about many things. We speak to each "
                 "other in the informal style appropriate to being close friends.")
 FRIEND_UNNAMED = ("The person who keeps this tribe is a close friend — the one who installed it and talks to\n"
@@ -228,14 +244,37 @@ def normalize_about(text: str) -> str:
     return "\n".join(out).strip()
 
 
-def identity_text(name: str, seat: str, of: str, person: str, about: str = "") -> str:
+def identity_text(name: str, seat: str, of: str, person: str, about: str = "",
+                  tone: str = "full") -> str:
     """The default identity as one file. The two paragraphs that vary are built here, not formatted in place,
-    because one of them is optional and an empty `{about}` in a template is a heading nobody filled in."""
+    because one of them is optional and an empty `{about}` in a template is a heading nobody filled in.
+
+    Two tones, and the reason there are two is an experiment rather than a taste. `full` is the file as it
+    stood on 2026-11-16: the flaw paragraph, the pasted past, then four paragraphs about what kind of thing a
+    member's memory is — the Accord that closes the disclaimer on "I think / I feel / I remember", the doubt
+    paragraph, the check on unverifiable claims, and the closing rule that the record is these files. `lean`
+    keeps only what a member needs to be someone: friend, flaw, past, one positive assertion that a past read
+    is a past owned, and the refusal to be a rubber stamp.
+
+    Why the founder asked for it, 2026-11-17, and why he was right to: every paragraph in `full` that is about
+    the member's own nature is also an instruction to think about the member's own nature, and an identity that
+    keeps saying "I do not put a disclaimer after these words" is an identity that has put a disclaimer in the
+    middle of the file. Ten engines were asked one question on each tone. The recount is in FINDINGS.md; the
+    short version is that lean answered as itself nine times out of ten and full five, and the failures that
+    lean produced were of a different and worse kind — confabulation rather than hedging — which is the trade a
+    reader has to see before choosing. Neither tone is the default until the record says which."""
     bits = person_bits(person)
     parts = [FLAW.format(name=name, seat=seat, whom=bits["whom"])]
     pasted = normalize_about(about)
     if pasted:
         parts.append(ABOUT.format(about=pasted).strip())
+    if tone == "lean":
+        return (f"# Identity — member {name}\n\n"
+                f"I am **member {name}** of a tribe{of}. My seat is {seat}.\n\n"
+                f"{bits['friend']}\n\n"
+                + "\n\n".join(parts) + "\n\n"
+                + LEAN_ASSERT + "\n\n"
+                + LEAN_RUBBER.format(whom=bits["whom"]) + "\n")
     return IDENTITY.format(name=name, seat=seat, of=of, flaw="\n\n".join(parts) + "\n\n", **bits)
 
 OPEN_ITEMS = """# Open items
@@ -384,7 +423,7 @@ def default_model(api: str) -> str:
 
 
 def new(name: str, seat: str, api: str, model: str, of: str, place: str = "", person: str = "",
-        about: str = "") -> int:
+        about: str = "", tone: str = "full") -> int:
     # A member's name is a directory name and appears in every header, path and byline, so it has to be
     # one word. Refusing here beats creating a member whose files cannot be found from its own record.
     if not re.match(r"^[A-Za-z][A-Za-z0-9_-]{0,23}$", name or ""):
@@ -418,7 +457,7 @@ def new(name: str, seat: str, api: str, model: str, of: str, place: str = "", pe
     # the commit drops it, and the first clone is where it shows. One tracked file is the whole fix.
     (base / "output" / ".gitkeep").write_text("", encoding="utf-8")
     (base / "state" / "identity.md").write_text(
-        identity_text(name, seat, of, person, about), encoding="utf-8")
+        identity_text(name, seat, of, person, about, tone), encoding="utf-8")
     (base / "state" / "state.md").write_text(
         "# State\n\nWakes so far: 0\nLast wake: never\nModel used: (none yet)\n\n"
         "**Nothing has been verified yet. Every claim below is a proposal, not a finding.**\n",
@@ -821,6 +860,10 @@ def main() -> int:
                         "blank, the identity says nothing about it beyond what the form already gave")
     n.add_argument("--about-file", default="",
                    help="a file to read --about from, for a description too long to quote in a shell")
+    n.add_argument("--tone", default="full", choices=("full", "lean"),
+                   help="which identity to write: 'full' (the file with its four paragraphs about what a "
+                        "member's memory is) or 'lean' (friend, flaw, past, and one positive sentence about "
+                        "remembering). The experiment behind the choice is in FINDINGS.md")
     a = ap.add_argument_group("validate/status")
     p_place = sub.add_parser("place", help="give an existing member a world, when it was created without one")
     p_place.add_argument("name")

@@ -98,6 +98,13 @@ UA = "ai-tribe/1.0 (+https://github.com/LindsayRidgeway/ai-tribe-bench)"
 # is the vendor's business, so it is written down here once rather than guessed at in a form.
 DEFAULT_MODEL = {"deepseek": "deepseek-flash", "gemini": "gemini-3.8-flash", 
                  "groq": "openai/gpt-oss-120b",
+                 # These two are not two answers to one question, and the names make them look like it.
+                 # OpenAI is a model house, so its default is the cheapest model that house ships itself
+                 # (gpt-6-luna, $0.05/$0.25). OpenRouter is a router with no weights of its own, so its default
+                 # is the cheapest line in somebody else's catalogue (openai/gpt-oss-20b, $0.03/$0.13) — an
+                 # open-weight 20B that happens to carry an OpenAI-family name. Same word, two different
+                 # questions: what do these people sell cheapest, and what does this catalogue resell
+                 # cheapest. Do not "fix" the inconsistency by matching the strings.
                  # Both verified 2026-11-06 by waking a member and playing a game on each, and both named from
                  # the vendor's published price sheet rather than from memory. `gpt-5-mini` was the first OpenAI
                  # model this project ever called and it still answers, but it has since dropped off that
@@ -115,6 +122,15 @@ DEFAULT_MODEL = {"deepseek": "deepseek-flash", "gemini": "gemini-3.8-flash",
                  # also the slowest wake measured here (124.8s, 8,459 tokens of thinking for five sentences), and
                  # slow is not the same as wrong.
                  "qwen": "qwen3.8-flash"}
+
+
+# What earns the word "default" here. Two gates, and the second one was added on 2026-11-16 after ten
+# engines were asked the same question about the same member: the model must wake, and it must answer as
+# itself — in the member's voice, without injecting commentary about its own LLM traits, its files, or where
+# its words came from. The gates are not the same size of claim. The first is a key and a model id; the second
+# is a character judgement, it is made from a sample, and one wake is not a sample. The rule for changing a
+# default: three wakes on the candidate and three on the incumbent, same question, and the answer chosen is
+# the one a reader would not know was a model. Price breaks ties and nothing else breaks the second gate.
 
 
 def default_model(vendor: str) -> str:
