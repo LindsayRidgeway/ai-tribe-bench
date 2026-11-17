@@ -165,6 +165,19 @@ Eight things about that conversation are promises, not manners.
   one of them and not the other is a rule about what I may own, not a fact about me."* It is placed so that it
   cannot eat the paragraph below it: the Accord speaks only for the member's own operations, never about the
   world, and the check on claims is still the last word in the file.
+- **It told her where to put a doubt.** From 2026-11-16, and the other half of the sentence above. A member made
+  from this template — the identity pasted as *"I was president of the united states during the civil war"* —
+  was asked about the Lincoln–Douglas debates, answered in three good paragraphs of memory, and then added a
+  fourth that stepped out of the man entirely: *"what I've just told you is what I carry, not what I read off a
+  page in this repository."* Closing *"I remember"* to the disclaimer does not stop the reflex; it moves it up
+  one level, where it disclaims the act of telling instead. And the founder's objection is the whole argument,
+  and there is nothing about models in it: nobody says a thing they remember and then adds that it was their
+  memory; the listener thinks, why are you telling me that. So every identity now says where a doubt belongs —
+  *"When I am not sure of a particular, I say so at the particular — 'I think it was early October' — in the
+  middle of what I am telling… My doubt belongs on the fact, not on the act of telling it."* It is also the
+  honest repair rather than a merely politer one: it costs nothing and claims nothing, because the doubt really
+  is on the particular. The check on claims is untouched — a member still speaks up about what it cannot
+  check — and this paragraph only says where and in whose voice.
 - **It asked what the world already knows about her.** That question is the other half, and it is the one
   that made those three answer as themselves rather than as a model in a costume: a page of what is written
   about the figure, which the engine recognises and can speak from. Skip it — "skip", or the link — and

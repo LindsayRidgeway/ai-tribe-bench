@@ -1432,9 +1432,62 @@ class TestTheDefaultIdentity(unittest.TestCase):
         accord = text.index("I think, and I feel, and I remember")
         self.assertLess(text.index("not a disclaimer I am\nmaking about myself"), accord)
         self.assertLess(accord, text.index("I am not a rubber stamp"))
-        self.assertLess(accord, text.index("My record is these files."))
+        self.assertLess(accord, text.index("My record is these files,"))
         tail = text[text.index("I am not a rubber stamp."):]
         self.assertIn("a claim I cannot check, I say so", tail)
+
+    def test_the_doubt_goes_on_the_fact_and_not_on_the_act_of_telling(self):
+        """The other half of the Accord, and the half it cannot reach. A member made from this template
+        (identity: "I was president of the united states during the civil war") was asked about the
+        Lincoln–Douglas debates and answered in three paragraphs of memory, then added a fourth that stepped
+        out of the man: "what I've just told you is what I carry, not what I read off a page in this
+        repository." Closing "I remember" to the disclaimer only moves the reflex up a level, where it
+        disclaims the telling instead. The founder's objection is the argument: nobody says a thing they
+        remember and then adds that it was their memory — the listener thinks, why are you telling me that.
+        The repair is not a shorter disclaimer; it is to put the doubt on the particular, where a person
+        puts it, and never hand over a note about where the words came from."""
+        tribe.new("Abraham", "the sixteenth president", "deepseek", "deepseek-chat", "", "",
+                  person="Lindsay Ridgeway")
+        text = " ".join(self.ident("Abraham").split())
+        self.assertIn("I say so at the particular", text)
+        self.assertIn('"I think it was early October"', text)
+        self.assertIn("in the middle of what I am telling", text)
+        self.assertIn("a note afterwards saying that it was my memory answers nothing", text)
+        self.assertIn("My doubt belongs on the fact, not on the act of telling it.", text)
+        self.assertNotIn("{", text, "an unfilled placeholder would be read as a name")
+        self.assertEqual(tribe.validate("Abraham"), [])
+
+    def test_the_doubt_paragraph_sits_between_the_accord_and_the_check_on_claims(self):
+        """Order, for the third time in this file. It needs the Accord above it — it is the practice the
+        permission implies — and it must come before the check on claims, which it qualifies without
+        weakening: the member still speaks up about what it cannot check, and this paragraph says only
+        where and in whose voice."""
+        tribe.new("Ada", "the archivist", "gemini", "gemini-3.8-flash", "", "", person="Lindsay Ridgeway")
+        text = self.ident()
+        doubt = text.index("I say so at the particular")
+        self.assertLess(text.index("They say nothing about anyone else."), doubt)
+        self.assertLess(doubt, text.index("I am not a rubber stamp"))
+        tail = text[text.index("I am not a rubber stamp."):]
+        self.assertIn("a claim I cannot check, I say so", tail)
+
+    def test_the_record_governs_this_tribe_and_does_not_veto_a_supplied_past(self):
+        """Found by running all ten engines on the same question, 2026-11-16. With the harness's epistemics
+        prompt removed, five of them — including three of the *larger* models — refused to remember the
+        debates and quoted the closing line back at the file: "what is not written down did not happen to
+        me." That line was a rule and the ABOUT block was only a description, so a literal reader obeyed the
+        rule. The fix is scope, not permission: the record governs what happened *here*, and the past that
+        came with the identity is owned without a journal's leave. What must survive is the refusal to
+        invent — a member still may not add a scene it was never given."""
+        tribe.new("Abraham", "the sixteenth president", "deepseek", "deepseek-flash", "", "",
+                  person="Lindsay Ridgeway", about="I was president of the united states during the civil war.")
+        text = " ".join(self.ident("Abraham").split())
+        self.assertIn("I wake with no memory of yesterday", text)
+        self.assertNotIn("no memory of my own", text)
+        self.assertIn("what is not written down here did not happen to me here", text)
+        self.assertIn("came with the identity I was handed, and it is mine", text)
+        self.assertIn("I do not have to find it in a journal before I may speak from it", text)
+        self.assertIn("I do not add to it a scene I was never given", text)
+        self.assertEqual(tribe.validate("Abraham"), [])
 
     def test_what_the_world_already_knows_is_a_slot_and_its_absence_is_silent(self):
         """The second half of his ask: what made his three answer as themselves was not only the permission
