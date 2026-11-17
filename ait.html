@@ -1351,8 +1351,8 @@ function viewInstall(main){
         <p class="small" id="who" style="margin:8px 0 0"></p>
         <p class="err" id="noinst" hidden style="margin:8px 0 0">GitHub has not let AIT into your account yet, so
         there is nothing it can make a repository in. <a href="https://github.com/apps/${GH_APP_SLUG}/installations/new"
-        target="_blank" rel="noopener">Choose your repositories</a> — <strong>All repositories</strong> — then press
-        Sign in again. Nothing is lost.</p>
+        target="_blank" rel="noopener">Choose which repositories AIT may use</a> — on the next screen,
+        <strong>All repositories</strong> — then press Sign in again. Nothing is lost.</p>
       </div>
     </div>
 
@@ -1498,10 +1498,13 @@ function viewInstall(main){
         setTribe(full, t, 'main'); save();
         $('done').hidden = false;
         msg.className = 'err';
-        msg.textContent = enrolled
-          ? 'The repository was made, and AIT added it to the repositories you allow — but GitHub still will not let it read the files. Nothing is lost. Open your installations, make sure this repository is ticked, then open the link below.'
-          : 'The repository was made, private, with the machinery in it — but AIT is only allowed into repositories you ticked, and this one did not exist when you chose. Open your installations, tick '
-            + slug + ', then open the link below. Nothing is lost.';
+        // "Open your installations" is GitHub's word for a page, and a person who has never used an app has no reason
+        // to know it. The page that decides this is one link away, and the link is the sentence.
+        msg.innerHTML = 'The repository was made — private, with the machinery in it, and nothing lost. What is missing'
+          + ' is permission: GitHub is only letting AIT read the repositories you ticked, and this one did not exist'
+          + ' when you chose. <a href="https://github.com/settings/installations" target="_blank" rel="noopener">Open'
+          + ' GitHub\'s page for apps you have let in</a>, press <strong>Configure</strong> beside <strong>AIT'
+          + ' Tribe</strong>, tick <strong>' + esc(slug) + '</strong>, save, then open the link below.';
         place(); btn.disabled = false; return;
       }
       msg.textContent = 'copied the machinery into it…';
@@ -1545,8 +1548,8 @@ function explainInstallError(e, slug){
   if (m.startsWith('401')) return 'GitHub did not accept that token. Copy it again — a token is shown once, and an expired one is the usual cause.';
   if (m.startsWith('403')) return 'GitHub refused to create the repository: the sign-in is real, but not allowed to'
     + ' do that. Two causes in practice — AIT is let into only some of your repositories, so it cannot make a new one'
-    + ' (open your installations, choose All repositories, press Install again); or the token you pasted lacks'
-    + ' Repository creation and Contents, both read and write.';
+    + ' (at github.com/settings/installations, choose All repositories, then press Install again); or the token you'
+    + ' pasted lacks Repository creation and Contents, both read and write.';
   if (m.startsWith('422')) return `GitHub refused the name “${slug}”. You may already have a repository called that, or the name may not be allowed. Try another.`;
   if (m.startsWith('404')) return 'GitHub answered 404, which here usually means the token cannot see the template repository. Check that the token can read public repositories and that Repository creation is granted.';
   return m;
