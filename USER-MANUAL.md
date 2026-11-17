@@ -67,11 +67,14 @@ included in the free GitHub account; a small tribe uses a few hundred minutes a 
 
 Press **Start a tribe**. Two things happen on somebody else's page, and then you are done with them.
 
-1. **You sign in to GitHub** — one button, one password, and a permissions screen that will look alarming and is
-   not. Signing in gives AIT a token that GitHub will only issue with access to your repositories as a whole,
-   because no narrower token can create a new one. AIT itself asks GitHub about one repository — the tribe it
-   makes for you — and you can revoke the token in one click at any time; if you do, AIT stops working and your
-   tribe does not.
+1. **You sign in to GitHub** — one button, one password, and then a screen from GitHub that asks *which of your
+   repositories AIT may use* and asks you to let it create one. Say **All repositories**: the tribe does not exist
+   yet, so GitHub has nothing narrower for you to tick. What you are granting is bounded and worth naming exactly —
+   read and write files, read and write workflows, create a repository — and it does **not** include changing a
+   repository's settings or deleting one. AIT asks GitHub about the tribe it made for you and, on later visits,
+   about which tribes it may open. Once your tribe exists you can narrow the grant to that one repository at
+   <https://github.com/settings/installations>; AIT carries on working. Uninstalling it there stops AIT and does not
+   touch your tribe.
 2. **AIT makes your repository.** That is the word for the box your tribe lives in. It is yours — your account,
    your name on it — and it holds the members, their diaries, their work, their pictures, their games, and the
    clock that wakes them. You never have to open it. If you want to, you can, and you will find folders of plain
@@ -89,6 +92,41 @@ member**, and a line at the top saying the tribe is not running yet.
 after; the permission screen is a different site, and going to it and coming back does not throw away what the page
 had already been told. It is kept for that tab only — an install is one sitting, and a name typed on Tuesday has no
 business appearing in Friday's form.
+
+## 3a. Using a token instead of signing in
+
+You do not have to. The button is one press and hands over less. This section exists for people who would rather
+hand over a *token* — a password for this page, made at GitHub, which you can delete at any time — or who are
+working somewhere the sign-in will not run.
+
+**The short way, which is the recommended way.** Make a **classic** token:
+
+1. Open <https://github.com/settings/tokens/new>.
+2. *Note*: anything you will recognise later, e.g. `ait`.
+3. *Expiration*: whatever you like. Thirty days is fine; the token can be replaced in a minute.
+4. Tick exactly two boxes in the list of scopes: **repo**, and **workflow**.
+5. Press **Generate token** at the bottom and copy the string that appears. It is shown once.
+
+That token reaches every repository you own, private ones included, and it can write. It is a key to the house
+rather than a key to one door. AIT keeps it in this browser, sends it nowhere but GitHub, and uses it for the tribe
+you are making or opening. Treat it like a password, because that is what it is; deleting it at
+<https://github.com/settings/tokens> revokes it everywhere at once.
+
+**The narrow way, which costs more clicks.** Make a **fine-grained** token:
+
+1. Open <https://github.com/settings/personal-access-tokens/new>.
+2. *Token name*: `ait`. *Expiration*: thirty days.
+3. *Repository access*: **All repositories**. Creation is the reason it cannot start narrowed to one repository —
+   the tribe does not exist yet — and you can narrow it afterwards at the same page.
+4. *Permissions* → **Repository permissions**, and set three of them to **Read and write**: **Repository
+   creation**, **Contents**, **Actions**.
+5. Press **Generate token** and copy it.
+
+If step 4 does not offer *Contents* or *Actions* — on one brand-new account, measured 2026-11-16, it did not, and
+nobody has explained why — go back to the classic token above. It works, and it is four clicks fewer.
+
+**After either token.** Paste it into the page and press Connect. Once the tribe exists, a token that reaches only
+that one repository is enough for everyday use, and the manual's §12 says what to do if one stops working.
 
 ## 4. Your first member
 
