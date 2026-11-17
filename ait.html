@@ -1345,10 +1345,11 @@ function viewInstall(main){
           at GitHub, which you can delete at any time. Make a <strong>classic</strong> token —
           <a href="https://github.com/settings/tokens/new" target="_blank" rel="noopener">github.com/settings/tokens/new</a>
           — and tick two boxes: <strong>repo</strong> and <strong>workflow</strong>. Two ticks, a button, a token.
-          It reaches everything you own, so it is a key to the house: it is kept in this browser, sent nowhere but
-          GitHub, and you can delete it at github.com at any time. For a key to one door instead,
+          <strong>If you already keep repositories you care about</strong>, this is the moment to know what you are
+          doing: a classic token can write to all of them. A fine-grained token can be held to one —
           <a href="${MANUAL}#3a-using-a-token-instead-of-signing-in" target="_blank" rel="noopener">the manual
-          walks through a fine-grained token</a> — more clicks, less reach.</p>
+          walks through it in five steps</a>; more clicks, far less reach. Either kind is kept in this browser, sent
+          nowhere but GitHub, and deleted at github.com whenever you like.</p>
           <input id="tok" type="password" placeholder="paste the token" autocapitalize="off" spellcheck="false">
         </div>
         <p class="small" id="who" style="margin:8px 0 0"></p>
@@ -1646,11 +1647,11 @@ function viewConnect(main){
       <p class="small muted" style="margin-top:6px">Make a <strong>classic</strong> token —
       <a href="https://github.com/settings/tokens/new" target="_blank" rel="noopener">github.com/settings/tokens/new</a>
       — and tick exactly two boxes: <strong>repo</strong> and <strong>workflow</strong>. Nothing else, and no
-      expiry date you have to remember. It reaches every repository you own, including private ones, so treat it as a
-      key to the house rather than a key to one door: AIT keeps it in this browser, sends it nowhere but GitHub, and
-      uses it for the repository above. If you would rather hand over a key to one door,
+      expiry date you have to remember. <strong>If you already keep repositories you care about</strong>, know this
+      now: a classic token can write to all of them. A fine-grained token can be held to the one above —
       <a href="${MANUAL}#3a-using-a-token-instead-of-signing-in" target="_blank" rel="noopener">the manual walks
-      through a fine-grained token</a> in seven steps.</p>
+      through it in five steps</a>. Either kind stays in this browser, goes nowhere but GitHub, and is deleted at
+      github.com whenever you like.</p>
       </div>
       <p class="small muted" id="tokheld" hidden style="margin-top:8px"></p>
       <div class="row" style="margin-top:10px"><button class="primary" id="go">Connect</button>
