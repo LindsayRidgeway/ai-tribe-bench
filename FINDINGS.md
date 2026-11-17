@@ -381,6 +381,15 @@ evidence to move it, and it carries three rounds of reasoning that were paid for
 was not a decision. It was the discovery that a one-run table, published in this file twenty minutes earlier, was
 wrong in the direction that flattered the more recent idea. That is worth more than the decision would have been.
 
+**OpenRouter's default moved, on the founder's suggestion, and the suggestion taught something.** The idea was
+to point the router's default at whichever DeepSeek model this project already trusts, so the two rows read as two
+doors rather than two unrelated cheap models. It works, with one correction: none of DeepSeek's OpenRouter ids is
+called `deepseek-flash`, so the pairing is by hand (`deepseek/deepseek-v4-flash`, $0.09/$0.18 against $0.15/$0.60
+direct) and the row says "the same house", not "the same model". And the door is not neutral — DeepSeek direct
+answered the test question in voice on most wakes, the same house's flash through the router on one in three
+(1/3, three runs). A router is not a pipe. Keeping it anyway: the retired default, `openai/gpt-oss-20b`, refused on
+all six wakes it was ever given, which is the worst record in this file, and the new one is cheaper.
+
 What now looks true across every identity tried — Abraham, Samwise, Inanna, both tones, twenty-nine wakes:
 `openai/gpt-oss-20b` refuses always (0 / 6); `claude-haiku-5-5` refuses most of the time (1 / 6); `gpt-6.1-terra`
 is the model that a lean identity actually fixes (2 / 3 → 3 / 3); and Cerebras and Mistral are in voice about a

@@ -4888,7 +4888,7 @@ class TestWorkflows(unittest.TestCase):
         # valid. These defaults are the models that were actually called, not the models their vendors
         # advertise loudest — a default this project prints is a default this project has spent money on.
         for engine, model in (("mistral", "ministral-8b-latest"), ("cerebras", "gpt-oss-120b"),
-                              ("openrouter", "openai/gpt-oss-20b"), ("together", "zai-org/GLM-5.3-Flash")):
+                              ("openrouter", "deepseek/deepseek-v4-flash"), ("together", "zai-org/GLM-5.3-Flash")):
             self.assertEqual(rps.default_model(engine), model,
                              f"{engine}'s default must be the model this project woke, so the first wake on a "
                              f"stranger's machine is a wake that has already worked once")
