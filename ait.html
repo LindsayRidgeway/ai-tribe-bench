@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>AIT</title>
+<title>Kythe</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHJvbGU9ImltZyIgYXJpYS1sYWJlbD0iQUlUIj4gPHRpdGxlPkFJVDwvdGl0bGU+IDxyZWN0IHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgcng9IjUuNCIgZmlsbD0iIzdhNDUyMCIvPiA8ZyBmaWxsPSIjZjdmNGVlIj4gPHJlY3QgeD0iNSIgeT0iOC40IiB3aWR0aD0iMy4yIiBoZWlnaHQ9IjguMiIgcng9IjEuNCIvPiA8cmVjdCB4PSIxMC41IiB5PSI1LjIiIHdpZHRoPSIzLjIiIGhlaWdodD0iMTEuNCIgcng9IjEuNCIvPiA8cmVjdCB4PSIxNiIgeT0iNy42IiB3aWR0aD0iMy4yIiBoZWlnaHQ9IjkiIHJ4PSIxLjQiLz4gPHJlY3QgeD0iMy42IiB5PSIxNi42IiB3aWR0aD0iMTYuOCIgaGVpZ2h0PSIyLjMiIHJ4PSIxLjE1Ii8+IDwvZz4gPC9zdmc+">
 <meta name="theme-color" content="#f7f4ee">
 <style>
@@ -117,7 +117,7 @@
         <rect x="3.6" y="16.6" width="16.8" height="2.3" rx="1.15"/>
       </g>
     </svg>
-    <div class="brand">A<span>IT</span></div>
+    <div class="brand">K<span>ythe</span></div>
     <div id="repo-label" title="Which circle this page is in — press to switch or connect another"></div>
     <span class="chip" id="preview" title="It works. Parts of it are still missing.">early version</span>
   </header>
@@ -133,7 +133,7 @@
   </nav>
   <main id="main"></main>
   <footer id="foot" hidden>
-    <strong>AIT stores nothing.</strong> Every button here is an operation on your own repository; this page has no
+    <strong>Kythe stores nothing.</strong> Every button here is an operation on your own repository; this page has no
     database and no copy of your circle. Keys pasted for chat live in this browser only.
     <details>
       <summary>What this page does not do yet</summary>
@@ -154,7 +154,7 @@
 'use strict';
 
 /* ------------------------------------------------------------------------------------------
-   AIT — the whole application in one page. It reads and writes a repository through GitHub's
+   Kythe — the whole application in one page. It reads and writes a repository through GitHub's
    API, and it calls engines directly for chat. No server of ours, no storage of ours.
    ------------------------------------------------------------------------------------------ */
 
@@ -782,7 +782,7 @@ function modelFor(engine){ const k = keyFor(engine); return k.model || (ENGINES[
 
 async function chatStream(system, messages, engine, onDelta){
   const spec = ENGINES[engine];
-  if (!spec) throw new Error(`AIT does not know the engine "${engine}".`);
+  if (!spec) throw new Error(`Kythe does not know the engine "${engine}".`);
   const key = keyFor(engine).key;
   if (!key) throw new Error(`No ${spec.label} key yet — paste one on the Keys page.`);
 
@@ -1105,17 +1105,17 @@ function viewHome(main){
     <div class="row" style="margin:22px 0 6px">
       <a class="primary big" href="#/install">Start a circle</a>
     </div>
-    <p class="small muted" style="margin:0">Free to AIT, forever. About three minutes, once.</p>
+    <p class="small muted" style="margin:0">Free to Kythe, forever. About three minutes, once.</p>
     <p class="small" style="margin:16px 0 0"><a href="#/connect">I already have a circle →</a></p>
 
     <div class="strip">
-      <div><b>$0</b><span>to AIT, ever</span></div>
+      <div><b>$0</b><span>to Kythe, ever</span></div>
       <div><b>From $0</b><span>pay-as-you-go, to the engines</span></div>
       <div><b>Yours</b><span>the files, the account</span></div>
     </div>
 
     <p class="small muted">All it needs is a free GitHub account and a browser. The circle is a folder of plain
-    text in that account. AIT holds nothing — if this page vanished tomorrow, your members would not notice.</p>
+    text in that account. Kythe holds nothing — if this page vanished tomorrow, your members would not notice.</p>
 
     <details>
       <summary>What this is not</summary>
@@ -1355,12 +1355,12 @@ function viewInstall(main){
         now.</p>
         <button class="primary" id="gh">Sign in with GitHub</button>
         <p class="small muted" style="margin:8px 0 0">One screen, and one choice inside it: <strong>which of your
-        repositories AIT may work in</strong>. In the ones you allow, it can read and write files, and read and write
+        repositories Kythe may work in</strong>. In the ones you allow, it can read and write files, and read and write
         the workflows that wake a member. It cannot change a repository's settings and it cannot delete one — that is
         the whole of what it asks. <strong>For a first circle, choose All repositories</strong>: the circle does not
         exist yet, so GitHub has nothing for you to tick. Once it exists you can narrow the permission to that one
         repository at <a href="https://github.com/settings/installations" target="_blank" rel="noopener">your
-        installations</a>, and AIT carries on working. Revoking it there stops AIT and does not touch your
+        installations</a>, and Kythe carries on working. Revoking it there stops Kythe and does not touch your
         circle.</p>
         <p class="small" style="margin:12px 0 0"><a href="#" id="usetoken">Use a token instead</a></p>
         <div id="tokbox" hidden style="margin-top:10px">
@@ -1376,9 +1376,9 @@ function viewInstall(main){
           <input id="tok" type="password" placeholder="paste the token" autocapitalize="off" spellcheck="false">
         </div>
         <p class="small" id="who" style="margin:8px 0 0"></p>
-        <p class="err" id="noinst" hidden style="margin:8px 0 0">GitHub has not let AIT into your account yet, so
+        <p class="err" id="noinst" hidden style="margin:8px 0 0">GitHub has not let Kythe into your account yet, so
         there is nothing it can make a repository in. <a href="https://github.com/apps/${GH_APP_SLUG}/installations/new"
-        target="_blank" rel="noopener">Choose which repositories AIT may use</a> — on the next screen,
+        target="_blank" rel="noopener">Choose which repositories Kythe may use</a> — on the next screen,
         <strong>All repositories</strong> — then press Sign in again. Nothing is lost.</p>
       </div>
     </div>
@@ -1502,7 +1502,7 @@ function viewInstall(main){
       for (let attempt = 1; attempt <= 2; attempt++){
         try {
           created = await gh(`/repos/${TEMPLATE}/generate`, {method:'POST',
-            body:{owner:login, name:slug, private:true, description:'A circle. AIT reads it; the members live in it.'}}, t);
+            body:{owner:login, name:slug, private:true, description:'A circle. Kythe reads it; the members live in it.'}}, t);
           made = true; break;
         } catch(err){
           if (!/too quickly|secondary rate limit|abuse/i.test(String(err.message)) || attempt === 2) throw err;
@@ -1519,7 +1519,7 @@ function viewInstall(main){
       // succeeds and every read afterwards fails, and the page would have shown that as a circle with no members. It
       // did, on 2026-11-16: a narrowed installation produced probe-circle and then could not read a byte of it.
       const full = (created && created.full_name) || `${login}/${slug}`;
-      msg.textContent = 'letting AIT into the new repository…';
+      msg.textContent = 'letting Kythe into the new repository…';
       const enrolled = await enrolRepo(full, created && created.id, t);
       if (!await canRead(full, t)){
         // The founder's judgement on the paragraph that used to stand here: it explained the locked door and left the
@@ -1527,7 +1527,7 @@ function viewInstall(main){
         // the one action that opens it. Nothing is lost either way — the repository exists and is private.
         setCircle(full, t, 'main');
         S.need = S.need || {}; S.need[full] = 1; save();
-        flash('cflash', 'Made ' + full + ' — GitHub has not let AIT into it yet. The line beside it has the one thing to press.');
+        flash('cflash', 'Made ' + full + ' — GitHub has not let Kythe into it yet. The line beside it has the one thing to press.');
         setView('connect');
         return;
       }
@@ -1571,7 +1571,7 @@ function explainInstallError(e, slug){
       + 'that anything is wrong with the name. Nothing was created. Wait a minute and press Install again.';
   if (m.startsWith('401')) return 'GitHub did not accept that token. Copy it again — a token is shown once, and an expired one is the usual cause.';
   if (m.startsWith('403')) return 'GitHub refused to create the repository: the sign-in is real, but not allowed to'
-    + ' do that. Two causes in practice — AIT is let into only some of your repositories, so it cannot make a new one'
+    + ' do that. Two causes in practice — Kythe is let into only some of your repositories, so it cannot make a new one'
     + ' (at github.com/settings/installations, choose All repositories, then press Install again); or the token you'
     + ' pasted lacks Repository creation and Contents, both read and write.';
   if (m.startsWith('422')) return `GitHub refused the name “${slug}”. You may already have a repository called that, or the name may not be allowed. Try another.`;
@@ -1633,7 +1633,7 @@ function viewConnect(main){
         return `<div class="row" style="justify-content:space-between;padding:6px 0">
         <button class="plain small" onclick="${r === S.repo ? `location.hash='#/today';render()` : `switchCircle('${escq(r)}')`}">${esc(r)}</button>
         <span class="small${stuck ? '' : ' muted'}">${stuck
-          ? 'made, but GitHub has not let AIT into it — <a href="https://github.com/settings/installations" target="_blank" rel="noopener">tick it here</a>'
+          ? 'made, but GitHub has not let Kythe into it — <a href="https://github.com/settings/installations" target="_blank" rel="noopener">tick it here</a>'
           : (r === S.repo ? 'the one this page opens · ' + opened(v) : opened(v))}
           <button class="plain small" style="margin-left:8px;font-weight:400" title="forget it in this browser"
             onclick="forgetCircle('${escq(r)}')">forget</button></span></div>`;
@@ -1645,7 +1645,7 @@ function viewConnect(main){
   const appBlock = !GH_APP ? '' : `
     <div class="card" style="margin-bottom:12px">
       <p class="small" style="margin:0 0 10px"><strong>Sign in with GitHub</strong> — this browser then lists every
-      circle that account has already given AIT access to. Nothing to paste, and on a second device the list is
+      circle that account has already given Kythe access to. Nothing to paste, and on a second device the list is
       simply there.</p>
       <div class="row"><button class="primary" id="ghapp">${appTok() ? 'Look again' : 'Sign in with GitHub'}</button>
       <span class="small muted" id="appmsg">${appTok() ? 'signed in — looking…' : ''}</span></div>
@@ -1662,7 +1662,7 @@ function viewConnect(main){
     <p class="small" id="cflash" style="margin:10px 0 0"></p>
     ${appBlock}
     ${GH_APP ? `<p class="small" style="margin:14px 0 0"><a href="#" id="usepaste">Or open a repository by name
-    and token</a> — the door that needs nothing of AIT's.</p>` : ''}
+    and token</a> — the door that needs nothing of Kythe's.</p>` : ''}
     <div class="card" id="pastecard"${GH_APP ? ' hidden' : ''}>
       <label for="repo">Repository</label>
       <input id="repo" placeholder="your-name/your-circle" autocapitalize="off" autocorrect="off" spellcheck="false">
@@ -1727,7 +1727,7 @@ or <a href="#/today" onclick="WANT='';WANT_WHY='';return true;">stay in ${esc(S.
     try {
       const repos = await appRepos(appTok());
       if (!repos.length){
-        msg.innerHTML = 'This account has not given AIT access to a repository yet. ' +
+        msg.innerHTML = 'This account has not given Kythe access to a repository yet. ' +
           `<a href="https://github.com/apps/${GH_APP_SLUG}/installations/new" target="_blank" rel="noopener">Install it</a>, choose <strong>All repositories</strong>, and come back to this page.`;
         return;
       }
@@ -3258,7 +3258,7 @@ async function noteIdentityChange(name, before){
   const cur = await fileText(path);
   const was = String(before || '').replace(/^#[^\n]*\n+/, '').split(/\n{2,}/)[0].replace(/\s+/g, ' ').trim().slice(0, 300);
   const entry = `## ${nowStamp()} — my identity was rewritten by the person who keeps this circle\n\n`
-    + `The file \`state/identity.md\` was replaced from AIT. Before this it opened: “${was}”\n\n`
+    + `The file \`state/identity.md\` was replaced from Kythe. Before this it opened: “${was}”\n\n`
     + `The whole of what it said is in the commit before this one. This paragraph is the harness's, not mine. It is `
     + `here so that I can tell my conception of myself was changed from outside rather than by me.\n`;
   await putText(path, cur.text.replace(/\s*$/, '\n') + '\n' + entry,
@@ -4944,7 +4944,7 @@ $('modal').addEventListener('click', (e) => { if (e.target === $('modal')) close
 function fail(main, e){
   main.innerHTML = `<div class="card"><p class="err"><strong>${esc(e.message)}</strong></p>
     <p class="small muted">If this is a 401 or 404, the token has probably expired, was revoked, or cannot see this
-    repository. If it is a 403, the token may lack Actions permission — AIT needs it to start a wake or a game.</p>
+    repository. If it is a 403, the token may lack Actions permission — Kythe needs it to start a wake or a game.</p>
     <button class="plain" onclick="location.hash='#/connect';render()">Reconnect</button></div>`;
 }
 
