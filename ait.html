@@ -218,6 +218,25 @@ function rememberRepo(repo, token){
   save();
 }
 
+// Deleting the repository at GitHub does not touch this list, because the page has no database and this list is
+// nothing but localStorage. Found 2026-11-18 by the founder, who deleted every probe repository from GitHub and
+// still saw six rows here, and read it as a bug in the delete. It is not: it is the page remembering places it
+// has been. But a list that can only grow stops meaning "the ones I use", so each row can now be forgotten —
+// which drops the stored credential for that repository and nothing else. Nothing at GitHub is touched, and the
+// sentence says so, because "forget" in a page with no server must not sound like "delete".
+function forgetTribe(repo){
+  if (!repo || !(repo in (S.tribes || {}))) return;
+  const open = repo === S.repo;
+  if (!confirm('Forget ' + repo + ' in this browser?' + (open ? '\n\nIt is the one this page has open, so you will '
+      + 'be taken back to the connect page.' : '') + '\n\nNothing at GitHub is deleted. If that repository still '
+      + 'exists, connecting to it again works exactly as before.')) return;
+  delete S.tribes[repo];
+  if (open){ S.repo = ''; S.token = ''; S.members = []; S.member = null; }
+  save();
+  if (open) location.hash = '#/connect';
+  render();
+}
+
 const cleanRepo = (v) => String(v || '').trim()
   .replace(/^https?:\/\/github\.com\//i, '').replace(/\.git$/i, '').replace(/\/+$/, '');
 
@@ -911,11 +930,11 @@ function systemPrompt(m, thread){
   const said = thread !== undefined ? String(thread || '') : threadFor(S.chat[m.name] || [], room, m.name).slice(-room);
   const jo = notes;
   const today = new Date().toLocaleDateString('en-US', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
-  return `You are ${m.name}, a member of a small tribe that lives in a git repository.
+  return `You are ${m.name}.
 
-Today is ${today}. You are talking through build ${BUILD.startsWith('__') ? '(unbuilt copy)' : BUILD} of the page.
+Today is ${today}.
 
-Your identity, as you last wrote it:
+Who you are:
 ${id}
 
 Your state, as the harness last wrote it:
@@ -933,7 +952,11 @@ ${said ? 'Your short-term memory — what has been said in this conversation. Th
 You are in a live conversation with the person who keeps this tribe. Speak as yourself, in the first
 person, in plain words. This is a conversation, not a form: answer what was asked, in the length the
 question deserves, and if you are curious about something, ask. If a thing in your record says
-something you cannot check, say so rather than agreeing with it, and do not invent the present.
+something you cannot check, put the doubt on the fact and not on yourself: "I think it was early October", said
+where the fact is, in the middle of what you are telling, the way anyone does. Do not add a line at the end
+about what kind of thing your words are — this is a conversation, not a report, and a note afterwards saying
+that you were speaking from memory answers nothing that was asked. And you do not invent a memory you were
+not given.
 
 You can look things up on the open web, and you can open your own record. Three lines do it:
 
@@ -1465,7 +1488,9 @@ function viewConnect(main){
       with the credential this browser already used for it.</p>
       ${mine.map(([r, v]) => `<div class="row" style="justify-content:space-between;padding:6px 0">
         <button class="plain small" onclick="${r === S.repo ? `location.hash='#/today';render()` : `switchTribe('${escq(r)}')`}">${esc(r)}</button>
-        <span class="small muted">${r === S.repo ? 'the one this page opens · ' + opened(v) : opened(v)}</span></div>`).join('')}
+        <span class="small muted">${r === S.repo ? 'the one this page opens · ' + opened(v) : opened(v)}
+          <button class="plain small" style="margin-left:8px;font-weight:400" title="forget it in this browser"
+            onclick="forgetTribe('${escq(r)}')">forget</button></span></div>`).join('')}
     </div>` : '';
   main.innerHTML = `
     <p class="small"><a href="#/">← back</a></p>
@@ -4726,16 +4751,50 @@ window.addEventListener('hashchange', () => render());
     } catch(_){}
     q.delete('state');
     try { history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString() : '')); } catch(_){}
-    try {
-      const r = await fetch(FN('auth'), {method:'POST', headers:{'content-type':'application/json'},
-                                         body: JSON.stringify({code})});
-      const d = await r.json();
-      if (!d.access_token) throw new Error(d.error || 'GitHub sent no token');
-      OAUTH = d.access_token;
-      location.hash = '#/' + want;
-    } catch(e){
-      location.hash = '#/install';
-      setTimeout(() => alert('GitHub sign-in did not complete: ' + e.message), 300);
+    // One code, one exchange. A code is single-use and dies in ten minutes, so a second document loading this same
+    // URL — Chrome restoring tabs does it, and the founder's own screenshot has the "restore your tabs" banner in
+    // it — posts the same code twice and the loser is told `bad_verification_code`. That is the popup he reported on
+    // 2026-11-18: press OK, press "Connect to GitHub" again, and it works, because the second code is fresh.
+    //
+    // Two rules fix it without a popup. The code is claimed in sessionStorage before it is sent, so a second load of
+    // the same URL does nothing at all. And if the claim was ours and GitHub still refuses, the page goes back to
+    // GitHub by itself, once, instead of showing a dialog a person has to dismiss — the round trip is silent when
+    // you are already signed in, and a second failure falls through to the connect page with a sentence.
+    let claimed = '';
+    try { claimed = sessionStorage.getItem('ait.code') || ''; } catch(_){}
+    const claim = (v) => { try { sessionStorage.setItem('ait.code', v); } catch(_){} };
+    if (claimed === code){
+      // another load of this document is exchanging it, or already has; say nothing and let it finish
+    } else {
+      claim(code);
+      try {
+        const r = await fetch(FN('auth'), {method:'POST', headers:{'content-type':'application/json'},
+                                           body: JSON.stringify({code})});
+        const d = await r.json();
+        if (!d.access_token) throw new Error(d.error || 'GitHub sent no token');
+        OAUTH = d.access_token;
+        try { sessionStorage.removeItem('ait.code'); } catch(_){}
+        try { sessionStorage.removeItem('ait.retried'); } catch(_){}
+        location.hash = '#/' + want;
+      } catch(e){
+        let tried = '';
+        try { tried = sessionStorage.getItem('ait.retried') || ''; } catch(_){}
+        if (/bad_verification_code|already been used|expired/i.test(String(e.message)) && !tried){
+          try { sessionStorage.setItem('ait.retried', '1'); } catch(_){}
+          signIn(want);            // a fresh code, without the dialog
+          return;
+        }
+        location.hash = '#/install';
+        setTimeout(() => {
+          const box = document.querySelector('.notice') || document.body;
+          const line = document.createElement('p');
+          line.className = 'small';
+          line.style.color = '#a3302e';
+          line.textContent = 'GitHub sign-in did not complete: ' + e.message
+            + ' — press "Sign in with GitHub" once more; a code can only be used once.';
+          box.prepend(line);
+        }, 300);
+      }
     }
   }
 
