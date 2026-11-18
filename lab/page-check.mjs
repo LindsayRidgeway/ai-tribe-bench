@@ -1834,7 +1834,7 @@ async function main(){
     if (edited.tribe.indexOf('mine') < 0) return 'the edited file was overwritten';
     if (!edited.done.includes('wake/wake.py')) return 'the update stopped at the first differing file';
     if (!/left alone/i.test(edited.said)) return 'the report does not say it was left alone: ' + edited.said;
-    if (!/differ from the version this tribe records/i.test(edited.said))
+    if (!/differ from the version this circle records/i.test(edited.said))
       return 'the report claims to know whether it was edited: ' + edited.said;
     if (!/lab\/update_tribe\.py/.test(edited.plan))
       return 'the plan does not say which tool replaces a file it will not decide about: ' + edited.plan;

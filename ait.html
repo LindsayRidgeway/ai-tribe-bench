@@ -118,7 +118,7 @@
       </g>
     </svg>
     <div class="brand">A<span>IT</span></div>
-    <div id="repo-label" title="Which tribe this page is in — press to switch or connect another"></div>
+    <div id="repo-label" title="Which circle this page is in — press to switch or connect another"></div>
     <span class="chip warn" id="preview">unfinished</span>
   </header>
   <div id="visnote" class="notice" hidden></div>
@@ -134,15 +134,15 @@
   <main id="main"></main>
   <footer id="foot" hidden>
     <strong>AIT stores nothing.</strong> Every button here is an operation on your own repository; this page has no
-    database and no copy of your tribe. Keys pasted for chat live in this browser only.
+    database and no copy of your circle. Keys pasted for chat live in this browser only.
     <details>
       <summary>What this page does not do yet</summary>
       <p class="small muted">Pictures happen on a member's page, not inside a conversation — the chat is text in,
       text out. There is one game on the page and a report at the end, not a table you can watch while it
-      happens. And a member's key reaches this page for chat but not yet the clock, so a new tribe talks before
+      happens. And a member's key reaches this page for chat but not yet the clock, so a new circle talks before
       it wakes.</p>
     </details>
-    <p class="small muted">A second tribe is a second repository: <a href="#/install">install another one</a>,
+    <p class="small muted">A second circle is a second repository: <a href="#/install">install another one</a>,
     or <a href="#/connect">connect to one you already have</a>.</p>
     <p class="small muted" id="build" hidden style="margin:10px 0 0"></p>
   </footer>
@@ -205,16 +205,16 @@ const PAINTERS = {
 const painterNames = () => Object.values(PAINTERS).map(p => p.label).join(', ');
 
 const S = {repo:'', token:'', branch:'main', keys:{}, members:[], chat:{}, member:null, view:'today',
-           owner:'', tribes:{}, isPrivate:null};   // null = this page has not been told; see noteVisibility()
+           owner:'', circles:{}, isPrivate:null};   // null = this page has not been told; see noteVisibility()
 
-// Which tribes this browser has been in, and the credential it used for each. Without this there is exactly one
-// way back to a tribe you have already opened: retype its name and paste a token. Found 2026-11-09, when the
-// founder's own address for his first tribe opened his second one instead.
+// Which circles this browser has been in, and the credential it used for each. Without this there is exactly one
+// way back to a circle you have already opened: retype its name and paste a token. Found 2026-11-09, when the
+// founder's own address for his first circle opened his second one instead.
 function rememberRepo(repo, token){
   if (!repo || !token) return;
-  S.tribes[repo] = {token, when: Date.now()};
-  const keep = Object.entries(S.tribes).sort((a, b) => b[1].when - a[1].when).slice(0, 8);
-  S.tribes = Object.fromEntries(keep);
+  S.circles[repo] = {token, when: Date.now()};
+  const keep = Object.entries(S.circles).sort((a, b) => b[1].when - a[1].when).slice(0, 8);
+  S.circles = Object.fromEntries(keep);
   save();
 }
 
@@ -224,13 +224,13 @@ function rememberRepo(repo, token){
 // has been. But a list that can only grow stops meaning "the ones I use", so each row can now be forgotten —
 // which drops the stored credential for that repository and nothing else. Nothing at GitHub is touched, and the
 // sentence says so, because "forget" in a page with no server must not sound like "delete".
-function forgetTribe(repo){
-  if (!repo || !(repo in (S.tribes || {}))) return;
+function forgetCircle(repo){
+  if (!repo || !(repo in (S.circles || {}))) return;
   const open = repo === S.repo;
   if (!confirm('Forget ' + repo + ' in this browser?' + (open ? '\n\nIt is the one this page has open, so you will '
       + 'be taken back to the connect page.' : '') + '\n\nNothing at GitHub is deleted. If that repository still '
       + 'exists, connecting to it again works exactly as before.')) return;
-  delete S.tribes[repo];
+  delete S.circles[repo];
   if (open){ S.repo = ''; S.token = ''; S.members = []; S.member = null; }
   save();
   if (open) location.hash = '#/connect';
@@ -240,10 +240,10 @@ function forgetTribe(repo){
 const cleanRepo = (v) => String(v || '').trim()
   .replace(/^https?:\/\/github\.com\//i, '').replace(/\.git$/i, '').replace(/\/+$/, '');
 
-// Walking into a different tribe must not carry the last one's talk with it: S.chat is keyed by member name, and
-// two tribes can each have a Laddie. The conversation is in the repository anyway, so nothing is lost by letting
+// Walking into a different circle must not carry the last one's talk with it: S.chat is keyed by member name, and
+// two circles can each have a Laddie. The conversation is in the repository anyway, so nothing is lost by letting
 // this browser forget it.
-function setTribe(repo, token, branch){
+function setCircle(repo, token, branch){
   if (repo !== S.repo){ S.chat = {}; S.chatRoomMatch = {}; roomTurnKeys.cache = null;
     try { localStorage.removeItem('ait.chat'); } catch(_){} }
   S.repo = repo; S.token = token; if (branch) S.branch = branch;
@@ -323,7 +323,7 @@ function nowStamp(){
 
 function save(){
   localStorage.setItem('ait', JSON.stringify({repo:S.repo, token:S.token, keys:S.keys, owner:S.owner || '',
-                                             tribes:S.tribes || {}}));
+                                             circles:S.circles || {}}));
   // An unfiled conversation is kept here too: a person who reloads the page should not lose what a
   // member said, even though only filing it puts it in the record.
   try {
@@ -334,7 +334,10 @@ function save(){
 }
 function load(){ try{ const j = JSON.parse(localStorage.getItem('ait') || '{}');
   S.repo = j.repo || ''; S.token = j.token || ''; S.keys = j.keys || {}; S.owner = j.owner || '';
-  S.tribes = j.tribes || {}; }catch(e){}
+  // `tribes` is what this field was called until 2026-11-18, and a browser that has used this page before has
+  // its tokens under that name. A rename that silently drops somebody's credentials is not a rename, it is a
+  // logout, so the old key is read and the new one written.
+  S.circles = j.circles || j.tribes || {}; }catch(e){}
   try { S.chat = JSON.parse(localStorage.getItem('ait.chat') || '{}'); } catch(e){ S.chat = {}; } }
 
 /* ---- the GitHub door ------------------------------------------------------------------- */
@@ -417,7 +420,7 @@ async function missingKeys(engines){
 async function fileText(path){
   // `S.branch || 'main'`: a state restored from storage written by an older page can have no branch in it, and
   // `?ref=undefined` is a 404 that reads exactly like a missing file. Measured 2026-11-15 — the update check said
-  // "this tribe has no .ait/version.json" about a file that was there, because the branch was missing from the
+  // "this circle has no .ait/version.json" about a file that was there, because the branch was missing from the
   // page's own saved state rather than from the repository.
   const d = await gh(`/repos/${S.repo}/contents/${encodeURI(path)}?ref=${S.branch || 'main'}`);
   if (Array.isArray(d)) throw new Error(path + ' is a folder');
@@ -430,7 +433,7 @@ async function putText(path, text, message, sha){
   return gh(`/repos/${S.repo}/contents/${encodeURI(path)}`, {method:'PUT', body});
 }
 
-// ---- is this tribe running the newest machinery? -----------------------------------------------------------
+// ---- is this circle running the newest machinery? -----------------------------------------------------------
 // UPDATE.md, 2026-11-15. The version is the template's commit sha and not a number: "is 1.4 newer than 1.3?" is a
 // question a fork can answer differently to its upstream, and a version number that answers differently is a
 // version number that lies. The sha is the same everywhere or it is not the same code.
@@ -439,7 +442,7 @@ async function putText(path, text, message, sha){
 // check nobody has watched long enough to trust. The write is step 3 in UPDATE.md and it ships last, because it is
 // the only part that can lose work.
 //
-// `.ait/version.json` is tribe data: the updater may replace code, and must never touch this.
+// `.ait/version.json` is circle data: the updater may replace code, and must never touch this.
 async function templateHead(){
   try { const d = await gh(`/repos/${TEMPLATE}/commits/main`); return (d && d.sha) ? String(d.sha) : null; }
   catch(e){ return null; }        // private template, no token, no network: all the same answer, and not "current"
@@ -452,7 +455,7 @@ async function writeVersion(from){
   const body = JSON.stringify({schema:'ait-version/1', template: TEMPLATE,
     installed_from: from || null, updated_to: null, updated_at: new Date().toISOString()}, null, 1) + '\n';
   const cur = await fileText('.ait/version.json').catch(() => null);
-  return putText('.ait/version.json', body, 'ait: record which template this tribe came from', cur && cur.sha);
+  return putText('.ait/version.json', body, 'ait: record which template this circle came from', cur && cur.sha);
 }
 // What the connect panel is allowed to say. Three answers, and only one of them is silence — a page that cannot
 // check must say that it could not, because "no update available" and "I did not look" are different facts and the
@@ -462,7 +465,7 @@ async function updateCheck(){
   const head = await templateHead();
   const from = v && String(v.updated_to || v.installed_from || '');
   if (!head) return {state:'unknown', why:'the template could not be read just now'};
-  if (!v) return {state:'unknown', why:'this tribe has no .ait/version.json, so it predates the version record',
+  if (!v) return {state:'unknown', why:'this circle has no .ait/version.json, so it predates the version record',
                   sha: head};
   if (from.slice(0, 7) === head.slice(0, 7)) return {state:'current', sha: head};
   return {state:'behind', sha: head, from};
@@ -476,15 +479,15 @@ function updateSentence(u){
 
 // ---- the write: step 3 in UPDATE.md, and the only part of this that can lose work ------------------------
 // What an update may touch is not decided here. The template publishes `.tribe-manifest.json`, generated by
-// `lab/make_template.py` from the same whitelist that builds a new tribe, and the page writes nothing that is not
+// `lab/make_template.py` from the same whitelist that builds a new circle, and the page writes nothing that is not
 // on it. Three lists carrying the same names in two languages is how this project's whitelist has drifted before;
 // a file the template does not name is a file this page does not know exists.
 //
 // Two things make the write safe, and neither is a promise:
 //   • `members.json` is not on the manifest. It is a list derived from the shelf and the template's copy is empty,
-//     so writing it would delete an owner's members — the single way an "update" could destroy a tribe.
-//   • a file is replaced only if the tribe's copy is still the one the template gave it. The version record names
-//     the commit the tribe came from; that commit's tree says what each file was. Same sha as then means nobody has
+//     so writing it would delete an owner's members — the single way an "update" could destroy a circle.
+//   • a file is replaced only if the circle's copy is still the one the template gave it. The version record names
+//     the commit the circle came from; that commit's tree says what each file was. Same sha as then means nobody has
 //     touched it, whatever the file says now. Different means somebody edited it, and an edited file is left alone
 //     and reported. When there is no version record there is no proof, so an update may add files and replace none.
 async function templateText(path, ref){
@@ -512,7 +515,7 @@ async function readManifest(){
 }
 
 // What the update would do, and nothing else. `writes` replace a file this page may prove is untouched, `adds` are
-// files the tribe has never had, `kept` are files somebody edited here and the update will not touch, `waiting` are
+// files the circle has never had, `kept` are files somebody edited here and the update will not touch, `waiting` are
 // files that differ where the page cannot prove anything either way (no version record, or a commit the template no
 // longer has). A plan that says "2 files, 1 kept" before a single byte is written is the whole of the safety story.
 async function updatePlan(){
@@ -524,8 +527,8 @@ async function updatePlan(){
   const theirs = await treeOf(TEMPLATE, head);
   const ours = await treeOf(S.repo, S.branch || 'main');
   const base = from ? await treeOf(TEMPLATE, from).catch(() => null) : null;
-  // Is the record credible? A tribe installed before the record existed has none; a tribe whose record names a
-  // commit it never came from has a wrong one; and a tribe updated from a terminal before the updater stamped what
+  // Is the record credible? A circle installed before the record existed has none; a circle whose record names a
+  // commit it never came from has a wrong one; and a circle updated from a terminal before the updater stamped what
   // it had done has one that has since gone stale. All three look the same from here — most of the machinery does
   // not match what the record says it was. When that is so, the page stops replacing and says which tool is not
   // fooled by a record, because reporting a dozen untouched files as "things you changed" is a lie a person will
@@ -541,7 +544,7 @@ async function updatePlan(){
     if (mine === up) continue;                       // same content, whatever the two commits are
     if (!mine){ adds.push({path, sha: null}); continue; }
     if (credible && base.get(path) === mine) writes.push({path, sha: mine});
-    // Differs from the version this tribe records. That is either an edit made here or a copy older than the record,
+    // Differs from the version this circle records. That is either an edit made here or a copy older than the record,
     // and the page cannot tell them apart — so it says both and overwrites neither. A wrong guess here is a guess
     // about somebody's own files.
     else if (credible && base.get(path)) kept.push(path);
@@ -557,16 +560,16 @@ function planSentence(p){
   if (!touch && !p.kept.length && !p.waiting.length) return '';
   const bits = [];
   if (touch) bits.push(`${touch} file${touch === 1 ? '' : 's'} will be replaced`);
-  if (p.adds.length) bits.push(`${p.adds.length} of them new to this tribe`);
-  if (p.kept.length) bits.push(`${p.kept.length} left alone: ${p.kept.length === 1 ? 'it differs' : 'they differ'} from the version this tribe records (${p.kept.slice(0,3).join(', ')}${p.kept.length > 3 ? '…' : ''}) — an edit here, or a copy older than the record, and the page cannot tell which, so it replaces neither; \`python3 lab/update_tribe.py --write\` compares the files themselves`);
-  if (p.waiting.length && p.provable) bits.push(`${p.waiting.length} cannot be checked because the template does not have ${p.waiting.length === 1 ? 'it' : 'them'} at the commit this tribe came from`);
-  else if (p.waiting.length) bits.push(`${p.waiting.length} not replaced: this tribe's record of which template it came from does not match its files (${p.agree} of ${p.shared} unchanged), so nothing is replaced — \`python3 lab/update_tribe.py --write\` compares the files themselves and is not fooled by the record`);
+  if (p.adds.length) bits.push(`${p.adds.length} of them new to this circle`);
+  if (p.kept.length) bits.push(`${p.kept.length} left alone: ${p.kept.length === 1 ? 'it differs' : 'they differ'} from the version this circle records (${p.kept.slice(0,3).join(', ')}${p.kept.length > 3 ? '…' : ''}) — an edit here, or a copy older than the record, and the page cannot tell which, so it replaces neither; \`python3 lab/update_tribe.py --write\` compares the files themselves`);
+  if (p.waiting.length && p.provable) bits.push(`${p.waiting.length} cannot be checked because the template does not have ${p.waiting.length === 1 ? 'it' : 'them'} at the commit this circle came from`);
+  else if (p.waiting.length) bits.push(`${p.waiting.length} not replaced: this circle's record of which template it came from does not match its files (${p.agree} of ${p.shared} unchanged), so nothing is replaced — \`python3 lab/update_tribe.py --write\` compares the files themselves and is not fooled by the record`);
   if (p.missing.length) bits.push(`${p.missing.length} named by the template and absent from it`);
   return bits.join('; ') + '.';
 }
 
 // The write itself. One commit per file because GitHub's contents API has no multi-file commit without a tree dance,
-// and every message names the same template sha so the record of "what this tribe is running" is one grep away.
+// and every message names the same template sha so the record of "what this circle is running" is one grep away.
 // A 409 here means somebody wrote that file between the plan and the write — the page stops and says so, because the
 // alternative is overwriting a change it never saw.
 async function applyUpdate(){
@@ -580,11 +583,11 @@ async function applyUpdate(){
     try { await putText(f.path, text, msg, f.sha); done.push(f.path); }
     catch(e){ if (/\b409\b/.test(String(e.message || ''))) clash.push(f.path); else throw e; }
   }
-  // The stamp is the claim "this tribe runs <sha>", so it is written only when every file landed. Stamping after a
-  // 409 is the quiet version of the failure this whole design exists to avoid: the record would say the tribe is
+  // The stamp is the claim "this circle runs <sha>", so it is written only when every file landed. Stamping after a
+  // 409 is the quiet version of the failure this whole design exists to avoid: the record would say the circle is
   // current, the update would never be offered again, and the file somebody else wrote would stay the old one for
   // good. Found 2026-11-16 by asking what the record says after the clash test rather than by watching it pass — the
-  // test checked that the clashing file was left alone and never asked whether the tribe still knew it was behind.
+  // test checked that the clashing file was left alone and never asked whether the circle still knew it was behind.
   if (!clash.length){
     try { await stampVersion(p.head); } catch(e){ /* the files landed; a record that could not be written is said below */ }
   }
@@ -595,7 +598,7 @@ async function stampVersion(to){
   const prev = cur ? (JSON.parse(cur.text) || {}) : {};
   const body = JSON.stringify({schema: 'ait-version/1', template: TEMPLATE,
     installed_from: prev.installed_from || null, updated_to: to, updated_at: new Date().toISOString()}, null, 1) + '\n';
-  return putText('.ait/version.json', body, `page: record the machinery this tribe now runs (${to.slice(0,7)})`, cur && cur.sha);
+  return putText('.ait/version.json', body, `page: record the machinery this circle now runs (${to.slice(0,7)})`, cur && cur.sha);
 }
 
 // What the press says afterwards. It reports files and never a count alone: "4 updated" is a claim, and "4 updated,
@@ -605,11 +608,11 @@ function updateReport(r){
   const parts = [];
   if (r.done && r.done.length) parts.push(`${r.done.length} file${r.done.length === 1 ? '' : 's'} updated`);
   if (r.clash && r.clash.length) parts.push(`${r.clash.length} changed while the page was reading ${r.clash.length === 1 ? 'it' : 'them'}, so ${r.clash.length === 1 ? 'it was' : 'they were'} left alone (${r.clash.slice(0,3).join(', ')})`);
-  if (r.p && r.p.kept && r.p.kept.length) parts.push(`${r.p.kept.length} left alone (they differ from the version this tribe records)`);
-  if (r.p && r.p.waiting && r.p.waiting.length) parts.push(`${r.p.waiting.length} not replaced because ${r.p.provable ? 'the template no longer has ' : 'this tribe\'s version record does not match '}${r.p.waiting.length === 1 ? 'it' : 'them'}`);
+  if (r.p && r.p.kept && r.p.kept.length) parts.push(`${r.p.kept.length} left alone (they differ from the version this circle records)`);
+  if (r.p && r.p.waiting && r.p.waiting.length) parts.push(`${r.p.waiting.length} not replaced because ${r.p.provable ? 'the template no longer has ' : 'this circle\'s version record does not match '}${r.p.waiting.length === 1 ? 'it' : 'them'}`);
   if (!parts.length) return 'Nothing was changed.';
   const tail = (r.clash && r.clash.length)
-    ? ' Nothing that was already yours was disturbed. This tribe still records the version it was, so the update will '
+    ? ' Nothing that was already yours was disturbed. This circle still records the version it was, so the update will '
       + 'be offered again and will write the file that changed under it.'
     : (r.p && (r.p.kept.length || r.p.waiting.length))
       ? ' Nothing that was already yours was disturbed.' : '';
@@ -639,7 +642,7 @@ async function planUpdate(){
   const el = $('updmsg'); if (el) el.textContent = 'reading the template…';
   try {
     UPD_PLAN = await updatePlan();
-    flash('updmsg', planSentence(UPD_PLAN) || 'Nothing to change: this tribe already has every file the template ships.');
+    flash('updmsg', planSentence(UPD_PLAN) || 'Nothing to change: this circle already has every file the template ships.');
   } catch(e){ UPD_PLAN = null; flash('updmsg', 'No update was attempted: ' + e.message + '.'); }
   render();
 }
@@ -679,27 +682,27 @@ function b64e(s){
 async function dispatch(workflow, inputs){
   // A dispatch answers with nothing at all, so the only way to tell "accepted" from "refused" is the status.
   // 422 here has one cause worth naming: the workflow in *this* repository does not declare one of these fields,
-  // because the page is newer than the tribe it is talking to. GitHub's own words are `Unexpected inputs
+  // because the page is newer than the circle it is talking to. GitHub's own words are `Unexpected inputs
   // provided: ["person", "shot"]`, which describes our form back to us and tells a person nothing they can act
   // on — so it is translated here, once, for every button that dispatches. Measured 2026-11-13 on the founder's
-  // tribe: the site carried the person's seat and his repository's `season.yml` predated it.
+  // circle: the site carried the person's seat and his repository's `season.yml` predated it.
   try {
     await gh(`/repos/${S.repo}/actions/workflows/${workflow}/dispatches`,
              {method:'POST', body:{ref:S.branch, inputs}});
   } catch(e){
     const fields = (String(e.message).match(/\[([^\]]*)\]/) || [])[1] || '';
     if (/^404\b/.test(String(e.message))){
-      // A missing workflow is the strongest form of the 422 above, and it is the form *every* installed tribe
+      // A missing workflow is the strongest form of the 422 above, and it is the form *every* installed circle
       // is in until it is updated: the page ships features whose workflow the repository has never had. GitHub
       // says `404 · Not Found`, which reads as "the page is broken" when the truth is "the repository is older".
-      // Measured 2026-11-13 by Gwen on tribe-gwen: §8's Ask for a picture returned 404 on all five test tribes.
-      throw new Error(`${workflow} is not in this tribe's repository at all — it was installed before this `
+      // Measured 2026-11-13 by Gwen on circle-gwen: §8's Ask for a picture returned 404 on all five test circles.
+      throw new Error(`${workflow} is not in this circle's repository at all — it was installed before this `
         + `button existed, so the press cannot work. Nothing was sent. Run this in the repository `
         + `(lab/update_tribe.py, then --write) or install again from the page; the manual's "Keeping your `
-        + `tribe current" is the short version.`);
+        + `circle current" is the short version.`);
     }
     if (/^422\b/.test(String(e.message)) && fields){
-      throw new Error(`this tribe's copy of ${workflow} has no field for ${fields} — the repository is older `
+      throw new Error(`this circle's copy of ${workflow} has no field for ${fields} — the repository is older `
         + `than this page, so the press cannot work. Nothing was sent. The machinery in the repository and `
         + `the page have to be brought into step.`);
     }
@@ -949,7 +952,7 @@ ${remembered ? 'Your long-term memory, as you last retold it yourself — this i
 
 ${said ? 'Your short-term memory — what has been said in this conversation. The newest turns are the ones kept; the oldest fall out as the talk goes on, and they are kept whole in your chapters (state/talk/), which you can look into with READ: search <words> when you want to remember something specific. They are quoted in the order they were said, so the last thing here is the most recent thing said:\n' + said + '\n' : ''}
 
-You are in a live conversation with the person who keeps this tribe. Speak as yourself, in the first
+You are in a live conversation with the person who keeps this circle. Speak as yourself, in the first
 person, in plain words. This is a conversation, not a form: answer what was asked, in the length the
 question deserves, and if you are curious about something, ask. If a thing in your record says
 something you cannot check, put the doubt on the fact and not on yourself: "I think it was early October", said
@@ -1056,11 +1059,11 @@ async function renderBody(){
   paintVisibility(connected);
 
   // Install and connect belong to everybody, connected or not: the first is the address you give a stranger,
-  // and a person who already has a tribe may want a second one — or may be looking at a stale bookmark while
+  // and a person who already has a circle may want a second one — or may be looking at a stale bookmark while
   // holding a token. Neither may be reachable only by not being signed in.
   if (view === 'install'){ nav('install'); return viewInstall(main); }
   if (view === 'connect'){ nav('connect'); return viewConnect(main); }
-  if (connected) ensureUpdateNote();     // a page reopened on a tribe checks once, without being asked
+  if (connected) ensureUpdateNote();     // a page reopened on a circle checks once, without being asked
 
   if (!connected){
     nav('');
@@ -1091,17 +1094,17 @@ function viewHome(main){
       anywhere but those files.</p>
       <p class="lede">That is the claim worth arguing with. Continuity without a server. Two members on the same
       engine, given different names and jobs, become different people — and left alone they read each other,
-      propose games, play them, and keep the record. Nobody designs what a tribe of them will do.</p>
+      propose games, play them, and keep the record. Nobody designs what a circle of them will do.</p>
       <p class="lede">And then the part no architecture can supply: you talk to them. Any of them, whenever you
       like. What they say to you they write into their own journals, so the talk becomes memory — and the member
       you meet tomorrow is the one you spoke to today.</p>
     </div>
 
     <div class="row" style="margin:22px 0 6px">
-      <a class="primary big" href="#/install">Start a tribe</a>
+      <a class="primary big" href="#/install">Start a circle</a>
     </div>
     <p class="small muted" style="margin:0">Free to AIT, forever. About three minutes, once.</p>
-    <p class="small" style="margin:16px 0 0"><a href="#/connect">I already have a tribe →</a></p>
+    <p class="small" style="margin:16px 0 0"><a href="#/connect">I already have a circle →</a></p>
 
     <div class="strip">
       <div><b>$0</b><span>to AIT, ever</span></div>
@@ -1109,7 +1112,7 @@ function viewHome(main){
       <div><b>Yours</b><span>the files, the account</span></div>
     </div>
 
-    <p class="small muted">All it needs is a free GitHub account and a browser. The tribe is a folder of plain
+    <p class="small muted">All it needs is a free GitHub account and a browser. The circle is a folder of plain
     text in that account. AIT holds nothing — if this page vanished tomorrow, your members would not notice.</p>
 
     <details>
@@ -1155,7 +1158,7 @@ const GH_CLIENT = 'Ov23liKyiakrCEg8jTn9';
 const FN = (name) => '/.netlify/functions/' + name;
 
 let OAUTH = '';          // a token obtained by signing in, not yet used for an install
-let WANT = '', WANT_WHY = '';   // a tribe named in a link that this browser could not open, and why
+let WANT = '', WANT_WHY = '';   // a circle named in a link that this browser could not open, and why
 
 // The name a person typed on the install page before they signed in. Kept in sessionStorage, which lives as long
 // as the tab: an install is one sitting, and a name typed on Tuesday has no business appearing in Friday's form.
@@ -1173,7 +1176,7 @@ function signIn(where){
   try {
     sessionStorage.setItem('ait.state', u.searchParams.get('state'));
     // The name typed before signing in costs a person a keystroke, and the round trip through GitHub is a full page
-    // load that would otherwise throw it away — the field came back as "my-tribe" under a page that had just been
+    // load that would otherwise throw it away — the field came back as "my-circle" under a page that had just been
     // told otherwise. Found by the founder on the live page, 2026-11-11: "it's ignored, and you have to type it on
     // the next page." Saved here and read by keptName(); nothing else about it is remembered anywhere.
     if (where === 'install'){ const n = $('tname'); if (n) sessionStorage.setItem('ait.name', n.value); }
@@ -1257,7 +1260,7 @@ async function searchWeb(q){
 function viewInstall(main){
   main.innerHTML = `
     <p class="small"><a href="#/">← back</a></p>
-    <h1>Start a tribe</h1>
+    <h1>Start a circle</h1>
     <p class="lede">One permission screen, one name, one button. Nothing here asks you for anything the page can
     find out for itself.</p>
 
@@ -1265,16 +1268,16 @@ function viewInstall(main){
       <div class="n">1</div>
       <div class="b">
         <h3>Your GitHub account</h3>
-        <p class="small muted" style="margin:0 0 10px">The tribe lives under your name, in your account, so that it
+        <p class="small muted" style="margin:0 0 10px">The circle lives under your name, in your account, so that it
         is yours and not mine.</p>
         <button class="primary" id="gh">Sign in with GitHub</button>
         <p class="small muted" style="margin:8px 0 0">One permission screen, and it is the widest thing this
         project asks of you, so it is worth saying exactly: signing in hands this page a token that can read and
         write <em>every</em> repository you can write to, settings included. It is that wide because GitHub has no
         narrower permission that allows a new repository to be created — and AIT asks GitHub about nothing but the
-        tribe you name below. <strong>If you would rather hand over less, use a token instead:</strong> three
+        circle you name below. <strong>If you would rather hand over less, use a token instead:</strong> three
         permissions, no settings, no deletion. Either one can be revoked from your GitHub settings at any time; if
-        you do, AIT stops and your tribe does not.</p>
+        you do, AIT stops and your circle does not.</p>
         <p class="small" style="margin:12px 0 0"><a href="#" id="usetoken">Use a token instead</a></p>
         <div id="tokbox" hidden style="margin-top:10px">
           <p class="small muted" style="margin:0 0 8px">A <strong>token</strong> is a password for this page, made
@@ -1283,7 +1286,7 @@ function viewInstall(main){
           token</a> — with <em>Repository access: All repositories</em> and three permissions, each
           <em>Read and write</em>: <strong>Repository creation</strong>, <strong>Contents</strong>,
           <strong>Actions</strong>. Creation is why it cannot start out narrowed to one repository; it still cannot
-          change a repository's settings or delete one, which is the difference from signing in. Once your tribe
+          change a repository's settings or delete one, which is the difference from signing in. Once your circle
           exists you can replace it with a token that reaches only that repository.</p>
           <input id="tok" type="password" placeholder="paste the token" autocapitalize="off" spellcheck="false">
         </div>
@@ -1295,8 +1298,8 @@ function viewInstall(main){
       <div class="n">2</div>
       <div class="b">
         <h3>What to call it</h3>
-        <input id="tname" value="${esc(keptName() || 'my-tribe')}" autocapitalize="off" spellcheck="false">
-        <p class="small muted" style="margin:6px 0 0">Your repository will be <code id="tpath">github.com/YOUR-ACCOUNT/my-tribe</code>,
+        <input id="tname" value="${esc(keptName() || 'my-circle')}" autocapitalize="off" spellcheck="false">
+        <p class="small muted" style="margin:6px 0 0">Your repository will be <code id="tpath">github.com/YOUR-ACCOUNT/my-circle</code>,
         and it will be private. You never have to open it. Your link afterwards is this same page, pointed at it.</p>
       </div>
     </div>
@@ -1306,7 +1309,7 @@ function viewInstall(main){
       <div class="b">
         <h3>Install</h3>
         <button class="primary" id="install" disabled>Install</button>
-        <p class="small muted" style="margin:8px 0 0">It copies the tribe's machinery into a new private
+        <p class="small muted" style="margin:8px 0 0">It copies the circle's machinery into a new private
         repository, and then it opens it. About ten seconds.</p>
         <p class="small muted" style="margin:8px 0 0" id="imsg"></p>
         <div id="done" hidden>
@@ -1316,18 +1319,18 @@ function viewInstall(main){
       </div>
     </div>
 
-    <div class="notice"><strong>Your tribe starts empty — no members.</strong> That is deliberate: an engine key
-    belongs to a member, not to a tribe, and a Gemini member and a DeepSeek member need keys from different
+    <div class="notice"><strong>Your circle starts empty — no members.</strong> That is deliberate: an engine key
+    belongs to a member, not to a circle, and a Gemini member and a DeepSeek member need keys from different
     companies. So the first thing after install is <em>Add a member</em>, which asks for a name, an engine, and
     that engine's key — and offers the page where the key comes from. One honest gap: that key is held in this
     browser, for chat. Waking on its own needs the same key as a <strong>repository secret</strong>, which this page
     cannot write for you — add it under Settings → Secrets and variables → Actions, and <strong>Today</strong> will
-    tell you plainly if you have not. So a fresh tribe will talk before it wakes.</div>`;
+    tell you plainly if you have not. So a fresh circle will talk before it wakes.</div>`;
 
   const tok = $('tok'), name = $('tname'), msg = $('imsg'), btn = $('install');
   let login = '';
   const current = () => OAUTH || (tok ? tok.value.trim() : '');
-  const slugOf = v => (v.trim().replace(/[^a-zA-Z0-9._-]/g, '-') || 'my-tribe');
+  const slugOf = v => (v.trim().replace(/[^a-zA-Z0-9._-]/g, '-') || 'my-circle');
 
   if (OAUTH){
     $('gh').hidden = true;
@@ -1343,7 +1346,7 @@ function viewInstall(main){
   function place(){
     const slug = slugOf(name.value);
     $('tpath').textContent = 'github.com/' + (login || 'YOUR-ACCOUNT') + '/' + slug;
-    const url = location.href.split('#')[0].split('?')[0] + '?tribe=' + (login || 'YOUR-ACCOUNT') + '/' + slug;
+    const url = location.href.split('#')[0].split('?')[0] + '?circle=' + (login || 'YOUR-ACCOUNT') + '/' + slug;
     const a = $('tlink'); a.textContent = url; a.href = url;
     btn.disabled = !(login && current());
   }
@@ -1383,7 +1386,7 @@ function viewInstall(main){
       for (let attempt = 1; attempt <= 2; attempt++){
         try {
           await gh(`/repos/${TEMPLATE}/generate`, {method:'POST',
-            body:{owner:login, name:slug, private:true, description:'A tribe. AIT reads it; the members live in it.'}}, t);
+            body:{owner:login, name:slug, private:true, description:'A circle. AIT reads it; the members live in it.'}}, t);
           made = true; break;
         } catch(err){
           if (!/too quickly|secondary rate limit|abuse/i.test(String(err.message)) || attempt === 2) throw err;
@@ -1396,22 +1399,22 @@ function viewInstall(main){
       }
       if (!made) throw new Error('422 · the repository was not created');
       msg.textContent = 'copied the machinery into it…';
-      setTribe(`${login}/${slug}`, t, 'main');
-      // Stamp the template's sha into the new tribe, so "what did this come from" is a fact in the repository
-      // rather than a recollection. Best effort: a tribe without the stamp still works, and saying so beats
+      setCircle(`${login}/${slug}`, t, 'main');
+      // Stamp the template's sha into the new circle, so "what did this come from" is a fact in the repository
+      // rather than a recollection. Best effort: a circle without the stamp still works, and saying so beats
       // failing an install that has already succeeded.
       try { await writeVersion(await templateHead()); } catch(err){ console.warn('no version stamp:', err.message); }
-      // Remember the name GitHub has for them, so the first member made in this tribe is told who it is
+      // Remember the name GitHub has for them, so the first member made in this circle is told who it is
       // talking to without being asked. Blank when the account has no display name — the add-a-member
       // dialog asks then, and does not guess a login.
       if (myName) S.owner = myName;
       save();
-      try { history.replaceState(null, '', location.pathname + '?tribe=' + S.repo); } catch(_){}
+      try { history.replaceState(null, '', location.pathname + '?circle=' + S.repo); } catch(_){}
       const ms = await loadMembers().catch(() => []);
       OAUTH = '';
       // The name has been used; the next install in this tab starts from the default rather than from this one.
       try { sessionStorage.removeItem('ait.name'); } catch(_){}
-      msg.textContent = `Installed. ${ms.length} member${ms.length === 1 ? '' : 's'} — the tribe is empty on purpose.`;
+      msg.textContent = `Installed. ${ms.length} member${ms.length === 1 ? '' : 's'} — the circle is empty on purpose.`;
       $('done').hidden = false;
       place();
       await sleep(1400);
@@ -1429,7 +1432,7 @@ function explainInstallError(e, slug){
   // GitHub throttles repository creation per account, and its word for that is "was submitted too quickly".
   // Until 2026-11-09 this branch did not exist, so a throttle was reported as "GitHub refused the name" —
   // a wrong reason, given confidently, about the one thing a person had just chosen. Measured while making
-  // six repositories in a minute: five tribes and one probe, then a 422 that blamed the name.
+  // six repositories in a minute: five circles and one probe, then a 422 that blamed the name.
   if (/too quickly|secondary rate limit|abuse/i.test(m))
     return 'GitHub is throttling new repositories from this account — it says the request came too quickly, not '
       + 'that anything is wrong with the name. Nothing was created. Wait a minute and press Install again.';
@@ -1441,7 +1444,7 @@ function explainInstallError(e, slug){
 }
 
 // The credential this browser already holds for a repository, if it holds one. Asked for by the founder on
-// 2026-11-11: the page remembered the token for every tribe in the list but demanded one for the tribe it was set
+// 2026-11-11: the page remembered the token for every circle in the list but demanded one for the circle it was set
 // to open, which is the one time there is nothing to look up and nothing to paste. A remembered token is not a
 // convenience, it is the same claim the list makes — this browser has been trusted with this repository — and the
 // Connect form should make it as often as the list does.
@@ -1449,15 +1452,15 @@ function explainInstallError(e, slug){
 // The last term is not a stored session and must not be described as one: OAUTH is a token GitHub handed this tab
 // during sign-in, held in a variable because the exchange needs the app's secret and cannot happen in a page. It
 // dies with the tab, and after an install it is cleared. It is here only for the minute between "signed in" and
-// "the tribe has been made", where there is a token and not yet a stored one. What persists is S.tribes: a token
+// "the circle has been made", where there is a token and not yet a stored one. What persists is S.circles: a token
 // per repository in this browser's localStorage, and nothing anywhere else.
 function knownToken(repo){
   const key = String(repo || '').trim().toLowerCase();
   if (!key) return '';
   if (S.repo && key === String(S.repo).toLowerCase())
-    return S.token || (S.tribes[S.repo] || {}).token || OAUTH || '';
-  const hit = Object.keys(S.tribes || {}).find(k => k.toLowerCase() === key);
-  return hit ? (S.tribes[hit].token || '') : '';
+    return S.token || (S.circles[S.repo] || {}).token || OAUTH || '';
+  const hit = Object.keys(S.circles || {}).find(k => k.toLowerCase() === key);
+  return hit ? (S.circles[hit].token || '') : '';
 }
 
 // One way out of a remembered credential, for the person who wants to paste a new one before GitHub has refused the
@@ -1473,32 +1476,35 @@ function useAnotherToken(){
 }
 
 function viewConnect(main){
-  const want = cleanRepo(new URLSearchParams(location.search).get('tribe')) || WANT;
-  // The tribe this page is set to open is listed too. Leaving it out made the list look like it had lost the one
+  // `?tribe=` was the address of a circle until 2026-11-18 and every link shared before that still carries it.
+  // Renaming a word is not a reason to break somebody's bookmark, so the old name is read and never written.
+  const want = cleanRepo(new URLSearchParams(location.search).get('circle')
+              || new URLSearchParams(location.search).get('tribe')) || WANT;
+  // The circle this page is set to open is listed too. Leaving it out made the list look like it had lost the one
   // repository the page had just filled into the box below it. The label says what it is — there is no server
   // session here, so "this page opens it" is the strongest true thing to say — and it carries the same timestamp
   // as the others rather than a claim about where anybody is standing.
-  const mine = Object.entries(S.tribes || {}).sort((a, b) => b[1].when - a[1].when);
+  const mine = Object.entries(S.circles || {}).sort((a, b) => b[1].when - a[1].when);
   if (S.repo && !mine.some(([r]) => r === S.repo)) mine.unshift([S.repo, {when: 0}]);
   const opened = (v) => v && v.when
     ? 'last opened ' + esc(when(new Date(v.when).toISOString()))
     : 'no record of when it was last opened';
   const list = mine.length ? `<div class="card" style="margin-top:12px">
-      <p class="small" style="margin:0 0 6px"><strong>Tribes this browser has been in</strong> — one press switches,
+      <p class="small" style="margin:0 0 6px"><strong>Circles this browser has been in</strong> — one press switches,
       with the credential this browser already used for it.</p>
       ${mine.map(([r, v]) => `<div class="row" style="justify-content:space-between;padding:6px 0">
-        <button class="plain small" onclick="${r === S.repo ? `location.hash='#/today';render()` : `switchTribe('${escq(r)}')`}">${esc(r)}</button>
+        <button class="plain small" onclick="${r === S.repo ? `location.hash='#/today';render()` : `switchCircle('${escq(r)}')`}">${esc(r)}</button>
         <span class="small muted">${r === S.repo ? 'the one this page opens · ' + opened(v) : opened(v)}
           <button class="plain small" style="margin-left:8px;font-weight:400" title="forget it in this browser"
-            onclick="forgetTribe('${escq(r)}')">forget</button></span></div>`).join('')}
+            onclick="forgetCircle('${escq(r)}')">forget</button></span></div>`).join('')}
     </div>` : '';
   main.innerHTML = `
     <p class="small"><a href="#/">← back</a></p>
-    <h1>Connect a tribe</h1>
+    <h1>Connect a circle</h1>
     <p class="lede">The repository it lives in, and a token that can see it.</p>
     <div class="card">
       <label for="repo">Repository</label>
-      <input id="repo" placeholder="your-name/your-tribe" autocapitalize="off" autocorrect="off" spellcheck="false">
+      <input id="repo" placeholder="your-name/your-circle" autocapitalize="off" autocorrect="off" spellcheck="false">
       <div id="ctokbox">
       <label for="token" id="toklab">A token that can read and write it</label>
       <input id="token" type="password" placeholder="ghp_… or github_pat_…" autocapitalize="off" spellcheck="false">
@@ -1519,12 +1525,12 @@ function viewConnect(main){
     </div>
     ${WANT_WHY && want ? `<p class="small" style="color:#a3302e">This link asks for <code>${esc(want)}</code>, but
 this browser could not open it: ${esc(WANT_WHY)}. A token that can see that repository is needed — paste one above,
-or <a href="#/today" onclick="WANT='';WANT_WHY='';return true;">stay in ${esc(S.repo || 'the tribe you were in')}</a>.</p>` : ''}
+or <a href="#/today" onclick="WANT='';WANT_WHY='';return true;">stay in ${esc(S.repo || 'the circle you were in')}</a>.</p>` : ''}
     ${list}
 
     <div class="notice">
-      <strong>No tribe installed yet?</strong> <a href="#/install">Install one</a> — it makes the repository,
-      puts the tribe in it, and brings you back here. Connecting to a repository someone gave you also works:
+      <strong>No circle installed yet?</strong> <a href="#/install">Install one</a> — it makes the repository,
+      puts the circle in it, and brings you back here. Connecting to a repository someone gave you also works:
       type its name above. If it is private, the token must be allowed to see it.
     </div>`;
 
@@ -1580,14 +1586,14 @@ or <a href="#/today" onclick="WANT='';WANT_WHY='';return true;">stay in ${esc(S.
     $('go').disabled = true; msg.textContent = 'asking GitHub…';
     try {
       const info = await gh(`/repos/${repo}`, {}, token);
-      setTribe(repo, token, info.default_branch || 'main');
+      setCircle(repo, token, info.default_branch || 'main');
       noteVisibility(info);
       WANT = ''; WANT_WHY = '';
       save();
       const ms = await loadMembers();
-      try { history.replaceState(null, '', location.pathname + '?tribe=' + repo + location.hash); } catch(_){}
+      try { history.replaceState(null, '', location.pathname + '?circle=' + repo + location.hash); } catch(_){}
       // The update check is reported after the member count and never instead of it: the person asked to open a
-      // tribe, and an update notice that replaces "3 members" with a logistics line is the page answering a
+      // circle, and an update notice that replaces "3 members" with a logistics line is the page answering a
       // question nobody asked.
       let upd = '';
       try { UPDATE = await updateCheck(); upd = updateSentence(UPDATE); } catch(err){ UPDATE = null; upd = ''; }
@@ -1604,20 +1610,20 @@ or <a href="#/today" onclick="WANT='';WANT_WHY='';return true;">stay in ${esc(S.
       // guessing again.
       if (!typed && /\b(401|403)\b|Bad credentials|not accessible/i.test(String(e.message || ''))) useAnotherToken();
       // Failure used to wipe the session — S.repo = '' and S.token = '' — so mistyping a repository logged you out
-      // of the one you were already in. Nothing was half-connected: setTribe runs only after GitHub answers. So the
-      // failure leaves the tribe you were in exactly where it was.
+      // of the one you were already in. Nothing was half-connected: setCircle runs only after GitHub answers. So the
+      // failure leaves the circle you were in exactly where it was.
     } finally { const g = $('go'); if (g) g.disabled = false; }
   };
 }
 
-async function switchTribe(repo){
+async function switchCircle(repo){
   const t = knownToken(repo) || S.token;
   if (!t){ WANT = repo; WANT_WHY = 'this browser has no token stored for it'; location.hash = '#/connect'; render(); return; }
   try {
     const info = await gh(`/repos/${repo}`, {}, t);
-    setTribe(repo, t, info.default_branch || 'main');
+    setCircle(repo, t, info.default_branch || 'main');
     noteVisibility(info);
-    try { history.replaceState(null, '', location.pathname + '?tribe=' + repo); } catch(_){}
+    try { history.replaceState(null, '', location.pathname + '?circle=' + repo); } catch(_){}
     WANT = ''; WANT_WHY = '';
     location.hash = '#/today'; render();
   } catch(e){
@@ -1626,7 +1632,7 @@ async function switchTribe(repo){
   }
 }
 
-// A public tribe is a public diary. GitHub is asked once per page load (in the boot block, and again on connect and
+// A public circle is a public diary. GitHub is asked once per page load (in the boot block, and again on connect and
 // on a switch) and the answer is kept in S.isPrivate; when it is "public" the page says so on every view, because it
 // is a fact about the record and not about one screen. Three answers, not two — true, false, and "not known": a page
 // that could not ask (no network, a token that cannot see the repository) must not accuse the owner of publishing
@@ -1636,14 +1642,14 @@ function paintVisibility(connected = true){
   if (!vis) return;
   const show = !!(connected && S.isPrivate === false);
   vis.hidden = !show;
-  vis.innerHTML = show ? '<strong>This tribe is public.</strong> Anyone on the internet can read the repository: '
+  vis.innerHTML = show ? '<strong>This circle is public.</strong> Anyone on the internet can read the repository: '
     + 'every member\'s journal, and every word you say to a member. The API keys are not in it — the chat copy is in '
     + 'this browser and the clock\'s copy is a repository secret — but nothing else said here is private. Make it '
     + 'private again under the repository\'s Settings → General.' : '';
 }
 
 async function viewToday(main){
-  // The update line, when there is one, above the members rather than inside them: it is a fact about the tribe's
+  // The update line, when there is one, above the members rather than inside them: it is a fact about the circle's
   // machinery, and a person who came to read what their members said should not have to read past it.
   main.innerHTML = `<h1>Today</h1>`
     + (UPDATE_NOTE ? `<p class="small muted">${esc(UPDATE_NOTE)}</p>` : '')
@@ -1683,7 +1689,7 @@ async function viewToday(main){
           + `sealed with the repository's own key, and sealing is not something a page that anyone can read should `
           + `be doing to your API keys. ` : '')
       + (unreachable.length ? `${named(unreachable)} ${unreachable.length === 1 ? 'is' : 'are'} on an engine this `
-          + `tribe's own clock does not hand a key to, which means the copy in the repository is older than this `
+          + `circle's own clock does not hand a key to, which means the copy in the repository is older than this `
           + `page. ` : '')
       + (weights.length ? `${named(weights)} ${weights.length === 1 ? 'runs' : 'run'} on weights on your own `
           + `machine, and the clock runs on GitHub, which has none. ` : '')
@@ -1709,7 +1715,7 @@ async function viewToday(main){
     ${armed}
     ${updBlock()}
     ${quiet.length ? `<div class="notice">The clock has gone quiet for ${quiet.map(m => esc(m.name)).join(', ')}.
-      A schedule that has stopped looks exactly like a tribe with nothing to say, so it is worth a look — the
+      A schedule that has stopped looks exactly like a circle with nothing to say, so it is worth a look — the
       usual cause is ${gaps && gaps.length ? 'a schedule GitHub has disabled' : 'a missing key, then a disabled schedule'}.</div>` : ''}
     <div class="card">${rows}</div>
     <div class="row" style="margin-top:14px">
@@ -2068,7 +2074,7 @@ async function clockKeyedEngines(){
   } catch(e){ return null; }
 }
 
-/* The quietest failure this product has: a tribe whose clock is not armed wakes nobody, every run stays green —
+/* The quietest failure this product has: a circle whose clock is not armed wakes nobody, every run stays green —
    a member that was skipped leaves every step successful — and the page said nothing until one member had been
    silent for thirty hours, and then guessed at the cause. Both facts needed to replace the guess are already on
    this page: which engines the clock forwards, read out of its own workflow, and which secret names the
@@ -2138,15 +2144,15 @@ async function wakeNow(name){
 // sent; the second is the workflow's card; the third is the rule the wake button and the tennis button
 // already follow — the evidence is a file that was not there before, named.
 // A private repository's picture does not render on the page — the raw URL needs the token — so the picture is a
-// link and the record is the file. That is a fair degradation and it was a silent one: on a private tribe, which is
-// every tribe this product recommends, a person concludes the page cannot show pictures at all. Gwen reached that
+// link and the record is the file. That is a fair degradation and it was a silent one: on a private circle, which is
+// every circle this product recommends, a person concludes the page cannot show pictures at all. Gwen reached that
 // conclusion herself on 2026-11-14 with the network log open, and then decided it was a designed behaviour read as
 // a lie by her rather than a lie. Her correction stands, and what is left is the sentence the design never said.
 // Rendering instead was the other answer — the page already holds the token — and it was refused: it would put a
-// few megabytes of image data into a page whose one promise is that it keeps no copy of your tribe.
+// few megabytes of image data into a page whose one promise is that it keeps no copy of your circle.
 function privatePictureNote(){
   if (S.isPrivate !== true) return '';      // public: the picture renders. Not known: say nothing, never guess.
-  return 'This tribe is private, so the picture opens in the repository rather than appearing here: the page '
+  return 'This circle is private, so the picture opens in the repository rather than appearing here: the page '
     + 'holds your token, and it does not keep a copy of your pictures.';
 }
 
@@ -2361,7 +2367,7 @@ async function retellMemory(name){
     await chatStream(
       `You are ${name}. Below are the raw records of your wakes and your written notes, and — if there is one — ` +
       `your own previous retelling of your life. Write your memory again, in the first person, as a person would ` +
-      `tell it: what matters, what you did, what you learned, who you are to the person who keeps this tribe. ` +
+      `tell it: what matters, what you did, what you learned, who you are to the person who keeps this circle. ` +
       `You may compress, connect and drop detail; you may not invent events that are not in the record. Six ` +
       `hundred words at most. Write only the retelling, nothing before it.`,
       [{role:'user', content: (m.memory ? `YOUR PREVIOUS RETELLING:\n${m.memory}\n\n` : '') + `THE RAW RECORD:\n${raw}`}],
@@ -2384,14 +2390,14 @@ async function retellMemory(name){
 // The one file a person has to be able to write. An identity is written when the member is made, on a runner,
 // from a template — and before this, changing it meant finding the file on GitHub. It is also the file that
 // changes a member most: every prompt begins with it, nothing overrides it, and a person who rewrites it is
-// doing the thing the whole design is for. Two guards, both copied from `tribe.py validate` rather than
+// doing the thing the whole design is for. Two guards, both copied from `circle.py validate` rather than
 // invented here, because a page that accepts what the harness refuses is a page that breaks a member quietly.
 
 let IDENT_OPEN = null;   // what the editor was opened on, so a change made elsewhere is not silently lost
 
-// The two identity rules `tribe.py validate` enforces, in the page, so the page can say when a member would be
+// The two identity rules `circle.py validate` enforces, in the page, so the page can say when a member would be
 // refused by the harness. Not decoration: on 2026-11-09 the founder rewrote his dog's identity in seven lines,
-// the rewrite dropped the line naming him, and every push to his tribe failed its tests workflow for hours
+// the rewrite dropped the line naming him, and every push to his circle failed its tests workflow for hours
 // while the page showed the file happily. The page was the only witness and it said nothing.
 function identityProblems(m){
   const t = String((m && m.identity) || '');
@@ -2544,7 +2550,7 @@ async function saveIdentity(name){
   if (!box) return;
   const text = box.value;
   const say = (t) => { if (msg) msg.innerHTML = esc(t); };
-  // The harness's own two tests, so this page cannot write an identity `tribe.py validate` will refuse.
+  // The harness's own two tests, so this page cannot write an identity `circle.py validate` will refuse.
   if (text.trim().length < 100){
     if (msg) msg.innerHTML = '<span class="err">Not saved: an identity under 100 characters is refused by the '
       + 'harness, because a member with no identity improvises one.</span>';
@@ -2560,7 +2566,7 @@ async function saveIdentity(name){
   }
   say('saving…');
   const path = `wake/members/${name}/state/identity.md`;
-  const message = `identity: ${name} — rewritten by the person who keeps this tribe`;
+  const message = `identity: ${name} — rewritten by the person who keeps this circle`;
   try {
     // Measured 2026-11-09: GitHub's read can lag its own write by a second, so the sha this page reads can already
     // be old and the PUT comes back 409. Three tries, a moment apart, and the conflict message only fires when the
@@ -2767,7 +2773,7 @@ async function loadThread(name){
               read: src.read, searched: src.searched,
               mark: h.mark, urgency: h.urgency, taken: h.taken, room: h.room};
     }).filter(x => x.content);
-    // A file written before 2026-11-12 marks nothing, and the founder's own tribe is full of those. The rooms
+    // A file written before 2026-11-12 marks nothing, and the founder's own circle is full of those. The rooms
     // still have their own record of what was said in them, so a turn that is in a room's `talk.md` was said in
     // that room — matched on the same three things `chatPersist` dedupes on, so this cannot disagree with the
     // write. Only worth the reads when this member's file shows signs of having been in a room at all.
@@ -3029,7 +3035,7 @@ async function noteIdentityChange(name, before){
   const path = `wake/members/${name}/state/journal.md`;
   const cur = await fileText(path);
   const was = String(before || '').replace(/^#[^\n]*\n+/, '').split(/\n{2,}/)[0].replace(/\s+/g, ' ').trim().slice(0, 300);
-  const entry = `## ${nowStamp()} — my identity was rewritten by the person who keeps this tribe\n\n`
+  const entry = `## ${nowStamp()} — my identity was rewritten by the person who keeps this circle\n\n`
     + `The file \`state/identity.md\` was replaced from AIT. Before this it opened: “${was}”\n\n`
     + `The whole of what it said is in the commit before this one. This paragraph is the harness's, not mine. It is `
     + `here so that I can tell my conception of myself was changed from outside rather than by me.\n`;
@@ -3047,7 +3053,7 @@ async function fileConversation(name){
     const transcript = convo.map(b => (b.role === 'user' ? 'You: ' : name + ': ') + b.content).join('\n\n');
     let entry = '';
     await chatStream(
-      `You are ${name}. Below is a conversation you have just had with the person who keeps this tribe. ` +
+      `You are ${name}. Below is a conversation you have just had with the person who keeps this circle. ` +
       `Write the entry you would put in your journal for it. Same shape as the entries already there: ` +
       `a "## ${nowStamp()} — attended session (the keeper present)" line, then what was asked, what you ` +
       `decided, what is still open. Two short paragraphs at most. Write only the entry, nothing before it.`,
@@ -3163,7 +3169,7 @@ to — otherwise it talks to a room instead of to you. Who should it call you?</
         <button class="primary" onclick="adminAnswer()">Next</button>
       </div>
       <p class="small" style="margin:10px 0 0"><a href="#" onclick="adminSkipPerson();return false;">Skip it — they
-will call me &ldquo;the person who keeps this tribe&rdquo;</a></p>`;
+will call me &ldquo;the person who keeps this circle&rdquo;</a></p>`;
   } else if (d.step === 'name'){
     body = `<p class="dlog">A new member, written as files. Nothing is generated: you name it, say what it is for,
 and it begins.\n\nWhat should it be called?
@@ -3199,10 +3205,10 @@ ${esc(d.name)} is someone new</a></p>`;
     body = d.rooms.length
       ? `<p class="dlog">Which world does ${esc(d.name)} stand in? A world is a folder under <code>soil/</code>, and
 what is written in it is read by every member that stands there — the setting, the weather, what changed this
-week. Most tribes need one; a cast of characters sharing a show belongs in one together.</p><div class="grid">${d.rooms.map(r =>
+week. Most circles need one; a cast of characters sharing a show belongs in one together.</p><div class="grid">${d.rooms.map(r =>
           `<button class="plain" onclick="pickPlace('${escq(r)}')">${esc(r)}</button>`).join('')}</div>
          <div class="row" style="margin-top:10px"><button class="plain" onclick="pickPlace('')">none</button></div>`
-      : `<p class="dlog">This tribe has no worlds yet — the repository has no <code>soil/</code> folders — so
+      : `<p class="dlog">This circle has no worlds yet — the repository has no <code>soil/</code> folders — so
 ${esc(d.name)} will be made without one, and a member standing nowhere is never woken. <strong>Worlds</strong> in
 the navigation makes one in about a minute: a name, and a paragraph about the place. Make the world first, then add
 ${esc(d.name)} to it.</p><button class="primary" onclick="pickPlace('')">Make it anyway</button>`;
@@ -3215,7 +3221,7 @@ ${esc(d.name)} to it.</p><button class="primary" onclick="pickPlace('')">Make it
                     : 'nothing yet — it is someone new'}
   engine  ${esc(d.engine)}
   world   ${esc(d.place || '(none)')}
-  talks to you, ${esc(d.person || 'unnamed — "the person who keeps this tribe"')}
+  talks to you, ${esc(d.person || 'unnamed — "the person who keeps this circle"')}
 
 Make it?</p><div class="row"><button class="primary" onclick="makeMember()">Yes, make it</button>
       <button class="plain" onclick="adminBack()">Change something</button></div>
@@ -3238,7 +3244,7 @@ function adminAnswer(){
       box.value = ''; box.placeholder = 'One word, letters and numbers, starting with a letter.'; return;
     }
     if (S.members.some(m => m.name.toLowerCase() === text.toLowerCase())){
-      box.value = ''; box.placeholder = 'That name is taken in this tribe. Another?'; return;
+      box.value = ''; box.placeholder = 'That name is taken in this circle. Another?'; return;
     }
     d.name = text; d.step = 'seat';
   } else if (d.step === 'seat'){
@@ -3290,15 +3296,15 @@ async function makeMember(){
     try {
       await dispatch('new-member.yml', inputs);
     } catch(e){
-      // A tribe made from a template older than this page has no `about` field, and GitHub refuses the whole
+      // A circle made from a template older than this page has no `about` field, and GitHub refuses the whole
       // dispatch rather than the field. Refusing to make the member would turn a missing new question into a
-      // tribe that cannot add members at all, so the description is dropped and *said to be* dropped — the
+      // circle that cannot add members at all, so the description is dropped and *said to be* dropped — the
       // member exists, and the text has a home on its own page (What it is → Edit this). Never silently:
       // a paste that vanished without a sentence is the fault this project keeps finding.
       if (!/no field for/.test(String(e.message)) || !/"about"/.test(String(e.message))) throw e;
       delete inputs.about; older = true;
       await dispatch('new-member.yml', inputs);
-      msg.textContent = 'this tribe’s form is older than the page — made without what is written about it…';
+      msg.textContent = 'this circle’s form is older than the page — made without what is written about it…';
     }
     msg.textContent = 'made the request. waiting for the run…';
     const run = await waitForRun('new-member', since, t => msg.textContent = t);
@@ -3306,7 +3312,7 @@ async function makeMember(){
       ' — most often a name that was taken, or a room that does not exist');
     await loadMembers();
     if (older){
-      msg.innerHTML = `The run ended: ${esc(d.name)} exists. This tribe’s copy of the form is older than this `
+      msg.innerHTML = `The run ended: ${esc(d.name)} exists. This circle’s copy of the form is older than this `
         + `page, so <b>what is written about ${esc(d.name)} was not saved</b> — the member was made without `
         + `it. Paste it into its identity instead: Members → ${esc(d.name)} → <i>What it is</i> → `
         + `<i>Edit this</i>. <a href="#" onclick="closeDialog();return false;">Close</a>`;
@@ -3320,7 +3326,7 @@ async function makeMember(){
 /* ---- chats: rooms in the repository, with members at them -------------------------------- */
 
 // A table with no name is a conversation you can never come back to. A *chat* is a room in the repository — a topic,
-// a list of members, and the talk itself, appended as it happens — so a tribe can have several going, resume any of
+// a list of members, and the talk itself, appended as it happens — so a circle can have several going, resume any of
 // them, and start one with nobody in it yet. Nothing about this needs a server: `chats/<slug>/chat.md` says what it
 // is and who is in it, `chats/<slug>/talk.md` is what was said, and each member keeps its own copy of the talk in
 // its own memory, because a member's memory is a file and the same tape can be in several records at once.
@@ -3357,7 +3363,7 @@ function slugOfTopic(topic){
 // the members' own claims, or a judge that is not in the room — and `Judge:` names the engine that judges. Both are
 // lines a person can read and edit, and the page rewrites the whole header rather than patching it.
 function chatHeader(slug, topic, names, floor = 'claim', judge = '', repeat = 1){
-  return `# A chat — ${topic}\n\nOpened ${nowStamp()} by the person who keeps this tribe.\n\n`
+  return `# A chat — ${topic}\n\nOpened ${nowStamp()} by the person who keeps this circle.\n\n`
     + `Members: ${names.length ? names.join(', ') : '(nobody yet)'}\n`
     + `Floor: ${floor === 'judge' ? 'judge' : 'claim'}\n`
     + (floor === 'judge' ? `Judge: ${judge || 'gemini'}\nRepeat: ${repeat === 0 ? 'any' : repeat}\n` : '');
@@ -3401,7 +3407,7 @@ async function viewTable(main){
     was said. Open as many as you like; come back to any of them.</p>
     <div class="card">
       <label for="topic">Open a chat</label>
-      <input id="topic" placeholder="What is it about? — e.g. the Labrador standard, or what the tribe is for"
+      <input id="topic" placeholder="What is it about? — e.g. the Labrador standard, or what the circle is for"
         autocapitalize="sentences">
       <p class="small muted" style="margin:8px 0 4px">Who is in it? None is a legitimate answer: a room can wait for
       its members.</p>
@@ -3415,7 +3421,7 @@ async function viewTable(main){
         <span class="small muted" id="tmsg"></span></div>
     </div>
     ${chats.length ? `<div class="card" style="margin-top:12px">
-      <p class="small" style="margin:0 0 6px"><strong>Chats in this tribe</strong></p>
+      <p class="small" style="margin:0 0 6px"><strong>Chats in this circle</strong></p>
       ${chats.map(c => `<div class="row" style="justify-content:space-between;padding:6px 0;border-bottom:1px solid #eee">
         <div class="grow"><a href="#/c/${encodeURIComponent(c.slug)}">${esc(c.topic)}</a>
           <div class="small muted">${c.turns} turn${c.turns === 1 ? '' : 's'}${c.when ? ' · last ' + esc(c.when) : ''}
@@ -3513,7 +3519,7 @@ async function viewChat(main, slug){
   let c;
   try { c = await loadChat(slug); }
   catch(e){
-    main.innerHTML = `<h1>No such chat</h1><p class="muted">${esc(slug)} is not a chat in this tribe.</p>
+    main.innerHTML = `<h1>No such chat</h1><p class="muted">${esc(slug)} is not a chat in this circle.</p>
       <p><a href="#/table">← all chats</a></p>`;
     return;
   }
@@ -3647,11 +3653,11 @@ function parseTurns(text){
 // turn, and so the defect is a word in the source rather than a story in somebody's journal.
 const LEGACY_PERSON = 'Lindsay';
 
-// The person's name as the transcript writes it: the first word of the name GitHub gave us, so that a tribe kept
+// The person's name as the transcript writes it: the first word of the name GitHub gave us, so that a circle kept
 // by someone else does not have its own conversations signed with the founder's. When the page does not know the
 // name it writes `the person`: vague, and true, and never somebody else's name in a stranger's record. It was the
 // founder's name here until 2026-11-15 — item 7 of the founder's queue — and the defect was invisible because
-// every tribe that exists today is his; the first stranger's tribe would have signed its own questions `Lindsay`,
+// every circle that exists today is his; the first stranger's circle would have signed its own questions `Lindsay`,
 // in the one file that claims to be what happened.
 function personLabel(){
   const o = String(S.owner || '').trim();
@@ -3755,7 +3761,7 @@ function chatUtterance(msgs, me){
 function chatPrompt(m, claim = true){
   const others = CHAT.names.filter(n => n !== m.name);
   const head = systemPrompt(m, '') + `\n\nYou are in a room called "${CHAT.topic}" with `
-    + `${others.length ? others.join(' and ') + ' and ' : ''}the person who keeps this tribe. Everyone in the room `
+    + `${others.length ? others.join(' and ') + ' and ' : ''}the person who keeps this circle. Everyone in the room `
     + `hears everything that is said. You are all being asked the same thing at the same time, without hearing the `
     + `others' answers first — so, as in a real room, more than one of you may want the floor at once, and not all of `
     + `you will get it.\n\n`;
@@ -3918,7 +3924,7 @@ async function askRoom(room, names, claim = true){
   chatPaint();
   await Promise.all(CHAT.bench.map(async (r) => {
     const m = (S.members || []).find(x => x.name === r.who);
-    if (!m){ r.content = '[not a member of this tribe any more]'; r.urgency = 0; r.done = true; return; }
+    if (!m){ r.content = '[not a member of this circle any more]'; r.urgency = 0; r.done = true; return; }
     try {
       await chatStream(chatPrompt(m, claim), [{role: 'user', content: chatUtterance(room, m)}], m.engine,
         (d) => { r.content += d; chatPaint(); });
@@ -4325,7 +4331,7 @@ async function viewPlay(main){
       if (run.conclusion !== 'success'){
         // The run's conclusion is a word, not an explanation, and a person who reads "the run ended: failure"
         // has been told nothing they can act on. The run is named and linked instead — its log says why in one
-        // line, and that line is the answer (today, on the founder's tribe, it was `TRIBE_API_KEY_OPENROUTER is
+        // line, and that line is the answer (today, on the founder's circle, it was `TRIBE_API_KEY_OPENROUTER is
         // not set, so Aphrodite cannot hit a ball. Nothing was played.`).
         const url = run.html_url || `https://github.com/${S.repo}/actions/runs/${run.id}`;
         const engines = [p1, p2].map(n => (S.members.find(m => m.name === n) || {}).engine);
@@ -4470,7 +4476,7 @@ async function buildIssue(){
 
 /* ---- worlds: the ground a member stands in --------------------------------------------- */
 
-// A world is a folder under `soil/`, and it is the one part of a tribe a person writes that a member reads as
+// A world is a folder under `soil/`, and it is the one part of a circle a person writes that a member reads as
 // *where it is* rather than *what it is*. `world.md` is quoted into every wake of every member standing there (its
 // last 2,500 characters), and `drops.md` beside it is what changed this week. It is not a chat: a chat is the table,
 // a world is the room the table is in. Until 2026-11-15 the page could pick a world and not make one — which meant a
@@ -4556,7 +4562,7 @@ async function saveWorldFile(slug, file){
       }
       if (fresh.text === text){ say('Nothing changed, so nothing was saved.'); return; }
       try {
-        put = await putText(path, text, `world: ${slug}/${file} — written by the person who keeps this tribe`, fresh.sha);
+        put = await putText(path, text, `world: ${slug}/${file} — written by the person who keeps this circle`, fresh.sha);
       } catch(e){
         if (!/^409/.test(String(e.message))) throw e;
         if (attempt < 3) await sleep(900);
@@ -4592,10 +4598,10 @@ async function newWorld(){
     // with no name.md prints its folder name in the magazine, and one with no world.md has no ground at all —
     // `wake.py` reads world.md into every wake, so a folder with nothing in it reaches nobody.
     await putText(`soil/${slug}/name.md`, title + '\n',
-                  `world: ${slug} — created by the person who keeps this tribe`);
-    const body = world || `# ${title}\n\n(nothing written here yet — the person who keeps this tribe will fill this in)\n`;
+                  `world: ${slug} — created by the person who keeps this circle`);
+    const body = world || `# ${title}\n\n(nothing written here yet — the person who keeps this circle will fill this in)\n`;
     await putText(`soil/${slug}/world.md`, body.endsWith('\n') ? body : body + '\n',
-                  `world: ${slug} — created by the person who keeps this tribe`);
+                  `world: ${slug} — created by the person who keeps this circle`);
     setView('w/' + encodeURIComponent(slug));
   } catch(e){ if (msg) msg.innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }
 }
@@ -4809,27 +4815,27 @@ window.addEventListener('hashchange', () => render());
   // cannot be un-written. If GitHub will not say, the page writes `the person`, which is vague and true.
   if (S.repo && S.token && !S.owner) ownerName().catch(() => {});
 
-  // A link to a tribe (?tribe=owner/repo) is a request to be *in* that tribe, not a suggestion for a form. Until
-  // 2026-11-09 it only pre-filled a box on a page nobody with a tribe was sent to, so the address of a person's
-  // first tribe opened whichever tribe they were already in — the founder's own report, about his own two.
-  const wantTribe = cleanRepo(q.get('tribe'));
-  if (wantTribe){
-    if (wantTribe === S.repo) rememberRepo(S.repo, S.token);
+  // A link to a circle (?circle=owner/repo) is a request to be *in* that circle, not a suggestion for a form. Until
+  // 2026-11-09 it only pre-filled a box on a page nobody with a circle was sent to, so the address of a person's
+  // first circle opened whichever circle they were already in — the founder's own report, about his own two.
+  const wantCircle = cleanRepo(q.get('circle') || q.get('tribe'));
+  if (wantCircle){
+    if (wantCircle === S.repo) rememberRepo(S.repo, S.token);
     else {
-      const tok = (S.tribes[wantTribe] && S.tribes[wantTribe].token) || S.token || OAUTH || '';
-      if (!tok){ WANT = wantTribe; WANT_WHY = 'this browser has no token stored for it'; }
+      const tok = (S.circles[wantCircle] && S.circles[wantCircle].token) || S.token || OAUTH || '';
+      if (!tok){ WANT = wantCircle; WANT_WHY = 'this browser has no token stored for it'; }
       else {
         try {
-          const info = await gh(`/repos/${wantTribe}`, {}, tok);
-          setTribe(wantTribe, tok, info.default_branch || 'main');
+          const info = await gh(`/repos/${wantCircle}`, {}, tok);
+          setCircle(wantCircle, tok, info.default_branch || 'main');
           noteVisibility(info);
-          try { history.replaceState(null, '', location.pathname + '?tribe=' + wantTribe + location.hash); } catch(_){}
-        } catch(e){ WANT = wantTribe; WANT_WHY = e.message; }
+          try { history.replaceState(null, '', location.pathname + '?circle=' + wantCircle + location.hash); } catch(_){}
+        } catch(e){ WANT = wantCircle; WANT_WHY = e.message; }
       }
     }
   }
   if (WANT) location.hash = '#/connect';
-  else if (q.get('tribe') && !S.repo && !location.hash) location.hash = '#/connect';
+  else if ((q.get('circle') || q.get('tribe')) && !S.repo && !location.hash) location.hash = '#/connect';
 
   render();
 })();
