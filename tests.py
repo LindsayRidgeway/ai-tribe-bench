@@ -5710,8 +5710,8 @@ class TheTemplateMustBeEnough(unittest.TestCase):
     def test_the_manual_says_what_an_update_does_and_never_touches(self):
         """The section a person reads before pressing the command, asserted rather than assumed."""
         manual = (REPO / "USER-MANUAL.md").read_text(encoding="utf-8")
-        self.assertIn("## 11a. Keeping your tribe current", manual)
-        for claim in ("It never touches your tribe itself", "If it refuses, nothing has been written",
+        self.assertIn("## 11a. Keeping your circle current", manual)
+        for claim in ("It never touches your circle itself", "If it refuses, nothing has been written",
                       "Files you add yourself are never touched", "--prune"):
             self.assertIn(claim, manual, f"the manual must carry: {claim}")
 
