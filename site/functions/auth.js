@@ -8,6 +8,9 @@
  * environment as GH_CLIENT_SECRET and is never sent anywhere but github.com.
  */
 const CLIENT_ID = 'Ov23liKyiakrCEg8jTn9';
+// The GitHub App's id, filled in when the app is registered. Same exchange endpoint, different pair of
+// credentials, and a much narrower token: the repositories the person granted, and nothing else.
+const CLIENT_ID_APP = 'Iv23li2mawmqYoatDmeD';
 
 const CORS = {
   'access-control-allow-origin': '*',
@@ -25,21 +28,26 @@ exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: CORS, body: '' };
   if (event.httpMethod !== 'POST') return reply(405, { error: 'POST only' });
 
-  let code = '';
-  try { code = String(JSON.parse(event.body || '{}').code || '').trim(); } catch (e) { /* fall through */ }
+  let code = '', app = false;
+  try { const b = JSON.parse(event.body || '{}'); code = String(b.code || '').trim(); app = !!b.app; } catch (e) { /* fall through */ }
   // A GitHub code is short and alphanumeric. Anything else is not a code, and must not be forwarded,
   // or this function becomes a proxy for arbitrary requests to github.com.
   if (!/^[A-Za-z0-9]{8,64}$/.test(code)) return reply(400, { error: 'that is not a code' });
 
-  const secret = process.env.GH_CLIENT_SECRET;
-  if (!secret) return reply(500, { error: 'GH_CLIENT_SECRET is not set on this site' });
+  // Two identities, one endpoint. The GitHub App's user tokens reach only the repositories that person granted
+  // it; the OAuth app's reach every repository they own. Which one a request is for is said by the page, and the
+  // pair of credentials never leaves this function.
+  const CLIENT = app ? CLIENT_ID_APP : CLIENT_ID;
+  if (!CLIENT) return reply(500, { error: 'the github app is not configured on this site' });
+  const secret = app ? process.env.GH_APP_CLIENT_SECRET : process.env.GH_CLIENT_SECRET;
+  if (!secret) return reply(500, { error: (app ? 'GH_APP_CLIENT_SECRET' : 'GH_CLIENT_SECRET') + ' is not set on this site' });
 
   let data = {};
   try {
     const r = await fetch('https://github.com/login/oauth/access_token', {
       method: 'POST',
       headers: { 'content-type': 'application/json', accept: 'application/json' },
-      body: JSON.stringify({ client_id: CLIENT_ID, client_secret: secret, code }),
+      body: JSON.stringify({ client_id: CLIENT, client_secret: secret, code }),
     });
     data = await r.json();
   } catch (e) {

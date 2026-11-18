@@ -359,9 +359,48 @@ face — `aim_at` bisects the face and leaves the power alone, which is right fo
 wrong for one struck from 8.8. That is why serving a corner meant serving into the net. `aim_serve` bisects power at
 a chosen face.
 
-**Still owed in this item:** the rest of the longer engine — `intercept` (superseded by `interception` and not to be
-ported), `volley_contact`, `hit_window` and the tracing `flight` — and `lab/tennis_script.py` running against main.
-The serve is also now visibly a 50mph arc rather than a tennis serve, because it has no toss and no overhead: that
+**The volley, 2026-11-16 (`d4ac2d01`).** `choose_shot` had volley weights and there was nothing in this engine that
+could volley: a player standing seven feet from the net waited for the ball to bounce, and the interception was asked
+about a bounce point a net player never reaches — so every approach was scored as a point lost. `volley_contact()` is
+one radius rather than a box: the earliest sample at which the racquet can physically be at the ball, between 2.2 and
+8.0ft, on the hitter's own side of the net, with the legs given the flight time to close the gap. `play_point` asks it
+*before* the interception, because a volley is the point at which the bounce does not happen.
+
+| | 0 balls | 300 balls | 600 balls |
+|---|---|---|---|
+| median point | 2 shots | 15 | 16 |
+| mean | 2.1 | 22.3 | 22.2 |
+| serve in | 57% | 92% | 97% |
+| volleys taken | 0 of 124 shots | 46 of 1,338 | 42 of 1,331 |
+
+A volley is an approach shot being answered, not a rally's default — which is the right shape: at zero balls nobody
+comes in, so nobody volleys, and the count is a fact about the game rather than about the code.
+
+**The picture, 2026-11-16 (`9173c33b`).** The founder asked three times for seconds of ball after the point is
+decided, and each is a switch on `flight()` that defaults off: `out_bounces` and `legal` (an out ball bounces a
+couple of times), `after_land` (a ball that lands in comes up before it is struck), `net_cord` (a ball into the tape
+rebounds and drops at the foot of the net) and `bounces` (the ball is still a ball). No verdict moved: `land`,
+`time` and `bounce` are still the first bounce, and a test holds the switches to observation with every one of them
+on at once.
+
+Porting it found a bug the longer engine also has: a ball that landed and then ran out of picture time returned
+`land: None, lost: True`. The one landing every verdict reads, thrown away because the *second* bounce did not fit
+inside `t_max`. A ball that has landed has not been lost.
+
+Also over: `hit_window()` (the ball's own parabola decides how long it is hittable, so a skid on grass and a kick on
+clay are not given the same constant), `serve_verdict()` (the box, not the court, and a fault names its distance),
+`on_court` / `in_serve_court` / `in_far_court` / `in_view`, `ALLEY`, and `v0` on `strike`'s return — which with
+`contact` is the whole of what a record needs to be replayable, and which `lab/tennis_record.py` had been
+reconstructing without.
+
+**Still owed in this item:** `lab/tennis_script.py` — the record producer itself — and three things it needs that
+are measurements and not ports: `hands(pace)` (a fast ball gives less time to set up, so the same player is less
+accurate returning it), `rush` (a ball they were late to the racquet for is a ball they hit worse), and the
+accelerating run model (`reaction_time`, `run_time`, `run_distance` — a player is not at top speed on the first
+step). Those three would change every number in this file, which is why the producer is last and not first.
+`intercept` is superseded by `interception` and must **not** be ported.
+
+The serve is also still visibly a 50mph arc rather than a tennis serve, because it has no toss and no overhead: that
 is the movement list's item 3, and it is why serve-in is 93% and not 65%.
 
 ## What V1 means

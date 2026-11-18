@@ -14,6 +14,7 @@ import contextlib
 import importlib.util
 import io
 import json
+import math
 import os
 import re
 import shutil
@@ -3803,6 +3804,240 @@ class TestTheRecordSaysThePlayerWasBeaten(unittest.TestCase):
             if rally["ended"] == "out":
                 self.assertIs(last.get("in"), False, f"rally {rally['rally']} is labelled out and the ball is in")
 
+class TestTheVolley(unittest.TestCase):
+    """Item 14 of the tennis backlog, second move: the ball taken out of the air.
+
+    `choose_shot` has had volley weights since the chooser was ported, and there was nothing in this engine that
+    could volley — a player standing seven feet from the net waited for the ball to bounce, and the interception
+    was asked about a bounce point a net player never reaches, so every approach was scored as a point lost. The
+    model that came over from the longer engine is one radius rather than a box, and it is asked *before* the
+    interception, because a volley is the point at which the bounce does not happen.
+
+    What these hold: the contact is above the ground, below the head, on the hitter's own side of the net and
+    earlier than the bounce; a ball the legs cannot cover is not volleyed however close the racquet would be; and
+    the trace that makes any of it possible draws the ball without moving it."""
+
+    def setUp(self):
+        import importlib
+        import random as _random
+        self.random = _random
+        sys.path.insert(0, str(REPO / "lab"))
+        self.T = importlib.import_module("tennis")
+
+    def _path(self, x0, x1, y, z0, z1, n=40, t0=0.05, dt=0.02):
+        """A ball on its way from the south end to the north one, sampled the way a trace samples it."""
+        out = []
+        for i in range(n):
+            f = i / (n - 1)
+            out.append((round(t0 + i * dt, 3), round(x0 + (x1 - x0) * f, 3), round(y, 3),
+                        round(z0 + (z1 - z0) * f, 3)))
+        return out
+
+    def test_the_ball_is_taken_out_of_the_air_before_it_bounces(self):
+        """The whole claim of a volley in one assertion set: the contact is earlier than the bounce, it is inside
+        the band the racquet occupies, it is on the hitter's side of the net, and the feet are within a reach of
+        it. A volley scored at or after the bounce is a groundstroke with a nicer word on it."""
+        t = self.T
+        p = t.Player("X", north=True, practice=300)
+        feet = (t.NET_X - 6.0, t.WIDTH / 2)                 # six feet from the net, on their own side
+        path = self._path(t.NET_X + 3.0, t.NET_X - 5.0, t.WIDTH / 2, 2.6, 3.4)
+        vol = t.volley_contact(p, path, feet)
+        self.assertIsNotNone(vol, "a ball crossing the net at racquet height six feet away was not volleyed")
+        self.assertLess(vol["t"], path[-1][0], "a volley cannot be struck after the last sample the ball has")
+        self.assertTrue(t.VOLLEY_LOW <= vol["contact"][2] <= t.VOLLEY_HIGH,
+                        f"contact at {vol['contact'][2]}ft is outside the band the racquet can take it in")
+        self.assertGreaterEqual((t.NET_X - vol["contact"][0]), 2.0,
+                                "the ball was taken before it had crossed the net")
+        self.assertLessEqual(math.hypot(vol["contact"][0] - vol["feet"][0],
+                                        vol["contact"][1] - vol["feet"][1]),
+                             t.VOLLEY_REACH + 1e-6,
+                             "the feet were drawn outside a racquet's length of the ball")
+
+    def test_a_ball_the_legs_cannot_cover_is_not_volleyed_however_close_the_racquet_is(self):
+        """The legs are the limit, not the arm: a player standing twelve feet across the court from a ball that
+        arrives in half a second does not volley it, and must not be drawn doing so."""
+        t = self.T
+        p = t.Player("X", north=True, practice=0)
+        path = self._path(t.NET_X + 3.0, t.NET_X - 5.0, t.WIDTH / 2, 2.6, 3.4, t0=0.05)
+        self.assertIsNone(t.volley_contact(p, path, (t.NET_X - 6.0, 1.0)),
+                          "a beginner twelve feet away volleyed a ball in a few tenths of a second")
+
+    def test_a_ball_above_the_head_is_an_overhead_and_that_is_not_built(self):
+        """The band is two limits, and each one is a different shot: above eight feet it is an overhead, below
+        2.2 it is dug off the ground. Neither is a volley, and the model says so instead of taking them."""
+        t = self.T
+        p = t.Player("X", north=True, practice=300)
+        feet = (t.NET_X - 6.0, t.WIDTH / 2)
+        high = self._path(t.NET_X + 3.0, t.NET_X - 5.0, t.WIDTH / 2, 9.0, 11.0)
+        low = self._path(t.NET_X + 3.0, t.NET_X - 5.0, t.WIDTH / 2, 0.4, 1.4)
+        self.assertIsNone(t.volley_contact(p, high, feet), "an overhead was volleyed")
+        self.assertIsNone(t.volley_contact(p, low, feet), "a ball at ankle height was volleyed")
+
+    def test_the_trace_draws_the_ball_without_moving_it(self):
+        """`trace` is a renderer's sample rate and a volley's only evidence, so it must be an observation: the
+        same shot integrated with it and without it lands in the same place at the same time. A path that
+        changed the ball would be a second integration, which is how this repository has been broken before."""
+        t = self.T
+        kw = dict(face=6.0, power=62.0, aim=t.WIDTH / 2, shot="forehand", surface="hard", wind=(0.0, 0.0))
+        # Two players with the same seed rather than one player struck twice: `strike` applies the hands' error
+        # from the player's own rng, so the second call on one player is a different shot and would have blamed
+        # the trace for the error. Same seed, same error, same ball — the only difference is the sampling.
+        plain = t.strike(t.Player("X", north=True, practice=300, rng=self.random.Random(3)), None, **kw)
+        traced = t.strike(t.Player("X", north=True, practice=300, rng=self.random.Random(3)), None,
+                          trace=0.02, **kw)
+        a, b = plain["traj"], traced["traj"]
+        self.assertEqual(a["land"], b["land"], "the trace moved the ball")
+        self.assertAlmostEqual(a["time"], b["time"], places=9)
+        self.assertAlmostEqual(a["speed_in"], b["speed_in"], places=9)
+        path = b["path"]
+        self.assertGreater(len(path), 20, "a 0.02s trace of a shot that lasts half a second is ten samples")
+        for (t0, x0, y0, z0), (t1, x1, y1, z1) in zip(path, path[1:]):
+            self.assertGreater(t1, t0, "the trace is not in the order it happened")
+        self.assertTrue(all(z >= -0.01 for _, _, _, z in path), "the trace draws the ball under the court")
+        self.assertLessEqual(path[-1][0], b["time"] + 0.02 + 1e-9,
+                             "the trace runs on after the ball has bounced")
+
+    def test_the_default_reach_is_this_games_reach(self):
+        """The `reach` argument was borrowed from the pickleball body, which needs a three-foot paddle where a
+        racquet covers seven. It defaults to the tennis number, and that is the only reason the tennis arithmetic
+        is allowed to grow an argument: every tennis record and every tennis test must run what it always ran."""
+        t = self.T
+        p = t.Player("X", north=True, practice=200, rng=self.random.Random(7))
+        land, ft, bounce = (t.NET_X + 8.0, 9.0), 1.4, {"v": (18.0, 3.0, -7.0), "speed_out": 22.0}
+        same = t.interception(p, land, ft, bounce, "hard")
+        same_explicit = t.interception(p, land, ft, bounce, "hard", reach=t.RACQUET_REACH)
+        self.assertEqual(same, same_explicit, "the default reach is not this game's reach")
+        shorter = t.interception(p, land, ft, bounce, "hard", reach=3.0)
+        self.assertLessEqual(same["short_ft"], shorter["short_ft"],
+                             "a shorter paddle cannot make a ball easier to reach")
+
+    def test_a_point_played_at_the_net_contains_a_volley(self):
+        """The end-to-end version, and the one the page can be read off: `line_for` prints the shot it was, so a
+        volley in a transcript is a volley that happened. Pinned surface, wind, clock-free rng and practice, so
+        the count is a fact about the engine rather than a fact about the day."""
+        t = self.T
+        rng = self.random.Random(5)
+        server = t.Player("A", north=True, practice=300, rng=self.random.Random(1))
+        receiver = t.Player("C", north=False, practice=300, rng=self.random.Random(2))
+        volleys = shots = 0
+        for _ in range(40):
+            lines = t.play_point(server, receiver, "hard", (0.0, 0.0), ("N", 0.0), rng)
+            for line in lines:
+                if " hits " in line:
+                    shots += 1
+                    if line.split(" hits ")[1].startswith("volley"):
+                        volleys += 1
+        self.assertGreater(volleys, 0,
+                           f"forty points on a hard court at 300 balls and not one ball taken out of the air "
+                           f"({shots} shots: the volley model is not in the point)")
+        self.assertLess(volleys, shots,
+                         "every shot was a volley, which is not a rally — the bounce is not being played")
+
+
+class TestTheBallAfterThePointIsOver(unittest.TestCase):
+    """Item 14 of the tennis backlog, third move: the seconds of ball that are left after the point is decided.
+
+    Three of the founder's asks are about exactly this — "when the ball hits the net, show it bouncing off and onto
+    the court", "when the ball is out, show it bouncing a couple of bounces", "when the ball hits the court before
+    the receiving player hits it, it would be good to see it hit the court and then bounce up". None of them is a
+    judgement; all of them are the picture, and a film that hides them cannot show *why* a point ended. They came
+    over from the longer engine with the picture half of `flight()`, behind switches that default off, so that a
+    report pays for none of it and no verdict moves.
+
+    What these hold: the switches are observation and not physics; each one puts the ball where the founder asked
+    for it; and a shot is replayable from the two numbers it says it was struck with."""
+
+    def setUp(self):
+        import importlib
+        sys.path.insert(0, str(REPO / "lab"))
+        self.T = importlib.import_module("tennis")
+
+    def _long_ball(self):
+        """A ball from a north player's baseline that clears the net comfortably and lands past the far baseline."""
+        return (2.0, self.T.WIDTH / 2, 3.5), (80.0, 0.0, 25.0)
+
+    def test_the_picture_switches_do_not_move_the_ball(self):
+        """The claim that makes the rest safe: `out_bounces`, `after_land`, `bounces` and `net_cord` add seconds to
+        the film and change nothing about where the ball landed or when. A picture that moved the ball would be a
+        second physics, and the last time this engine grew a second physics it was judged by the wrong one."""
+        t = self.T
+        p0, v0 = self._long_ball()
+        plain = t.flight(p0, v0, (0.0, 0.0), "hard", trace=0.02)
+        dressed = t.flight(p0, v0, (0.0, 0.0), "hard", trace=0.02, bounces=1, after_land=1.4,
+                           out_bounces=2, legal=t.on_court, t_max=8.0)
+        self.assertEqual(plain["land"], dressed["land"], "the picture switches moved where the ball landed")
+        self.assertAlmostEqual(plain["time"], dressed["time"], places=9)
+        self.assertAlmostEqual(plain["bounce"]["speed_out"], dressed["bounce"]["speed_out"], places=9)
+        self.assertGreater(len(dressed["path"]), len(plain["path"]),
+                           "the switches added no seconds of ball to the film")
+
+    def test_a_ball_that_landed_out_bounces_on_for_the_picture(self):
+        """The founder, 2026-11-11: a lost point is not a vanished ball. `land` stays the first bounce — every
+        verdict reads it — and the bounces after it are what a spectator is owed."""
+        t = self.T
+        p0, v0 = self._long_ball()
+        tr = t.flight(p0, v0, (0.0, 0.0), "hard", trace=0.02, out_bounces=2, legal=t.on_court, t_max=8.0)
+        self.assertFalse(t.on_court(tr["land"]), "this test needs a ball that landed out")
+        self.assertTrue(tr.get("after_out"), "the ball that landed out made no second bounce")
+        self.assertTrue(tr["after_out"]["bounces"], "the film was told to watch and watched nothing")
+        self.assertGreater(tr["path"][-1][0], tr["time"], "the path ends at the bounce it was given")
+        # and it stops at the edge of the picture rather than following the ball into the dark
+        self.assertTrue(t.in_view(tr["path"][-1][1:3]), "the film followed the ball off the edge of the frame")
+
+    def test_a_ball_into_the_tape_comes_back_and_drops(self):
+        """The net cord, 2026-11-11: "show it bouncing off and onto the court for a bounce or two before ending the
+        point." The ball comes back towards the hitter, not through the net, and `land` stays None because the
+        point is over — the bounce is the picture's, not the umpire's."""
+        t = self.T
+        tr = t.flight((2.0, t.WIDTH / 2, 3.5), (70.0, 0.0, 6.0), (0.0, 0.0), "hard",
+                      trace=0.02, net_cord=True)
+        self.assertIsNone(tr["land"], "a ball into the tape is not a ball that landed on the court")
+        self.assertIsNotNone(tr["net"])
+        after = tr.get("after_net") or {}
+        self.assertTrue(after.get("bounces"), "the tape killed the ball dead and showed nothing")
+        for b in after["bounces"]:
+            self.assertLess(b["land"][0], t.NET_X,
+                            "the ball came back through the net instead of off it, from the hitter's side")
+
+    def test_the_hit_window_is_the_balls_own_parabola(self):
+        """Why the window cannot be a constant: the ball's own bounce decides how long it is hittable, and a
+        skidding ball on grass and a kicking one on clay are the same ball with different surfaces under it."""
+        t = self.T
+        dead = t.hit_window({"v": (10.0, 0.0, -3.0)})            # never gets up: a net cord dying
+        skid = t.hit_window({"v": (30.0, 0.0, 6.0)})             # a low, flat bounce
+        kick = t.hit_window({"v": (20.0, 0.0, 24.0)})            # a heavy topspin bounce over the shoulder
+        self.assertEqual(dead, (0.0, 0.0, 0.0))
+        self.assertLess(skid[1], kick[1], "a flat bounce is hittable for longer than a kicking one")
+        self.assertLessEqual(kick[1], t.HIT_WINDOW_MAX, "the window is not capped, so a lob hangs all day")
+        self.assertGreater(kick[2], skid[2], "the kick did not come up higher than the skid")
+
+    def test_every_shot_says_where_it_left_the_strings(self):
+        """A record has to be replayable or it is a picture no engine can re-judge: `contact` and `v0` are the pair,
+        and `lab/tennis_record.py` rebuilds a film's every arc from them through today's integrator."""
+        t = self.T
+        p = t.Player("X", north=True, practice=300)
+        s = t.strike(p, None, face=8.0, power=64.0, aim=t.WIDTH / 2, shot="forehand",
+                     surface="clay", wind=(2.0, 1.0))
+        self.assertIn("v0", s, "the shot does not say how hard it left the strings")
+        again = t.flight(tuple(s["contact"]), tuple(s["v0"]), (2.0, 1.0), "clay", cl=s["spin"])
+        self.assertEqual(again["land"], s["traj"]["land"], "the shot cannot be replayed from what it says it was")
+        self.assertAlmostEqual(again["time"], s["traj"]["time"], places=9)
+
+    def test_a_serve_is_judged_by_the_box_and_not_by_the_court(self):
+        """A serve ten feet past the service line is inside the court and a fault, which no groundstroke rule can
+        say. It reports the distance to the line it missed, because a player corrects a number."""
+        t = self.T
+        p = t.Player("X", north=True, practice=300)
+        s = t.strike(p, None, face=6.0, power=65.0, aim=t.WIDTH / 2, shot="serve",
+                     surface="hard", wind=(0.0, 0.0), clean=True)
+        ok, why = t.serve_verdict(s)
+        x = s["traj"]["land"][0]
+        self.assertTrue(t.on_court(s["traj"]["land"]), "this test needs a serve that landed on the court")
+        self.assertFalse(ok, f"a serve landing {x - t.NET_X:.0f}ft past the net was called in")
+        self.assertIn("service line", why)
+        self.assertTrue(any(ch.isdigit() for ch in why), "the fault names no distance, so nothing can be learnt")
+
+
 class TestPickleball(unittest.TestCase):
     """The second sport: the rules that are not tennis's, and the ball that is not a tennis ball.
 
@@ -4027,6 +4262,30 @@ class TestPickleball(unittest.TestCase):
                                 wind_seed_ms=424242, first_team=0, say=lambda *a, **k: None)
             return (m.teams[0].score, m.teams[1].score, r["lengths"])
         self.assertEqual(play(), play())
+
+    def test_no_rally_runs_to_the_engines_ceiling(self):
+        """The guard this turn needed, and did not have. `RALLY_CAP` = 120 shots is the record's ceiling, not a
+        rule: a rally that reaches it scores nobody, so a cap hit in a demo is a bug report.
+
+        On 2026-11-16 I replaced the receiving model with an honest body — the receiver's feet stop where their
+        legs stop instead of being assigned the ball's landing point, and the leftover time is spent walking
+        back to a stance (`/tmp` patch, reverted; §5c of the page). It is the right model and it made the game
+        unplayable in a way nothing in the suite could see: defence never broke, the mean rally went to 26.7
+        shots at practice 600, one rally hit the cap, and the only fault left in the game was the ball hit out.
+        That is what this test is for — not "is it right", but "is it still a game".
+        """
+        pk = self.pk
+        names = ["north-a", "north-b", "south-a", "south-b"]
+        for practice, ceiling in ((0, 20), (200, 30), (600, 60)):
+            longest, caps = 0, 0
+            for g in range(2):
+                m, r = pk.play_game(names, [practice] * 4, pk.make_chooser("steady"), surface="hard",
+                                    wind_seed_ms=104729 * (g + 1), first_team=g % 2, say=lambda *a, **k: None)
+                longest = max(longest, max(r["lengths"]))
+                caps += sum(1 for x in r["rallies"] if x["why"] == "cap")
+            self.assertEqual(caps, 0, f"a rally reached the {pk.RALLY_CAP}-shot ceiling at practice {practice}")
+            self.assertLess(longest, ceiling, f"longest rally at practice {practice}")
+            self.assertGreater(longest, 1, "and the game has rallies, not one shot and a fault")
 
     def test_the_tennis_integrator_still_integrates_what_it_integrated(self):
         """The parameterisation that let pickleball share the integrator must have changed nothing for tennis.

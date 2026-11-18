@@ -119,7 +119,7 @@
     </svg>
     <div class="brand">A<span>IT</span></div>
     <div id="repo-label" title="Which circle this page is in — press to switch or connect another"></div>
-    <span class="chip warn" id="preview">unfinished</span>
+    <span class="chip" id="preview" title="It works. Parts of it are still missing.">early version</span>
   </header>
   <div id="visnote" class="notice" hidden></div>
   <nav id="nav" hidden>
@@ -205,7 +205,7 @@ const PAINTERS = {
 const painterNames = () => Object.values(PAINTERS).map(p => p.label).join(', ');
 
 const S = {repo:'', token:'', branch:'main', keys:{}, members:[], chat:{}, member:null, view:'today',
-           owner:'', circles:{}, isPrivate:null};   // null = this page has not been told; see noteVisibility()
+           owner:'', circles:{}, app:'', isPrivate:null, need:{}};   // null = this page has not been told; see noteVisibility()
 
 // Which circles this browser has been in, and the credential it used for each. Without this there is exactly one
 // way back to a circle you have already opened: retype its name and paste a token. Found 2026-11-09, when the
@@ -219,11 +219,10 @@ function rememberRepo(repo, token){
 }
 
 // Deleting the repository at GitHub does not touch this list, because the page has no database and this list is
-// nothing but localStorage. Found 2026-11-18 by the founder, who deleted every probe repository from GitHub and
-// still saw six rows here, and read it as a bug in the delete. It is not: it is the page remembering places it
-// has been. But a list that can only grow stops meaning "the ones I use", so each row can now be forgotten —
-// which drops the stored credential for that repository and nothing else. Nothing at GitHub is touched, and the
-// sentence says so, because "forget" in a page with no server must not sound like "delete".
+// nothing but localStorage. Found 2026-11-18 by the founder, who deleted every probe repository and still saw six
+// rows, and read it as a broken delete. It is not: it is the page remembering places it has been. But a list that
+// can only grow stops meaning "the ones I use", so each row can be forgotten — the stored credential goes and
+// nothing else. The sentence says so, because "forget" in a page with no server must not sound like "delete".
 function forgetCircle(repo){
   if (!repo || !(repo in (S.circles || {}))) return;
   const open = repo === S.repo;
@@ -231,6 +230,7 @@ function forgetCircle(repo){
       + 'be taken back to the connect page.' : '') + '\n\nNothing at GitHub is deleted. If that repository still '
       + 'exists, connecting to it again works exactly as before.')) return;
   delete S.circles[repo];
+  if (S.need) delete S.need[repo];
   if (open){ S.repo = ''; S.token = ''; S.members = []; S.member = null; }
   save();
   if (open) location.hash = '#/connect';
@@ -323,7 +323,7 @@ function nowStamp(){
 
 function save(){
   localStorage.setItem('ait', JSON.stringify({repo:S.repo, token:S.token, keys:S.keys, owner:S.owner || '',
-                                             circles:S.circles || {}}));
+                                             circles:S.circles || {}, app:S.app || '', need:S.need || {}}));
   // An unfiled conversation is kept here too: a person who reloads the page should not lose what a
   // member said, even though only filing it puts it in the record.
   try {
@@ -334,10 +334,7 @@ function save(){
 }
 function load(){ try{ const j = JSON.parse(localStorage.getItem('ait') || '{}');
   S.repo = j.repo || ''; S.token = j.token || ''; S.keys = j.keys || {}; S.owner = j.owner || '';
-  // `tribes` is what this field was called until 2026-11-18, and a browser that has used this page before has
-  // its tokens under that name. A rename that silently drops somebody's credentials is not a rename, it is a
-  // logout, so the old key is read and the new one written.
-  S.circles = j.circles || j.tribes || {}; }catch(e){}
+  S.circles = j.circles || {}; S.app = j.app || ''; S.need = j.need || {}; }catch(e){}
   try { S.chat = JSON.parse(localStorage.getItem('ait.chat') || '{}'); } catch(e){ S.chat = {}; } }
 
 /* ---- the GitHub door ------------------------------------------------------------------- */
@@ -1053,7 +1050,12 @@ async function renderBody(){
   $('nav').hidden = !connected;
   $('foot').hidden = !connected;
   $('preview').hidden = connected;
-  $('repo-label').textContent = connected ? S.repo : '';
+  // The header says the circle's name, not the account's: a person on their own page knows who they are, and the owner's
+  // login ate the width until the caret that says "this is a control" was cut off by the ellipsis.
+  $('repo-label').textContent = connected ? (S.repo.split('/')[1] || S.repo) + '  ⌄' : '';
+  $('repo-label').title = connected
+    ? S.repo + ' — press to switch circle, connect another, or sign in on this device'
+    : 'Which circle this page is in — press to switch or connect another';
   $('repo-label').onclick = connected ? () => setView('connect') : null;
 
   paintVisibility(connected);
@@ -1108,7 +1110,7 @@ function viewHome(main){
 
     <div class="strip">
       <div><b>$0</b><span>to AIT, ever</span></div>
-      <div><b>$0–4</b><span>a month, to the engines</span></div>
+      <div><b>From $0</b><span>pay-as-you-go, to the engines</span></div>
       <div><b>Yours</b><span>the files, the account</span></div>
     </div>
 
@@ -1155,6 +1157,15 @@ const TEMPLATE = 'LindsayRidgeway/ai-tribe-template';
 // Public, and it may be public: the client id is in the page by design. The secret that goes with it
 // lives in the site's environment and only the auth function ever sees it.
 const GH_CLIENT = 'Ov23liKyiakrCEg8jTn9';
+// The GitHub App. Where the OAuth app above hands back one token that can write every repository a person
+// owns, this one hands back a token that reaches only the repositories that person granted it. That is the
+// whole reason it exists, and it is why the sign-in that matters (Connect, on a second device) uses this id
+// and not the one above. Public by design, like the other.
+const GH_APP = 'Iv23li2mawmqYoatDmeD';
+const GH_APP_SLUG = 'ait-circle';
+// The manual is the documentation, and it is the only place a longer answer should live: a page that is a front door
+// cannot also be a procedure. §3a is the token chapter.
+const MANUAL = 'https://github.com/LindsayRidgeway/ai-tribe-bench/blob/main/USER-MANUAL.md';
 const FN = (name) => '/.netlify/functions/' + name;
 
 let OAUTH = '';          // a token obtained by signing in, not yet used for an install
@@ -1175,6 +1186,7 @@ function signIn(where){
   u.searchParams.set('state', where + '.' + Math.random().toString(36).slice(2, 10));
   try {
     sessionStorage.setItem('ait.state', u.searchParams.get('state'));
+    sessionStorage.removeItem('ait.app');
     // The name typed before signing in costs a person a keystroke, and the round trip through GitHub is a full page
     // load that would otherwise throw it away — the field came back as "my-circle" under a page that had just been
     // told otherwise. Found by the founder on the live page, 2026-11-11: "it's ignored, and you have to type it on
@@ -1183,6 +1195,53 @@ function signIn(where){
   } catch(_){}
   location.href = u.toString();
 }
+
+// The same round trip, with the App's id and no `scope`: an App's permissions are fixed when it is registered,
+// so a scope parameter here would be asking a question GitHub does not accept an answer to.
+function signInApp(where){
+  if (!GH_APP){ alert('This copy of the page has no GitHub App registered yet.'); return; }
+  const u = new URL('https://github.com/login/oauth/authorize');
+  u.searchParams.set('client_id', GH_APP);
+  u.searchParams.set('state', where + '.' + Math.random().toString(36).slice(2, 10));
+  try { sessionStorage.setItem('ait.state', u.searchParams.get('state')); } catch(_){}
+  // Which of the two ids asked. The exchange endpoint is the same for both; only the pair of credentials differs,
+  // and the function reads this flag to know which pair it is holding.
+  try { sessionStorage.setItem('ait.app', '1'); } catch(_){}
+  location.href = u.toString();
+}
+
+// What this account has already given the App. Two answers matter, and the second one is the state a person
+// cannot diagnose from a blank list: nobody has installed it yet.
+async function appRepos(token){
+  const out = [];
+  const insts = (await gh('/user/installations', {}, token)).installations || [];
+  for (const i of insts){
+    const r = await gh(`/user/installations/${i.id}/repositories?per_page=100`, {}, token);
+    for (const x of (r.repositories || [])){ if (out.length < 40) out.push(x); }
+  }
+  return out;
+}
+
+// A repository is a circle when it carries the manifest every circle is generated with. One request, and a 404 is
+// the ordinary answer rather than a failure.
+async function isCircle(full, token){
+  try { await gh(`/repos/${full}/contents/.tribe-manifest.json`, {}, token); return true; }
+  catch(_){ return false; }
+}
+
+// The App's token for this browser: the one just handed back by the sign-in, or the one kept from last time. It
+// is kept because otherwise every reload would ask the person to sign in again, which is the annoyance this whole
+// change exists to remove — and it reaches only the repositories they granted.
+const appTok = () => OAUTH || S.app || '';
+
+// Opening one of them. The App's token is the credential for every repository it covers, so there is nothing
+// per-circle to keep beyond the name — and the token stays in memory and in this browser, never in the markup.
+window.openAppCircle = (repo, branch) => {
+  setCircle(repo, appTok(), branch || 'main');
+  save();
+  location.hash = '#/today';
+  render();
+};
 
 // A member needs the words, not the markup. A regex cannot do this job: an attribute value containing
 // a ">" survives a tag-strip, which is how a page's inline menu JSON ended up in front of a member
@@ -1257,6 +1316,27 @@ async function searchWeb(q){
   return {query: d.query || q, text: String(d.text || '').slice(0, 7000), results: d.results || []};
 }
 
+// Two answers this page has to be able to give, both of them from GitHub rather than from hope: is the new
+// repository inside the App's installation, and can the files in it actually be read. They are separate questions
+// because the answers differ — that is the whole of the bug found on 2026-11-16.
+async function enrolRepo(full, repoId, t){
+  try {
+    const owner = String(full).split('/')[0].toLowerCase();
+    const insts = (await gh('/user/installations', {}, t)).installations || [];
+    const inst = insts.find(i => String((i.account || {}).login || '').toLowerCase() === owner);
+    if (!inst) return false;
+    let id = repoId;
+    if (!id){ try { id = (await gh(`/repos/${full}`, {}, t)).id; } catch(_){ return false; } }
+    if (!id) return false;
+    await gh(`/user/installations/${inst.id}/repositories/${id}`, {method:'PUT'}, t);
+    return true;
+  } catch(_){ return false; }
+}
+async function canRead(full, t){
+  try { await gh(`/repos/${full}/contents/members.json`, {}, t); return true; }
+  catch(_){ return false; }
+}
+
 function viewInstall(main){
   main.innerHTML = `
     <p class="small"><a href="#/">← back</a></p>
@@ -1270,41 +1350,52 @@ function viewInstall(main){
         <h3>Your GitHub account</h3>
         <p class="small muted" style="margin:0 0 10px">The circle lives under your name, in your account, so that it
         is yours and not mine.</p>
+        <p class="small muted" style="margin:0 0 10px">You need a GitHub account. If you don't have one, the button
+        takes you to GitHub to make one: a few minutes, and the email you verify must be one you can open right
+        now.</p>
         <button class="primary" id="gh">Sign in with GitHub</button>
-        <p class="small muted" style="margin:8px 0 0">One permission screen, and it is the widest thing this
-        project asks of you, so it is worth saying exactly: signing in hands this page a token that can read and
-        write <em>every</em> repository you can write to, settings included. It is that wide because GitHub has no
-        narrower permission that allows a new repository to be created — and AIT asks GitHub about nothing but the
-        circle you name below. <strong>If you would rather hand over less, use a token instead:</strong> three
-        permissions, no settings, no deletion. Either one can be revoked from your GitHub settings at any time; if
-        you do, AIT stops and your circle does not.</p>
+        <p class="small muted" style="margin:8px 0 0">One screen, and one choice inside it: <strong>which of your
+        repositories AIT may work in</strong>. In the ones you allow, it can read and write files, and read and write
+        the workflows that wake a member. It cannot change a repository's settings and it cannot delete one — that is
+        the whole of what it asks. <strong>For a first circle, choose All repositories</strong>: the circle does not
+        exist yet, so GitHub has nothing for you to tick. Once it exists you can narrow the permission to that one
+        repository at <a href="https://github.com/settings/installations" target="_blank" rel="noopener">your
+        installations</a>, and AIT carries on working. Revoking it there stops AIT and does not touch your
+        circle.</p>
         <p class="small" style="margin:12px 0 0"><a href="#" id="usetoken">Use a token instead</a></p>
         <div id="tokbox" hidden style="margin-top:10px">
           <p class="small muted" style="margin:0 0 8px">A <strong>token</strong> is a password for this page, made
-          at GitHub, which you can delete at any time. Make a <strong>fine-grained</strong> token —
-          <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">new
-          token</a> — with <em>Repository access: All repositories</em> and three permissions, each
-          <em>Read and write</em>: <strong>Repository creation</strong>, <strong>Contents</strong>,
-          <strong>Actions</strong>. Creation is why it cannot start out narrowed to one repository; it still cannot
-          change a repository's settings or delete one, which is the difference from signing in. Once your circle
-          exists you can replace it with a token that reaches only that repository.</p>
+          at GitHub, which you can delete at any time. Make a <strong>classic</strong> token —
+          <a href="https://github.com/settings/tokens/new" target="_blank" rel="noopener">github.com/settings/tokens/new</a>
+          — and tick two boxes: <strong>repo</strong> and <strong>workflow</strong>. Two ticks, a button, a token.
+          <strong>If you already keep repositories you care about</strong>, this is the moment to know what you are
+          doing: a classic token can write to all of them. A fine-grained token can be held to one —
+          <a href="${MANUAL}#3a-using-a-token-instead-of-signing-in" target="_blank" rel="noopener">the manual
+          walks through it in five steps</a>; more clicks, far less reach. Either kind is kept in this browser, sent
+          nowhere but GitHub, and deleted at github.com whenever you like.</p>
           <input id="tok" type="password" placeholder="paste the token" autocapitalize="off" spellcheck="false">
         </div>
         <p class="small" id="who" style="margin:8px 0 0"></p>
+        <p class="err" id="noinst" hidden style="margin:8px 0 0">GitHub has not let AIT into your account yet, so
+        there is nothing it can make a repository in. <a href="https://github.com/apps/${GH_APP_SLUG}/installations/new"
+        target="_blank" rel="noopener">Choose which repositories AIT may use</a> — on the next screen,
+        <strong>All repositories</strong> — then press Sign in again. Nothing is lost.</p>
       </div>
     </div>
 
-    <div class="step">
+    <p class="small muted" id="step2hint" style="margin:14px 0 0">Then you name it, and press one button.</p>
+
+    <div class="step" id="step2" hidden>
       <div class="n">2</div>
       <div class="b">
         <h3>What to call it</h3>
-        <input id="tname" value="${esc(keptName() || 'my-circle')}" autocapitalize="off" spellcheck="false">
+        <input id="tname" value="${esc(keptName())}" placeholder="my-circle" autocapitalize="off" spellcheck="false">
         <p class="small muted" style="margin:6px 0 0">Your repository will be <code id="tpath">github.com/YOUR-ACCOUNT/my-circle</code>,
         and it will be private. You never have to open it. Your link afterwards is this same page, pointed at it.</p>
       </div>
     </div>
 
-    <div class="step">
+    <div class="step" id="step3" hidden>
       <div class="n">3</div>
       <div class="b">
         <h3>Install</h3>
@@ -1329,26 +1420,49 @@ function viewInstall(main){
 
   const tok = $('tok'), name = $('tname'), msg = $('imsg'), btn = $('install');
   let login = '';
-  const current = () => OAUTH || (tok ? tok.value.trim() : '');
+  const current = () => OAUTH || (tok ? tok.value.trim() : '') || (S.app || '');
   const slugOf = v => (v.trim().replace(/[^a-zA-Z0-9._-]/g, '-') || 'my-circle');
 
   if (OAUTH){
     $('gh').hidden = true;
     $('usetoken').hidden = true;
   }
-  $('gh').onclick = () => signIn('install');
+  // The App is the door: its permissions are the four the circle is made of, and a person can narrow it to one
+  // repository afterwards. The older sign-in asks for everything they can write to and is not shown while an App
+  // exists — it stays in the code only for a copy of the page that has none.
+  $('gh').onclick = () => (GH_APP ? signInApp('install') : signIn('install'));
   $('usetoken').onclick = (e) => {
     e.preventDefault();
     $('tokbox').hidden = false; $('usetoken').hidden = true;
     if (tok) tok.focus();
   };
 
+  // Whether GitHub has let the App in at all. Only asked of a token the App handed this browser: a pasted token
+  // needs no installation, and asking would hide the steps from the one route that never needed them.
+  let installed = null;
+  async function checkInstalled(t){
+    installed = null;
+    if (!t || !S.app || t !== S.app) return;
+    try {
+      const d = await gh('/user/installations', {}, t);
+      installed = (d.installations || []).length > 0;
+    } catch(_){ installed = null; }
+  }
+
   function place(){
     const slug = slugOf(name.value);
     $('tpath').textContent = 'github.com/' + (login || 'YOUR-ACCOUNT') + '/' + slug;
     const url = location.href.split('#')[0].split('?')[0] + '?circle=' + (login || 'YOUR-ACCOUNT') + '/' + slug;
+    // The name is asked after the account exists, not before: a form box whose answer cannot be checked yet is a
+    // question the page is asking itself.
+    const ready = !!login && installed !== false;
+    const s2 = $('step2'), s3 = $('step3'), sh = $('step2hint');
+    if (s2) s2.hidden = !ready;
+    if (s3) s3.hidden = !ready;
+    if (sh) sh.hidden = ready;
+    const ni = $('noinst'); if (ni) ni.hidden = installed !== false;
     const a = $('tlink'); a.textContent = url; a.href = url;
-    btn.disabled = !(login && current());
+    btn.disabled = !(ready && current());
   }
 
   let timer = null, myName = '';
@@ -1364,9 +1478,11 @@ function viewInstall(main){
       $('who').className = 'small';
       $('who').innerHTML = 'Signed in as <strong>@' + esc(login) + '</strong>' +
         (me.name ? ' — ' + esc(me.name) : '') + '. Is that you?';
+      await checkInstalled(t);
     } catch(e){
       $('who').className = 'err';
       $('who').textContent = 'That token could not be read: ' + e.message;
+      installed = null;
     }
     place();
   }
@@ -1382,10 +1498,10 @@ function viewInstall(main){
       if (!login){ await whoami(); if (!login) throw new Error('the token could not be read'); }
       // One retry, and only for a throttle: pressing again is exactly what a person does, and doing it for
       // them — while saying that is what is happening — is the difference between a hiccup and a dead end.
-      let made = false;
+      let made = false, created = null;
       for (let attempt = 1; attempt <= 2; attempt++){
         try {
-          await gh(`/repos/${TEMPLATE}/generate`, {method:'POST',
+          created = await gh(`/repos/${TEMPLATE}/generate`, {method:'POST',
             body:{owner:login, name:slug, private:true, description:'A circle. AIT reads it; the members live in it.'}}, t);
           made = true; break;
         } catch(err){
@@ -1398,8 +1514,25 @@ function viewInstall(main){
         }
       }
       if (!made) throw new Error('422 · the repository was not created');
+      // A repository that did not exist cannot have been ticked when the App was let in, so it is enrolled in the same
+      // installation that created it — one repository, the one the person just asked for. Without this the create
+      // succeeds and every read afterwards fails, and the page would have shown that as a circle with no members. It
+      // did, on 2026-11-16: a narrowed installation produced probe-circle and then could not read a byte of it.
+      const full = (created && created.full_name) || `${login}/${slug}`;
+      msg.textContent = 'letting AIT into the new repository…';
+      const enrolled = await enrolRepo(full, created && created.id, t);
+      if (!await canRead(full, t)){
+        // The founder's judgement on the paragraph that used to stand here: it explained the locked door and left the
+        // person holding nothing to do. So the circle goes into the list with the others, and the row itself carries
+        // the one action that opens it. Nothing is lost either way — the repository exists and is private.
+        setCircle(full, t, 'main');
+        S.need = S.need || {}; S.need[full] = 1; save();
+        flash('cflash', 'Made ' + full + ' — GitHub has not let AIT into it yet. The line beside it has the one thing to press.');
+        setView('connect');
+        return;
+      }
       msg.textContent = 'copied the machinery into it…';
-      setCircle(`${login}/${slug}`, t, 'main');
+      setCircle(full, t, 'main');
       // Stamp the template's sha into the new circle, so "what did this come from" is a fact in the repository
       // rather than a recollection. Best effort: a circle without the stamp still works, and saying so beats
       // failing an install that has already succeeded.
@@ -1437,7 +1570,10 @@ function explainInstallError(e, slug){
     return 'GitHub is throttling new repositories from this account — it says the request came too quickly, not '
       + 'that anything is wrong with the name. Nothing was created. Wait a minute and press Install again.';
   if (m.startsWith('401')) return 'GitHub did not accept that token. Copy it again — a token is shown once, and an expired one is the usual cause.';
-  if (m.startsWith('403')) return 'The token is real but not allowed to create a repository. It needs Repository creation (read and write) — and Contents. A classic token with the repo scope also works.';
+  if (m.startsWith('403')) return 'GitHub refused to create the repository: the sign-in is real, but not allowed to'
+    + ' do that. Two causes in practice — AIT is let into only some of your repositories, so it cannot make a new one'
+    + ' (at github.com/settings/installations, choose All repositories, then press Install again); or the token you'
+    + ' pasted lacks Repository creation and Contents, both read and write.';
   if (m.startsWith('422')) return `GitHub refused the name “${slug}”. You may already have a repository called that, or the name may not be allowed. Try another.`;
   if (m.startsWith('404')) return 'GitHub answered 404, which here usually means the token cannot see the template repository. Check that the token can read public repositories and that Repository creation is granted.';
   return m;
@@ -1492,17 +1628,42 @@ function viewConnect(main){
   const list = mine.length ? `<div class="card" style="margin-top:12px">
       <p class="small" style="margin:0 0 6px"><strong>Circles this browser has been in</strong> — one press switches,
       with the credential this browser already used for it.</p>
-      ${mine.map(([r, v]) => `<div class="row" style="justify-content:space-between;padding:6px 0">
+      ${mine.map(([r, v]) => {
+        const stuck = !!(S.need && S.need[r]);
+        return `<div class="row" style="justify-content:space-between;padding:6px 0">
         <button class="plain small" onclick="${r === S.repo ? `location.hash='#/today';render()` : `switchCircle('${escq(r)}')`}">${esc(r)}</button>
-        <span class="small muted">${r === S.repo ? 'the one this page opens · ' + opened(v) : opened(v)}
+        <span class="small${stuck ? '' : ' muted'}">${stuck
+          ? 'made, but GitHub has not let AIT into it — <a href="https://github.com/settings/installations" target="_blank" rel="noopener">tick it here</a>'
+          : (r === S.repo ? 'the one this page opens · ' + opened(v) : opened(v))}
           <button class="plain small" style="margin-left:8px;font-weight:400" title="forget it in this browser"
-            onclick="forgetCircle('${escq(r)}')">forget</button></span></div>`).join('')}
+            onclick="forgetCircle('${escq(r)}')">forget</button></span></div>`;
+      }).join('')}
     </div>` : '';
+  // Sign-in first, paste second. The App's token reaches the repositories a person granted and nothing else —
+  // narrower than any token they would make by hand for this job — and it is the only way for a second device to
+  // learn what the first one already knows without carrying a secret across.
+  const appBlock = !GH_APP ? '' : `
+    <div class="card" style="margin-bottom:12px">
+      <p class="small" style="margin:0 0 10px"><strong>Sign in with GitHub</strong> — this browser then lists every
+      circle that account has already given AIT access to. Nothing to paste, and on a second device the list is
+      simply there.</p>
+      <div class="row"><button class="primary" id="ghapp">${appTok() ? 'Look again' : 'Sign in with GitHub'}</button>
+      <span class="small muted" id="appmsg">${appTok() ? 'signed in — looking…' : ''}</span></div>
+      <div id="applist"></div>
+      <p class="small muted" style="margin:10px 0 0">The sign-in reaches the repositories you tick when GitHub asks
+      — no others, and narrower than a classic token, which can write everything you own. Change what it reaches at
+      any time at
+      <a href="https://github.com/settings/installations" target="_blank" rel="noopener">GitHub → Installations</a>.</p>
+    </div>`;
   main.innerHTML = `
     <p class="small"><a href="#/">← back</a></p>
     <h1>Connect a circle</h1>
-    <p class="lede">The repository it lives in, and a token that can see it.</p>
-    <div class="card">
+    <p class="lede">${GH_APP ? 'Sign in, then press the circle you want to open.' : 'The repository it lives in, and a token that can see it.'}</p>
+    <p class="small" id="cflash" style="margin:10px 0 0"></p>
+    ${appBlock}
+    ${GH_APP ? `<p class="small" style="margin:14px 0 0"><a href="#" id="usepaste">Or open a repository by name
+    and token</a> — the door that needs nothing of AIT's.</p>` : ''}
+    <div class="card" id="pastecard"${GH_APP ? ' hidden' : ''}>
       <label for="repo">Repository</label>
       <input id="repo" placeholder="your-name/your-circle" autocapitalize="off" autocorrect="off" spellcheck="false">
       <div id="ctokbox">
@@ -1511,12 +1672,14 @@ function viewConnect(main){
       <p class="small muted" style="margin-top:8px">A <strong>token</strong> is a password for this page, made at
       GitHub, which you can delete at any time. It is not your GitHub password, and it is kept in this browser and
       sent only to GitHub.</p>
-      <p class="small muted" style="margin-top:6px">Make a <strong>fine-grained</strong> token —
-      <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">new token</a>
-      — with three settings: <em>Repository access → Only select repositories</em>, and pick the one above;
-      <em>Permissions → Contents: Read and write</em>; <em>Permissions → Actions: Read and write</em>. That token
-      can reach one repository and nothing else. A classic token with <code>repo</code> also works and is one click
-      fewer — it can write to every repository you own, which is why it is not the recommendation.</p>
+      <p class="small muted" style="margin-top:6px">Make a <strong>classic</strong> token —
+      <a href="https://github.com/settings/tokens/new" target="_blank" rel="noopener">github.com/settings/tokens/new</a>
+      — and tick exactly two boxes: <strong>repo</strong> and <strong>workflow</strong>. Nothing else, and no
+      expiry date you have to remember. <strong>If you already keep repositories you care about</strong>, know this
+      now: a classic token can write to all of them. A fine-grained token can be held to the one above —
+      <a href="${MANUAL}#3a-using-a-token-instead-of-signing-in" target="_blank" rel="noopener">the manual walks
+      through it in five steps</a>. Either kind stays in this browser, goes nowhere but GitHub, and is deleted at
+      github.com whenever you like.</p>
       </div>
       <p class="small muted" id="tokheld" hidden style="margin-top:8px"></p>
       <div class="row" style="margin-top:10px"><button class="primary" id="go">Connect</button>
@@ -1535,6 +1698,64 @@ or <a href="#/today" onclick="WANT='';WANT_WHY='';return true;">stay in ${esc(S.
     </div>`;
 
   $('repo').value = want || S.repo || '';
+
+  if (GH_APP){
+    const ghb = $('ghapp');
+    if (ghb) ghb.onclick = () => { if (appTok()) paintApp(); else signInApp('connect'); };
+    const up = $('usepaste');
+    if (up) up.onclick = (e) => {
+      e.preventDefault();
+      const c = $('pastecard'); if (c) c.hidden = false;
+      up.hidden = true;
+      const r = $('repo'); if (r) r.focus();
+    };
+    if (appTok()) paintApp();
+  }
+  // A link to a circle this browser cannot open is the one case where the token box must be on screen without being
+  // asked for: the reason GitHub gave is useless without a way to answer it.
+  if (WANT && $('pastecard')) $('pastecard').hidden = false;
+
+  // The list the whole change is about. Asked of GitHub every time rather than remembered, because the grant can
+  // be narrowed at github.com between one visit and the next, and a list that lies about what is still open is
+  // worse than a list that takes a second.
+  async function paintApp(){
+    const box = $('applist'), msg = $('appmsg');
+    if (!box || !msg) return;
+    msg.className = 'small muted';
+    msg.textContent = 'asking GitHub which circles this account can open…';
+    box.innerHTML = '';
+    try {
+      const repos = await appRepos(appTok());
+      if (!repos.length){
+        msg.innerHTML = 'This account has not given AIT access to a repository yet. ' +
+          `<a href="https://github.com/apps/${GH_APP_SLUG}/installations/new" target="_blank" rel="noopener">Install it</a>, choose <strong>All repositories</strong>, and come back to this page.`;
+        return;
+      }
+      const circles = [];
+      for (const r of repos){ if (await isCircle(r.full_name, appTok())) circles.push(r); }
+      // What GitHub says now outranks what this browser wrote down earlier. A mark left by an install that could not
+      // read its own repository must not survive the permission being granted at github.com — otherwise one screen
+      // shows two answers to one question, which is what he saw on 2026-11-16: four circles openable above, two of
+      // them still labelled "not let in" below.
+      if (S.need){
+        let cleared = false;
+        for (const r of circles){ if (S.need[r.full_name]){ delete S.need[r.full_name]; cleared = true; } }
+        if (cleared){ save(); render(); return; }
+      }
+      if (!circles.length){
+        msg.textContent = 'Signed in. None of the ' + repos.length + ' repositories it reaches is a circle.';
+        return;
+      }
+      msg.innerHTML = `<strong>${circles.length} ${circles.length === 1 ? 'circle' : 'circles'}</strong> this GitHub account can open:`;
+      box.innerHTML = '' +
+        circles.map(r => `<div class="row" style="justify-content:space-between;padding:6px 0">
+          <button class="plain small" onclick="openAppCircle('${escq(r.full_name)}','${escq(r.default_branch || 'main')}')">${esc(r.full_name)}</button>
+          <span class="small muted">${S.repo === r.full_name ? 'the one this page opens' : (r.private ? 'private' : 'public')}</span></div>`).join('');
+    } catch(e){
+      msg.className = 'err';
+      msg.textContent = 'GitHub would not answer: ' + e.message;
+    }
+  }
   // What the box already knows. The founder's question, twice: the page can answer "which credential" before
   // anybody presses anything, so it should say so rather than wait to be told twice — and where it holds one, it
   // should not show a token field and an explanation of what a token is at all. He is right that a page carrying a
@@ -1622,6 +1843,7 @@ async function switchCircle(repo){
   try {
     const info = await gh(`/repos/${repo}`, {}, t);
     setCircle(repo, t, info.default_branch || 'main');
+    if (S.need && S.need[repo]){ delete S.need[repo]; save(); }
     noteVisibility(info);
     try { history.replaceState(null, '', location.pathname + '?circle=' + repo); } catch(_){}
     WANT = ''; WANT_WHY = '';
@@ -4755,39 +4977,37 @@ window.addEventListener('hashchange', () => render());
       if (saved) want = saved.split('.')[0];
       sessionStorage.removeItem('ait.state');
     } catch(_){}
+    let wasApp = false;
+    try { wasApp = sessionStorage.getItem('ait.app') === '1'; sessionStorage.removeItem('ait.app'); } catch(_){}
     q.delete('state');
     try { history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString() : '')); } catch(_){}
     // One code, one exchange. A code is single-use and dies in ten minutes, so a second document loading this same
-    // URL — Chrome restoring tabs does it, and the founder's own screenshot has the "restore your tabs" banner in
-    // it — posts the same code twice and the loser is told `bad_verification_code`. That is the popup he reported on
-    // 2026-11-18: press OK, press "Connect to GitHub" again, and it works, because the second code is fresh.
-    //
-    // Two rules fix it without a popup. The code is claimed in sessionStorage before it is sent, so a second load of
-    // the same URL does nothing at all. And if the claim was ours and GitHub still refuses, the page goes back to
-    // GitHub by itself, once, instead of showing a dialog a person has to dismiss — the round trip is silent when
-    // you are already signed in, and a second failure falls through to the connect page with a sentence.
+    // URL — Chrome restoring tabs does it — posts the same code twice, and the loser is told
+    // `bad_verification_code`. That is the popup the founder reported on 2026-11-18: press OK, press "Connect to
+    // GitHub" again, and it works, because the second code is fresh. The code is claimed here before it is sent,
+    // so a second load of the same URL does nothing; and a genuine already-used refusal goes back to GitHub by
+    // itself once instead of showing a dialog a person has to dismiss.
     let claimed = '';
     try { claimed = sessionStorage.getItem('ait.code') || ''; } catch(_){}
-    const claim = (v) => { try { sessionStorage.setItem('ait.code', v); } catch(_){} };
     if (claimed === code){
       // another load of this document is exchanging it, or already has; say nothing and let it finish
     } else {
-      claim(code);
+      try { sessionStorage.setItem('ait.code', code); } catch(_){}
       try {
         const r = await fetch(FN('auth'), {method:'POST', headers:{'content-type':'application/json'},
-                                           body: JSON.stringify({code})});
+                                           body: JSON.stringify({code, app: wasApp})});
         const d = await r.json();
         if (!d.access_token) throw new Error(d.error || 'GitHub sent no token');
         OAUTH = d.access_token;
-        try { sessionStorage.removeItem('ait.code'); } catch(_){}
-        try { sessionStorage.removeItem('ait.retried'); } catch(_){}
+        if (wasApp){ S.app = OAUTH; save(); }
+        try { sessionStorage.removeItem('ait.code'); sessionStorage.removeItem('ait.retried'); } catch(_){}
         location.hash = '#/' + want;
       } catch(e){
         let tried = '';
         try { tried = sessionStorage.getItem('ait.retried') || ''; } catch(_){}
         if (/bad_verification_code|already been used|expired/i.test(String(e.message)) && !tried){
           try { sessionStorage.setItem('ait.retried', '1'); } catch(_){}
-          signIn(want);            // a fresh code, without the dialog
+          if (wasApp) signInApp(want); else signIn(want);
           return;
         }
         location.hash = '#/install';
