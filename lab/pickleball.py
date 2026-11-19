@@ -56,6 +56,54 @@ from tennis import (  # noqa: E402  the twelve, not a thirteenth copy
     vendors_of, volley_contact, wind_at, wind_vector,
 )
 
+def volley_carry(p: Player, here, vol: dict, vel: tuple[float, float]) -> tuple[tuple[float, float],
+                                                                               tuple[float, float]]:
+    """Where a volley leaves the body, and how fast it was still going when the paddle met the ball.
+
+    The rule is the sport's: a player who volleys from behind the kitchen line and is **carried into the kitchen
+    by the momentum of the shot** has faulted, even though the ball is already dead. The engine used to encode
+    that as a flat 1.5 ft step, applied to every volley taken within 2 ft of the line and to nothing else — which
+    made *standing in a place* the offence and a lunge at full stretch innocent. §5f found the cost: a learner
+    that walks to the line settles at 1 ft, and the rulebook calls that a fault while this engine's scoreline does
+    not, and there was no way to tell which of the two was wrong.
+
+    So the body gets a velocity instead of a place. Two movements add: the walk that has not finished (`vel`, which
+    `Positions.move_toward` records and clears when the player arrives), and the step to the ball — `vol['step']`
+    feet in `vol['t']` seconds, which is the lunge. Their sum is capped at what the legs can do, and the body then
+    brakes at `A_STOP` until it is standing. The distance it takes to stop is the whole of the rule:
+
+        carry = v² / (2 · A_STOP)
+
+    A player standing still at 1 ft who takes a ball that comes to them is not carried anywhere, because they are
+    not moving: that is what a foot path does that a stance could not. A player who arrives at the ball while
+    still walking to the line is carried by however much of that walk was left. The return is (stop, velocity).
+    """
+    speed = movement_speed(p)
+    # The step to the ball is **not** counted as speed, and the first version that did was wrong in a way worth
+    # writing down: it divided the step by the time from the ball's strike to the contact, which for a fast ball
+    # is a tenth of a second, so a one-foot step came out at ten feet per second and every volley in the game was
+    # bowled into the kitchen (measured: contact speed 17.8 ft/s, the cap, at every stance). A lunge is a plant,
+    # not a glide — you push off a foot and reach, and the body's momentum at a lunge is small. So the momentum is
+    # the walk that has not finished, which the engine now tracks, and nothing invented from geometry.
+    vx, vy = vel[0], vel[1]
+    v = math.hypot(vx, vy)
+    if v > speed:                                  # the legs, not the arithmetic, are the limit
+        vx, vy = vx * speed / v, vy * speed / v
+        v = speed
+    if v <= 1e-9:
+        return (vol["feet"][0], vol["feet"][1]), (0.0, 0.0)
+    carry_ft = v * v / (2.0 * A_STOP)
+    stop = (vol["feet"][0] + vx / v * carry_ft, vol["feet"][1] + vy / v * carry_ft)
+    # a body cannot be carried through the net: the stride ends against it, and that is where the rule stops
+    # caring, because a player inside the kitchen has already faulted. Never *backwards*, though — a player
+    # already at the net is stopped by it where they stand, not pushed away from it.
+    if p.north:
+        stop = (max(vol["feet"][0], min(stop[0], NET_X - 0.5)), stop[1])
+    else:
+        stop = (min(vol["feet"][0], max(stop[0], NET_X + 0.5)), stop[1])
+    return stop, (vx, vy)
+
+
 # ---- the court, in feet ---------------------------------------------------------------------------
 LENGTH, WIDTH = 44.0, 20.0
 NET_X = LENGTH / 2                       # 22 ft, and the court is 20 ft wide
@@ -75,6 +123,19 @@ WIND_CAP = 12.0                          # mph. The clock's own wind rule runs t
                                          # reaches 49.5 ft in still air, 35.6 ft into a 12 mph headwind, and
                                          # 27.5 ft into 20 mph — short of the kitchen line, so no legal serve
                                          # exists at all. Capped, and the cap is printed with the session.
+A_STOP = 32.0                            # ft/s2. How hard a player brakes once the ball has left the paddle.
+                                         # A landing/plant, not a jog-down: two feet planted stop a body from a
+                                         # 12mph run in about 1.5ft, which is a split step and is what the good
+                                         # player does before a volley. A **declared guess** — the second in this
+                                         # file after STRETCH_PENALTY — A/B'd in §5g. What it replaced was not a
+                                         # guess but a fiction: a flat 1.5 ft carry applied to every volley taken
+                                         # within 2 ft of the line, whatever the player was doing (page §5f: it
+                                         # made a stance, rather than a movement, the offence).
+WALK_SHARE = 0.6                         # of movement_speed: repositioning between shots is a jog, not a
+                                         # sprint. Without it every volley is thrown into the kitchen, because a
+                                         # player who walks to their stance at 12mph is carried 3.8ft by the
+                                         # split step and the game has no volley in it — which is the same class
+                                         # of defect as the old 1.5 ft carry, with the sign reversed.
 STRETCH_PENALTY = 0.55                   # how much of the player's control a full-extension contact costs. Not
                                          # measured against anything yet: it is the one number in this file that is
                                          # a guess, and the page says so. A/B'd against 0.0 in §5d.
@@ -479,6 +540,7 @@ class Positions:
     at: dict[str, tuple[float, float]] = field(default_factory=dict)
     approach: dict[str, float] = field(default_factory=dict)
     stretch: dict[str, float] = field(default_factory=dict)
+    vel: dict[str, tuple[float, float]] = field(default_factory=dict)
 
     def approach_of(self, p: Player) -> float:
         return self.approach.setdefault(p.name, APPROACH_DEFAULT)
@@ -498,14 +560,24 @@ class Positions:
         return self.at.setdefault(p.name, self.home(p))
 
     def move_toward(self, p: Player, target: tuple[float, float], seconds: float) -> tuple[float, float]:
+        """Walk, and remember whether the walk finished. A player who has arrived has stopped; a player who has
+        run out of time is still going, at `movement_speed`, and that residual is what the momentum rule reads:
+        the kitchen is a rule about a moving body, so the engine has to know which bodies are moving."""
         x, y = self.get(p)
         dx, dy = target[0] - x, target[1] - y
         d = math.hypot(dx, dy)
-        step = min(d, movement_speed(p) * max(0.0, seconds))
+        reach = movement_speed(p) * WALK_SHARE * max(0.0, seconds)
+        step = min(d, reach)
         if d > 1e-9:
             x, y = x + dx / d * step, y + dy / d * step
         self.at[p.name] = (x, y)
+        left = d - step
+        jog = movement_speed(p) * WALK_SHARE
+        self.vel[p.name] = ((dx / d * jog, dy / d * jog) if d > 1e-9 and left > 0.25 else (0.0, 0.0))
         return self.at[p.name]
+
+    def velocity_of(self, p: Player) -> tuple[float, float]:
+        return self.vel.setdefault(p.name, (0.0, 0.0))
 
 
 def play_rally(match: Match, players: dict[str, Player], pos: "Positions", choose, surface: str,
@@ -620,17 +692,26 @@ def play_rally(match: Match, players: dict[str, Player], pos: "Positions", choos
             gap = pos.approach_of(rp)
             want_x = line_x - gap if rp.north else line_x + gap
             pos.move_toward(rp, (want_x, pos.get(rp)[1]), spare)
-        # the volley's momentum: the rules say a player carried into the kitchen after a volley has faulted,
-        # even though the ball is already dead. Adjudicated on the position the follow-through leaves them in.
-        if shot_kind == "volley" and 0 < feet_from_kitchen_line(contact_pos[0]) <= 2.0:
-            carried = contact_pos[0] + (1.5 if p.north else -1.5)
-            pos.at[p.name] = (carried, contact_pos[1])
-            if in_kitchen(carried):
+        # the volley's momentum, from the body's own velocity rather than from where it is standing. The body
+        # comes to rest at `stop`, and that is where it stands for the next shot — a carry of two feet is two
+        # feet of ground it has to win back before it can volley again. The fault is the stop being inside the
+        # kitchen: the rulebook's "carried in by the momentum of the shot", with the momentum computed.
+        if shot_kind == "volley":
+            stop, v = volley_carry(p, here, vol, pos.velocity_of(p))
+            pos.at[p.name] = stop
+            pos.vel[p.name] = (0.0, 0.0)           # the player is standing still when they stop
+            if stop != (contact_pos[0], contact_pos[1]):
+                say(f"       -- {p.name} is carried {math.hypot(stop[0] - contact_pos[0], stop[1] - contact_pos[1]):.1f}ft "
+                    f"by the volley (leaving the paddle at {math.hypot(*v):.1f}ft/s, braking at {A_STOP:.0f}ft/s2), "
+                    f"and stops {abs(stop[0] - NET_X):.1f}ft from the net")
+            if in_kitchen(stop[0]):
                 say(f"       -- fault: {p.name} was carried into the kitchen by the volley's momentum "
-                    f"({abs(carried - NET_X):.1f}ft from the net, inside the {KITCHEN:.0f}ft line) — "
+                    f"({abs(stop[0] - NET_X):.1f}ft from the net, inside the {KITCHEN:.0f}ft line) — "
                     f"the ball was already dead")
                 return {"shots": shot_no, "why": "momentum", "fault_by": hitter_team, "fault_name": p.name,
-                        "fault_at": (round(contact_pos[0], 2), round(contact_pos[1], 2)),
+                        "fault_at": (round(stop[0], 2), round(stop[1], 2)),
+                        "at_contact": (round(contact_pos[0], 2), round(contact_pos[1], 2)),
+                        "contact_speed": round(math.hypot(*v), 2),
                         "winner": 1 - hitter_team}
         # The hitter's own move, and the same rule as the receiver's: a player who is not hitting is walking to
         # their stance. The budget is this shot's own flight time — the time before the ball can possibly come
