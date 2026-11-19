@@ -77,6 +77,23 @@ ROUGH_SPEED = 0.88               # ball speed from rough, as a fraction of the s
 ROUGH_LOSS = 0.20                # what that plus the lost roll comes to in distance, which is what the
 #                                  athlete is told it costs: measured at 0.198-0.213 across three clubs
 
+# Sand, the second lie, and the first one added for a reason other than itself: pass 4 put a bunker beside
+# the green to see whether a miss with a *direction* changes where a player should aim. Same shape as the
+# rough — a fraction of ball speed, a restitution `flight` already takes, one number for the distance — and
+# deliberately no fourth thing: no lip to carry, no plugged lie, no spin killed dead. What is not modelled
+# turns out to be the whole of a bunker, and the selftest says so rather than this comment.
+SAND_SPEED = 0.70                # ball speed from sand, as a fraction of the same swing off grass
+SAND_LOSS = 0.45                 # what that comes to in total distance, measured (selftest) then told
+SAND_E = 0.30                    # restitution: sand halves the run-out (9.8 yd against 17.3)
+SAND_PEN = 0.30                  # the athlete's price for a ball in the sand, in strokes. *Measured*, not
+#                                  guessed: 21 ft from the hole in sand takes 2.15-2.47 strokes against 2.00
+#                                  from 19 ft on the green, the band coming from how settled the notebook is,
+#                                  recovery aimed at the flag. The first version used 1.0 — a guess, one number
+#                                  in the athlete's head and nowhere else — and it moved the target decision
+#                                  by 0.9 strokes a round at ±14 ft pins. That is the rough coefficient's
+#                                  lesson in a new place: an invented price in the player is as fatal as an
+#                                  invented price in the world.
+
 # What the turf keeps of the ball's horizontal speed at the first bounce, and how fast a rolling ball
 # stops. The second is putt's own law, so a stimp reading means the same thing in both games; the first
 # is a single prior chosen so a driver runs out about 20 yd and a 7-iron about 10.
@@ -143,6 +160,11 @@ def aero(club: Club, speed_ft_s: float) -> tuple[float, float]:
     return cl, 0.5 * RHO * cd * BALL_AREA / BALL_MASS
 
 
+# What each lie takes off the swing, as a fraction of ball speed. One table, so a lie cannot be added to the
+# game and forgotten in the physics.
+LIE_SPEED = {"fairway": 1.0, "rough": ROUGH_SPEED, "sand": SAND_SPEED}
+
+
 # ---- one shot ---------------------------------------------------------------------------------------
 def shot(start: tuple[float, float], club: Club, effort: float, aim: float,
          lie: str = "fairway", wind: tuple[float, float] = (0.0, 0.0),
@@ -153,8 +175,9 @@ def shot(start: tuple[float, float], club: Club, effort: float, aim: float,
     that a launch monitor cannot argue with. `aim` is the bearing the ball leaves on. The rest point is
     where a spectator would walk to.
     """
-    surf = surface or {"fairway": {"e": 0.4, "f": 1.0}, "rough": {"e": 0.3, "f": 1.0}}
-    speed = club.speed_mph * MPH * effort * (ROUGH_SPEED if lie == "rough" else 1.0)
+    surf = surface or {"fairway": {"e": 0.4, "f": 1.0}, "rough": {"e": 0.3, "f": 1.0},
+                       "sand": {"e": SAND_E, "f": 1.0}}
+    speed = club.speed_mph * MPH * effort * LIE_SPEED.get(lie, 1.0)
     cl, drag = aero(club, speed)
     a = math.radians(aim)
     v0 = (speed * math.cos(math.radians(club.launch)) * math.sin(a),
@@ -169,7 +192,7 @@ def shot(start: tuple[float, float], club: Club, effort: float, aim: float,
     bx, by, _ = out["bounce"]["v"]
     vh = math.hypot(bx, by)
     ux, uy = (bx / vh, by / vh) if vh > 1e-9 else (math.sin(a), math.cos(a))
-    stimp = STIMP_FAIRWAY if lie != "rough" else STIMP_ROUGH
+    stimp = STIMP_ROUGH if lie in ("rough", "sand") else STIMP_FAIRWAY
     a_roll = STIMPMETER_SPEED ** 2 / (2.0 * stimp)
     roll = (ROLL_RETAIN * vh) ** 2 / (2.0 * a_roll)
     carry = math.hypot(land[0] - start[0], land[1] - start[1])
@@ -187,6 +210,8 @@ class Hole:
     label: str = ""
     pin: float = 0.0                 # ft the flag is cut right of the green's centre; negative is left
     wind: tuple[float, float] = (0.0, 0.0)      # (bearing the wind blows FROM, mph)
+    sand: int = 0                    # +1 the bunker guards the right of the green, −1 the left, 0 none
+                                     # (it stays where the greenkeeper put it: the pin moves, the sand does not)
 
     @property
     def flag(self) -> tuple[float, float]:
@@ -200,23 +225,26 @@ class Hole:
 # Nine holes with the flag cut where a greenkeeper cuts it — four of them within a club's length of the
 # green's edge — and a wind on every one. The wind is what the athlete can read and does not model; the pin
 # is what it can see and must decide about.
-COURSE = [Hole(410, 4, "1", pin=+13, wind=(200, 14)),
-          Hole(165, 3, "2", pin=-11, wind=(5, 12)),
-          Hole(520, 5, "3", pin=+4, wind=(180, 15)),
-          Hole(300, 4, "4", pin=-14, wind=(250, 10)),
-          Hole(145, 3, "5", pin=+12, wind=(90, 16)),
-          Hole(385, 4, "6", pin=-3, wind=(355, 9)),
-          Hole(95, 3, "7", pin=-13, wind=(225, 12)),
-          Hole(450, 4, "8", pin=+11, wind=(170, 18)),
-          Hole(500, 5, "9", pin=-9, wind=(330, 10))]
-HELD_OUT = [Hole(130, 3, "H1", pin=+12, wind=(20, 11)),
-            Hole(375, 4, "H2", pin=-10, wind=(190, 14)),
-            Hole(480, 5, "H3", pin=+6, wind=(0, 13)),
-            Hole(190, 3, "H4", pin=-12, wind=(270, 9)),
-            Hole(340, 4, "H5", pin=+2, wind=(150, 12)),
-            Hole(90, 3, "H6", pin=-11, wind=(30, 10))]
+# Six of the nine have sand on one flank and three have none, three a side, so "the pin is cut toward the
+# sand" and "the pin is cut away from it" are both samples and neither is the special case. The bunkers do
+# not move with the pin: that is the whole point of them here.
+COURSE = [Hole(410, 4, "1", pin=+13, wind=(200, 14), sand=+1),
+          Hole(165, 3, "2", pin=-11, wind=(5, 12), sand=-1),
+          Hole(520, 5, "3", pin=+4, wind=(180, 15), sand=0),
+          Hole(300, 4, "4", pin=-14, wind=(250, 10), sand=+1),
+          Hole(145, 3, "5", pin=+12, wind=(90, 16), sand=0),
+          Hole(385, 4, "6", pin=-3, wind=(355, 9), sand=-1),
+          Hole(95, 3, "7", pin=-13, wind=(225, 12), sand=+1),
+          Hole(450, 4, "8", pin=+11, wind=(170, 18), sand=-1),
+          Hole(500, 5, "9", pin=-9, wind=(330, 10), sand=0)]
+HELD_OUT = [Hole(130, 3, "H1", pin=+12, wind=(20, 11), sand=+1),
+            Hole(375, 4, "H2", pin=-10, wind=(190, 14), sand=0),
+            Hole(480, 5, "H3", pin=+6, wind=(0, 13), sand=-1),
+            Hole(190, 3, "H4", pin=-12, wind=(270, 9), sand=+1),
+            Hole(340, 4, "H5", pin=+2, wind=(150, 12), sand=0),
+            Hole(90, 3, "H6", pin=-11, wind=(30, 10), sand=-1)]
 
-CALM = [(h.yards, h.par, h.label, h.pin, (0.0, 0.0)) for h in COURSE]
+CALM = [(h.yards, h.par, h.label, h.pin, (0.0, 0.0), h.sand) for h in COURSE]
 
 
 def drawn_course(rng: random.Random, pin_range: float = 14.0, calm: bool = False) -> list[Hole]:
@@ -229,7 +257,8 @@ def drawn_course(rng: random.Random, pin_range: float = 14.0, calm: bool = False
     middle 28 ft of the green, the air from any bearing at 8 to 18 mph.
     """
     return [Hole(h.yards, h.par, h.label, pin=rng.uniform(-pin_range, pin_range),
-                 wind=(0.0, 0.0) if calm else (rng.uniform(0.0, 360.0), rng.uniform(8.0, 18.0)))
+                 wind=(0.0, 0.0) if calm else (rng.uniform(0.0, 360.0), rng.uniform(8.0, 18.0)),
+                 sand=h.sand)
             for h in COURSE]
 
 
@@ -247,8 +276,16 @@ ROUGH_EDGE = 35.0 * FT_PER_YD      # beyond this the ball is in the trees: a str
 # second decision: a flag cut 13 ft from the edge of a 40 ft-wide green is a pin you can aim at or a pin you
 # can play away from, and the two are different scores. At a circle centred on the flag the choice does not
 # exist, because the flag is the safest place on the green.
+# ---- the sand, the first thing in this file that could make a miss directional ----------------------
+# On an ellipse every miss is the same kind of miss: short, long, left and right all cost roughly the same,
+# so "aim at the middle of the green" is a coherent instruction and the pin's distance from that middle is
+# the only thing a player has to weigh. Put a bunker on one flank and that should stop being true: the same
+# fourteen feet of miss is a putt on one side and sand on the other. That was the hypothesis of pass 4, and
+# the selftest is where it is tested — the answer is that it does not stop being true, and the reason is
+# that a bunker without a lip is a slow lie rather than an obstacle.
 GREEN_A = 20.0                     # ft, half the green's width
 GREEN_B = 28.0                     # ft, half its depth
+BUNKER_W = 14.0                    # ft of sand outside the green's edge on its guarded side
 STROKE_CAP = 12
 # The putter is for the green and nothing else. A Texas wedge from off the edge was tried (2026-11-19) and
 # turned every fringe into a two-putt, which is not golf either.
@@ -261,7 +298,26 @@ def on_green(point: tuple[float, float], hole: Hole) -> bool:
     return dx * dx + dy * dy <= 1.0
 
 
-def lie_at(point: tuple[float, float]) -> str:
+def in_sand(point: tuple[float, float], hole: Hole) -> bool:
+    """A band of sand along one flank of the green, as deep as the green is. Not a ring round it: a ring
+    would guard every side and the pin would stop mattering, which is the one thing this addition has to
+    leave alone."""
+    if not hole.sand:
+        return False
+    dx = point[0] - hole.centre[0]
+    dy = abs(point[1] - hole.centre[1])
+    if dy > GREEN_B:
+        return False
+    if hole.sand > 0:
+        return GREEN_A < dx <= GREEN_A + BUNKER_W
+    return -GREEN_A - BUNKER_W <= dx < -GREEN_A
+
+
+def lie_at(point: tuple[float, float], hole: Hole) -> str:
+    if on_green(point, hole):
+        return "green"
+    if in_sand(point, hole):
+        return "sand"
     off = abs(point[0])
     if off <= FAIRWAY_HALF:
         return "fairway"
@@ -338,6 +394,7 @@ class Athlete:
         self.cnd_pairs: list[tuple[float, float]] = []      # (head fraction, how short the shot came back)
         self.wind_c = 0.0                                  # how much wind takes off; learned from zero
         self.rough_cost = ROUGH_LOSS                       # what the rough costs; told, not learned
+        self.sand_pen = SAND_PEN                           # what a ball in the sand is worth, in strokes
         self.policy = "spread"                             # "flag", "centre" or "spread"
 
     def predict(self, name: str, gear: float) -> float:
@@ -415,10 +472,18 @@ class Athlete:
             flag     aim at the pin, wherever it is cut.
             centre   aim at the middle of the green, which is what a caddie says.
             spread   aim where the chance of a putt is best, using the scatter it has measured:
-                     P(on the green) + 0.3 · P(on the green and inside 25 ft). The weights are the athlete's.
+                     P(on the green) + 0.3 · P(on the green and inside 25 ft), less SAND_PEN ·
+                     P(in the sand). The weights are the athlete's.
 
         Nothing here is learning. It is what the learned numbers are *for* — a player who knows how much it
         misses by can spend that knowledge on a target, and a player who does not can only hope.
+
+        The sand term is what pass 4 is about. It is not a refinement of the other two: on a green with no
+        bunker, "the middle" is a good answer that any caddie would give, and `centre` is a fair opponent.
+        Put fourteen feet of sand on one flank and the same fourteen feet of miss costs a stroke on that
+        side and nothing on the other, so the best target is no longer the middle of the green and no
+        longer the pin: it is somewhere the player would have to compute. `centre` does not know this and
+        `flag` does not know it either, which is the point — one policy can see the bunker and two cannot.
         """
         if self.policy == "flag":
             return hole.pin
@@ -430,7 +495,12 @@ class Athlete:
             t = float(k)
             p_on = _phi((GREEN_A - t) / s) - _phi((-GREEN_A - t) / s)
             p_near = _phi((hole.pin + 25.0 - t) / s) - _phi((hole.pin - 25.0 - t) / s)
-            value = p_on + 0.3 * max(0.0, p_near)
+            p_sand = 0.0
+            if hole.sand > 0:
+                p_sand = _phi((GREEN_A + BUNKER_W - t) / s) - _phi((GREEN_A - t) / s)
+            elif hole.sand < 0:
+                p_sand = _phi((-GREEN_A - t) / s) - _phi((-GREEN_A - BUNKER_W - t) / s)
+            value = p_on + 0.3 * max(0.0, p_near) - self.sand_pen * p_sand
             if best is None or value > best[0]:
                 best = (value, t)
         return best[1]
@@ -466,36 +536,74 @@ def report_shot(start: tuple[float, float], rest: tuple[float, float],
 def play_hole(hole: Hole, ath: Athlete, putter: PuttAthlete, green: Green,
               learn: bool = True, verbose: bool = True, wind: tuple[float, float] | None = None,
               tag: str = "", rng: random.Random | None = None) -> dict:
+    """One hole, one loop.
+
+    It was two loops until this pass — shots, then putts — and putting a bunker beside the green broke that:
+    a putt that runs off the edge and stops in the sand cannot be putted again, so the game has to come back
+    out of the putter and into a club. One loop decides, for every stroke, whether this ball gets a putter or
+    a club, which is a decision a golfer makes and a phase boundary does not. A ball on the fringe it putted
+    itself onto still gets the putter (a Texas wedge is legal golf); a ball in the sand never does.
+    """
     rng = rng or random.Random(DEFAULT_SEED)
     wind = hole.wind if wind is None else wind
     wx, wy = wind_vector(wind)
     flag = hole.flag
     ball = (0.0, 0.0)
-    strokes, log = 0, []
-    penalties = 0
-    while True:
-        dist_ft = math.hypot(flag[0] - ball[0], flag[1] - ball[1])
-        if on_green(ball, hole) or math.hypot(flag[0] - ball[0], flag[1] - ball[1]) <= PUTT_ZONE \
-                or strokes >= STROKE_CAP:
+    strokes, putts, penalties = 0, 0, 0
+    log: list[dict] = []
+    holed, last_putt = False, False
+    while strokes < STROKE_CAP:
+        gap_ft = math.hypot(flag[0] - ball[0], flag[1] - ball[1])
+        if gap_ft <= 2.125 / 12.0:        # the hole is 4.25 in across; a ball in it is in it, and putt.py
+            holed = True                   # never has to be asked, because a putt never starts there
+            if verbose and last_putt is False and strokes:
+                print(f"  {tag}{hole.label:>3} {'':>4} {'':>12} in the hole, no putt needed")
             break
-        lie = "fairway" if ball == (0.0, 0.0) else lie_at(ball)
+        lie = "fairway" if ball == (0.0, 0.0) else lie_at(ball, hole)
+
+        # ---- the putter -------------------------------------------------------------------------
+        if (lie == "green" or gap_ft <= PUTT_ZONE or (last_putt and lie not in ("sand", "trees"))) \
+                and putts < 4:
+            bearing = bearing_to(ball, flag)
+            r = putt_attempt(putter, PuttHole(gap_ft, bearing), green, learn=learn)
+            putts += 1
+            strokes += 1
+            last_putt = True
+            if r["holed"]:
+                holed = True
+                if verbose:
+                    print(f"  {tag}{hole.label:>3} {'':>4} {'':>12} putt        {gap_ft:5.1f} ft  "
+                          f"{r['text']}  ({putts} putt{'s' if putts > 1 else ''})")
+                break
+            # putt's report is in the hole's own frame: past is + along the line it was hit on, right is +.
+            ux, uy = flag[0] - ball[0], flag[1] - ball[1]
+            d = math.hypot(ux, uy) or 1.0
+            ux, uy = ux / d, uy / d
+            ball = (flag[0] + r["along"] * ux + r["lateral"] * uy,
+                    flag[1] + r["along"] * uy - r["lateral"] * ux)
+            if verbose:
+                print(f"  {tag}{hole.label:>3} {'':>4} {'':>12} putt        {gap_ft:5.1f} ft  {r['text']}")
+            continue
+
+        # ---- a club -----------------------------------------------------------------------------
         if lie == "trees":
             strokes += 1
             penalties += 1
             ball = (math.copysign(ROUGH_EDGE, ball[0]), ball[1])
             log.append(dict(kind="penalty", text="in the trees: one stroke, dropped at the edge of the rough"))
-            lie = "rough"
             continue
-        # where to aim, and how the air is going to change the number the notebook gives
-        offset = ath.target(hole, ball, dist_ft)
+        # where to aim, and how much the air and the lie are going to change the number the notebook gives.
+        # The sand costs most of the distance, and it also costs the pin: `target()` will not aim onto it.
+        offset = ath.target(hole, ball, gap_ft)
         tx, ty = hole.centre[0] + offset, hole.centre[1]
         aim_bearing = bearing_to(ball, (tx, ty))
         ux = math.sin(math.radians(aim_bearing))
         uy = math.cos(math.radians(aim_bearing))
         head = -(wx * ux + wy * uy) / WIND_REF_SPEED        # positive into the wind
         cross = (wx * uy - wy * ux) / WIND_REF_SPEED        # positive: blowing across to the right
-        cost = 1.0 - ath.wind_c * head - (ath.rough_cost if lie == "rough" else 0.0)
-        club, gear = ath.choose(dist_ft / FT_PER_YD / max(0.5, cost))
+        lie_cost = ath.rough_cost if lie == "rough" else (SAND_LOSS if lie == "sand" else 0.0)
+        cost = 1.0 - ath.wind_c * head - lie_cost
+        club, gear = ath.choose(gap_ft / FT_PER_YD / max(0.5, cost))
         predicted = ath.predict(club.name, gear)
         aim_used = ath.aim_offset(cross)
         aim = aim_bearing + aim_used + ath.face + rng.gauss(0.0, FACE_SD)
@@ -505,19 +613,21 @@ def play_hole(hole: Hole, ath: Athlete, putter: PuttAthlete, green: Green,
         rest = (max(-ROUGH_EDGE * 1.4, min(ROUGH_EDGE * 1.4, rest[0])), rest[1])  # the course ends somewhere
         along, lateral = report_shot(ball, rest, flag)
         strokes += 1
+        last_putt = False
         measured = yards_between(ball, rest)
         if learn:
-            # the notebook only ever learns from fairway — a number taken off a rough lie is not a number —
-            # but the conditions are learned from every shot, because that is where their evidence is.
-            # Only from shots whose notebook entry is already settled: a rough lie is where a mis-clubbed
-            # ball ends up, so an unsettled entry would be blamed on the grass or on the air.
-            if ath.n[club.name][gear] >= 4:
-                ath.observe_conditions(head, measured / max(1.0, predicted))
+            # The notebook only ever learns from fairway — a number taken off rough or sand is not a number —
+            # and so do the conditions, for the same reason: a ball that comes back 45% short out of sand
+            # tells the athlete nothing about the wind, and a coefficient fitted through it would learn a
+            # headwind that was a bunker. That is the same error as the rough coefficient that came out at
+            # 0.46 for a true 0.20.
             if lie == "fairway":
+                if ath.n[club.name][gear] >= 4:
+                    ath.observe_conditions(head, measured / max(1.0, predicted))
                 # the notebook is a calm-day notebook: a shot with the wind behind it is divided back to
                 # what it would have done in still air, or the student learns that its driver goes 317.
                 ath.observe(club.name, gear, measured / max(0.5, cost))
-                ath.observe_side(lateral, max(1.0, dist_ft / FT_PER_YD), aim_used, cross)
+                ath.observe_side(lateral, max(1.0, gap_ft / FT_PER_YD), aim_used, cross)
         log.append(dict(kind="shot", club=club.name, gear=gear, effort=effort,
                         carried=res["carry"] / FT_PER_YD,
                         ran=res["roll"] / FT_PER_YD, total=measured, along=along, lateral=lateral,
@@ -525,50 +635,24 @@ def play_hole(hole: Hole, ath: Athlete, putter: PuttAthlete, green: Green,
                         # shot would do against what it did. Not the miss to the flag — that is mostly the
                         # coarseness of the gear ladder, and it says nothing about the player's knowledge.
                         predicted=predicted, notebook_err=abs(measured - predicted) / max(1.0, predicted),
-                        angle=math.degrees(math.atan2(lateral, max(1.0, dist_ft / FT_PER_YD))),
-                        offset=offset, head=head, lie=lie, on_green=on_green(rest, hole)))
+                        angle=math.degrees(math.atan2(lateral, max(1.0, gap_ft / FT_PER_YD))),
+                        offset=offset, head=head, lie=lie, on_green=on_green(rest, hole),
+                        in_sand=in_sand(rest, hole)))
         if verbose:
             side = "right" if lateral > 0 else "left"
             depth = "short" if along < 0 else "long"
+            mark = " green" if on_green(rest, hole) else (" SAND" if in_sand(rest, hole) else "")
             print(f"  {tag}{hole.label:>3} {hole.yards:4.0f} yd par {hole.par}   "
                   f"{club.name:<11} {effort * 100:3.0f}%  {measured:5.1f} yd   "
                   f"{abs(along):5.1f} {depth:<5} {abs(lateral):4.1f} {side:<5} "
-                  f"aim {offset:+5.1f} ft  {lie:<7}{' green' if on_green(rest, hole) else ''}")
+                  f"aim {offset:+5.1f} ft  {lie:<7}{mark}")
         ball = rest
-    # ---- the green: games/putt, not a second model of it
-    putts = 0
-    if math.hypot(flag[0] - ball[0], flag[1] - ball[1]) <= 2.125 / 12.0:
-        ball = flag          # it is in the cup; putt.py never has to ask, because a putt never starts there
-    while putts < 4 and strokes < STROKE_CAP and (
-            on_green(ball, hole) or putts > 0
-            or math.hypot(flag[0] - ball[0], flag[1] - ball[1]) <= PUTT_ZONE):
-        d_ft = math.hypot(flag[0] - ball[0], flag[1] - ball[1])
-        if d_ft <= 2.125 / 12.0:          # the hole is 4.25 in across; a ball in it is in it
-            if verbose:
-                print(f"  {tag}{hole.label:>3} {'':>4} {'':>12} in the hole, no putt needed")
-            break
-        bearing = bearing_to(ball, flag)
-        r = putt_attempt(putter, PuttHole(d_ft, bearing), green, learn=learn)
-        putts += 1
-        strokes += 1
-        if r["holed"]:
-            if verbose:
-                print(f"  {tag}{hole.label:>3} {'':>4} {'':>12} putt        {d_ft:5.1f} ft  "
-                      f"{r['text']}  ({putts} putt{'s' if putts > 1 else ''})")
-            break
-        # putt's report is in the hole's own frame: past is + along the line it was hit on, right is +.
-        ux, uy = flag[0] - ball[0], flag[1] - ball[1]
-        d = math.hypot(ux, uy) or 1.0
-        ux, uy = ux / d, uy / d
-        ball = (flag[0] + r["along"] * ux + r["lateral"] * uy,
-                flag[1] + r["along"] * uy - r["lateral"] * ux)
-        if verbose:
-            print(f"  {tag}{hole.label:>3} {'':>4} {'':>12} putt        {d_ft:5.1f} ft  {r['text']}")
-    if putts == 0 and verbose:
+    if not holed and putts == 0 and verbose:
         print(f"  {tag}{hole.label:>3} {'':>4} {'':>12} picked up")
     approaches = [e for e in log if e["kind"] == "shot"]
-    return dict(hole=hole, strokes=strokes, putts=putts, penalties=penalties, log=log,
-                to_green=len(approaches), gir=len(approaches) <= max(1, hole.par - 2))
+    return dict(hole=hole, strokes=strokes, putts=putts, penalties=penalties, log=log, holed=holed,
+                to_green=len(approaches), gir=len(approaches) <= max(1, hole.par - 2),
+                in_sand=sum(1 for e in approaches if e.get("in_sand")))
 
 
 def play_round(holes, ath: Athlete, putter: PuttAthlete, green: Green,
@@ -753,6 +837,122 @@ def selftest() -> int:
           f"aiming at the middle is worth {tight:+.2f} strokes on tucked pins and {friendly:+.2f} on "
           f"friendly ones, over 40 drawn courses each")
 
+# 17. the sand is where the hole says it is, and only there
+    left_hole, right_hole, none = (Hole(400, 4, "S", pin=10.0, sand=-1), Hole(400, 4, "S", pin=10.0, sand=+1),
+                                   Hole(400, 4, "S", pin=10.0, sand=0))
+    y = 400.0 * FT_PER_YD
+    check("the sand is on the side the hole says",
+          in_sand((GREEN_A + 7.0, y), right_hole) and not in_sand((GREEN_A + 7.0, y), left_hole)
+          and not in_sand((GREEN_A + 7.0, y), none)
+          and in_sand((-GREEN_A - 7.0, y), left_hole) and not in_sand((-GREEN_A - 7.0, y), right_hole)
+          and not in_sand((0.0, y), right_hole),
+          f"27 ft right of centre is sand on a right bunker and grass on a left one and on none")
+
+    # 18. sand takes most of the distance and more than half of the run
+    wedge = CLUB_BY_NAME["sand wedge"]
+    off_grass, off_sand = shot((0.0, 0.0), wedge, 1.0, 0.0), shot((0.0, 0.0), wedge, 1.0, 0.0, lie="sand")
+    keeps = off_sand["total"] / off_grass["total"]
+    check("sand takes the distance and the run",
+          abs(keeps - (1.0 - SAND_LOSS)) < 0.06 and off_sand["roll"] < 0.7 * off_grass["roll"],
+          f"a wedge keeps {keeps:.2f} of its distance (told {1.0 - SAND_LOSS:.2f}) and "
+          f"{off_sand['roll'] / off_grass['roll']:.2f} of its run-out")
+
+    # 19. what a ball in the sand is actually worth, measured the way the athlete is played
+    def strokes_from(point: tuple[float, float], hole: Hole, rng: random.Random) -> int:
+        ball, k, last = point, 0, False
+        while k < 8:
+            gap = math.hypot(hole.flag[0] - ball[0], hole.flag[1] - ball[1])
+            if gap <= 2.125 / 12.0:
+                break
+            here = lie_at(ball, hole)
+            if here == "green" or (last and here not in ("sand", "trees")):
+                r = putt_attempt(PuttAthlete(), PuttHole(gap, bearing_to(ball, hole.flag)), green, learn=False)
+                k += 1
+                last = True
+                if r["holed"]:
+                    break
+                ux, uy = hole.flag[0] - ball[0], hole.flag[1] - ball[1]
+                d = math.hypot(ux, uy) or 1.0
+                ball = (hole.flag[0] + r["along"] * ux / d + r["lateral"] * uy / d,
+                        hole.flag[1] + r["along"] * uy / d - r["lateral"] * ux / d)
+                continue
+            bearing = bearing_to(ball, hole.flag)      # a recovery goes at the flag; no target decision here
+            lc = ath.rough_cost if here == "rough" else (SAND_LOSS if here == "sand" else 0.0)
+            club, gear = ath.choose(gap / FT_PER_YD / max(0.5, 1.0 - lc))
+            aim = bearing + ath.aim_offset(0.0) + ath.face + rng.gauss(0.0, FACE_SD)
+            ball = shot(ball, club, gear * (1.0 + rng.gauss(0.0, SPEED_SD)), aim, lie=here)["rest"]
+            k += 1
+            last = False
+        return k
+
+    near = Hole(400, 4, "S", pin=0.0, sand=+1)
+    r19 = random.Random(7)
+    nn = 200
+    from_green = sum(strokes_from((19.0, y), near, r19) for _ in range(nn)) / nn
+    from_sand = sum(strokes_from((21.5, y), near, r19) for _ in range(nn)) / nn
+    check("a ball in the sand is worth what it is told it is worth",
+          0.05 <= from_sand - from_green <= 0.65 and abs((from_sand - from_green) - ath.sand_pen) < 0.25,
+          f"from 21 ft in the sand {from_sand:.2f} strokes against {from_green:.2f} from the green "
+          f"({from_sand - from_green:+.2f}): the athlete prices it at {ath.sand_pen:.2f}, and priced it "
+          f"at 1.00 until this check was written")
+
+    # 20. the notebook learns nothing from sand: same reason as the rough, one lie further out
+    sand_ath, sand_put = Athlete(), PuttAthlete()
+    for h in COURSE:
+        play_hole(h, sand_ath, sand_put, green, learn=True, verbose=False, rng=random.Random(DEFAULT_SEED))
+    obs = sand_ath.shots
+    fairway_shots = 0
+    sand_ath, sand_put = Athlete(), PuttAthlete()
+    for h in COURSE:
+        r = play_hole(h, sand_ath, sand_put, green, learn=True, verbose=False, rng=random.Random(DEFAULT_SEED))
+        fairway_shots += sum(1 for e in r["log"] if e["kind"] == "shot" and e["lie"] == "fairway")
+    check("the notebook learns nothing from sand", obs == fairway_shots,
+          f"{obs} entries updated, {fairway_shots} shots struck from fairway")
+
+    # 21. the negative this pass exists to report: the bunker is almost never reached, and adding it does
+    # not make the target decision directional. This is the check that could have gone the other way.
+    def sand_experiment(draws: int = 20, pin_range: float = 19.0):
+        """The same courses twice — bunkers in, bunkers filled in — paired by hole, split by which side of
+        the green the flag was cut. The quantity is how much adding the sand changes *what aiming away from
+        the pin is worth*, which is the thing the pass predicted it would raise and did not."""
+        seen, hit = 0, 0
+        diffs = {"toward": [], "away": []}
+        for k in range(draws):
+            base = drawn_course(random.Random(4000 + k), pin_range, True)
+            bare = [Hole(h.yards, h.par, h.label, pin=h.pin, wind=h.wind, sand=0) for h in base]
+            got = {}
+            for tag_, course_ in (("in", base), ("out", bare)):
+                for p_ in ("flag", "spread"):
+                    a = copy_of(ath)
+                    a.policy = p_
+                    rr = play_round(course_, a, PuttAthlete(), green, learn=False, verbose=False,
+                                    rng=random.Random(DEFAULT_SEED))
+                    got[(tag_, p_)] = rr["rows"]
+            for i, h in enumerate(base):
+                if not h.sand or abs(h.pin) < 8.0:
+                    continue
+                for e in got[("in", "flag")][i]["log"]:
+                    if e["kind"] != "shot":
+                        continue
+                    seen += 1
+                    hit += 1 if e.get("in_sand") else 0
+                d = ((got[("in", "flag")][i]["strokes"] - got[("in", "spread")][i]["strokes"])
+                     - (got[("out", "flag")][i]["strokes"] - got[("out", "spread")][i]["strokes"]))
+                diffs["toward" if h.pin * h.sand > 0 else "away"].append(d)
+        return (seen, hit,
+                sum(diffs["toward"]) / max(1, len(diffs["toward"])),
+                sum(diffs["away"]) / max(1, len(diffs["away"])))
+
+    seen, hit, toward, away = sand_experiment()
+    check("the bunker is almost never reached", hit / max(1, seen) < 0.10,
+          f"{hit} of {seen} approaches at a tucked pin beside the sand finished in it "
+          f"({hit / max(1, seen):.1%}); a flank bunker needs the depth right as well as the face wrong")
+    check("and so it does not make the decision directional",
+          toward < 0.3 and abs(toward - away) < 0.4,
+          f"adding the sand moves what aiming away from the pin is worth by {toward:+.2f} strokes when the pin "
+          f"is cut toward it and {away:+.2f} when it is cut away — the prediction was that the first would "
+          f"rise by more than a stroke, and it does not rise at all")
+
     print(f"\n  {len(fails)} of {n} checks failed" if fails else f"\n  all {n} checks pass")
     return 1 if fails else 0
 
@@ -764,7 +964,7 @@ def copy_of(ath: Athlete) -> Athlete:
     b.table = {k: dict(v) for k, v in ath.table.items()}
     b.n = {k: dict(v) for k, v in ath.n.items()}
     b.aim_bias, b.sigma = ath.aim_bias, ath.sigma
-    b.wind_c, b.rough_cost = ath.wind_c, ath.rough_cost
+    b.wind_c, b.rough_cost, b.sand_pen = ath.wind_c, ath.rough_cost, ath.sand_pen
     b.face = ath.face
     return b
 
@@ -802,6 +1002,11 @@ def draws(args) -> int:
     pins either. Evaluation is learning off, one round a course, every policy on the same course, and the
     quantity reported is the *paired* difference: the same draw in both columns, which is the only way a
     nine-hole score gets an error bar small enough to argue with.
+
+    Since pass 4 there is a second table, over holes rather than rounds, split by where the pin was cut
+    relative to the sand. That split was *declared before the run*, and it is the test of whether pass 3's
+    finding is about pin tuck or about a green with nothing on it: if a tuck toward fourteen feet of sand
+    and a tuck toward fourteen feet of grass are the same number, the bunker bought nothing.
     """
     green = Green(stimp=10.0, grade=1.2, downhill=135.0)
     trained = Athlete()
@@ -813,6 +1018,7 @@ def draws(args) -> int:
     policies = ("flag", "centre", "spread")
     n = args.draws
     scores = {p: [] for p in policies}
+    per_hole = {p: [] for p in policies}
     for d in range(n):
         course = drawn_course(random.Random(4000 + d), args.pin_range, args.calm)
         for p in policies:
@@ -821,6 +1027,7 @@ def draws(args) -> int:
             r = play_round(course, a, PuttAthlete(), green, learn=False, verbose=False,
                            rng=random.Random(DEFAULT_SEED))
             scores[p].append(r["to_par"])
+            per_hole[p].extend((h, row["strokes"]) for h, row in zip(course, r["rows"]))
     print(f"{n} courses drawn independently (pins ±{args.pin_range:.0f} ft"
           f"{', still air' if args.calm else ', wind drawn too'}), one round each, learning off\n")
     print(f"  {'policy':8s} {'mean':>7s} {'sd':>6s}")
@@ -836,6 +1043,69 @@ def draws(args) -> int:
         se = math.sqrt(sum((x - m) ** 2 for x in d) / max(1, n - 1)) / math.sqrt(n)
         t = m / se if se > 0 else 0.0
         print(f"    {a_:6s} - {b_:6s}  {m:+6.2f} ± {1.96 * se:4.2f} (95%)   t {t:+5.1f}")
+
+    # ---- by hole, split by which side of the green the flag was cut ----------------------------------
+    def half(diffs: list[float], label: str, note: str) -> None:
+        if not diffs:
+            print(f"    {label:<44s} {'no holes':>16s}")
+            return
+        m = sum(diffs) / len(diffs)
+        se = math.sqrt(sum((x - m) ** 2 for x in diffs) / max(1, len(diffs) - 1)) / math.sqrt(len(diffs))
+        print(f"    {label:<44s} {m:+6.2f} ± {1.96 * se:4.2f}   n {len(diffs):5d}   {note}")
+
+    pairs = [(h, x, y) for (h, x), (_, y) in zip(per_hole["flag"], per_hole["spread"])]
+    print(f"\n  the decision by hole: aimed at the pin minus aimed where the putt is likeliest")
+    print(f"  {'':<46s} {'strokes':>14s}")
+    tucked = lambda h: (abs(h.pin) >= 8.0, abs(h.pin) < 8.0)  # noqa: E731  declared, not chosen after
+    half([x - y for h, x, y in pairs if h.sand != 0 and tucked(h)[0] and h.pin * h.sand > 0],
+         "pin cut toward the sand, |pin| ≥ 8 ft", "sand")
+    half([x - y for h, x, y in pairs if h.sand != 0 and tucked(h)[0] and h.pin * h.sand < 0],
+         "pin cut away from the sand, |pin| ≥ 8 ft", "sand")
+    half([x - y for h, x, y in pairs if h.sand != 0 and tucked(h)[1]],
+         "sand beside a friendly pin, |pin| < 8 ft", "sand")
+    half([x - y for h, x, y in pairs if h.sand == 0 and tucked(h)[0]],
+         "no sand, |pin| ≥ 8 ft", "grass")
+    half([x - y for h, x, y in pairs if h.sand == 0 and tucked(h)[1]],
+         "no sand, |pin| < 8 ft", "grass")
+
+    # ---- the clean version: the same courses with the bunkers taken out -----------------------------
+    # The table above compares holes that differ in more ways than the sand — the three sandless holes are
+    # a par 3 and two par 5s, so "no sand" is confounded with yardage, and the first version of this
+    # experiment duly reported that sand made the decision *less* valuable. It did not; the strata were
+    # different golf holes. The treatment is a course with its bunkers filled in, same pins, same winds,
+    # same draw, so the only difference between the two columns is the sand.
+    print(f"\n  the same {n} courses, bunkers in against bunkers filled in (paired by hole)")
+    print(f"  {'':<46s} {'strokes':>14s}")
+    with_sand, without = [], []
+    for d in range(n):
+        base = drawn_course(random.Random(4000 + d), args.pin_range, args.calm)
+        no_sand = [Hole(h.yards, h.par, h.label, pin=h.pin, wind=h.wind, sand=0) for h in base]
+        got = {}
+        for tag_, course_ in (("in", base), ("out", no_sand)):
+            for p_ in ("flag", "spread"):
+                a = copy_of(trained)
+                a.policy = p_
+                r = play_round(course_, a, PuttAthlete(), green, learn=False, verbose=False,
+                               rng=random.Random(DEFAULT_SEED))
+                got[(tag_, p_)] = [row["strokes"] for row in r["rows"]]
+        for i, h in enumerate(base):
+            if not h.sand:
+                continue
+            with_sand.append((h, got[("in", "flag")][i] - got[("in", "spread")][i],
+                              got[("out", "flag")][i] - got[("out", "spread")][i]))
+    for label, keep in (("pin cut toward the sand, |pin| ≥ 8 ft",
+                         lambda h: abs(h.pin) >= 8.0 and h.pin * h.sand > 0),
+                        ("pin cut away from the sand, |pin| ≥ 8 ft",
+                         lambda h: abs(h.pin) >= 8.0 and h.pin * h.sand < 0),
+                        ("friendly pin, |pin| < 8 ft", lambda h: abs(h.pin) < 8.0)):
+        sub = [(a, b) for h, a, b in with_sand if keep(h)]
+        if not sub:
+            continue
+        d = [a - b for a, b in sub]
+        m = sum(d) / len(d)
+        se = math.sqrt(sum((x - m) ** 2 for x in d) / max(1, len(d) - 1)) / math.sqrt(len(d))
+        print(f"    {label:<44s} {m:+6.2f} ± {1.96 * se:4.2f}   n {len(sub):5d}   "
+              f"(sand in {sum(a for a, _ in sub) / len(sub) - sum(b for _, b in sub) / len(sub):+5.2f})")
     return 0
 
 
