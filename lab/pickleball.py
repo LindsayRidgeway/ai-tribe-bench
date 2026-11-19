@@ -1307,6 +1307,36 @@ def play_season(names: list[str], practice: list[int], lesson: SeasonLesson, cho
     return {"wins": wins, "points": points, "rows": rows, "lesson": lesson}
 
 
+def bodies_ahead(pos, players, side: list[str], seconds: float) -> dict[str, tuple[float, float]]:
+    """Where each opponent will be `seconds` from now: their place plus their own velocity.
+
+    This is the whole of anticipation, and the number it needs is already in the engine — `Positions.vel` is the
+    residual walk the momentum rule reads (§5g). A player who has arrived at their stance has stopped, so the
+    prediction is where they are; a player still moving is predicted forward at the jog they are moving at. No
+    memory and no model of a habit: the body's own momentum, carried forward by the flight time, which is what a
+    hitter actually sees.
+    """
+    out = {}
+    for n in side:
+        x, y = pos.get(players[n])
+        vx, vy = pos.velocity_of(players[n])
+        out[n] = (x + vx * seconds, y + vy * seconds)
+    return out
+
+
+def open_target_at(bodies: dict[str, tuple[float, float]], tx: float, samples: int = 33,
+                   lo: float = 3.0, hi: float = WIDTH - 3.0) -> tuple[float, float]:
+    """`open_target` on a dict of places rather than live positions, so a caller can ask where the gap *will be*
+    as well as where it is."""
+    best = None
+    for i in range(samples):
+        ty = lo + (hi - lo) * i / (samples - 1)
+        gap = min(math.hypot(tx - b[0], ty - b[1]) for b in bodies.values())
+        if best is None or gap > best[0]:
+            best = (gap, ty)
+    return (best[1], best[0]) if best else (CENTRELINE, 0.0)
+
+
 def open_target(pos, players, side: list[str], tx: float, samples: int = 33,
                 lo: float = 3.0, hi: float = WIDTH - 3.0) -> tuple[float, float]:
     """The point on the line x=tx furthest from everybody on `side`: where the ball should go.
@@ -1325,7 +1355,7 @@ def open_target(pos, players, side: list[str], tx: float, samples: int = 33,
     return (best[1], best[0]) if best else (CENTRELINE, 0.0)
 
 
-def placement_chooser(level: str = "steady", say=print):
+def placement_chooser(level: str = "steady", say=print, anticipate: bool = False):
     """A chooser that can see the other bodies, and plays the two shots sight makes possible.
 
     §5i ended by naming the gap: `dink_chooser` picks a side of the court with a coin and always dinks at the
@@ -1359,8 +1389,18 @@ def placement_chooser(level: str = "steady", say=print):
             if behind > 9.0 or (incoming is not None and incoming.get("speed_in", 99.0) < 25.0):
                 # the short ball: 4.5 ft past the net, on the open side
                 tx = NET_X + 4.5 if p.north else LENGTH - (NET_X + 4.5)
-                ty, _gap = open_target(court, players, side, tx, lo=5.0, hi=WIDTH - 5.0)
+                ty, gap = open_target(court, players, side, tx, lo=5.0, hi=WIDTH - 5.0)
                 dist = math.hypot(tx - here[0], ty - here[1])
+                if anticipate:
+                    # the second pass a hitter makes: see the gap, see how long the ball is in the air, aim again
+                    probe = strike(p, None, face=aim_at(p, (tx, ty), "groundstroke", surface, wind, 24.0, here),
+                                   power=24.0, aim=ty, shot="groundstroke", surface=surface, wind=wind,
+                                   pos=here, clean=True, aim_dist=dist)
+                    horizon = float(probe["traj"].get("time") or 0.5)
+                    ty2, gap2 = open_target_at(bodies_ahead(court, players, side, horizon), tx,
+                                               lo=5.0, hi=WIDTH - 5.0)
+                    if gap2 > gap + 0.5:
+                        ty, dist = ty2, math.hypot(tx - here[0], ty2 - here[1])
                 for power in DINK_POWERS:
                     face = aim_at(p, (tx, ty), "groundstroke", surface, wind, power, here)
                     probe = strike(p, None, face=face, power=power, aim=ty, shot="groundstroke",
@@ -1375,7 +1415,16 @@ def placement_chooser(level: str = "steady", say=print):
                         return face, power, ty
             # the drive: past the bodies, 9 ft inside their baseline, on the open side
             tx = NET_X + 12.0 if p.north else LENGTH - (NET_X + 12.0)
-            ty, _gap = open_target(court, players, side, tx)
+            ty, gap = open_target(court, players, side, tx)
+            if anticipate:
+                _d = math.hypot(tx - here[0], ty - here[1])
+                probe = strike(p, None, face=aim_at(p, (tx, ty), "groundstroke", surface, wind, 42.0, here),
+                               power=42.0, aim=ty, shot="groundstroke", surface=surface, wind=wind,
+                               pos=here, clean=True, aim_dist=_d)
+                horizon = float(probe["traj"].get("time") or 0.7)
+                ty2, gap2 = open_target_at(bodies_ahead(court, players, side, horizon), tx)
+                if gap2 > gap + 0.5:
+                    ty = ty2
             _dist = math.hypot(tx - here[0], ty - here[1])
             power = 42.0
             face = aim_at(p, (tx, ty), "groundstroke", surface, wind, power, here)
@@ -1397,6 +1446,8 @@ def make_chooser(level: str):
         return dink_chooser("steady")
     if level == "place":
         return placement_chooser("steady")
+    if level == "anticipate":
+        return placement_chooser("steady", anticipate=True)
     return scripted_chooser(level)
 
 
@@ -1554,7 +1605,8 @@ def main(argv=None) -> int:
     ap.add_argument("--clock", type=int, default=None,
                     help="pin the wind to a millisecond count, so a record can be replayed")
     ap.add_argument("--level", default="steady",
-                    choices=["beginner", "steady", "hard", "read", "learn", "season", "dink", "place"],
+                    choices=["beginner", "steady", "hard", "read", "learn", "season", "dink", "place",
+                             "anticipate"],
                     help="`read` is the steady hands with a fault-reading lesson attached; `learn` is the "
                          "same hands paid in points instead; `season` is the same hands with a lesson whose "
                          "unit is a game and whose memory is the season file, so its sample can outgrow its "

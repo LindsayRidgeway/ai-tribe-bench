@@ -5673,6 +5673,41 @@ class TestPickleball(unittest.TestCase):
         self.assertLess(vol["contact"][0], pk.NET_X, "taken on the receiving side of the net")
         self.assertGreaterEqual(vol["height"], pk.VOLLEY_LOW, "and above the knee, or it is a dig off the ground")
 
+    def test_a_body_that_is_walking_is_met_where_it_is_going(self):
+        """Anticipation is the momentum rule's other reader. A player who has arrived at their stance has stopped,
+        so the prediction is where they are; a player mid-jog is predicted forward by their own velocity over the
+        flight. No memory, no model of a habit — the body's own momentum, which `Positions.vel` already holds."""
+        pk = self.pk
+        pos = pk.Positions(at={"A": (24.0, 4.0), "B": (24.0, 14.0)}, vel={"A": (0.0, 10.5), "B": (0.0, 0.0)})
+        players = {"A": self.t.Player(name="A", north=False), "B": self.t.Player(name="B", north=False)}
+        ahead = pk.bodies_ahead(pos, players, ["A", "B"], 0.5)
+        self.assertAlmostEqual(ahead["A"][1], 4.0 + 5.25, places=3, msg="a walk at 10.5ft/s for half a second")
+        self.assertEqual(ahead["B"], (24.0, 14.0), "a standing body is predicted to stand")
+
+    def test_anticipation_aims_where_the_body_will_be_and_is_a_no_op_when_nothing_moves(self):
+        """Two runs of the same chooser over the same court, one with the second pass and one without. With a
+        body walking across the open side, the anticipating chooser aims at a different spot; with everybody
+        standing still it returns exactly what the plain placement chooser returns, because there is nothing to
+        predict and a player does not invent one."""
+        pk = self.pk
+        import random as _r
+        players = {n: self.t.Player(name=n, north=(i < 2), practice=200, rng=_r.Random(5 + i))
+                   for i, n in enumerate(["A", "B", "C", "D"])}
+        pos = pk.Positions(at={"A": (15.0, 10.0), "C": (24.0, 6.0), "D": (26.0, 12.0)},
+                           vel={"C": (0.0, 10.5), "D": (0.0, 0.0)})
+        incoming = {"speed_in": 20.0, "depth": 12.0, "path": [], "v": (1.0, 0.0, 1.0)}
+        plain = pk.placement_chooser("steady")(players, ("N", 0.0), "hard")
+        plain.sight = pos
+        ahead = pk.placement_chooser("steady", anticipate=True)(players, ("N", 0.0), "hard")
+        ahead.sight = pos
+        a = plain(players["A"], players["C"], incoming, 3, [], "groundstroke", False, (15.0, 10.0))
+        b = ahead(players["A"], players["C"], incoming, 3, [], "groundstroke", False, (15.0, 10.0))
+        self.assertNotAlmostEqual(a[2], b[2], places=1, msg="a moving body is not met where it was")
+        self.assertGreater(abs(b[2] - a[2]), 1.5, "and the difference is feet, not noise")
+        pos.vel = {"C": (0.0, 0.0), "D": (0.0, 0.0)}
+        b2 = ahead(players["A"], players["C"], incoming, 3, [], "groundstroke", False, (15.0, 10.0))
+        self.assertAlmostEqual(a[2], b2[2], places=6, msg="nothing moving, nothing predicted")
+
     def test_the_ball_goes_where_the_bodies_are_not(self):
         """Placement is arithmetic before it is strategy: of the points on a line, the one to hit is the one the
         nearest opponent is furthest from. Two bodies on the west side of the court and the answer is the east."""
