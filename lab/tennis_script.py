@@ -34,6 +34,50 @@ POST_LANE = 1.3   # feet outside the net post: you walk round the net, you do no
 # `play_point` came to serve at two different speeds (found 2026-11-19)
 OUT_BOUNCES = 2    # bounces the picture is allowed to show a ball that landed out (founder, 2026-11-11)
 AFTER_LAND = 1.4   # seconds of the bounce-up the picture is given before the ball is struck (founder, 2026-11-12)
+# THE TOSS (Item 19, 2026-11-19). How far above the contact point the tossed ball peaks. A serve is struck at the
+# top of the toss or a hand's width past it, and everything else about the toss follows from that one number and
+# gravity: the launch speed is whatever gets the ball to that peak, and the flight time is whatever it takes to
+# fall back to the contact. Set it to 0 and the toss disappears, which is how the test proves the toss is picture
+# and not physics — the serve's path, speed and landing point must not move when a ball is thrown up for it.
+TOSS_PEAK = 0.6    # ft above the contact point
+TOSS_RELEASE = 3.2 # ft above the court: where the non-hitting hand lets go of the ball
+TOSS_OUT = 0.7     # ft in front of the server's feet at the release, and TOSS_SIDE to the side of them
+TOSS_SIDE = 0.8
+
+
+def toss(contact, north: bool, release: float = None):
+    """The ball's life before the racquet reaches it: from the hand, up, and back down onto the contact point.
+
+    Picture, not physics. `strike` decides where the serve leaves from and how fast; this is the ball a server
+    threw up to get it there, and the film showed no such ball — the serve began with the ball already 8.8ft in
+    the air, which is why a serve read as a standstill swing. The parabola is a real one (G is the engine's), the
+    horizontal drift is the release point to the contact point at constant speed, and the last sample is the
+    contact itself to the millimetre, so the picture cannot disagree with the strike about where the ball was.
+
+    Returns [] when `release` is 0 (no toss), which is how `tests.py` asks whether the toss moved the serve. The
+    default is read from the module at call time and not at definition time, so a test that sets `TOSS_PEAK = 0`
+    actually gets no toss.
+    """
+    release = TOSS_PEAK if release is None else release
+    if release <= 0.0:
+        return []
+    up = 1.0 if north else -1.0
+    cx, cy, cz = contact
+    hx, hy = cx - TOSS_OUT * up, cy - TOSS_SIDE
+    hz = TOSS_RELEASE
+    if hz >= cz:                          # a contact below the hand: nothing to throw, do not invent one
+        return []
+    v0 = math.sqrt(2.0 * T.G * (cz + release - hz))     # launch speed for a peak `release` above the contact
+    fall = math.sqrt(2.0 * release / T.G)               # from the peak down to the contact
+    total = v0 / T.G + fall
+    n = max(2, int(round(total / TRACE)))
+    out = []
+    for i in range(n + 1):
+        u = i / n
+        z = hz + v0 * (u * total) - 0.5 * T.G * (u * total) ** 2
+        out.append([round(hx + (cx - hx) * u, 3), round(hy + (cy - hy) * u, 3), round(z, 3)])
+    out[-1] = [round(cx, 3), round(cy, 3), round(cz, 3)]   # the contact, exactly
+    return out
 
 
 def cut(path, t_cut: float, end=None):
@@ -298,6 +342,7 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str,
             # into a poke and the frame ended up past the ball on every shot in the film.
             struck_from = where[hitter]
             swing, plan = "rally", None          # set again below; a serve sets swing = "serve"
+            toss_pts = []                        # a serve gets one; nothing else does
             serving = (hitter == server_i and not rallied)
             if serving:
                 # ONE SERVE, until the game's own rules exist. A first serve that misses used to earn a second one,
@@ -321,6 +366,7 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str,
                                 surface=surface, wind=wv, at=contact)
                 swing, plan = "serve", {"kind": "serve"}
                 ok, why = T.serve_verdict(shot)
+                toss_pts = toss(contact, p.north)
             else:
                 contact = carry[hitter] or T.contact_point(p, "rally")
                 # Where the ball is going: the far corner the other player is furthest from, not the middle of
@@ -373,6 +419,9 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str,
                 # The stance the server walks into before the first ball: a move the picture needs and cannot
                 # infer, because it happens between points and every other position in the film comes from a run.
                 **({"stance": stance_move} if serving and length == 1 else {}),
+                # The ball's life before the strike: picture, not physics. The flight below begins at the contact
+                # either way, which the test checks by building the same film with the toss switched off.
+                **({"toss": toss_pts} if toss_pts else {}),
                 "n": len(shots),
                 "rally": rally_no,
                 "i": length,

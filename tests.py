@@ -4579,6 +4579,82 @@ class TestTheGroundEnds(unittest.TestCase):
                         f"points, not describing the ground")
 
 
+class TestTheServeHasAToss(unittest.TestCase):
+    """Item 19, 2026-11-19: the serve was an arc. The engine has struck it from 8.8ft in the air since Item 14, and
+    the rig reaches the ball there — `?debug` reads 0.17ft from the racquet head to the ball at the contact frame —
+    but the ball appeared at that height out of nothing. A serve begins with a throw, and the film showed no throw:
+    a still of a serve was a player standing with their racquet down while the ball was already halfway to the net.
+
+    The toss is PICTURE, not physics. `strike` still decides where the serve leaves from and how fast; the record
+    carries the ball's life before that in its own array, and the first test here is the one that keeps the two
+    honest — switch the toss off and the serve must be identical in every number that decides the point."""
+
+    def setUp(self):
+        import importlib
+        sys.path.insert(0, str(REPO / "lab"))
+        self.S = importlib.import_module("tennis_script")
+        self.T = importlib.import_module("tennis")
+        self._peak = self.S.TOSS_PEAK
+
+    def tearDown(self):
+        self.S.TOSS_PEAK = self._peak
+
+    def _film(self, rallies=4):
+        return self.S.play((300, 600), ("A", "C"), rallies, 1793809110303, "clay", self.S.SWAP_EVERY)
+
+    def test_the_toss_starts_at_a_hand_and_ends_on_the_contact(self):
+        """The two ends, which are the only two places a toss can be caught out: the ball leaves a hand at a height
+        a person can hold it at, near their own body, and it arrives exactly on the point `strike` says the serve
+        leaves from — not near it, on it, because the picture must not disagree with the strike about the ball."""
+        t = self.T
+        contact = (2.2, t.WIDTH / 2 + 1.1, 8.8)
+        pts = self.S.toss(contact, True)
+        self.assertGreater(len(pts), 20, "too few samples to draw a toss")
+        self.assertEqual(pts[-1], [round(v, 3) for v in contact], "the toss does not end on the contact point")
+        self.assertGreater(pts[0][2], 2.8, f"the ball left a hand at {pts[0][2]:.2f}ft")
+        self.assertLess(pts[0][2], 3.6, f"the ball left a hand at {pts[0][2]:.2f}ft — that is nobody's hand")
+        self.assertLess(abs(pts[0][1] - contact[1]), 2.0, "the release is not near the body")
+        self.assertGreater(pts[0][0], 0.0, "the release is not on the server's own side of the contact")
+
+    def test_the_toss_is_a_parabola_that_peaks_above_the_contact(self):
+        """It goes up, it comes down, and the top of it is `TOSS_PEAK` above the contact — a serve is struck at the
+        top or a hand's width past it. Under gravity, not eased: the gap between samples shrinks on the way up and
+        grows on the way down, which is what makes it a throw rather than a lerp."""
+        pts = self.S.toss((2.2, 14.6, 8.8), True)
+        zs = [p[2] for p in pts]
+        peak = max(zs)
+        self.assertAlmostEqual(peak, 8.8 + self._peak, delta=0.05,
+                               msg=f"the toss peaked at {peak:.2f}ft, not above the contact")
+        i = zs.index(peak)
+        self.assertGreater(i, 1, "the peak is at the release — that is a drop, not a toss")
+        self.assertLess(i, len(zs) - 2, "the peak is at the contact — the ball was still rising when it was hit")
+        self.assertTrue(all(zs[k] < zs[k + 1] for k in range(i)), "the ball did not rise to its peak")
+        self.assertTrue(all(zs[k] > zs[k + 1] for k in range(i, len(zs) - 1)), "the ball did not fall from it")
+
+    def test_the_toss_does_not_move_the_serve(self):
+        """The claim that makes it safe to ship: with the toss switched off the film is identical in every number
+        that decides a point — the contact, the launch velocity, the landing point, the whole path. A toss that
+        moved the ball would be a second physics, and this engine has paid for that once already."""
+        with_toss, without = self._film(), None
+        self.S.TOSS_PEAK = 0.0
+        without = self._film()
+        self.assertEqual(len(with_toss["shots"]), len(without["shots"]))
+        serves = 0
+        for a, b in zip(with_toss["shots"], without["shots"]):
+            self.assertEqual(a["contact"], b["contact"], "the toss moved where the serve was struck")
+            self.assertEqual(a["v0"], b["v0"], "the toss changed how hard the serve was hit")
+            self.assertEqual(a["land"], b["land"], "the toss moved where the serve landed")
+            self.assertEqual(a["path"], b["path"], "the toss changed the ball's flight")
+            self.assertEqual(a["n"], b["n"])
+            if a["kind"] == "serve":
+                serves += 1
+                self.assertTrue(a.get("toss"), "a serve in the film has no toss in the record")
+                self.assertNotIn("toss", b, "the toss survived being switched off")
+            else:
+                self.assertNotIn("toss", a, "a groundstroke was given a toss")
+        self.assertGreater(serves, 2, "no serves in this film — it proves nothing")
+
+
 class TestTheBallIsMetInTheBand(unittest.TestCase):
     """Item 18, 2026-11-19: the meeting point is where the ball is a ball to hit, and it is a band rather than a
     point. Item 16 picked the reachable slice nearest the waist — but a ball crosses the waist twice, once in front

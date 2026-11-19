@@ -905,3 +905,20 @@ that was coming to them, and a twenty-point film came out at 220 shots against 1
 
 One thing this still does not do: no contact is ever above 7ft for choice, because this game has no smash. That is
 movement-list item 3, and the interception is already written so that raising `CONTACT_HIGH` is the whole change.
+
+### The toss — the serve's first second, 2026-11-19
+
+The engine has struck every serve from 8.8ft since Item 14, and the rig reaches it: 0.17ft from the racquet head to
+the ball at the contact frame. The serve looked like a standstill swing because the *record* had no ball before the
+contact — the ball appeared at 8.8ft out of nothing, from a player standing with the frame down.
+
+The record now carries the toss in its own array: 42 samples at 0.02s, a real parabola under the engine's `G`, from a
+hand at 3.2ft to the contact point exactly, peaking `TOSS_PEAK` = 0.6ft above it. It is picture, not physics — set
+`TOSS_PEAK` to 0 and the same film comes back with every serve's contact, launch velocity, landing point and path
+identical.
+
+In the picture a serve's segment begins at the release and everything about the stroke is timed off a new clock,
+`tlc`, the time since the contact: the arm arrives over the last third of a second of the throw, the knees load
+through the toss and drive 0.22ft as the frame goes up (a groundstroke's plant is 0.12ft).
+
+Not drawn yet, and it is the rest of movement-list item 3: the trophy position, the tossing arm, and the jump.

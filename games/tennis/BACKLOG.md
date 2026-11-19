@@ -748,6 +748,51 @@ better.
 against 39.4% for the old rule), and the contact-height median between 2.9 and 4.5ft (3.15 measured).
 `TestTheBallIsMetInTheBand`, three tests, 410 in the suite.
 
+## Item 19 — the serve is thrown up before it is struck (DONE 2026-11-19, less the trophy position)
+
+The founder's own words on the serve: "the serve is still an arc, not a tennis serve — no toss and no overhead". The
+overhead half turned out to be *already drawn and measurable*: the engine strikes every serve from 8.8ft in the air,
+and `?debug` at the contact frame reads **0.17ft from the racquet head to the ball** — the arm goes up and the frame
+is on it. What was missing was the throw. A still of a serve was a player standing with the racquet down while the
+ball was already halfway to the net, because the record had no ball before the contact at all.
+
+**The toss is picture, not physics.** `strike` still decides where the serve leaves from and how fast; the record
+carries the ball's life *before* that in its own `toss` array, sampled at the record's 0.02s and drawn from the same
+`G` as everything else. One number sets it: `TOSS_PEAK` = 0.6ft, how far above the contact the ball peaks — a serve
+is struck at the top of the toss or a hand's width past it. Everything else follows: the launch speed is whatever
+reaches that peak from a hand at 3.2ft, the flight is 0.84s (42 samples), the horizontal drift is the release point to
+the contact at constant speed, and **the last sample is the contact itself to the millimetre** so the picture cannot
+disagree with the strike about where the ball was.
+
+**The test that makes it safe:** switch `TOSS_PEAK` to 0 and build the same film again. Every serve's `contact`, `v0`,
+`land` and `path` are identical, and every groundstroke in the film is untouched. A toss that moved the ball would be
+a second physics, and this engine has paid for that once.
+
+**What changed in the picture.** A serve's segment now begins at the release rather than at the strike (its start
+moves back by the toss and its duration grows by it, so nothing after it moves), and everything that belongs to the
+stroke — the arm arriving, the plant, the finish, the heel — is timed off a new `tlc`, the time since the *contact*.
+The arm's arrival is symmetric in that clock, so on a serve it now arrives at the ball over the last third of a
+second of the throw instead of being there for the whole of it. The legs load through the toss (`serveLoad`) and the
+drive off them is 0.22ft on a serve against a groundstroke's 0.12ft — a crouch and a push, both functions of `tlc`.
+
+**Measured on the film**, with a fresh browser profile at every frame (see below): at the release the arm is 1.25ft
+from the ball and the ball is at 3.2ft; at 0.25s before contact the ball is at its peak, 9.4ft, over the server's
+head, with the knees bent; at the contact the frame is 0.17-0.18ft from the ball with the body up on the toes. 158
+shots, every invariant unchanged: worst contact-to-feet 7.01ft of a 7.0 reach, no run faster than the player, no
+contact more than 10ft off the court, contact-height median 3.15ft with none below a foot.
+
+**And the trap that cost me twenty minutes, recorded so it does not cost it again:** `python3 -m http.server` sends no
+cache headers, and a *reused* Chrome profile served the pre-change page for the frame at `at=0` while the frames at
+`at=0.3` were fresh. The picture said the arm was on the ball during the toss — the code said it could not be. The
+frame was stale. Every render after that used a new `--user-data-dir`, and the `?debug` numbers and the screenshot
+then agreed.
+
+**What this still does not do, and it is the rest of item 3:** the trophy position is not drawn — the racquet stays in
+the ready pose until the last third of a second, where a real server has it back behind the shoulder through the
+whole throw; the *tossing* arm is not drawn, so the ball rises from a hand that is not visibly holding it; there is no
+jump, so both feet are on the ground at a contact that is 8.8ft up; and there is still only one serve, so a fault
+costs the point rather than the serve.
+
 ## What V1 means
 
 **The founder's definition, 2026-11-15, and it replaces mine:** *V1 means completion of the video game

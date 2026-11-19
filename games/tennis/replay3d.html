@@ -871,7 +871,9 @@ const WINPOS = {};
   }
 }
 {
-  let t = 0.8;
+  // 1.7 and not 0.8: the first serve's segment now begins at its toss, 0.8s before the strike, and a film that
+  // started at t=0.8 would begin in the middle of it, with negative time on the clock.
+  let t = 1.7;
   let rallySeen = 0;
   const lastNorth = {};
   for (const sh of D.shots) {
@@ -886,7 +888,12 @@ const WINPOS = {};
       }
       rallySeen = sh.rally;
     }
-    const dur = Math.max(0.35, sh.path.length * TRACE);
+    // THE TOSS (Item 19, 2026-11-19). A serve's ball is thrown up before it is struck, and the record now carries
+    // those samples. They are picture, not physics — the flight still begins at the contact — so a serve's segment
+    // starts earlier by exactly the toss and runs longer by it, and the ball on screen is the toss then the flight.
+    // Everything else is timed off `t`, which remains the contact, so no other move in the film shifts.
+    const tossDur = sh.toss ? sh.toss.length * TRACE : 0;
+    const dur = Math.max(0.35, sh.path.length * TRACE) + tossDur;
     // A shot in the middle of a rally gets a beat before the next one starts; the shot that ends the rally gets
     // the point board, the pause, and then a couple of seconds on the player, which is what the 3.8 is for.
     // 0.12s, not 0.55: a beat between shots is a beat in the BALL's timing, and half a second of it was half a
@@ -895,7 +902,8 @@ const WINPOS = {};
     // 2026-11-12: "movement of the players at the time they strike the ball is still not continuous, there's still
     // a pause that doesn't occur in real life."
     let hold = (LASTN[sh.rally] === sh.n && POINT[sh.rally]) ? 1.2 : 0.12;
-    const seg = { sh, start: t, dur, hold, cams: cams(sh, dur) };
+    const seg = { sh, start: t - tossDur, dur, tossDur, hold, cams: cams(sh, dur) };
+    if (tossDur) seg.bpath = sh.toss.concat(sh.path);
     if (LASTN[sh.rally] === sh.n && POINT[sh.rally]) seg.point = POINT[sh.rally];
     SEG.push(seg);
     if (sh.run) {
@@ -1122,6 +1130,10 @@ function tick(now) {
   const tlRaw = T - seg.start;
   const tl = Math.min(tlRaw, seg.dur);
   const sh = seg.sh;
+  // Time since the CONTACT. A segment used to begin at the strike, so `tl` and "since the ball was struck" were the
+  // same number. A serve's segment begins at the toss now, and everything that belongs to the stroke — the arm
+  // arriving at the ball, the plant, the finish, the heel — is timed off the contact, not off the throw.
+  const tlc = tl - (seg.tossDur || 0);
   const onCut = seg.cams.length > 1 && tlRaw >= seg.cams[1].at;
 
   // camera
@@ -1156,9 +1168,10 @@ function tick(now) {
   camera.lookAt(cam.at);
 
   // ball
+  const bp = seg.bpath || sh.path;
   const tt = Math.min(tl, seg.dur);
-  const idx = Math.min(sh.path.length - 1, Math.max(0, Math.round(tt / TRACE)));
-  const p = sh.path[idx];
+  const idx = Math.min(bp.length - 1, Math.max(0, Math.round(tt / TRACE)));
+  const p = bp[idx];
   ballPos.set(p[0], Math.max(0.16, p[2]), p[1]);
   ball.position.copy(ballPos);
   // on the between-points closeup the ball is dead on the court a few feet from the lens, where it reads as a
@@ -1166,7 +1179,7 @@ function tick(now) {
   ball.visible = !onCut; trail.visible = !onCut;
   const tail = [];
   for (let i = Math.max(0, idx - 34); i <= idx; i++) {
-    const q2 = sh.path[i]; tail.push(new THREE.Vector3(q2[0], Math.max(0.12, q2[2]), q2[1]));
+    const q2 = bp[i]; tail.push(new THREE.Vector3(q2[0], Math.max(0.12, q2[2]), q2[1]));
   }
   trail.geometry.dispose();
   trail.geometry = new THREE.BufferGeometry().setFromPoints(tail);
@@ -1263,9 +1276,9 @@ function tick(now) {
     const back = (isHitter ? sh.hand === "back" : (recv ? recv.hand === "back" : false));
     // Which foot is behind, and how far up on the toe it is. Stateless, like the root rise: a function of `tl`.
     rig.plantBack = isHitter ? (back ? "L" : "R") : null;
-    rig.plantHeel = isHitter ? Math.max(0, Math.min(1, (tl - 0.05) / 0.28)) : 0;
+    rig.plantHeel = isHitter ? Math.max(0, Math.min(1, (tlc - 0.05) / 0.28)) : 0;
     const sgn = back ? -1 : 1;
-    const follow = isHitter ? Math.max(0, Math.min(1, 1 - tl / 0.38)) : 0;
+    const follow = isHitter ? Math.max(0, Math.min(1, 1 - tlc / 0.38)) : 0;
     // The racquet comes back on the way to the ball, not on arrival: a player who has the habit has it back for the
     // whole run, and one who does not starts it late and gets it back over a shorter and shorter window. The
     // founder's point of 2026-11-11, and the reason a beginner's mishits are mishits rather than bad aims.
@@ -1289,13 +1302,18 @@ function tick(now) {
     }
     const turn = Math.max(-1.25, Math.min(1.25,
       sgn * (-1.05 * windup + 0.62 * follow) + aimDelta * 0.9 * follow));
-    const load = Math.max(windup, follow);
+    // A SERVE IS THROWN UP OFF A BENT KNEE (Item 19). The legs load while the ball is in the air and drive as the
+    // racquet goes up. `load` is the groundstroke's wind-up; the toss is the serve's own version of the same thing,
+    // and it is the only thing in this file that bends a knee — a root dip on its own would be a body sinking
+    // through its own legs, which is worse than not crouching at all. `tlc` is negative through the toss.
+    const serveLoad = (isHitter && sh.kind === "serve") ? Math.max(0, Math.min(1, -tlc / 0.45)) : 0;
+    const load = Math.max(windup, follow, serveLoad);
     // The clock the stance moves on. One weight shift a second, and the body it moves: a player waiting for a
     // ball is up on the balls of their feet, so the whole figure rocks sideways over the loaded leg and bobs a
     // little. Both are switched off while they run (the gait is the motion then) and eased out over the
     // follow-through, because a body that has just struck a ball is not idling — it is falling back into balance.
     const idlePhase = T * 2 * Math.PI / 1.15;
-    const idleAmt = (moving ? 0 : 1) * (sh.player === pl.name ? Math.min(1, Math.max(0, tl / 0.5)) : 1);
+    const idleAmt = (moving ? 0 : 1) * (sh.player === pl.name ? Math.min(1, Math.max(0, tlc / 0.5)) : 1);
     if (idleAmt > 0) {
       const sway = 0.11 * Math.sin(idlePhase) * idleAmt;
       rig.root.position.x += -Math.cos(rig.yaw) * sway;      // right = forward x up, as in the stroke
@@ -1332,7 +1350,9 @@ function tick(now) {
       // The hand is on the ball at the contact frame and leaves it afterwards. The previous version ramped the
       // solve IN from 0.26s to 0.56s, so the ball was long gone by the time the arm arrived: a follow-through
       // with its cause removed.
-      const k = Math.max(0, Math.min(1, 1 - tl / 0.34));
+      // Symmetric in time to contact, so a serve's arm arrives AT the ball instead of being there already: a serve's
+      // segment starts at the toss, and `1 - tl/0.34` would have had the arm on the ball for the whole throw.
+      const k = Math.max(0, Math.min(1, 1 - Math.abs(tlc) / 0.34));
       const ball = new THREE.Vector3(sh.contact[0], sh.contact[2], sh.contact[1]);
       // A hand does not touch the ball; a racquet does. The arm is solved to a hand 1.6ft back down the line from
       // the shoulder to the ball, and the racquet's 1.74ft shaft carries the head the rest of the way — which is
@@ -1351,7 +1371,7 @@ function tick(now) {
       // the arm to fold into its own chest — the CCD cannot get there, and the elbow ends up by the ear, which
       // is the "statue reaching for something" the founder has been looking at. Measured with ?debug: the hand
       // was 0.86ft short of its own target on every shot.
-      reachTo(rig, lead, ball, tl, tl, seg.rally + ":" + seg.n);
+      reachTo(rig, lead, ball, tlc, tlc, seg.rally + ":" + seg.n);
       // THE PLANT. Contact is this segment's first frame and the run ends there, so until now the body arrived and
       // swung on whatever stride the gait froze in: no weight transfer, no push off the back foot, and the load
       // constant dipped the root 0.05ft rather than raising it. A stroke is powered from the ground, so the weight
@@ -1359,8 +1379,11 @@ function tick(now) {
       // 0.12ft a little after contact. Stateless on purpose: it is a function of `tl` and nothing else, because a
       // blended version cannot be replayed by a probe that seeks backwards, and an unverifiable change is the
       // failure this file has already paid for once.
-      const _plant = Math.max(0, Math.min(1, tl / 0.22));
-      rig.root.position.y += 0.12 * Math.sin(Math.PI * _plant);
+      const _plant = Math.max(0, Math.min(1, tlc / 0.22));
+      // A serve drives off the legs further than a groundstroke does — 0.22ft of rise instead of 0.12 — and it
+      // comes out of the crouch the toss put them in, which is drawn as the dip below.
+      rig.root.position.y += (sh.kind === "serve" ? 0.22 : 0.12) * Math.sin(Math.PI * _plant);
+      rig.root.position.y -= 0.12 * serveLoad;
       _face.set(sh.v0[0], sh.v0[2], sh.v0[1]).normalize();
       (rig.bones["upperarm" + lead] || rig.bones["chest"]).getWorldPosition(_sh0);
       // `1 - k`, not `k`: k is 1 at the strike and falls to 0 half a second later, and a lerp towards the ready
@@ -1407,11 +1430,11 @@ function tick(now) {
         .addScaledVector(rightW, back ? 1.05 : 0.80)
         .addScaledVector(fwdW, back ? 0.45 : 0.55);
       fin.y = chestW.y + (back ? 1.05 : 1.45);
-      const done = Math.min(1, tl / 0.17);                                  // into the finish
+      const done = Math.min(1, tlc / 0.17);                                 // into the finish
       // ...and back out of it by the END OF THIS SHOT, not half a second after it. The relax used to take 0.5s,
       // which the old 0.55s beat between shots hid; with the beat gone the arm was still up in the finish when the
       // next shot began, and the frame dropped 1.5ft between one frame and the next.
-      const relax = Math.max(0, Math.min(1, (tl - 0.17) / Math.max(0.14, seg.dur - 0.17)));
+      const relax = Math.max(0, Math.min(1, (tlc - 0.17) / Math.max(0.14, seg.dur - (seg.tossDur || 0) - 0.17)));
       // The pose it relaxes into is the ready pose, the same one the other player is standing in: hand at `wait`,
       // frame 0.70ft in front of it and 0.75ft up. It used to relax the frame onto `wait` itself, i.e. held straight
       // above the hand, which is not a pose anybody stands in.
