@@ -1,0 +1,523 @@
+{
+ "closed": {
+  "by": "the schedule",
+  "when": "2026-11-19T22:41:55Z",
+  "why": "the plan's sessions are all played: the season is complete"
+ },
+ "members": {
+  "Ada": {
+   "balls": 45,
+   "carried": 20,
+   "seeded": {
+    "balls": 20,
+    "by": "a person, before this member had a record here",
+    "when": "2026-11-19T22:45:00Z"
+   },
+   "sessions": [
+    {
+     "by": "the schedule",
+     "clock": 1795128064409,
+     "competition": true,
+     "control": 0.376,
+     "in_play": 7,
+     "longest": 4,
+     "mean_rally": 1.7,
+     "mode": "rally",
+     "of": 17,
+     "reach": 0.509,
+     "shots": 17,
+     "surface": "grass",
+     "when": "2026-11-19T22:41:08Z",
+     "with": [
+      "Gwen"
+     ]
+    },
+    {
+     "by": "the schedule",
+     "clock": 1795128098340,
+     "competition": true,
+     "control": 0.489,
+     "in_play": 14,
+     "longest": 6,
+     "mean_rally": 2.6,
+     "mode": "rally",
+     "of": 28,
+     "reach": 0.601,
+     "shots": 28,
+     "surface": "clay",
+     "when": "2026-11-19T22:41:44Z",
+     "with": [
+      "Gwen"
+     ]
+    }
+   ]
+  },
+  "Bo": {
+   "balls": 53,
+   "carried": 20,
+   "seeded": {
+    "balls": 20,
+    "by": "a person, before this member had a record here",
+    "when": "2026-11-19T22:45:00Z"
+   },
+   "sessions": [
+    {
+     "by": "the schedule",
+     "clock": 1795128057705,
+     "competition": true,
+     "control": 0.424,
+     "in_play": 21,
+     "longest": 10,
+     "mean_rally": 2.95,
+     "mode": "rally",
+     "of": 28,
+     "reach": 0.548,
+     "shots": 28,
+     "surface": "clay",
+     "when": "2026-11-19T22:41:04Z",
+     "with": [
+      "Dmitri"
+     ]
+    },
+    {
+     "by": "the schedule",
+     "clock": 1795128092787,
+     "competition": true,
+     "control": 0.517,
+     "in_play": 14,
+     "longest": 7,
+     "mean_rally": 2.45,
+     "mode": "rally",
+     "of": 25,
+     "reach": 0.623,
+     "shots": 25,
+     "surface": "clay",
+     "when": "2026-11-19T22:41:38Z",
+     "with": [
+      "Dmitri"
+     ]
+    }
+   ]
+  },
+  "Colette": {
+   "balls": 73,
+   "carried": 20,
+   "seeded": {
+    "balls": 20,
+    "by": "a person, before this member had a record here",
+    "when": "2026-11-19T22:45:00Z"
+   },
+   "sessions": [
+    {
+     "by": "the schedule",
+     "clock": 1795128047104,
+     "competition": true,
+     "control": 0.367,
+     "in_play": 4,
+     "longest": 3,
+     "mean_rally": 1.45,
+     "mode": "rally",
+     "of": 15,
+     "reach": 0.502,
+     "shots": 15,
+     "surface": "hard",
+     "when": "2026-11-19T22:40:50Z",
+     "with": [
+      "Gwen"
+     ]
+    },
+    {
+     "by": "the schedule",
+     "clock": 1795128053586,
+     "competition": true,
+     "control": 0.436,
+     "in_play": 10,
+     "longest": 4,
+     "mean_rally": 1.75,
+     "mode": "rally",
+     "of": 16,
+     "reach": 0.558,
+     "shots": 16,
+     "surface": "clay",
+     "when": "2026-11-19T22:40:57Z",
+     "with": [
+      "Gwen"
+     ]
+    },
+    {
+     "by": "the schedule",
+     "clock": 1795128087841,
+     "competition": true,
+     "control": 0.514,
+     "in_play": 12,
+     "longest": 6,
+     "mean_rally": 2.15,
+     "mode": "rally",
+     "of": 21,
+     "reach": 0.621,
+     "shots": 21,
+     "surface": "hard",
+     "when": "2026-11-19T22:41:32Z",
+     "with": [
+      "Gwen"
+     ]
+    },
+    {
+     "by": "the schedule",
+     "clock": 1795128104273,
+     "competition": true,
+     "control": 0.579,
+     "in_play": 11,
+     "longest": 8,
+     "mean_rally": 2.1,
+     "mode": "rally",
+     "of": 21,
+     "reach": 0.674,
+     "shots": 21,
+     "surface": "grass",
+     "when": "2026-11-19T22:41:49Z",
+     "with": [
+      "Gwen"
+     ]
+    }
+   ]
+  },
+  "Dmitri": {
+   "balls": 137,
+   "carried": 20,
+   "seeded": {
+    "balls": 20,
+    "by": "a person, before this member had a record here",
+    "when": "2026-11-19T22:45:00Z"
+   },
+   "sessions": [
+    {
+     "by": "the schedule",
+     "clock": 1795128042372,
+     "competition": true,
+     "control": 0.39,
+     "in_play": 11,
+     "longest": 8,
+     "mean_rally": 2.05,
+     "mode": "rally",
+     "of": 20,
+     "reach": 0.52,
+     "shots": 20,
+     "surface": "clay",
+     "when": "2026-11-19T22:40:47Z",
+     "with": [
+      "Remy"
+     ]
+    },
+    {
+     "by": "the schedule",
+     "clock": 1795128050467,
+     "competition": true,
+     "control": 0.448,
+     "in_play": 5,
+     "longest": 3,
+     "mean_rally": 1.3,
+     "mode": "rally",
+     "of": 14,
+     "reach": 0.567,
+     "shots": 14,
+     "surface": "hard",
+     "when": "2026-11-19T22:40:53Z",
+     "with": [
+      "Remy"
+     ]
+    },
+    {
+     "by": "the schedule",
+     "clock": 1795128057705,
+     "competition": true,
+     "control": 0.556,
+     "in_play": 18,
+     "longest": 10,
+     "mean_rally": 2.95,
+     "mode": "rally",
+     "of": 31,
+     "reach": 0.655,
+     "shots": 31,
+     "surface": "clay",
+     "when": "2026-11-19T22:41:04Z",
+     "with": [
+      "Bo"
+     ]
+    },
+    {
+     "by": "the schedule",
+     "clock": 1795128068215,
+     "competition": true,
+     "control": 0.619,
+     "in_play": 12,
+     "longest": 7,
+     "mean_rally": 2.25,
+     "mode": "rally",
+     "of": 23,
+     "reach": 0.706,
+     "shots": 23,
+     "surface": "hard",
+     "when": "2026-11-19T22:41:13Z",
+     "with": [
+      "Remy"
+     ]
+    },
+    {
+     "by": "the schedule",
+     "clock": 1795128092787,
+     "competition": true,
+     "control": 0.674,
+     "in_play": 15,
+     "longest": 7,
+     "mean_rally": 2.45,
+     "mode": "rally",
+     "of": 24,
+     "reach": 0.75,
+     "shots": 24,
+     "surface": "clay",
+     "when": "2026-11-19T22:41:38Z",
+     "with": [
+      "Bo"
+     ]
+    },
+    {
+     "by": "the schedule",
+     "clock": 1795128109090,
+     "competition": true,
+     "control": 0.72,
+     "in_play": 20,
+     "longest": 6,
+     "mean_rally": 2.75,
+     "mode": "rally",
+     "of": 25,
+     "reach": 0.788,
+     "shots": 25,
+     "surface": "hard",
+     "when": "2026-11-19T22:41:55Z",
+     "with": [
+      "Remy"
+     ]
+    }
+   ]
+  },
+  "Gwen": {
+   "balls": 117,
+   "carried": 20,
+   "seeded": {
+    "balls": 20,
+    "by": "a person, before this member had a record here",
+    "when": "2026-11-19T22:45:00Z"
+   },
+   "sessions": [
+    {
+     "by": "the schedule",
+     "clock": 1795128047104,
+     "competition": true,
+     "control": 0.363,
+     "in_play": 5,
+     "longest": 3,
+     "mean_rally": 1.45,
+     "mode": "rally",
+     "of": 14,
+     "reach": 0.498,
+     "shots": 14,
+     "surface": "hard",
+     "when": "2026-11-19T22:40:50Z",
+     "with": [
+      "Colette"
+     ]
+    },
+    {
+     "by": "the schedule",
+     "clock": 1795128053586,
+     "competition": true,
+     "control": 0.444,
+     "in_play": 7,
+     "longest": 4,
+     "mean_rally": 1.75,
+     "mode": "rally",
+     "of": 19,
+     "reach": 0.564,
+     "shots": 19,
+     "surface": "clay",
+     "when": "2026-11-19T22:40:57Z",
+     "with": [
+      "Colette"
+     ]
+    },
+    {
+     "by": "the schedule",
+     "clock": 1795128064409,
+     "competition": true,
+     "control": 0.507,
+     "in_play": 7,
+     "longest": 4,
+     "mean_rally": 1.7,
+     "mode": "rally",
+     "of": 17,
+     "reach": 0.615,
+     "shots": 17,
+     "surface": "grass",
+     "when": "2026-11-19T22:41:08Z",
+     "with": [
+      "Ada"
+     ]
+    },
+    {
+     "by": "the schedule",
+     "clock": 1795128087841,
+     "competition": true,
+     "control": 0.576,
+     "in_play": 11,
+     "longest": 6,
+     "mean_rally": 2.15,
+     "mode": "rally",
+     "of": 22,
+     "reach": 0.671,
+     "shots": 22,
+     "surface": "hard",
+     "when": "2026-11-19T22:41:32Z",
+     "with": [
+      "Colette"
+     ]
+    },
+    {
+     "by": "the schedule",
+     "clock": 1795128098340,
+     "competition": true,
+     "control": 0.639,
+     "in_play": 18,
+     "longest": 6,
+     "mean_rally": 2.6,
+     "mode": "rally",
+     "of": 24,
+     "reach": 0.722,
+     "shots": 24,
+     "surface": "clay",
+     "when": "2026-11-19T22:41:44Z",
+     "with": [
+      "Ada"
+     ]
+    },
+    {
+     "by": "the schedule",
+     "clock": 1795128104273,
+     "competition": true,
+     "control": 0.684,
+     "in_play": 13,
+     "longest": 8,
+     "mean_rally": 2.1,
+     "mode": "rally",
+     "of": 21,
+     "reach": 0.758,
+     "shots": 21,
+     "surface": "grass",
+     "when": "2026-11-19T22:41:49Z",
+     "with": [
+      "Colette"
+     ]
+    }
+   ]
+  },
+  "Remy": {
+   "balls": 85,
+   "carried": 20,
+   "seeded": {
+    "balls": 20,
+    "by": "a person, before this member had a record here",
+    "when": "2026-11-19T22:45:00Z"
+   },
+   "sessions": [
+    {
+     "by": "the schedule",
+     "clock": 1795128042372,
+     "competition": true,
+     "control": 0.394,
+     "in_play": 10,
+     "longest": 8,
+     "mean_rally": 2.05,
+     "mode": "rally",
+     "of": 21,
+     "reach": 0.524,
+     "shots": 21,
+     "surface": "clay",
+     "when": "2026-11-19T22:40:47Z",
+     "with": [
+      "Dmitri"
+     ]
+    },
+    {
+     "by": "the schedule",
+     "clock": 1795128050467,
+     "competition": true,
+     "control": 0.444,
+     "in_play": 7,
+     "longest": 3,
+     "mean_rally": 1.3,
+     "mode": "rally",
+     "of": 12,
+     "reach": 0.564,
+     "shots": 12,
+     "surface": "hard",
+     "when": "2026-11-19T22:40:53Z",
+     "with": [
+      "Dmitri"
+     ]
+    },
+    {
+     "by": "the schedule",
+     "clock": 1795128068215,
+     "competition": true,
+     "control": 0.524,
+     "in_play": 13,
+     "longest": 7,
+     "mean_rally": 2.25,
+     "mode": "rally",
+     "of": 22,
+     "reach": 0.629,
+     "shots": 22,
+     "surface": "hard",
+     "when": "2026-11-19T22:41:13Z",
+     "with": [
+      "Dmitri"
+     ]
+    },
+    {
+     "by": "the schedule",
+     "clock": 1795128109090,
+     "competition": true,
+     "control": 0.612,
+     "in_play": 15,
+     "longest": 6,
+     "mean_rally": 2.75,
+     "mode": "rally",
+     "of": 30,
+     "reach": 0.7,
+     "shots": 30,
+     "surface": "hard",
+     "when": "2026-11-19T22:41:55Z",
+     "with": [
+      "Dmitri"
+     ]
+    }
+   ]
+  }
+ },
+ "note": "",
+ "opened": "2026-11-19T22:45:00Z",
+ "plan": {
+  "members": {
+   "Ada": 2,
+   "Bo": 2,
+   "Colette": 4,
+   "Dmitri": 6,
+   "Gwen": 6,
+   "Remy": 4
+  },
+  "note": "Six sessions, staggered 6/4/2 per member, then the season closes. Equal histories at the start: the ranking is the schedule's doing. games/tennis/CAST.md is the prose; this block is what the scheduler reads.",
+  "rallies": 20,
+  "sessions": 6
+ },
+ "season": "2026-tour"
+}

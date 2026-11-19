@@ -4850,6 +4850,129 @@ class TestTheBallAfterThePointIsOver(unittest.TestCase):
         self.assertTrue(any(ch.isdigit() for ch in why), "the fault names no distance, so nothing can be learnt")
 
 
+class TestASeasonPlaysItself(unittest.TestCase):
+    """The founder, 2026-11-19: *"If no human runs play/practice sessions, automatic play one of each sex should
+    become best and one of each sex should be come worse."*
+
+    That is a schedule, so it lives in the season file as a `plan` block — prose does not fail and a plan does. The
+    rule is arithmetic and has no rng in it, because the random stream belongs to the tennis: a schedule that drew
+    lots would make the ranking partly a lottery, and the point of staggering the play time is that the ranking is
+    the schedule's doing and can be checked against it.
+
+    The property that shapes everything: **staggering needs three per group.** With two, the partner is always
+    pulled along and every member plays every session, so the stagger cancels itself. That is why the cast is three
+    and three rather than two and two, and it is not a fact anyone would guess from the phrase "staggered play"."""
+
+    def setUp(self):
+        import importlib, tempfile, shutil
+        sys.path.insert(0, str(REPO / "lab"))
+        self.T = importlib.import_module("tennis")
+        self.tmp = Path(tempfile.mkdtemp(prefix="tennis-plan-"))
+        self.addCleanup(shutil.rmtree, self.tmp, True)
+
+    def _season(self, name="s1", people=(("Ann", "female", 3), ("Belle", "female", 2), ("Cid", "male", 1)),
+                rallies=3):
+        d = self.tmp / name
+        d.mkdir(parents=True, exist_ok=True)
+        (d / "setup.json").write_text(json.dumps({"schema": "ait-tennis-setup/1", "players": [
+            {"name": n, "sex": x, "look": {"height_m": 1.7}} for n, x, _ in people]}), encoding="utf-8")
+        book = {"season": name, "opened": "2026-11-19T00:00:00Z", "note": "", "members": {},
+                "plan": {"sessions": max(t for _, _, t in people), "rallies": rallies,
+                         "members": {n: t for n, _, t in people}}}
+        self.T.seed_practice(book, {n: 10 for n, _, _ in people}, "2026-11-19T00:00:00Z")
+        # `override` is the season DIRECTORY, not the base — season_paths puts practice.json straight into it.
+        self.T.save_season(book, name, str(d))
+        return d
+
+    def _run(self, d, name="s1"):
+        import contextlib, io
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            code = self.T.main(["--schedule", "--season", name, "--season-dir", str(d)])
+        return code, out.getvalue(), err.getvalue()
+
+    def _book(self, d, name="s1"):
+        return json.loads((Path(d) / "practice.json").read_text(encoding="utf-8"))
+
+    def test_the_furthest_behind_plays_the_next_most_behind_of_their_own_group(self):
+        cast = {"Ann": {"sex": "female"}, "Belle": {"sex": "female"}, "Cid": {"sex": "male"}}
+        # Belle and Ann are the two furthest behind and share a group: they compete.
+        book = {"members": {"Ann": {"sessions": [{}]}, "Belle": {"sessions": []}, "Cid": {"sessions": [{}, {}, {}]}},
+                "plan": {"members": {"Ann": 5, "Belle": 5, "Cid": 5}}}
+        self.assertEqual(self.T.next_session(book, cast), ("Belle", "Ann", "compete"))
+        # Cid alone is behind, and nobody in his group can join him: that is a practice, because practice may pair
+        # anybody and competition may not.
+        book = {"members": {"Ann": {"sessions": [{}, {}, {}, {}]}, "Belle": {"sessions": [{}, {}, {}, {}]},
+                            "Cid": {"sessions": [{}]}},
+                "plan": {"members": {"Ann": 5, "Belle": 5, "Cid": 5}}}
+        a, b, mode = self.T.next_session(book, cast)
+        self.assertEqual((a, mode), ("Cid", "practice"),
+                         "a member with nobody behind in their own group must not be given a competition")
+
+    def test_the_rule_is_arithmetic_and_not_a_lottery(self):
+        """Same book, twelve times: the same answer. A schedule that drew lots would make the ranking partly a
+        random draw, and nobody could then say which part of the standings was the stagger."""
+        book = {"members": {n: {"sessions": [{}] * i} for i, n in enumerate(("Ann", "Belle", "Cid"))},
+                "plan": {"members": {"Ann": 4, "Belle": 4, "Cid": 4}}}
+        cast = {n: {"sex": "female" if n != "Cid" else "male"} for n in ("Ann", "Belle", "Cid")}
+        answers = {self.T.next_session(book, cast) for _ in range(12)}
+        self.assertEqual(len(answers), 1, f"the schedule gave {answers}")
+
+    def test_a_scheduled_session_says_the_schedule_played_it(self):
+        d = self._season()
+        code, out, err = self._run(d)
+        self.assertEqual(code, 0, err)
+        self.assertIn("the schedule", out)
+        session = self._book(d)["members"]["Ann"]["sessions"][-1]
+        self.assertEqual(session["by"], "the schedule")
+        self.assertIs(session["competition"], True)
+
+    def test_the_season_closes_itself_when_the_plan_is_done_and_takes_no_eighth(self):
+        d = self._season(people=(("Ann", "female", 1), ("Belle", "female", 1)))
+        self._run(d)
+        book = self._book(d)
+        self.assertIn("closed", book, "the plan was done and the season did not close")
+        self.assertIn("complete", book["closed"]["why"])
+        code, out, err = self._run(d)
+        self.assertEqual(code, 2, "a closed season accepted another scheduled session")
+        self.assertIn("closed", err)
+
+    def test_the_ranking_is_the_schedules_doing(self):
+        """The founder's requirement, measured: one of each group ends best and one ends worst, and it is the
+        number of sessions that put them there. Equal histories at the start, so nothing but the schedule can
+        account for the order."""
+        d = self._season(people=(("Ann", "female", 3), ("Belle", "female", 1), ("Cid", "male", 2)), rallies=4)
+        for _ in range(6):
+            code, out, err = self._run(d)
+            if code != 0:
+                break
+        book = self._book(d)
+        played = {n: len(m["sessions"]) for n, m in book["members"].items()}
+        balls = {n: m["balls"] + m.get("carried", 0) for n, m in book["members"].items()}
+        self.assertEqual(book["members"]["Ann"].get("carried"), 10, "this test needs equal histories")
+        self.assertGreater(played["Ann"], played["Belle"],
+                           f"the stagger did not happen: {played}")
+        self.assertGreater(balls["Ann"], balls["Belle"],
+                           "the member who played more sessions did not end with more balls")
+        p_ann, p_belle = self.T.Player("Ann", True, balls["Ann"]), self.T.Player("Belle", True, balls["Belle"])
+        self.assertGreater(p_ann.skill("control"), p_belle.skill("control"),
+                           "more sessions did not make a better player, so the ranking is not the schedule's")
+
+    def test_a_season_with_no_plan_has_no_schedule(self):
+        d = self.tmp / "bare"
+        d.mkdir()
+        (d / "setup.json").write_text(json.dumps({"players": [{"name": "Ann", "sex": "female"}]}),
+                                      encoding="utf-8")
+        (d / "practice.json").write_text(json.dumps({"season": "bare", "members": {"Ann": {"balls": 0,
+                                                                                        "sessions": []}}}),
+                                         encoding="utf-8")
+        code, out, err = self._run(d, "bare")
+        self.assertEqual(code, 2)
+        self.assertIn("no plan", err, "the refusal does not say what is missing")
+        self.assertEqual(json.loads((d / "practice.json").read_text())["members"]["Ann"]["sessions"], [],
+                         "a season with no plan had a session played into it anyway")
+
+
 class TestASeasonCanBeClosed(unittest.TestCase):
     """The founder, 2026-11-19: *"Why don't you just discard that data?"*
 

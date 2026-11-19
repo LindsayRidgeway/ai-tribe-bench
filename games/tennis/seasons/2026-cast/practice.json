@@ -1,4 +1,9 @@
 {
+ "closed": {
+  "by": "a person",
+  "when": "2026-11-19T22:40:27Z",
+  "why": "its seeds were staggered in the wrong direction: the member who plays least was given the most balls, so Ada would end the season best instead of worst. The spread has to be the schedule's doing, not a hand's, so this season is history and the next opens with six equal histories"
+ },
  "members": {
   "Ada": {
    "balls": 0,
@@ -50,14 +55,33 @@
    ]
   },
   "Dmitri": {
-   "balls": 0,
+   "balls": 21,
    "carried": 30,
    "seeded": {
     "balls": 30,
     "by": "a person, before this member had a record here",
     "when": "2026-11-19T22:25:00Z"
    },
-   "sessions": []
+   "sessions": [
+    {
+     "by": "the schedule",
+     "clock": 1795128005394,
+     "competition": true,
+     "control": 0.436,
+     "in_play": 9,
+     "longest": 5,
+     "mean_rally": 2.0,
+     "mode": "rally",
+     "of": 21,
+     "reach": 0.558,
+     "shots": 21,
+     "surface": "clay",
+     "when": "2026-11-19T22:40:09Z",
+     "with": [
+      "Remy"
+     ]
+    }
+   ]
   },
   "Gwen": {
    "balls": 26,
@@ -89,14 +113,33 @@
    ]
   },
   "Remy": {
-   "balls": 0,
+   "balls": 19,
    "carried": 70,
    "seeded": {
     "balls": 70,
     "by": "a person, before this member had a record here",
     "when": "2026-11-19T22:25:00Z"
    },
-   "sessions": []
+   "sessions": [
+    {
+     "by": "the schedule",
+     "clock": 1795128005394,
+     "competition": true,
+     "control": 0.568,
+     "in_play": 12,
+     "longest": 5,
+     "mean_rally": 2.0,
+     "mode": "rally",
+     "of": 19,
+     "reach": 0.664,
+     "shots": 19,
+     "surface": "clay",
+     "when": "2026-11-19T22:40:09Z",
+     "with": [
+      "Dmitri"
+     ]
+    }
+   ]
   }
  },
  "note": "",

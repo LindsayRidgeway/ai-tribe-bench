@@ -14,14 +14,20 @@ produce the spread he asked for. It replaces the earlier "four-player cast" rule
 Six names already exist in this repository's tennis record. They split three and three, so no one has to be
 invented:
 
-| name | group | arrived with | plays per season (automatic) | ends the season as |
+| name | group | arrived with | plays per season (automatic) | ended 2026-tour as |
 |---|---|---|---|---|
-| Gwen | female | 30 balls | 6 sessions | best |
-| Colette | female | 70 balls | 4 sessions | middle |
-| Ada | female | 140 balls | 2 sessions | worst |
-| Dmitri | male | 30 balls | 6 sessions | best |
-| Remy | male | 70 balls | 4 sessions | middle |
-| Bo | male | 140 balls | 2 sessions | worst |
+| Gwen | female | 20 balls | 6 sessions | best |
+| Colette | female | 20 balls | 4 sessions | middle |
+| Ada | female | 20 balls | 2 sessions | worst |
+| Dmitri | male | 20 balls | 6 sessions | best |
+| Remy | male | 20 balls | 4 sessions | middle |
+| Bo | male | 20 balls | 2 sessions | worst |
+
+**Every member arrives with the same history, and that is the point.** The first version of this table staggered
+the histories too — the least active member given the most balls — which put the ranking in the seed instead of in
+the schedule and made the least active player the best by arithmetic. It was caught within the hour by the
+scheduler's first run, and the season it had already opened (`2026-cast`) was closed with that reason rather than
+edited. The spread must be the schedule's doing, because a hand-made ranking is a ranking nobody can attribute.
 
 **The `group` column is my reading of the names and nothing more.** No record in this repository states anyone's
 sex. The field exists so that a person can change it in one place instead of arguing with a rule, and so that
@@ -69,19 +75,36 @@ Two consequences, both measured rather than assumed:
 - **Everybody converges.** 800 balls and 1600 balls are 0.001 of control and 0.01ft/s apart. So a season long
   enough for a hundred sessions produces six players who cannot be told apart on the court, and the ranking he
   asked for dissolves at exactly the point the season gets interesting. Six automatic sessions at a 3x/2x/1x rate
-  keeps the cast inside the sloped part of the curve:
+  keeps the cast inside the sloped part of the curve.
+
+**And then it was measured rather than extrapolated, which corrected a mistake in this file.** The first version of
+the arithmetic above assumed 65 balls per session. Twenty rallies between two beginners is **19 to 26 shots each**,
+because a rally that ends in two shots ends early for both of them — the number of balls per session is a function
+of skill, and the better player gets more of them, which widens the gap rather than closing it. `2026-tour`, played
+by the schedule on 2026-11-19 from six equal 20-ball histories:
 
 ```
-        opened    after 6 sessions    control
-Gwen     30         30 + 6x65 = 420    0.894
-Colette  70         70 + 4x65 = 330    0.855
-Ada     140        140 + 2x65 = 270    0.801
+                sessions   balls   control   moves      last rally
+Dmitri  male        6       157     0.720    16.8ft/s     2.75
+Gwen    female      6       137     0.684    16.4         2.10
+Remy    male        4       105     0.612    15.5         2.75
+Colette female      4        93     0.579    15.1         2.10
+Bo      male        2        73     0.517    14.4         2.45
+Ada     female      2        65     0.489    14.0         2.60
 ```
 
-A spread of **0.09 of control** inside one group is a difference a viewer can see: the shot scatter is
-`±4.0 × (1 - control)` degrees, so Ada's balls spray 0.80° where Gwen's spray 0.42°, and Gwen covers ground at
-18.9ft/s against Ada's 16.9. The season ends while that is still true, and the next season opens on a new
-directory with everybody at zero — which is how the existing design already resets without wiping.
+**One of each group best, one worst, in the order of the session counts and nothing else.** The spread inside a
+group is **0.195 of control** (female) and **0.203** (male), against the 0.06 the done-test asks for. A viewer can
+see it: the shot scatter is `±4.0 × (1 - control)` degrees, so Ada's balls spray 2.04° where Gwen's spray 1.26°,
+and Gwen covers ground 2.4ft/s faster.
+
+**The property nobody would guess from the phrase "staggered play": it needs three per group.** With two, the
+partner is always pulled along and every member plays every session, so the stagger cancels itself — the two play
+each other and end identical. Three is the number at which one can rest while the other two play. That is the real
+reason the cast is three and three.
+
+The season closes itself when the plan is done — the thirteenth scheduled session is refused by name — and the
+next season opens on a new directory, which is how this design resets without wiping.
 
 ## What this costs
 
@@ -92,5 +115,7 @@ directory with everybody at zero — which is how the existing design already re
 - **Four faces — open.** `bodies/faces/` holds `dmitri.jpg` and `gwen.jpg`, both drawn by the founder. The other
   four cannot be generated here. The break card now draws a monogram in their place, so the season is watchable
   without them; the drawings are a request, not a blocker.
-- **A clock.** Something has to start a session on the staggering above without a person, and it has to be a
-  workflow rather than a habit.
+- **A clock — done as a command, not yet as a schedule.** `python3 lab/tennis.py --schedule --season <S>` plays
+  the next session the plan says is due and closes the season when the plan is done; `2026-tour` was played to
+  completion with it. What is still missing is something to run that command while nobody is looking — a cron
+  workflow, with the pull-rebase-retry that this shared checkout makes impossible to skip.

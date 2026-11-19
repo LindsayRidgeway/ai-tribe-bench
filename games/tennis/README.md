@@ -31,8 +31,12 @@ games/tennis/open.sh replay.html                                 # the top-down 
 games/tennis/open.sh "replay3d.html?record=seasons/2026-spring/rally.json&cam=net"   # a season, a camera
 
 # a session the season keeps: play it as a film and write it back into practice.json
-python3 lab/tennis.py --watch --season 2026-spring --names Dmitri,Gwen --rallies 20
-games/tennis/open.sh "replay3d.html?record=seasons/2026-spring/watch.json"
+python3 lab/tennis.py --watch --season 2026-tour --names Gwen,Colette --rallies 20
+games/tennis/open.sh "replay3d.html?record=seasons/2026-tour/watch.json"
+
+# or let the season's own plan choose the next session, and close the season when it is done
+python3 lab/tennis.py --schedule --season 2026-tour
+python3 lab/tennis.py --close-season 2026-tour --why "the reason the record will carry"
 ```
 
 **`--watch` is the seam between the film and the season**, and it is one command because they are one session. It

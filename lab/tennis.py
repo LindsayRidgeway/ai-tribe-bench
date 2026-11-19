@@ -2518,6 +2518,124 @@ def simulate_rally(args, ms: int | None = None, quiet: bool = False) -> dict:
     return out
 
 
+def plan_of(book: dict) -> dict:
+    """Who is due how many sessions this season.
+
+    The founder, 2026-11-19, asked for *"intentionally staggered automatic play (practice/compete) time within each
+    group"*. That sentence is a schedule, so it lives in the season file as a `plan` block rather than in a
+    paragraph of `CAST.md` — prose does not fail and a plan does. `members` is each person's target number of
+    sessions; `sessions` is the season's own length, which is the same number only by coincidence."""
+    p = book.get("plan") or {}
+    return {
+        "sessions": int(p.get("sessions") or 0),
+        "members": {k: int(v) for k, v in (p.get("members") or {}).items() if v},
+        "rallies": int(p.get("rallies") or 20),
+        "note": str(p.get("note") or ""),
+    }
+
+
+def sessions_played(book: dict) -> dict[str, int]:
+    """Sessions each member has actually played, not counting the person's seat — a point somebody played from
+    the page is not an evening, which is the distinction the report already makes."""
+    return {n: sum(1 for s in m.get("sessions", []) if s.get("mode") != "person")
+            for n, m in (book.get("members") or {}).items()}
+
+
+def next_session(book: dict, cast: dict) -> tuple[str, str, str]:
+    """Who plays next, and whether it is a competition. Returns ("", "", "") when there is nothing to play.
+
+    The rule is deliberately arithmetic and has no rng in it, because the random stream belongs to the tennis: a
+    schedule that drew lots would make the season's ranking partly a lottery, and the point of staggering the play
+    time is that the ranking is the schedule's doing and can be checked against it.
+
+    1. whoever is furthest behind their target plays;
+    2. their opponent is the next-most-behind member OF THE SAME GROUP — a competition, since competition is
+       same-sex;
+    3. if nobody in their group is behind, the pair is a practice with the next-most-behind member of the other
+       group, because practice may pair anybody;
+    4. if nobody else is behind at all, nothing is due and the season is complete.
+
+    Ties break by name. Not by rng, and not by dict order, which is a coin toss nobody wrote down."""
+    plan = plan_of(book)
+    targets = plan["members"]
+    if not targets:
+        return "", "", ""
+    played = sessions_played(book)
+    due = {n: targets.get(n, 0) - played.get(n, 0) for n in targets}
+    behind = sorted(((n, d) for n, d in due.items() if d > 0), key=lambda nd: (-nd[1], nd[0]))
+    if not behind:
+        return "", "", ""
+    a = behind[0][0]
+    group = cast.get(a, {}).get("sex", "")
+    same = [n for n, _ in behind if n != a and group and cast.get(n, {}).get("sex") == group]
+    if same:
+        return a, same[0], "compete"
+    other = [n for n, _ in behind if n != a]
+    if other:
+        return a, other[0], "practice"
+    return "", "", ""
+
+
+def run_schedule(args) -> int:
+    """Play one session of a season, chosen by the schedule rather than by a person.
+
+    This is the half of the founder's cast instruction that is not a rule: *"If no human runs play/practice
+    sessions, automatic play one of each sex should become best and one of each sex should be come worse."* The
+    staggered plan is in the season file; this reads it, decides the next pair, plays it as a film (so the season
+    stays watchable while it plays itself), and closes the season when the plan is done — which is what stops a
+    season acquiring an eighth session or a ranking nobody can attribute."""
+    if not args.season:
+        print("   --schedule needs a --season to play a session of. Nothing was played.", file=sys.stderr)
+        return 2
+    book = load_season(args.season, args.season_dir)
+    why = season_is_closed(book)
+    if why:
+        print(f"   {args.season}: {why}. Nothing was played.", file=sys.stderr)
+        return 2
+    plan = plan_of(book)
+    if not plan["members"]:
+        print(f"   {args.season} has no plan block, so there is no schedule to play. Add "
+              f"`plan: {{members: {{name: sessions}}}}` or play a session by hand. Nothing was played.",
+              file=sys.stderr)
+        return 2
+    cast = cast_of(args.season, args.season_dir)
+    played = sessions_played(book)
+    due = {n: plan["members"].get(n, 0) - played.get(n, 0) for n in plan["members"]}
+    print(f"\n# the schedule — {args.season}, {plan['sessions'] or '?'} sessions, "
+          f"{plan['rallies']} rallies each\n")
+    for n in sorted(plan["members"], key=lambda k: (-due[k], k)):
+        print(f"  {n:9s} {cast.get(n, {}).get('sex', 'no group'):8s} "
+              f"{played.get(n, 0)} of {plan['members'][n]} played"
+              + (f"   — {due[n]} to go" if due[n] > 0 else "   — done"))
+    a, b, mode = next_session(book, cast)
+    if not a:
+        print(f"\n  every member has played its sessions. The season is complete; closing it.")
+        return close_season(args.season, args.season_dir,
+                            "the plan's sessions are all played: the season is complete", by=args.by)
+    print(f"\n  next: {a} and {b}, a {mode} — the two furthest behind"
+          + (f" in the {cast.get(a, {}).get('sex')} group" if mode == "compete" else "\n"))
+
+    # The plan owns the session shape. `--rallies` is not consulted here, because a schedule that could be
+    # shortened by a flag is a schedule nobody can reproduce.
+    args.names = f"{a},{b}"
+    args.mode = mode
+    args.by = "the schedule"
+    args.rallies = plan["rallies"]
+    code = run_watch(args)
+    if code != 0:
+        return code
+
+    after = load_season(args.season, args.season_dir)
+    left = {n: plan["members"][n] - sessions_played(after).get(n, 0) for n in plan["members"]}
+    if all(v <= 0 for v in left.values()):
+        return close_season(args.season, args.season_dir,
+                            "the plan's sessions are all played: the season is complete",
+                            by="the schedule")
+    print(f"\n  the plan has {sum(max(0, v) for v in left.values())} session(s) left: "
+          + ", ".join(f"{n} {max(0, v)}" for n, v in sorted(left.items()) if v > 0))
+    return 0
+
+
 def close_season(season: str, override: str | None, why: str, by: str = "a person") -> int:
     """Close a season: it keeps every number it has and takes no more.
 
@@ -2598,6 +2716,10 @@ def main(argv=None) -> int:
                     help="balls a member brings into a season it has not played yet, one per player, e.g. "
                          "'300,0'. Recorded as carried, never as hit here. Ignored for a member that already "
                          "has a record in this season: the file wins over the flag")
+    ap.add_argument("--schedule", action="store_true",
+                    help="play the next session a season's plan says is due: whoever is furthest behind plays "
+                         "the next-most-behind of their own group, as a film, recorded `by: the schedule`. When "
+                         "the plan is done the season closes itself. Needs --season")
     ap.add_argument("--close-season", default=None, metavar="SEASON",
                     help="close a season: keep every number, take no more sessions. The next one is a new "
                          "`--season`, which is how this design has always reset — a season is a directory")
@@ -2607,6 +2729,8 @@ def main(argv=None) -> int:
     ap.add_argument("--simulate", action="store_true",
                     help="two scripted learners, to test whether the drill's feedback is learnable at all")
     args = ap.parse_args(argv)
+    if args.schedule:
+        return run_schedule(args)
     if args.close_season:
         return close_season(args.close_season, args.season_dir, args.why or "closed by a person", args.by)
     if args.report:

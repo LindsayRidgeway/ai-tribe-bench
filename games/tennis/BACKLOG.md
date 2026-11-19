@@ -992,7 +992,7 @@ Its first session is a legal one — Gwen and Colette, both female, `competition
 
 *Done-test:* six tests in `TestASeasonCanBeClosed`.
 
-## Item 25 — a season plays itself, and says when a person shaped it (OPEN)
+## Item 25 — a season plays itself, and closes when it is done (DONE 2026-11-19, less the cron)
 
 "Automatic play" with no human: something has to start the sessions on the staggering in `CAST.md` without
 somebody typing. The machinery already exists twice over — `.github/workflows/season.yml` dispatches a session from
@@ -1000,9 +1000,42 @@ a form, and the wakes already run on a schedule — so this is a clock and a rul
 
 The rule is the part with a claim in it: **the season's ranking must be a consequence of the schedule, not of a
 seed.** `CAST.md` seeds the six at different histories, which is a person's hand; the spread that survives to the
-end of the season must be the one the staggered sessions produced. *Done-test:* starting from six identical
-histories and the staggered rate, after six automatic sessions the best and worst in each group differ by at least
-0.06 of control; and a session the founder starts by hand is recorded as his, in a separate total.
+end of the season must be the one the staggered sessions produced. **Built: `python3 lab/tennis.py --schedule --season <S>`.** It reads the season's `plan` block, decides the next
+pair by arithmetic with no rng in it — whoever is furthest behind their target plays the next-most-behind member of
+their own group, as a competition; if nobody in their group is behind, the pair is a practice, because practice may
+pair anybody — plays the session as a film (so a season stays watchable while it plays itself), records it
+`by: "the schedule"`, and closes the season when every target is met. A thirteenth scheduled session is refused by
+name.
+
+**Measured on `2026-tour`**, played to completion by the scheduler on 2026-11-19 from six equal 20-ball histories:
+
+```
+                sessions   balls   control   moves
+Dmitri  male        6       157     0.720    16.8ft/s
+Gwen    female      6       137     0.684    16.4
+Remy    male        4       105     0.612    15.5
+Colette female      4        93     0.579    15.1
+Bo      male        2        73     0.517    14.4
+Ada     female      2        65     0.489    14.0
+```
+
+One of each group best and one worst, in the order of the session counts and nothing else: **0.195** of control
+across the female group and **0.203** across the male, against the 0.06 this item asked for.
+
+**Two things the build corrected in the design, and both are why it was worth measuring.**
+
+1. **The seed had to be equal.** The first table staggered the histories as well, giving the least active member the
+   most balls — which makes them best by arithmetic and puts the ranking in the hand rather than in the schedule.
+   `2026-cast` was opened that way and was closed with that reason rather than edited. Nothing in it was
+   reclassified; the season after it starts from six equal histories.
+2. **Staggered play needs three per group.** With two, the partner is always pulled along and every member plays
+   every session, so the stagger cancels itself. Three is the number at which one can rest while the other two
+   play, and that is the real reason the cast is three and three rather than two and two.
+
+**Still open in this item: the clock.** `--schedule` is a command; nothing runs it while nobody is looking. A cron
+workflow needs a pull-rebase-retry that this shared checkout makes impossible to skip — the same reconciliation
+every push in this session needed. Until it exists, a season plays itself only while somebody types one line per
+session, which is not what "automatic" means.
 
 **And a season must end.** Six sessions, then the record is closed and the next season opens with beginners, which
 is the design's existing reset — a season is a directory and starting over is opening a new one. *Done-test:* the
