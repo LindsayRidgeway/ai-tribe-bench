@@ -1,0 +1,103 @@
+{
+  "schema": "ait-tennis-setup/1",
+  "written": "2026-11-19T22:26:00Z",
+  "written_by": "copied from seasons/2026-spring/setup.json \u2014 the same six people, and the six bodies in games/tennis/bodies/ are built to these numbers.",
+  "players": [
+    {
+      "name": "Gwen",
+      "sex": "female",
+      "history": 0,
+      "look": {
+        "height_m": 1.72,
+        "build": 0.95,
+        "kit": "#3c6b57",
+        "skin": "#e2b49a",
+        "hair": "#c9a24a",
+        "lower": "skirt",
+        "racquet": true,
+        "hand": "right"
+      }
+    },
+    {
+      "name": "Dmitri",
+      "sex": "male",
+      "history": 0,
+      "look": {
+        "height_m": 1.88,
+        "build": 1.06,
+        "kit": "#26324a",
+        "skin": "#6b4630",
+        "hair": "#141210",
+        "lower": "shorts",
+        "racquet": true,
+        "hand": "right"
+      }
+    },
+    {
+      "name": "Colette",
+      "sex": "female",
+      "history": 0,
+      "look": {
+        "height_m": 1.66,
+        "build": 0.98,
+        "kit": "#6d4a63",
+        "skin": "#e8c0a8",
+        "hair": "#3b2a24",
+        "lower": "skirt",
+        "racquet": true,
+        "hand": "right"
+      }
+    },
+    {
+      "name": "Ada",
+      "sex": "female",
+      "history": 0,
+      "look": {
+        "height_m": 1.74,
+        "build": 0.9,
+        "kit": "#6e7f92",
+        "skin": "#d9a98b",
+        "hair": "#6b4a2e",
+        "lower": "skirt",
+        "racquet": true,
+        "hand": "right"
+      }
+    },
+    {
+      "name": "Remy",
+      "sex": "male",
+      "history": 0,
+      "look": {
+        "height_m": 1.81,
+        "build": 1.0,
+        "kit": "#1f4a44",
+        "skin": "#c98f6b",
+        "hair": "#2a211b",
+        "lower": "shorts",
+        "racquet": true,
+        "hand": "right"
+      }
+    },
+    {
+      "name": "Bo",
+      "sex": "male",
+      "history": 0,
+      "look": {
+        "height_m": 1.92,
+        "build": 1.12,
+        "kit": "#d8cfb4",
+        "skin": "#8a5a3c",
+        "hair": "#141414",
+        "lower": "shorts",
+        "racquet": true,
+        "hand": "right"
+      }
+    }
+  ],
+  "session": {
+    "season": "2026-cast",
+    "surface": "clay",
+    "rallies": 20,
+    "temperature": 1.0
+  }
+}

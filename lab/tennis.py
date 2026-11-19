@@ -792,6 +792,39 @@ def season_paths(season: str, override: str | None = None, sport: str = "tennis"
     return d, d / "practice.json"
 
 
+def season_is_closed(book: dict) -> str:
+    """The reason this season takes no more sessions, or "" if it does.
+
+    The founder asked on 2026-11-19 why the sessions recorded before the practice/competition rule were not
+    simply thrown away. Not thrown away, and not kept as if they were comparable either: CLOSED. This project's
+    own reset has always been a new directory rather than a wipe — a season is a folder, and starting over is
+    opening another one, which is why last spring stays readable while the next one runs. Closing is that, made
+    explicit and enforceable, so a closed season cannot acquire a session nobody can classify and the reader is
+    never asked to remember which half of a file the rule applies to."""
+    c = book.get("closed")
+    if not c:
+        return ""
+    if isinstance(c, dict):
+        return (f"closed {c.get('when', 'at an unrecorded time')}"
+                + (f" — {c['why']}" if c.get("why") else ""))
+    return f"closed ({c})"
+
+
+def refuse_if_closed(args, book) -> bool:
+    """Stop a session that would land in a closed season, and say where it should go instead.
+
+    One function for both producers, for the reason this file keeps having to write: a rule enforced in one of two
+    places is a rule the other one breaks. Returns True when the session was refused."""
+    if book is None:
+        return False
+    why = season_is_closed(book)
+    if not why:
+        return False
+    print(f"   {args.season}: {why}. Nothing was played. Open a new season under a new `--season` name — the "
+          f"closed one stays readable and unchanged.", file=sys.stderr)
+    return True
+
+
 def cast_of(season: str, override: str | None = None, sport: str = "tennis") -> dict:
     """The season's people, from its appearance file — who they are and which group they play in.
 
@@ -936,6 +969,11 @@ def season_report(season: str, override: str | None = None, sport: str = "tennis
     out = [f"# {season} — what the record says", "",
            f"From `{shown}`, opened {book.get('opened') or 'unknown'}. Every number below is computed from "
            f"the sessions listed in that file; nothing here is written from memory.", ""]
+    closed = season_is_closed(book)
+    if closed:
+        out += [f"**{season} is {closed}.** It is history: it takes no more sessions, its numbers are not "
+                f"comparable with a season played under later rules, and nothing in it has been changed to make "
+                f"it look like one. The games after it are in the next season.", ""]
     for name in sorted(book["members"]):
         m = book["members"][name]
         # A point from the person's seat is a session like any other in the file — it counts its balls, it
@@ -1979,6 +2017,8 @@ def run_rally(args) -> int:
     ok, code = settle_pairing(args, names)
     if not ok:
         return code
+    if args.season and refuse_if_closed(args, load_season(args.season, args.season_dir)):
+        return 2
     book, practice = open_book(names, args)
     models = spread(([m.strip() for m in args.model.split(",")] if args.model
                      else [default_model(v) for v in vendors]), len(names), "--model")
@@ -2135,6 +2175,10 @@ def run_watch(args) -> int:
     ok, code = settle_pairing(args, names)
     if not ok:
         return code
+    # Before open_book and not after it: open_book is where `--seed` writes a carried history, and a closed
+    # season must not acquire one either. A refusal that arrives after the write is not a refusal.
+    if args.season and refuse_if_closed(args, load_season(args.season, args.season_dir)):
+        return 2
     book, practice = open_book(names, args)
     ms = args.clock if args.clock is not None else int(time.time() * 1000)
     surface = args.surface or surface_at(ms)
@@ -2474,6 +2518,36 @@ def simulate_rally(args, ms: int | None = None, quiet: bool = False) -> dict:
     return out
 
 
+def close_season(season: str, override: str | None, why: str, by: str = "a person") -> int:
+    """Close a season: it keeps every number it has and takes no more.
+
+    The founder, 2026-11-19: *"Why don't you just discard that data?"* Because discarding is the one thing this
+    design does not do — a season is a directory and starting over is opening another one, so that what was played
+    stays readable. But a season recorded before a rule existed is not comparable with the seasons after it, and
+    pretending otherwise is worse than either keeping or deleting. So: close it, say why, and start the next one.
+    The file is written once and never edited again; `closed` is a fact about the season, not a switch."""
+    book = load_season(season, override)
+    if not book.get("members"):
+        print(f"   there is no season {season} to close: no file, or no members in it.", file=sys.stderr)
+        return 2
+    already = season_is_closed(book)
+    if already:
+        print(f"   {season}: {already}. Nothing was changed.")
+        return 0
+    book["closed"] = {"when": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                      "by": by, "why": why}
+    f = save_season(book, season, override)
+    try:
+        shown = f.relative_to(ROOT)
+    except ValueError:
+        shown = f
+    print(f"  {season} is closed — {why}")
+    print(f"  the record: {shown} ({len(book['members'])} members, "
+          f"{sum(m.get('balls', 0) for m in book['members'].values())} balls hit in it)")
+    print(f"  it takes no more sessions. The next one opens under its own name.")
+    return 0
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="tennis: the player moves, the system computes the ball")
     ap.add_argument("--names", default="Colette,Remy")
@@ -2524,11 +2598,17 @@ def main(argv=None) -> int:
                     help="balls a member brings into a season it has not played yet, one per player, e.g. "
                          "'300,0'. Recorded as carried, never as hit here. Ignored for a member that already "
                          "has a record in this season: the file wins over the flag")
+    ap.add_argument("--close-season", default=None, metavar="SEASON",
+                    help="close a season: keep every number, take no more sessions. The next one is a new "
+                         "`--season`, which is how this design has always reset — a season is a directory")
+    ap.add_argument("--why", default="", help="for --close-season: the sentence the record will carry")
     ap.add_argument("--report", default=None, metavar="SEASON",
                     help="print what the season file says, with its own citations, and claim nothing more")
     ap.add_argument("--simulate", action="store_true",
                     help="two scripted learners, to test whether the drill's feedback is learnable at all")
     args = ap.parse_args(argv)
+    if args.close_season:
+        return close_season(args.close_season, args.season_dir, args.why or "closed by a person", args.by)
     if args.report:
         print(season_report(args.report, args.season_dir))
         return 0

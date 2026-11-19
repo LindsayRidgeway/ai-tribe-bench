@@ -4850,6 +4850,102 @@ class TestTheBallAfterThePointIsOver(unittest.TestCase):
         self.assertTrue(any(ch.isdigit() for ch in why), "the fault names no distance, so nothing can be learnt")
 
 
+class TestASeasonCanBeClosed(unittest.TestCase):
+    """The founder, 2026-11-19: *"Why don't you just discard that data?"*
+
+    Because discarding is the one thing this design does not do — a season is a directory, and starting over is
+    opening another one, which is why last spring stays readable while the next season runs. But a season recorded
+    before a rule existed is not comparable with the seasons after it, and pretending otherwise is worse than
+    either keeping it or deleting it. So the record gains one word: CLOSED. It keeps every number it has, it takes
+    no more sessions, and it cannot be seeded either — a refusal that arrives after the write is not a refusal."""
+
+    def setUp(self):
+        import importlib, tempfile, shutil
+        sys.path.insert(0, str(REPO / "lab"))
+        self.T = importlib.import_module("tennis")
+        self.tmp = Path(tempfile.mkdtemp(prefix="tennis-close-"))
+        self.addCleanup(shutil.rmtree, self.tmp, True)
+        self.d = self.tmp / "s1"
+        self.d.mkdir()
+        (self.d / "setup.json").write_text(json.dumps({"schema": "ait-tennis-setup/1", "players": [
+            {"name": "Ann", "sex": "female", "look": {"height_m": 1.7}},
+            {"name": "Belle", "sex": "female", "look": {"height_m": 1.7}}]}), encoding="utf-8")
+
+    def _watch(self, *extra):
+        import contextlib, io
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            code = self.T.main(["--watch", "--season", "s1", "--season-dir", str(self.d), "--names", "Ann,Belle",
+                                "--rallies", "2", "--clock", "1794300000000", "--surface", "clay", *extra])
+        return code, err.getvalue()
+
+    def _close(self, why="a test closed this season"):
+        return self.T.close_season("s1", str(self.d), why)
+
+    def _book(self):
+        return json.loads((self.d / "practice.json").read_text(encoding="utf-8"))
+
+    def test_closing_keeps_every_number_and_adds_one_word(self):
+        """The whole point of closing rather than discarding: the balls that were hit stay hit. Only `closed`
+        appears, and the sessions are the same sessions, to the byte count."""
+        self._watch("--mode", "practice")
+        before = self._book()
+        self._close()
+        after = self._book()
+        for k in ("members", "opened", "season"):
+            self.assertEqual(after.get(k), before.get(k), f"closing changed {k}")
+        self.assertIn("closed", after)
+        self.assertIn("when", after["closed"])
+        self.assertIn("why", after["closed"])
+        self.assertEqual(after["closed"]["why"], "a test closed this season")
+
+    def test_a_closed_season_takes_no_more_sessions(self):
+        self._watch("--mode", "practice")
+        self._close()
+        before = (self.d / "practice.json").read_text(encoding="utf-8")
+        code, err = self._watch("--mode", "practice")
+        self.assertEqual(code, 2, "a session was played into a closed season")
+        self.assertIn("closed", err)
+        self.assertIn("--season", err, "the refusal does not say how to open the next one")
+        self.assertEqual((self.d / "practice.json").read_text(encoding="utf-8"), before,
+                         "a refused session still wrote to the file")
+
+    def test_a_closed_season_cannot_be_seeded_either(self):
+        """`--seed` writes a carried history, and it writes it from `open_book` — which is why the closed check had
+        to move in front of `open_book` rather than after it. A refusal that arrives after the write is not one."""
+        self._watch("--mode", "practice")
+        self._close()
+        before = (self.d / "practice.json").read_text(encoding="utf-8")
+        code, err = self._watch("--mode", "practice", "--seed", "300,300")
+        self.assertEqual(code, 2)
+        self.assertEqual((self.d / "practice.json").read_text(encoding="utf-8"), before,
+                         "a refused seed still wrote a carried history into a closed season")
+        self.assertNotIn("carried", (self.d / "practice.json").read_text(encoding="utf-8"))
+
+    def test_the_report_says_the_season_is_closed_and_not_comparable(self):
+        self._watch("--mode", "practice")
+        self._close("the rules changed after it was played")
+        report = self.T.season_report("s1", str(self.d))
+        self.assertIn("is closed", report)
+        self.assertIn("the rules changed after it was played", report)
+        self.assertIn("not comparable", report, "a closed season is presented as if it were comparable")
+        # and it is marked at the TOP, before any member's numbers, so a reader cannot take the totals first
+        self.assertLess(report.index("is closed"), report.index("## Ann"))
+
+    def test_closing_a_season_that_does_not_exist_is_refused(self):
+        self.assertEqual(self.T.close_season("nope", str(self.tmp / "nope"), "x"), 2)
+        self.assertFalse((self.tmp / "nope" / "practice.json").exists(),
+                         "closing a season that does not exist invented one")
+
+    def test_closing_twice_does_not_move_the_date(self):
+        self._watch("--mode", "practice")
+        self._close("first")
+        when = self._book()["closed"]["when"]
+        self.assertEqual(self._close("second"), 0)
+        self.assertEqual(self._book()["closed"]["when"], when)
+        self.assertEqual(self._book()["closed"]["why"], "first", "closing twice rewrote the reason")
+
+
 class TestTheCastPlaysByItsOwnRules(unittest.TestCase):
     """The founder, 2026-11-19: *"always same-sex competition, same or mixed sex practice... Those outcomes can be
     skewed by the user putting particular pairs together for manual play."*
@@ -5453,6 +5549,51 @@ class TestPickleball(unittest.TestCase):
         # ball would have landed, which was the rule that made short balls unhittable in the air.
         self.assertLess(vol["contact"][0], pk.NET_X, "taken on the receiving side of the net")
         self.assertGreaterEqual(vol["height"], pk.VOLLEY_LOW, "and above the knee, or it is a dig off the ground")
+
+    def test_the_ball_goes_where_the_bodies_are_not(self):
+        """Placement is arithmetic before it is strategy: of the points on a line, the one to hit is the one the
+        nearest opponent is furthest from. Two bodies on the west side of the court and the answer is the east."""
+        pk = self.pk
+        pos = pk.Positions(at={"x": (24.0, 4.0), "y": (24.0, 6.0)})
+        players = {"x": self.t.Player(name="x", north=False), "y": self.t.Player(name="y", north=False)}
+        ty, gap = pk.open_target(pos, players, ["x", "y"], 26.5)
+        self.assertGreater(ty, 14.0, f"the open side is the east one, got {ty:.1f}")
+        self.assertGreater(gap, 10.0, "and there is a gap to hit into")
+
+    def test_a_short_shot_aimed_wide_used_to_sail_wide(self):
+        """The azimuth is an angle, and it was computed against a hard 32 ft whatever the shot was: a dink aimed
+        5 ft across the court from 10 ft away was given the angle for a drive, and landed 2.9 ft wide of its
+        target. `aim_dist` is the shot's own distance, and it is the difference between aiming and gesturing."""
+        pk = self.pk
+        p = self.t.Player(name="A", north=True, practice=200)
+        here, tx, ty = (15.0, 10.0), 26.5, 5.0
+        dist = math.hypot(tx - here[0], ty - here[1])
+        face = pk.aim_at(p, (tx, ty), "groundstroke", "hard", (0.0, 0.0), 24.0, here)
+        right = pk.strike(p, None, face=face, power=24.0, aim=ty, shot="groundstroke", surface="hard",
+                          wind=(0.0, 0.0), pos=here, clean=True, aim_dist=dist)["traj"]["land"]
+        wrong = pk.strike(p, None, face=face, power=24.0, aim=ty, shot="groundstroke", surface="hard",
+                          wind=(0.0, 0.0), pos=here, clean=True)["traj"]["land"]
+        self.assertLess(abs(right[1] - ty), 1.0, f"aimed at {ty}, landed at {right[1]:.1f}")
+        self.assertGreater(abs(wrong[1] - ty), 2.0, "and the 32 ft azimuth is the reason it did not, before")
+
+    def test_a_chooser_can_see_the_court_it_is_playing_on(self):
+        """`play_game` hands every chooser the engine's own `Positions` before the first ball. Until §5j no
+        chooser could see anybody, which is why placement and pace variation could not be learned: neither is a
+        property of the ball."""
+        pk = self.pk
+        names = ["A", "B", "C", "D"]
+        seen = {}
+
+        def factory(players, wind_in, surface):
+            def choose(p, *a, **k):
+                seen[p.name] = getattr(choose, "sight", None)
+                return 15.0, 42.0, 10.0
+            return choose
+
+        pk.play_game(names, [200] * 4, factory, wind_seed_ms=1234500, say=lambda *a, **k: None)
+        self.assertTrue(seen, "the chooser was asked for a shot")
+        self.assertIsNotNone(seen["A"], "and it was given the court")
+        self.assertTrue(hasattr(seen["A"], "get"), "which is a Positions, not a copy of one")
 
     def test_a_dink_is_twelve_to_fifteen_miles_an_hour_and_a_drive_from_the_line_is_not(self):
         """The soft game's pace, measured. Power 30 is 18 mph, and from the kitchen line an 18 mph ball travels

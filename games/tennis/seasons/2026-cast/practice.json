@@ -1,0 +1,117 @@
+{
+ "members": {
+  "Ada": {
+   "balls": 0,
+   "carried": 140,
+   "seeded": {
+    "balls": 140,
+    "by": "a person, before this member had a record here",
+    "when": "2026-11-19T22:25:00Z"
+   },
+   "sessions": []
+  },
+  "Bo": {
+   "balls": 0,
+   "carried": 140,
+   "seeded": {
+    "balls": 140,
+    "by": "a person, before this member had a record here",
+    "when": "2026-11-19T22:25:00Z"
+   },
+   "sessions": []
+  },
+  "Colette": {
+   "balls": 26,
+   "carried": 70,
+   "seeded": {
+    "balls": 70,
+    "by": "a person, before this member had a record here",
+    "when": "2026-11-19T22:25:00Z"
+   },
+   "sessions": [
+    {
+     "by": "a person",
+     "clock": 1794300000000,
+     "competition": true,
+     "control": 0.587,
+     "in_play": 16,
+     "longest": 10,
+     "mean_rally": 2.6,
+     "mode": "rally",
+     "of": 26,
+     "reach": 0.68,
+     "shots": 26,
+     "surface": "clay",
+     "when": "2026-11-19T22:21:01Z",
+     "with": [
+      "Gwen"
+     ]
+    }
+   ]
+  },
+  "Dmitri": {
+   "balls": 0,
+   "carried": 30,
+   "seeded": {
+    "balls": 30,
+    "by": "a person, before this member had a record here",
+    "when": "2026-11-19T22:25:00Z"
+   },
+   "sessions": []
+  },
+  "Gwen": {
+   "balls": 26,
+   "carried": 30,
+   "seeded": {
+    "balls": 30,
+    "by": "a person, before this member had a record here",
+    "when": "2026-11-19T22:25:00Z"
+   },
+   "sessions": [
+    {
+     "by": "a person",
+     "clock": 1794300000000,
+     "competition": true,
+     "control": 0.456,
+     "in_play": 16,
+     "longest": 10,
+     "mean_rally": 2.6,
+     "mode": "rally",
+     "of": 26,
+     "reach": 0.574,
+     "shots": 26,
+     "surface": "clay",
+     "when": "2026-11-19T22:21:01Z",
+     "with": [
+      "Colette"
+     ]
+    }
+   ]
+  },
+  "Remy": {
+   "balls": 0,
+   "carried": 70,
+   "seeded": {
+    "balls": 70,
+    "by": "a person, before this member had a record here",
+    "when": "2026-11-19T22:25:00Z"
+   },
+   "sessions": []
+  }
+ },
+ "note": "",
+ "opened": "2026-11-19T22:25:00Z",
+ "plan": {
+  "members": {
+   "Ada": 2,
+   "Bo": 2,
+   "Colette": 4,
+   "Dmitri": 6,
+   "Gwen": 6,
+   "Remy": 4
+  },
+  "note": "Six automatic sessions, staggered per member, and the season then closes. The staggering is what makes one of each group end best and one end worst without anybody's skill formula going backwards \u2014 see games/tennis/CAST.md, which this block makes machine-readable rather than prose.",
+  "sessions": 6
+ },
+ "season": "2026-cast"
+}

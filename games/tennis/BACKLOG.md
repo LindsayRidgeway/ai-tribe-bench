@@ -959,6 +959,39 @@ rule enforced in one of two producers is a rule the other one breaks.
 *Done-test:* six tests in `TestTheCastPlaysByItsOwnRules`, plus `TestTheCastCanBeDrawn` reading the real `sex`
 field instead of a garment. Still open in this item: nothing, and the scheduler is item 25.
 
+## Item 26 — a season can be closed, which is how this design discards (DONE 2026-11-19)
+
+The founder asked the fair question on 2026-11-19: *"Why don't you just discard that data?"* — about the sessions
+recorded before the practice/competition rule, which carry no `competition` field and cannot be classified.
+
+**Because discarding is the one thing this design does not do, and it does not have to.** A season has always been
+a directory, and starting over has always been opening another one — that is why last spring stays readable while
+the next season runs. What was missing is a word for *finished*. A season now carries `closed: {when, by, why}`:
+
+- **it keeps every number it has.** Closing adds one key and changes nothing else — asserted by comparing the
+  members and the opened date before and after;
+- **it takes no more sessions**, from either producer, and refuses by name;
+- **it cannot be seeded either.** `--seed` writes a carried history from inside `open_book`, so the check had to
+  move *in front of* `open_book` — a refusal that arrives after the write is not a refusal, and this is the second
+  time in two days that ordering has been the bug;
+- **closing twice does not move the date or rewrite the reason**;
+- **the report says so at the top**, before any member's totals, and says the numbers are *not comparable* with a
+  season played under later rules.
+
+`python3 lab/tennis.py --close-season <season> --why "<the sentence the record will carry>"`.
+
+**Both existing seasons are closed**, with their reasons in their own files: `2026-spring` (its cast had no bodies
+and could not be filmed, and its sessions predate the rule) and `2026-advent` (same, for its two sessions).
+Nothing in either was edited, reclassified, or deleted. Their films are still watchable — closed is not gone.
+
+**`2026-cast` is the season after them**, opened 2026-11-19 through the same writer everything else uses
+(`seed_practice` + `save_season`), with the six seeded at 30 / 70 / 140 and a `plan` block that makes `CAST.md`'s
+staggering machine-readable: `{sessions: 6, members: {Gwen: 6, Dmitri: 6, Colette: 4, Remy: 4, Ada: 2, Bo: 2}}`.
+Its first session is a legal one — Gwen and Colette, both female, `competition: true`, `by: "a person"`, 20 rallies,
+26 shots each, mean 2.6. Two beginners on clay, which is what 30 and 70 balls look like.
+
+*Done-test:* six tests in `TestASeasonCanBeClosed`.
+
 ## Item 25 — a season plays itself, and says when a person shaped it (OPEN)
 
 "Automatic play" with no human: something has to start the sessions on the staggering in `CAST.md` without
