@@ -5798,6 +5798,21 @@ class TestPickleball(unittest.TestCase):
         self.assertLess(vol["contact"][0], pk.NET_X, "taken on the receiving side of the net")
         self.assertGreaterEqual(vol["height"], pk.VOLLEY_LOW, "and above the knee, or it is a dig off the ground")
 
+    def test_the_paddle_reach_is_the_constant_the_sweep_turns(self):
+        """§5l sweeps PADDLE_REACH between six and three feet and re-measures everything; that means nothing
+        unless the engine reads the constant at every call. Two checks: the source passes it to both places a
+        paddle is asked for, and the primitive itself answers differently for the same ball at 6 ft and at 2."""
+        pk = self.pk
+        src = (REPO / "lab" / "pickleball.py").read_text(encoding="utf-8")
+        self.assertEqual(src.count("reach=PADDLE_REACH"), 2,
+                         "the volley and the interception both read the one constant, not a copy of it")
+        p = self.t.Player(name="A", north=True, practice=200)
+        path = [(0.1, 21.0, 10.0, 3.0)]          # six feet away, a tenth of a second to get there
+        wide = pk.volley_contact(p, path, at=(15.0, 10.0), reach=6.0)
+        tight = pk.volley_contact(p, path, at=(15.0, 10.0), reach=2.0)
+        self.assertIsNotNone(wide, "a six-foot paddle takes a ball six feet away")
+        self.assertIsNone(tight, "a two-foot one cannot, and the legs have a tenth of a second")
+
     def test_a_body_that_is_walking_is_met_where_it_is_going(self):
         """Anticipation is the momentum rule's other reader. A player who has arrived at their stance has stopped,
         so the prediction is where they are; a player mid-jog is predicted forward by their own velocity over the
