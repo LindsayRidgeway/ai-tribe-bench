@@ -863,18 +863,30 @@ Two gaps, and the second is the one that decides whether "integral part of Kythe
 ## Item 22 — the cast is two people, and the film cannot draw anyone else (OPEN)
 
 `replay3d.html` derives the body file from the name (`p.body`, which `tennis_script.py` writes as
-`name.lower()`), and `games/tennis/bodies/` holds `dmitri.glb` and `gwen.glb` and nothing else. `lab/body.py` —
-the file that built them — is **not in the repository at all**, and it needs Blender. So:
+`name.lower()`), and `games/tennis/bodies/` holds `dmitri.glb` and `gwen.glb` and nothing else.
 
-- **the actual 2026-spring record cannot be filmed.** Colette and Remy have 32 balls between them and no body;
-  a film of them shows the page's error overlay, which is why the first watched session here is Dmitri and Gwen —
-  the two names `seasons/2026-spring/setup.json` already gives as the season's cast;
+**`lab/body.py` is not at `HEAD`, but it is not lost either — and that is the Item 0 disease a second time.** The
+file that built both bodies is 433 lines, it is in commit `10c99298` ("tennis: a body built to measurements, and a
+replay that can show it", 2026-11-10), and that commit is **not an ancestor of `origin/main`**: the work was
+committed locally and never pushed, so every clone has the `.glb` and none has the code that makes one. Blender
+5.3.0 is installed on this machine, and the invocation is in the file's own docstring
+(`--name dmitri --height 1.88 --build 0.95 --kit 3f5f6f --skin 8d5a3b --out games/tennis/bodies`). So item 22 is
+a *build*, not a rewrite. It goes first in this item: recover the file, put it on `main`, and build the two members
+the 2026-spring record is actually about.
+
+The two `bodies/faces/*.jpg` are a different matter and cannot be generated: they are the founder's drawn
+headshots of 2026-11-11. So:
+
+- **the actual 2026-spring record cannot be filmed today.** Colette and Remy have 32 balls between them and no
+  body; a film of them shows the page's error overlay, which is why the first watched session here is Dmitri and
+  Gwen — the two names `seasons/2026-spring/setup.json` already gives as the season's cast;
 - **a missing face degrades worse than a missing body.** `bodies/faces/` holds `dmitri.jpg` and `gwen.jpg`; for
   anyone else the `<img>` 404s and the break card shows a broken-image glyph with a name under it.
 
 This is the founder's four-player cast, and it is the V1 line *"a person can add themselves to it and be drawn from
-the same rig"* with its renderer half missing. *Done-test:* a film of any two names in the season's `setup.json`
-draws two bodies; and with a face file absent, the card draws a named placeholder and no broken-image glyph.
+the same rig"* with its renderer half one unpushed commit away. *Done-test:* `lab/body.py` is on `main` and builds
+a body from the command in its own docstring; a film of any two names in the season's `setup.json` draws two
+bodies; and with a face file absent, the card draws a named placeholder and no broken-image glyph.
 
 ## Item 23 — the live game keeps playing, and the film says how far behind it is (OPEN)
 
