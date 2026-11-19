@@ -4864,6 +4864,48 @@ class TestPickleball(unittest.TestCase):
         self.assertLess(vol["contact"][0], pk.NET_X, "taken on the receiving side of the net")
         self.assertGreaterEqual(vol["height"], pk.VOLLEY_LOW, "and above the knee, or it is a dig off the ground")
 
+    def test_a_dink_is_twelve_to_fifteen_miles_an_hour_and_a_drive_from_the_line_is_not(self):
+        """The soft game's pace, measured. Power 30 is 18 mph, and from the kitchen line an 18 mph ball travels
+        sixteen feet before it lands — nine feet past the opponent's kitchen, which is why a chooser that calls
+        power 30 "a dink" cannot play the game at all. A dink is power 20-24 and it lands 4-6 ft past the net,
+        provided the face lifts it over the tape rather than into it."""
+        pk = self.pk
+        p = self.t.Player(name="A", north=True, practice=200)
+        dinked = 0
+        for face in range(0, 41, 2):
+            shot = pk.strike(p, None, face=float(face), power=24.0, aim=10.0, shot="groundstroke",
+                             surface="hard", wind=(0.0, 0.0), pos=(15.0, 10.0), clean=True)
+            land = shot["traj"].get("land")
+            if land is not None and pk.in_kitchen(land[0]) and land[0] > pk.NET_X:
+                dinked += 1
+                self.assertGreaterEqual(land[0] - pk.NET_X, 1.0, "and it is past the net, not on it")
+        self.assertGreaterEqual(dinked, 3, "a dink exists at some face and 14 mph")
+        drove_out = 0
+        for face in range(0, 41, 2):
+            land = pk.strike(p, None, face=float(face), power=30.0, aim=10.0, shot="groundstroke",
+                             surface="hard", wind=(0.0, 0.0), pos=(15.0, 10.0), clean=True)["traj"].get("land")
+            if land is not None and land[0] > pk.NET_X + pk.KITCHEN:
+                drove_out += 1
+        self.assertGreaterEqual(drove_out, 8, "power 30 from the line cannot land in the kitchen at most faces")
+
+    def test_the_dink_chooser_puts_a_slow_ball_back_in_the_kitchen(self):
+        """The chooser's whole job: given a slow ball near the line, come back with a shot that lands in the
+        opponent's kitchen — checked against its own clean strike before it commits, so a dink that cannot be
+        dinked is played as something else rather than pretended."""
+        pk = self.pk
+        players = {n: self.t.Player(name=n, north=(i < 2), practice=200, rng=__import__("random").Random(3 + i))
+                   for i, n in enumerate(["A", "B", "C", "D"])}
+        choose = pk.dink_chooser("steady")(players, ("N", 2.0), "hard")
+        p = players["A"]
+        incoming = {"speed_in": 14.0, "depth": 5.0, "path": [], "v": (1.0, 0.0, 1.0)}
+        face, power, aim = choose(p, players["C"], incoming, 3, [], "groundstroke", False, (15.0, 9.0))
+        self.assertIn(power, pk.DINK_POWERS)
+        shot = pk.strike(p, None, face=face, power=power, aim=aim, shot="groundstroke", surface="hard",
+                         wind=(0.0, 0.0), pos=(15.0, 9.0), clean=True)
+        land = shot["traj"]["land"]
+        self.assertGreater(land[0], pk.NET_X, "it crossed the net")
+        self.assertLessEqual(land[0], pk.NET_X + pk.KITCHEN, "and it came down in the kitchen")
+
     def test_a_planted_volley_is_not_carried_anywhere(self):
         """The rulebook's fault is momentum, not address. A player standing still at 1 ft behind the line, taking
         a ball that comes to them, is not carried an inch — and the rule that preceded this one moved every

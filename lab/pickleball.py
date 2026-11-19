@@ -926,6 +926,54 @@ def reading_chooser(level: str = "steady", say=print):
     return factory
 
 
+# The soft game's pace, measured rather than assumed. Power 30 is 18 mph — the prompt used to call that "a
+# dink", and it cannot be one: from the kitchen line an 18 mph ball travels 16 ft before it lands, which is nine
+# feet past the opponent's kitchen (§5i). A dink is 12-15 mph, and the thing that sets its window is the tape,
+# not the kitchen: from a 2.46 ft contact the ball has to rise a foot over seven feet of travel, and the face
+# that does it also sets where it comes down. At power 24 (14.4 mph) that lands 5-6 ft past the net; at 26
+# (15.6 mph) it lands past the kitchen at every face that clears the net.
+DINK_POWERS = (24.0, 22.0, 20.0)         # 14.4, 13.2, 12.0 mph, in the order a dinker would try them
+
+
+def dink_chooser(level: str = "steady", say=print):
+    """The soft game at the kitchen line: instead of driving, put the ball back in the opponent's kitchen.
+
+    A chooser that only ever drives cannot play this game at all — every shot it owns lands 8 ft past the line
+    at best, and the seven feet on the other side of the net are the whole sport. So this one, when the ball
+    arrives slowly (under 25 mph at the bounce) and it is near the line, aims at a spot 4.5 ft past the net,
+    tries the dink paces in order, and **checks its own arithmetic** with a clean strike before committing: if no
+    face at 12-15 mph puts the ball in the kitchen, it plays the base shot rather than pretend to dink.
+
+    What it is not: clever. It does not aim where the opponent is not (it does not know), and it does not vary
+    the pace to break rhythm. Those are the two things a real dinker does, and both need the opponent's reply —
+    the same missing piece §5g left for pricing the line.
+    """
+    base = scripted_chooser(level)
+
+    def factory(players, wind_in, surface):
+        choose = base(players, wind_in, surface)
+        wind = wind_vector(*wind_in)
+
+        def pick(p, other, incoming, shot_no, lengths, shot_kind, may_volley, here):
+            fwd = 1.0 if p.north else -1.0
+            soft = (shot_kind != "serve" and incoming is not None
+                    and incoming.get("speed_in", 99.0) < 25.0 and abs(here[0] - NET_X) < 12.0)
+            if soft:
+                ty = WIDTH * (0.3 if p.rng.random() < 0.5 else 0.7)
+                tx = NET_X + 4.5 if p.north else LENGTH - (NET_X + 4.5)
+                for power in DINK_POWERS:
+                    face = aim_at(p, (tx, ty), "groundstroke", surface, wind, power, here)
+                    probe = strike(p, None, face=face, power=power, aim=ty, shot="groundstroke",
+                                   surface=surface, wind=wind, pos=here, clean=True)
+                    land = probe["traj"].get("land")
+                    if land is not None and in_kitchen(land[0]) and (land[0] - NET_X) * fwd > 0.5:
+                        return face, power, ty
+            return choose(p, other, incoming, shot_no, lengths, shot_kind, may_volley, here)
+
+        return pick
+    return factory
+
+
 def points_chooser(level: str = "steady", say=print, settle: int = 8, margin: float = 0.15,
                    band: float = 3.0, need: int = 3, explore_every: int = 10):
     """A chooser paid in **points**, not in faults — the two-sided lesson §5d said was next.
@@ -1250,6 +1298,8 @@ def make_chooser(level: str):
         return reading_chooser("steady")
     if level == "learn":
         return points_chooser("steady")
+    if level == "dink":
+        return dink_chooser("steady")
     return scripted_chooser(level)
 
 
@@ -1297,8 +1347,10 @@ def rally_prompt_pb(p: Player, other: str, history: list[str], incoming: dict | 
         "",
         "Answer in one line, exactly this shape:",
         "FACE <degrees> POWER <30-100> AIM <feet from the west sideline>",
-        "FACE opens the paddle and launches the ball higher; it closes it and drives it down. POWER 30 is a "
-        "dink at 18mph, 100 is a 60mph drive. AIM 4 and 16 are near the sidelines, 10 is the middle. "
+        "FACE opens the paddle and launches the ball higher; it closes it and drives it down. POWER is six "
+        "tenths of a mile an hour: 20 is a 12mph dink, 30 is 18mph and from the kitchen line that lands nine "
+        "feet past the kitchen, 55 is a 33mph serve, 100 is 60. AIM 4 and 16 are near the sidelines, 10 is the "
+        "middle. "
         "A serve must land past the kitchen line, diagonally, and you get one attempt.",
         "",
         "Your hands are not exact and a fast ball gives you less time, so what you get is not quite what you "
@@ -1405,7 +1457,7 @@ def main(argv=None) -> int:
     ap.add_argument("--clock", type=int, default=None,
                     help="pin the wind to a millisecond count, so a record can be replayed")
     ap.add_argument("--level", default="steady",
-                    choices=["beginner", "steady", "hard", "read", "learn", "season"],
+                    choices=["beginner", "steady", "hard", "read", "learn", "season", "dink"],
                     help="`read` is the steady hands with a fault-reading lesson attached; `learn` is the "
                          "same hands paid in points instead; `season` is the same hands with a lesson whose "
                          "unit is a game and whose memory is the season file, so its sample can outgrow its "
