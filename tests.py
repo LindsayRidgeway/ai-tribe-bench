@@ -4304,12 +4304,16 @@ class TestPickleball(unittest.TestCase):
         say = []
         m = self.pk.new_match(["A", "B", "C", "D"])
         self.pk.serve_first(m, 0)
-        players = {n: self.t.Player(name=n, north=(i < 2), practice=400) for i, n in enumerate(["A", "B", "C", "D"])}
+        import random as _random
+        # the hands are seeded, because an unseeded rally is sometimes two shots long and this test reads the third
+        players = {n: self.t.Player(name=n, north=(i < 2), practice=400, rng=_random.Random(7 + i))
+                   for i, n in enumerate(["A", "B", "C", "D"])}
         pos = self.pk.Positions()
         choose = self.pk.scripted_chooser("hard")(players, ("N", 3.0), "hard")
         r = self.pk.play_rally(m, players, pos, choose, "hard", (0.0, 0.0), ("N", 3.0),
                                say=say.append, rally_no=1)
         kinds = [ln.split()[2] for ln in say if ln.strip()[:2].strip().rstrip(".").isdigit()]
+        self.assertGreaterEqual(len(kinds), 3, "this test reads the third shot, so the rally has to reach it")
         self.assertEqual(kinds[0], "serve")
         # The serve and the RETURN of serve may not be volleyed; the third shot may, because the ball has then
         # bounced on both sides. The first version asserted otherwise, against an engine that also required a
