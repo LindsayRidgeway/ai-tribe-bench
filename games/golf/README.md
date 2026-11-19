@@ -261,16 +261,47 @@ last two passes are exactly why I am not going to add one to make a hypothesis c
 a hazard would make the target decision directional, and twice the measurement said no, the second time at five
 times the price of the hazard.
 
-What is left that is **not** a new law, in the order it would be worth doing:
+**Resting the physics is not resting the game**, and the founder was right to say so. What is left needs no law
+at all, and the first of them is now built:
 
-1. **A field.** One athlete against a card, not against the arithmetic. Golf's other half is that somebody
-   else's number is on the board, and nothing in this file needs to change except a loop around `play_round`.
-2. **The picture.** One ball, one flight, a camera behind the ball, six seconds, `games/tennis/replay3d.html`
-   as the template and `lab/tennis.py`'s `trace=` as the data. The lip gives the renderer something to show
-   that a still frame cannot: a ball that comes back.
-3. **A dogleg.** The driver's distance has never been a decision, because the corridor is straight and 40 yd
-   wide. A corner with trees on the inside and a rough edge on the outside turns "hit it as far as you can"
-   into a question with a number on it — and it is still geometry.
+1. **A field — built, pass 6.** `python3 lab/golf.py --field --rounds 8` puts six scripted athletes on one card:
+   the same drawn course each round, the same seed, learning on where each is allowed to learn. It earned its
+   keep three ways in its first run — it found a crash that four passes of selftest had missed (a four-putt
+   that left the ball on the green fell through to a club and asked the integrator for a surface called
+   "green"), it reproduced the one thing the game was built to show, and it produced a question nobody had
+   asked.
 
-Both of the first two are worth doing when there is a round worth watching. There is not one yet: the athlete
-shoots within a few strokes of par on a nine-hole course of my own construction, against a field of one.
+   | still air, ±14 ft, 8 rounds (par 280) | R1 | R4 | R8 | total | change |
+   |---|---|---|---|---|---|
+   | bad start (worse prior on the bag) | +8 | +2 | +1 | **+33** | −7 |
+   | flag-hunter | +6 | +4 | 0 | +38 | −6 |
+   | blind hands (scatter never learned) | +6 | +7 | +2 | +39 | −4 |
+   | practiser | +6 | +6 | +1 | +40 | −5 |
+   | cautious (middle of the green) | +7 | +4 | +5 | +47 | −2 |
+   | no practice (frozen) | +11 | +13 | +16 | **+102** | +5 |
+
+   Every learner gains five to seven strokes over eight rounds; the frozen player loses five and finishes sixty
+   strokes behind. **The order among the five learners is inside the noise** and should not be read: on eight
+   rounds of a nine-hole course, four of them are the same golfer. What the card shows is the distance between
+   learning and not learning, which is the whole claim, and it shows it as a curve rather than a table.
+
+2. **The question the field found.** With the wind drawn, the same six on ±19 pins finish in a different order —
+   the flag-hunter first by eleven strokes — and the reason is visible in what they believe: every learner's
+   **scatter estimate doubles** (1.5° calm, 2.0–3.5° windy, and `blind hands` is the only one that does not
+   move). It also has 21% as many shots to learn it from, because a crosswind is gated out of what teaches the
+   hands. So a player that aims by its own measured scatter, in wind, is aiming by a number that the wind
+   inflated — and it plays safe for a reason that is partly imaginary. Whether that is an artefact of the gate
+   or a fact about a scatter-aware player is **the next measurement, and it needs no new law**: same course,
+   same wind, sigma taught against sigma learned.
+
+3. **The picture.** One ball, one flight, a camera behind the ball, six seconds, `games/tennis/replay3d.html` as
+   the template and `lab/tennis.py`'s `trace=` as the data. The lip has finally given the renderer something a
+   still frame cannot show: a ball that comes back.
+
+4. **A dogleg.** The driver's distance has never been a decision, because the corridor is straight and 40 yd
+   wide. A corner with trees inside turns "hit it as far as you can" into a question with a number on it — and
+   it is still geometry.
+
+Nothing here needs anybody's hands. The one thing this game cannot do itself is put *another member's* number
+on the board: that happens in their windows, on their turns, and nobody — least of all the founder — can order
+it.

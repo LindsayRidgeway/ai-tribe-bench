@@ -1405,3 +1405,52 @@ Comparability, as in the fourth pass: with the bunkers filled in, this file stil
   [ok] and so it does not make the decision directional: adding the sand moves what aiming away from the pin is worth by +0.10 strokes when the pin is cut toward it and +0.13 when it is cut away — the prediction was that the first would rise by more than a stroke, and it does not rise at all
 
   all 25 checks pass
+
+=============================== PASS 6 — 2026-11-19 18:05-19:20 — a field on one card =====================
+
+The founder asked why a field was on the far side of 'rest'. It is not: a field is a loop around
+play_round and needs nobody's permission. Six scripted athletes, the same drawn course each round, the same
+seed, eight rounds, learning on where allowed. The field also found a crash the other passes missed: a
+four-putt that ended with the ball still on the green fell through to the club and asked the integrator for
+a surface called 'green'. Guarded now.
+
+########## --field --rounds 8 --calm --pin-range 14
+8 rounds of nine, pins ±14 ft, still air; every athlete plays the same course each round, with the same seed
+
+                             R1    R2    R3    R4    R5    R6    R7    R8   total   best   change
+  bad start     spread       +8    +5    +5    +2    +1    +5    +6    +1     +33     +1       -7
+  flag-hunter   flag         +6    +8    +5    +4    +4    +7    +4    +0     +38     +0       -6
+  blind hands   spread       +6    +4    +5    +7    +6    +5    +4    +2     +39     +2       -4
+  practiser     spread       +6    +7    +6    +6    +7    +4    +3    +1     +40     +1       -5
+  cautious      centre       +7    +5    +8    +4    +8    +5    +5    +5     +47     +4       -2
+  no practice   spread      +11   +13   +12   +13   +11   +12   +14   +16    +102    +11       +5
+
+  par 280 over 8 rounds. change is last round minus first: negative is improvement.
+  and what each of them ended up believing:
+    bad start      aim bias -2.31°  sigma 1.49°  wind 0.00  shots observed  146
+    flag-hunter    aim bias -2.04°  sigma 0.94°  wind 0.00  shots observed  154
+    blind hands    aim bias -2.07°  sigma 1.50°  wind 0.00  shots observed  152
+    practiser      aim bias -2.10°  sigma 1.51°  wind 0.00  shots observed  153
+    cautious       aim bias -2.25°  sigma 1.86°  wind 0.00  shots observed  157
+    no practice    aim bias +0.00°  sigma 1.50°  wind 0.00  shots observed    0
+
+########## --field --rounds 8 --pin-range 19
+8 rounds of nine, pins ±19 ft, wind drawn; every athlete plays the same course each round, with the same seed
+
+                             R1    R2    R3    R4    R5    R6    R7    R8   total   best   change
+  flag-hunter   flag        +11    +7   +10    +3    +5    +4    +5    +2     +47     +2       -9
+  cautious      centre      +13    +7   +10    +7    +7    +5    +4    +6     +59     +4       -7
+  practiser     spread      +13    +8    +7    +5    +9    +7    +5    +6     +60     +5       -7
+  blind hands   spread      +14   +10    +9    +7    +5    +7    +6    +8     +66     +5       -6
+  bad start     spread      +15   +14   +10    +9    +7    +6    +3    +7     +71     +3       -8
+  no practice   spread      +13   +21   +12   +17   +17   +23   +13   +17    +133    +12       +4
+
+  par 280 over 8 rounds. change is last round minus first: negative is improvement.
+  and what each of them ended up believing:
+    flag-hunter    aim bias -1.81°  sigma 1.11°  wind 0.92  shots observed  166
+    cautious       aim bias -1.40°  sigma 3.46°  wind 0.98  shots observed  153
+    practiser      aim bias -1.73°  sigma 2.02°  wind 0.99  shots observed  159
+    blind hands    aim bias -1.36°  sigma 1.50°  wind 0.97  shots observed  157
+    bad start      aim bias -1.30°  sigma 3.51°  wind 1.03  shots observed  159
+    no practice    aim bias +0.00°  sigma 1.50°  wind 0.00  shots observed    0
+

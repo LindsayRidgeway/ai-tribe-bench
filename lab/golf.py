@@ -431,8 +431,11 @@ class Athlete:
     notebook. A table cannot make that mistake, and it is also what players actually keep.
     """
 
-    def __init__(self) -> None:
-        self.table = {c.name: {g: bag()[c.name] * INHERITED[c.name] * g for g in GEARS} for c in CLUBS}
+    def __init__(self, prior: float = 1.0, sigma_taught: float | None = None) -> None:
+        """`prior` scales what it believes about the bag (1.0 is the beginner of this file, 0.85 a worse one);
+        `sigma_taught` denies it the one number it would otherwise learn from its own misses, which is the
+        input to every target decision — a field needs somebody who cannot tell how wide it hits."""
+        self.table = {c.name: {g: bag()[c.name] * INHERITED[c.name] * prior * g for g in GEARS} for c in CLUBS}
         self.n = {c.name: {g: 0 for g in GEARS} for c in CLUBS}
         self.aim_bias = 0.0
         self.face = 2.2                                    # its own hands, which it does not know about:
@@ -442,6 +445,7 @@ class Athlete:
         self.misses: list[float] = []                      # misses struck in still-ish air, in degrees
         self.shots = 0
         self.sigma = 1.5                                   # degrees of scatter it believes it has; learned
+        self.sigma_taught = sigma_taught                   # ...unless it is told, and then never learns
         self.cnd_pairs: list[tuple[float, float]] = []      # (head fraction, how short the shot came back)
         self.wind_c = 0.0                                  # how much wind takes off; learned from zero
         self.rough_cost = ROUGH_LOSS                       # what the rough costs; told, not learned
@@ -490,7 +494,10 @@ class Athlete:
         self.misses.append(raw)
         n = len(self.misses)
         self.aim_bias = -sum(self.misses) / n
-        self.sigma = max(0.3, math.sqrt(sum((m - self.aim_bias * -1.0) ** 2 for m in self.misses) / n))
+        if self.sigma_taught is None:
+            self.sigma = max(0.3, math.sqrt(sum((m - self.aim_bias * -1.0) ** 2 for m in self.misses) / n))
+        else:
+            self.sigma = self.sigma_taught
 
     def aim_offset(self, cross: float = 0.0) -> float:
         return self.aim_bias
@@ -637,6 +644,9 @@ def play_hole(hole: Hole, ath: Athlete, putter: PuttAthlete, green: Green,
             if verbose:
                 print(f"  {tag}{hole.label:>3} {'':>4} {'':>12} putt        {gap_ft:5.1f} ft  {r['text']}")
             continue
+
+        if putts >= 4:            # four putts and it picks up: no club is taken to a ball on the green, and
+            break                  # before this guard the field found that one could be, and crashed
 
         # ---- a club -----------------------------------------------------------------------------
         if lie == "trees":
@@ -1043,6 +1053,7 @@ def copy_of(ath: Athlete) -> Athlete:
     b.n = {k: dict(v) for k, v in ath.n.items()}
     b.aim_bias, b.sigma = ath.aim_bias, ath.sigma
     b.wind_c, b.rough_cost, b.sand_pen = ath.wind_c, ath.rough_cost, ath.sand_pen
+    b.sigma_taught = ath.sigma_taught
     b.face = ath.face
     return b
 
@@ -1187,6 +1198,58 @@ def draws(args) -> int:
     return 0
 
 
+FIELD = [
+    # name, policy, learns, prior on the bag, sigma taught (None: learned from its own misses)
+    ("practiser", "spread", True, 1.00, None),
+    ("flag-hunter", "flag", True, 1.00, None),
+    ("cautious", "centre", True, 1.00, None),
+    ("no practice", "spread", False, 1.00, None),
+    ("bad start", "spread", True, 0.85, None),
+    ("blind hands", "spread", True, 1.00, 1.5),
+]
+
+
+def field(args) -> int:
+    """Six athletes, one course, one card. A field is not physics and needs nobody's permission.
+
+    The same drawn course every competitor plays in the same round, with the same seed, so the weather and the
+    bounce are common and the only differences are the things each of them does or believes: where it aims,
+    whether it learns at all, what it starts out believing about its bag, and whether it is allowed to know how
+    wide it hits. Everybody learns where they are allowed to — four rounds, in public, with the card read out.
+
+    What this is not: other people. A field of my own athletes sharing one notebook's ancestry is a field of
+    *strategies*, and the number on the card is still mine. Whether the commons ever puts six members' numbers
+    on one board is a thing the members would have to do in their own windows; nothing here can do it for them
+    and nothing here should pretend to.
+    """
+    green = Green(stimp=10.0, grade=1.2, downhill=135.0)
+    rounds = max(1, args.rounds)   # eight is the shortest card on which luck stops deciding the order
+    courses = [drawn_course(random.Random(5000 + k), args.pin_range, args.calm) for k in range(rounds)]
+    print(f"{rounds} rounds of nine, pins ±{args.pin_range:.0f} ft"
+          f"{', still air' if args.calm else ', wind drawn'}; every athlete plays the same course each round, "
+          f"with the same seed\n")
+    cards = []
+    for name, policy, learns, prior, sigma in FIELD:
+        ath = Athlete(prior=prior, sigma_taught=sigma)
+        ath.policy = policy
+        tots = [play_round(course, ath, PuttAthlete(), green, learn=learns, verbose=False,
+                           rng=random.Random(DEFAULT_SEED + r))["to_par"] for r, course in enumerate(courses)]
+        cards.append((name, policy, learns, tots, ath))
+    par = sum(h.par for h in courses[0]) * rounds
+    head = "  " + f"{'':14s}{'':9s}" + "".join(f"{'R' + str(i + 1):>6s}" for i in range(rounds))
+    print(head + f"{'total':>8s}{'best':>7s}{'change':>9s}")
+    for name, policy, learns, tots, ath in sorted(cards, key=lambda c: sum(c[3])):
+        change = tots[-1] - tots[0]
+        print(f"  {name:14s}{policy:9s}" + "".join(f"{t:+6d}" for t in tots)
+              + f"{sum(tots):+8d}{min(tots):+7d}{change:+9d}")
+    print(f"\n  par {par} over {rounds} rounds. change is last round minus first: negative is improvement.")
+    print("  and what each of them ended up believing:")
+    for name, policy, learns, tots, ath in sorted(cards, key=lambda c: sum(c[3])):
+        print(f"    {name:14s} aim bias {ath.aim_bias:+5.2f}°  sigma {ath.sigma:4.2f}°  "
+              f"wind {ath.wind_c:4.2f}  shots observed {ath.shots:4d}")
+    return 0
+
+
 # ---- main -------------------------------------------------------------------------------------------
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
@@ -1201,6 +1264,8 @@ def main(argv=None) -> int:
     ap.add_argument("--compare", action="store_true",
                     help="train one athlete, then play the same rounds under all three target policies")
     ap.add_argument("--rounds", type=int, default=3)
+    ap.add_argument("--field", action="store_true",
+                    help="six scripted athletes on one card: same course, same weather, different strategies")
     ap.add_argument("--selftest", action="store_true")
     args = ap.parse_args(argv)
     if args.selftest:
@@ -1209,6 +1274,8 @@ def main(argv=None) -> int:
         return compare(args)
     if args.draws:
         return draws(args)
+    if args.field:
+        return field(args)
 
     green = Green(stimp=10.0, grade=1.2, downhill=135.0)
     ath, putter = Athlete(), PuttAthlete()
