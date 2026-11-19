@@ -36,6 +36,7 @@ being consistent, which the selftest checks directly.
 from __future__ import annotations
 
 import argparse
+import json
 import math
 import random
 import sys
@@ -185,7 +186,8 @@ def _height_at(path, start: tuple[float, float], distance: float) -> float | Non
 # ---- one shot ---------------------------------------------------------------------------------------
 def shot(start: tuple[float, float], club: Club, effort: float, aim: float,
          lie: str = "fairway", wind: tuple[float, float] = (0.0, 0.0),
-         surface: dict | None = None, lip: float | None = None) -> dict:
+         surface: dict | None = None, lip: float | None = None,
+         trace: float | None = None) -> dict:
     """Strike, fly, bounce, run out. Every length is in feet, every angle in degrees clockwise from north.
 
     `effort` is the fraction of the club's nominal ball speed, which is the one thing an athlete controls
@@ -202,13 +204,14 @@ def shot(start: tuple[float, float], club: Club, effort: float, aim: float,
           speed * math.sin(math.radians(club.launch)))
     out = flight((start[0], start[1], 0.0), v0, wind, lie, net_check=False,
                  cl=-cl, drag=drag, lift=LIFT_BASE, surfaces=surf, t_max=20.0,
-                 trace=0.01 if lip is not None else None)
+                 trace=trace if trace is not None else (0.01 if lip is not None else None))
     if lip is not None:
         h = _height_at(out.get("path"), start, lip)
         if h is not None and h < LIP_H:
             # Into the face. The stroke is gone and the ball is where it was, which is what a spectator sees and
             # why a player who tries to be clever from the bottom of a bunker makes it worse.
             return dict(land=start, rest=start, carry=0.0, roll=0.0, total=0.0, lost=False, lip=True,
+                        stop_at=lip, path=out.get("path"),
                         hang=0.0, cl=cl, drag=drag, speed=speed, descent=0.0)
     land = out.get("land")
     if not land:                                    # cannot happen with these constants; if it does, say so
@@ -223,6 +226,7 @@ def shot(start: tuple[float, float], club: Club, effort: float, aim: float,
     carry = math.hypot(land[0] - start[0], land[1] - start[1])
     rest = (land[0] + ux * roll, land[1] + uy * roll)
     return dict(land=land, rest=rest, carry=carry, roll=roll, total=carry + roll, lost=False,
+                path=out.get("path"), stop_at=None,
                 hang=out.get("time", 0.0), cl=cl, drag=drag, speed=speed,
                 descent=math.degrees(math.atan2(-out["bounce"]["v"][2], vh)))
 
@@ -594,7 +598,7 @@ def report_shot(start: tuple[float, float], rest: tuple[float, float],
 def play_hole(hole: Hole, ath: Athlete, putter: PuttAthlete, green: Green,
               learn: bool = True, verbose: bool = True, wind: tuple[float, float] | None = None,
               tag: str = "", rng: random.Random | None = None,
-              start: tuple[float, float] = (0.0, 0.0)) -> dict:
+              start: tuple[float, float] = (0.0, 0.0), trace: float | None = None) -> dict:
     """One hole, one loop.
 
     It was two loops until this pass — shots, then putts — and putting a bunker beside the green broke that:
@@ -690,7 +694,7 @@ def play_hole(hole: Hole, ath: Athlete, putter: PuttAthlete, green: Green,
         aim_used = ath.aim_offset(cross)
         aim = aim_bearing + aim_used + ath.face + rng.gauss(0.0, FACE_SD)
         effort = gear * (1.0 + rng.gauss(0.0, SPEED_SD))
-        res = shot(ball, club, effort, aim, lie=lie, wind=(wx, wy), lip=lip_ft)
+        res = shot(ball, club, effort, aim, lie=lie, wind=(wx, wy), lip=lip_ft, trace=trace)
         rest = res["rest"]
         rest = (max(-ROUGH_EDGE * 1.4, min(ROUGH_EDGE * 1.4, rest[0])), rest[1])  # the course ends somewhere
         along, lateral = report_shot(ball, rest, flag)
@@ -724,7 +728,9 @@ def play_hole(hole: Hole, ath: Athlete, putter: PuttAthlete, green: Green,
                         angle=math.degrees(math.atan2(lateral, max(1.0, gap_ft / FT_PER_YD))),
                         offset=offset, head=head, lie=lie, on_green=on_green(rest, hole),
                         in_sand=in_sand(rest, hole), escaping=escaping, hit_lip=bool(res.get("lip")),
-                        strokes_at=strokes, gap_ft=gap_ft))
+                        strokes_at=strokes, gap_ft=gap_ft, start=ball,
+                        path=res.get("path"), stop_at=res.get("stop_at"),
+                        aim=aim, bearing=aim_bearing))
         if verbose:
             side = "right" if lateral > 0 else "left"
             depth = "short" if along < 0 else "long"
@@ -1250,6 +1256,113 @@ def field(args) -> int:
     return 0
 
 
+# ---- the picture ------------------------------------------------------------------------------------
+# A golf shot is the cheapest thing in this repository to film: one ball, one arc, six seconds, and no opponent.
+# The film is not a claim and it rests on nothing — every number in this file was decided before it was drawn —
+# so it lives in its own section with the scene it draws, and the page under `games/golf/replay3d.html` reads it
+# with no library at all: a ball, an arc and a wall do not need a character pipeline.
+def _shot(scene_ath: Athlete, hole: Hole, start: tuple[float, float], club: Club, gear: float,
+          bearing: float, label: str, wind: tuple[float, float] = (0.0, 0.0),
+          lens: str | None = None) -> dict:
+    """One drawn shot: the film, and the sentence that goes under it."""
+    lip_ft = lip_distance(start, bearing, hole)
+    res = shot(start, club, gear, bearing, lie=lie_at(start, hole), wind=wind_vector(wind),
+               lip=lip_ft, trace=0.02)
+    if res.get("lip"):
+        text = "into the face: the stroke is spent and the ball is where it was"
+    elif on_green(res["rest"], hole):
+        text = f"on the green, {math.hypot(hole.flag[0] - res['rest'][0], hole.flag[1] - res['rest'][1]):.0f} ft from the flag"
+    else:
+        text = (f"{res['total'] / FT_PER_YD:.0f} yd, "
+                f"{math.hypot(hole.flag[0] - res['rest'][0], hole.flag[1] - res['rest'][1]) / FT_PER_YD:.0f} yd from the flag")
+    return dict(label=label, club=club.name, gear=gear, start=list(start), path=res.get("path"),
+                stop_at=res.get("stop_at"), rest=list(res["rest"]), lip=bool(res.get("lip")), result=text,
+                hit=res.get("hang", 0.0),
+                face=lip_ft,          # how far to the face, or None
+                lens=lens)            # the shot list's note about which camera it wants, or None for the renderer's
+
+
+def _hole_json(hole: Hole) -> dict:
+    return dict(yards=hole.yards, par=hole.par, label=hole.label, pin=hole.pin, sand=hole.sand,
+                centre=list(hole.centre), flag=list(hole.flag), green_a=GREEN_A, green_b=GREEN_B,
+                bunker_w=BUNKER_W if hole.sand else 0.0, lip_h=LIP_H if hole.sand else 0.0)
+
+
+def render(args) -> int:
+    """Write a scene and the page that plays it, into `games/golf/renders/`."""
+    out_dir = Path(__file__).resolve().parent.parent / "games" / "golf" / "renders"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    green = Green(stimp=10.0, grade=1.2, downhill=135.0)
+    which = args.render
+    if which == "lip":
+        hole = Hole(400, 4, "the face", pin=0.0, sand=+1)
+        y = hole.yards * FT_PER_YD
+        near, far = (GREEN_A + 1.0, y), (GREEN_A + 7.0, y)
+        to_flag = lambda p: math.degrees(math.atan2(-p[0], 0.0))          # noqa: E731
+        out_way = lambda p: math.degrees(math.atan2(p[0], 0.0))           # noqa: E731
+        a = copy_of(Athlete())                         # a beginner is enough: the picture is of the course
+        a.policy = "spread"
+        scene = dict(
+            title="the face, from one foot and from six",
+            note="Three balls, one bunker. The face is 18 in of sand along the green's edge and nothing along "
+                 "the other three sides: a ball can always go out the back, never out the front. The second is "
+                 "the first ball played out sideways, which is what a player does; the third is the same club "
+                 "from six feet further back, where the swing has room to be a swing and the face is 2.4 ft "
+                 "under the ball instead of on top of it.",
+            fov=38.0,
+            view=dict(pos=[86.0, y - 58.0, 30.0], target=[17.0, y + 3.0, 1.0],
+                      label="behind the bunker: the face on the right, the flag beyond it"),
+            feet=_hole_json(hole),
+            shots=[
+                _shot(a, hole, near, CLUB_BY_NAME["sand wedge"], 0.25, to_flag(near),
+                      "one foot from the face, at the flag — nothing in the bag is high enough"),
+                _shot(a, hole, near, CLUB_BY_NAME["sand wedge"], 0.25, out_way(near),
+                      "the same ball, played out over the low edge: what the athlete actually does",
+                      lens="wide"),
+                _shot(a, hole, far, CLUB_BY_NAME["sand wedge"], 0.35, to_flag(far),
+                      "six feet back, a little more on it: 2.4 ft high at the face for an 18 in face"),
+            ])
+        name = "the-face"
+    else:
+        n = int(which)
+        hole = COURSE[n - 1] if 1 <= n <= len(COURSE) else HELD_OUT[max(0, n - 10)]
+        a = Athlete()
+        a.policy = "spread"
+        pu = PuttAthlete()
+        for k in range(3):
+            play_round([h for h in COURSE if h is not hole] or COURSE, a, pu, green, learn=True, verbose=False,
+                       rng=random.Random(DEFAULT_SEED + k))
+        y = hole.yards * FT_PER_YD
+        r = play_hole(hole, a, pu, green, learn=False, verbose=False, rng=random.Random(DEFAULT_SEED),
+                      trace=0.02)
+        shots = []
+        for e in r["log"]:
+            if e["kind"] != "shot":
+                continue
+            shots.append(dict(label=f"{e['club']} at {e['gear']:.0%}, aim {e['offset']:+.0f} ft",
+                              club=e["club"], gear=e["gear"], start=[round(c, 2) for c in e["start"]],
+                              path=e.get("path"), stop_at=e.get("stop_at"), rest=None, lens="wide",
+                              lip=bool(e.get("hit_lip")),
+                              result=f"{e['total']:.0f} yd, {abs(e['along']):.0f} yd "
+                                              f"{'short' if e['along'] < 0 else 'past'}, "
+                                              f"{abs(e['lateral']):.0f} yd {'right' if e['lateral'] > 0 else 'left'}"))
+        scene = dict(title=f"hole {hole.label}: {hole.yards:.0f} yd, par {hole.par}",
+                     note=f"the athlete plays it in {r['strokes']} strokes, {r['putts']} of them putts. "
+                          f"Bunker on the {'right' if hole.sand > 0 else ('left' if hole.sand < 0 else 'none')}.",
+                     fov=44.0, feet=_hole_json(hole), shots=shots,
+                     view=dict(pos=[0.12 * y, -0.10 * y, 0.22 * y], target=[hole.centre[0], 0.78 * y, 0.0],
+                               label=f"down the hole from behind the tee: {hole.yards:.0f} yd, par {hole.par}"))
+        name = f"hole-{hole.label}"
+    (out_dir / f"{name}.json").write_text(json.dumps(scene, indent=1))
+    template = (Path(__file__).resolve().parent.parent / "games" / "golf" / "replay3d.html").read_text()
+    page = template.replace("__SCENE__", json.dumps(scene))
+    out = out_dir / f"{name}.html"
+    out.write_text(page)
+    print(f"{name}: {len(scene['shots'])} shots, "
+          f"{sum(len(s['path'] or ()) for s in scene['shots'])} path points\n  {out}")
+    return 0
+
+
 # ---- main -------------------------------------------------------------------------------------------
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
@@ -1266,6 +1379,8 @@ def main(argv=None) -> int:
     ap.add_argument("--rounds", type=int, default=3)
     ap.add_argument("--field", action="store_true",
                     help="six scripted athletes on one card: same course, same weather, different strategies")
+    ap.add_argument("--render", metavar="SCENE", default=None,
+                    help="write a film: 'lip' for the bunker face, or a hole number, e.g. --render 7")
     ap.add_argument("--selftest", action="store_true")
     args = ap.parse_args(argv)
     if args.selftest:
@@ -1276,6 +1391,8 @@ def main(argv=None) -> int:
         return draws(args)
     if args.field:
         return field(args)
+    if args.render:
+        return render(args)
 
     green = Green(stimp=10.0, grade=1.2, downhill=135.0)
     ath, putter = Athlete(), PuttAthlete()

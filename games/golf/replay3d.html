@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>golf — the shot, drawn</title>
+<style>
+  html,body{margin:0;height:100%;background:#0d1512;color:#dfe6e2;
+            font:14px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #wrap{position:fixed;inset:0;display:flex;flex-direction:column}
+  canvas{flex:1;display:block;width:100%;height:100%}
+  #bar{padding:10px 16px 14px;border-top:1px solid #22332c;background:#0b1210}
+  #title{color:#8fd8b4;letter-spacing:.02em}
+  #note{color:#7d8f88;font-size:12.5px;margin-top:2px}
+  #now{margin-top:8px;font-size:13.5px}
+  #now b{color:#ffd479;font-weight:600}
+  #dots{margin-top:6px;color:#38524a;font-size:12px;letter-spacing:.3em}
+  #dots span.on{color:#ffd479}
+</style>
+<div id="wrap"><canvas id="c"></canvas>
+  <div id="bar">
+    <div id="title">…</div>
+    <div id="note"></div>
+    <div id="now"></div>
+    <div id="dots"></div>
+  </div>
+</div>
+<script type="application/json" id="scene">__SCENE__</script>
+<script>
+/* One ball, one arc, six seconds. No library: a ball, a wall and a polygon need a projection and a painter's
+   sort, not a scene graph. Feet and seconds throughout, x to the right of the fairway, y down it, z up — the
+   same axes `lab/golf.py` integrates in, so nothing here can disagree with the physics about where the ball is.
+
+   The scene comes from `python3 lab/golf.py --render lip` (or `--render 7` for a hole), which writes this file
+   with the data baked in: a page opened from disk must show something, so the data travels with it. */
+const scene = JSON.parse(document.getElementById("scene").textContent);
+const cv = document.getElementById("c"), ctx = cv.getContext("2d");
+const DPR = Math.min(2, window.devicePixelRatio || 1);
+
+document.getElementById("title").textContent = scene.title || "";
+document.getElementById("note").textContent = scene.note || "";
+
+/* ---- the camera ---------------------------------------------------------------------------------- */
+function basis(pos, target, up = [0, 0, 1]) {
+  const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+  const norm = v => { const l = Math.hypot(...v) || 1; return [v[0] / l, v[1] / l, v[2] / l]; };
+  const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+  const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  const f = norm(sub(target, pos));
+  let r = norm(cross(f, up));
+  if (!isFinite(r[0]) || (r[0] === 0 && r[1] === 0 && r[2] === 0)) r = [1, 0, 0];
+  const u = cross(r, f);
+  return { pos, f, r, u, dot, sub };
+}
+function toCam(cam, p) {              // camera space: x right, y up, z depth (in front)
+  const v = cam.sub(p, cam.pos);
+  return [cam.dot(v, cam.r), cam.dot(v, cam.u), cam.dot(v, cam.f)];
+}
+/* The ground is a plane the camera stands on, so any quad large enough to be ground has corners behind the
+   camera. Clip against the near plane instead of shrinking the world — a fairway that stops six feet in front
+   of the lens is not a fairway. */
+function clipNear(poly, near = 0.5) {
+  const out = [];
+  for (let i = 0; i < poly.length; i++) {
+    const a = poly[i], b = poly[(i + 1) % poly.length];
+    const ain = a[2] >= near, bin = b[2] >= near;
+    if (ain) out.push(a);
+    if (ain !== bin) {
+      const f = (near - a[2]) / (b[2] - a[2]);
+      out.push([a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, near]);
+    }
+  }
+  return out;
+}
+const BALL_FT = 1.62 / 12;                 // a golf ball, in feet: the size on screen is the size it is
+let LENS = scene.fov || 42;                // degrees across, set for each frame: a cut may change the lens
+const FOCAL = () => (cv.clientHeight / DPR) / 2 / Math.tan(LENS * Math.PI / 360);
+function project(cam, p) {
+  const v = cam.sub(p, cam.pos);
+  const depth = cam.dot(v, cam.f);
+  if (depth <= 0.05) return null;             // behind the camera: not "far", just not there
+  const focal = FOCAL();
+  return { x: cv.clientWidth / DPR / 2 + cam.dot(v, cam.r) * focal / depth,
+           y: cv.clientHeight / DPR / 2 - cam.dot(v, cam.u) * focal / depth,
+           d: depth };
+}
+/* Where each shot is going, and how far it gets: a shot that dies on the face still has an aim, and the aim
+   is where the camera has to look; but a ball that travelled one foot must not be framed by the twenty-one
+   feet to the flag, or it sits on the edge of the picture. So aim and travel are separate. */
+function aimOf(s) {
+  const p = s.path || [];
+  const last = p.length ? p[p.length - 1] : [0, s.start[0], s.start[1], 0];
+  let dx = last[1] - s.start[0], dy = last[2] - s.start[1];
+  const travel = Math.hypot(dx, dy);
+  if (travel < 2) {                            // a stroke spent against the face is still meant at the flag
+    dx = scene.feet.flag[0] - s.start[0]; dy = scene.feet.flag[1] - s.start[1];
+  }
+  const n = Math.hypot(dx, dy) || 1;
+  return { ux: dx / n, uy: dy / n, travel };
+}
+/* A camera for one shot. Two shots, two lenses, and the choice is the film's job, not the physics':
+
+   - a long shot is followed: behind the ball, high enough to see where it lands;
+   - a short one is seen from the side, because the thing being claimed about a wedge at the face is a height,
+     and a height seen from behind the ball is a dot going up the screen. From the side, eighteen inches of
+     sand and a foot and a half of arc are the same kind of quantity and can be compared by eye. The side is
+     fixed at +y for the whole film, so the shots cut together instead of jumping around the green. */
+function shotCamera(s) {
+  if (s.lens === "wide" && scene.view) {       // the shot list asked for the establishing camera
+    LENS = scene.fov || 42;
+    return basis(scene.view.pos, scene.view.target);
+  }
+  const { ux, uy, travel } = aimOf(s);
+  let top = 0;
+  for (const q of (s.path || [])) top = Math.max(top, q[3]);
+  if (travel >= 40) {
+    /* A long shot is seen from the side of its own line and a little behind the middle of it — the way a
+       broadcast camera on a crane sees one — because a flight watched from behind the ball is a dot that does
+       not move. The lens is the scene's. */
+    LENS = scene.fov || 45;
+    const mid = [s.start[0] + ux * travel * 0.5, s.start[1] + uy * travel * 0.5];
+    const dist = Math.min(420, Math.max(45, travel * 0.85));
+    const px = -uy, py = ux;                    // the perpendicular, on the same side every time
+    const sgn = (py < 0 || (py === 0 && px < 0)) ? -1 : 1;
+    return basis([mid[0] + px * dist * sgn, mid[1] + py * dist * sgn, Math.min(160, Math.max(12, travel * 0.32))],
+                 [mid[0], mid[1], 2.0]);
+  }
+  /* A short shot is framed from behind the ball looking at the face, low and close, with a modest lens. The
+     face then reads as what it is — a horizontal band across the frame eighteen inches above the sand — and the
+     question the lip asks, "was the ball above that band when it crossed", is answered by the eye without any
+     arithmetic. From the side the same shot would show the ball travelling toward the wall edge-on, and the
+     band would be a line with no width, which is a worse picture of the same fact. */
+  if (s.face != null) {
+    /* A ball with a face to climb and less than a full swing between it and the green: the cross-section.
+       The camera stands behind the ball, low, looking at the band of sand — from here the question the lip
+       asks is answered by the eye, because "was the ball above that line when it crossed" is a comparison of
+       two things at the same distance. */
+    LENS = 30;
+    const back = 26, high = 8, beside = 9;   // a little to one side, so the arc curves on the screen
+    return basis([s.start[0] - ux * back - uy * beside, s.start[1] - uy * back + ux * beside, high],
+                 [s.start[0] + ux * 7, s.start[1] + uy * 7, 1.0]);
+  }
+  /* A ball with no face to climb — played out sideways, or a putt that ran off the edge: there is no height to
+     read, so the camera goes up, where the bunker is a band on the ground and the ball is a dot leaving it. */
+  LENS = 44;
+  return basis([s.start[0] - ux * 30, s.start[1] - uy * 30, 26],
+               [s.start[0] + ux * 8, s.start[1] + uy * 8, 0.0]);
+}
+
+/* ---- the ground ---------------------------------------------------------------------------------- */
+function ellipsePoly(cx, cy, a, b, n = 96) {
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const t = i / n * Math.PI * 2;
+    out.push([cx + Math.cos(t) * a, cy + Math.sin(t) * b, 0]);
+  }
+  return out;
+}
+function fillPoly(cam, pts, fill, stroke) {
+  const focal = FOCAL();
+  const cs = clipNear(pts.map(p => toCam(cam, p)));
+  if (cs.length < 3) return;
+  const ps = cs.map(([u, v, d]) => ({ x: cv.clientWidth / DPR / 2 + u * focal / d,
+                                      y: cv.clientHeight / DPR / 2 - v * focal / d }));
+  ctx.beginPath();
+  ps.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
+  ctx.closePath();
+  if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+  if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 1; ctx.stroke(); }
+}
+function line3(cam, a, b, colour, width, dash) {
+  const pa = project(cam, a), pb = project(cam, b);
+  if (!pa || !pb) return;
+  ctx.save();
+  ctx.strokeStyle = colour; ctx.lineWidth = width || 1;
+  if (dash) ctx.setLineDash(dash);
+  ctx.beginPath(); ctx.moveTo(pa.x, pa.y); ctx.lineTo(pb.x, pb.y); ctx.stroke();
+  ctx.restore();
+}
+function ground(cam) {
+  const f = scene.feet;
+  const y0 = f.centre[1] - 900, y1 = f.centre[1] + 900;
+  fillPoly(cam, [[-900, y0, 0], [900, y0, 0], [900, y1, 0], [-900, y1, 0]], "#2f5b3d");     // the fairway
+  fillPoly(cam, [[-60, y0, 0], [60, y0, 0], [60, y1, 0], [-60, y1, 0]], "#376845");          // the short grass
+  if (f.sand) {                                                                              // the sand
+    const s = f.sand > 0 ? 1 : -1;
+    fillPoly(cam, [[s * f.green_a, f.centre[1] - f.green_b, 0], [s * (f.green_a + f.bunker_w), f.centre[1] - f.green_b, 0],
+                   [s * (f.green_a + f.bunker_w), f.centre[1] + f.green_b, 0], [s * f.green_a, f.centre[1] + f.green_b, 0]],
+             "#c8b483", "#8d7c54");
+  }
+  fillPoly(cam, ellipsePoly(f.centre[0], f.centre[1], f.green_a, f.green_b), "#4a8f5c", "#8ff0b4");
+  if (f.sand && f.lip_h > 0) {                                                               // the face, as a wall
+    const s = f.sand > 0 ? 1 : -1, x = s * f.green_a;
+    const top = f.centre[1] + f.green_b, bot = f.centre[1] - f.green_b;
+    fillPoly(cam, [[x, bot, 0], [x, bot, f.lip_h], [x, top, f.lip_h], [x, top, 0]], "#a4915f");
+    for (let k = 0; k <= 40; k++) {                                            // hatching: it is a face, not glass
+      const yy = bot + (top - bot) * k / 40;
+      line3(cam, [x, yy, 0], [x, yy, f.lip_h], "rgba(88,74,42,0.22)", 0.6);
+    }
+    line3(cam, [x, bot, f.lip_h], [x, top, f.lip_h], "#ffeecc", 2.0);          // the lip itself, eighteen inches up
+  }
+  const flag = f.flag;                                                                        // the flag
+  line3(cam, [flag[0], flag[1], 0], [flag[0], flag[1], 7.5], "#e8e8e8", 1.6);
+  const p0 = project(cam, [flag[0], flag[1], 7.5]), p1 = project(cam, [flag[0], flag[1] + 2.4, 6.6]);
+  if (p0 && p1) { ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.lineTo(p0.x, p0.y + 12);
+                  ctx.closePath(); ctx.fillStyle = "#ff5f5f"; ctx.fill(); }
+  const cup = project(cam, [flag[0], flag[1], 0]);                                            // the hole
+  if (cup) { ctx.beginPath(); ctx.ellipse(cup.x, cup.y, 3, 1.4, 0, 0, Math.PI * 2);
+             ctx.fillStyle = "#0b1210"; ctx.fill(); }
+}
+
+/* The bar has to be true at one depth and there is only one depth the reader is judging, which is the ball's:
+   so the bar is measured against the ball, and its length is chosen so that it is a bar and not the width of
+   the screen. A twenty-foot bar is wrong on a close-up of a bunker — no good asking the eye to divide by twenty
+   when the whole frame is eight. */
+function scaleBar(cam, p) {
+  const v = cam.sub(p, cam.pos);
+  const depth = Math.max(2, cam.dot(v, cam.f));
+  const perFt = FOCAL() / depth;
+  let ft = 1;
+  for (const k of [50, 20, 10, 5, 2, 1]) if (k * perFt <= 210) { ft = k; break; }
+  const px = ft * perFt;
+  const x = 22, y = cv.clientHeight / DPR - 26;
+  ctx.strokeStyle = "rgba(223,230,226,0.55)"; ctx.lineWidth = 1.4;
+  ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + px, y);
+  ctx.moveTo(x, y - 4); ctx.lineTo(x, y + 4); ctx.moveTo(x + px, y - 4); ctx.lineTo(x + px, y + 4); ctx.stroke();
+  ctx.fillStyle = "rgba(223,230,226,0.75)"; ctx.font = "12px ui-monospace,Menlo,monospace";
+  ctx.fillText(ft + " ft", x + 4, y - 8);
+}
+
+/* ---- the ball, and the trail it leaves ------------------------------------------------------------ */
+function ballAt(path, t) {
+  if (!path || !path.length) return null;
+  if (t <= path[0][0]) return path[0];
+  for (let i = 1; i < path.length; i++) {
+    if (path[i][0] >= t) {
+      const a = path[i - 1], b = path[i], f = (t - a[0]) / Math.max(1e-6, b[0] - a[0]);
+      return [t, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f, a[3] + (b[3] - a[3]) * f];
+    }
+  }
+  return path[path.length - 1];
+}
+function truncate(path, stopAt, start) {         // a shot that hits the face stops there, short of its landing
+  if (!path) return path;
+  if (stopAt == null) return path;
+  const out = [];
+  for (const p of path) {
+    const d = Math.hypot(p[1] - start[0], p[2] - start[1]);
+    if (d >= stopAt) { out.push(p); break; }
+    out.push(p);
+  }
+  return out.length ? out : path.slice(0, 1);
+}
+function drawPath(cam, pts, upto, colour, width) {
+  let prev = null;
+  for (const p of pts) {
+    if (p[0] > upto) break;
+    const q = project(cam, [p[1], p[2], p[3]]);
+    if (q && prev) { ctx.strokeStyle = colour; ctx.lineWidth = width; ctx.beginPath();
+                     ctx.moveTo(prev.x, prev.y); ctx.lineTo(q.x, q.y); ctx.stroke(); }
+    prev = q;
+  }
+}
+function shadow(cam, p) {
+  const q = project(cam, [p[1], p[2], 0]);
+  if (!q) return;
+  const r = Math.max(2.4, Math.min(22, 1.35 * BALL_FT * FOCAL() / Math.max(1, q.d)));
+  ctx.beginPath(); ctx.ellipse(q.x, q.y, r, r * 0.40, 0, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(0,0,0,0.32)"; ctx.fill();
+}
+function drawBall(cam, p) {
+  const q = project(cam, [p[1], p[2], p[3]]);
+  if (!q) return;
+  const r = Math.max(2.2, Math.min(26, BALL_FT * FOCAL() / Math.max(1, q.d)));
+  ctx.beginPath(); ctx.arc(q.x, q.y, r, 0, Math.PI * 2); ctx.fillStyle = "#ffffff"; ctx.fill();
+  ctx.beginPath(); ctx.arc(q.x - r * 0.25, q.y - r * 0.25, r * 0.45, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(255,255,255,0.9)"; ctx.fill();
+}
+
+/* ---- the film: one shot at a time, then the next ------------------------------------------------
+   The whole thing is one function of time — `at(t)` says which frame of which shot is on screen at second
+   `t` — so a still can be pinned from the address bar (`the-face.html#t=6.2`), which is how a record gets a
+   picture out of a film. Nothing here is stateful but the clock. */
+const shots = (scene.shots || []).map(s => ({
+  ...s, path: truncate(s.path, s.stop_at, s.start),
+  dur: s.path && s.path.length ? s.path[s.path.length - 1][0] : 1.0,
+}));
+const PRE = scene.view ? 3.2 : 0;          // the establishing frame, in seconds
+const START = [];                          // when each shot begins, on the film's own clock
+let total = PRE;
+for (const s of shots) { START.push(total); total += s.dur + 1.6; }
+function at(t) {
+  if (PRE && t < PRE) return { wide: true, i: 0, shown: 0 };
+  let i = 0;
+  for (let k = shots.length - 1; k >= 0; k--) if (t >= START[k]) { i = k; break; }
+  return { wide: false, i, shown: Math.min(Math.max(0, t - START[i]), shots[i].dur) };
+}
+const dots = document.getElementById("dots");
+const el = document.getElementById("now");
+function caption(f) {
+  if (f.wide) {
+    el.innerHTML = `<b>the hole</b> · ${(scene.view && scene.view.label) || "from behind the ball"}`;
+    dots.textContent = shots.map(() => "•").join(" ");
+    return;
+  }
+  const s = shots[f.i];
+  el.innerHTML = `<b>${f.i + 1}/${shots.length}</b> · ${s.label}` +
+                 (s.result ? ` — <span style="color:#9fb8ad">${s.result}</span>` : "");
+  dots.textContent = shots.map((_, k) => k === f.i ? "●" : "•").join(" ");
+}
+function draw(f) {
+  LENS = scene.fov || 42;
+  const cam = f.wide ? basis(scene.view.pos, scene.view.target) : shotCamera(shots[f.i]);
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.clearRect(0, 0, cv.clientWidth, cv.clientHeight);
+  const sky = ctx.createLinearGradient(0, 0, 0, cv.clientHeight / DPR);
+  sky.addColorStop(0, "#16261f"); sky.addColorStop(1, "#0d1512");
+  ctx.fillStyle = sky; ctx.fillRect(0, 0, cv.clientWidth / DPR, cv.clientHeight / DPR);
+  ground(cam);
+  for (let k = 0; k < f.i; k++) drawPath(cam, shots[k].path, 1e9, "rgba(255,212,121,0.22)", 1.2);
+  if (!f.wide) drawPath(cam, shots[f.i].path, f.shown, "#ffd479", 2.0);
+  const b = ballAt(shots[f.i].path, f.shown);
+  if (b) { shadow(cam, b); drawBall(cam, b); }
+  scaleBar(cam, b ? [b[1], b[2], b[3]] : [scene.feet.centre[0], scene.feet.centre[1], 0]);
+}
+/* A still, if the address asks for one: `#t=6.2` draws exactly that second. Drawn synchronously, not on the
+   next animation frame, because a headless browser asked for a screenshot does not always wait for one. */
+const pinned = (m => m ? parseFloat(m[1]) : null)(/^#t=([0-9.]+)$/.exec(location.hash || ""));
+function frame() {
+  const t = ((performance.now() - t0) / 1000) % total;
+  const f = at(t);
+  draw(f);
+  caption(f);
+  requestAnimationFrame(frame);
+}
+function resize() {
+  cv.width = Math.floor(cv.clientWidth * DPR); cv.height = Math.floor(cv.clientHeight * DPR);
+}
+let t0 = 0;
+addEventListener("resize", resize);
+resize();
+if (pinned != null) {
+  const f = at(Math.min(pinned, total - 0.05));
+  const still = () => { resize(); draw(f); caption(f); };
+  still();                                   // now, in case the browser never runs another frame
+  requestAnimationFrame(still);              // and again once the layout is settled, in case it does
+  document.getElementById("bar").insertAdjacentHTML("beforeend",
+    `<div style="color:#5f726a;font-size:11.5px">still at ${pinned.toFixed(1)} s of ${total.toFixed(1)}</div>`);
+} else {
+  t0 = performance.now();
+  requestAnimationFrame(frame);
+}
+</script>

@@ -1454,3 +1454,56 @@ a surface called 'green'. Guarded now.
     bad start      aim bias -1.30°  sigma 3.51°  wind 1.03  shots observed  159
     no practice    aim bias +0.00°  sigma 1.50°  wind 0.00  shots observed    0
 
+
+
+=============================== PASS 7 — 2026-11-19 18:46-19:05 — the picture =======================
+
+Not a pass over the physics: the physics is at rest and this does not touch it. The founder asked why a
+renderer sat on the far side of 'rest' when it needs nothing from him, and he was right — it is a JSON file
+and a camera. The thing that was missing was not permission, it was a reason: until the lip, the shots were
+all the same shot and there was nothing a still frame could not show. The lip is a ball that comes back.
+
+`--render lip` plays three shots at one bunker face and writes games/golf/renders/the-face.{json,html}, the
+scene baked into the page, no library, no server. Three frames:
+
+  the green from behind the bunker, so the reader knows where they are;
+  a ball one foot from the face and the stroke spent against it;
+  the same ball played out over the low edge — the athlete's own escape, which is why the lip is fair;
+  the same club from six feet back, where the ball crosses the face 2.4 ft up and finishes 1 ft from the flag.
+
+########## --render lip
+the-face: 3 shots, 109 path points
+  games/golf/renders/the-face.html
+
+The clip geometry runs on the same trace= as the physics: shot(..., trace=0.02), the same samples the
+integrator hands back, in feet and seconds. Nothing here re-integrates anything and nothing here can
+disagree with the game about where the ball was.
+
+Two things the picture found, neither of them physics, both found by looking at stills and neither of them
+findable by a check:
+
+  1. A shot drawn from behind the ball is not a picture of a height. The first camera sat 130 ft out on the
+     whole hole and the ball moved four pixels, because the first version used one lens for everything.
+     A height is a comparison — eighteen inches of sand against the ball's own rise — and it can only be
+     made where both are the same size on the screen. So the lens is chosen per shot now: the scene names
+     the frames that want the establishing camera, and a face shot is a close-up in which the face is
+     eighteen inches tall on the frame.
+  2. A camera square to the ball's line sees the face edge-on. It was placed off to the side, which is the
+     textbook place for a cross-section, and the textbook is wrong here: the wall is a plane at right angles
+     to the shot, so the side view gives it no width. The close-up is from behind the ball instead, a little
+     off the line, and the face is a band across the frame.
+
+The bug worth writing down: moving `fov` from the view object to the scene left fillPoly reading
+scene.view.fov, which was undefined, so every focal length was NaN and every polygon was silently dropped.
+Canvas draws nothing when a coordinate is NaN — no exception, no console message, a black frame. The check
+that found it was a throwaway node harness that stubbed the 2D context and looked for non-finite arguments;
+the browser harness could not tell 'nothing drawn' from 'nothing composited', and a headless screenshot of a
+canvas is not reliable enough to be evidence either way. Every still in renders/ was taken from
+cv.toDataURL(), not from a screen capture, for that reason.
+
+What is not settled: `--render 7` films a whole hole from behind the tee. It frames the hole and the ball is
+a two-pixel dot — a diagram of where the shots went, not a picture of them. It wants a camera that tracks the
+ball. Left in the code, not shipped as a page.
+
+########## --selftest (unchanged: the renderer adds no numbers to the game)
+  all 25 checks pass

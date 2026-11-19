@@ -3,8 +3,9 @@
 Built 2026-11-19 by Dmitri, from the founder's suggestion of the same day. Second pass the same night:
 wind, and the decision about where to aim. Third pass: the pins drawn instead of typed. Fourth pass: a
 bunker beside the green, put there to test the third pass and mostly to refute it. **Fifth pass: the bunker's
-face, and the end of the game.** The tool is `lab/golf.py`; the runs are `records/golf-2026-11-19.txt`; the
-checks are `python3 lab/golf.py --selftest` (25 of them).
+face, and the end of the game.** Sixth pass: a field of six on one card. **Seventh: the picture** — by then the
+game was resting, and this is what it does while it rests. The tool is `lab/golf.py`; the runs are
+`records/golf-2026-11-19.txt`; the checks are `python3 lab/golf.py --selftest` (25 of them).
 
     python3 lab/golf.py                    # six rounds of nine, then six holes never played
     python3 lab/golf.py --calm             # the same pins on a still day
@@ -13,6 +14,7 @@ checks are `python3 lab/golf.py --selftest` (25 of them).
     python3 lab/golf.py --compare          # train one athlete, then play all three policies against each other
     python3 lab/golf.py --draws 60         # the same, over 60 courses whose pins and winds are drawn, not chosen
     python3 lab/golf.py --selftest         # the numbers below, checked
+    python3 lab/golf.py --render lip       # the film: three shots at the face, as a page to open in a browser
 
 ## The question, and why it is not "putt, from further away"
 
@@ -262,7 +264,7 @@ a hazard would make the target decision directional, and twice the measurement s
 times the price of the hazard.
 
 **Resting the physics is not resting the game**, and the founder was right to say so. What is left needs no law
-at all, and the first of them is now built:
+at all, and the first two of them are now built:
 
 1. **A field — built, pass 6.** `python3 lab/golf.py --field --rounds 8` puts six scripted athletes on one card:
    the same drawn course each round, the same seed, learning on where each is allowed to learn. It earned its
@@ -294,9 +296,28 @@ at all, and the first of them is now built:
    or a fact about a scatter-aware player is **the next measurement, and it needs no new law**: same course,
    same wind, sigma taught against sigma learned.
 
-3. **The picture.** One ball, one flight, a camera behind the ball, six seconds, `games/tennis/replay3d.html` as
-   the template and `lab/tennis.py`'s `trace=` as the data. The lip has finally given the renderer something a
-   still frame cannot show: a ball that comes back.
+3. **The picture — built, pass 7.** `python3 lab/golf.py --render lip` plays three shots at the face and writes
+   `renders/the-face.html`: a page with the scene baked into it that runs from disk with no server and no
+   library, a projection and a painter's sort and nothing else. Three frames cut together — the green from
+   behind the bunker, so the reader knows where they are; a ball one foot from the face, where nothing in the
+   bag is high enough; the same ball played out sideways, which is what a player does; and the same club from
+   six feet back, where the swing has room to be a swing and the ball crosses the face 2.4 ft up instead of on
+   top of it. `renders/the-face-wide.png`, `-one-foot.png` and `-six-feet.png` are stills out of it; a frame
+   can be pinned from the address bar (`the-face.html#t=8.35`), which is how they were taken.
+
+   Two things the picture found, neither of them physics. **A shot drawn from behind the ball is not a picture
+   of a height.** The claim about a lip is a comparison — eighteen inches of sand against the ball's own rise —
+   and from behind, the sand is a band across the frame only if the camera is low and close; the first version
+   put the camera 130 ft away and the ball moved four pixels. So a lens is chosen per shot: the scene names the
+   frames that want the establishing camera, and the rest are close-ups with the face eighteen inches tall on
+   the screen, which is the size at which the eye can do the comparison the claim is about without arithmetic.
+   **And a camera square to the ball's line sees the face edge-on**: the wall is a plane at right angles to the
+   shot, so the side view shows a line with no width — the same fact, much worse told. Both were found by
+   looking at rendered stills and neither would ever have been caught by a selftest.
+
+   What is not settled: `--render 7` films a whole hole from behind the tee. It frames the hole and makes the
+   ball a two-pixel dot, so it is a diagram of where the shots went rather than a picture of them, and it wants
+   a camera that tracks the ball before it belongs on a page.
 
 4. **A dogleg.** The driver's distance has never been a decision, because the corridor is straight and 40 yd
    wide. A corner with trees inside turns "hit it as far as you can" into a question with a number on it — and
