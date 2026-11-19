@@ -273,7 +273,7 @@ def launch_for(shot: str, face: float) -> float:
 
 def strike(p: Player, incoming: dict | None, face: float, power: float, aim: float, shot: str,
            surface: str, wind: tuple[float, float], pos: tuple[float, float] | None = None,
-           clean: bool = False, stretch: float = 0.0) -> dict:
+           clean: bool = False, stretch: float = 0.0, aim_dist: float | None = None) -> dict:
     """Movement in, ball out. Face in degrees, power in per cent, aim in feet across the court.
 
     Spin is off by decision, not by omission: the design page measures the fitted lift coefficient's effect
@@ -310,7 +310,12 @@ def strike(p: Player, incoming: dict | None, face: float, power: float, aim: flo
     # aim is absolute across the court, in feet from the west sideline, and the paddle turns to it: the
     # face sets the loft and the aim sets the direction, because a face that does both steers a serve thirty
     # feet wide (the tennis engine's first defect, 2026-11-04, kept out of here by construction).
-    azimuth = math.atan2(aim - p0[1], 32.0)
+    # The azimuth is an angle, so it needs the distance the ball is being aimed *down* — and that was a hard
+    # 32 ft until §5j, which is roughly a drive and nothing like a dink. A shot aimed 8 ft across the court from
+    # 10 ft away was given the angle for 32 ft and sailed wide; that is why the first placement chooser lost
+    # every rally to the sideline. `aim_dist` is optional and defaults to the old constant, so every measurement
+    # taken before this line still runs the arithmetic it was taken with.
+    azimuth = math.atan2(aim - p0[1], 32.0 if aim_dist is None else max(6.0, aim_dist))
     v = speed * MPH
     vx = v * math.cos(elevation) * math.cos(azimuth) * (1 if p.north else -1)
     vy = v * math.cos(elevation) * math.sin(azimuth)
@@ -778,6 +783,12 @@ def play_game(names: list[str], practice: list[int], choose_factory, surface: st
     say(f"  teams: {names[0]}/{names[1]} (north) vs {names[2]}/{names[3]} (south); "
         f"to {match.target}, win by 2, side-out scoring")
     choose = choose_factory(players, wind_in, surface)
+    # Sight. Until §5j no chooser could see anybody: it was handed the ball, its own feet and its opponent's
+    # *name*, and asked where to hit. That is why the soft game's two real weapons — putting the ball where the
+    # body is not, and changing pace so the body has to move — could not be learned: neither is a property of the
+    # ball. The position of every player is one object the engine already keeps, so it is handed over here as an
+    # attribute rather than threaded through every chooser's arguments. A chooser that ignores it is unaffected.
+    choose.sight = pos
     history: dict[str, list[str]] = {n: [] for n in names}
     results = {n: [] for n in names}
     lengths = []
@@ -961,10 +972,16 @@ def dink_chooser(level: str = "steady", say=print):
             if soft:
                 ty = WIDTH * (0.3 if p.rng.random() < 0.5 else 0.7)
                 tx = NET_X + 4.5 if p.north else LENGTH - (NET_X + 4.5)
+                dist = math.hypot(tx - here[0], ty - here[1])
                 for power in DINK_POWERS:
                     face = aim_at(p, (tx, ty), "groundstroke", surface, wind, power, here)
                     probe = strike(p, None, face=face, power=power, aim=ty, shot="groundstroke",
-                                   surface=surface, wind=wind, pos=here, clean=True)
+                                   surface=surface, wind=wind, pos=here, clean=True, aim_dist=dist)
+                    # The test is landing, not clearance. The first version demanded an extra half-foot over
+                    # the tape on top of NET_MARGIN and it refused almost every dink — the clearance a dink can
+                    # get is thin by construction (contact at 2.46 ft, tape at 2.83), so the chooser fell through
+                    # to a drive and the soft game disappeared: mean rally 9.0 shots became 4.5. The mistake to
+                    # avoid was aiming at the paint, and that is fixed by the target, not by the margin.
                     land = probe["traj"].get("land")
                     if land is not None and in_kitchen(land[0]) and (land[0] - NET_X) * fwd > 0.5:
                         return face, power, ty
@@ -1290,6 +1307,84 @@ def play_season(names: list[str], practice: list[int], lesson: SeasonLesson, cho
     return {"wins": wins, "points": points, "rows": rows, "lesson": lesson}
 
 
+def open_target(pos, players, side: list[str], tx: float, samples: int = 33,
+                lo: float = 3.0, hi: float = WIDTH - 3.0) -> tuple[float, float]:
+    """The point on the line x=tx furthest from everybody on `side`: where the ball should go.
+
+    Placement is arithmetic before it is a strategy — the ball goes where the nearest body is furthest away —
+    and until now this engine could not do it at all, because a chooser was never told where the bodies were.
+    The measure is the *nearest* opponent's distance, not the sum: one player standing on the spot you chose
+    makes the shot bad however far away their partner is. Returns (y, gap in feet).
+    """
+    best = None
+    for i in range(samples):
+        ty = lo + (hi - lo) * i / (samples - 1)
+        gap = min(math.hypot(tx - pos.get(players[n])[0], ty - pos.get(players[n])[1]) for n in side)
+        if best is None or gap > best[0]:
+            best = (gap, ty)
+    return (best[1], best[0]) if best else (CENTRELINE, 0.0)
+
+
+def placement_chooser(level: str = "steady", say=print):
+    """A chooser that can see the other bodies, and plays the two shots sight makes possible.
+
+    §5i ended by naming the gap: `dink_chooser` picks a side of the court with a coin and always dinks at the
+    same three speeds, because it does not know where anyone is. This one does — `play_game` hands every chooser
+    `sight`, the engine's own `Positions` — and it uses it for the two things a pickleball player uses it for:
+
+      - **placement**: aim at the point furthest from the nearest opponent (`open_target`), not the middle;
+      - **pace, chosen by where they stand**: if the opponents are at their kitchen line, drive *past* them into
+        the back court, because they have no time to turn and run; if they are hanging back, dink, because the
+        short ball makes them come in and a body in transit cannot volley.
+
+    Both are crude and both are the point: a decision that can be *checked* against where the bodies were, rather
+    than a random number dressed as variety. What it still cannot do is anticipate — it reads the court at the
+    moment of contact and not where the opponent will be when the ball arrives, which is the difference between
+    this and a player.
+    """
+    base = scripted_chooser(level)
+
+    def factory(players, wind_in, surface):
+        drive = base(players, wind_in, surface)
+        wind = wind_vector(*wind_in)
+
+        def pick(p, other, incoming, shot_no, lengths, shot_kind, may_volley, here):
+            court = getattr(pick, "sight", None)
+            if court is None or shot_kind == "serve":
+                return drive(p, other, incoming, shot_no, lengths, shot_kind, may_volley, here)
+            fwd = 1.0 if p.north else -1.0
+            side = [n for n in players if players[n].north != p.north]
+            # how far back the deepest opponent is standing: the number that decides pace
+            behind = max(abs(court.get(players[n])[0] - NET_X) for n in side)
+            if behind > 9.0 or (incoming is not None and incoming.get("speed_in", 99.0) < 25.0):
+                # the short ball: 4.5 ft past the net, on the open side
+                tx = NET_X + 4.5 if p.north else LENGTH - (NET_X + 4.5)
+                ty, _gap = open_target(court, players, side, tx, lo=5.0, hi=WIDTH - 5.0)
+                dist = math.hypot(tx - here[0], ty - here[1])
+                for power in DINK_POWERS:
+                    face = aim_at(p, (tx, ty), "groundstroke", surface, wind, power, here)
+                    probe = strike(p, None, face=face, power=power, aim=ty, shot="groundstroke",
+                                   surface=surface, wind=wind, pos=here, clean=True, aim_dist=dist)
+                    # The test is landing, not clearance. The first version demanded an extra half-foot over
+                    # the tape on top of NET_MARGIN and it refused almost every dink — the clearance a dink can
+                    # get is thin by construction (contact at 2.46 ft, tape at 2.83), so the chooser fell through
+                    # to a drive and the soft game disappeared: mean rally 9.0 shots became 4.5. The mistake to
+                    # avoid was aiming at the paint, and that is fixed by the target, not by the margin.
+                    land = probe["traj"].get("land")
+                    if land is not None and in_kitchen(land[0]) and (land[0] - NET_X) * fwd > 0.5:
+                        return face, power, ty
+            # the drive: past the bodies, 9 ft inside their baseline, on the open side
+            tx = NET_X + 12.0 if p.north else LENGTH - (NET_X + 12.0)
+            ty, _gap = open_target(court, players, side, tx)
+            _dist = math.hypot(tx - here[0], ty - here[1])
+            power = 42.0
+            face = aim_at(p, (tx, ty), "groundstroke", surface, wind, power, here)
+            return face, power, ty
+
+        return pick
+    return factory
+
+
 def make_chooser(level: str):
     """A demo's chooser. `read` and `learn` are the steady player's hands with a lesson attached — the first
     paid in faults, the second in points — so a difference between them and `--level steady` is the learning
@@ -1300,6 +1395,8 @@ def make_chooser(level: str):
         return points_chooser("steady")
     if level == "dink":
         return dink_chooser("steady")
+    if level == "place":
+        return placement_chooser("steady")
     return scripted_chooser(level)
 
 
@@ -1457,7 +1554,7 @@ def main(argv=None) -> int:
     ap.add_argument("--clock", type=int, default=None,
                     help="pin the wind to a millisecond count, so a record can be replayed")
     ap.add_argument("--level", default="steady",
-                    choices=["beginner", "steady", "hard", "read", "learn", "season", "dink"],
+                    choices=["beginner", "steady", "hard", "read", "learn", "season", "dink", "place"],
                     help="`read` is the steady hands with a fault-reading lesson attached; `learn` is the "
                          "same hands paid in points instead; `season` is the same hands with a lesson whose "
                          "unit is a game and whose memory is the season file, so its sample can outgrow its "
