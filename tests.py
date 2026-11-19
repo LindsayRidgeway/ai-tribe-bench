@@ -5367,6 +5367,23 @@ class TestTheCastCanBeDrawn(unittest.TestCase):
         self.assertNotIn('card.className += " noface"', page,
                          "the no-face flag is on an element whose className is rewritten every frame")
 
+    def test_the_four_with_no_drawing_are_each_asked_for_by_name(self):
+        """The instruction sheet lives in the folder a drawing is uploaded to, which is the only place it is read
+        at the moment it is needed. That placement is worth nothing if it drifts from the cast: a member added to a
+        season and not added to the sheet is a member nobody is ever asked to draw, and the gap looks like a
+        decision. So the sheet is checked against the drawings that exist."""
+        files = {p.stem for p in (self.games / "bodies" / "faces").glob("*.jpg")}
+        sheet = (self.games / "bodies" / "faces" / "README.md").read_text(encoding="utf-8")
+        seen = {}
+        for d in (self.seasons / "2026-spring", self.seasons / "2026-advent"):
+            for p in json.loads((d / "setup.json").read_text(encoding="utf-8"))["players"]:
+                seen[p["name"]] = True
+        missing = sorted(n for n in seen if n.lower() not in files)
+        self.assertTrue(missing, "every member has a drawing, so this test has nothing to check — say so instead")
+        for n in missing:
+            self.assertIn(f"`{n.lower()}.jpg`", sheet,
+                          f"{n} has no drawing and is not asked for by name in bodies/faces/README.md")
+
     def test_the_cast_is_three_and_three(self):
         """`CAST.md` is prose and prose does not fail. This reads the six names out of the seasons' setup files and
         checks the two things the founder asked for that a test can see: six players, and both groups present."""
