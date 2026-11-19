@@ -529,7 +529,12 @@ RACQUET_HIGH = 9.0
 # is usually a foot off the ground, so "where the racquet meets the ball" and "where the ball is touchable" were
 # the same number and two groundstrokes in five were struck at 0.0ft.
 CONTACT_HEIGHT = 3.0                  # ft above the court: the waist, which is the height a player moves their
-                                      # feet to meet the ball at. Not the height they can touch it at.
+                                      # feet to meet the ball at. Not the height they can touch it at. Since Item 18
+                                      # (2026-11-19) it is the FLOOR of the band rather than the point to aim at.
+CONTACT_HIGH = 7.0                    # ft: the top of the band, a shoulder and a bit. Above this a groundstroke is
+                                      # a smash, and this game has no smash yet (movement list item 3), so the
+                                      # interception does not choose a contact up there even though a racquet can
+                                      # reach it (`RACQUET_HIGH` = 9.0).
 STEP = 0.02                           # s; the slice the ball's plan is stepped in, and why a miss is measured in tenths
 # Two costs that are not distance and that the first version of this rule ignored entirely. A player does not
 # leave on the opponent's contact: they split-step, read the ball, and are moving a quarter of a second later.
@@ -664,11 +669,12 @@ def interception(p: Player, land, flight_time: float, bounce: dict, surface: str
     # for a ball coming at you from a bounce that slice is a foot off the ground: measured on the shipped film,
     # two groundstrokes in five were struck at 0.0ft and the median contact was 1.8ft. A player does not hit a ball
     # at ground level when they have the time — they wait for it to come up, or take it on the rise at a height
-    # they chose. So the meeting point is the first slice that is both within reach AND inside the hitting zone,
-    # falling back to the first reachable slice when the ball never gets there (a skidding ball is scraped, and
-    # that is a real shot).
+    # they chose. So the meeting point is a slice that is both within reach AND inside the hitting band, falling
+    # back — when the ball never gets up into the band — to the highest point it did offer (a skidding ball is
+    # scraped, and that is a real shot), and then to the first slice it was touchable at all.
     ok_at = None                        # the first slice the player could reach at all
-    zone_at = None                      # the same, at a height a player would choose
+    zone_at = None                      # the in-band slice they have to move least for (waist to shoulder)
+    near_at = None                      # the reachable slice nearest the waist, for a ball that never gets up
     while t <= 4.0:
         # there is a finite amount of ground, and a ball that has left it has gone past everybody
         if (not (-PLAY_AREA <= x <= LENGTH + PLAY_AREA) or not (-PLAY_AREA <= y <= WIDTH + PLAY_AREA)):
@@ -685,11 +691,22 @@ def interception(p: Player, land, flight_time: float, bounce: dict, surface: str
                 slice_ = (need, have, t, x, y, z, gap)
                 if ok_at is None:
                     ok_at = slice_
-                # The height a player wants is the height they hit at, not the first one they can reach, so the
-                # scan runs the whole ball and keeps the slice nearest the waist — first one wins a tie, which is
-                # the ball taken on the rise rather than the same ball on the way down.
-                if zone_at is None or abs(z - CONTACT_HEIGHT) < abs(zone_at[5] - CONTACT_HEIGHT):
-                    zone_at = slice_
+                # THE BAND, not a point (Item 18, 2026-11-19). Item 16 chose the reachable slice whose height was
+                # nearest the waist, and a ball crosses the waist twice — on the way up, in front of the player, and
+                # on the way down, behind them. Both are equally near 3.0ft, so the tie went to whichever the scan
+                # met last, and the scan runs the whole ball: measured, a player ran ten feet BACKWARDS to meet a
+                # ball that had bounced fourteen feet in FRONT of them. Height alone cannot break that tie, so the
+                # band breaks it by travel: anywhere between the waist and the shoulder is a ball to hit, and among
+                # those the player takes the one they have to move least for. Taking the earliest in-band slice
+                # instead was tried and is wrong in the other direction — it sends them sprinting forward at a ball
+                # that was coming to them, and 220 shots came out of a twenty-point film instead of 110.
+                if CONTACT_HEIGHT <= z <= CONTACT_HIGH:
+                    if zone_at is None or gap < zone_at[6]:
+                        zone_at = slice_
+                elif near_at is None or abs(z - CONTACT_HEIGHT) < abs(near_at[5] - CONTACT_HEIGHT):
+                    # the fallback for a ball that never comes up — a skid is scraped, and scraping it at the
+                    # highest point it offered is a better description than scraping it where it was first touchable
+                    near_at = slice_
         if t > 0.0 and z <= 0.0:        # the second bounce: the ball is dead and the chance has gone
             break
         rel = math.sqrt(vx * vx + vy * vy + vz * vz)
@@ -698,8 +715,8 @@ def interception(p: Player, land, flight_time: float, bounce: dict, surface: str
         vx, vy, vz = vx + ax * STEP, vy + ay * STEP, vz + az * STEP
         t += STEP
 
-    if zone_at is not None or ok_at is not None:
-        need, have, t_hit, xh, yh, zh, gap_h = zone_at or ok_at
+    if zone_at is not None or near_at is not None or ok_at is not None:
+        need, have, t_hit, xh, yh, zh, gap_h = zone_at or near_at or ok_at
         return {"ok": True, "need": need, "have": have, "short": 0.0, "short_ft": 0.0,
                 "run_time": max(0.0, need - SETTLE),
                 "dx": hx - xh, "dy": hy - yh, "speed": speed, "at": flight_time + t_hit,

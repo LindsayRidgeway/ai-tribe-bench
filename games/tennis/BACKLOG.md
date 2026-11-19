@@ -694,25 +694,59 @@ shoulder, take the first moment inside it, which is the moment nearest the body)
 distance to. That is a change to the meeting point, it moves the contact-height distribution the last two items
 measured, and it is being written down rather than rushed at the end of a turn.
 
-## Item 18 — the meeting point is on the far side of the bounce (OPEN, 2026-11-19)
+## Item 18 — the meeting point is on the far side of the bounce (DONE 2026-11-19)
 
-Named by Item 17 and deliberately not fixed at the end of a turn, because it moves the distribution Items 15 and 16
-just measured.
+Named by Item 17 and finished the same night, in the next turn rather than at the end of that one, because it moves
+the distribution Items 15 and 16 had just measured.
 
-Four contacts of 110 still happen more than 10ft behind the baseline, and one contact in twenty sits exactly on the
-run-off — the bound is now choosing the contact rather than the player. The worst case in the film is a ball that
-bounced 14ft in **front** of Gwen; she then ran 10ft **backwards** to meet it at 2.95ft, because the zone rule takes
-the slice nearest `CONTACT_HEIGHT` and only the descending 3ft crossing on the far side of the bounce gave her time to
-arrive. A real player hits that ball as it passes them, at 5ft, having travelled no distance at all.
+**The defect.** Item 16 chose the reachable slice whose height was nearest the waist. A ball crosses the waist twice
+— once in front of the player and once behind them — and both are equally near 3.0ft, so height alone cannot break
+the tie; the scan runs the whole ball, so the later crossing won. On the film that was Gwen running ten feet
+**backwards** to meet a ball that had bounced fourteen feet **in front** of her.
 
-The rule wants to be a **band, not a point**: waist to shoulder (about 2.0–6.0ft), take the *first* moment inside it —
-which is the moment nearest the body — and fall back to the nearest-to-waist slice only when the ball never passes
-through the band. What it must not do is prefer a 3.0ft ball it has to run backwards for over a 5.0ft ball at its own
-shoulder.
+**The rule now: a band, not a point.** Anywhere between `CONTACT_HEIGHT` = 3.0ft (waist) and `CONTACT_HIGH` = 7.0ft
+(a shoulder and a bit; above that a groundstroke is a smash and this game has no smash yet) is a ball to hit, and
+among those the player takes the one they have to **move least** for. `CONTACT_HEIGHT` stops being a target and
+becomes the floor. The fallback for a ball that never comes up is still the highest point it offered, because a skid
+is scraped and scraping it where it was first touchable is the Item 16 bug.
 
-**Done-test:** over 20 rallies, no contact more than 10ft behind the baseline that a forwards-moving interception
-would have offered earlier, and the contact-height median stays between 2.5 and 4.5ft. `TestTheGroundEnds` gains a
-case for the ball that bounces in front of the player.
+**The tie-breaker was measured, not chosen.** Taking the **earliest** in-band slice instead sends the player
+sprinting forward at a ball that was coming to them: the twenty-point film came out at **220 shots** against 110, and
+a 200-point population gave contacts per point of 10.3 against 13.7. So the band breaks the tie by travel, which
+keeps the film's character and still refuses the far-side crossing.
+
+**Measured with the ground bound loosened to nothing** — because that is the honest way to ask whether the picture
+still looks like tennis without Item 17's backstop. 596 contacts from 300 points:
+
+| | backward travel >3ft | worst | contact >10ft behind the baseline | worst |
+|---|---|---|---|---|
+| nearest-the-waist (Item 16) | 51.5% | 28.5ft | 39.4% | 30.1ft |
+| **band, least travel** | **17.4%** | **12.2ft** | **1.7%** | **13.8ft** |
+
+**And this is the sentence the item is worth:** with the bound back at 12ft, the band's numbers are *the same to the
+point* — 17.4% and 1.7% — so the contact no longer depends on where the run-off is drawn. Item 17 is now a backstop
+rather than the thing doing the choosing, which is what its own measurement said it could not be (worst-meet sat
+exactly on the bound at every candidate value).
+
+**Said plainly, because the numbers are not flattering:** with the run-off in place the band's marginal effect on
+backward travel is nil (17.3% → 17.4%). It earns its place by making the choice independent of the bound, not by
+improving today's film. The one thing that did move with the bound in place is the far contact: 2.7% → 1.7%.
+
+**The film, regenerated.** 158 shots over 20 rallies at 300/600, lengths 5 5 9 3 14 2 3 13 14 11 17 15 5 1 13 2 1 11
+6 8, two aces in twenty, longest rally 17 of a 60 cap. Contacts more than 10ft off the court: **4 → 0** (worst
+9.8ft). Runs ending more than 6ft off court: **3 → 0** of 142 (worst 5.1ft). Contact height min 2.88ft, median
+3.15ft, max 7.68ft, none below a foot. Every invariant re-checked: worst contact-to-feet 7.01ft of a 7.0 reach, no
+run faster than the player, the two-move stance intact. Rendered headless and looked at.
+
+**The film is longer and most of that is a smaller thing than it looks.** Mean rally 5.5 → 7.9 shots, which is a
+twenty-point sample; on 200 points the engine's contacts per point went 12.3 → 13.7, so the real effect is about a
+tenth longer rallies, and the rest is a different point population. It is the same coin as Item 15's: a ball that
+used to be struck from behind the baseline is now struck from a place a player would choose, and the shot off it is
+better.
+
+**Done-test:** with no run-off at all, fewer than 5% of contacts more than 10ft behind the baseline (1.7% measured,
+against 39.4% for the old rule), and the contact-height median between 2.9 and 4.5ft (3.15 measured).
+`TestTheBallIsMetInTheBand`, three tests, 410 in the suite.
 
 ## What V1 means
 

@@ -883,3 +883,25 @@ leaving a 12ft run-off is leaving the visible world, not being declined. What is
 point* on a ball that bounces in front of a player: the rule prefers the slice nearest the waist, so a ball that has
 already passed them can win over the ball at their body, and they are drawn running backwards. That is Item 18 and
 it is a band (waist to shoulder, first moment inside it) rather than a point.
+
+### The hitting band — where the ball stops being a point and becomes a place, 2026-11-19
+
+Item 16 gave the meeting point a height (3.0ft, the waist) and picked the reachable slice closest to it. A ball
+crosses the waist twice — in front of the player on the way up, behind them on the way down — so the rule could not
+tell those two apart, and the scan reaches the later one. The film showed it: ten feet of running **backwards** to
+play a ball that had bounced fourteen feet in **front**.
+
+The rule is now a band, `CONTACT_HEIGHT` 3.0ft to `CONTACT_HIGH` 7.0ft, and among the reachable slices inside it the
+player takes the one they have to move least for. Height alone cannot break that tie; travel can.
+
+Measured with the run-off removed, on 596 contacts: backward travel over 3ft falls from 51.5% to 17.4% (worst 28.5ft
+→ 12.2ft) and contacts more than 10ft behind the baseline from 39.4% to 1.7% (worst 30.1ft → 13.8ft). Put the 12ft
+run-off back and the band's numbers do not change at all — 17.4% and 1.7% either way — which is the point: the
+contact is now a property of the player's choice rather than of where the ground was drawn. The run-off stays as the
+backstop for the ball that leaves the world.
+
+Taking the *earliest* in-band slice instead was measured and rejected: it sends a player sprinting forward at a ball
+that was coming to them, and a twenty-point film came out at 220 shots against 110.
+
+One thing this still does not do: no contact is ever above 7ft for choice, because this game has no smash. That is
+movement-list item 3, and the interception is already written so that raising `CONTACT_HIGH` is the whole change.

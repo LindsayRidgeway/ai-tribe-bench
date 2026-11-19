@@ -4579,6 +4579,97 @@ class TestTheGroundEnds(unittest.TestCase):
                         f"points, not describing the ground")
 
 
+class TestTheBallIsMetInTheBand(unittest.TestCase):
+    """Item 18, 2026-11-19: the meeting point is where the ball is a ball to hit, and it is a band rather than a
+    point. Item 16 picked the reachable slice nearest the waist — but a ball crosses the waist twice, once in front
+    of the player and once behind them, and both are equally near 3.0ft. Height alone cannot break that tie, and
+    the scan runs the whole ball, so the later crossing won: measured on the film, a player ran ten feet backwards
+    to meet a ball that had bounced fourteen feet in front of them.
+
+    Two candidate tie-breakers were measured against the same balls. Taking the earliest in-band slice is wrong in
+    the other direction — it sends a player sprinting forward at a ball that was coming to them, and a twenty-point
+    film came out at 220 shots instead of 110. Taking the in-band slice they have to move least for is what ships.
+
+    The measurement that matters is the one with the ground bound **loosened to nothing**, because the bound is what
+    Item 17 added and the question is whether the picture still looks like tennis without it. On 596 contacts from
+    600 balls: backward travel over 3ft 51.5% under the old rule, 17.4% under the band (worst 28.5ft → 12.2ft), and
+    contacts more than 10ft behind the baseline 39.4% → 1.7% (worst 30.1ft → 13.8ft). With the bound at 12ft the
+    band's numbers are *the same to the point* — 17.4% and 1.7% — which is the claim: the contact does not depend on
+    where the run-off is drawn, so the run-off is a backstop rather than the fix."""
+
+    _balls = TestTheGroundEnds._balls
+
+    def setUp(self):
+        import importlib
+        import random as _random
+        self.random = _random
+        sys.path.insert(0, str(REPO / "lab"))
+        self.T = importlib.import_module("tennis")
+        self._saved = (self.T.PLAY_AREA, self.T.CONTACT_HIGH)
+
+    def tearDown(self):
+        self.T.PLAY_AREA, self.T.CONTACT_HIGH = self._saved
+
+    def _contacts(self, calls, contact_high, play_area=12.0):
+        """Every reachable meeting, as (backward feet, height, feet beyond the baseline). Negative backward feet
+        means the player moved toward the net, which is the ordinary case."""
+        t = self.T
+        t.PLAY_AREA, t.CONTACT_HIGH = play_area, contact_high
+        out = []
+        for p, land, ft, bounce, surface, a, kw in calls:
+            m = t.interception(p, land, ft, bounce, surface, *a, **kw)
+            frm = kw.get("frm")
+            if not (m["ok"] and frm):
+                continue
+            away = 1.0 if not p.north else -1.0          # the direction that is away from the net
+            out.append(((m["meet"][0] - frm[0]) * away, m["height"],
+                        max(-m["meet"][0], m["meet"][0] - t.LENGTH, 0.0)))
+        self.assertGreater(len(out), 25, "too few contacts to say anything")
+        return out
+
+    def test_the_height_is_a_band_and_not_a_point(self):
+        """What Item 16 bought and this must not lose: the ball is struck at a height a player strikes at. None
+        below the knee, a median between the waist and the chest."""
+        rows = self._contacts(self._balls(120), self._saved[1])
+        hs = sorted(r[1] for r in rows)
+        self.assertLess(sum(1 for h in hs if h < 1.0) / len(hs), 0.01,
+                        f"{sum(1 for h in hs if h < 1.0)} of {len(hs)} balls were struck below a foot")
+        self.assertGreater(hs[len(hs) // 2], 2.9, f"median contact {hs[len(hs) // 2]:.2f}ft is below the waist")
+        self.assertLess(hs[len(hs) // 2], 4.5, f"median contact {hs[len(hs) // 2]:.2f}ft is above the chest")
+
+    def test_a_player_does_not_run_away_from_the_net_to_meet_the_ball(self):
+        """The defect, as a rate, with the ground bound removed so that the meeting-point rule is the only thing
+        deciding. `CONTACT_HIGH` below the waist switches the band off and leaves the old nearest-the-waist choice
+        in place, so this is the rule before this item against the rule after it, asked about the same balls."""
+        calls = self._balls(300)
+        old = self._contacts(calls, 0.5, play_area=1e9)
+        new = self._contacts(calls, self._saved[1], play_area=1e9)
+        back = lambda rows: sum(1 for r in rows if r[0] > 3.0) / len(rows)
+        self.assertGreater(back(old), 0.35, f"the old rule only backed up on {back(old):.0%} of contacts — this "
+                                            f"test needs a rule that visibly did it")
+        self.assertLess(back(new), 0.25, f"the band still runs a player backwards on {back(new):.0%} of contacts")
+        self.assertLess(max(r[0] for r in new), 13.0,
+                        f"worst backward run is {max(r[0] for r in new):.1f}ft — the far-side crossing is still "
+                        f"winning somewhere")
+
+    def test_the_contact_does_not_depend_on_where_the_run_off_is_drawn(self):
+        """The claim that makes Item 17's bound a backstop rather than the fix: with no ground bound at all, the band
+        puts 98% of contacts within 10ft of the baseline where the nearest-the-waist rule put 60% of them further
+        out — and the band's own numbers barely move when the bound comes back."""
+        calls = self._balls(300)
+        old = self._contacts(calls, 0.5, play_area=1e9)
+        free = self._contacts(calls, self._saved[1], play_area=1e9)
+        bounded = self._contacts(calls, self._saved[1])
+        far = lambda rows: sum(1 for r in rows if r[2] > 10.0) / len(rows)
+        self.assertLess(far(free), 0.05, f"{far(free):.0%} of contacts happened more than 10ft behind the baseline "
+                                         f"with no run-off at all")
+        self.assertGreater(far(old), far(free) + 0.10,
+                           f"the band did not improve on the old rule ({far(old):.0%} → {far(free):.0%})")
+        self.assertLess(abs(far(bounded) - far(free)), 0.03,
+                        f"the contact moved with the bound ({far(free):.0%} unbounded → {far(bounded):.0%} at 12ft), "
+                        f"so the bound is still doing the choosing somewhere")
+
+
 class TestTheBallAfterThePointIsOver(unittest.TestCase):
     """Item 14 of the tennis backlog, third move: the seconds of ball that are left after the point is decided.
 
