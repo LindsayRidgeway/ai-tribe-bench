@@ -541,6 +541,7 @@ REACTION_BASE = 0.26     # seconds, for a player who has never played
 REACTION_SKILL = 0.15    # of that, taken off by proficiency (`skill("reach")`)
 SETTLE = 0.20
 SERVE_MPH = (66.0, 18.0)  # a first serve, spread; scaled down by control so a beginner does not serve like a pro
+RETURN_DEPTH = 4.0        # ft behind the baseline a returner stands. Not the baseline: see `play_point`.
 PREP_TIME = 0.55         # seconds to take the racquet back, for a player who does not overlap it with the run.
                          # A player who does overlap them needs max(run, prep) instead of run + prep: that is
                          # `Player.rush`, and it is the reason the same ball is a different ball at 0 balls
@@ -1247,8 +1248,15 @@ def play_point(server: Player, receiver: Player, surface: str, wind_vec, wind_in
     the hitter back (or in, after an approach) before the next ball is chosen. That position is what `interception`
     is asked about, so the runner starts where their legs actually left them."""
     lines, where = [], {}
-    for p in (server, receiver):
-        where[p.name] = (2.0 if p.north else LENGTH - 2.0, WIDTH / 2)
+    where[server.name] = (2.0 if server.north else LENGTH - 2.0, WIDTH / 2)
+    # The returner stands BEHIND the baseline, not on it. This was one line for both, two feet inside the line, and
+    # that is not where anybody returns from: a returner is on the back foot with the ball coming at them, and the
+    # two feet matter because a serve arriving in half a second is decided by feet, not by reach. Measured on 120
+    # real serves at 600 balls (`/tmp/stance19.py`, 2026-11-19): reached from 2ft inside the line 89% of the time,
+    # from the line 93%, from 4ft behind it 97%, from 6ft behind it 98%. The same 120 serves at 300 balls:
+    # 94 / 97 / 98 / 99%. The stance is not a tuned knob — it is the one thing the engine had wrong about the whole
+    # shape of a return — so it is set where a returner stands and the numbers are left to fall where they fall.
+    where[receiver.name] = (-RETURN_DEPTH if receiver.north else LENGTH + RETURN_DEPTH, WIDTH / 2)
     record = {}                                  # corner histories: empty per point, so the backhand rule decides
     last: dict[str, tuple | None] = {server.name: None, receiver.name: None}
 

@@ -501,7 +501,8 @@ position 8.8ft up, which is movement list item 3, and it is why the swing looks 
 And **17-22% aces is more than tennis has**: the fastest serves (82mph at the 90th percentile) arrive 55ft away in
 0.5s, and the receiver's 7ft reach, 0.11s split step and 0.20s brake make those a coin flip. The return of serve is
 the next thing the pace exposes, and it is a model of the return — standing behind the baseline and playing the ball
-after the bounce — not another number in the serve.
+after the bounce — not another number in the serve. **Answered the same day, Item 15: the model was one line, the
+receiver's stance, and aces are 6-10% with it.**
 
 **The item's done-test, answered.** *One `lab/tennis.py` on main, with `lab/tennis_script.py` running against it and
 reproducing the 2026-spring record's shot count and rally lengths within the engine's own scatter.* It is met. At
@@ -513,6 +514,74 @@ seven shots. The item is closed. `intercept` was the one thing deliberately not 
 supersedes it. What the port found along the way — a landed ball that ran out of picture time and called itself
 lost, and a serve that was the slowest ball in the game — are both fixed here, and both were found by main's own
 code meeting the branch's.
+
+## Item 15 — the returner stands behind the baseline (DONE 2026-11-19)
+
+Found by following yesterday's own numbers. The serve stopped being a 53mph arc and the aces went to 17-22%, and I
+had written in this file that the answer was "a model of the return, not a smaller serve". It was not a model. It was
+one line, and the line had been there since the interception was written: `play_point` set **both** players two feet
+*inside* the baseline. That is where a server stands. A returner is on the back foot with the ball coming at them.
+
+**The measurement that decided it** (`/tmp/stance19.py`): 120 real serves, and nothing differing except where the
+receiver stands — the serve is a fact, the stance is a choice.
+
+| stance | reached, 300 balls | reached, 600 balls |
+|---|---|---|
+| 2ft inside the line (what the engine did) | 94% | 89% |
+| on the line | 97% | 93% |
+| 4ft behind the line (**what it does now**) | 98% | 97% |
+| 6ft behind the line | 99% | 98% |
+
+**Through the scoreline**, 200 points at each standard, the same seeds, only the stance differing:
+
+| | 0 balls | 300 balls | 600 balls |
+|---|---|---|---|
+| aces, before → after | 0% → 0% | 17% → **6%** | 23% → **10%** |
+| rally median, before → after | 1 → 1 | 4 → 5 | 6 → 8 |
+| rally mean, before → after | 1.6 → 1.5 | 8.6 → 8.4 | 12.9 → 15.6 |
+| rushed on, before → after | 87% → 90% | 16% → 19% | 4% → 5% |
+
+The medium rally got longer at 600 balls, which is the same coin: the points that used to end on the first ball are
+rallies now. Serve-in moved a point or two either way and that is the scatter of a different point population, not
+the stance — a receiver's feet cannot change where the server aimed.
+
+**Done-test:** aces below 20% and above zero at 600 balls, and the receiver's `frm` outside the baseline on the
+first question of every point. `TestTheReturnerStandsBehindTheLine`, three tests.
+
+**The half of this that is not done.** `lab/tennis_script.py` still stands its returner two feet inside the line, so
+the film and the scoreline disagree about the stance — the record's first run starts at x = 76.0, which is 2ft in.
+It is not cosmetic: it is the same defect in the picture, and the film is what the founder watches. It is not done
+here because the record needs a *stance move* for the returner as well as the server (`stance` exists, but it is read
+off the shot of the player who is walking, and both players walk before a point), and that is a viewer change as well
+as a producer change. One change at a time — but it is the next one after Item 16, because a film whose returner
+stands in the wrong place is a film that shows the wrong game, however small two feet look.
+
+**What is now visible that was not before:** a point at 600 balls is thirteen to fifteen shots, a quarter of them
+hitting the engine's 60-shot ceiling. The players cannot pass each other. That is the next item and it is not a
+stance: 7ft of racquet reach plus a recovery to the middle means the corner is always covered, and `choose_shot` has
+no notion of a ball that cannot be returned. It is the same family as Item 11 (a volley to a deep corner) — the
+engine has no shot that is *unreachable*, only shots that miss.
+
+## Item 16 — the ball is struck from a place the body is not (OPEN, found 2026-11-19)
+
+`contact_point()` returns `x = 2.0` for **every** shot by **every** player — two feet inside the baseline — and `y`
+from the middle of the court plus or minus five feet, chosen at random. `play_point` passes `at=None` for every
+groundstroke, so every ball in the scoreline engine is struck from the middle of the baseline, by a player who may
+have run twenty feet to reach it. The run is asked about (`interception(frm=where[…])`) and then thrown away.
+
+`lab/tennis_script.py` does not do this: it passes `at=contact`, where `contact` is the interception's own meeting
+point (`carry[hitter] = meet["meet"]`), which is why the films look right and the scoreline does not. That is Item
+14's disease in a new place — two models of the same thing, one in the record and one in the play.
+
+**The fix is known and cheap:** `play_point` should strike at the meeting point, as the producer does, with the
+height clamped to a hitting zone (a ball met at 0.4ft is not hit at 0.4ft; the player waits for it to come up, or
+takes it on the rise). **The reason it is not in this commit:** every shot's launch point moves, so every number in
+this file moves with it, and this turn's numbers were already being re-measured once. One change at a time, with the
+instrument re-run between them — which is the rule that has kept this item honest so far.
+
+**Done-test:** the mean distance between a shot's `contact` and the feet that struck it, over 20 rallies, is under
+`RACQUET_REACH` — the same invariant the film already satisfies (measured on `film-2026-11-19.json`: 107 shots, worst
+7.01ft against 7.0, which is the boundary and not a violation).
 
 ## What V1 means
 

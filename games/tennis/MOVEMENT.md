@@ -194,6 +194,11 @@ many for tennis, and it is not the serve's fault: the receiver's 7ft reach, 0.11
 82mph ball that lands 55ft away a coin flip, and a real returner does not stand on the baseline centre waiting to be
 beaten — they stand deep and play it after the bounce. The return of serve is the next model, not the next constant.
 
+**Later the same day it was neither a model nor a constant: it was where the returner stood.** `play_point` had put
+both players two feet *inside* the baseline — the server's stance — and moving the returner four feet behind the line
+took aces from 17% to 6% at three hundred balls and 23% to 10% at six hundred. Item 15 in the backlog. A stance is
+movement, and movement is what decides who is beaten; that has now been demonstrated twice in two days.
+
 **In the picture** the windup now depends on it: a prepared receiver has the racquet back and the shoulders turned
 for the whole run; a rushed one starts the backswing late, over `0.55 - 0.30·rush` seconds instead of 0.55. The
 shoulders also turn towards the side they will hit from, which is the founder's second half-sentence — "on the

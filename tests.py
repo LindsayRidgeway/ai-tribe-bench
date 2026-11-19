@@ -4194,14 +4194,22 @@ class TestPreparationAndRush(unittest.TestCase):
     def test_a_beginner_is_rushed_on_most_of_their_shots_and_a_player_with_300_balls_is_not(self):
         """The rule's whole behavioural claim, as a rate: the habit is what changes it, and it changes by an order of
         magnitude between the earliest stage and three hundred balls. Measured on 30 points at each standard; the
-        boundaries are wide because the point of the test is the direction and the size, not the third digit."""
+        boundaries are wide because the point of the test is the direction and the size, not the third digit.
+
+        **The 0.15 was raised to 0.25 on 2026-11-19, and this is why.** The returner's stance moved four feet
+        behind the baseline (Item 15), so every serve is now returned from four feet further back and the first ball
+        of every point costs more. The measured rate at three hundred balls went 5% → 16.5% on the same 30 points,
+        and the wide instrument (200 points, both stances) says 16% inside the line and 19% behind it — so most of
+        the movement is the population, not the stance. One shot in six is still the shape the rule was built for
+        (a beginner is rushed on 86-90% of theirs); the threshold moved because the model moved, and the number that
+        moved it is written here rather than adjusted quietly."""
         beginner, settled = self._real_shots(0), self._real_shots(300)
         self.assertGreater(len(beginner), 10, "too few shots at the earliest standard to say anything")
         self.assertGreater(len(settled), 100)
         badly = lambda xs: sum(1 for r in xs if r is not None and r > 0.1) / len(xs)
         self.assertGreater(badly(beginner), 0.5,
                            f"a player with no habit was rushed on only {badly(beginner):.0%} of their shots")
-        self.assertLess(badly(settled), 0.15,
+        self.assertLess(badly(settled), 0.25,
                         f"a player with 300 balls was still rushed on {badly(settled):.0%} of their shots")
 
     def test_the_return_of_a_serve_is_asked_about_like_any_other_ball(self):
@@ -4247,8 +4255,10 @@ class TestTheServeIsAFastBall(unittest.TestCase):
     11.5; rushed on 86% / 5% / 3% of real shots, against 84% / 3% / 2.5% before the serve was fixed.
 
     What is *not* claimed: this is still an arc with no toss and no overhead (movement list item 3), so the swing
-    is a standstill swing and the fastest serves are a coin flip for the receiver — 17-22% aces is more than
-    tennis has, and that is the return-of-serve model's next job, not the serve's."""
+    is a standstill swing. And the aces this class was first measured with — 17% at three hundred balls, 22% at six
+    hundred — were not the serve's fault but the receiver's stance, which stood two feet inside the baseline. That
+    is `TestTheReturnerStandsBehindTheLine`, and with the stance fixed the same serves are aces 6% and 10% of the
+    time. A number that turns out to belong to another part of the model is the useful kind of wrong."""
 
     def setUp(self):
         import importlib
@@ -4344,6 +4354,97 @@ class TestTheServeIsAFastBall(unittest.TestCase):
                 ins += 0 if any("fault" in line for line in lines) else 1
             self.assertGreater(ins / points, floor,
                                f"at {balls} balls only {ins / points:.0%} of serves landed in the box")
+
+
+class TestTheReturnerStandsBehindTheLine(unittest.TestCase):
+    """Item 15: the stance, 2026-11-19. The defect was one line, and it had been there since the interception was
+    written: `play_point` put both players two feet *inside* the baseline, which is where a server stands and
+    nowhere a returner stands. A returner is on the back foot with the ball coming at them.
+
+    It is worth a class of its own because the number it moves is the one number in the game that was not tennis:
+    aces. Same 200 points, same seeds, only the stance differing — at 300 balls aces 17% → 6%, at 600 balls 23% →
+    10%, and the rallies that were aces became rallies (median 4 → 5 and 6 → 8 shots). Serve-in moved 86/90 → 84/89
+    because the receiver standing deeper does not change the server's aim; that is the run-to-run scatter of a
+    different point population.
+
+    The arithmetic behind it, on 120 real serves and nothing but the stance differing: reached 94% / 97% / 98% /
+    99% at 300 balls from 2ft inside, from the line, from 4ft behind and from 6ft behind; 89% / 93% / 97% / 98% at
+    600. Four feet of court is worth eight points of serves returned, which is the whole difference between a game
+    with aces in it and a game that is 22% aces."""
+
+    def setUp(self):
+        import importlib
+        import random as _random
+        self.random = _random
+        sys.path.insert(0, str(REPO / "lab"))
+        self.T = importlib.import_module("tennis")
+
+    def test_the_receiver_waits_behind_the_baseline(self):
+        """Asked of `interception`, which is where the feet are: the first question of a point is about the
+        receiver, and the stance it is asked from must be outside the line, not two feet inside it."""
+        t = self.T
+        asked, orig = [], t.interception
+
+        def watching(p, land, flight_time, bounce, surface, *a, **kw):
+            asked.append((p.name, p.north, kw.get("frm")))
+            return orig(p, land, flight_time, bounce, surface, *a, **kw)
+
+        t.interception = watching
+        try:
+            rng = self.random.Random(11)
+            north = t.Player("A", True, 300, rng=self.random.Random(1))
+            south = t.Player("C", False, 300, rng=self.random.Random(2))
+            t.play_point(north, south, "hard", (0.0, 0.0), ("N", 0.0), rng)
+        finally:
+            t.interception = orig
+        self.assertTrue(asked, "the interception was never asked about the serve")
+        _name, receiver_north, frm = asked[0]
+        self.assertIsNotNone(frm, "the interception was asked without saying where the player stands")
+        if receiver_north:
+            self.assertLess(frm[0], 0.0, f"a returner at the north end stood {frm[0]:.1f}ft from the baseline, "
+                                         f"which is inside the court: that is the server's stance, not theirs")
+        else:
+            self.assertGreater(frm[0], t.LENGTH, f"a returner at the south end stood {t.LENGTH - frm[0]:.1f}ft "
+                                                 f"behind the baseline, which is inside the court")
+
+    def test_the_stance_is_what_makes_a_serve_returnable(self):
+        """One serve, two stances, no randomness: a fast ball into the corner of the service box. Two feet inside
+        the line the receiver is 0.8ft short of it; four feet behind the line they get there with three hundredths
+        of a second to spare. That gap is what the game was calling an ace."""
+        t = self.T
+        receiver = t.Player("R", False, 600, rng=self.random.Random(7))
+        land, flight, bounce = (54.1, 1.1), 0.39, {"v": (87.0, 7.0, 11.0)}
+        inside = t.interception(receiver, land, flight, bounce, "hard", frm=(t.LENGTH - 2.0, t.WIDTH / 2))
+        behind = t.interception(receiver, land, flight, bounce, "hard", frm=(t.LENGTH + 4.0, t.WIDTH / 2))
+        self.assertFalse(inside["ok"], "this test needs a serve the receiver cannot get to from the baseline")
+        self.assertGreater(inside["short_ft"], 0.5, "and not one they miss by a hair")
+        self.assertTrue(behind["ok"], "standing where a returner stands did not reach a ball they were 0.8ft "
+                                      "short of from inside the line")
+        self.assertLess(behind["need"], behind["have"] + 0.01,
+                        f"reached with {behind['have'] - behind['need']:.2f}s to spare; a stance that only just "
+                        f"works is a lucky stance")
+
+    def test_a_fast_serve_can_be_an_ace_and_is_not_usually_one(self):
+        """The rate, which is the point of the class. Sixty points at six hundred balls: some serves are not
+        returned — the model must not make an ace impossible — and most are, which is tennis."""
+        t = self.T
+        rng = self.random.Random(5)
+        points, aces, faults = 60, 0, 0
+        for point in range(points):
+            north = point % 2 == 0
+            server = t.Player("A", north, 600, rng=self.random.Random(1000 + point))
+            receiver = t.Player("C", not north, 600, rng=self.random.Random(2000 + point))
+            lines = t.play_point(server, receiver, "hard", (0.0, 0.0), ("N", 0.0), rng)
+            strokes = [line for line in lines if " serves " in line or " hits " in line]
+            if any("fault" in line for line in lines):
+                faults += 1
+            elif len(strokes) == 1 and any("short of it" in line for line in lines[1:]):
+                aces += 1
+        self.assertLess(faults / points, 0.30, f"{faults}/{points} serves were faults")
+        self.assertGreater(aces, 0, "not one serve in sixty was an ace: the return cannot be beaten, which is "
+                                    "the other way of not being tennis")
+        self.assertLess(aces / points, 0.20, f"{aces}/{points} serves were aces — a fifth of points decided by "
+                                             f"the first ball is not this game")
 
 
 class TestTheBallAfterThePointIsOver(unittest.TestCase):
@@ -4728,6 +4829,54 @@ class TestPickleball(unittest.TestCase):
         # ball would have landed, which was the rule that made short balls unhittable in the air.
         self.assertLess(vol["contact"][0], pk.NET_X, "taken on the receiving side of the net")
         self.assertGreaterEqual(vol["height"], pk.VOLLEY_LOW, "and above the knee, or it is a dig off the ground")
+
+    def test_a_planted_volley_is_not_carried_anywhere(self):
+        """The rulebook's fault is momentum, not address. A player standing still at 1 ft behind the line, taking
+        a ball that comes to them, is not carried an inch — and the rule that preceded this one moved every
+        volley taken within 2 ft of the line by a flat 1.5 ft, which made a *place* the offence and a lunge
+        innocent (page §5f, §5g)."""
+        pk = self.pk
+        p = self.t.Player(name="A", north=True, practice=200)
+        vol = {"contact": (16.0, 10.0, 3.0), "feet": (14.5, 10.0), "step": 0.5, "t": 0.2}
+        stop, v = pk.volley_carry(p, (14.0, 10.0), vol, (0.0, 0.0))
+        self.assertEqual(stop, (14.5, 10.0))
+        self.assertEqual(v, (0.0, 0.0))
+        self.assertFalse(pk.in_kitchen(stop[0]), "standing still 1 ft behind the line is not a fault")
+
+    def test_a_player_still_moving_when_they_volley_is_carried_v_squared_over_2a(self):
+        """The whole rule, as arithmetic: the body brakes at A_STOP until it is standing, so it travels v²/(2A)
+        past the contact. A player still walking to the line at the jog when the ball arrives is carried 1.7 ft
+        and that is enough to put their feet in the kitchen from a foot behind the line."""
+        pk = self.pk
+        p = self.t.Player(name="A", north=True, practice=200)
+        jog = self.t.movement_speed(p) * pk.WALK_SHARE
+        vol = {"contact": (16.0, 10.0, 3.0), "feet": (14.5, 10.0), "step": 0.5, "t": 0.2}
+        stop, v = pk.volley_carry(p, (14.0, 10.0), vol, (jog, 0.0))
+        self.assertAlmostEqual(stop[0] - 14.5, jog * jog / (2.0 * pk.A_STOP), places=2)
+        self.assertTrue(pk.in_kitchen(stop[0]), "carried in from a foot behind the line, which is the fault")
+
+    def test_a_carry_stops_at_the_net_and_never_backwards(self):
+        """A body cannot be carried through the net, and the net cannot push it back to where it came from: a
+        player already at the net is stopped by it where they stand."""
+        pk = self.pk
+        p = self.t.Player(name="A", north=True, practice=200)
+        jog = self.t.movement_speed(p) * pk.WALK_SHARE
+        vol = {"contact": (21.2, 10.0, 3.0), "feet": (21.9, 10.0), "step": 0.7, "t": 0.2}
+        stop, _ = pk.volley_carry(p, (20.0, 10.0), vol, (jog, 0.0))
+        self.assertGreaterEqual(stop[0], 21.9, "the net does not walk a player backwards")
+        self.assertLess(stop[0], pk.NET_X, "and a body does not pass through it")
+
+    def test_the_carry_is_not_invented_from_the_size_of_the_step(self):
+        """The first version of this rule divided the step by the time from the ball's strike to the contact, so a
+        one-foot step at a fast ball came out at ten feet per second and every volley in the game was pushed into
+        the kitchen — measured contact speed 17.8 ft/s, the cap, at every stance from 1 to 3 ft. A lunge is a
+        plant, not a glide: the momentum is the walk that has not finished and nothing else."""
+        pk = self.pk
+        p = self.t.Player(name="A", north=True, practice=200)
+        vol = {"contact": (16.0, 10.0, 3.0), "feet": (14.5, 10.0), "step": 2.0, "t": 0.02}
+        stop, v = pk.volley_carry(p, (12.5, 10.0), vol, (0.0, 0.0))
+        self.assertEqual(v, (0.0, 0.0), "a big step in a short time is not a speed")
+        self.assertEqual(stop, (14.5, 10.0))
 
     def test_the_points_ledger_moves_toward_the_stance_that_wins(self):
         """The two-sided lesson, driven directly. A player who won everything at 2 ft and lost everything at
