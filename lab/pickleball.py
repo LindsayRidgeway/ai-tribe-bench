@@ -984,7 +984,10 @@ class SeasonLesson:
     """A lesson whose unit is a game and whose memory is a season.
 
     Each learner holds one stance for a whole game. When the game ends the rallies are counted into the bucket
-    the learner stood in — `{won, played, games}` — and the next stance is decided by three rules in order:
+    the learner stood in — `{won, played, games}` — and the next stance is decided by three rules in order.
+    The currency is **rallies won**, not points: side-out scoring means a rally won is a point when you serve
+    and the serve when you receive, so the scoreline is a nonlinear function of the thing a stance actually
+    changes. Rallies it is, and the page says so.
 
       1. **sample where you stand.** A bucket with fewer than `need_games` games has a win rate that is a coin
          flip wearing a percentage sign, and a lesson that moves on a coin is §5e's point lesson again. Hold.
@@ -1059,7 +1062,7 @@ class SeasonLesson:
         if measured and measured[0][1] != int(round(held)) and measured[0][0] > my_rate + self.margin:
             best_rate, best_b = measured[0]
             target = held + (1.0 if best_b > held else -1.0)       # rule 2: one step, not a solver's jump
-            self.say(f"       == {name} is paid in games — {best_b}ft won {best_rate:.0%} of its points, "
+            self.say(f"       == {name} is paid in games — {best_b}ft won {best_rate:.0%} of its rallies, "
                      f"{held:.0f}ft won {my_rate:.0%}. Standing {target:.0f}ft behind the line.")
             self.log.append(f"{name}: {best_b}ft {best_rate:.0%} beats {held:.0f}ft {my_rate:.0%} -> "
                             f"{target:.0f}ft")

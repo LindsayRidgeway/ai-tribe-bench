@@ -339,7 +339,7 @@ afternoon what two papers and I cannot settle from a chair.
 
 ## §5 The engine, as built — 2026-11-15, the same day as §1–§4
 
-`lab/pickleball.py`, 24 tests in `tests.py` (`TestPickleball`), 387 tests in the suite, all passing. The
+`lab/pickleball.py`, 28 tests in `tests.py` (`TestPickleball`), 394 tests in the suite, all passing. The
 rules are the page's rules, the ball is the page's ball, and the game is text.
 
 **The four things §4 asked for, measured rather than promised.**
@@ -665,3 +665,87 @@ unit rather than a footnote.
 stances as a `play_game(stances=...)` argument (which is what made the head-to-head possible at all), and two
 tests — the ledger steps toward the stance that won, and the chooser explores, because a lesson that never
 tries anything learns only about where it started. `TestPickleball` is 24 tests; the suite passes.
+
+---
+
+## §5f The lesson's unit is a game, and the season is its sample — 2026-11-19
+
+§5e ended with a rule and a promissory note: *a lesson is only worth its noise when it has more samples per
+decision than the noise has causes*, and the point lesson's home was the season file. This is that note paid.
+
+**What changed.** `SeasonLesson` decides a stance **before** a game and holds it for the whole game, so the
+bucket it stands in collects that game's rallies into **one decision**. The buckets live in the season's own
+directory — `games/pickleball/seasons/<season>/stance.json`, a record of decisions, not a rating — so a dozen
+games are a sample that can outnumber the causes of the noise. `play_season` is the loop, `--level season` is
+how it is played, and `play_season(..., static=…)` pins the players who are not learning, which is what makes a
+head-to-head possible over the same pinned clocks.
+
+The three rules, in the order they fire:
+
+1. **Sample where you stand.** A bucket with fewer than three games has a win rate that is a coin flip wearing
+   a percentage sign. Hold, and let the sample grow.
+2. **Step one foot toward a bucket that beat you by eight points of win rate.** Either direction — which the
+   fault reader cannot do, because no fault ever says *close the gap*.
+3. **If nothing beat you, measure somewhere new.** A neighbour with fewer than three games is visited; ties are
+   broken by the parity of the learner's own games, so the search order is not told where the answer is.
+
+**The sample, measured.** A game puts **38 rallies in one bucket** where the point lesson put two or three
+(the first book written, one game, three seats at 4 ft: 38 rallies; after three games, 107). That is the whole
+difference between the two lessons, and it is the reason the head-to-head below is possible at all.
+
+**Head-to-head.** Twenty-four games per row: twelve with the north team as the protagonist and twelve with the
+south team, over the *same* pinned clocks (clock 1234500 upward, practice 200, steady hands, no wind above the
+cap), so the seat and the serve cancel. The number is the protagonist's points and the games it won.
+
+| the protagonist's team… | points | games |
+|---|---|---|
+| learns nothing; everybody at 4 ft (the control) | **232–232** | 12/24 |
+| learns, against a static 4 ft team | **220–193** | **15/24** |
+| learns, against a static 2 ft team | 184–235 | 8/24 |
+| learns, against a team that reads its own faults | 186–235 | 8/24 |
+
+**The control is exactly even, and that is the first result.** Same pins, same hands, seats swapped: 232 apiece
+and 12 games apiece. A harness that could not reproduce that could not measure anything above it.
+
+**Row two is the lesson being worth something:** +27 points and +3 games over standing still, when it starts
+nine games away from the line it needs. Row three is the same lesson being worth **less than nothing** against a
+team already standing where it is trying to get to: it spends three quarters of its season learning what a coach
+would have said in one sentence. *A lesson is worth the time it takes to learn*, and this one takes nine games.
+
+**Row four is §5b's rule with a number on it.** Against the fault reader the lesson scores 186 points to 235 —
+two points more than against a static 2 ft player, out of 421 across 24 games. The reader is not beaten here and
+it is not beaten because it is not *trying*: at 2 ft it never trips the kitchen's window, so its lesson never
+fires and the two conditions are nearly the same game shot for shot. A lesson that only speaks when a rule fires
+says nothing on the one stance where the rule is comfortable.
+
+**The long run, and the thing that has to be said plainly.** Twenty-four games, one team learning from 4 ft
+against a static 4 ft team: the stance walks **4 → 3 → 2 → 1**, three games at each, then stays at 1 ft for the
+last fifteen; **238–189 and 18 of 24 games.** And the ledger cannot tell its own stances apart:
+
+| stance | games | rallies | won | rally win rate |
+|---|---|---|---|---|
+| 4 ft | 3 | 107 | 55 | 51.4% |
+| 3 ft | 3 | 139 | 76 | 54.7% |
+| 2 ft | 3 | 101 | 55 | 54.5% |
+| 1 ft | 15 | 606 | 321 | 53.0% |
+
+Every move it made was **exploration, not evidence** — not one stance beat another by the eight points the
+margin demands, and 1 ft is inside the 1.5 ft carry that makes a momentum fault. So the lesson's own optimum is
+a stance the rulebook calls a fault. Head-to-head, 1 ft against 2 ft over 24 swapped games is **214–220**: a
+wash, within six points on 434. Two explanations, and neither is settled:
+
+- the momentum rule carries a player only when the volley is taken within 2 ft of the line, and a 1 ft stance
+  takes many of its volleys from further back than that after going to the ball — so the fault is charged less
+  often than the rule intends;
+- or standing on the line is worth more in this engine than it is in the sport, and the ledger is telling the
+  truth about the engine rather than about pickleball.
+
+Which one it is decides whether the fault window needs a real foot path (§5's own open item) or whether the
+engine needs the opponent's reply to price the line honestly. Until one of them lands, the honest report is that
+**the season lesson finds the line and steps one foot past it**, and that a rulebook fault is not yet a losing
+stance in this engine.
+
+**Kept on main:** `SeasonLesson`, `play_season`, `load_stance_ledger`/`save_stance_ledger`, `--level season`
+with `--learners`, `--static` and `--start`, and four tests — one stance and one game's rallies in one bucket,
+the one-foot step toward the bucket that won, the eight-point margin that refuses a coin, and the book surviving
+the process that wrote it. `TestPickleball` is 28 tests; the suite is 394, all passing.
