@@ -339,7 +339,7 @@ afternoon what two papers and I cannot settle from a chair.
 
 ## §5 The engine, as built — 2026-11-15, the same day as §1–§4
 
-`lab/pickleball.py`, 20 tests in `tests.py` (`TestPickleball`), 365 tests in the suite, all passing. The
+`lab/pickleball.py`, 22 tests in `tests.py` (`TestPickleball`), 376 tests in the suite, all passing. The
 rules are the page's rules, the ball is the page's ball, and the game is text.
 
 **The four things §4 asked for, measured rather than promised.**
@@ -538,3 +538,72 @@ be wrong and still pass; it cannot be *not a game* and pass.
 
 **Next, in order:** the stretched-contact penalty and the attack on the high ball (both are shot-quality
 rules, not physics), then the body again on top of them, then the measured ball and the dink game.
+
+---
+
+## §5d The body, landed — 2026-11-18
+
+§5c ended with two rules missing and named them: *a stretched contact has to cost something*, and *a high ball
+has to be attackable*. Both are in, and the honest body that was reverted on 2026-11-16 is now the engine.
+
+**What changed, in the order it had to.** The receiving model gets the honest body back — the feet stop where
+the legs stop (`interception` with `frm=` where the player actually is, and a reach of 6.0 ft derived the way
+tennis's 7.0 is), and the time left over walks them back to their stance. On top of that:
+
+- **`stretch`**, 0 with the feet comfortably under the ball and 1 at full extension, multiplies the player's
+  control inside `strike` — the same place every other human error already lives. A stretched ball is a
+  *wider* ball, not a floaty one: it goes out, or it sits up, and the rally can end.
+- **the volley is decided from the ball's flight**, by `volley_contact` — tennis's primitive, the one the tennis
+  records are built from — instead of by asking whether the incoming ball would land deeper than 6 ft. The
+  1.2 ft step toward the net goes with it: the ball comes to you. The height at contact is handed to the
+  chooser, and the chooser decides attack from dig.
+
+**The A/B that says the penalty is load-bearing** (4 games per row, pinned clocks, practice 200, the scripted
+player, one number changed):
+
+| `STRETCH_PENALTY` | mean rally | longest | rallies at the 120-shot ceiling | balls hit out |
+|---|---|---|---|---|
+| 0.0 — being stretched is free | **28.8** | 120 | **2** | 128 |
+| **0.55 — shipped** | **9.9** | 63 | 0 | 167 |
+| 1.0 — every stretched contact is chaos | 3.9 | 29 | 0 | 149 |
+
+That row is the whole of §5c in one line: with the penalty at zero the receiving model is honest and the game
+is not, and the ceiling test fails. `0.55` is the one number in this file that is still a guess; the page says
+so because the other two columns are measurements.
+
+**The learning curve, re-measured on the shipped engine** (4 games per row, pinned clocks):
+
+| balls hit before | mean rally | longest | unreachable | kitchen | momentum | out | serves in |
+|---|---|---|---|---|---|---|---|
+| 0 | **2.3** shots | 15 | 12 | 0 | 3 | 184 | 5 of 5 |
+| 200 | **9.9** | 63 | 4 | 0 | 18 | 167 | 1 fault |
+| 600 | **16.4** | 67 | 1 | 0 | 18 | 130 | 0 |
+
+The shape survives the surgery: rallies lengthen with practice and nobody programmed it. What changed is *how
+points end*. Before, a third of rallies ended because the engine walked a receiver into the kitchen; now a
+point is lost by a shot — most often a ball hit out, which is what a real beginner does — and the kitchen
+fault is rare because the stance default sits outside its window.
+
+**And the stance is finally a decision** (4 games per row, one number changed by hand):
+
+| stance held | mean rally | kitchen + momentum | unreachable |
+|---|---|---|---|
+| 1.0 ft | 6.0 | **51** | 19 |
+| **2.0 ft** (default) | 9.9 | 22 | 4 |
+| 3.0 ft | 12.3 | 7 | 0 |
+| 4.0 ft | **17.6** | **2** | 0 |
+| 6.0 ft | 12.6 | 9 | 1 |
+
+An interior optimum, which is the shape a lesson needs and §5b's flat line was not: past 4 ft the volleys stop
+and the rallies sag. The reading chooser still only steps *back* (its omission, stated in §5b), so it can see
+this hill and cannot settle on it — the two-sided lesson is now possible and is the next unit rather than this
+one.
+
+**Three tests added** (`TestPickleball` now 22): a full-extension contact is measurably wider than a calm one;
+a ball that lands in the kitchen can be taken out of the air, which is the rule that replaced `depth > 6`; and
+the ceiling test from §5c now guards the whole arrangement. The record was re-generated at the same pinned
+clock: `records/scripted-2026-11-15.txt`, 53 rallies, mean 10.2, a 13–11 finish decided by win-by-two.
+
+**What is still not modelled, and is now the honest short list:** the two-sided lesson (a player paid in
+points, not in faults); stacking; a body for the *partner* (one hitter, one ball); the measured ball, which §1
+makes the blocker for the dink game; and the renderer, the season and the person's seat, which are tennis's.

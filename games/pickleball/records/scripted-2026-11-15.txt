@@ -1,431 +1,721 @@
 # a scripted game, not a match: the harness behind lab/pickleball.py --demo, clock pinned
-# 2026-11-15. practice 200 balls for each seat; the seats are not members, and the names say so.
-# TWO runs at the same clock and the same practice. Since 2026-11-15 the hands are seeded from the pinned
-# clock, so each run is reproducible and the difference between them is the lesson and not the deal:
-#   replay A: python3 lab/pickleball.py --demo --practice 200,200,200,200 --clock 1234500 --game 1
-#   replay B: python3 lab/pickleball.py --demo --practice 200,200,200,200 --clock 1234500 --game 1 --level read
-# B is A with one thing added: a chooser that reads its own kitchen faults and steps its stance back a foot.
-# It removed 1 of the 12 momentum faults in this game, and that is the finding, not a disappointment — see
-# the README's §5, where the stance sweep puts 33 stance faults against ~150 chase faults in twelve games.
-# wind at this clock: 3mph, a small tailwind for the north end; the README's twelve-game aggregate is the
-# number to read, not these scorelines.
+# 2026-11-15, re-generated 2026-11-18 after the honest body landed (page §5d). practice 200 balls for each
+# seat; the seats are not members, and the names say so. The hands are seeded from the pinned clock, so this
+# file reproduces shot for shot:
+#   replay: python3 lab/pickleball.py --demo --practice 200,200,200,200 --clock 1234500 --game 1
+# 53 rallies, mean 10.2 shots, a 13-11 finish: win by two, earned rather than asserted. The balls that
+# matter are the ones that end a rally — 47 hit out, 4 carried into the kitchen, 2 nobody reached — because
+# with the feet honest and a stretched contact costing control (§5d) a point is lost by a *shot*, not by a
+# body the engine moved.
+# Add --level read and the same clock replays within four lines of this one: the chooser that reads its own
+# kitchen faults diagnoses four chases and steps back for none, which is §5b's correction made visible — the
+# faults it was built to fix mostly do not happen once the feet belong to the player.
+# wind at this clock is printed on the first line; the twelve-game aggregate in the README is the number to
+# read, not this scoreline.
 
-== A: --level steady — the same hands, nothing learned
 
 -- game 1
   pickleball, doubles, hard; ball outdoor 40-hole (Cd 0.33, k 0.0103/ft); spin off; wind S 3mph; clock 1234500
   teams: north-a/north-b (north) vs south-a/south-b (south); to 11, win by 2, side-out scoring
    1.1  north-a   serve     face +15.1 power  55 aim 15 [35mph] -> 8ft from their baseline
-   1.2  south-a   shot      face +12.7 power  42 aim 15 [26mph] -> 11ft from their baseline
-   1.3  north-b   volley    face  +1.6 power  50 aim 16 [32mph] -> 4ft from their baseline
-   1.4  south-b   shot      face +17.3 power  42 aim  8 [25mph] -> 12ft from their baseline
-   1.5  north-b   volley    face  +0.0 power  50 aim 12 [30mph] -> 8ft from their baseline
-   1.6  south-b   shot      face +14.9 power  42 aim 11 [25mph] -> 11ft from their baseline
-   1.7  north-b   volley    face  +3.4 power  50 aim  6 [31mph] -> 5ft from their baseline
-   1.8  south-b   shot      face +18.3 power  42 aim  5 [25mph] -> 11ft from their baseline
-   1.9  north-b   volley    face  +2.5 power  50 aim 17 [30mph] -> 7ft from their baseline
-   1.10 south-a   shot      face +13.7 power  42 aim  7 [25mph] -> 13ft from their baseline
-   1.11 north-b   volley    face  -1.1 power  50 aim 15 [23mph] -> into the net at 2.8ft, 0.0ft under the tape — needs more height
-       -- north-b faulted: into the net at 2.8ft, 0.0ft under the tape — needs more height
-       -- side out
-    north-a/north-b 0 - 0 south-a/south-b   serving: south-a
-   2.1  south-a   serve     face +12.9 power  55 aim  5 [33mph] -> 9ft from their baseline
-   2.2  north-a   shot      face +14.9 power  42 aim 12 [26mph] -> 11ft from their baseline
-   2.3  south-b   shot      face +15.3 power  42 aim  4 [26mph] -> 7ft from their baseline
-   2.4  north-a   shot      face +16.2 power  42 aim 12 [26mph] -> 12ft from their baseline
-   2.5  south-b   volley    face  +0.9 power  50 aim 13 [29mph] -> 6ft from their baseline
-   2.6  north-b   shot      face +17.4 power  42 aim 11 [25mph] -> 12ft from their baseline
-   2.7  south-b   volley    face  +1.1 power  50 aim  6 [30mph] -> 5ft from their baseline
-       -- fault: south-b was carried into the kitchen by the volley's momentum (6.9ft from the net, inside the 7ft line) — the ball was already dead
-       -- second server
-    north-a/north-b 0 - 0 south-a/south-b   serving: south-b
-   3.1  south-b   serve     face +10.5 power  55 aim 15 [33mph] -> 12ft from their baseline
-   3.2  north-b   shot      face +12.6 power  42 aim 12 [25mph] -> 10ft from their baseline
-   3.3  south-a   shot      face +15.0 power  42 aim 11 [25mph] -> 8ft from their baseline
-   3.4  north-a   shot      face +14.7 power  42 aim 10 [24mph] -> 13ft from their baseline
-   3.5  south-a   volley    face  +1.9 power  50 aim  4 [30mph] -> 4ft from their baseline
-       -- fault: south-a was carried into the kitchen by the volley's momentum (6.1ft from the net, inside the 7ft line) — the ball was already dead
-       -- side out
-    north-a/north-b 0 - 0 south-a/south-b   serving: north-a
-   4.1  north-a   serve     face +13.9 power  55 aim 15 [33mph] -> 11ft from their baseline
-   4.2  south-a   shot      face +13.1 power  42 aim 12 [24mph] -> 10ft from their baseline
-   4.3  north-b   shot      face +14.3 power  42 aim  5 [26mph] -> 10ft from their baseline
-   4.4  south-a   shot      face +14.0 power  42 aim 11 [25mph] -> 8ft from their baseline
-   4.5  north-b   shot      face +13.1 power  42 aim 16 [25mph] -> 13ft from their baseline
-   4.6  south-a   volley    face  +1.3 power  50 aim 12 [28mph] -> 6ft from their baseline
-       -- fault: south-a was carried into the kitchen by the volley's momentum (6.0ft from the net, inside the 7ft line) — the ball was already dead
+   1.2  south-a   shot      face  +9.8 power  42 aim 15 [27mph] -> into the net at 2.8ft, 0.1ft under the tape — needs more height
+       -- south-a faulted: into the net at 2.8ft, 0.1ft under the tape — needs more height
        -- point
     north-a/north-b 1 - 0 south-a/south-b   serving: north-a
-   5.1  north-a   serve     face +12.5 power  55 aim  5 [31mph] -> 15ft from their baseline
-   5.2  south-b   shot      face +15.2 power  42 aim 11 [25mph] -> 3ft from their baseline
-   5.3  north-b   shot      face +19.1 power  42 aim  8 [26mph] -> 13ft from their baseline
-   5.4  south-b   volley    face  +2.0 power  50 aim  6 [30mph] -> 4ft from their baseline
-       -- fault: south-b was carried into the kitchen by the volley's momentum (6.3ft from the net, inside the 7ft line) — the ball was already dead
+   2.1  north-a   serve     face +14.6 power  55 aim  5 [19mph] -> their own side of the net, 6.3ft short
+       -- north-a faulted: their own side of the net, 6.3ft short
+       -- side out
+    north-a/north-b 1 - 0 south-a/south-b   serving: south-a
+   3.1  south-a   serve     face +11.2 power  55 aim  5 [34mph] -> 10ft from their baseline
+   3.2  north-b   shot      face +20.7 power  42 aim 10 [25mph] -> 11ft from their baseline
+   3.3  south-a   shot      face +17.7 power  42 aim 10 [25mph] -> 3ft from their baseline
+   3.4  north-a   volley    face  +2.3 power  50 aim 12 [31mph] -> 5ft from their baseline
+   3.5  south-b   shot      face +17.6 power  42 aim  8 [26mph] -> 12ft from their baseline
+   3.6  north-b   shot      face +14.4 power  42 aim 11 [26mph] -> 6ft from their baseline
+   3.7  south-b   shot      face +13.1 power  42 aim 11 [24mph] -> 8ft from their baseline
+   3.8  north-a   shot      face +15.9 power  42 aim 10 [25mph] -> 7ft from their baseline
+   3.9  south-b   shot      face +17.9 power  42 aim  5 [24mph] -> 5ft from their baseline
+   3.10 north-b   shot      face +22.4 power  42 aim 12 [16mph] -> in the kitchen
+   3.11 south-b   shot      face +15.3 power  42 aim  4 [26mph] -> 4ft from their baseline
+   3.12 north-b   shot      face  +6.9 power  42 aim 12 [25mph] -> into the net at 2.5ft, 0.4ft under the tape — needs more height
+       -- north-b faulted: into the net at 2.5ft, 0.4ft under the tape — needs more height
        -- point
-    north-a/north-b 2 - 0 south-a/south-b   serving: north-a
-   6.1  north-a   serve     face +15.0 power  55 aim 15 [33mph] -> 10ft from their baseline
-   6.2  south-a   shot      face +14.2 power  42 aim  5 [25mph] -> 10ft from their baseline
-   6.3  north-b   shot      face +14.8 power  42 aim 10 [25mph] -> 10ft from their baseline
-   6.4  south-b   shot      face +13.7 power  42 aim 15 [25mph] -> 9ft from their baseline
-   6.5  north-b   shot      face +14.9 power  42 aim  9 [25mph] -> 11ft from their baseline
-   6.6  south-b   shot      face +14.0 power  42 aim  8 [25mph] -> 9ft from their baseline
-   6.7  north-b   shot      face +13.9 power  42 aim 10 [24mph] -> 13ft from their baseline
-   6.8  south-b   volley    face  -1.5 power  50 aim  3 [31mph] -> 7ft from their baseline
-       -- fault: south-b was carried into the kitchen by the volley's momentum (6.6ft from the net, inside the 7ft line) — the ball was already dead
-       -- point
-    north-a/north-b 3 - 0 south-a/south-b   serving: north-a
-   7.1  north-a   serve     face +12.0 power  55 aim  5 [33mph] -> 12ft from their baseline
-   7.2  south-b   shot      face +15.6 power  42 aim 11 [25mph] -> 6ft from their baseline
-   7.3  north-b   shot      face +14.5 power  42 aim  5 [25mph] -> 15ft from their baseline
-   7.4  south-b   volley    face  +1.1 power  50 aim  5 [30mph] -> 2ft from their baseline
-       -- fault: volleyed from inside the kitchen (5.9ft from the net; the line is at 7.0ft)
-       -- point
-    north-a/north-b 4 - 0 south-a/south-b   serving: north-a
-   8.1  north-a   serve     face +22.3 power  55 aim 15 [25mph] -> in the kitchen
-       -- fault: the serve did not land in the diagonal service area (the kitchen line is at 15ft and 29ft)
+    north-a/north-b 1 - 1 south-a/south-b   serving: south-a
+   4.1  south-a   serve     face  +6.9 power  55 aim 15 [32mph] -> into the net at 1.6ft, 1.3ft under the tape — needs more height
+       -- south-a faulted: into the net at 1.6ft, 1.3ft under the tape — needs more height
        -- second server
-    north-a/north-b 4 - 0 south-a/south-b   serving: north-b
-   9.1  north-b   serve     face +12.3 power  55 aim  5 [34mph] -> 12ft from their baseline
-   9.2  south-b   shot      face  +7.5 power  42 aim 12 [16mph] -> into the net at 0.4ft, 2.5ft under the tape — needs more height
-       -- south-b faulted: into the net at 0.4ft, 2.5ft under the tape — needs more height
-       -- point
-    north-a/north-b 5 - 0 south-a/south-b   serving: north-b
-  10.1  north-b   serve     face +13.3 power  55 aim 15 [34mph] -> 11ft from their baseline
-  10.2  south-a   shot      face +13.8 power  42 aim 14 [25mph] -> 9ft from their baseline
-  10.3  north-a   shot      face +13.6 power  42 aim 13 [26mph] -> 10ft from their baseline
-  10.4  south-a   shot      face +13.0 power  42 aim  6 [25mph] -> 11ft from their baseline
-  10.5  north-a   shot      face +14.6 power  42 aim 11 [24mph] -> 10ft from their baseline
-  10.6  south-a   shot      face +14.2 power  42 aim  5 [26mph] -> 8ft from their baseline
-  10.7  north-a   shot      face +16.8 power  42 aim  7 [26mph] -> 10ft from their baseline
-  10.8  south-b   shot      face +15.1 power  42 aim 12 [25mph] -> 8ft from their baseline
-  10.9  north-a   shot      face +14.3 power  42 aim  6 [24mph] -> 14ft from their baseline
-  10.10 south-b   volley    face  -4.4 power  50 aim  5 [22mph] -> into the net at 2.7ft, 0.2ft under the tape — needs more height
-       -- fault: volleyed from inside the kitchen (6.4ft from the net; the line is at 7.0ft)
-       -- point
-    north-a/north-b 6 - 0 south-a/south-b   serving: north-b
-  11.1  north-b   serve     face +14.6 power  55 aim  5 [35mph] -> 8ft from their baseline
-  11.2  south-b   shot      face +14.5 power  42 aim 17 [25mph] -> 12ft from their baseline
-  11.3  north-a   volley    face  +1.6 power  50 aim 11 [30mph] -> 6ft from their baseline
-  11.4  south-a   shot      face +16.7 power  42 aim  8 [26mph] -> 10ft from their baseline
-  11.5  north-a   shot      face +15.6 power  42 aim  8 [25mph] -> 9ft from their baseline
-  11.6  south-a   shot      face +13.6 power  42 aim 13 [26mph] -> 9ft from their baseline
-  11.7  north-a   shot      face +15.4 power  42 aim 15 [26mph] -> 9ft from their baseline
-  11.8  south-a   shot      face +13.4 power  42 aim  3 [25mph] -> 12ft from their baseline
-  11.9  north-a   volley    face  +2.6 power  50 aim  8 [30mph] -> 6ft from their baseline
-  11.10 south-b   shot      face +16.9 power  42 aim  5 [26mph] -> 10ft from their baseline
-  11.11 north-a   shot      face +19.3 power  42 aim 11 [17mph] -> into the net at 2.3ft, 0.6ft under the tape — needs more height
+    north-a/north-b 1 - 1 south-a/south-b   serving: south-b
+   5.1  south-b   serve     face +13.1 power  55 aim  5 [33mph] -> 8ft from their baseline
+   5.2  north-b   shot      face +16.8 power  42 aim 11 [24mph] -> 7ft from their baseline
+   5.3  south-b   shot      face +14.6 power  42 aim  6 [25mph] -> 7ft from their baseline
+   5.4  north-b   shot      face +11.2 power  42 aim 12 [25mph] -> 10ft from their baseline
+   5.5  south-b   shot      face +12.2 power  42 aim  9 [24mph] -> 9ft from their baseline
+   5.6  north-a   shot      face +11.1 power  42 aim 14 [27mph] -> 7ft from their baseline
+   5.7  south-b   shot      face +15.5 power  42 aim  4 [29mph] -> 0ft from their baseline
+   5.8  north-b   volley    face  +0.3 power  50 aim 12 [34mph] -> 4ft from their baseline
+   5.9  south-a   shot      face +19.7 power  42 aim  7 [26mph] -> 12ft from their baseline
+   5.10 north-b   shot      face +23.0 power  42 aim  6 [15mph] -> in the kitchen
+   5.11 south-a   shot      face +11.6 power  42 aim 14 [26mph] -> 7ft from their baseline
+   5.12 north-a   shot      face +18.9 power  42 aim 15 [15mph] -> into the net at 2.3ft, 0.6ft under the tape — needs more height
        -- north-a faulted: into the net at 2.3ft, 0.6ft under the tape — needs more height
+       -- point
+    north-a/north-b 1 - 2 south-a/south-b   serving: south-b
+   6.1  south-b   serve     face +11.6 power  55 aim 15 [34mph] -> 9ft from their baseline
+   6.2  north-a   shot      face +10.9 power  42 aim 16 [25mph] -> 9ft from their baseline
+   6.3  south-a   shot      face +11.4 power  42 aim 11 [26mph] -> 8ft from their baseline
+   6.4  north-b   shot      face +17.2 power  42 aim  8 [26mph] -> 4ft from their baseline
+   6.5  south-a   shot      face +13.1 power  42 aim 12 [21mph] -> 11ft from their baseline
+   6.6  north-b   shot      face +13.9 power  42 aim 10 [25mph] -> 7ft from their baseline
+   6.7  south-a   shot      face +13.8 power  42 aim  5 [24mph] -> 7ft from their baseline
+   6.8  north-b   shot      face +13.6 power  42 aim  9 [23mph] -> 10ft from their baseline
+   6.9  south-a   shot      face +13.4 power  42 aim 14 [25mph] -> 7ft from their baseline
+   6.10 north-a   shot      face +13.3 power  42 aim 14 [23mph] -> 10ft from their baseline
+   6.11 south-a   shot      face +11.1 power  42 aim  6 [24mph] -> 9ft from their baseline
+   6.12 north-b   shot      face +12.2 power  42 aim 10 [23mph] -> 11ft from their baseline
+   6.13 south-a   shot      face +14.1 power  42 aim  5 [26mph] -> 5ft from their baseline
+   6.14 north-b   shot      face +11.7 power  42 aim  5 [23mph] -> 12ft from their baseline
+   6.15 south-b   shot      face +14.8 power  42 aim  8 [26mph] -> 4ft from their baseline
+   6.16 north-b   shot      face +12.7 power  42 aim 16 [25mph] -> 9ft from their baseline
+   6.17 south-a   shot      face +15.6 power  42 aim  8 [27mph] -> 2ft from their baseline
+   6.18 north-b   shot      face +17.6 power  42 aim 14 [24mph] -> 9ft from their baseline
+   6.19 south-a   shot      face +12.2 power  42 aim 13 [26mph] -> 6ft from their baseline
+   6.20 north-a   shot      face  +9.3 power  42 aim 14 [24mph] -> into the net at 2.9ft, 0.0ft under the tape — needs more height
+       -- north-a faulted: into the net at 2.9ft, 0.0ft under the tape — needs more height
+       -- point
+    north-a/north-b 1 - 3 south-a/south-b   serving: south-b
+   7.1  south-b   serve     face  +9.8 power  55 aim  5 [34mph] -> 11ft from their baseline
+   7.2  north-b   shot      face +14.4 power  42 aim 12 [25mph] -> 7ft from their baseline
+   7.3  south-a   shot      face +10.4 power  42 aim  3 [24mph] -> 10ft from their baseline
+   7.4  north-b   shot      face +14.6 power  42 aim 16 [25mph] -> 8ft from their baseline
+   7.5  south-b   shot      face  +8.9 power  42 aim  3 [27mph] -> 9ft from their baseline
+   7.6  north-b   shot      face +14.2 power  42 aim  7 [25mph] -> 8ft from their baseline
+   7.7  south-a   shot      face +10.7 power  42 aim 11 [27mph] -> 6ft from their baseline
+   7.8  north-b   shot      face +14.3 power  42 aim  7 [23mph] -> 10ft from their baseline
+   7.9  south-a   shot      face +12.9 power  42 aim  8 [25mph] -> 7ft from their baseline
+   7.10 north-b   shot      face +17.9 power  42 aim 13 [17mph] -> in the kitchen
+   7.11 south-a   shot      face +11.3 power  42 aim  8 [26mph] -> 7ft from their baseline
+   7.12 north-b   shot      face +14.0 power  42 aim 13 [26mph] -> 6ft from their baseline
+   7.13 south-a   shot      face +12.8 power  42 aim  4 [24mph] -> 9ft from their baseline
+   7.14 north-b   shot      face +13.9 power  42 aim 13 [24mph] -> 9ft from their baseline
+   7.15 south-a   shot      face +13.7 power  42 aim 15 [25mph] -> 6ft from their baseline
+   7.16 north-a   shot      face +12.9 power  42 aim 15 [28mph] -> 5ft from their baseline
+   7.17 south-b   shot      face +17.6 power  42 aim 11 [24mph] -> 4ft from their baseline
+   7.18 north-a   shot      face +14.8 power  42 aim  8 [27mph] -> 5ft from their baseline
+   7.19 south-a   shot      face +24.5 power  42 aim 13 [18mph] -> 11ft from their baseline
+   7.20 north-a   shot      face +14.0 power  42 aim 16 [26mph] -> 7ft from their baseline
+   7.21 south-b   shot      face +17.9 power  42 aim  7 [26mph] -> 3ft from their baseline
+   7.22 north-b   shot      face  +9.9 power  42 aim  8 [24mph] -> 11ft from their baseline
+   7.23 south-a   shot      face +15.6 power  42 aim  9 [24mph] -> 6ft from their baseline
+   7.24 north-b   shot      face +14.8 power  42 aim  6 [24mph] -> 8ft from their baseline
+   7.25 south-a   shot      face +11.7 power  42 aim  7 [27mph] -> 4ft from their baseline
+   7.26 north-b   shot      face +14.3 power  42 aim  7 [23mph] -> 10ft from their baseline
+   7.27 south-a   shot      face +13.5 power  42 aim 16 [26mph] -> 6ft from their baseline
+   7.28 north-a   shot      face +15.5 power  42 aim  8 [26mph] -> 6ft from their baseline
+   7.29 south-a   shot      face +14.5 power  42 aim 16 [24mph] -> 7ft from their baseline
+   7.30 north-a   shot      face +13.1 power  42 aim 13 [25mph] -> 8ft from their baseline
+   7.31 south-b   shot      face +13.7 power  42 aim 16 [24mph] -> 7ft from their baseline
+   7.32 north-a   shot      face +13.3 power  42 aim  8 [26mph] -> 7ft from their baseline
+   7.33 south-a   shot      face  +9.6 power  42 aim 13 [27mph] -> 7ft from their baseline
+   7.34 north-a   shot      face  +1.8 power  42 aim 11 [19mph] -> into the net at 0.9ft, 2.0ft under the tape — needs more height
+       -- north-a faulted: into the net at 0.9ft, 2.0ft under the tape — needs more height
+       -- point
+    north-a/north-b 1 - 4 south-a/south-b   serving: south-b
+   8.1  south-b   serve     face +10.4 power  55 aim 15 [32mph] -> into the net at 2.8ft, 0.0ft under the tape — needs more height
+       -- south-b faulted: into the net at 2.8ft, 0.0ft under the tape — needs more height
        -- side out
-    north-a/north-b 6 - 0 south-a/south-b   serving: south-a
-  12.1  south-a   serve     face  +9.5 power  55 aim  5 [33mph] -> into the net at 2.8ft, 0.1ft under the tape — needs more height
+    north-a/north-b 1 - 4 south-a/south-b   serving: north-a
+   9.1  north-a   serve     face +15.9 power  55 aim  5 [31mph] -> 12ft from their baseline
+   9.2  south-b   shot      face +16.1 power  42 aim 15 [26mph] -> 9ft from their baseline
+   9.3  north-a   shot      face +12.3 power  42 aim 11 [24mph] -> 10ft from their baseline
+   9.4  south-a   shot      face +14.7 power  42 aim 15 [17mph] -> into the net at 2.5ft, 0.3ft under the tape — needs more height
+       -- south-a faulted: into the net at 2.5ft, 0.3ft under the tape — needs more height
+       -- point
+    north-a/north-b 2 - 4 south-a/south-b   serving: north-a
+  10.1  north-a   serve     face +10.8 power  55 aim 15 [34mph] -> 12ft from their baseline
+  10.2  south-a   shot      face +12.7 power  42 aim 12 [28mph] -> 2ft from their baseline
+  10.3  north-b   volley    face  +4.5 power  50 aim 11 [33mph] -> long by 0.3ft past the baseline
+       -- north-b faulted: long by 0.3ft past the baseline
+       -- second server
+    north-a/north-b 2 - 4 south-a/south-b   serving: north-b
+  11.1  north-b   serve     face +15.4 power  55 aim  5 [34mph] -> 9ft from their baseline
+  11.2  south-b   shot      face +13.3 power  42 aim 12 [23mph] -> 9ft from their baseline
+  11.3  north-a   shot      face +16.9 power  42 aim 12 [25mph] -> 6ft from their baseline
+  11.4  south-a   shot      face +10.5 power  42 aim  7 [24mph] -> 10ft from their baseline
+  11.5  north-a   shot      face +13.5 power  42 aim  8 [25mph] -> 8ft from their baseline
+  11.6  south-b   shot      face +20.2 power  42 aim 12 [26mph] -> 1ft from their baseline
+  11.7  north-b   volley    face  +4.0 power  50 aim 13 [31mph] -> 1ft from their baseline
+       -- point: south-a is 1ft short of it, beaten by the deep ball
+       -- point
+    north-a/north-b 3 - 4 south-a/south-b   serving: north-b
+  12.1  north-b   serve     face +16.4 power  55 aim 15 [32mph] -> 10ft from their baseline
+  12.2  south-a   shot      face +11.9 power  42 aim  6 [24mph] -> 9ft from their baseline
+  12.3  north-a   shot      face +12.7 power  42 aim 16 [24mph] -> 11ft from their baseline
+  12.4  south-a   shot      face +14.1 power  42 aim  7 [25mph] -> 6ft from their baseline
+  12.5  north-a   shot      face +14.1 power  42 aim 15 [22mph] -> 12ft from their baseline
+  12.6  south-a   shot      face +13.6 power  42 aim 15 [25mph] -> 6ft from their baseline
+  12.7  north-a   volley    face  +1.9 power  50 aim  9 [31mph] -> 4ft from their baseline
+       -- fault: north-a was carried into the kitchen by the volley's momentum (6.2ft from the net, inside the 7ft line) — the ball was already dead
+       -- side out
+    north-a/north-b 3 - 4 south-a/south-b   serving: south-a
+  13.1  south-a   serve     face +10.0 power  55 aim  5 [35mph] -> 10ft from their baseline
+  13.2  north-b   shot      face +13.3 power  42 aim  6 [25mph] -> 8ft from their baseline
+  13.3  south-b   shot      face +11.4 power  42 aim 16 [26mph] -> 8ft from their baseline
+  13.4  north-a   shot      face +12.0 power  42 aim 16 [25mph] -> 9ft from their baseline
+  13.5  south-a   shot      face +12.4 power  42 aim  4 [25mph] -> 8ft from their baseline
+  13.6  north-b   shot      face +14.2 power  42 aim  8 [25mph] -> 8ft from their baseline
+  13.7  south-b   shot      face +14.4 power  42 aim  4 [25mph] -> 6ft from their baseline
+  13.8  north-b   shot      face +11.4 power  42 aim  5 [26mph] -> 8ft from their baseline
+  13.9  south-b   shot      face +17.3 power  42 aim  5 [25mph] -> 4ft from their baseline
+  13.10 north-b   shot      face +13.6 power  42 aim 15 [25mph] -> 9ft from their baseline
+  13.11 south-a   shot      face +14.1 power  42 aim 11 [26mph] -> 4ft from their baseline
+  13.12 north-a   shot      face +16.7 power  42 aim  4 [24mph] -> 8ft from their baseline
+  13.13 south-b   shot      face +15.6 power  42 aim  5 [25mph] -> 4ft from their baseline
+  13.14 north-b   shot      face +21.5 power  42 aim  6 [20mph] -> 11ft from their baseline
+  13.15 south-b   shot      face +15.6 power  42 aim  6 [26mph] -> 2ft from their baseline
+  13.16 north-b   shot      face +14.6 power  42 aim 11 [25mph] -> 9ft from their baseline
+  13.17 south-b   shot      face +14.9 power  42 aim 13 [25mph] -> 6ft from their baseline
+  13.18 north-a   shot      face +13.0 power  42 aim  5 [27mph] -> 6ft from their baseline
+  13.19 south-b   shot      face +12.0 power  42 aim 11 [24mph] -> 9ft from their baseline
+  13.20 north-a   shot      face +13.3 power  42 aim  9 [25mph] -> 7ft from their baseline
+  13.21 south-b   shot      face +11.6 power  42 aim  6 [25mph] -> 8ft from their baseline
+  13.22 north-b   shot      face +13.8 power  42 aim  3 [26mph] -> 6ft from their baseline
+  13.23 south-b   shot      face -10.0 power  42 aim 11 [21mph] -> their own side of the net, 1.3ft short
+       -- south-b faulted: their own side of the net, 1.3ft short
+       -- second server
+    north-a/north-b 3 - 4 south-a/south-b   serving: south-b
+  14.1  south-b   serve     face +14.3 power  55 aim 15 [32mph] -> 10ft from their baseline
+  14.2  north-a   shot      face +10.9 power  42 aim  3 [25mph] -> 10ft from their baseline
+  14.3  south-b   shot      face +12.9 power  42 aim 13 [26mph] -> 6ft from their baseline
+  14.4  north-a   shot      face +10.5 power  42 aim 11 [27mph] -> 7ft from their baseline
+  14.5  south-a   shot      face +11.7 power  42 aim 14 [24mph] -> 9ft from their baseline
+  14.6  north-a   shot      face +12.0 power  42 aim  8 [24mph] -> 10ft from their baseline
+  14.7  south-b   shot      face +12.3 power  42 aim  4 [26mph] -> 5ft from their baseline
+  14.8  north-b   shot      face +11.4 power  42 aim  8 [26mph] -> 8ft from their baseline
+  14.9  south-b   shot      face +11.2 power  42 aim 17 [25mph] -> 9ft from their baseline
+  14.10 north-a   shot      face +11.1 power  42 aim 11 [27mph] -> 7ft from their baseline
+  14.11 south-a   shot      face +17.1 power  42 aim 14 [28mph] -> long by 1.4ft past the baseline
+       -- south-a faulted: long by 1.4ft past the baseline
+       -- side out
+    north-a/north-b 3 - 4 south-a/south-b   serving: north-a
+  15.1  north-a   serve     face +12.2 power  55 aim  5 [32mph] -> 14ft from their baseline
+  15.2  south-b   shot      face +23.4 power  42 aim  4 [16mph] -> 15ft from their baseline
+  15.3  north-b   shot      face +13.9 power  42 aim  8 [27mph] -> 5ft from their baseline
+  15.4  south-b   shot      face +13.4 power  42 aim 14 [26mph] -> 6ft from their baseline
+  15.5  north-a   shot      face +10.6 power  42 aim 13 [28mph] -> 6ft from their baseline
+  15.6  south-a   shot      face +14.0 power  42 aim 12 [27mph] -> 4ft from their baseline
+  15.7  north-a   shot      face +12.9 power  42 aim 16 [23mph] -> 11ft from their baseline
+  15.8  south-a   shot      face +13.3 power  42 aim  6 [26mph] -> 6ft from their baseline
+  15.9  north-b   shot      face +14.1 power  42 aim  9 [27mph] -> 5ft from their baseline
+  15.10 south-b   shot      face +17.5 power  42 aim  4 [27mph] -> 0ft from their baseline
+  15.11 north-b   volley    face  +4.5 power  50 aim  9 [31mph] -> 3ft from their baseline
+  15.12 south-b   shot      face +17.4 power  42 aim  4 [25mph] -> 6ft from their baseline
+  15.13 north-b   shot      face +13.9 power  42 aim 15 [25mph] -> 9ft from their baseline
+  15.14 south-a   shot      face +13.9 power  42 aim  4 [26mph] -> 5ft from their baseline
+  15.15 north-b   shot      face +17.0 power  42 aim 11 [24mph] -> 7ft from their baseline
+  15.16 south-b   shot      face +16.2 power  42 aim 10 [24mph] -> 5ft from their baseline
+  15.17 north-a   shot      face +15.6 power  42 aim 11 [24mph] -> 8ft from their baseline
+  15.18 south-a   shot      face +18.8 power  42 aim  3 [24mph] -> 5ft from their baseline
+  15.19 north-b   shot      face +12.8 power  42 aim  4 [24mph] -> 10ft from their baseline
+  15.20 south-b   shot      face +13.5 power  42 aim  5 [25mph] -> 7ft from their baseline
+  15.21 north-b   shot      face +11.9 power  42 aim  8 [25mph] -> 9ft from their baseline
+  15.22 south-b   shot      face +14.1 power  42 aim 16 [23mph] -> 9ft from their baseline
+  15.23 north-a   shot      face +13.8 power  42 aim 13 [26mph] -> 6ft from their baseline
+  15.24 south-a   shot      face +13.1 power  42 aim  4 [27mph] -> 5ft from their baseline
+  15.25 north-b   shot      face +12.0 power  42 aim 15 [24mph] -> 11ft from their baseline
+  15.26 south-a   shot      face +14.5 power  42 aim 17 [25mph] -> 6ft from their baseline
+  15.27 north-a   shot      face  +9.1 power  42 aim  9 [18mph] -> into the net at 1.8ft, 1.1ft under the tape — needs more height
+       -- north-a faulted: into the net at 1.8ft, 1.1ft under the tape — needs more height
+       -- second server
+    north-a/north-b 3 - 4 south-a/south-b   serving: north-b
+  16.1  north-b   serve     face +15.5 power  55 aim 15 [37mph] -> 4ft from their baseline
+  16.2  south-a   shot      face +15.5 power  42 aim 12 [26mph] -> 3ft from their baseline
+  16.3  north-a   shot      face +13.5 power  42 aim  7 [23mph] -> 11ft from their baseline
+  16.4  south-b   shot      face +12.7 power  42 aim  9 [25mph] -> 6ft from their baseline
+  16.5  north-b   shot      face +11.3 power  42 aim  9 [27mph] -> 7ft from their baseline
+  16.6  south-b   shot      face +15.4 power  42 aim  5 [24mph] -> 6ft from their baseline
+  16.7  north-b   shot      face +17.7 power  42 aim  7 [28mph] -> 1ft from their baseline
+  16.8  south-b   shot      face +19.0 power  42 aim 11 [25mph] -> 5ft from their baseline
+  16.9  north-a   shot      face +13.4 power  42 aim  5 [26mph] -> 7ft from their baseline
+  16.10 south-b   shot      face +11.9 power  42 aim  9 [29mph] -> 2ft from their baseline
+  16.11 north-b   volley    face  +0.3 power  50 aim  8 [30mph] -> 6ft from their baseline
+       -- fault: north-b was carried into the kitchen by the volley's momentum (6.4ft from the net, inside the 7ft line) — the ball was already dead
+       -- side out
+    north-a/north-b 3 - 4 south-a/south-b   serving: south-a
+  17.1  south-a   serve     face +10.6 power  55 aim  5 [34mph] -> 11ft from their baseline
+  17.2  north-b   shot      face +13.4 power  42 aim  7 [25mph] -> 7ft from their baseline
+  17.3  south-b   shot      face +15.2 power  42 aim 13 [25mph] -> 5ft from their baseline
+  17.4  north-a   shot      face +20.9 power  42 aim 15 [27mph] -> 1ft from their baseline
+  17.5  south-a   shot      face +13.8 power  42 aim  7 [23mph] -> 12ft from their baseline
+  17.6  north-a   shot      face +12.9 power  42 aim  8 [24mph] -> 9ft from their baseline
+  17.7  south-b   shot      face +12.0 power  42 aim 11 [25mph] -> 7ft from their baseline
+  17.8  north-a   shot      face +12.1 power  42 aim  7 [25mph] -> 9ft from their baseline
+  17.9  south-b   shot      face +13.6 power  42 aim  6 [24mph] -> 8ft from their baseline
+  17.10 north-b   shot      face +14.0 power  42 aim 13 [24mph] -> 9ft from their baseline
+  17.11 south-b   shot      face +16.5 power  42 aim 15 [25mph] -> 4ft from their baseline
+  17.12 north-a   shot      face +14.1 power  42 aim 16 [24mph] -> 8ft from their baseline
+  17.13 south-a   shot      face +13.4 power  42 aim  4 [23mph] -> 10ft from their baseline
+  17.14 north-b   shot      face +14.2 power  42 aim  7 [26mph] -> 5ft from their baseline
+  17.15 south-b   shot      face +13.7 power  42 aim 14 [24mph] -> 8ft from their baseline
+  17.16 north-a   shot      face +16.3 power  42 aim 14 [26mph] -> 5ft from their baseline
+  17.17 south-a   shot      face +15.4 power  42 aim  9 [23mph] -> 9ft from their baseline
+  17.18 north-a   shot      face +16.2 power  42 aim 12 [26mph] -> 5ft from their baseline
+  17.19 south-a   shot      face +15.6 power  42 aim  4 [26mph] -> 4ft from their baseline
+  17.20 north-b   shot      face +16.6 power  42 aim  9 [26mph] -> 5ft from their baseline
+  17.21 south-b   shot      face +10.0 power  42 aim 14 [25mph] -> 9ft from their baseline
+  17.22 north-a   shot      face +15.4 power  42 aim  4 [27mph] -> 5ft from their baseline
+  17.23 south-b   shot      face +20.6 power  42 aim 11 [23mph] -> 4ft from their baseline
+  17.24 north-a   shot      face +11.8 power  42 aim 16 [28mph] -> 5ft from their baseline
+  17.25 south-a   shot      face +18.9 power  42 aim 10 [15mph] -> into the net at 2.3ft, 0.6ft under the tape — needs more height
+       -- south-a faulted: into the net at 2.3ft, 0.6ft under the tape — needs more height
+       -- second server
+    north-a/north-b 3 - 4 south-a/south-b   serving: south-b
+  18.1  south-b   serve     face  +6.1 power  55 aim 15 [33mph] -> into the net at 1.5ft, 1.3ft under the tape — needs more height
+       -- south-b faulted: into the net at 1.5ft, 1.3ft under the tape — needs more height
+       -- side out
+    north-a/north-b 3 - 4 south-a/south-b   serving: north-a
+  19.1  north-a   serve     face  +9.2 power  55 aim  5 [33mph] -> into the net at 2.4ft, 0.5ft under the tape — needs more height
+       -- north-a faulted: into the net at 2.4ft, 0.5ft under the tape — needs more height
+       -- second server
+    north-a/north-b 3 - 4 south-a/south-b   serving: north-b
+  20.1  north-b   serve     face +16.6 power  55 aim 15 [30mph] -> 13ft from their baseline
+  20.2  south-a   shot      face +13.8 power  42 aim  4 [26mph] -> 6ft from their baseline
+  20.3  north-b   shot      face +13.7 power  42 aim  8 [27mph] -> 5ft from their baseline
+  20.4  south-b   shot      face +16.2 power  42 aim  4 [27mph] -> 9ft from their baseline
+  20.5  north-b   shot      face +13.6 power  42 aim 16 [25mph] -> 9ft from their baseline
+  20.6  south-a   shot      face +13.2 power  42 aim 15 [24mph] -> 7ft from their baseline
+  20.7  north-a   volley    face  +2.6 power  50 aim  9 [31mph] -> 6ft from their baseline
+  20.8  south-a   shot      face  +9.7 power  42 aim  3 [26mph] -> 9ft from their baseline
+  20.9  north-b   shot      face +14.3 power  42 aim 15 [26mph] -> 7ft from their baseline
+  20.10 south-a   shot      face +21.4 power  42 aim  5 [26mph] -> long by 0.5ft past the baseline
+       -- south-a faulted: long by 0.5ft past the baseline
+       -- point
+    north-a/north-b 4 - 4 south-a/south-b   serving: north-b
+  21.1  north-b   serve     face +11.7 power  55 aim  5 [34mph] -> 12ft from their baseline
+  21.2  south-b   shot      face +13.9 power  42 aim 12 [26mph] -> 6ft from their baseline
+  21.3  north-a   shot      face +16.8 power  42 aim 12 [28mph] -> 1ft from their baseline
+  21.4  south-a   shot      face +10.4 power  42 aim 15 [25mph] -> 11ft from their baseline
+  21.5  north-a   shot      face +13.9 power  42 aim 10 [26mph] -> 7ft from their baseline
+  21.6  south-a   shot      face +12.6 power  42 aim 13 [25mph] -> 7ft from their baseline
+  21.7  north-a   shot      face +17.4 power  42 aim  7 [26mph] -> 4ft from their baseline
+  21.8  south-b   shot      face +10.5 power  42 aim 11 [20mph] -> into the net at 2.5ft, 0.4ft under the tape — needs more height
+       -- south-b faulted: into the net at 2.5ft, 0.4ft under the tape — needs more height
+       -- point
+    north-a/north-b 5 - 4 south-a/south-b   serving: north-b
+  22.1  north-b   serve     face +16.1 power  55 aim 15 [34mph] -> 8ft from their baseline
+  22.2  south-a   shot      face +17.5 power  42 aim 11 [28mph] -> long by 1.8ft past the baseline
+       -- south-a faulted: long by 1.8ft past the baseline
+       -- point
+    north-a/north-b 6 - 4 south-a/south-b   serving: north-b
+  23.1  north-b   serve     face +17.0 power  55 aim  5 [31mph] -> 11ft from their baseline
+  23.2  south-b   shot      face +13.5 power  42 aim 12 [25mph] -> 7ft from their baseline
+  23.3  north-a   shot      face +12.8 power  42 aim  5 [28mph] -> 5ft from their baseline
+  23.4  south-b   shot      face +10.8 power  42 aim  5 [24mph] -> 9ft from their baseline
+  23.5  north-a   shot      face +15.2 power  42 aim 16 [23mph] -> 10ft from their baseline
+  23.6  south-a   shot      face +13.3 power  42 aim 16 [25mph] -> 6ft from their baseline
+  23.7  north-b   shot      face +15.6 power  42 aim  4 [27mph] -> 5ft from their baseline
+  23.8  south-b   shot      face +13.3 power  42 aim 15 [26mph] -> 6ft from their baseline
+  23.9  north-b   shot      face +15.9 power  42 aim  7 [26mph] -> 6ft from their baseline
+  23.10 south-b   shot      face +17.8 power  42 aim 12 [24mph] -> 5ft from their baseline
+  23.11 north-a   shot      face +13.6 power  42 aim 15 [27mph] -> 6ft from their baseline
+  23.12 south-a   shot      face +18.8 power  42 aim  5 [16mph] -> into the net at 2.8ft, 0.1ft under the tape — needs more height
        -- south-a faulted: into the net at 2.8ft, 0.1ft under the tape — needs more height
-       -- second server
-    north-a/north-b 6 - 0 south-a/south-b   serving: south-b
-  13.1  south-b   serve     face +10.9 power  55 aim 15 [33mph] -> 12ft from their baseline
-  13.2  north-b   shot      face +12.1 power  42 aim  9 [25mph] -> 10ft from their baseline
-  13.3  south-a   shot      face +12.9 power  42 aim 13 [26mph] -> 8ft from their baseline
-  13.4  north-b   shot      face +17.9 power  42 aim  9 [24mph] -> 11ft from their baseline
-  13.5  south-a   volley    face  +1.0 power  50 aim 12 [30mph] -> 7ft from their baseline
-  13.6  north-b   shot      face +17.7 power  42 aim  4 [24mph] -> 14ft from their baseline
-  13.7  south-a   volley    face  +4.7 power  50 aim 14 [29mph] -> 2ft from their baseline
-       -- fault: south-a was carried into the kitchen by the volley's momentum (5.8ft from the net, inside the 7ft line) — the ball was already dead
+       -- point
+    north-a/north-b 7 - 4 south-a/south-b   serving: north-b
+  24.1  north-b   serve     face +11.4 power  55 aim 15 [34mph] -> 12ft from their baseline
+  24.2  south-a   shot      face +11.7 power  42 aim 11 [25mph] -> 7ft from their baseline
+  24.3  north-a   shot      face +15.6 power  42 aim  4 [26mph] -> 5ft from their baseline
+  24.4  south-b   shot      face +16.0 power  42 aim 10 [24mph] -> 6ft from their baseline
+  24.5  north-a   shot      face  +6.4 power  42 aim 12 [24mph] -> into the net at 2.4ft, 0.4ft under the tape — needs more height
+       -- north-a faulted: into the net at 2.4ft, 0.4ft under the tape — needs more height
        -- side out
-    north-a/north-b 6 - 0 south-a/south-b   serving: north-a
-  14.1  north-a   serve     face +13.3 power  55 aim 15 [31mph] -> 14ft from their baseline
-  14.2  south-a   shot      face +12.6 power  42 aim 10 [26mph] -> 5ft from their baseline
-  14.3  north-b   shot      face +18.0 power  42 aim 13 [25mph] -> 12ft from their baseline
-  14.4  south-a   volley    face  +1.2 power  50 aim 15 [30mph] -> 5ft from their baseline
-       -- fault: south-a was carried into the kitchen by the volley's momentum (7.0ft from the net, inside the 7ft line) — the ball was already dead
-       -- point
-    north-a/north-b 7 - 0 south-a/south-b   serving: north-a
-  15.1  north-a   serve     face +13.2 power  55 aim  5 [33mph] -> 12ft from their baseline
-  15.2  south-b   shot      face +13.8 power  42 aim 14 [25mph] -> 8ft from their baseline
-  15.3  north-b   shot      face +16.7 power  42 aim  6 [26mph] -> 9ft from their baseline
-  15.4  south-b   shot      face +15.2 power  42 aim 17 [25mph] -> 9ft from their baseline
-  15.5  north-b   shot      face +14.8 power  42 aim 16 [26mph] -> 9ft from their baseline
-  15.6  south-a   shot      face +26.2 power  42 aim 13 [19mph] -> 14ft from their baseline
-  15.7  north-b   volley    face  +1.7 power  50 aim 13 [30mph] -> 3ft from their baseline
-       -- fault: volleyed from inside the kitchen (6.5ft from the net; the line is at 7.0ft)
+    north-a/north-b 7 - 4 south-a/south-b   serving: south-a
+  25.1  south-a   serve     face +11.1 power  55 aim  5 [19mph] -> their own side of the net, 6.9ft short
+       -- south-a faulted: their own side of the net, 6.9ft short
        -- second server
-    north-a/north-b 7 - 0 south-a/south-b   serving: north-b
-  16.1  north-b   serve     face +13.9 power  55 aim 15 [33mph] -> 11ft from their baseline
-  16.2  south-a   shot      face +15.9 power  42 aim  9 [24mph] -> 8ft from their baseline
-  16.3  north-a   shot      face +14.9 power  42 aim  4 [24mph] -> 13ft from their baseline
-  16.4  south-b   volley    face  +1.4 power  50 aim 10 [30mph] -> 3ft from their baseline
-       -- fault: south-b was carried into the kitchen by the volley's momentum (5.8ft from the net, inside the 7ft line) — the ball was already dead
-       -- point
-    north-a/north-b 8 - 0 south-a/south-b   serving: north-b
-  17.1  north-b   serve     face +13.4 power  55 aim  5 [33mph] -> 11ft from their baseline
-  17.2  south-b   shot      face +14.7 power  42 aim  7 [25mph] -> 8ft from their baseline
-  17.3  north-a   shot      face +14.7 power  42 aim 11 [25mph] -> 13ft from their baseline
-  17.4  south-a   volley    face  +0.6 power  50 aim 13 [32mph] -> 3ft from their baseline
-       -- fault: south-a was carried into the kitchen by the volley's momentum (6.4ft from the net, inside the 7ft line) — the ball was already dead
-       -- point
-    north-a/north-b 9 - 0 south-a/south-b   serving: north-b
-  18.1  north-b   serve     face +12.9 power  55 aim 15 [34mph] -> 11ft from their baseline
-  18.2  south-a   shot      face +12.0 power  42 aim  4 [15mph] -> into the net at 0.2ft, 2.7ft under the tape — needs more height
-       -- south-a faulted: into the net at 0.2ft, 2.7ft under the tape — needs more height
-       -- point
-    north-a/north-b 10 - 0 south-a/south-b   serving: north-b
-  19.1  north-b   serve     face +13.1 power  55 aim  5 [33mph] -> 11ft from their baseline
-  19.2  south-b   shot      face +14.8 power  42 aim  8 [26mph] -> 6ft from their baseline
-  19.3  north-a   shot      face +13.3 power  42 aim  4 [18mph] -> their own side of the net, 0.7ft short
-       -- north-a faulted: their own side of the net, 0.7ft short
+    north-a/north-b 7 - 4 south-a/south-b   serving: south-b
+  26.1  south-b   serve     face +12.7 power  55 aim 15 [32mph] -> 11ft from their baseline
+  26.2  north-a   shot      face +17.7 power  42 aim 16 [24mph] -> 7ft from their baseline
+  26.3  south-a   shot      face +11.1 power  42 aim  7 [26mph] -> into the net at 2.8ft, 0.1ft under the tape — needs more height
+       -- south-a faulted: into the net at 2.8ft, 0.1ft under the tape — needs more height
        -- side out
-    north-a/north-b 10 - 0 south-a/south-b   serving: south-a
-  20.1  south-a   serve     face +11.8 power  55 aim  5 [33mph] -> 11ft from their baseline
-  20.2  north-a   shot      face +15.6 power  42 aim 16 [24mph] -> 12ft from their baseline
-  20.3  south-b   volley    face  +0.8 power  50 aim 11 [29mph] -> 7ft from their baseline
-  20.4  north-b   shot      face +15.1 power  42 aim 10 [26mph] -> 12ft from their baseline
-  20.5  south-b   volley    face  +0.7 power  50 aim  6 [29mph] -> 6ft from their baseline
-       -- fault: south-b was carried into the kitchen by the volley's momentum (6.9ft from the net, inside the 7ft line) — the ball was already dead
+    north-a/north-b 7 - 4 south-a/south-b   serving: north-a
+  27.1  north-a   serve     face +14.7 power  55 aim  5 [33mph] -> 10ft from their baseline
+  27.2  south-b   shot      face +14.6 power  42 aim 13 [25mph] -> 6ft from their baseline
+  27.3  north-a   shot      face +17.2 power  42 aim  6 [25mph] -> 7ft from their baseline
+  27.4  south-b   shot      face +15.1 power  42 aim 14 [27mph] -> 3ft from their baseline
+  27.5  north-a   shot      face +19.0 power  42 aim 16 [24mph] -> 7ft from their baseline
+  27.6  south-a   shot      face +13.0 power  42 aim 12 [26mph] -> 6ft from their baseline
+  27.7  north-a   shot      face +15.7 power  42 aim 16 [23mph] -> 9ft from their baseline
+  27.8  south-a   shot      face  +8.9 power  42 aim  7 [15mph] -> into the net at 0.9ft, 2.0ft under the tape — needs more height
+       -- south-a faulted: into the net at 0.9ft, 2.0ft under the tape — needs more height
+       -- point
+    north-a/north-b 8 - 4 south-a/south-b   serving: north-a
+  28.1  north-a   serve     face +12.6 power  55 aim 15 [32mph] -> 13ft from their baseline
+  28.2  south-a   shot      face +14.2 power  42 aim 13 [26mph] -> 5ft from their baseline
+  28.3  north-a   volley    face  +1.0 power  50 aim 11 [29mph] -> 7ft from their baseline
+       -- fault: north-a was carried into the kitchen by the volley's momentum (6.5ft from the net, inside the 7ft line) — the ball was already dead
        -- second server
-    north-a/north-b 10 - 0 south-a/south-b   serving: south-b
-  21.1  south-b   serve     face +12.4 power  55 aim 15 [34mph] -> 9ft from their baseline
-  21.2  north-b   shot      face +15.9 power  42 aim  8 [24mph] -> 12ft from their baseline
-  21.3  south-a   volley    face  +2.3 power  50 aim 13 [31mph] -> 3ft from their baseline
-  21.4  north-a   shot      face +22.1 power  42 aim  8 [25mph] -> 13ft from their baseline
-  21.5  south-a   volley    face  +1.8 power  50 aim 11 [28mph] -> 6ft from their baseline
-       -- fault: south-a was carried into the kitchen by the volley's momentum (6.7ft from the net, inside the 7ft line) — the ball was already dead
-       -- side out
-    north-a/north-b 10 - 0 south-a/south-b   serving: north-a
-  22.1  north-a   serve     face +12.8 power  55 aim 15 [33mph] -> 11ft from their baseline
-  22.2  south-a   shot      face +14.7 power  42 aim 17 [26mph] -> 6ft from their baseline
-  22.3  north-b   shot      face +15.8 power  42 aim 14 [25mph] -> 13ft from their baseline
-  22.4  south-a   volley    face  +2.4 power  50 aim 13 [30mph] -> 3ft from their baseline
-       -- fault: south-a was carried into the kitchen by the volley's momentum (6.3ft from the net, inside the 7ft line) — the ball was already dead
+    north-a/north-b 8 - 4 south-a/south-b   serving: north-b
+  29.1  north-b   serve     face +16.7 power  55 aim  5 [34mph] -> 7ft from their baseline
+  29.2  south-b   shot      face  +8.0 power  42 aim 14 [26mph] -> into the net at 2.8ft, 0.1ft under the tape — needs more height
+       -- south-b faulted: into the net at 2.8ft, 0.1ft under the tape — needs more height
        -- point
-    north-a/north-b 11 - 0 south-a/south-b   game
-  faults: kitchen 3, momentum 12, out 6, serve 1
-  game: north-a/north-b 11-0 (22 rallies, mean 5.2 shots)
+    north-a/north-b 9 - 4 south-a/south-b   serving: north-b
+  30.1  north-b   serve     face +13.8 power  55 aim 15 [31mph] -> 13ft from their baseline
+  30.2  south-a   shot      face +13.8 power  42 aim  8 [26mph] -> 5ft from their baseline
+  30.3  north-b   shot      face +18.8 power  42 aim  5 [29mph] -> long by 1.3ft past the baseline
+       -- north-b faulted: long by 1.3ft past the baseline
+       -- side out
+    north-a/north-b 9 - 4 south-a/south-b   serving: south-a
+  31.1  south-a   serve     face +10.1 power  55 aim  5 [32mph] -> 13ft from their baseline
+  31.2  north-b   shot      face +10.0 power  42 aim 16 [15mph] -> into the net at 0.8ft, 2.0ft under the tape — needs more height
+       -- north-b faulted: into the net at 0.8ft, 2.0ft under the tape — needs more height
+       -- point
+    north-a/north-b 9 - 5 south-a/south-b   serving: south-a
+  32.1  south-a   serve     face +12.4 power  55 aim 15 [34mph] -> 9ft from their baseline
+  32.2  north-a   shot      face +14.7 power  42 aim 12 [26mph] -> 6ft from their baseline
+  32.3  south-b   shot      face  +6.8 power  42 aim 15 [26mph] -> into the net at 2.6ft, 0.2ft under the tape — needs more height
+       -- south-b faulted: into the net at 2.6ft, 0.2ft under the tape — needs more height
+       -- second server
+    north-a/north-b 9 - 5 south-a/south-b   serving: south-b
+  33.1  south-b   serve     face +10.2 power  55 aim  5 [33mph] -> 13ft from their baseline
+  33.2  north-b   shot      face +14.2 power  42 aim  6 [25mph] -> 7ft from their baseline
+  33.3  south-a   shot      face +15.0 power  42 aim  8 [24mph] -> 7ft from their baseline
+  33.4  north-b   shot      face +16.1 power  42 aim  5 [24mph] -> 7ft from their baseline
+  33.5  south-a   shot      face +14.7 power  42 aim  7 [25mph] -> 5ft from their baseline
+  33.6  north-b   shot      face +14.5 power  42 aim 13 [22mph] -> 11ft from their baseline
+  33.7  south-b   shot      face +12.2 power  42 aim 16 [25mph] -> 7ft from their baseline
+  33.8  north-a   shot      face  +9.6 power  42 aim  8 [25mph] -> 11ft from their baseline
+  33.9  south-a   shot      face  +8.3 power  42 aim  7 [28mph] -> 6ft from their baseline
+  33.10 north-b   shot      face +12.6 power  42 aim 16 [24mph] -> 11ft from their baseline
+  33.11 south-b   shot      face +14.3 power  42 aim  5 [25mph] -> 7ft from their baseline
+  33.12 north-b   shot      face +13.6 power  42 aim  5 [27mph] -> 5ft from their baseline
+  33.13 south-a   shot      face +11.0 power  42 aim 11 [26mph] -> 7ft from their baseline
+  33.14 north-b   shot      face +16.9 power  42 aim  7 [23mph] -> 8ft from their baseline
+  33.15 south-a   shot      face +12.0 power  42 aim 12 [25mph] -> 8ft from their baseline
+  33.16 north-b   shot      face +15.4 power  42 aim  4 [25mph] -> 7ft from their baseline
+  33.17 south-a   shot      face +10.4 power  42 aim 12 [23mph] -> 11ft from their baseline
+  33.18 north-b   shot      face +13.0 power  42 aim  9 [27mph] -> 6ft from their baseline
+  33.19 south-a   shot      face +13.2 power  42 aim  5 [23mph] -> 10ft from their baseline
+  33.20 north-b   shot      face +12.8 power  42 aim  9 [25mph] -> 8ft from their baseline
+  33.21 south-a   shot      face +12.1 power  42 aim  6 [24mph] -> 8ft from their baseline
+  33.22 north-b   shot      face  -0.0 power  42 aim 11 [21mph] -> into the net at 1.0ft, 1.9ft under the tape — needs more height
+       -- north-b faulted: into the net at 1.0ft, 1.9ft under the tape — needs more height
+       -- point
+    north-a/north-b 9 - 6 south-a/south-b   serving: south-b
+  34.1  south-b   serve     face +11.4 power  55 aim 15 [33mph] -> 11ft from their baseline
+  34.2  north-a   shot      face +14.6 power  42 aim 14 [26mph] -> 6ft from their baseline
+  34.3  south-a   shot      face  +9.9 power  42 aim 11 [26mph] -> 8ft from their baseline
+  34.4  north-a   shot      face +10.4 power  42 aim 12 [24mph] -> 11ft from their baseline
+  34.5  south-a   shot      face +11.7 power  42 aim  7 [24mph] -> 8ft from their baseline
+  34.6  north-b   shot      face  +4.9 power  42 aim 15 [18mph] -> into the net at 1.2ft, 1.7ft under the tape — needs more height
+       -- north-b faulted: into the net at 1.2ft, 1.7ft under the tape — needs more height
+       -- point
+    north-a/north-b 9 - 7 south-a/south-b   serving: south-b
+  35.1  south-b   serve     face +12.4 power  55 aim  5 [33mph] -> 9ft from their baseline
+  35.2  north-b   shot      face +12.9 power  42 aim 14 [23mph] -> 11ft from their baseline
+  35.3  south-a   shot      face +14.1 power  42 aim  3 [25mph] -> 6ft from their baseline
+  35.4  north-b   shot      face +12.0 power  42 aim 16 [23mph] -> 12ft from their baseline
+  35.5  south-a   shot      face +12.9 power  42 aim 13 [24mph] -> 8ft from their baseline
+  35.6  north-a   shot      face +11.3 power  42 aim 15 [23mph] -> 11ft from their baseline
+  35.7  south-b   shot      face +14.2 power  42 aim 11 [25mph] -> 6ft from their baseline
+  35.8  north-a   shot      face  +4.9 power  42 aim 15 [18mph] -> into the net at 1.2ft, 1.7ft under the tape — needs more height
+       -- north-a faulted: into the net at 1.2ft, 1.7ft under the tape — needs more height
+       -- point
+    north-a/north-b 9 - 8 south-a/south-b   serving: south-b
+  36.1  south-b   serve     face +11.4 power  55 aim 15 [33mph] -> 11ft from their baseline
+  36.2  north-a   shot      face +15.4 power  42 aim  5 [26mph] -> 6ft from their baseline
+  36.3  south-b   shot      face  +9.7 power  42 aim 17 [20mph] -> into the net at 2.4ft, 0.5ft under the tape — needs more height
+       -- south-b faulted: into the net at 2.4ft, 0.5ft under the tape — needs more height
+       -- side out
+    north-a/north-b 9 - 8 south-a/south-b   serving: north-a
+  37.1  north-a   serve     face +14.1 power  55 aim  5 [33mph] -> 11ft from their baseline
+  37.2  south-b   shot      face +13.7 power  42 aim 15 [25mph] -> 7ft from their baseline
+  37.3  north-a   shot      face +11.5 power  42 aim  9 [25mph] -> 10ft from their baseline
+  37.4  south-a   shot      face  -2.5 power  42 aim 12 [14mph] -> their own side of the net, 1.6ft short
+       -- south-a faulted: their own side of the net, 1.6ft short
+       -- point
+    north-a/north-b 10 - 8 south-a/south-b   serving: north-a
+  38.1  north-a   serve     face +13.4 power  55 aim 15 [30mph] -> 15ft from their baseline
+  38.2  south-a   shot      face +14.2 power  42 aim 16 [25mph] -> 7ft from their baseline
+  38.3  north-b   shot      face +14.8 power  42 aim  3 [27mph] -> 6ft from their baseline
+  38.4  south-b   shot      face +15.4 power  42 aim 16 [26mph] -> 5ft from their baseline
+  38.5  north-b   shot      face +16.0 power  42 aim 17 [28mph] -> 2ft from their baseline
+  38.6  south-a   shot      face +17.9 power  42 aim  7 [25mph] -> 8ft from their baseline
+  38.7  north-a   shot      face +16.5 power  42 aim  4 [26mph] -> 5ft from their baseline
+  38.8  south-b   shot      face +15.3 power  42 aim 15 [24mph] -> 7ft from their baseline
+  38.9  north-b   shot      face +14.8 power  42 aim 11 [23mph] -> 9ft from their baseline
+  38.10 south-a   shot      face +15.9 power  42 aim  7 [25mph] -> 5ft from their baseline
+  38.11 north-b   shot      face +14.1 power  42 aim 12 [24mph] -> 9ft from their baseline
+  38.12 south-a   shot      face +17.5 power  42 aim  7 [26mph] -> 2ft from their baseline
+  38.13 north-a   shot      face +11.9 power  42 aim  9 [24mph] -> 11ft from their baseline
+  38.14 south-b   shot      face +13.2 power  42 aim 12 [24mph] -> 8ft from their baseline
+  38.15 north-b   shot      face +12.4 power  42 aim 16 [23mph] -> 12ft from their baseline
+  38.16 south-a   shot      face +14.5 power  42 aim 13 [25mph] -> 6ft from their baseline
+  38.17 north-b   shot      face +12.6 power  42 aim 15 [26mph] -> 7ft from their baseline
+  38.18 south-a   shot      face +13.2 power  42 aim  7 [23mph] -> 9ft from their baseline
+  38.19 north-b   shot      face +16.9 power  42 aim 15 [25mph] -> 5ft from their baseline
+  38.20 south-a   shot      face +11.7 power  42 aim  6 [23mph] -> 10ft from their baseline
+  38.21 north-a   shot      face +13.4 power  42 aim  3 [26mph] -> 6ft from their baseline
+  38.22 south-b   shot      face +14.5 power  42 aim 10 [26mph] -> 4ft from their baseline
+  38.23 north-b   shot      face +12.4 power  42 aim 16 [26mph] -> 8ft from their baseline
+  38.24 south-a   shot      face +12.9 power  42 aim 10 [23mph] -> 9ft from their baseline
+  38.25 north-b   shot      face +13.6 power  42 aim  4 [25mph] -> 9ft from their baseline
+  38.26 south-b   shot      face +15.7 power  42 aim  7 [26mph] -> 4ft from their baseline
+  38.27 north-a   shot      face +14.7 power  42 aim  3 [25mph] -> 7ft from their baseline
+  38.28 south-b   shot      face +10.8 power  42 aim 16 [27mph] -> 8ft from their baseline
+  38.29 north-b   shot      face +16.8 power  42 aim 12 [25mph] -> 5ft from their baseline
+  38.30 south-a   shot      face +15.2 power  42 aim  9 [24mph] -> 7ft from their baseline
+  38.31 north-b   shot      face  +8.6 power  42 aim 14 [26mph] -> into the net at 2.9ft, 0.0ft under the tape — needs more height
+       -- north-b faulted: into the net at 2.9ft, 0.0ft under the tape — needs more height
+       -- second server
+    north-a/north-b 10 - 8 south-a/south-b   serving: north-b
+  39.1  north-b   serve     face +20.3 power  55 aim  5 [21mph] -> their own side of the net, 1.9ft short
+       -- north-b faulted: their own side of the net, 1.9ft short
+       -- side out
+    north-a/north-b 10 - 8 south-a/south-b   serving: south-a
+  40.1  south-a   serve     face  +9.0 power  55 aim  5 [37mph] -> 8ft from their baseline
+  40.2  north-a   shot      face +11.4 power  42 aim 12 [27mph] -> 7ft from their baseline
+  40.3  south-a   shot      face +13.9 power  42 aim 13 [25mph] -> 6ft from their baseline
+  40.4  north-b   volley    face  -3.7 power  50 aim  5 [29mph] -> into the net at 2.6ft, 0.2ft under the tape — needs more height
+       -- north-b faulted: into the net at 2.6ft, 0.2ft under the tape — needs more height
+       -- point
+    north-a/north-b 10 - 9 south-a/south-b   serving: south-a
+  41.1  south-a   serve     face  +8.4 power  55 aim 15 [33mph] -> into the net at 2.6ft, 0.3ft under the tape — needs more height
+       -- south-a faulted: into the net at 2.6ft, 0.3ft under the tape — needs more height
+       -- second server
+    north-a/north-b 10 - 9 south-a/south-b   serving: south-b
+  42.1  south-b   serve     face +11.3 power  55 aim  5 [34mph] -> 10ft from their baseline
+  42.2  north-a   shot      face +13.8 power  42 aim  6 [25mph] -> 8ft from their baseline
+  42.3  south-a   shot      face +16.0 power  42 aim  9 [26mph] -> 11ft from their baseline
+  42.4  north-a   shot      face +14.5 power  42 aim 11 [25mph] -> 7ft from their baseline
+  42.5  south-b   shot      face +10.3 power  42 aim 11 [26mph] -> 8ft from their baseline
+  42.6  north-b   shot      face +14.8 power  42 aim 10 [25mph] -> 8ft from their baseline
+  42.7  south-b   shot      face +13.5 power  42 aim 11 [24mph] -> 7ft from their baseline
+  42.8  north-b   shot      face +15.6 power  42 aim 15 [28mph] -> 3ft from their baseline
+  42.9  south-b   shot      face +13.3 power  42 aim  9 [26mph] -> 7ft from their baseline
+  42.10 north-b   shot      face +10.5 power  42 aim  8 [28mph] -> 6ft from their baseline
+  42.11 south-a   shot      face +11.4 power  42 aim 11 [28mph] -> 4ft from their baseline
+  42.12 north-b   shot      face +17.1 power  42 aim 10 [25mph] -> 6ft from their baseline
+  42.13 south-b   shot      face +11.0 power  42 aim  7 [23mph] -> 11ft from their baseline
+  42.14 north-b   shot      face +13.7 power  42 aim  6 [25mph] -> 8ft from their baseline
+  42.15 south-a   shot      face +13.4 power  42 aim  3 [25mph] -> 7ft from their baseline
+  42.16 north-a   shot      face +12.9 power  42 aim  4 [28mph] -> 5ft from their baseline
+  42.17 south-a   shot      face +16.7 power  42 aim 12 [26mph] -> 4ft from their baseline
+  42.18 north-b   shot      face +12.8 power  42 aim 13 [15mph] -> into the net at 1.3ft, 1.6ft under the tape — needs more height
+       -- north-b faulted: into the net at 1.3ft, 1.6ft under the tape — needs more height
+       -- point
+    north-a/north-b 10 - 10 south-a/south-b   serving: south-b
+  43.1  south-b   serve     face +10.7 power  55 aim 15 [35mph] -> 9ft from their baseline
+  43.2  north-b   shot      face +15.2 power  42 aim 15 [25mph] -> 7ft from their baseline
+  43.3  south-a   shot      face +16.2 power  42 aim  5 [25mph] -> 5ft from their baseline
+  43.4  north-a   shot      face +17.7 power  42 aim 14 [16mph] -> into the net at 2.5ft, 0.3ft under the tape — needs more height
+       -- north-a faulted: into the net at 2.5ft, 0.3ft under the tape — needs more height
+       -- point
+    north-a/north-b 10 - 11 south-a/south-b   serving: south-b
+  44.1  south-b   serve     face  +9.9 power  55 aim  5 [32mph] -> into the net at 2.9ft, 0.0ft under the tape — needs more height
+       -- south-b faulted: into the net at 2.9ft, 0.0ft under the tape — needs more height
+       -- side out
+    north-a/north-b 10 - 11 south-a/south-b   serving: north-a
+  45.1  north-a   serve     face +15.5 power  55 aim 15 [33mph] -> 9ft from their baseline
+  45.2  south-b   shot      face +13.5 power  42 aim 16 [26mph] -> 8ft from their baseline
+  45.3  north-b   shot      face +13.4 power  42 aim 11 [27mph] -> 5ft from their baseline
+  45.4  south-a   shot      face +12.3 power  42 aim 10 [27mph] -> 4ft from their baseline
+  45.5  north-b   shot      face +13.3 power  42 aim  7 [28mph] -> 5ft from their baseline
+  45.6  south-a   shot      face +13.4 power  42 aim  9 [24mph] -> 8ft from their baseline
+  45.7  north-b   shot      face +10.9 power  42 aim 15 [28mph] -> 7ft from their baseline
+  45.8  south-b   shot      face +13.7 power  42 aim 13 [23mph] -> 9ft from their baseline
+  45.9  north-b   shot      face +11.8 power  42 aim  8 [26mph] -> 8ft from their baseline
+  45.10 south-a   shot      face +15.3 power  42 aim 17 [26mph] -> 5ft from their baseline
+  45.11 north-b   shot      face +14.0 power  42 aim  5 [27mph] -> 5ft from their baseline
+  45.12 south-a   shot      face +11.7 power  42 aim  4 [22mph] -> 11ft from their baseline
+  45.13 north-a   shot      face +13.9 power  42 aim  6 [25mph] -> 7ft from their baseline
+  45.14 south-a   shot      face +15.2 power  42 aim 12 [19mph] -> 14ft from their baseline
+  45.15 north-b   shot      face +13.6 power  42 aim  7 [26mph] -> 7ft from their baseline
+  45.16 south-a   shot      face +13.0 power  42 aim 15 [28mph] -> 3ft from their baseline
+  45.17 north-b   shot      face +14.4 power  42 aim  9 [24mph] -> 9ft from their baseline
+  45.18 south-a   shot      face +13.5 power  42 aim 10 [25mph] -> 7ft from their baseline
+  45.19 north-b   shot      face +14.0 power  42 aim 12 [22mph] -> 11ft from their baseline
+  45.20 south-b   shot      face +12.7 power  42 aim  5 [24mph] -> 9ft from their baseline
+  45.21 north-a   shot      face +13.6 power  42 aim  8 [25mph] -> 7ft from their baseline
+  45.22 south-a   shot      face +13.1 power  42 aim  6 [29mph] -> 1ft from their baseline
+  45.23 north-a   volley    face  +3.3 power  50 aim  4 [32mph] -> 2ft from their baseline
+       -- point: south-a is 1ft short of it, beaten by the deep ball
+       -- point
+    north-a/north-b 11 - 11 south-a/south-b   serving: north-a
+  46.1  north-a   serve     face +13.6 power  55 aim  5 [33mph] -> 12ft from their baseline
+  46.2  south-a   shot      face +12.4 power  42 aim 14 [26mph] -> 7ft from their baseline
+  46.3  north-b   shot      face  +8.4 power  42 aim  9 [27mph] -> 9ft from their baseline
+  46.4  south-a   shot      face +14.7 power  42 aim 13 [24mph] -> 7ft from their baseline
+  46.5  north-b   shot      face +10.1 power  42 aim 12 [27mph] -> 8ft from their baseline
+  46.6  south-b   shot      face +16.0 power  42 aim  6 [24mph] -> 6ft from their baseline
+  46.7  north-b   shot      face +16.1 power  42 aim 12 [25mph] -> 7ft from their baseline
+  46.8  south-a   shot      face +10.6 power  42 aim  9 [27mph] -> 6ft from their baseline
+  46.9  north-b   shot      face +14.2 power  42 aim  4 [21mph] -> 13ft from their baseline
+  46.10 south-a   shot      face +14.2 power  42 aim 14 [25mph] -> 6ft from their baseline
+  46.11 north-b   shot      face  +9.7 power  42 aim  9 [26mph] -> 9ft from their baseline
+  46.12 south-a   shot      face +13.3 power  42 aim 17 [25mph] -> 7ft from their baseline
+  46.13 north-a   shot      face +12.6 power  42 aim  6 [26mph] -> 9ft from their baseline
+  46.14 south-a   shot      face +16.0 power  42 aim 17 [24mph] -> 6ft from their baseline
+  46.15 north-a   shot      face +16.8 power  42 aim  7 [26mph] -> 6ft from their baseline
+  46.16 south-a   shot      face +11.5 power  42 aim 13 [25mph] -> 8ft from their baseline
+  46.17 north-b   shot      face +12.8 power  42 aim  7 [26mph] -> 8ft from their baseline
+  46.18 south-a   shot      face +17.7 power  42 aim 13 [26mph] -> 1ft from their baseline
+  46.19 north-b   volley    face  +0.2 power  50 aim 16 [29mph] -> 7ft from their baseline
+       -- fault: north-b was carried into the kitchen by the volley's momentum (5.8ft from the net, inside the 7ft line) — the ball was already dead
+       -- second server
+    north-a/north-b 11 - 11 south-a/south-b   serving: north-b
+  47.1  north-b   serve     face +15.9 power  55 aim 15 [34mph] -> 8ft from their baseline
+  47.2  south-b   shot      face +12.6 power  42 aim 13 [21mph] -> 12ft from their baseline
+  47.3  north-a   shot      face +14.2 power  42 aim 15 [26mph] -> 6ft from their baseline
+  47.4  south-b   shot      face +19.5 power  42 aim  6 [25mph] -> 3ft from their baseline
+  47.5  north-b   shot      face +13.1 power  42 aim  5 [28mph] -> 4ft from their baseline
+  47.6  south-a   shot      face +15.4 power  42 aim 12 [22mph] -> 9ft from their baseline
+  47.7  north-b   shot      face +18.7 power  42 aim  7 [25mph] -> 5ft from their baseline
+  47.8  south-a   shot      face +17.6 power  42 aim  5 [26mph] -> 1ft from their baseline
+  47.9  north-b   shot      face +19.1 power  42 aim 12 [27mph] -> 5ft from their baseline
+  47.10 south-b   shot      face +16.2 power  42 aim 12 [24mph] -> 5ft from their baseline
+  47.11 north-a   shot      face +10.2 power  42 aim  6 [24mph] -> 11ft from their baseline
+  47.12 south-a   shot      face +13.0 power  42 aim 15 [25mph] -> 7ft from their baseline
+  47.13 north-a   shot      face +10.3 power  42 aim 11 [25mph] -> 10ft from their baseline
+  47.14 south-b   shot      face +11.8 power  42 aim  5 [25mph] -> 8ft from their baseline
+  47.15 north-b   shot      face +16.6 power  42 aim 15 [25mph] -> 6ft from their baseline
+  47.16 south-b   shot      face +18.8 power  42 aim 10 [24mph] -> 4ft from their baseline
+  47.17 north-a   shot      face +15.8 power  42 aim 15 [26mph] -> 5ft from their baseline
+  47.18 south-b   shot      face +13.1 power  42 aim 11 [28mph] -> 3ft from their baseline
+  47.19 north-a   shot      face +17.0 power  42 aim  5 [27mph] -> 4ft from their baseline
+  47.20 south-a   shot      face +14.1 power  42 aim 15 [22mph] -> 11ft from their baseline
+  47.21 north-a   shot      face +14.6 power  42 aim  4 [25mph] -> 7ft from their baseline
+  47.22 south-a   shot      face +15.3 power  42 aim  5 [25mph] -> 5ft from their baseline
+  47.23 north-b   shot      face +16.7 power  42 aim 11 [27mph] -> 4ft from their baseline
+  47.24 south-a   shot      face +15.1 power  42 aim  9 [26mph] -> 3ft from their baseline
+  47.25 north-a   shot      face +15.3 power  42 aim 10 [24mph] -> 10ft from their baseline
+  47.26 south-a   shot      face +12.7 power  42 aim 13 [25mph] -> 7ft from their baseline
+  47.27 north-a   shot      face +18.2 power  42 aim 14 [25mph] -> 4ft from their baseline
+  47.28 south-b   shot      face +13.2 power  42 aim 10 [25mph] -> 6ft from their baseline
+  47.29 north-a   shot      face +17.1 power  42 aim  6 [26mph] -> 5ft from their baseline
+  47.30 south-a   shot      face +12.2 power  42 aim 12 [25mph] -> 8ft from their baseline
+  47.31 north-a   shot      face +17.4 power  42 aim  9 [26mph] -> 5ft from their baseline
+  47.32 south-a   shot      face +11.7 power  42 aim 14 [27mph] -> 6ft from their baseline
+  47.33 north-a   shot      face +15.1 power  42 aim 12 [22mph] -> 10ft from their baseline
+  47.34 south-b   shot      face +13.4 power  42 aim  5 [25mph] -> 7ft from their baseline
+  47.35 north-b   shot      face +16.5 power  42 aim 10 [27mph] -> 3ft from their baseline
+  47.36 south-a   shot      face +13.2 power  42 aim  9 [24mph] -> 8ft from their baseline
+  47.37 north-a   shot      face +11.3 power  42 aim  4 [26mph] -> 9ft from their baseline
+  47.38 south-a   shot      face +14.8 power  42 aim 14 [25mph] -> 5ft from their baseline
+  47.39 north-a   shot      face +15.7 power  42 aim  7 [25mph] -> 6ft from their baseline
+  47.40 south-a   shot      face +12.8 power  42 aim  4 [24mph] -> 8ft from their baseline
+  47.41 north-b   shot      face +14.5 power  42 aim 16 [27mph] -> 6ft from their baseline
+  47.42 south-b   shot      face +12.8 power  42 aim 15 [25mph] -> 7ft from their baseline
+  47.43 north-a   shot      face  +9.3 power  42 aim 13 [25mph] -> into the net at 2.9ft, 0.0ft under the tape — needs more height
+       -- north-a faulted: into the net at 2.9ft, 0.0ft under the tape — needs more height
+       -- side out
+    north-a/north-b 11 - 11 south-a/south-b   serving: south-a
+  48.1  south-a   serve     face  +7.5 power  55 aim 15 [33mph] -> into the net at 2.2ft, 0.6ft under the tape — needs more height
+       -- south-a faulted: into the net at 2.2ft, 0.6ft under the tape — needs more height
+       -- second server
+    north-a/north-b 11 - 11 south-a/south-b   serving: south-b
+  49.1  south-b   serve     face +14.6 power  55 aim  5 [32mph] -> 9ft from their baseline
+  49.2  north-b   shot      face +13.6 power  42 aim  7 [25mph] -> 8ft from their baseline
+  49.3  south-a   shot      face +14.8 power  42 aim 16 [25mph] -> 14ft from their baseline
+  49.4  north-a   shot      face +12.7 power  42 aim  5 [25mph] -> 9ft from their baseline
+  49.5  south-a   shot      face +11.7 power  42 aim 14 [25mph] -> 8ft from their baseline
+  49.6  north-a   shot      face +13.8 power  42 aim 11 [26mph] -> 6ft from their baseline
+  49.7  south-b   shot      face +11.9 power  42 aim  4 [24mph] -> 10ft from their baseline
+  49.8  north-b   shot      face +14.4 power  42 aim 16 [26mph] -> 7ft from their baseline
+  49.9  south-b   shot      face +18.4 power  42 aim  5 [25mph] -> 4ft from their baseline
+  49.10 north-b   shot      face +17.0 power  42 aim 12 [26mph] -> 5ft from their baseline
+  49.11 south-b   shot      face +12.9 power  42 aim  6 [25mph] -> 8ft from their baseline
+  49.12 north-b   shot      face +13.5 power  42 aim 12 [26mph] -> 7ft from their baseline
+  49.13 south-b   shot      face +15.9 power  42 aim  8 [24mph] -> 6ft from their baseline
+  49.14 north-b   shot      face +14.8 power  42 aim  8 [19mph] -> 14ft from their baseline
+  49.15 south-a   shot      face +13.5 power  42 aim 12 [26mph] -> 6ft from their baseline
+  49.16 north-a   shot      face +12.2 power  42 aim  9 [25mph] -> 9ft from their baseline
+  49.17 south-b   shot      face +15.8 power  42 aim 10 [26mph] -> 3ft from their baseline
+  49.18 north-a   shot      face +10.7 power  42 aim  6 [25mph] -> 11ft from their baseline
+  49.19 south-a   shot      face +14.0 power  42 aim 16 [25mph] -> 7ft from their baseline
+  49.20 north-a   shot      face +10.5 power  42 aim  4 [25mph] -> 10ft from their baseline
+  49.21 south-a   shot      face +12.0 power  42 aim 12 [26mph] -> 7ft from their baseline
+  49.22 north-a   shot      face  +8.1 power  42 aim 10 [27mph] -> 10ft from their baseline
+  49.23 south-b   shot      face +14.7 power  42 aim 13 [24mph] -> 6ft from their baseline
+  49.24 north-a   shot      face +18.4 power  42 aim 11 [26mph] -> 4ft from their baseline
+  49.25 south-b   shot      face +11.6 power  42 aim  8 [25mph] -> 8ft from their baseline
+  49.26 north-a   shot      face +12.2 power  42 aim 14 [25mph] -> 9ft from their baseline
+  49.27 south-b   shot      face +12.3 power  42 aim  4 [25mph] -> 8ft from their baseline
+  49.28 north-b   shot      face +13.3 power  42 aim  6 [27mph] -> 6ft from their baseline
+  49.29 south-a   shot      face +15.0 power  42 aim 11 [27mph] -> 2ft from their baseline
+  49.30 north-a   shot      face +14.2 power  42 aim  8 [23mph] -> 12ft from their baseline
+  49.31 south-b   shot      face +14.4 power  42 aim 14 [25mph] -> 5ft from their baseline
+  49.32 north-a   shot      face +16.3 power  42 aim  5 [23mph] -> 10ft from their baseline
+  49.33 south-a   shot      face +13.4 power  42 aim  5 [25mph] -> 7ft from their baseline
+  49.34 north-b   shot      face +13.4 power  42 aim 14 [26mph] -> 7ft from their baseline
+  49.35 south-b   shot      face  +8.7 power  42 aim 15 [22mph] -> into the net at 2.6ft, 0.3ft under the tape — needs more height
+       -- south-b faulted: into the net at 2.6ft, 0.3ft under the tape — needs more height
+       -- side out
+    north-a/north-b 11 - 11 south-a/south-b   serving: north-a
+  50.1  north-a   serve     face +17.8 power  55 aim  5 [22mph] -> their own side of the net, 1.5ft short
+       -- north-a faulted: their own side of the net, 1.5ft short
+       -- second server
+    north-a/north-b 11 - 11 south-a/south-b   serving: north-b
+  51.1  north-b   serve     face +13.2 power  55 aim 15 [32mph] -> 13ft from their baseline
+  51.2  south-b   shot      face +14.6 power  42 aim 15 [26mph] -> 5ft from their baseline
+  51.3  north-a   volley    face  +7.4 power  50 aim 13 [31mph] -> 1ft from their baseline
+  51.4  south-b   shot      face +12.6 power  42 aim 11 [23mph] -> 13ft from their baseline
+  51.5  north-a   shot      face +14.4 power  42 aim  7 [25mph] -> 7ft from their baseline
+  51.6  south-a   shot      face +17.3 power  42 aim 14 [26mph] -> 2ft from their baseline
+  51.7  north-a   shot      face +11.9 power  42 aim 13 [22mph] -> into the net at 2.8ft, 0.1ft under the tape — needs more height
+       -- north-a faulted: into the net at 2.8ft, 0.1ft under the tape — needs more height
+       -- side out
+    north-a/north-b 11 - 11 south-a/south-b   serving: south-a
+  52.1  south-a   serve     face +13.2 power  55 aim 15 [34mph] -> 7ft from their baseline
+  52.2  north-a   shot      face +13.8 power  42 aim  8 [25mph] -> 8ft from their baseline
+  52.3  south-b   shot      face  +9.7 power  42 aim 10 [28mph] -> 5ft from their baseline
+  52.4  north-a   shot      face +10.5 power  42 aim 10 [26mph] -> 9ft from their baseline
+  52.5  south-b   shot      face +15.4 power  42 aim  6 [26mph] -> 4ft from their baseline
+  52.6  north-b   shot      face +15.8 power  42 aim  5 [23mph] -> 9ft from their baseline
+  52.7  south-a   shot      face +15.1 power  42 aim  6 [24mph] -> 6ft from their baseline
+  52.8  north-b   shot      face +12.9 power  42 aim 11 [23mph] -> 10ft from their baseline
+  52.9  south-b   shot      face +11.6 power  42 aim 10 [24mph] -> 9ft from their baseline
+  52.10 north-a   shot      face +12.4 power  42 aim 14 [24mph] -> 10ft from their baseline
+  52.11 south-b   shot      face +12.1 power  42 aim  8 [24mph] -> 9ft from their baseline
+  52.12 north-a   shot      face +13.0 power  42 aim 16 [27mph] -> 6ft from their baseline
+  52.13 south-b   shot      face +13.7 power  42 aim  8 [26mph] -> 5ft from their baseline
+  52.14 north-b   shot      face +11.1 power  42 aim 11 [23mph] -> 12ft from their baseline
+  52.15 south-b   shot      face +14.7 power  42 aim 16 [25mph] -> 6ft from their baseline
+  52.16 north-a   shot      face +12.8 power  42 aim 15 [26mph] -> 6ft from their baseline
+  52.17 south-b   shot      face +14.9 power  42 aim  9 [24mph] -> 6ft from their baseline
+  52.18 north-b   shot      face +18.8 power  42 aim  3 [23mph] -> 8ft from their baseline
+  52.19 south-a   shot      face +14.1 power  42 aim 10 [27mph] -> 3ft from their baseline
+  52.20 north-b   shot      face +14.0 power  42 aim  4 [17mph] -> into the net at 2.2ft, 0.7ft under the tape — needs more height
+       -- north-b faulted: into the net at 2.2ft, 0.7ft under the tape — needs more height
+       -- point
+    north-a/north-b 11 - 12 south-a/south-b   serving: south-a
+  53.1  south-a   serve     face +14.1 power  55 aim  5 [32mph] -> 10ft from their baseline
+  53.2  north-b   shot      face +12.1 power  42 aim 13 [24mph] -> 10ft from their baseline
+  53.3  south-b   shot      face +14.0 power  42 aim  7 [25mph] -> 6ft from their baseline
+  53.4  north-b   shot      face +14.8 power  42 aim  8 [26mph] -> 5ft from their baseline
+  53.5  south-b   shot      face +16.7 power  42 aim 12 [23mph] -> 6ft from their baseline
+  53.6  north-a   shot      face +16.1 power  42 aim  7 [26mph] -> 6ft from their baseline
+  53.7  south-b   shot      face +16.4 power  42 aim 10 [23mph] -> 7ft from their baseline
+  53.8  north-b   shot      face +19.6 power  42 aim 11 [27mph] -> 1ft from their baseline
+  53.9  south-b   shot      face +10.6 power  42 aim 10 [24mph] -> 12ft from their baseline
+  53.10 north-b   shot      face +14.1 power  42 aim 15 [25mph] -> 8ft from their baseline
+  53.11 south-a   shot      face +17.0 power  42 aim  6 [25mph] -> 5ft from their baseline
+  53.12 north-b   shot      face +15.4 power  42 aim 16 [26mph] -> 6ft from their baseline
+  53.13 south-a   shot      face +14.5 power  42 aim  9 [26mph] -> 4ft from their baseline
+  53.14 north-b   shot      face +12.4 power  42 aim  8 [24mph] -> 10ft from their baseline
+  53.15 south-b   shot      face +14.0 power  42 aim  5 [24mph] -> 7ft from their baseline
+  53.16 north-b   shot      face +13.6 power  42 aim 13 [24mph] -> 9ft from their baseline
+  53.17 south-b   shot      face +15.5 power  42 aim  4 [25mph] -> 6ft from their baseline
+  53.18 north-b   shot      face +13.0 power  42 aim  9 [26mph] -> 7ft from their baseline
+  53.19 south-b   shot      face +14.2 power  42 aim 10 [27mph] -> 3ft from their baseline
+  53.20 north-b   shot      face +12.2 power  42 aim  9 [26mph] -> 9ft from their baseline
+  53.21 south-b   shot      face +13.5 power  42 aim 14 [25mph] -> 6ft from their baseline
+  53.22 north-a   shot      face +14.2 power  42 aim 13 [16mph] -> into the net at 2.0ft, 0.9ft under the tape — needs more height
+       -- north-a faulted: into the net at 2.0ft, 0.9ft under the tape — needs more height
+       -- point
+    north-a/north-b 11 - 13 south-a/south-b   game
+  faults: momentum 4, out 47, unreachable 2
+  game: south-a/south-b 13-11 (53 rallies, mean 10.2 shots)
 
   a scripted game: the rules are exercised, the learning is not. No season was written.
-
-
-== B: --level read — one lesson attached: twice it steps back, fourteen times it diagnoses a chase
-
--- game 1
-  pickleball, doubles, hard; ball outdoor 40-hole (Cd 0.33, k 0.0103/ft); spin off; wind S 3mph; clock 1234500
-  teams: north-a/north-b (north) vs south-a/south-b (south); to 11, win by 2, side-out scoring
-   1.1  north-a   serve     face +15.1 power  55 aim 15 [35mph] -> 8ft from their baseline
-   1.2  south-a   shot      face +12.7 power  42 aim 15 [26mph] -> 11ft from their baseline
-   1.3  north-b   volley    face  +1.6 power  50 aim 16 [32mph] -> 4ft from their baseline
-   1.4  south-b   shot      face +17.3 power  42 aim  8 [25mph] -> 12ft from their baseline
-   1.5  north-b   volley    face  +0.0 power  50 aim 12 [30mph] -> 8ft from their baseline
-   1.6  south-b   shot      face +14.9 power  42 aim 11 [25mph] -> 11ft from their baseline
-   1.7  north-b   volley    face  +3.4 power  50 aim  6 [31mph] -> 5ft from their baseline
-   1.8  south-b   shot      face +18.3 power  42 aim  5 [25mph] -> 11ft from their baseline
-   1.9  north-b   volley    face  +2.5 power  50 aim 17 [30mph] -> 7ft from their baseline
-   1.10 south-a   shot      face +13.7 power  42 aim  7 [25mph] -> 13ft from their baseline
-   1.11 north-b   volley    face  -1.1 power  50 aim 15 [23mph] -> into the net at 2.8ft, 0.0ft under the tape — needs more height
-       -- north-b faulted: into the net at 2.8ft, 0.0ft under the tape — needs more height
-       -- side out
-    north-a/north-b 0 - 0 south-a/south-b   serving: south-a
-   2.1  south-a   serve     face +12.9 power  55 aim  5 [33mph] -> 9ft from their baseline
-   2.2  north-a   shot      face +14.9 power  42 aim 12 [26mph] -> 11ft from their baseline
-   2.3  south-b   shot      face +15.3 power  42 aim  4 [26mph] -> 7ft from their baseline
-   2.4  north-a   shot      face +16.2 power  42 aim 12 [26mph] -> 12ft from their baseline
-   2.5  south-b   volley    face  +0.9 power  50 aim 13 [29mph] -> 6ft from their baseline
-   2.6  north-b   shot      face +17.4 power  42 aim 11 [25mph] -> 12ft from their baseline
-   2.7  south-b   volley    face  +1.1 power  50 aim  6 [30mph] -> 5ft from their baseline
-       -- fault: south-b was carried into the kitchen by the volley's momentum (6.9ft from the net, inside the 7ft line) — the ball was already dead
-       == south-b reads its own fault (momentum): 2ft behind the line was too close. Standing 3ft back from here.
-       -- second server
-    north-a/north-b 0 - 0 south-a/south-b   serving: south-b
-   3.1  south-b   serve     face +10.5 power  55 aim 15 [33mph] -> 12ft from their baseline
-   3.2  north-b   shot      face +12.6 power  42 aim 12 [25mph] -> 10ft from their baseline
-   3.3  south-a   shot      face +15.0 power  42 aim 11 [25mph] -> 8ft from their baseline
-   3.4  north-a   shot      face +14.7 power  42 aim 10 [24mph] -> 13ft from their baseline
-   3.5  south-a   volley    face  +1.9 power  50 aim  4 [30mph] -> 4ft from their baseline
-       -- fault: south-a was carried into the kitchen by the volley's momentum (6.1ft from the net, inside the 7ft line) — the ball was already dead
-       == south-a reads its own fault (momentum): 2ft behind the line was too close. Standing 3ft back from here.
-       -- side out
-    north-a/north-b 0 - 0 south-a/south-b   serving: north-a
-   4.1  north-a   serve     face +13.9 power  55 aim 15 [33mph] -> 11ft from their baseline
-   4.2  south-a   shot      face +13.1 power  42 aim 12 [24mph] -> 10ft from their baseline
-   4.3  north-b   shot      face +14.3 power  42 aim  5 [26mph] -> 10ft from their baseline
-   4.4  south-a   shot      face +14.0 power  42 aim 11 [25mph] -> 8ft from their baseline
-   4.5  north-b   shot      face +13.1 power  42 aim 16 [25mph] -> 13ft from their baseline
-   4.6  south-a   volley    face  +1.3 power  50 aim 12 [28mph] -> 6ft from their baseline
-       -- fault: south-a was carried into the kitchen by the volley's momentum (6.0ft from the net, inside the 7ft line) — the ball was already dead
-       == south-a reads its own fault (momentum) and it was not the stance: it was 0.5ft from its own line, having gone to the ball. Nothing changes.
-       -- point
-    north-a/north-b 1 - 0 south-a/south-b   serving: north-a
-   5.1  north-a   serve     face +12.5 power  55 aim  5 [31mph] -> 15ft from their baseline
-   5.2  south-b   shot      face +15.2 power  42 aim 11 [25mph] -> 3ft from their baseline
-   5.3  north-b   shot      face +19.1 power  42 aim  8 [26mph] -> 13ft from their baseline
-   5.4  south-b   volley    face  +2.0 power  50 aim  6 [30mph] -> 4ft from their baseline
-       -- fault: south-b was carried into the kitchen by the volley's momentum (6.3ft from the net, inside the 7ft line) — the ball was already dead
-       == south-b reads its own fault (momentum) and it was not the stance: it was 0.8ft from its own line, having gone to the ball. Nothing changes.
-       -- point
-    north-a/north-b 2 - 0 south-a/south-b   serving: north-a
-   6.1  north-a   serve     face +15.0 power  55 aim 15 [33mph] -> 10ft from their baseline
-   6.2  south-a   shot      face +14.2 power  42 aim  5 [25mph] -> 10ft from their baseline
-   6.3  north-b   shot      face +14.8 power  42 aim 10 [25mph] -> 10ft from their baseline
-   6.4  south-b   shot      face +13.7 power  42 aim 15 [25mph] -> 9ft from their baseline
-   6.5  north-b   shot      face +14.9 power  42 aim  9 [25mph] -> 11ft from their baseline
-   6.6  south-b   shot      face +14.0 power  42 aim  8 [25mph] -> 9ft from their baseline
-   6.7  north-b   shot      face +13.9 power  42 aim 10 [24mph] -> 13ft from their baseline
-   6.8  south-b   volley    face  -1.5 power  50 aim  3 [31mph] -> 7ft from their baseline
-       -- fault: south-b was carried into the kitchen by the volley's momentum (6.6ft from the net, inside the 7ft line) — the ball was already dead
-       == south-b reads its own fault (momentum) and it was not the stance: it was 1.1ft from its own line, having gone to the ball. Nothing changes.
-       -- point
-    north-a/north-b 3 - 0 south-a/south-b   serving: north-a
-   7.1  north-a   serve     face +12.0 power  55 aim  5 [33mph] -> 12ft from their baseline
-   7.2  south-b   shot      face +15.6 power  42 aim 11 [25mph] -> 6ft from their baseline
-   7.3  north-b   shot      face +14.5 power  42 aim  5 [25mph] -> 15ft from their baseline
-   7.4  south-b   volley    face  +1.1 power  50 aim  5 [30mph] -> 2ft from their baseline
-       -- fault: volleyed from inside the kitchen (5.9ft from the net; the line is at 7.0ft)
-       == south-b reads its own fault (kitchen) and it was not the stance: it was 1.1ft from its own line, having gone to the ball. Nothing changes.
-       -- point
-    north-a/north-b 4 - 0 south-a/south-b   serving: north-a
-   8.1  north-a   serve     face +22.3 power  55 aim 15 [25mph] -> in the kitchen
-       -- fault: the serve did not land in the diagonal service area (the kitchen line is at 15ft and 29ft)
-       -- second server
-    north-a/north-b 4 - 0 south-a/south-b   serving: north-b
-   9.1  north-b   serve     face +12.3 power  55 aim  5 [34mph] -> 12ft from their baseline
-   9.2  south-b   shot      face  +7.5 power  42 aim 12 [16mph] -> into the net at 0.4ft, 2.5ft under the tape — needs more height
-       -- south-b faulted: into the net at 0.4ft, 2.5ft under the tape — needs more height
-       -- point
-    north-a/north-b 5 - 0 south-a/south-b   serving: north-b
-  10.1  north-b   serve     face +13.3 power  55 aim 15 [34mph] -> 11ft from their baseline
-  10.2  south-a   shot      face +13.8 power  42 aim 14 [25mph] -> 9ft from their baseline
-  10.3  north-a   shot      face +13.6 power  42 aim 13 [26mph] -> 10ft from their baseline
-  10.4  south-a   shot      face +13.0 power  42 aim  6 [25mph] -> 11ft from their baseline
-  10.5  north-a   shot      face +14.6 power  42 aim 11 [24mph] -> 10ft from their baseline
-  10.6  south-a   shot      face +14.2 power  42 aim  5 [26mph] -> 8ft from their baseline
-  10.7  north-a   shot      face +16.8 power  42 aim  7 [26mph] -> 10ft from their baseline
-  10.8  south-b   shot      face +15.1 power  42 aim 12 [25mph] -> 8ft from their baseline
-  10.9  north-a   shot      face +14.3 power  42 aim  6 [24mph] -> 14ft from their baseline
-  10.10 south-b   volley    face  -4.4 power  50 aim  5 [22mph] -> into the net at 2.7ft, 0.2ft under the tape — needs more height
-       -- fault: volleyed from inside the kitchen (6.4ft from the net; the line is at 7.0ft)
-       == south-b reads its own fault (kitchen) and it was not the stance: it was 0.6ft from its own line, having gone to the ball. Nothing changes.
-       -- point
-    north-a/north-b 6 - 0 south-a/south-b   serving: north-b
-  11.1  north-b   serve     face +14.6 power  55 aim  5 [35mph] -> 8ft from their baseline
-  11.2  south-b   shot      face +14.5 power  42 aim 17 [25mph] -> 12ft from their baseline
-  11.3  north-a   volley    face  +1.6 power  50 aim 11 [30mph] -> 6ft from their baseline
-  11.4  south-a   shot      face +16.7 power  42 aim  8 [26mph] -> 10ft from their baseline
-  11.5  north-a   shot      face +15.6 power  42 aim  8 [25mph] -> 9ft from their baseline
-  11.6  south-a   shot      face +13.6 power  42 aim 13 [26mph] -> 9ft from their baseline
-  11.7  north-a   shot      face +15.4 power  42 aim 15 [26mph] -> 9ft from their baseline
-  11.8  south-a   shot      face +13.4 power  42 aim  3 [25mph] -> 12ft from their baseline
-  11.9  north-a   volley    face  +2.6 power  50 aim  8 [30mph] -> 6ft from their baseline
-  11.10 south-b   shot      face +16.9 power  42 aim  5 [26mph] -> 10ft from their baseline
-  11.11 north-a   shot      face +19.3 power  42 aim 11 [17mph] -> into the net at 2.3ft, 0.6ft under the tape — needs more height
-       -- north-a faulted: into the net at 2.3ft, 0.6ft under the tape — needs more height
-       -- side out
-    north-a/north-b 6 - 0 south-a/south-b   serving: south-a
-  12.1  south-a   serve     face  +9.5 power  55 aim  5 [33mph] -> into the net at 2.8ft, 0.1ft under the tape — needs more height
-       -- south-a faulted: into the net at 2.8ft, 0.1ft under the tape — needs more height
-       -- second server
-    north-a/north-b 6 - 0 south-a/south-b   serving: south-b
-  13.1  south-b   serve     face +10.9 power  55 aim 15 [33mph] -> 12ft from their baseline
-  13.2  north-b   shot      face +12.1 power  42 aim  9 [25mph] -> 10ft from their baseline
-  13.3  south-a   shot      face +12.9 power  42 aim 13 [26mph] -> 8ft from their baseline
-  13.4  north-b   shot      face +17.9 power  42 aim  9 [24mph] -> 11ft from their baseline
-  13.5  south-a   volley    face  +1.0 power  50 aim 12 [30mph] -> 7ft from their baseline
-  13.6  north-b   shot      face +17.7 power  42 aim  4 [24mph] -> 14ft from their baseline
-  13.7  south-a   volley    face  +4.7 power  50 aim 14 [29mph] -> 2ft from their baseline
-       -- fault: south-a was carried into the kitchen by the volley's momentum (5.8ft from the net, inside the 7ft line) — the ball was already dead
-       == south-a reads its own fault (momentum) and it was not the stance: it was 0.3ft from its own line, having gone to the ball. Nothing changes.
-       -- side out
-    north-a/north-b 6 - 0 south-a/south-b   serving: north-a
-  14.1  north-a   serve     face +13.3 power  55 aim 15 [31mph] -> 14ft from their baseline
-  14.2  south-a   shot      face +12.6 power  42 aim 10 [26mph] -> 5ft from their baseline
-  14.3  north-b   shot      face +18.0 power  42 aim 13 [25mph] -> 12ft from their baseline
-  14.4  south-a   volley    face  +1.2 power  50 aim 15 [30mph] -> 5ft from their baseline
-       -- fault: south-a was carried into the kitchen by the volley's momentum (7.0ft from the net, inside the 7ft line) — the ball was already dead
-       == south-a reads its own fault (momentum): 3ft behind the line was too close. Standing 4ft back from here.
-       -- point
-    north-a/north-b 7 - 0 south-a/south-b   serving: north-a
-  15.1  north-a   serve     face +13.2 power  55 aim  5 [33mph] -> 12ft from their baseline
-  15.2  south-b   shot      face +13.8 power  42 aim 14 [25mph] -> 8ft from their baseline
-  15.3  north-b   shot      face +16.7 power  42 aim  6 [26mph] -> 9ft from their baseline
-  15.4  south-b   shot      face +15.2 power  42 aim 17 [25mph] -> 9ft from their baseline
-  15.5  north-b   shot      face +14.8 power  42 aim 16 [26mph] -> 9ft from their baseline
-  15.6  south-a   shot      face +26.2 power  42 aim 13 [19mph] -> 14ft from their baseline
-  15.7  north-b   volley    face  +1.7 power  50 aim 13 [30mph] -> 3ft from their baseline
-       -- fault: volleyed from inside the kitchen (6.5ft from the net; the line is at 7.0ft)
-       == north-b reads its own fault (kitchen) and it was not the stance: it was 0.5ft from its own line, having gone to the ball. Nothing changes.
-       -- second server
-    north-a/north-b 7 - 0 south-a/south-b   serving: north-b
-  16.1  north-b   serve     face +13.9 power  55 aim 15 [33mph] -> 11ft from their baseline
-  16.2  south-a   shot      face +15.9 power  42 aim  9 [24mph] -> 8ft from their baseline
-  16.3  north-a   shot      face +14.9 power  42 aim  4 [24mph] -> 13ft from their baseline
-  16.4  south-b   volley    face  +1.4 power  50 aim 10 [30mph] -> 3ft from their baseline
-       -- fault: south-b was carried into the kitchen by the volley's momentum (5.8ft from the net, inside the 7ft line) — the ball was already dead
-       == south-b reads its own fault (momentum) and it was not the stance: it was 0.3ft from its own line, having gone to the ball. Nothing changes.
-       -- point
-    north-a/north-b 8 - 0 south-a/south-b   serving: north-b
-  17.1  north-b   serve     face +13.4 power  55 aim  5 [33mph] -> 11ft from their baseline
-  17.2  south-b   shot      face +14.7 power  42 aim  7 [25mph] -> 8ft from their baseline
-  17.3  north-a   shot      face +14.7 power  42 aim 11 [25mph] -> 13ft from their baseline
-  17.4  south-b   volley    face  +1.7 power  50 aim 13 [30mph] -> 4ft from their baseline
-       -- fault: south-b was carried into the kitchen by the volley's momentum (6.4ft from the net, inside the 7ft line) — the ball was already dead
-       == south-b reads its own fault (momentum) and it was not the stance: it was 0.9ft from its own line, having gone to the ball. Nothing changes.
-       -- point
-    north-a/north-b 9 - 0 south-a/south-b   serving: north-b
-  18.1  north-b   serve     face +12.9 power  55 aim 15 [34mph] -> 11ft from their baseline
-  18.2  south-a   shot      face +13.0 power  42 aim  7 [26mph] -> 8ft from their baseline
-  18.3  north-a   shot      face +12.2 power  42 aim  4 [18mph] -> into the net at 0.2ft, 2.7ft under the tape — needs more height
-       -- north-a faulted: into the net at 0.2ft, 2.7ft under the tape — needs more height
-       -- side out
-    north-a/north-b 9 - 0 south-a/south-b   serving: south-a
-  19.1  south-a   serve     face +11.1 power  55 aim  5 [34mph] -> 9ft from their baseline
-  19.2  north-b   shot      face +14.5 power  42 aim 15 [25mph] -> 12ft from their baseline
-  19.3  south-b   volley    face  +1.6 power  50 aim 10 [31mph] -> 4ft from their baseline
-  19.4  north-a   shot      face +22.9 power  42 aim 16 [24mph] -> 14ft from their baseline
-  19.5  south-b   volley    face  +0.9 power  50 aim 10 [31mph] -> 2ft from their baseline
-       -- fault: volleyed from inside the kitchen (6.8ft from the net; the line is at 7.0ft)
-       == south-b reads its own fault (kitchen) and it was not the stance: it was 0.2ft from its own line, having gone to the ball. Nothing changes.
-       -- second server
-    north-a/north-b 9 - 0 south-a/south-b   serving: south-b
-  20.1  south-b   serve     face +11.1 power  55 aim 15 [33mph] -> 11ft from their baseline
-  20.2  north-a   shot      face +14.3 power  42 aim  8 [25mph] -> 10ft from their baseline
-  20.3  south-b   shot      face +12.7 power  42 aim 16 [25mph] -> 11ft from their baseline
-  20.4  north-a   volley    face  +1.1 power  50 aim  7 [29mph] -> 8ft from their baseline
-  20.5  south-b   shot      face +13.7 power  42 aim 17 [25mph] -> 12ft from their baseline
-  20.6  north-a   volley    face  +3.1 power  50 aim 16 [30mph] -> 5ft from their baseline
-  20.7  south-a   shot      face +16.8 power  42 aim  7 [26mph] -> 12ft from their baseline
-  20.8  north-b   volley    face  -0.1 power  50 aim  7 [30mph] -> 7ft from their baseline
-       -- fault: north-b was carried into the kitchen by the volley's momentum (6.8ft from the net, inside the 7ft line) — the ball was already dead
-       == north-b reads its own fault (momentum): 2ft behind the line was too close. Standing 3ft back from here.
-       -- point
-    north-a/north-b 9 - 1 south-a/south-b   serving: south-b
-  21.1  south-b   serve     face +10.8 power  55 aim  5 [32mph] -> 13ft from their baseline
-  21.2  north-b   shot      face +15.5 power  42 aim 16 [25mph] -> 7ft from their baseline
-  21.3  south-a   shot      face +14.7 power  42 aim 14 [25mph] -> 11ft from their baseline
-  21.4  north-a   volley    face  +3.3 power  50 aim 13 [29mph] -> 6ft from their baseline
-  21.5  south-a   shot      face  -0.8 power  42 aim 14 [16mph] -> their own side of the net, 6.7ft short
-       -- south-a faulted: their own side of the net, 6.7ft short
-       -- side out
-    north-a/north-b 9 - 1 south-a/south-b   serving: north-a
-  22.1  north-a   serve     face +13.9 power  55 aim  5 [33mph] -> 11ft from their baseline
-  22.2  south-a   shot      face +12.7 power  42 aim 10 [24mph] -> 11ft from their baseline
-  22.3  north-b   shot      face +13.6 power  42 aim 14 [24mph] -> 11ft from their baseline
-  22.4  south-a   volley    face  +0.9 power  50 aim  7 [30mph] -> 7ft from their baseline
-  22.5  north-b   shot      face +16.0 power  42 aim  5 [26mph] -> 11ft from their baseline
-  22.6  south-a   volley    face  +1.5 power  50 aim  9 [29mph] -> 7ft from their baseline
-  22.7  north-b   shot      face +15.6 power  42 aim  7 [25mph] -> 12ft from their baseline
-  22.8  south-a   volley    face  +1.1 power  50 aim  6 [29mph] -> 6ft from their baseline
-  22.9  north-b   shot      face +16.4 power  42 aim  5 [25mph] -> 13ft from their baseline
-  22.10 south-a   volley    face  +2.7 power  50 aim 13 [31mph] -> 3ft from their baseline
-       -- fault: south-a was carried into the kitchen by the volley's momentum (6.5ft from the net, inside the 7ft line) — the ball was already dead
-       == south-a reads its own fault (momentum) and it was not the stance: it was 1.0ft from its own line, having gone to the ball. Nothing changes.
-       -- point
-    north-a/north-b 10 - 1 south-a/south-b   serving: north-a
-  23.1  north-a   serve     face +13.3 power  55 aim 15 [34mph] -> 10ft from their baseline
-  23.2  south-b   shot      face +15.5 power  42 aim 10 [26mph] -> 7ft from their baseline
-  23.3  north-b   shot      face +16.9 power  42 aim 13 [25mph] -> 11ft from their baseline
-  23.4  south-b   volley    face  +4.1 power  50 aim 15 [29mph] -> 4ft from their baseline
-  23.5  north-b   shot      face +21.5 power  42 aim  6 [24mph] -> 14ft from their baseline
-  23.6  south-a   volley    face +11.2 power  50 aim  6 [18mph] -> 10ft from their baseline
-       -- fault: volleyed from inside the kitchen (6.3ft from the net; the line is at 7.0ft)
-       == south-a reads its own fault (kitchen) and it was not the stance: it was 0.7ft from its own line, having gone to the ball. Nothing changes.
-       -- point
-    north-a/north-b 11 - 1 south-a/south-b   game
-  faults: kitchen 5, momentum 11, out 6, serve 1
-  game: north-a/north-b 11-1 (23 rallies, mean 5.8 shots)
-
-  a scripted game with a lesson: the rules are exercised and the stance is learned. No season was written.
