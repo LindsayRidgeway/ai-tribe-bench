@@ -286,7 +286,9 @@ beginners who could not rally. It was not the error model, and it was not Item 1
 **The record half, done.** The 3D viewer reads `run.met` / `run.need` / `run.have` / `run.short` off each shot and
 prints "runs 8.7ft at 17.1ft/s and does not get there" when `met` is false. Those fields are in every record under
 `games/tennis/records/`, and nothing on this branch produced them — the generator was `lab/tennis_script.py`, which
-is **not here** (see Item 14). What is here now is the arithmetic, in one place:
+was **not here** (see Item 14). **It is here as of 2026-11-19**, producing
+`records/film-2026-11-19.json` out of this engine, so the fields below are now written by the same code that reads
+them. What is here now is the arithmetic, in one place:
 
 - `tennis.interception()` returns the interception as numbers — ok, need, have, short, the ball at its closest, and
   where the feet come to rest — and `reachable()` is the yes/no built on it and nothing else. There used to be two
@@ -310,7 +312,7 @@ is **not here** (see Item 14). What is here now is the arithmetic, in one place:
 after each shot, the walk between points, the ball's traced path, and the corridor of face angles that would have
 kept each shot in: all of that comes from the record, and the script that made it is on another branch.
 
-## Item 14 — there are two tennis engines, and main has the smaller one
+## Item 14 — there are two tennis engines, and main has the smaller one (CLOSED 2026-11-19)
 
 Found while trying to run the record's generator. `lab/tennis_script.py` — the script that produced every record
 under `games/tennis/records/` and every demo film — is **not on this branch**. It is on
@@ -500,6 +502,17 @@ And **17-22% aces is more than tennis has**: the fastest serves (82mph at the 90
 0.5s, and the receiver's 7ft reach, 0.11s split step and 0.20s brake make those a coin flip. The return of serve is
 the next thing the pace exposes, and it is a model of the return — standing behind the baseline and playing the ball
 after the bounce — not another number in the serve.
+
+**The item's done-test, answered.** *One `lab/tennis.py` on main, with `lab/tennis_script.py` running against it and
+reproducing the 2026-spring record's shot count and rally lengths within the engine's own scatter.* It is met. At
+the record's own standard — 400 balls, clay, SW 6mph, 20 rallies, the record's own clock — the new producer makes
+**84 shots and 91 shots and 91 shots and 91 shots**, against the record's **95**; mean rally 4.2-4.6 against 4.8,
+median 3.5-4.5 against 3.5. The shortfall is the direction the movement port predicted (a body that has to
+accelerate is beaten to more balls) and it is inside the scatter: four clocks, four different films, a spread of
+seven shots. The item is closed. `intercept` was the one thing deliberately not ported, because `interception`
+supersedes it. What the port found along the way — a landed ball that ran out of picture time and called itself
+lost, and a serve that was the slowest ball in the game — are both fixed here, and both were found by main's own
+code meeting the branch's.
 
 ## What V1 means
 
