@@ -134,7 +134,7 @@ needs `run + prep`. `prep` slides between the two, and `rush = (required - fligh
 make the ball slower; it makes the two things happen at once.
 
 **The curve has an onset, and it is slower than the others.** `prep = 1 - exp(-max(0, balls - 60) / 240)`: zero
-for the first sixty balls (the earliest stage), 0.34 at 160, 0.63 at 300, 0.86 at 600. Striking a ball and
+for the first sixty balls (the earliest stage), 0.34 at 160, 0.63 at 300, 0.89 at 600. (This line said 0.86 until 2026-11-18, copied from the engine's own docstring; the curve gives 0.8946, and the docstring now says so.) Striking a ball and
 remembering to prepare for it are different skills and do not arrive together.
 
 Measured over 30 points at each standard —
@@ -150,6 +150,14 @@ Measured over 30 points at each standard —
 At 150 balls every ball is rushed and a rally is under three shots. That is not a bug in the arithmetic, it is
 what that standard of player is, and it means the demo has to be generated with practised players or it shows
 nothing but mistakes.
+
+**On main since 2026-11-18** (`9207d370`), with the measurement that says what it is worth today: over 300 points
+at each skill level, **rush fires on 0-3% of shots**. To be rushed a player needs a run of about a second *and* a
+flight of about a second, and this game gives 1.5-2s flights — because the fastest ball in it is a 50mph arc with no
+toss and no overhead. The rule is correct, it is in, and it is waiting on the serve. Nothing was tuned to make it
+fire. In the same commit the return of a serve stopped being the one ball exempt from the interception (it was asked
+only from the second shot on, so an ace was impossible); aces in 900 serves: 0, which is what a 50mph serve deserves
+and is no longer something the code assumes.
 
 **In the picture** the windup now depends on it: a prepared receiver has the racquet back and the shoulders turned
 for the whole run; a rushed one starts the backswing late, over `0.55 - 0.30·rush` seconds instead of 0.55. The
@@ -810,35 +818,3 @@ balls they have to get to.
 time, with no memory of where the last shot left them, and with no anticipation — the real player knows roughly
 where the ball is going before it leaves your strings, and that is why `RACQUET_REACH` is 7.0ft rather than the
 3.0ft of arm and racquet. Both assumptions are written in the code where they are used, not here.
-
-## Getting the racquet back, in the run or after it — 2026-11-18
-
-Movement decided whether a player reached the ball. It did not decide how well they hit it: arriving by half a
-second and arriving with half a second to spare were the same stroke. The longer engine has the missing piece and it
-came over today — `prep`, a fourth skill that measures the habit the founder named on 2026-11-11 ("inexperienced
-players don't know to get their racquets back as they're running, and that leads to mishits"), and `rush`, which is
-how much of the racquet's preparation the flight did not allow.
-
-The arithmetic is the point. Taking the racquet back takes `PREP_TIME` = 0.55s. A player who does it *while* running
-needs `max(run, prep)`; a player who does them one after the other needs `run + prep`. `prep` slides between the two,
-so the same ball, the same legs and the same court give a different answer as the habit arrives:
-
-| run 1.0s, flight 1.0s | rush |
-|---|---|
-| 0 balls | 0.35 |
-| 160 balls | 0.27 |
-| 300 balls | 0.17 |
-| 600 balls | 0.05 |
-
-And a rushed ball is a worse ball, in two places: worse hands (`control ×= 1 − 0.45·rush`) and 0.55× the chance of
-finding the strings. Learning does not make the ball slower; it makes the two things happen at once.
-
-**Measured, 300 points at each skill level: rush fires on 0–3% of shots.** A player needs a run of about a second
-*and* a flight of about a second, and this game gives 1.5–2s flights. The reason is the serve: it is a 50mph arc with
-no toss and no overhead, so the fastest ball in the game is also the most comfortable one to return, and every rally
-that follows it is slower still. The rule is in, it is correct, and it is waiting on the serve — movement list item 3.
-Writing that down is the alternative to pretending a rule is doing work it is not.
-
-**Also in today:** the return of a serve is a ball like any other. The interception was only asked from the second
-shot on, so no serve could be an ace and no return could be rushed. It is asked from shot one now. Aces: 0 in 900
-serves, which is what a 50mph serve deserves and is no longer an assumption the code makes.
