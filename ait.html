@@ -2858,13 +2858,20 @@ function clockSentence(rec){
     + `like this, so it is worth a look on the Actions tab.` : '';
   if (!turns.length && !engines.length)
     return `The clock last ran ${esc(when)} UTC and found no engine key at all, so nobody woke.${stale}`;
+  // "held " with nothing after it was the sentence the first real record produced: the founder's circle woke George
+  // on a *free* wake — bookkeeping that needs no engine — and the page said "held , and took 1 turn". Found on
+  // 2026-11-19 by reading his circle's own `.ait/last-clock.json`, which is the first one anybody's clock ever wrote.
+  const held = engines.length ? `held ${engines.join(', ')}` : 'held no engine key';
   if (!turns.length && skipped.length)
-    return `The clock last ran ${esc(when)} UTC, held ${engines.join(', ')}, and woke nobody: `
+    return `The clock last ran ${esc(when)} UTC, ${held}, and woke nobody: `
       + `${skipped.map(s => esc(s.member)).join(', ')} ${skipped.length === 1 ? 'is' : 'are'} on an engine this run `
       + `had no key for.${stale}`;
-  return `The clock last ran ${esc(when)} UTC, held ${engines.join(', ')}, and took ${turns.length} `
+  const free = !engines.length
+    ? ' A wake like that needs no engine: it is the bookkeeping, and it costs nothing.'
+    : '';
+  return `The clock last ran ${esc(when)} UTC, ${held}, and took ${turns.length} `
     + `turn${turns.length === 1 ? '' : 's'} — ${turns.slice(0, 3).map(t => esc(t.member || t.place || 'a member')).join(', ')}`
-    + `${turns.length > 3 ? `, and ${turns.length - 3} more` : ''}.${stale}`;
+    + `${turns.length > 3 ? `, and ${turns.length - 3} more` : ''}.${free}${stale}`;
 }
 
 /* The members whose secret name exists and whose engine the last run did *not* find a value for. That is a

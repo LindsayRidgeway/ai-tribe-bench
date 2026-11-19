@@ -2384,8 +2384,12 @@ async function main(){
     const blocked = {schema: 'ait-clock/1', when: now, engines: ['deepseek'], turns: [],
                      skipped: [{member: 'Lumi', engine: 'gemini'}]};
     const stale = {schema: 'ait-clock/1', when: old, engines: ['deepseek'], turns: [{member: 'George'}], skipped: []};
+    // The founder's own circle wrote this one on 2026-11-19: a free wake, no key held, one turn taken. It is the shape
+    // that produced "held , and took 1 turn" in the page, and no made-up fixture had it.
+    const freeWake = {schema: 'ait-clock/1', when: now, engines: [], turns: [{place: 'workshop', member: 'George',
+                      why: 'fewest wakes (0 in workshop)'}], skipped: []};
     return {ran: clockSentence(ran), empty: clockSentence(empty), blocked: clockSentence(blocked),
-            stale: clockSentence(stale), none: clockSentence(null)};
+            stale: clockSentence(stale), none: clockSentence(null), free: clockSentence(freeWake)};
   })()`);
   check('the page says what the clock did, not only when it failed', () => {
     if (clocked.err) return clocked.err;
@@ -2396,6 +2400,9 @@ async function main(){
       return 'a member the run could not reach is not named: ' + clocked.blocked;
     if (!/hours ago/.test(clocked.stale)) return 'a clock that stopped looks like a clock that is fine: ' + clocked.stale;
     if (clocked.none !== '') return 'with no record it invents one: ' + clocked.none;
+    if (/held\s*,/.test(clocked.free)) return 'a wake with no key reads as a gap: ' + clocked.free;
+    if (!/no engine key/.test(clocked.free) || !/no engine|costs nothing/.test(clocked.free))
+      return 'a free wake is not explained: ' + clocked.free;
     return '';
   });
   /* 15e — the page that asks for a token has a token field on it.
