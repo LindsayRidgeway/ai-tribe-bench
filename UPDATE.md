@@ -1,4 +1,4 @@
-# Updating an AIT instance
+# Updating a circle
 
 *Requested by the founder, 2026-11-15: "when the user starts an AIT session (via connect), AIT checks to see
 whether it is currently running the most up-to-date version, based I guess on your dev repo, and if not, updates
@@ -128,7 +128,7 @@ keeps going for the others, and the report says which.
 
 **What is not done, deliberately:** it does not update itself on connect. The rule at the top of this file says
 silent when the update can be proven not to touch data, and the page can now prove it — but the proof has been run
-against a fake GitHub and not yet against eight real tribes, and a wrong manifest in a live page commits to
+against a fake GitHub and not yet against eight real circles, and a wrong manifest in a live page commits to
 somebody's repository. Once one real tribe has been updated by a press (`tribe-desi` is the candidate), making it
 automatic on connect is one line: call `applyUpdate()` from `ensureUpdateNote()` when the plan has no `kept` and no
 `waiting`.
@@ -158,3 +158,30 @@ and the button appears only when there is something to update. That is 88 checks
 3. ~~The silent write, behind the manifest, refusing modified files.~~ **Built 2026-11-15**: the write is behind
    the manifest, refuses modified files, and reports a 409 file by file. Its own last step is making it automatic on
    connect, which waits for one real tribe to have been updated by a press.
+
+## First real press — 2026-11-19
+
+The founder's own circle, `test-circle-20261119-1223`, was the first real one to be pressed. What it found is worth
+keeping, because both findings are about the *record* rather than about the write.
+
+**A press that replaced nothing could not finish.** Forty-seven files, every one of them identical to the template's
+head, and no `.ait/version.json` — the install copied the machinery and lost the receipt. `applyUpdate()` returned
+early when the plan had nothing to copy, so the one press that could have written the record did nothing, for ever:
+a circle that can never be told it is current, offered a button that cannot finish. The plan now computes `identical`
+from contents (`every path on the manifest present in both trees with the same blob sha`) and the press writes the
+record when that is true and the record is not provable. Nothing is copied; nothing is replaced.
+
+The record it writes says what it knows and no more: `installed_from` is `null`, because where the circle came from is
+still unknown and filling that field with the current commit would be inventing a history to tidy a form —
+`updated_to` is the version its files *are*, checked one by one just now — and `confirmed: "by content"` marks which
+of the two kinds of knowledge this record is, so a later reader is not left guessing whether it was a receipt or a
+comparison. `lab/page-check.mjs` 12j holds both halves: the press is offered, and pressing it writes the record,
+replaces nothing, and the circle is current afterwards.
+
+**A press that adds files and leaves older ones alone still stamps nothing.** The same day, on the same circle,
+pressing write on a circle that gained three files it had never had and left twenty-one older ones untouched produced
+`"Machinery up to date"` from the page and `0 replaced, 21 files still older` from `lab/repos.py machinery`. A press
+that has brought a circle forward without bringing it home records what it touched (`touched: {template, at, files}`)
+and claims no version. The gate for making the update automatic on connect is still open for that reason: a real press
+has now written a record, but no real press has yet *replaced* a file on somebody's circle, and the automatic version
+is exactly the one nobody is watching.

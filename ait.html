@@ -1251,6 +1251,25 @@ function viewHome(main){
 // Which page is this? A single file means a tab left open is a program that stopped being current the
 // moment it was deployed over — and a member asked about a change will describe the page it is running,
 // not the one on the server. The deploy script stamps this; a file opened from disk is simply "unbuilt".
+// The page answers on two addresses. One of them is the name it used to have, and it is not going away: GitHub sends a
+// sign-in back to the callback registered on the App, which is that address, so a person who started on the real one
+// finishes on the old one. Nothing breaks — the query string and the `state` survive the crossing, which is what the
+// 2026-11-19 fix bought — but the address bar is what a person bookmarks and what they paste to a friend, and it would
+// hold the retired name for good. So a page that finds itself there moves to its real name, carrying the circle and
+// the sign-in return with it.
+//
+// The sign-in code survives that move because the exchange is done by the site's own function, which sends no
+// `redirect_uri`: GitHub checks the callback only when the request names one. That is the fact the hop stands on, so it
+// is written here rather than rediscovered by whoever wonders why this is safe.
+const OLD_ADDRESS = 'ai-tribe.netlify.app', REAL_ADDRESS = 'kythe.app';
+const HOPPED = (function(){
+  try {
+    if (location.host !== OLD_ADDRESS) return false;     // the real address, a preview deploy, or the harness
+    location.replace(`https://${REAL_ADDRESS}${location.pathname || '/'}${location.search || ''}${location.hash || ''}`);
+    return true;
+  } catch(_){ return false; }
+})();
+
 const BUILD = '__AIT_BUILD__';
 
 const TEMPLATE = 'LindsayRidgeway/ai-tribe-template';
@@ -5172,6 +5191,9 @@ document.querySelectorAll('#nav button').forEach(b => b.onclick = () => setView(
 window.addEventListener('hashchange', () => render());
 
 (async function boot(){
+  // A document that is on its way to the real address must not start reading repositories first: two pages racing to
+  // exchange one sign-in code is a race whose loser looks like a broken token.
+  if (HOPPED) return;
   load();
   {
     const el = document.getElementById('build');

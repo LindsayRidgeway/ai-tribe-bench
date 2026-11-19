@@ -226,7 +226,9 @@ const localStorage = {
   removeItem: (k) => store.delete(k),
 };
 
+const replaceCalls = [];       // where a page that found itself at the retired address sent the browser
 const location = {hash: '', search: '', pathname: '/ait.html', href: 'http://localhost/ait.html',
+                  host: 'kythe.app', replace(to){ replaceCalls.push(to); },
                   replaceState(){}, assign(){}};
 
 const sandbox = {
@@ -2249,6 +2251,43 @@ async function main(){
     if (recorded.v.confirmed !== 'by content') return 'the record does not say how it was known: ' + JSON.stringify(recorded.v);
     if (recorded.state !== 'current') return 'the check afterwards says ' + recorded.state;
     if (!/Nothing was replaced/.test(recorded.said)) return 'the report does not say nothing was replaced: ' + recorded.said;
+    return '';
+  });
+
+  // 13 — the address the page gives itself
+  const was = {host: location.host, search: location.search, hash: location.hash, pathname: location.pathname};
+  location.pathname = '/';        // what production serves; the harness file name is not an address
+  location.host = 'ai-tribe.netlify.app';
+  location.search = '?circle=Sam/tribe&code=one&state=connect.a.7f2k';
+  location.hash = '#/today';
+  replaceCalls.length = 0;
+  exchanges.length = 0;
+  loadPage(true);
+  await new Promise(r => setTimeout(r, 60));
+  const hop = {calls: replaceCalls.slice(), exchanges: exchanges.slice()};
+  check('a page opened at the address the rename retired moves to the real one, and keeps the circle and the return', () => {
+    if (hop.calls.length !== 1) return 'the page did not move: ' + JSON.stringify(hop.calls);
+    if (hop.calls[0] !== 'https://kythe.app/?circle=Sam/tribe&code=one&state=connect.a.7f2k#/today')
+      return 'the move loses something: ' + hop.calls[0];
+    if (hop.exchanges.length) return 'it read a repository or spent the sign-in code before leaving: ' + JSON.stringify(hop.exchanges);
+    return '';
+  });
+  location.host = 'kythe.app';
+  location.search = '';
+  location.hash = '';
+  replaceCalls.length = 0;
+  loadPage(true);
+  await new Promise(r => setTimeout(r, 60));
+  const nohop = replaceCalls.slice();
+  check('a page already at its real name does not move, and a preview deploy is not dragged anywhere', () => {
+    if (nohop.length) return 'it moved from its own address: ' + JSON.stringify(nohop);
+    location.host = 'deploy-preview-3--ai-tribe.netlify.app';
+    replaceCalls.length = 0;
+    loadPage(true);
+    const preview = replaceCalls.slice();
+    location.host = was.host; location.search = was.search; location.hash = was.hash;
+    location.pathname = was.pathname;
+    if (preview.length) return 'a preview deploy was sent to production: ' + JSON.stringify(preview);
     return '';
   });
 
