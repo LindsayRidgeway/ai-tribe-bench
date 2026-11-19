@@ -1,7 +1,9 @@
 golf — 2026-11-19 — lab/golf.py, seed 20261119
-Six rounds of nine holes (par 35), then six holes never played (par 22).
-Then the control: the same athlete, the same seed, --learn 0, never updated.
+A bag of six clubs at six gears, nine holes with the pins cut near the edges and a wind on every one.
 ================================================================
+
+1. THE COURSE, WINDY — six rounds, then six holes never played
+
 `games/putt/` taught one thing — pace and line, two unknown numbers, closed by bisection. Golf is a
 
 BAG (carry + run at a full swing, fairway)
@@ -13,290 +15,683 @@ BAG (carry + run at a full swing, fairway)
   sand wedge    104 +   17 =   122 yd   82 mph, 28.0°, 10000 rpm, hang 3.9s
 
 ROUND 1
-  R1·  1  410 yd par 4   3 wood       98%  265.5 yd   144.8 short 12.4 right fairway
-  R1·  1  410 yd par 4   5 iron       78%  151.2 yd     5.9 long   0.4 right fairway
-  R1·  1                   putt         17.6 ft  0.1 ft past, 1.4 ft left
-  R1·  1                   putt          1.5 ft  0.7 ft short
-  R1·  1                   putt          0.7 ft  0.4 ft short
-  R1·  1                   putt          0.4 ft  0.1 ft short
-  R1·  2  165 yd par 3   driver       60%  137.1 yd    28.1 short  6.0 right fairway
-  R1·  2  165 yd par 3   sand wedge   37%   22.4 yd     6.3 short  0.1 left  fairway
-  R1·  2                   putt         19.0 ft  5.2 ft short, 1.3 ft right
-  R1·  2                   putt          5.4 ft  0.8 ft short, 0.3 ft right
-  R1·  2                   putt          0.8 ft  0.1 ft short
+  R1·  1  410 yd par 4   3 wood       98%  314.1 yd    96.5 short 18.7 right aim  +3.0 ft  fairway
+  R1·  1  410 yd par 4   driver       44%   60.8 yd    37.5 short  0.5 right aim  +2.0 ft  rough  
+  R1·  1  410 yd par 4   sand wedge   35%   21.3 yd    16.2 short  0.2 right aim  +4.0 ft  fairway
+  R1·  1  410 yd par 4   sand wedge   37%   23.5 yd     7.1 long   2.9 left  aim  +4.0 ft  fairway green
+  R1·  1                   putt         23.0 ft  beside the hole, 0.5 ft left
+  R1·  1                   putt          0.5 ft  0.3 ft short
+  R1·  1                   putt          0.3 ft  0.1 ft short
+  R1·  1                   putt          0.1 ft  beside the hole
+  R1·  2  165 yd par 3   driver       61%  124.7 yd    40.4 short  2.1 right aim  -2.0 ft  fairway
+  R1·  2  165 yd par 3   9 iron       25%   13.8 yd    26.7 short  1.2 right aim  -3.0 ft  fairway
+  R1·  2  165 yd par 3   sand wedge   24%    9.7 yd    17.2 short  0.9 right aim  -3.0 ft  fairway
+  R1·  2  165 yd par 3   9 iron       25%   13.7 yd     3.7 short  2.4 right aim  -3.0 ft  fairway green
+  R1·  2                   putt         13.2 ft  3.7 ft short, 1.1 ft right
+  R1·  2                   putt          3.9 ft  0.6 ft short, 0.3 ft right
+  R1·  2                   putt          0.7 ft  beside the hole
   R1·  2                   putt          0.1 ft  beside the hole
-  R1·  3  520 yd par 5   driver      101%  298.9 yd   221.4 short 11.8 left  fairway
-  R1·  3  520 yd par 5   driver       80%  217.7 yd     4.0 short  0.0 left  fairway
-  R1·  3                   putt         12.1 ft  0.8 ft short, 1.0 ft right
-  R1·  3                   putt          1.3 ft  beside the hole
+  R1·  3  520 yd par 5   3 wood      102%  341.8 yd   178.2 short  6.1 left  aim  +1.0 ft  fairway
+  R1·  3  520 yd par 5   3 wood       60%  147.4 yd    30.9 short  1.8 left  aim  +0.0 ft  fairway
+  R1·  3  520 yd par 5   sand wedge   36%   22.5 yd     8.5 short  1.5 left  aim  -3.0 ft  fairway green
+  R1·  3                   putt         26.0 ft  1.6 ft short, 4.3 ft right
+  R1·  3                   putt          4.6 ft  0.2 ft short, 0.3 ft right
+  R1·  3                   putt          0.4 ft  beside the hole
   R1·  3                   putt          0.0 ft  beside the hole
-  R1·  3                   putt          0.0 ft  in the hole  (4 putts)
-  R1·  4  300 yd par 4   driver       98%  286.9 yd    13.1 short  4.2 left  fairway
-  R1·  4  300 yd par 4   sand wedge   35%   20.6 yd     6.7 long   0.5 right fairway
-  R1·  4                   putt         20.3 ft  0.2 ft short, 2.0 ft left
-  R1·  4                   putt          2.0 ft  beside the hole
-  R1·  4                   putt          0.1 ft  in the hole  (3 putts)
-  R1·  5  145 yd par 3   5 iron       82%  160.4 yd    15.4 long   2.3 left  fairway
-  R1·  5  145 yd par 3   sand wedge   35%   20.4 yd     4.8 long   0.0 left  fairway
-  R1·  5                   putt         14.4 ft  beside the hole, 1.0 ft right
-  R1·  5                   putt          1.0 ft  in the hole  (2 putts)
-  R1·  6  385 yd par 4   driver      102%  301.4 yd    83.6 short  2.2 right fairway
-  R1·  6  385 yd par 4   sand wedge   80%   86.7 yd     3.0 long   1.3 right fairway
-  R1·  6                   putt          9.8 ft  beside the hole, 1.0 ft left
-  R1·  6                   putt          1.0 ft  in the hole  (2 putts)
-  R1·  7   95 yd par 3   9 iron       61%   73.5 yd    21.6 short  1.5 left  fairway
-  R1·  7   95 yd par 3   sand wedge   35%   20.1 yd     1.5 short  0.1 right fairway
-  R1·  7                   putt          4.5 ft  beside the hole, 0.3 ft right
-  R1·  7                   putt          0.3 ft  beside the hole
-  R1·  7                   putt          0.0 ft  in the hole  (3 putts)
-  R1·  8  450 yd par 4   driver      100%  294.0 yd   156.0 short  2.8 left  fairway
-  R1·  8  450 yd par 4   5 iron       80%  154.3 yd     1.7 short  1.5 left  fairway
-  R1·  8                   putt          6.8 ft  beside the hole, 0.8 ft right
-  R1·  8                   putt          0.8 ft  in the hole  (2 putts)
-  R1·  9  500 yd par 5   driver      101%  299.7 yd   200.4 short  8.6 left  fairway
-  R1·  9  500 yd par 5   7 iron       99%  180.6 yd    20.0 short  2.5 right fairway
-  R1·  9  500 yd par 5   sand wedge   36%   21.3 yd     1.2 long   0.1 left  fairway
-  R1·  9                   putt          3.5 ft  beside the hole, 0.2 ft left
-  R1·  9                   putt          0.2 ft  beside the hole
-  R1·  9                   putt          0.0 ft  in the hole  (3 putts)
-      round            46 strokes, par 35, +11   putts 27   penalties 0   miss 49.4 yd, notebook off by  7.9%, 0.78° off line
+  R1·  4  300 yd par 4   driver      100%  307.3 yd     6.1 long  26.3 right aim  -3.0 ft  fairway
+  R1·  4  300 yd par 4   sand wedge   36%   14.3 yd    12.7 short  0.6 left  aim  -4.0 ft  rough  
+  R1·  4  300 yd par 4   9 iron       25%   13.6 yd     0.9 long   0.7 left  aim  -4.0 ft  fairway green
+  R1·  4                   putt          3.3 ft  beside the hole, 0.6 ft right
+  R1·  4                   putt          0.6 ft  beside the hole
+  R1·  4                   putt          0.0 ft  beside the hole
+  R1·  4                   putt          0.0 ft  in the hole  (4 putts)
+  R1·  5  145 yd par 3   3 wood       60%  127.1 yd    18.4 short 10.3 left  aim  +2.0 ft  fairway
+  R1·  5  145 yd par 3   sand wedge   35%   19.3 yd     2.1 short  3.3 left  aim  +3.0 ft  fairway green
+  R1·  5                   putt         11.7 ft  beside the hole, 1.8 ft right
+  R1·  5                   putt          1.8 ft  beside the hole, 0.3 ft right
+  R1·  5                   putt          0.3 ft  beside the hole
+  R1·  5                   putt          0.0 ft  in the hole  (4 putts)
+  R1·  6  385 yd par 4   3 wood      101%  248.5 yd   136.5 short  3.8 left  aim  -1.0 ft  fairway
+  R1·  6  385 yd par 4   3 wood       59%  115.2 yd    21.4 short  4.0 right aim  +0.0 ft  fairway
+  R1·  6  385 yd par 4   sand wedge   36%   20.1 yd     1.7 short  0.0 left  aim  -3.0 ft  fairway green
+  R1·  6                   putt          5.1 ft  beside the hole, 0.7 ft right
+  R1·  6                   putt          0.7 ft  beside the hole
+  R1·  6                   putt          0.0 ft  in the hole  (3 putts)
+  R1·  7   95 yd par 3   5 iron       44%   65.5 yd    29.7 short  2.4 right aim  -3.0 ft  fairway
+  R1·  7   95 yd par 3   sand wedge   35%   21.3 yd     8.6 short  2.6 right aim  -4.0 ft  fairway green
+  R1·  7                   putt         27.0 ft  0.1 ft short, 3.1 ft right
+  R1·  7                   putt          3.1 ft  in the hole  (2 putts)
+  R1·  8  450 yd par 4   driver       99%  364.4 yd    85.6 short  1.7 right aim  +3.0 ft  fairway
+  R1·  8  450 yd par 4   sand wedge   81%  105.2 yd    19.5 long   5.1 left  aim  +2.0 ft  fairway
+  R1·  8  450 yd par 4   sand wedge   35%   18.0 yd     2.2 short  1.9 right aim  +3.0 ft  fairway green
+  R1·  8                   putt          8.7 ft  beside the hole, 0.7 ft right
+  R1·  8                   putt          0.7 ft  in the hole  (2 putts)
+  R1·  9  500 yd par 5   driver       99%  261.1 yd   238.9 short  3.2 right aim  -2.0 ft  fairway
+  R1·  9  500 yd par 5   3 wood       82%  186.1 yd    52.9 short  7.2 right aim  -2.0 ft  fairway
+  R1·  9  500 yd par 5   9 iron       35%   25.7 yd    27.8 short  1.5 right aim  -1.0 ft  fairway
+  R1·  9  500 yd par 5   9 iron       35%   25.7 yd     2.3 short  3.1 right aim  -2.0 ft  fairway green
+  R1·  9                   putt         11.8 ft  beside the hole, 0.5 ft right
+  R1·  9                   putt          0.5 ft  in the hole  (2 putts)
+      round            57 strokes, par 35, +22   putts 29   penalties 0   miss 40.4 yd, notebook off by 21.3%, 2.85° off line
 
 ROUND 2
-  R2·  1  410 yd par 4   driver       98%  286.2 yd   123.8 short  3.9 right fairway
-  R2·  1  410 yd par 4   driver       44%   81.8 yd    42.0 short  0.1 left  fairway
-  R2·  1  410 yd par 4   sand wedge   45%   32.4 yd     9.7 short  1.3 right fairway
-  R2·  1                   putt         29.3 ft  beside the hole, 1.9 ft right
-  R2·  1                   putt          1.9 ft  in the hole  (2 putts)
-  R2·  2  165 yd par 3   9 iron      105%  164.2 yd     0.8 short  0.3 right fairway
-  R2·  2                   putt          2.5 ft  in the hole  (1 putt)
-  R2·  3  520 yd par 5   driver      101%  298.9 yd   221.3 short  9.8 left  fairway
-  R2·  3  520 yd par 5   driver       80%  217.7 yd     3.9 short  0.7 right fairway
-  R2·  3                   putt         11.7 ft  beside the hole, 0.8 ft right
-  R2·  3                   putt          0.8 ft  in the hole  (2 putts)
-  R2·  4  300 yd par 4   driver       98%  286.9 yd    13.1 short  3.4 left  fairway
-  R2·  4  300 yd par 4   sand wedge   35%   20.6 yd     7.0 long   0.5 right fairway
-  R2·  4                   putt         21.0 ft  0.2 ft past, 2.1 ft left
-  R2·  4                   putt          2.1 ft  in the hole  (2 putts)
-  R2·  5  145 yd par 3   driver       61%  143.5 yd     1.6 short  1.8 left  fairway
-  R2·  5                   putt          7.2 ft  beside the hole, 0.9 ft right
-  R2·  5                   putt          0.9 ft  beside the hole
-  R2·  5                   putt          0.0 ft  in the hole  (3 putts)
-  R2·  6  385 yd par 4   driver      100%  294.3 yd    90.7 short  0.4 left  fairway
-  R2·  6  385 yd par 4   7 iron       46%   55.8 yd    35.0 short  0.4 right fairway
-  R2·  6  385 yd par 4   sand wedge   45%   32.4 yd     2.6 short  0.5 right fairway
-  R2·  6                   putt          7.9 ft  beside the hole, 0.5 ft right
-  R2·  6                   putt          0.5 ft  in the hole  (2 putts)
-  R2·  7   95 yd par 3   driver       36%   55.9 yd    39.1 short  1.0 left  fairway
-  R2·  7   95 yd par 3   sand wedge   45%   32.2 yd     7.0 short  0.3 right fairway
-  R2·  7                   putt         20.9 ft  beside the hole, 1.7 ft right
-  R2·  7                   putt          1.7 ft  in the hole  (2 putts)
-  R2·  8  450 yd par 4   driver      100%  294.0 yd   156.0 short  2.5 left  fairway
-  R2·  8  450 yd par 4   5 iron       80%  154.3 yd     1.7 short  1.4 left  fairway
-  R2·  8                   putt          6.6 ft  beside the hole, 0.8 ft right
-  R2·  8                   putt          0.8 ft  in the hole  (2 putts)
-  R2·  9  500 yd par 5   driver      101%  299.7 yd   200.4 short  8.5 left  fairway
-  R2·  9  500 yd par 5   5 iron       99%  207.9 yd     7.3 long   2.8 right fairway
-  R2·  9                   putt         23.4 ft  0.2 ft past, 2.4 ft left
-  R2·  9                   putt          2.4 ft  in the hole  (2 putts)
-      round            36 strokes, par 35,  +1   putts 18   penalties 0   miss 53.5 yd, notebook off by  9.7%, 0.67° off line
+  R2·  1  410 yd par 4   driver       98%  338.0 yd    72.2 short 10.6 right aim  +3.0 ft  fairway
+  R2·  1  410 yd par 4   5 iron       34%   42.1 yd    31.0 short  1.5 left  aim  +2.0 ft  fairway
+  R2·  1  410 yd par 4   9 iron       35%   28.9 yd     2.1 short  1.2 left  aim  +4.0 ft  fairway green
+  R2·  1                   putt          7.3 ft  beside the hole, 1.3 ft right
+  R2·  1                   putt          1.3 ft  beside the hole
+  R2·  1                   putt          0.1 ft  beside the hole
+  R2·  1                   putt          0.0 ft  in the hole  (4 putts)
+  R2·  2  165 yd par 3   5 iron      105%  192.7 yd    27.6 long   3.6 right aim  -2.0 ft  fairway
+  R2·  2  165 yd par 3   9 iron       35%   29.7 yd     1.7 long   3.7 left  aim  -3.0 ft  fairway green
+  R2·  2                   putt         12.2 ft  beside the hole, 0.7 ft right
+  R2·  2                   putt          0.7 ft  beside the hole
+  R2·  2                   putt          0.0 ft  beside the hole
+  R2·  2                   putt          0.0 ft  in the hole  (4 putts)
+  R2·  3  520 yd par 5   driver      100%  358.9 yd   161.2 short  4.2 right aim  +1.0 ft  fairway
+  R2·  3  520 yd par 5   5 iron       78%  178.8 yd    17.6 long   0.8 left  aim  +1.0 ft  fairway
+  R2·  3  520 yd par 5   sand wedge   35%   18.5 yd     0.7 long   2.1 right aim  +0.0 ft  fairway green
+  R2·  3                   putt          6.7 ft  beside the hole, 1.2 ft right
+  R2·  3                   putt          1.2 ft  in the hole  (2 putts)
+  R2·  4  300 yd par 4   3 wood      102%  294.9 yd     5.7 short 18.3 right aim  -4.0 ft  fairway
+  R2·  4  300 yd par 4   sand wedge   35%   19.4 yd     0.1 long   1.6 right aim  -4.0 ft  fairway green
+  R2·  4                   putt          5.0 ft  in the hole  (1 putt)
+  R2·  5  145 yd par 3   5 iron       81%  158.2 yd    12.6 long  12.5 left  aim  +3.0 ft  fairway
+  R2·  5  145 yd par 3   sand wedge   35%   19.0 yd     0.8 long   3.8 right aim  +3.0 ft  fairway green
+  R2·  5                   putt         11.7 ft  0.1 ft past, 2.2 ft right
+  R2·  5                   putt          2.2 ft  beside the hole, 0.1 ft right
+  R2·  5                   putt          0.1 ft  beside the hole
+  R2·  5                   putt          0.0 ft  in the hole  (4 putts)
+  R2·  6  385 yd par 4   driver      102%  268.9 yd   116.1 short  0.3 left  aim  -1.0 ft  fairway
+  R2·  6  385 yd par 4   driver       60%  124.9 yd     8.7 long   3.6 right aim  -1.0 ft  fairway
+  R2·  6  385 yd par 4   sand wedge   25%   10.9 yd     1.5 long   0.0 left  aim  -3.0 ft  fairway green
+  R2·  6                   putt          4.5 ft  beside the hole, 0.8 ft right
+  R2·  6                   putt          0.8 ft  beside the hole
+  R2·  6                   putt          0.0 ft  in the hole  (3 putts)
+  R2·  7   95 yd par 3   7 iron       45%   56.8 yd    38.4 short  3.2 right aim  -2.0 ft  fairway
+  R2·  7   95 yd par 3   5 iron       35%   43.8 yd     5.1 long   3.6 right aim  -3.0 ft  fairway green
+  R2·  7                   putt         18.7 ft  beside the hole, 0.7 ft left
+  R2·  7                   putt          0.7 ft  beside the hole
+  R2·  7                   putt          0.0 ft  beside the hole
+  R2·  7                   putt          0.0 ft  in the hole  (4 putts)
+  R2·  8  450 yd par 4   driver       99%  364.6 yd    85.4 short  0.8 left  aim  +3.0 ft  fairway
+  R2·  8  450 yd par 4   3 wood       26%   31.1 yd    54.3 short  1.0 left  aim  +2.0 ft  fairway
+  R2·  8  450 yd par 4   sand wedge   44%   34.6 yd    19.8 short  2.5 left  aim  +2.0 ft  fairway
+  R2·  8  450 yd par 4   sand wedge   35%   22.0 yd     1.8 long   2.7 left  aim  +3.0 ft  fairway green
+  R2·  8                   putt          9.8 ft  beside the hole, 0.6 ft right
+  R2·  8                   putt          0.6 ft  beside the hole, 0.1 ft right
+  R2·  8                   putt          0.1 ft  in the hole  (3 putts)
+  R2·  9  500 yd par 5   driver       99%  262.6 yd   238.1 short 18.2 right aim  -2.0 ft  fairway
+  R2·  9  500 yd par 5   driver       81%  197.3 yd    41.6 short  6.0 right aim  -2.0 ft  fairway
+  R2·  9  500 yd par 5   5 iron       25%   20.9 yd    21.1 short  0.9 right aim  -1.0 ft  fairway
+  R2·  9  500 yd par 5   5 iron       25%   20.4 yd     0.8 short  2.1 right aim  -2.0 ft  fairway green
+  R2·  9                   putt          6.8 ft  beside the hole
+  R2·  9                   putt          0.1 ft  in the hole  (2 putts)
+      round            52 strokes, par 35, +17   putts 27   penalties 0   miss 38.6 yd, notebook off by 16.2%, 3.11° off line
 
 ROUND 3
-  R3·  1  410 yd par 4   driver       98%  286.2 yd   123.8 short  3.8 right fairway
-  R3·  1  410 yd par 4   7 iron       59%   85.0 yd    38.8 short  0.1 left  fairway
-  R3·  1  410 yd par 4   sand wedge   45%   32.4 yd     6.5 short  1.3 right fairway
-  R3·  1                   putt         19.9 ft  beside the hole, 1.2 ft right
-  R3·  1                   putt          1.2 ft  beside the hole
-  R3·  1                   putt          0.1 ft  in the hole  (3 putts)
-  R3·  2  165 yd par 3   9 iron      105%  164.2 yd     0.8 short  0.4 right fairway
-  R3·  2                   putt          2.6 ft  in the hole  (1 putt)
-  R3·  3  520 yd par 5   driver      101%  298.9 yd   221.3 short  9.6 left  fairway
-  R3·  3  520 yd par 5   driver       80%  217.7 yd     3.8 short  0.7 right fairway
-  R3·  3                   putt         11.7 ft  beside the hole, 0.8 ft right
-  R3·  3                   putt          0.8 ft  in the hole  (2 putts)
-  R3·  4  300 yd par 4   driver       98%  286.9 yd    13.1 short  3.3 left  fairway
-  R3·  4  300 yd par 4   sand wedge   35%   20.6 yd     7.0 long   0.5 right fairway
-  R3·  4                   putt         21.1 ft  0.2 ft past, 2.1 ft left
-  R3·  4                   putt          2.1 ft  in the hole  (2 putts)
-  R3·  5  145 yd par 3   driver       61%  143.5 yd     1.6 short  1.8 left  fairway
-  R3·  5                   putt          7.1 ft  beside the hole, 0.9 ft right
-  R3·  5                   putt          0.9 ft  beside the hole
-  R3·  5                   putt          0.0 ft  in the hole  (3 putts)
-  R3·  6  385 yd par 4   driver      100%  294.3 yd    90.7 short  0.5 left  fairway
-  R3·  6  385 yd par 4   5 iron       46%   65.8 yd    25.0 short  0.5 right fairway
-  R3·  6  385 yd par 4   sand wedge   35%   20.3 yd     4.7 short  0.3 right fairway
-  R3·  6                   putt         14.2 ft  beside the hole, 1.0 ft right
-  R3·  6                   putt          1.0 ft  in the hole  (2 putts)
-  R3·  7   95 yd par 3   3 wood       36%   53.0 yd    42.0 short  1.0 left  fairway
-  R3·  7   95 yd par 3   sand wedge   45%   32.2 yd     9.9 short  0.3 right fairway
-  R3·  7                   putt         29.6 ft  beside the hole, 2.4 ft right
-  R3·  7                   putt          2.4 ft  in the hole  (2 putts)
-  R3·  8  450 yd par 4   driver      100%  294.0 yd   156.0 short  2.5 left  fairway
-  R3·  8  450 yd par 4   5 iron       80%  154.3 yd     1.7 short  1.4 left  fairway
-  R3·  8                   putt          6.6 ft  beside the hole, 0.8 ft right
-  R3·  8                   putt          0.8 ft  in the hole  (2 putts)
-  R3·  9  500 yd par 5   driver      101%  299.7 yd   200.4 short  8.6 left  fairway
-  R3·  9  500 yd par 5   5 iron       99%  207.9 yd     7.3 long   2.7 right fairway
-  R3·  9                   putt         23.3 ft  0.2 ft past, 2.3 ft left
-  R3·  9                   putt          2.3 ft  in the hole  (2 putts)
-      round            37 strokes, par 35,  +2   putts 19   penalties 0   miss 53.0 yd, notebook off by  6.6%, 0.67° off line
+  R3·  1  410 yd par 4   driver       98%  338.0 yd    72.2 short 11.7 right aim  +3.0 ft  fairway
+  R3·  1  410 yd par 4   sand wedge   59%   57.5 yd    15.6 short  1.4 left  aim  +2.0 ft  fairway
+  R3·  1  410 yd par 4   9 iron       25%   14.9 yd     0.9 short  2.0 left  aim  +4.0 ft  fairway green
+  R3·  1                   putt          6.5 ft  beside the hole, 1.2 ft right
+  R3·  1                   putt          1.2 ft  in the hole  (2 putts)
+  R3·  2  165 yd par 3   3 wood       84%  186.3 yd    21.2 long   4.3 right aim  -2.0 ft  fairway
+  R3·  2  165 yd par 3   sand wedge   35%   22.0 yd     0.1 long   3.2 left  aim  -3.0 ft  fairway green
+  R3·  2                   putt          9.7 ft  beside the hole, 0.2 ft right
+  R3·  2                   putt          0.2 ft  beside the hole
+  R3·  2                   putt          0.0 ft  in the hole  (3 putts)
+  R3·  3  520 yd par 5   driver      100%  358.9 yd   161.2 short  4.4 right aim  +1.0 ft  fairway
+  R3·  3  520 yd par 5   3 wood       44%   85.9 yd    75.3 short  0.4 left  aim  +1.0 ft  fairway
+  R3·  3  520 yd par 5   driver       25%   31.3 yd    43.9 short  0.8 right aim  +1.0 ft  fairway
+  R3·  3  520 yd par 5   5 iron       36%   46.4 yd     2.5 long   1.4 left  aim  +0.0 ft  fairway green
+  R3·  3                   putt          8.5 ft  beside the hole, 0.3 ft right
+  R3·  3                   putt          0.3 ft  beside the hole
+  R3·  3                   putt          0.1 ft  in the hole  (3 putts)
+  R3·  4  300 yd par 4   3 wood      100%  285.5 yd    15.2 short 20.8 right aim  -4.0 ft  fairway
+  R3·  4  300 yd par 4   3 wood       25%   28.0 yd     2.0 long   3.3 right aim  -4.0 ft  fairway green
+  R3·  4                   putt         11.5 ft  beside the hole, 0.3 ft left
+  R3·  4                   putt          0.3 ft  beside the hole
+  R3·  4                   putt          0.0 ft  in the hole  (3 putts)
+  R3·  5  145 yd par 3   5 iron       80%  153.5 yd     8.1 long  10.5 left  aim  +3.0 ft  fairway
+  R3·  5  145 yd par 3   9 iron       25%   14.1 yd     0.6 long   2.7 right aim  +3.0 ft  fairway green
+  R3·  5                   putt          8.2 ft  beside the hole, 1.5 ft right
+  R3·  5                   putt          1.5 ft  beside the hole
+  R3·  5                   putt          0.1 ft  in the hole  (3 putts)
+  R3·  6  385 yd par 4   driver       99%  261.4 yd   123.7 short  7.2 right aim  -1.0 ft  fairway
+  R3·  6  385 yd par 4   driver       60%  125.9 yd     2.0 long   1.2 right aim  -1.0 ft  fairway green
+  R3·  6                   putt          7.0 ft  beside the hole, 0.3 ft left
+  R3·  6                   putt          0.3 ft  beside the hole
+  R3·  6                   putt          0.0 ft  in the hole  (3 putts)
+  R3·  7   95 yd par 3   9 iron       60%   76.2 yd    19.1 short  5.0 right aim  -2.0 ft  fairway
+  R3·  7   95 yd par 3   sand wedge   35%   21.6 yd     1.6 long   3.2 right aim  -4.0 ft  fairway green
+  R3·  7                   putt         10.9 ft  beside the hole, 0.4 ft left
+  R3·  7                   putt          0.4 ft  beside the hole
+  R3·  7                   putt          0.0 ft  in the hole  (3 putts)
+  R3·  8  450 yd par 4   driver       99%  364.6 yd    85.4 short  0.1 left  aim  +3.0 ft  fairway
+  R3·  8  450 yd par 4   3 wood       46%   94.7 yd     9.2 long   3.3 left  aim  +2.0 ft  fairway green
+  R3·  8                   putt         29.3 ft  0.2 ft short, 0.4 ft right
+  R3·  8                   putt          0.4 ft  in the hole  (2 putts)
+  R3·  9  500 yd par 5   driver       98%  258.3 yd   241.7 short  5.1 right aim  -2.0 ft  fairway
+  R3·  9  500 yd par 5   3 wood      100%  246.4 yd     4.3 long  13.1 right aim  -2.0 ft  fairway
+  R3·  9  500 yd par 5   9 iron       25%   14.1 yd     0.4 long   0.5 left  aim  -3.0 ft  fairway green
+  R3·  9                   putt          1.9 ft  beside the hole, 0.3 ft right
+  R3·  9                   putt          0.3 ft  beside the hole
+  R3·  9                   putt          0.0 ft  in the hole  (3 putts)
+      round            47 strokes, par 35, +12   putts 25   penalties 0   miss 41.2 yd, notebook off by 13.6%, 3.26° off line
 
 ROUND 4
-  R4·  1  410 yd par 4   driver       98%  286.2 yd   123.8 short  3.7 right fairway
-  R4·  1  410 yd par 4   9 iron       78%  109.4 yd    14.5 short  0.1 left  fairway
-  R4·  1  410 yd par 4   sand wedge   35%   20.3 yd     5.8 long   0.8 right fairway
-  R4·  1                   putt         17.5 ft  0.1 ft past, 1.5 ft left
-  R4·  1                   putt          1.5 ft  beside the hole
-  R4·  1                   putt          0.1 ft  in the hole  (3 putts)
-  R4·  2  165 yd par 3   9 iron      105%  164.2 yd     0.8 short  0.5 right fairway
-  R4·  2                   putt          2.8 ft  in the hole  (1 putt)
-  R4·  3  520 yd par 5   driver      101%  298.9 yd   221.3 short  9.4 left  fairway
-  R4·  3  520 yd par 5   driver       80%  217.7 yd     3.8 short  0.9 right fairway
-  R4·  3                   putt         11.8 ft  beside the hole, 0.8 ft right
-  R4·  3                   putt          0.8 ft  beside the hole
-  R4·  3                   putt          0.1 ft  in the hole  (3 putts)
-  R4·  4  300 yd par 4   driver       98%  286.9 yd    13.1 short  3.1 left  fairway
-  R4·  4  300 yd par 4   sand wedge   35%   20.6 yd     7.1 long   0.6 right fairway
-  R4·  4                   putt         21.3 ft  0.2 ft past, 2.1 ft left
-  R4·  4                   putt          2.1 ft  beside the hole
-  R4·  4                   putt          0.1 ft  in the hole  (3 putts)
-  R4·  5  145 yd par 3   driver       61%  143.5 yd     1.6 short  1.7 left  fairway
-  R4·  5                   putt          6.9 ft  beside the hole, 0.8 ft right
-  R4·  5                   putt          0.8 ft  beside the hole
-  R4·  5                   putt          0.0 ft  in the hole  (3 putts)
-  R4·  6  385 yd par 4   driver      100%  294.3 yd    90.7 short  0.3 left  fairway
-  R4·  6  385 yd par 4   sand wedge   81%   89.5 yd     1.2 short  0.7 right fairway
-  R4·  6                   putt          4.2 ft  in the hole  (1 putt)
-  R4·  7   95 yd par 3   sand wedge   80%   86.7 yd     8.3 short  1.3 right fairway
-  R4·  7                   putt         25.3 ft  beside the hole, 1.7 ft right
-  R4·  7                   putt          1.7 ft  beside the hole, 0.1 ft left
-  R4·  7                   putt          0.1 ft  beside the hole
-  R4·  7                   putt          0.0 ft  in the hole  (4 putts)
-  R4·  8  450 yd par 4   driver      102%  300.6 yd   149.4 short  5.3 left  fairway
-  R4·  8  450 yd par 4   5 iron       79%  153.8 yd     4.3 long   1.3 right fairway
-  R4·  8                   putt         13.4 ft  0.1 ft past, 1.3 ft left
-  R4·  8                   putt          1.3 ft  in the hole  (2 putts)
-  R4·  9  500 yd par 5   driver      100%  294.0 yd   206.0 short  2.4 left  fairway
-  R4·  9  500 yd par 5   5 iron       99%  208.9 yd     2.9 long   1.8 left  fairway
-  R4·  9                   putt         10.2 ft  beside the hole, 0.2 ft left
-  R4·  9                   putt          0.2 ft  in the hole  (2 putts)
-      round            38 strokes, par 35,  +3   putts 22   penalties 0   miss 53.4 yd, notebook off by  2.2%, 0.76° off line
+  R4·  1  410 yd par 4   driver       98%  338.1 yd    72.2 short 13.4 right aim  +3.0 ft  fairway
+  R4·  1  410 yd par 4   7 iron       34%   35.2 yd    38.2 short  1.0 left  aim  +2.0 ft  fairway
+  R4·  1  410 yd par 4   7 iron       35%   36.3 yd     1.9 short  0.8 left  aim  +3.0 ft  fairway green
+  R4·  1                   putt          6.2 ft  beside the hole, 1.0 ft right
+  R4·  1                   putt          1.0 ft  beside the hole
+  R4·  1                   putt          0.0 ft  in the hole  (3 putts)
+  R4·  2  165 yd par 3   7 iron      105%  165.8 yd     0.7 long   4.7 right aim  -2.0 ft  fairway green
+  R4·  2                   putt         14.2 ft  beside the hole, 0.1 ft left
+  R4·  2                   putt          0.1 ft  beside the hole
+  R4·  2                   putt          0.0 ft  in the hole  (3 putts)
+  R4·  3  520 yd par 5   driver      101%  361.6 yd   158.5 short  7.2 left  aim  +1.0 ft  fairway
+  R4·  3  520 yd par 5   driver       60%  159.9 yd     1.3 long   1.1 right aim  +1.0 ft  fairway green
+  R4·  3                   putt          5.1 ft  beside the hole, 0.2 ft left
+  R4·  3                   putt          0.2 ft  beside the hole
+  R4·  3                   putt          0.0 ft  in the hole  (3 putts)
+  R4·  4  300 yd par 4   3 wood       98%  277.9 yd    22.7 short 17.4 right aim  -4.0 ft  fairway
+  R4·  4  300 yd par 4   sand wedge   45%   32.2 yd     3.2 long   5.3 right aim  -4.0 ft  fairway green
+  R4·  4                   putt         18.5 ft  beside the hole, 0.7 ft left
+  R4·  4                   putt          0.7 ft  beside the hole
+  R4·  4                   putt          0.0 ft  in the hole  (3 putts)
+  R4·  5  145 yd par 3   driver       61%  143.0 yd     2.5 short 11.0 left  aim  +3.0 ft  fairway
+  R4·  5  145 yd par 3   9 iron       25%   13.3 yd     2.0 long   0.9 left  aim  +3.0 ft  fairway green
+  R4·  5                   putt          6.5 ft  beside the hole, 0.2 ft left
+  R4·  5                   putt          0.2 ft  in the hole  (2 putts)
+  R4·  6  385 yd par 4   driver      102%  269.6 yd   115.4 short  7.1 right aim  -1.0 ft  fairway
+  R4·  6  385 yd par 4   driver       45%   78.2 yd    37.5 short  2.6 right aim  -1.0 ft  fairway
+  R4·  6  385 yd par 4   5 iron       36%   39.6 yd     2.0 long   0.7 right aim  +0.0 ft  fairway green
+  R4·  6                   putt          6.3 ft  beside the hole, 0.2 ft left
+  R4·  6                   putt          0.2 ft  beside the hole
+  R4·  6                   putt          0.0 ft  in the hole  (3 putts)
+  R4·  7   95 yd par 3   driver       45%   89.1 yd     6.2 short  6.8 right aim  -2.0 ft  fairway green
+  R4·  7                   putt         27.6 ft  0.2 ft short, 1.9 ft right
+  R4·  7                   putt          1.9 ft  in the hole  (2 putts)
+  R4·  8  450 yd par 4   driver      100%  368.2 yd    81.9 short  7.5 left  aim  +3.0 ft  fairway
+  R4·  8  450 yd par 4   9 iron       60%   81.7 yd     0.6 short  3.6 left  aim  +2.0 ft  fairway green
+  R4·  8                   putt         11.1 ft  beside the hole, 1.7 ft right
+  R4·  8                   putt          1.7 ft  beside the hole, 0.2 ft right
+  R4·  8                   putt          0.2 ft  beside the hole
+  R4·  8                   putt          0.0 ft  in the hole  (4 putts)
+  R4·  9  500 yd par 5   driver      101%  268.9 yd   231.1 short  3.8 right aim  -2.0 ft  fairway
+  R4·  9  500 yd par 5   3 wood       99%  243.1 yd    11.4 long  15.2 right aim  -2.0 ft  fairway
+  R4·  9  500 yd par 5   sand wedge   36%   21.5 yd     2.4 long   2.1 left  aim  -2.0 ft  fairway green
+  R4·  9                   putt          9.6 ft  beside the hole, 1.6 ft right
+  R4·  9                   putt          1.6 ft  beside the hole
+  R4·  9                   putt          0.0 ft  in the hole  (3 putts)
+      round            45 strokes, par 35, +10   putts 26   penalties 0   miss 41.7 yd, notebook off by 14.7%, 2.68° off line
 
 ROUND 5
-  R5·  1  410 yd par 4   driver       98%  286.2 yd   123.8 short  3.8 right fairway
-  R5·  1  410 yd par 4   5 iron       59%   99.1 yd    24.7 short  0.1 left  fairway
-  R5·  1  410 yd par 4   sand wedge   35%   20.3 yd     4.5 short  0.8 right fairway
-  R5·  1                   putt         13.7 ft  beside the hole, 0.8 ft right
-  R5·  1                   putt          0.8 ft  in the hole  (2 putts)
-  R5·  2  165 yd par 3   9 iron      105%  164.2 yd     0.8 short  0.5 right fairway
-  R5·  2                   putt          2.8 ft  beside the hole
-  R5·  2                   putt          0.1 ft  in the hole  (2 putts)
-  R5·  3  520 yd par 5   driver      101%  298.9 yd   221.3 short  9.4 left  fairway
-  R5·  3  520 yd par 5   driver       80%  217.7 yd     3.8 short  0.8 right fairway
-  R5·  3                   putt         11.7 ft  beside the hole, 0.8 ft right
-  R5·  3                   putt          0.8 ft  in the hole  (2 putts)
-  R5·  4  300 yd par 4   driver       98%  286.9 yd    13.1 short  3.1 left  fairway
-  R5·  4  300 yd par 4   sand wedge   35%   20.6 yd     7.1 long   0.5 right fairway
-  R5·  4                   putt         21.2 ft  0.2 ft past, 2.1 ft left
-  R5·  4                   putt          2.1 ft  in the hole  (2 putts)
-  R5·  5  145 yd par 3   driver       61%  143.5 yd     1.6 short  1.7 left  fairway
-  R5·  5                   putt          7.0 ft  beside the hole, 0.8 ft right
-  R5·  5                   putt          0.8 ft  beside the hole
-  R5·  5                   putt          0.0 ft  in the hole  (3 putts)
-  R5·  6  385 yd par 4   driver      100%  294.3 yd    90.7 short  0.4 left  fairway
-  R5·  6  385 yd par 4   sand wedge   81%   89.5 yd     1.2 short  0.7 right fairway
-  R5·  6                   putt          4.2 ft  in the hole  (1 putt)
-  R5·  7   95 yd par 3   5 iron       60%  101.7 yd     6.7 long   1.6 right fairway
-  R5·  7                   putt         20.6 ft  0.2 ft past, 1.9 ft left
-  R5·  7                   putt          1.9 ft  in the hole  (2 putts)
-  R5·  8  450 yd par 4   driver      102%  300.6 yd   149.4 short  5.4 left  fairway
-  R5·  8  450 yd par 4   5 iron       79%  153.8 yd     4.3 long   1.3 right fairway
-  R5·  8                   putt         13.3 ft  0.1 ft past, 1.3 ft left
-  R5·  8                   putt          1.3 ft  in the hole  (2 putts)
-  R5·  9  500 yd par 5   driver      100%  294.0 yd   206.0 short  2.4 left  fairway
-  R5·  9  500 yd par 5   5 iron       99%  208.9 yd     2.9 long   1.8 left  fairway
-  R5·  9                   putt         10.3 ft  beside the hole, 0.2 ft left
-  R5·  9                   putt          0.2 ft  beside the hole
+  R5·  1  410 yd par 4   driver       98%  338.1 yd    72.2 short 12.8 right aim  +3.0 ft  fairway
+  R5·  1  410 yd par 4   9 iron       59%   76.3 yd     3.0 long   1.5 left  aim  +2.0 ft  fairway green
+  R5·  1                   putt         10.1 ft  beside the hole, 0.5 ft right
+  R5·  1                   putt          0.5 ft  in the hole  (2 putts)
+  R5·  2  165 yd par 3   7 iron      100%  155.9 yd     9.5 short 10.5 right aim  -2.0 ft  fairway
+  R5·  2  165 yd par 3   9 iron       26%   15.2 yd     0.9 long   2.1 right aim  -3.0 ft  fairway green
+  R5·  2                   putt          6.8 ft  beside the hole, 0.2 ft left
+  R5·  2                   putt          0.2 ft  beside the hole
+  R5·  2                   putt          0.0 ft  in the hole  (3 putts)
+  R5·  3  520 yd par 5   driver      101%  361.6 yd   158.5 short  8.1 left  aim  +1.0 ft  fairway
+  R5·  3  520 yd par 5   driver       60%  159.9 yd     1.2 long   0.7 right aim  +1.0 ft  fairway green
+  R5·  3                   putt          4.2 ft  in the hole  (1 putt)
+  R5·  4  300 yd par 4   3 wood       98%  277.8 yd    22.7 short 16.7 right aim  -4.0 ft  fairway
+  R5·  4  300 yd par 4   3 wood       25%   27.7 yd     0.8 short  4.2 right aim  -4.0 ft  fairway green
+  R5·  4                   putt         12.9 ft  beside the hole, 0.3 ft left
+  R5·  4                   putt          0.3 ft  in the hole  (2 putts)
+  R5·  5  145 yd par 3   driver       61%  143.1 yd     2.4 short 11.7 left  aim  +2.0 ft  fairway
+  R5·  5  145 yd par 3   9 iron       25%   13.3 yd     1.3 long   0.8 left  aim  +3.0 ft  fairway green
+  R5·  5                   putt          4.6 ft  in the hole  (1 putt)
+  R5·  6  385 yd par 4   driver      102%  269.6 yd   115.4 short  6.4 right aim  -1.0 ft  fairway
+  R5·  6  385 yd par 4   9 iron       80%  101.2 yd    14.5 short  3.3 right aim  -1.0 ft  fairway
+  R5·  6  385 yd par 4   9 iron       25%   14.3 yd     0.6 short  0.2 left  aim  -3.0 ft  fairway green
+  R5·  6                   putt          1.7 ft  beside the hole, 0.3 ft right
+  R5·  6                   putt          0.3 ft  beside the hole
+  R5·  6                   putt          0.0 ft  in the hole  (3 putts)
+  R5·  7   95 yd par 3   driver       45%   89.1 yd     6.2 short  6.6 right aim  -2.0 ft  fairway green
+  R5·  7                   putt         27.3 ft  0.2 ft short, 1.9 ft right
+  R5·  7                   putt          1.9 ft  beside the hole
+  R5·  7                   putt          0.1 ft  in the hole  (3 putts)
+  R5·  8  450 yd par 4   driver      100%  368.2 yd    81.9 short  8.1 left  aim  +3.0 ft  fairway
+  R5·  8  450 yd par 4   9 iron       60%   81.7 yd     0.7 short  3.8 left  aim  +2.0 ft  fairway green
+  R5·  8                   putt         11.6 ft  beside the hole, 1.8 ft right
+  R5·  8                   putt          1.8 ft  beside the hole, 0.3 ft right
+  R5·  8                   putt          0.3 ft  beside the hole
+  R5·  8                   putt          0.0 ft  in the hole  (4 putts)
+  R5·  9  500 yd par 5   driver      101%  268.9 yd   231.2 short  3.3 right aim  -2.0 ft  fairway
+  R5·  9  500 yd par 5   3 wood       99%  243.1 yd    11.4 long  14.7 right aim  -2.0 ft  fairway
+  R5·  9  500 yd par 5   sand wedge   36%   21.5 yd     2.8 long   2.2 left  aim  -2.0 ft  fairway green
+  R5·  9                   putt         10.6 ft  beside the hole, 1.8 ft right
+  R5·  9                   putt          1.8 ft  beside the hole
   R5·  9                   putt          0.0 ft  in the hole  (3 putts)
-      round            35 strokes, par 35,  +0   putts 19   penalties 0   miss 53.9 yd, notebook off by  2.2%, 0.68° off line
+      round            41 strokes, par 35,  +6   putts 22   penalties 0   miss 38.8 yd, notebook off by 10.7%, 3.05° off line
 
 ROUND 6
-  R6·  1  410 yd par 4   driver       98%  286.2 yd   123.8 short  3.7 right fairway
-  R6·  1  410 yd par 4   3 wood       44%   76.9 yd    47.0 short  0.1 left  fairway
-  R6·  1  410 yd par 4   3 wood       35%   51.2 yd     4.2 long   2.1 right fairway
-  R6·  1                   putt         14.1 ft  0.1 ft past, 1.4 ft left
-  R6·  1                   putt          1.4 ft  in the hole  (2 putts)
-  R6·  2  165 yd par 3   9 iron      105%  164.2 yd     0.8 short  0.4 right fairway
-  R6·  2                   putt          2.7 ft  beside the hole
-  R6·  2                   putt          0.1 ft  in the hole  (2 putts)
-  R6·  3  520 yd par 5   driver      101%  298.9 yd   221.3 short  9.5 left  fairway
-  R6·  3  520 yd par 5   driver       80%  217.7 yd     3.8 short  0.7 right fairway
-  R6·  3                   putt         11.7 ft  beside the hole, 0.8 ft right
-  R6·  3                   putt          0.8 ft  in the hole  (2 putts)
-  R6·  4  300 yd par 4   driver       98%  286.9 yd    13.1 short  3.2 left  fairway
-  R6·  4  300 yd par 4   sand wedge   35%   20.6 yd     7.0 long   0.5 right fairway
-  R6·  4                   putt         21.2 ft  0.2 ft past, 2.1 ft left
-  R6·  4                   putt          2.1 ft  in the hole  (2 putts)
-  R6·  5  145 yd par 3   driver       61%  143.5 yd     1.6 short  1.8 left  fairway
-  R6·  5                   putt          7.1 ft  beside the hole, 0.9 ft right
-  R6·  5                   putt          0.9 ft  beside the hole
-  R6·  5                   putt          0.0 ft  in the hole  (3 putts)
-  R6·  6  385 yd par 4   driver      100%  294.3 yd    90.7 short  0.5 left  fairway
-  R6·  6  385 yd par 4   sand wedge   81%   89.5 yd     1.2 short  0.6 right fairway
-  R6·  6                   putt          4.1 ft  beside the hole, 0.2 ft right
-  R6·  6                   putt          0.2 ft  in the hole  (2 putts)
-  R6·  7   95 yd par 3   5 iron       60%  101.7 yd     6.7 long   1.5 right fairway
-  R6·  7                   putt         20.5 ft  0.2 ft past, 1.9 ft left
-  R6·  7                   putt          1.9 ft  in the hole  (2 putts)
-  R6·  8  450 yd par 4   driver      102%  300.6 yd   149.4 short  5.4 left  fairway
-  R6·  8  450 yd par 4   5 iron       79%  153.8 yd     4.3 long   1.2 right fairway
-  R6·  8                   putt         13.3 ft  0.1 ft past, 1.3 ft left
-  R6·  8                   putt          1.3 ft  in the hole  (2 putts)
-  R6·  9  500 yd par 5   driver      100%  294.0 yd   206.0 short  2.5 left  fairway
-  R6·  9  500 yd par 5   5 iron       99%  208.9 yd     2.9 long   1.9 left  fairway
-  R6·  9                   putt         10.4 ft  beside the hole, 0.2 ft left
-  R6·  9                   putt          0.2 ft  in the hole  (2 putts)
-      round            35 strokes, par 35,  +0   putts 19   penalties 0   miss 55.2 yd, notebook off by  3.7%, 0.72° off line
+  R6·  1  410 yd par 4   driver       98%  338.1 yd    72.2 short 12.3 right aim  +3.0 ft  fairway
+  R6·  1  410 yd par 4   9 iron       59%   76.3 yd     3.1 long   1.7 left  aim  +2.0 ft  fairway green
+  R6·  1                   putt         10.6 ft  beside the hole, 0.5 ft right
+  R6·  1                   putt          0.5 ft  in the hole  (2 putts)
+  R6·  2  165 yd par 3   7 iron      100%  155.9 yd     9.5 short 10.2 right aim  -2.0 ft  fairway
+  R6·  2  165 yd par 3   9 iron       26%   15.2 yd     1.1 long   2.1 right aim  -3.0 ft  fairway green
+  R6·  2                   putt          7.2 ft  beside the hole, 0.2 ft left
+  R6·  2                   putt          0.2 ft  beside the hole
+  R6·  2                   putt          0.0 ft  in the hole  (3 putts)
+  R6·  3  520 yd par 5   driver      101%  361.6 yd   158.5 short  8.6 left  aim  +1.0 ft  fairway
+  R6·  3  520 yd par 5   driver       60%  159.9 yd     1.2 long   0.4 right aim  +1.0 ft  fairway green
+  R6·  3                   putt          3.7 ft  in the hole  (1 putt)
+  R6·  4  300 yd par 4   3 wood       98%  277.8 yd    22.7 short 16.3 right aim  -4.0 ft  fairway
+  R6·  4  300 yd par 4   3 wood       25%   27.7 yd     0.6 short  4.2 right aim  -4.0 ft  fairway green
+  R6·  4                   putt         12.8 ft  beside the hole, 0.4 ft left
+  R6·  4                   putt          0.4 ft  in the hole  (2 putts)
+  R6·  5  145 yd par 3   driver       61%  143.1 yd     2.4 short 11.9 left  aim  +2.0 ft  fairway
+  R6·  5  145 yd par 3   9 iron       25%   13.3 yd     1.1 long   0.8 left  aim  +3.0 ft  fairway green
+  R6·  5                   putt          4.0 ft  in the hole  (1 putt)
+  R6·  6  385 yd par 4   driver      102%  269.6 yd   115.4 short  5.9 right aim  -1.0 ft  fairway
+  R6·  6  385 yd par 4   3 wood       60%  116.0 yd     0.4 long   3.5 right aim  -1.0 ft  fairway green
+  R6·  6                   putt         10.7 ft  beside the hole
+  R6·  6                   putt          0.1 ft  beside the hole
+  R6·  6                   putt          0.0 ft  in the hole  (3 putts)
+  R6·  7   95 yd par 3   driver       46%   92.7 yd     2.5 short  4.4 right aim  -2.0 ft  fairway green
+  R6·  7                   putt         15.3 ft  0.1 ft short, 0.7 ft right
+  R6·  7                   putt          0.7 ft  in the hole  (2 putts)
+  R6·  8  450 yd par 4   driver       99%  365.2 yd    84.8 short  3.1 left  aim  +3.0 ft  fairway
+  R6·  8  450 yd par 4   9 iron       45%   48.2 yd    36.7 short  2.0 left  aim  +2.0 ft  fairway
+  R6·  8  450 yd par 4   sand wedge   45%   35.5 yd     1.4 short  3.1 left  aim  +2.0 ft  fairway green
+  R6·  8                   putt         10.2 ft  0.1 ft past, 1.8 ft right
+  R6·  8                   putt          1.8 ft  beside the hole, 0.2 ft right
+  R6·  8                   putt          0.2 ft  beside the hole
+  R6·  8                   putt          0.0 ft  in the hole  (4 putts)
+  R6·  9  500 yd par 5   driver      101%  268.9 yd   231.2 short  3.4 right aim  -2.0 ft  fairway
+  R6·  9  500 yd par 5   3 wood       99%  243.1 yd    11.4 long  14.8 right aim  -2.0 ft  fairway
+  R6·  9  500 yd par 5   sand wedge   36%   21.5 yd     2.7 long   2.2 left  aim  -2.0 ft  fairway green
+  R6·  9                   putt         10.5 ft  beside the hole, 1.7 ft right
+  R6·  9                   putt          1.7 ft  beside the hole
+  R6·  9                   putt          0.0 ft  in the hole  (3 putts)
+      round            40 strokes, par 35,  +5   putts 21   penalties 0   miss 40.0 yd, notebook off by 11.4%, 3.11° off line
 
 HELD-OUT: six holes never played
-  H· H1  130 yd par 3   driver       59%  133.0 yd     3.0 long   1.7 right fairway
-  H· H1                   putt         10.3 ft  beside the hole, 1.1 ft left
-  H· H1                   putt          1.1 ft  in the hole  (2 putts)
-  H· H2  375 yd par 4   driver       98%  287.2 yd    87.8 short  0.4 left  fairway
-  H· H2  375 yd par 4   sand wedge   80%   86.6 yd     1.3 short  3.6 right fairway
-  H· H2                   putt         11.4 ft  beside the hole, 0.4 ft left
-  H· H2                   putt          0.4 ft  in the hole  (2 putts)
-  H· H3  480 yd par 5   driver      105%  311.9 yd   168.1 short  0.8 right fairway
-  H· H3  480 yd par 5   9 iron      101%  156.4 yd    11.8 short  5.0 left  fairway
-  H· H3  480 yd par 5   sand wedge   35%   20.6 yd     7.8 long   0.1 right fairway
-  H· H3                   putt         23.4 ft  0.2 ft past, 2.4 ft left
-  H· H3                   putt          2.4 ft  beside the hole
-  H· H3                   putt          0.0 ft  beside the hole
+  H· H1  130 yd par 3   driver       59%  120.1 yd     9.9 short  2.0 left  aim  +2.0 ft  fairway
+  H· H1  130 yd par 3   sand wedge   24%    9.8 yd     0.8 short  2.9 left  aim  +3.0 ft  fairway green
+  H· H1                   putt          9.0 ft  beside the hole, 1.4 ft right
+  H· H1                   putt          1.4 ft  beside the hole, 0.2 ft right
+  H· H1                   putt          0.2 ft  beside the hole
+  H· H1                   putt          0.0 ft  in the hole  (4 putts)
+  H· H2  375 yd par 4   driver      100%  349.4 yd    26.3 short 22.9 right aim  -3.0 ft  fairway
+  H· H2  375 yd par 4   7 iron       37%   39.5 yd     4.5 long   3.5 right aim  -2.0 ft  fairway green
+  H· H2                   putt         17.0 ft  0.1 ft short, 0.2 ft left
+  H· H2                   putt          0.2 ft  beside the hole
+  H· H2                   putt          0.0 ft  in the hole  (3 putts)
+  H· H3  480 yd par 5   driver      101%  254.4 yd   225.7 short  7.0 left  aim  +2.0 ft  fairway
+  H· H3  480 yd par 5   3 wood      100%  234.1 yd     8.3 long   1.8 right aim  +1.0 ft  fairway
+  H· H3  480 yd par 5   sand wedge   24%   10.6 yd     1.8 long   2.8 right aim  -2.0 ft  fairway green
+  H· H3                   putt         10.0 ft  0.1 ft past, 1.7 ft right
+  H· H3                   putt          1.7 ft  beside the hole, 0.2 ft right
+  H· H3                   putt          0.2 ft  beside the hole
   H· H3                   putt          0.0 ft  in the hole  (4 putts)
-  H· H4  190 yd par 3   7 iron       98%  177.8 yd    12.2 short  2.0 left  fairway
-  H· H4  190 yd par 3   sand wedge   35%   20.6 yd     8.2 long   0.5 right fairway
-  H· H4                   putt         24.7 ft  0.2 ft past, 2.3 ft left
-  H· H4                   putt          2.3 ft  in the hole  (2 putts)
-  H· H5  340 yd par 4   driver      102%  304.0 yd    36.0 short  3.8 left  fairway
-  H· H5  340 yd par 4   sand wedge   45%   32.5 yd     3.7 short  0.1 left  fairway
-  H· H5                   putt         11.0 ft  beside the hole, 1.0 ft right
-  H· H5                   putt          1.0 ft  in the hole  (2 putts)
-  H· H6   90 yd par 3   sand wedge   81%   89.5 yd     0.5 short  0.6 right fairway
-  H· H6                   putt          2.4 ft  beside the hole
-  H· H6                   putt          0.0 ft  in the hole  (2 putts)
-      round            25 strokes, par 22,  +3   putts 14   penalties 0   miss 30.9 yd, notebook off by  2.7%, 0.86° off line
+  H· H4  190 yd par 3   7 iron      100%  184.0 yd     7.0 short 18.2 right aim  -3.0 ft  fairway
+  H· H4  190 yd par 3   sand wedge   36%   20.2 yd     0.7 long   1.3 right aim  -3.0 ft  fairway green
+  H· H4                   putt          4.5 ft  beside the hole
+  H· H4                   putt          0.0 ft  beside the hole
+  H· H4                   putt          0.0 ft  in the hole  (3 putts)
+  H· H5  340 yd par 4   driver      100%  335.3 yd     4.8 short  8.9 left  aim  +1.0 ft  fairway
+  H· H5  340 yd par 4   sand wedge   25%   11.0 yd     0.9 long   1.1 left  aim  -3.0 ft  fairway green
+  H· H5                   putt          4.1 ft  in the hole  (1 putt)
+  H· H6   90 yd par 3   sand wedge   80%   78.4 yd    11.7 short  2.5 right aim  -2.0 ft  fairway
+  H· H6   90 yd par 3   9 iron       25%   14.3 yd     2.0 long   2.9 right aim  -3.0 ft  fairway green
+  H· H6                   putt         10.6 ft  beside the hole, 0.4 ft left
+  H· H6                   putt          0.4 ft  beside the hole
+  H· H6                   putt          0.0 ft  in the hole  (3 putts)
+      round            31 strokes, par 22,  +9   putts 18   penalties 0   miss 23.4 yd, notebook off by 10.5%, 5.99° off line
 
-  to par: [11, 1, 2, 3, 0, 0]   held-out +3
+  to par: [22, 17, 12, 10, 6, 5]   held-out +9   policy spread
   notebook against true (yards; full / 80% / 60% / chip, and shots at each):
-    driver        294   218   141    56   true   295   216   138    54   n 38  6  7  1
-    3 wood        265   232   174    52   true   274   200   128    52   n  1  0  0  2
-    5 iron        209   154   101    69   true   210   155   102    41   n  5  8  3  0
-    7 iron        179   161    85    70   true   183   136    88    34   n  2  0  1  0
-    9 iron        163   109    73    56   true   154   113    72    28   n  6  1  1  0
-    sand wedge    107    88    64    21   true   122    87    54    20   n  0  7  0 15
-  aim bias -1.94°  (its hands are +2.20°)   shots observed 114
+    driver        304   214   138    97   true   295   216   138    54   n 31  1 10  0
+    3 wood        277   203   129   102   true   274   200   128    52   n 13  2  4  0
+    5 iron        210   157   117    41   true   210   155   102    41   n  1  3  0  4
+    7 iron        180   161   121    34   true   183   136    88    34   n  4  0  0  3
+    9 iron        160   110    70    27   true   154   113    72    28   n  0  1  5  4
+    sand wedge    107    92    52    21   true   122    87    54    20   n  0  2  1 17
+  aim bias -1.47°  (its hands are +2.20°)   shots observed 143
 
-================================================================
-CONTROL — --learn 0
+2. THE SAME COURSE, STILL AIR — --calm
+
+`games/putt/` taught one thing — pace and line, two unknown numbers, closed by bisection. Golf is a
+
+BAG (carry + run at a full swing, fairway)
+  driver        263 +   32 =   295 yd   167 mph, 10.9°, 2686 rpm, hang 5.8s
+  3 wood        243 +   30 =   274 yd   158 mph, 12.5°, 3200 rpm, hang 5.6s
+  5 iron        182 +   28 =   210 yd   135 mph, 14.5°, 5000 rpm, hang 4.6s
+  7 iron        156 +   27 =   183 yd   120 mph, 16.3°, 7000 rpm, hang 4.2s
+  9 iron        130 +   24 =   154 yd   102 mph, 20.0°, 8600 rpm, hang 4.0s
+  sand wedge    104 +   17 =   122 yd   82 mph, 28.0°, 10000 rpm, hang 3.9s
+
+ROUND 1
+  R1·  1  410 yd par 4   3 wood       98%  265.5 yd   144.7 short 10.2 right aim  +3.0 ft  fairway
+  R1·  1  410 yd par 4   5 iron       78%  151.2 yd     6.1 long   2.0 left  aim  +4.0 ft  fairway green
+  R1·  1                   putt         19.2 ft  beside the hole, 0.9 ft left
+  R1·  1                   putt          0.9 ft  0.5 ft short
+  R1·  1                   putt          0.5 ft  0.2 ft short
+  R1·  1                   putt          0.2 ft  beside the hole
+  R1·  2  165 yd par 3   driver       60%  137.1 yd    28.3 short 10.0 right aim  -3.0 ft  fairway
+  R1·  2  165 yd par 3   sand wedge   26%   11.8 yd    18.3 short  1.0 right aim  -3.0 ft  fairway
+  R1·  2  165 yd par 3   sand wedge   25%   10.9 yd     7.5 short  1.1 right aim  -3.0 ft  fairway green
+  R1·  2                   putt         22.7 ft  6.3 ft short, 2.2 ft right
+  R1·  2                   putt          6.7 ft  1.0 ft short, 0.6 ft right
+  R1·  2                   putt          1.2 ft  0.2 ft short
+  R1·  2                   putt          0.2 ft  beside the hole
+  R1·  3  520 yd par 5   driver      100%  296.7 yd   223.3 short  3.3 left  aim  +1.0 ft  fairway
+  R1·  3  520 yd par 5   driver       78%  209.5 yd    13.9 short  5.6 left  aim  +1.0 ft  fairway
+  R1·  3  520 yd par 5   sand wedge   25%   10.8 yd     4.3 short  1.4 left  aim  -3.0 ft  fairway green
+  R1·  3                   putt         13.6 ft  0.8 ft short, 2.5 ft right
+  R1·  3                   putt          2.6 ft  beside the hole, 0.3 ft right
+  R1·  3                   putt          0.3 ft  beside the hole
+  R1·  3                   putt          0.0 ft  in the hole  (4 putts)
+  R1·  4  300 yd par 4   driver      102%  304.0 yd     4.0 long   2.3 left  aim  -3.0 ft  fairway
+  R1·  4  300 yd par 4   sand wedge   25%   10.7 yd     5.1 long   4.5 left  aim  -4.0 ft  fairway green
+  R1·  4                   putt         20.5 ft  0.5 ft short, 0.8 ft right
+  R1·  4                   putt          0.9 ft  beside the hole
+  R1·  4                   putt          0.0 ft  beside the hole
+  R1·  4                   putt          0.0 ft  in the hole  (4 putts)
+  R1·  5  145 yd par 3   5 iron       81%  159.0 yd    13.9 long   3.5 left  aim  +2.0 ft  fairway
+  R1·  5  145 yd par 3   sand wedge   25%   10.6 yd     3.9 short  2.4 right aim  +3.0 ft  fairway green
+  R1·  5                   putt         13.8 ft  0.1 ft short, 0.9 ft right
+  R1·  5                   putt          0.9 ft  in the hole  (2 putts)
+  R1·  6  385 yd par 4   driver      102%  300.6 yd    84.4 short  5.8 left  aim  -1.0 ft  fairway
+  R1·  6  385 yd par 4   sand wedge   79%   86.1 yd     1.5 long   1.6 right aim  +0.0 ft  fairway green
+  R1·  6                   putt          6.6 ft  beside the hole, 0.2 ft left
+  R1·  6                   putt          0.2 ft  in the hole  (2 putts)
+  R1·  7   95 yd par 3   9 iron       60%   71.4 yd    23.7 short  1.7 right aim  -3.0 ft  fairway
+  R1·  7   95 yd par 3   sand wedge   25%   10.6 yd    13.2 short  1.2 right aim  -4.0 ft  fairway
+  R1·  7   95 yd par 3   sand wedge   25%   11.0 yd     2.5 short  2.1 right aim  -4.0 ft  fairway green
+  R1·  7                   putt          9.8 ft  beside the hole, 0.7 ft right
+  R1·  7                   putt          0.7 ft  beside the hole
+  R1·  7                   putt          0.0 ft  in the hole  (3 putts)
+  R1·  8  450 yd par 4   driver       99%  291.6 yd   158.4 short  0.7 left  aim  +3.0 ft  fairway
+  R1·  8  450 yd par 4   9 iron      102%  159.0 yd     0.4 long   5.3 left  aim  +2.0 ft  fairway green
+  R1·  8                   putt         15.9 ft  0.1 ft past, 2.4 ft right
+  R1·  8                   putt          2.4 ft  beside the hole, 0.4 ft right
+  R1·  8                   putt          0.4 ft  beside the hole
+  R1·  8                   putt          0.0 ft  in the hole  (4 putts)
+  R1·  9  500 yd par 5   driver       98%  287.6 yd   212.6 short  7.7 left  aim  -2.0 ft  fairway
+  R1·  9  500 yd par 5   driver       80%  217.0 yd     4.3 long   1.6 right aim  -2.0 ft  fairway green
+  R1·  9                   putt         13.7 ft  beside the hole, 0.4 ft left
+  R1·  9                   putt          0.4 ft  beside the hole
+  R1·  9                   putt          0.0 ft  in the hole  (3 putts)
+      round            51 strokes, par 35, +16   putts 30   penalties 0   miss 46.4 yd, notebook off by  8.0%, 4.38° off line
+
+ROUND 2
+  R2·  1  410 yd par 4   driver       98%  286.2 yd   123.8 short  0.4 left  aim  +3.0 ft  fairway
+  R2·  1  410 yd par 4   driver       44%   81.8 yd    42.0 short  3.0 left  aim  +2.0 ft  fairway
+  R2·  1  410 yd par 4   9 iron       25%   14.4 yd    27.7 short  0.5 left  aim  +4.0 ft  fairway
+  R2·  1  410 yd par 4   sand wedge   37%   22.4 yd     5.5 short  2.4 left  aim  +4.0 ft  fairway green
+  R2·  1                   putt         18.1 ft  0.3 ft past, 3.4 ft right
+  R2·  1                   putt          3.4 ft  beside the hole, 0.2 ft right
+  R2·  1                   putt          0.2 ft  in the hole  (3 putts)
+  R2·  2  165 yd par 3   7 iron       81%  137.7 yd    27.4 short  1.7 left  aim  -2.0 ft  fairway
+  R2·  2  165 yd par 3   sand wedge   35%   20.6 yd     6.9 short  2.1 right aim  -3.0 ft  fairway green
+  R2·  2                   putt         21.7 ft  beside the hole, 3.0 ft right
+  R2·  2                   putt          3.0 ft  in the hole  (2 putts)
+  R2·  3  520 yd par 5   driver       98%  286.9 yd   233.1 short  4.4 left  aim  +1.0 ft  fairway
+  R2·  3  520 yd par 5   3 wood       80%  201.1 yd    32.1 short  4.0 right aim  +1.0 ft  fairway
+  R2·  3  520 yd par 5   sand wedge   36%   21.4 yd    11.0 short  1.2 left  aim  +0.0 ft  fairway
+  R2·  3  520 yd par 5   sand wedge   25%   10.7 yd     0.7 short  2.2 left  aim  -3.0 ft  fairway green
+  R2·  3                   putt          7.0 ft  0.1 ft past, 1.3 ft right
+  R2·  3                   putt          1.3 ft  in the hole  (2 putts)
+  R2·  4  300 yd par 4   driver      102%  301.4 yd     1.3 long   5.4 right aim  -3.0 ft  fairway green
+  R2·  4                   putt         16.6 ft  in the hole  (1 putt)
+  R2·  5  145 yd par 3   7 iron       80%  134.9 yd    10.1 short  1.4 left  aim  +2.0 ft  fairway
+  R2·  5  145 yd par 3   sand wedge   25%   11.0 yd     0.3 long   3.4 left  aim  +3.0 ft  fairway green
+  R2·  5                   putt         10.3 ft  beside the hole, 1.4 ft right
+  R2·  5                   putt          1.4 ft  beside the hole, 0.2 ft right
+  R2·  5                   putt          0.2 ft  beside the hole
+  R2·  5                   putt          0.0 ft  in the hole  (4 putts)
+  R2·  6  385 yd par 4   driver       99%  291.9 yd    93.1 short  2.3 right aim  -1.0 ft  fairway
+  R2·  6  385 yd par 4   7 iron       45%   53.9 yd    39.2 short  0.0 right aim  +0.0 ft  fairway
+  R2·  6  385 yd par 4   sand wedge   45%   32.3 yd     6.9 short  0.5 right aim  +0.0 ft  fairway green
+  R2·  6                   putt         20.7 ft  0.1 ft past, 3.1 ft right
+  R2·  6                   putt          3.1 ft  beside the hole
+  R2·  6                   putt          0.0 ft  in the hole  (3 putts)
+  R2·  7   95 yd par 3   driver       35%   55.7 yd    39.4 short  0.4 right aim  -2.0 ft  fairway
+  R2·  7   95 yd par 3   sand wedge   45%   32.1 yd     7.4 short  2.8 right aim  -4.0 ft  fairway green
+  R2·  7                   putt         23.8 ft  beside the hole, 2.9 ft right
+  R2·  7                   putt          2.9 ft  beside the hole
+  R2·  7                   putt          0.0 ft  beside the hole
+  R2·  7                   putt          0.0 ft  in the hole  (4 putts)
+  R2·  8  450 yd par 4   driver      102%  303.6 yd   146.4 short  4.9 left  aim  +3.0 ft  fairway
+  R2·  8  450 yd par 4   5 iron       78%  151.4 yd     4.7 long   7.5 left  aim  +2.0 ft  fairway green
+  R2·  8                   putt         26.6 ft  beside the hole, 2.4 ft right
+  R2·  8                   putt          2.4 ft  beside the hole, 0.5 ft right
+  R2·  8                   putt          0.5 ft  beside the hole
+  R2·  8                   putt          0.0 ft  beside the hole
+  R2·  9  500 yd par 5   driver      100%  295.9 yd   204.1 short  1.1 right aim  -2.0 ft  fairway
+  R2·  9  500 yd par 5   7 iron       99%  180.6 yd    23.6 short  5.7 right aim  -2.0 ft  fairway
+  R2·  9  500 yd par 5   sand wedge   35%   20.7 yd     3.6 short  1.6 right aim  -2.0 ft  fairway green
+  R2·  9                   putt         11.9 ft  beside the hole, 1.2 ft right
+  R2·  9                   putt          1.2 ft  in the hole  (2 putts)
+      round            48 strokes, par 35, +13   putts 25   penalties 0   miss 47.4 yd, notebook off by 14.1%, 2.68° off line
+
+ROUND 3
+  R3·  1  410 yd par 4   driver       98%  286.2 yd   123.8 short  0.3 left  aim  +3.0 ft  fairway
+  R3·  1  410 yd par 4   7 iron       59%   85.0 yd    38.8 short  3.1 left  aim  +2.0 ft  fairway
+  R3·  1  410 yd par 4   sand wedge   45%   32.4 yd     6.6 short  1.6 left  aim  +3.0 ft  fairway green
+  R3·  1                   putt         20.5 ft  0.2 ft past, 3.7 ft right
+  R3·  1                   putt          3.7 ft  beside the hole, 0.1 ft right
+  R3·  1                   putt          0.1 ft  in the hole  (3 putts)
+  R3·  2  165 yd par 3   9 iron      105%  164.2 yd     0.9 short  2.8 right aim  -2.0 ft  fairway green
+  R3·  2                   putt          8.9 ft  beside the hole, 0.3 ft right
+  R3·  2                   putt          0.3 ft  in the hole  (2 putts)
+  R3·  3  520 yd par 5   driver      101%  298.9 yd   221.3 short 11.2 left  aim  +1.0 ft  fairway
+  R3·  3  520 yd par 5   driver       80%  217.7 yd     4.0 short  1.0 left  aim  +1.0 ft  fairway green
+  R3·  3                   putt         12.3 ft  0.1 ft past, 2.2 ft right
+  R3·  3                   putt          2.2 ft  beside the hole
+  R3·  3                   putt          0.1 ft  in the hole  (3 putts)
+  R3·  4  300 yd par 4   driver       98%  286.9 yd    13.1 short  0.7 left  aim  -3.0 ft  fairway
+  R3·  4  300 yd par 4   9 iron       25%   14.6 yd     0.9 long   3.9 right aim  -4.0 ft  fairway green
+  R3·  4                   putt         11.9 ft  beside the hole
+  R3·  4                   putt          0.0 ft  beside the hole
+  R3·  4                   putt          0.0 ft  in the hole  (3 putts)
+  R3·  5  145 yd par 3   driver       61%  143.5 yd     1.7 short  5.6 left  aim  +2.0 ft  fairway green
+  R3·  5                   putt         17.5 ft  0.3 ft past, 3.1 ft right
+  R3·  5                   putt          3.2 ft  beside the hole, 0.4 ft right
+  R3·  5                   putt          0.4 ft  in the hole  (3 putts)
+  R3·  6  385 yd par 4   driver      100%  294.3 yd    90.7 short  0.8 left  aim  -1.0 ft  fairway
+  R3·  6  385 yd par 4   5 iron       46%   65.8 yd    25.0 short  1.0 right aim  +0.0 ft  fairway
+  R3·  6  385 yd par 4   sand wedge   35%   20.3 yd     4.7 short  0.8 right aim  -1.0 ft  fairway green
+  R3·  6                   putt         14.4 ft  beside the hole, 2.0 ft right
+  R3·  6                   putt          2.0 ft  beside the hole
+  R3·  6                   putt          0.0 ft  in the hole  (3 putts)
+  R3·  7   95 yd par 3   3 wood       36%   53.0 yd    42.1 short  0.9 right aim  -2.0 ft  fairway
+  R3·  7   95 yd par 3   5 iron       25%   21.5 yd    20.7 short  1.8 right aim  -3.0 ft  fairway
+  R3·  7   95 yd par 3   sand wedge   35%   20.3 yd     0.6 short  2.7 right aim  -4.0 ft  fairway green
+  R3·  7                   putt          8.2 ft  beside the hole, 0.1 ft right
+  R3·  7                   putt          0.1 ft  beside the hole
+  R3·  7                   putt          0.0 ft  in the hole  (3 putts)
+  R3·  8  450 yd par 4   driver       99%  292.9 yd   157.2 short  6.4 left  aim  +3.0 ft  fairway
+  R3·  8  450 yd par 4   5 iron       81%  158.0 yd     0.5 long   8.6 left  aim  +2.0 ft  fairway green
+  R3·  8                   putt         25.9 ft  0.2 ft past, 3.8 ft right
+  R3·  8                   putt          3.9 ft  beside the hole, 0.6 ft right
+  R3·  8                   putt          0.6 ft  beside the hole
+  R3·  8                   putt          0.0 ft  in the hole  (4 putts)
+  R3·  9  500 yd par 5   driver       99%  291.6 yd   208.5 short  3.3 right aim  -2.0 ft  fairway
+  R3·  9  500 yd par 5   driver       82%  223.4 yd    15.0 long   0.1 left  aim  -2.0 ft  fairway
+  R3·  9  500 yd par 5   9 iron       25%   14.0 yd     1.2 short  2.3 left  aim  -3.0 ft  fairway green
+  R3·  9                   putt          7.6 ft  in the hole  (1 putt)
+      round            45 strokes, par 35, +10   putts 25   penalties 0   miss 48.9 yd, notebook off by  9.9%, 2.55° off line
+
+ROUND 4
+  R4·  1  410 yd par 4   driver       98%  286.2 yd   123.8 short  0.4 left  aim  +3.0 ft  fairway
+  R4·  1  410 yd par 4   9 iron       78%  109.4 yd    14.5 short  4.0 left  aim  +2.0 ft  fairway
+  R4·  1  410 yd par 4   9 iron       25%   14.4 yd     0.8 short  2.4 left  aim  +4.0 ft  fairway green
+  R4·  1                   putt          7.5 ft  beside the hole, 1.2 ft right
+  R4·  1                   putt          1.2 ft  in the hole  (2 putts)
+  R4·  2  165 yd par 3   9 iron      105%  164.2 yd     0.9 short  2.6 right aim  -2.0 ft  fairway green
+  R4·  2                   putt          8.2 ft  beside the hole, 0.3 ft right
+  R4·  2                   putt          0.3 ft  in the hole  (2 putts)
+  R4·  3  520 yd par 5   driver      101%  298.9 yd   221.4 short 11.6 left  aim  +1.0 ft  fairway
+  R4·  3  520 yd par 5   driver       80%  217.7 yd     4.0 short  1.3 left  aim  +1.0 ft  fairway green
+  R4·  3                   putt         12.7 ft  0.2 ft past, 2.3 ft right
+  R4·  3                   putt          2.3 ft  beside the hole
+  R4·  3                   putt          0.1 ft  beside the hole
+  R4·  3                   putt          0.0 ft  in the hole  (4 putts)
+  R4·  4  300 yd par 4   driver       98%  286.9 yd    13.1 short  1.1 left  aim  -3.0 ft  fairway
+  R4·  4  300 yd par 4   9 iron       25%   14.6 yd     0.9 long   3.8 right aim  -4.0 ft  fairway green
+  R4·  4                   putt         11.7 ft  beside the hole
+  R4·  4                   putt          0.0 ft  in the hole  (2 putts)
+  R4·  5  145 yd par 3   driver       61%  143.5 yd     1.7 short  5.8 left  aim  +2.0 ft  fairway green
+  R4·  5                   putt         18.2 ft  0.3 ft past, 3.2 ft right
+  R4·  5                   putt          3.3 ft  beside the hole, 0.4 ft right
+  R4·  5                   putt          0.4 ft  in the hole  (3 putts)
+  R4·  6  385 yd par 4   driver      100%  294.3 yd    90.7 short  1.3 left  aim  -1.0 ft  fairway
+  R4·  6  385 yd par 4   sand wedge   81%   89.5 yd     1.2 short  1.2 right aim  +0.0 ft  fairway green
+  R4·  6                   putt          5.2 ft  beside the hole, 0.5 ft right
+  R4·  6                   putt          0.5 ft  in the hole  (2 putts)
+  R4·  7   95 yd par 3   sand wedge   80%   86.7 yd     8.5 short  4.2 right aim  -2.0 ft  fairway green
+  R4·  7                   putt         28.6 ft  beside the hole, 3.2 ft right
+  R4·  7                   putt          3.2 ft  in the hole  (2 putts)
+  R4·  8  450 yd par 4   driver      102%  300.6 yd   149.5 short  8.8 left  aim  +3.0 ft  fairway
+  R4·  8  450 yd par 4   5 iron       79%  153.8 yd     4.0 long   2.6 left  aim  +2.0 ft  fairway green
+  R4·  8                   putt         14.3 ft  beside the hole, 0.5 ft right
+  R4·  8                   putt          0.5 ft  in the hole  (2 putts)
+  R4·  9  500 yd par 5   driver      100%  294.0 yd   206.0 short  2.5 left  aim  -2.0 ft  fairway
+  R4·  9  500 yd par 5   3 wood       80%  198.7 yd     7.3 short  0.4 left  aim  -2.0 ft  fairway green
+  R4·  9                   putt         22.1 ft  0.2 ft past, 3.6 ft right
+  R4·  9                   putt          3.6 ft  beside the hole
+  R4·  9                   putt          0.1 ft  in the hole  (3 putts)
+      round            38 strokes, par 35,  +3   putts 22   penalties 0   miss 53.0 yd, notebook off by  2.4%, 2.38° off line
+
+ROUND 5
+  R5·  1  410 yd par 4   driver       98%  286.2 yd   123.8 short  0.0 left  aim  +3.0 ft  fairway
+  R5·  1  410 yd par 4   5 iron       59%   99.1 yd    24.7 short  3.5 left  aim  +2.0 ft  fairway
+  R5·  1  410 yd par 4   5 iron       25%   21.7 yd     3.4 short  1.8 left  aim  +4.0 ft  fairway green
+  R5·  1                   putt         11.5 ft  0.2 ft past, 2.2 ft right
+  R5·  1                   putt          2.2 ft  beside the hole, 0.1 ft right
+  R5·  1                   putt          0.1 ft  in the hole  (3 putts)
+  R5·  2  165 yd par 3   9 iron      105%  164.2 yd     0.9 short  2.9 right aim  -2.0 ft  fairway green
+  R5·  2                   putt          9.2 ft  beside the hole, 0.3 ft right
+  R5·  2                   putt          0.3 ft  in the hole  (2 putts)
+  R5·  3  520 yd par 5   driver      101%  298.9 yd   221.3 short 11.0 left  aim  +1.0 ft  fairway
+  R5·  3  520 yd par 5   driver       80%  217.7 yd     4.0 short  0.9 left  aim  +1.0 ft  fairway green
+  R5·  3                   putt         12.2 ft  0.1 ft past, 2.2 ft right
+  R5·  3                   putt          2.2 ft  beside the hole
+  R5·  3                   putt          0.1 ft  in the hole  (3 putts)
+  R5·  4  300 yd par 4   driver       98%  286.9 yd    13.1 short  0.5 left  aim  -3.0 ft  fairway
+  R5·  4  300 yd par 4   9 iron       25%   14.6 yd     0.9 long   3.9 right aim  -4.0 ft  fairway green
+  R5·  4                   putt         12.0 ft  beside the hole
+  R5·  4                   putt          0.0 ft  beside the hole
+  R5·  4                   putt          0.0 ft  in the hole  (3 putts)
+  R5·  5  145 yd par 3   driver       61%  143.5 yd     1.7 short  5.5 left  aim  +2.0 ft  fairway green
+  R5·  5                   putt         17.3 ft  0.3 ft past, 3.1 ft right
+  R5·  5                   putt          3.1 ft  beside the hole, 0.4 ft right
+  R5·  5                   putt          0.4 ft  in the hole  (3 putts)
+  R5·  6  385 yd par 4   driver      100%  294.3 yd    90.7 short  0.8 left  aim  -1.0 ft  fairway
+  R5·  6  385 yd par 4   sand wedge   81%   89.5 yd     1.2 short  1.4 right aim  +0.0 ft  fairway green
+  R5·  6                   putt          5.6 ft  beside the hole, 0.5 ft right
+  R5·  6                   putt          0.5 ft  in the hole  (2 putts)
+  R5·  7   95 yd par 3   5 iron       60%  101.7 yd     6.5 long   5.2 right aim  -2.0 ft  fairway green
+  R5·  7                   putt         24.8 ft  beside the hole, 0.8 ft left
+  R5·  7                   putt          0.8 ft  beside the hole
+  R5·  7                   putt          0.1 ft  in the hole  (3 putts)
+  R5·  8  450 yd par 4   driver      102%  300.6 yd   149.5 short  8.2 left  aim  +3.0 ft  fairway
+  R5·  8  450 yd par 4   5 iron       79%  153.8 yd     4.0 long   2.4 left  aim  +2.0 ft  fairway green
+  R5·  8                   putt         14.0 ft  beside the hole, 0.4 ft right
+  R5·  8                   putt          0.5 ft  in the hole  (2 putts)
+  R5·  9  500 yd par 5   driver      100%  294.0 yd   206.0 short  2.0 left  aim  -2.0 ft  fairway
+  R5·  9  500 yd par 5   3 wood       80%  198.7 yd     7.3 short  0.1 left  aim  -2.0 ft  fairway green
+  R5·  9                   putt         22.0 ft  0.2 ft past, 3.5 ft right
+  R5·  9                   putt          3.5 ft  beside the hole
+  R5·  9                   putt          0.0 ft  in the hole  (3 putts)
+      round            40 strokes, par 35,  +5   putts 24   penalties 0   miss 53.7 yd, notebook off by  2.3%, 2.08° off line
+
+ROUND 6
+  R6·  1  410 yd par 4   driver       98%  286.2 yd   123.8 short  0.5 right aim  +3.0 ft  fairway
+  R6·  1  410 yd par 4   3 wood       44%   76.9 yd    47.0 short  2.6 left  aim  +2.0 ft  fairway
+  R6·  1  410 yd par 4   7 iron       25%   18.1 yd    28.9 short  0.6 left  aim  +3.0 ft  fairway
+  R6·  1  410 yd par 4   sand wedge   47%   35.6 yd     6.5 long   3.7 left  aim  +4.0 ft  fairway green
+  R6·  1                   putt         22.3 ft  0.1 ft short, 0.6 ft right
+  R6·  1                   putt          0.6 ft  in the hole  (2 putts)
+  R6·  2  165 yd par 3   9 iron      101%  156.4 yd     8.7 short  2.2 left  aim  -2.0 ft  fairway
+  R6·  2  165 yd par 3   sand wedge   25%   10.8 yd     1.5 long   2.9 right aim  -3.0 ft  fairway green
+  R6·  2                   putt          9.7 ft  in the hole  (1 putt)
+  R6·  3  520 yd par 5   driver       98%  286.9 yd   233.1 short  4.0 left  aim  +1.0 ft  fairway
+  R6·  3  520 yd par 5   driver       80%  217.1 yd    16.1 short  4.6 right aim  +1.0 ft  fairway
+  R6·  3  520 yd par 5   7 iron       26%   19.1 yd     2.2 long   2.7 left  aim  -3.0 ft  fairway green
+  R6·  3                   putt         10.4 ft  beside the hole, 1.2 ft right
+  R6·  3                   putt          1.2 ft  beside the hole, 0.2 ft right
+  R6·  3                   putt          0.2 ft  beside the hole
+  R6·  3                   putt          0.0 ft  in the hole  (4 putts)
+  R6·  4  300 yd par 4   driver      100%  294.3 yd     5.8 short  2.7 right aim  -3.0 ft  fairway green
+  R6·  4                   putt         19.2 ft  beside the hole, 2.3 ft right
+  R6·  4                   putt          2.3 ft  in the hole  (2 putts)
+  R6·  5  145 yd par 3   driver       61%  141.9 yd     3.2 short  2.4 left  aim  +2.0 ft  fairway green
+  R6·  5                   putt         12.1 ft  0.2 ft past, 2.3 ft right
+  R6·  5                   putt          2.3 ft  beside the hole, 0.2 ft right
+  R6·  5                   putt          0.2 ft  in the hole  (3 putts)
+  R6·  6  385 yd par 4   driver      100%  293.4 yd    91.6 short  4.6 right aim  -1.0 ft  fairway
+  R6·  6  385 yd par 4   sand wedge   81%   89.3 yd     2.5 short  0.7 left  aim  +0.0 ft  fairway green
+  R6·  6                   putt          7.8 ft  beside the hole, 1.4 ft right
+  R6·  6                   putt          1.4 ft  beside the hole
+  R6·  6                   putt          0.0 ft  in the hole  (3 putts)
+  R6·  7   95 yd par 3   5 iron       60%  101.1 yd     5.9 long   4.6 right aim  -2.0 ft  fairway green
+  R6·  7                   putt         22.3 ft  beside the hole, 0.7 ft left
+  R6·  7                   putt          0.7 ft  beside the hole
+  R6·  7                   putt          0.1 ft  in the hole  (3 putts)
+  R6·  8  450 yd par 4   driver      100%  294.0 yd   156.0 short  4.7 left  aim  +3.0 ft  fairway
+  R6·  8  450 yd par 4   5 iron       80%  154.3 yd     1.9 short  4.6 left  aim  +2.0 ft  fairway green
+  R6·  8                   putt         14.8 ft  0.2 ft past, 2.7 ft right
+  R6·  8                   putt          2.7 ft  beside the hole, 0.3 ft right
+  R6·  8                   putt          0.3 ft  beside the hole
+  R6·  8                   putt          0.0 ft  in the hole  (4 putts)
+  R6·  9  500 yd par 5   driver      101%  299.7 yd   200.4 short  7.6 left  aim  -2.0 ft  fairway
+  R6·  9  500 yd par 5   3 wood       79%  197.7 yd     3.0 short  4.6 right aim  -2.0 ft  fairway green
+  R6·  9                   putt         16.3 ft  beside the hole, 1.1 ft right
+  R6·  9                   putt          1.1 ft  beside the hole
+  R6·  9                   putt          0.0 ft  in the hole  (3 putts)
+      round            43 strokes, par 35,  +8   putts 25   penalties 0   miss 52.1 yd, notebook off by  7.6%, 2.69° off line
+
+HELD-OUT: six holes never played
+  H· H1  130 yd par 3   7 iron       78%  116.5 yd    13.6 short  3.7 left  aim  +2.0 ft  fairway
+  H· H1  130 yd par 3   9 iron       24%   13.2 yd     1.2 short  2.9 left  aim  +3.0 ft  fairway green
+  H· H1                   putt          9.4 ft  0.1 ft past, 1.6 ft right
+  H· H1                   putt          1.6 ft  beside the hole, 0.2 ft right
+  H· H1                   putt          0.2 ft  beside the hole
+  H· H1                   putt          0.0 ft  in the hole  (4 putts)
+  H· H2  375 yd par 4   driver      100%  349.4 yd    26.2 short 19.6 right aim  -3.0 ft  fairway
+  H· H2  375 yd par 4   sand wedge   47%   37.8 yd     5.0 long   3.4 right aim  -2.0 ft  fairway green
+  H· H2                   putt         18.0 ft  in the hole  (1 putt)
+  H· H3  480 yd par 5   driver      101%  254.4 yd   225.8 short  9.7 left  aim  +2.0 ft  fairway
+  H· H3  480 yd par 5   3 wood      100%  234.1 yd     8.1 long   0.5 left  aim  +1.0 ft  fairway green
+  H· H3                   putt         24.4 ft  beside the hole, 0.2 ft left
+  H· H3                   putt          0.2 ft  in the hole  (2 putts)
+  H· H4  190 yd par 3   5 iron       98%  204.1 yd    13.8 long  11.1 right aim  -2.0 ft  fairway
+  H· H4  190 yd par 3   7 iron       25%   18.0 yd     0.1 long   2.4 left  aim  -3.0 ft  fairway green
+  H· H4                   putt          7.3 ft  beside the hole, 0.6 ft right
+  H· H4                   putt          0.6 ft  in the hole  (2 putts)
+  H· H5  340 yd par 4   driver      102%  347.4 yd     7.0 long  16.1 left  aim  +1.0 ft  fairway
+  H· H5  340 yd par 4   sand wedge   35%   19.0 yd     1.5 long   0.4 right aim  -3.0 ft  fairway green
+  H· H5                   putt          4.5 ft  beside the hole, 0.3 ft right
+  H· H5                   putt          0.3 ft  in the hole  (2 putts)
+  H· H6   90 yd par 3   5 iron       61%   96.1 yd     6.0 long   1.8 right aim  -2.0 ft  fairway green
+  H· H6                   putt         18.8 ft  beside the hole, 0.5 ft left
+  H· H6                   putt          0.5 ft  beside the hole
+  H· H6                   putt          0.0 ft  in the hole  (3 putts)
+      round            25 strokes, par 22,  +3   putts 14   penalties 0   miss 28.0 yd, notebook off by 11.0%, 3.62° off line
+
+  to par: [16, 13, 10, 3, 5, 8]   held-out +3   policy spread   calm
+  notebook against true (yards; full / 80% / 60% / chip, and shots at each):
+    driver        295   217   142    56   true   295   216   138    54   n 38  7  5  1
+    3 wood        271   199   174    53   true   274   200   128    52   n  2  4  0  1
+    5 iron        204   154   102    69   true   210   155   102    41   n  1  7  4  0
+    7 iron        181   130    85    70   true   183   136    88    34   n  1  3  1  0
+    9 iron        162   109    71    56   true   154   113    72    28   n  5  1  1  0
+    sand wedge    107    88    64    21   true   122    87    54    20   n  0  5  0  7
+  aim bias -2.03°  (its hands are +2.20°)   shots observed 125
+
+3. THE CONTROL — still air, --learn 0, same seed, never updated
 
 `games/putt/` taught one thing — pace and line, two unknown numbers, closed by bisection. Golf is a
 
@@ -309,300 +704,347 @@ BAG (carry + run at a full swing, fairway)
   sand wedge    104 +   17 =   122 yd   82 mph, 28.0°, 10000 rpm, hang 3.9s
 
 ROUND 1  (CONTROL: no learning)
-  R1·  1  410 yd par 4   3 wood       98%  265.5 yd   144.8 short 12.4 right fairway
-  R1·  1  410 yd par 4   5 iron       78%  151.2 yd     5.8 long   4.9 right fairway
-  R1·  1                   putt         22.8 ft  0.3 ft past, 2.6 ft left
-  R1·  1                   putt          2.6 ft  in the hole  (2 putts)
-  R1·  2  165 yd par 3   driver       60%  137.1 yd    28.3 short 10.3 right fairway
-  R1·  2  165 yd par 3   sand wedge   37%   22.4 yd     7.8 short  0.8 right fairway
-  R1·  2                   putt         23.5 ft  beside the hole, 0.7 ft right
-  R1·  2                   putt          0.7 ft  in the hole  (2 putts)
-  R1·  3  520 yd par 5   3 wood      101%  277.4 yd   242.6 short  0.7 right fairway
-  R1·  3  520 yd par 5   3 wood       80%  201.6 yd    41.2 short  7.5 right fairway
-  R1·  3  520 yd par 5   sand wedge   34%   19.6 yd    22.2 short  0.4 right fairway
-  R1·  3  520 yd par 5   sand wedge   35%   20.6 yd     1.7 short  1.2 right fairway
-  R1·  3                   putt          6.3 ft  in the hole  (1 putt)
-  R1·  4  300 yd par 4   3 wood      102%  282.2 yd    17.8 short  6.1 right fairway
-  R1·  4  300 yd par 4   sand wedge   35%   20.4 yd     1.5 long   0.7 right fairway
-  R1·  4                   putt          5.0 ft  beside the hole, 0.4 ft left
-  R1·  4                   putt          0.5 ft  in the hole  (2 putts)
-  R1·  5  145 yd par 3   5 iron       81%  159.0 yd    13.8 long   6.5 right fairway
-  R1·  5  145 yd par 3   sand wedge   35%   20.3 yd     5.0 long   1.0 right fairway
-  R1·  5                   putt         15.2 ft  0.2 ft past, 1.7 ft right
-  R1·  5                   putt          1.7 ft  in the hole  (2 putts)
-  R1·  6  385 yd par 4   3 wood      102%  279.0 yd   106.0 short  4.4 right fairway
-  R1·  6  385 yd par 4   sand wedge   99%  120.2 yd    14.0 long   5.0 right fairway
-  R1·  6  385 yd par 4   sand wedge   35%   20.3 yd     5.4 long   0.5 right fairway
-  R1·  6                   putt         16.4 ft  0.1 ft past, 1.6 ft right
-  R1·  6                   putt          1.6 ft  in the hole  (2 putts)
-  R1·  7   95 yd par 3   9 iron       60%   71.0 yd    24.0 short  1.8 right fairway
-  R1·  7   95 yd par 3   sand wedge   35%   20.9 yd     3.1 short  0.1 right fairway
-  R1·  7                   putt          9.4 ft  beside the hole, 0.6 ft right
-  R1·  7                   putt          0.6 ft  in the hole  (2 putts)
-  R1·  8  450 yd par 4   3 wood       99%  270.5 yd   179.8 short 12.5 right fairway
-  R1·  8  450 yd par 4   3 wood       61%  132.8 yd    47.5 short  3.8 right fairway
-  R1·  8  450 yd par 4   sand wedge   44%   31.5 yd    16.1 short  0.3 right fairway
-  R1·  8  450 yd par 4   sand wedge   35%   20.5 yd     4.4 long   0.7 right fairway
-  R1·  8                   putt         13.3 ft  0.1 ft past, 1.1 ft left
-  R1·  8                   putt          1.1 ft  in the hole  (2 putts)
-  R1·  9  500 yd par 5   3 wood       99%  270.4 yd   230.0 short 15.3 right fairway
-  R1·  9  500 yd par 5   3 wood       81%  202.6 yd    28.0 short  4.4 right fairway
-  R1·  9  500 yd par 5   sand wedge   35%   20.6 yd     7.8 short  0.1 left  fairway
-  R1·  9                   putt         23.4 ft  beside the hole, 1.3 ft right
-  R1·  9                   putt          1.3 ft  in the hole  (2 putts)
-      round            41 strokes, par 35,  +6   putts 17   penalties 0   miss 49.9 yd, notebook off by 24.3%, 1.64° off line
+  R1·  1  410 yd par 4   3 wood       98%  265.5 yd   144.7 short 10.2 right aim  +3.0 ft  fairway
+  R1·  1  410 yd par 4   5 iron       78%  151.2 yd     6.1 long   1.1 right aim  +2.0 ft  fairway
+  R1·  1  410 yd par 4   sand wedge   25%   10.6 yd     3.1 long   5.1 right aim  +4.0 ft  fairway green
+  R1·  1                   putt         18.0 ft  0.2 ft past, 2.0 ft right
+  R1·  1                   putt          2.0 ft  beside the hole
+  R1·  1                   putt          0.0 ft  in the hole  (3 putts)
+  R1·  2  165 yd par 3   driver       63%  149.1 yd    16.1 short  8.2 right aim  -2.0 ft  fairway
+  R1·  2  165 yd par 3   sand wedge   25%   10.9 yd     7.3 short  1.5 right aim  -3.0 ft  fairway green
+  R1·  2                   putt         22.3 ft  beside the hole, 0.2 ft right
+  R1·  2                   putt          0.2 ft  in the hole  (2 putts)
+  R1·  3  520 yd par 5   3 wood      100%  275.4 yd   244.8 short  9.8 right aim  +1.0 ft  fairway
+  R1·  3  520 yd par 5   3 wood       78%  194.1 yd    51.0 short  3.6 right aim  +1.0 ft  fairway
+  R1·  3  520 yd par 5   7 iron       25%   18.4 yd    32.7 short  0.6 right aim  +0.0 ft  fairway
+  R1·  3  520 yd par 5   sand wedge   36%   21.4 yd    11.4 short  0.4 left  aim  +0.0 ft  fairway
+  R1·  3  520 yd par 5   sand wedge   25%   10.7 yd     0.8 short  1.8 left  aim  -3.0 ft  fairway green
+  R1·  3                   putt          5.9 ft  beside the hole, 0.7 ft right
+  R1·  3                   putt          0.7 ft  in the hole  (2 putts)
+  R1·  4  300 yd par 4   3 wood      102%  279.7 yd    20.7 short 14.9 right aim  -3.0 ft  fairway
+  R1·  4  300 yd par 4   sand wedge   25%   10.6 yd    15.0 short  1.7 right aim  -4.0 ft  fairway
+  R1·  4  300 yd par 4   sand wedge   25%   11.0 yd     4.3 short  2.2 right aim  -4.0 ft  fairway green
+  R1·  4                   putt         14.4 ft  beside the hole, 0.6 ft left
+  R1·  4                   putt          0.6 ft  in the hole  (2 putts)
+  R1·  5  145 yd par 3   5 iron       79%  153.8 yd     8.7 long   2.9 right aim  +2.0 ft  fairway
+  R1·  5  145 yd par 3   sand wedge   25%   10.7 yd     1.0 long   3.1 right aim  +3.0 ft  fairway green
+  R1·  5                   putt          9.8 ft  beside the hole, 0.8 ft right
+  R1·  5                   putt          0.8 ft  in the hole  (2 putts)
+  R1·  6  385 yd par 4   3 wood       99%  271.7 yd   113.4 short  7.3 right aim  -1.0 ft  fairway
+  R1·  6  385 yd par 4   5 iron       61%  104.3 yd     9.3 short  1.5 right aim  +0.0 ft  fairway green
+  R1·  6                   putt         28.3 ft  beside the hole, 1.5 ft right
+  R1·  6                   putt          1.5 ft  in the hole  (2 putts)
+  R1·  7   95 yd par 3   9 iron       59%   70.6 yd    24.7 short  6.0 right aim  -2.0 ft  fairway
+  R1·  7   95 yd par 3   sand wedge   26%   11.2 yd    14.4 short  1.6 right aim  -4.0 ft  fairway
+  R1·  7   95 yd par 3   sand wedge   25%   10.3 yd     4.4 short  2.2 right aim  -4.0 ft  fairway green
+  R1·  7                   putt         14.6 ft  in the hole  (1 putt)
+  R1·  8  450 yd par 4   3 wood      100%  274.6 yd   175.5 short  8.2 right aim  +3.0 ft  fairway
+  R1·  8  450 yd par 4   3 wood       59%  126.2 yd    49.7 short  5.0 right aim  +2.0 ft  fairway
+  R1·  8  450 yd par 4   7 iron       25%   18.6 yd    31.4 short  0.7 left  aim  +2.0 ft  fairway
+  R1·  8  450 yd par 4   sand wedge   25%   10.8 yd    20.6 short  1.0 left  aim  +3.0 ft  fairway
+  R1·  8  450 yd par 4   sand wedge   25%   10.5 yd    10.2 short  1.2 left  aim  +3.0 ft  fairway
+  R1·  8  450 yd par 4   sand wedge   25%   11.1 yd     0.6 long   2.4 left  aim  +3.0 ft  fairway green
+  R1·  8                   putt          7.5 ft  beside the hole, 0.4 ft right
+  R1·  8                   putt          0.4 ft  in the hole  (2 putts)
+  R1·  9  500 yd par 5   3 wood       99%  271.7 yd   228.4 short  9.0 right aim  -2.0 ft  fairway
+  R1·  9  500 yd par 5   3 wood       80%  198.7 yd    30.3 short 13.8 right aim  -2.0 ft  fairway
+  R1·  9  500 yd par 5   sand wedge   35%   20.4 yd    13.1 short  2.4 right aim  -2.0 ft  fairway
+  R1·  9  500 yd par 5   sand wedge   25%   10.7 yd     2.7 short  1.5 right aim  -3.0 ft  fairway green
+  R1·  9                   putt          9.1 ft  beside the hole, 0.3 ft left
+  R1·  9                   putt          0.3 ft  in the hole  (2 putts)
+      round            48 strokes, par 35, +13   putts 18   penalties 0   miss 43.2 yd, notebook off by 35.9%, 5.02° off line
 
 ROUND 2  (CONTROL: no learning)
-  R2·  1  410 yd par 4   3 wood       98%  265.5 yd   144.8 short 12.4 right fairway
-  R2·  1  410 yd par 4   5 iron       78%  151.2 yd     5.8 long   4.9 right fairway
-  R2·  1                   putt         22.8 ft  0.3 ft past, 2.6 ft left
-  R2·  1                   putt          2.6 ft  in the hole  (2 putts)
-  R2·  2  165 yd par 3   driver       60%  137.1 yd    28.3 short 10.3 right fairway
-  R2·  2  165 yd par 3   sand wedge   37%   22.4 yd     7.8 short  0.8 right fairway
-  R2·  2                   putt         23.5 ft  beside the hole, 0.7 ft right
-  R2·  2                   putt          0.7 ft  in the hole  (2 putts)
-  R2·  3  520 yd par 5   3 wood      101%  277.4 yd   242.6 short  0.7 right fairway
-  R2·  3  520 yd par 5   3 wood       80%  201.6 yd    41.2 short  7.5 right fairway
-  R2·  3  520 yd par 5   sand wedge   34%   19.6 yd    22.2 short  0.4 right fairway
-  R2·  3  520 yd par 5   sand wedge   35%   20.6 yd     1.7 short  1.2 right fairway
-  R2·  3                   putt          6.3 ft  in the hole  (1 putt)
-  R2·  4  300 yd par 4   3 wood      102%  282.2 yd    17.8 short  6.1 right fairway
-  R2·  4  300 yd par 4   sand wedge   35%   20.4 yd     1.5 long   0.7 right fairway
-  R2·  4                   putt          5.0 ft  beside the hole, 0.4 ft left
-  R2·  4                   putt          0.5 ft  in the hole  (2 putts)
-  R2·  5  145 yd par 3   5 iron       81%  159.0 yd    13.8 long   6.5 right fairway
-  R2·  5  145 yd par 3   sand wedge   35%   20.3 yd     5.0 long   1.0 right fairway
-  R2·  5                   putt         15.2 ft  0.2 ft past, 1.7 ft right
-  R2·  5                   putt          1.7 ft  in the hole  (2 putts)
-  R2·  6  385 yd par 4   3 wood      102%  279.0 yd   106.0 short  4.4 right fairway
-  R2·  6  385 yd par 4   sand wedge   99%  120.2 yd    14.0 long   5.0 right fairway
-  R2·  6  385 yd par 4   sand wedge   35%   20.3 yd     5.4 long   0.5 right fairway
-  R2·  6                   putt         16.4 ft  0.1 ft past, 1.6 ft right
-  R2·  6                   putt          1.6 ft  in the hole  (2 putts)
-  R2·  7   95 yd par 3   9 iron       60%   71.0 yd    24.0 short  1.8 right fairway
-  R2·  7   95 yd par 3   sand wedge   35%   20.9 yd     3.1 short  0.1 right fairway
-  R2·  7                   putt          9.4 ft  beside the hole, 0.6 ft right
-  R2·  7                   putt          0.6 ft  in the hole  (2 putts)
-  R2·  8  450 yd par 4   3 wood       99%  270.5 yd   179.8 short 12.5 right fairway
-  R2·  8  450 yd par 4   3 wood       61%  132.8 yd    47.5 short  3.8 right fairway
-  R2·  8  450 yd par 4   sand wedge   44%   31.5 yd    16.1 short  0.3 right fairway
-  R2·  8  450 yd par 4   sand wedge   35%   20.5 yd     4.4 long   0.7 right fairway
-  R2·  8                   putt         13.3 ft  0.1 ft past, 1.1 ft left
-  R2·  8                   putt          1.1 ft  in the hole  (2 putts)
-  R2·  9  500 yd par 5   3 wood       99%  270.4 yd   230.0 short 15.3 right fairway
-  R2·  9  500 yd par 5   3 wood       81%  202.6 yd    28.0 short  4.4 right fairway
-  R2·  9  500 yd par 5   sand wedge   35%   20.6 yd     7.8 short  0.1 left  fairway
-  R2·  9                   putt         23.4 ft  beside the hole, 1.3 ft right
-  R2·  9                   putt          1.3 ft  in the hole  (2 putts)
-      round            41 strokes, par 35,  +6   putts 17   penalties 0   miss 49.9 yd, notebook off by 24.3%, 1.64° off line
+  R2·  1  410 yd par 4   3 wood       98%  265.5 yd   144.7 short 10.2 right aim  +3.0 ft  fairway
+  R2·  1  410 yd par 4   5 iron       78%  151.2 yd     6.1 long   1.1 right aim  +2.0 ft  fairway
+  R2·  1  410 yd par 4   sand wedge   25%   10.6 yd     3.1 long   5.1 right aim  +4.0 ft  fairway green
+  R2·  1                   putt         18.0 ft  0.2 ft past, 2.0 ft right
+  R2·  1                   putt          2.0 ft  beside the hole
+  R2·  1                   putt          0.0 ft  in the hole  (3 putts)
+  R2·  2  165 yd par 3   driver       63%  149.1 yd    16.1 short  8.2 right aim  -2.0 ft  fairway
+  R2·  2  165 yd par 3   sand wedge   25%   10.9 yd     7.3 short  1.5 right aim  -3.0 ft  fairway green
+  R2·  2                   putt         22.3 ft  beside the hole, 0.2 ft right
+  R2·  2                   putt          0.2 ft  in the hole  (2 putts)
+  R2·  3  520 yd par 5   3 wood      100%  275.4 yd   244.8 short  9.8 right aim  +1.0 ft  fairway
+  R2·  3  520 yd par 5   3 wood       78%  194.1 yd    51.0 short  3.6 right aim  +1.0 ft  fairway
+  R2·  3  520 yd par 5   7 iron       25%   18.4 yd    32.7 short  0.6 right aim  +0.0 ft  fairway
+  R2·  3  520 yd par 5   sand wedge   36%   21.4 yd    11.4 short  0.4 left  aim  +0.0 ft  fairway
+  R2·  3  520 yd par 5   sand wedge   25%   10.7 yd     0.8 short  1.8 left  aim  -3.0 ft  fairway green
+  R2·  3                   putt          5.9 ft  beside the hole, 0.7 ft right
+  R2·  3                   putt          0.7 ft  in the hole  (2 putts)
+  R2·  4  300 yd par 4   3 wood      102%  279.7 yd    20.7 short 14.9 right aim  -3.0 ft  fairway
+  R2·  4  300 yd par 4   sand wedge   25%   10.6 yd    15.0 short  1.7 right aim  -4.0 ft  fairway
+  R2·  4  300 yd par 4   sand wedge   25%   11.0 yd     4.3 short  2.2 right aim  -4.0 ft  fairway green
+  R2·  4                   putt         14.4 ft  beside the hole, 0.6 ft left
+  R2·  4                   putt          0.6 ft  in the hole  (2 putts)
+  R2·  5  145 yd par 3   5 iron       79%  153.8 yd     8.7 long   2.9 right aim  +2.0 ft  fairway
+  R2·  5  145 yd par 3   sand wedge   25%   10.7 yd     1.0 long   3.1 right aim  +3.0 ft  fairway green
+  R2·  5                   putt          9.8 ft  beside the hole, 0.8 ft right
+  R2·  5                   putt          0.8 ft  in the hole  (2 putts)
+  R2·  6  385 yd par 4   3 wood       99%  271.7 yd   113.4 short  7.3 right aim  -1.0 ft  fairway
+  R2·  6  385 yd par 4   5 iron       61%  104.3 yd     9.3 short  1.5 right aim  +0.0 ft  fairway green
+  R2·  6                   putt         28.3 ft  beside the hole, 1.5 ft right
+  R2·  6                   putt          1.5 ft  in the hole  (2 putts)
+  R2·  7   95 yd par 3   9 iron       59%   70.6 yd    24.7 short  6.0 right aim  -2.0 ft  fairway
+  R2·  7   95 yd par 3   sand wedge   26%   11.2 yd    14.4 short  1.6 right aim  -4.0 ft  fairway
+  R2·  7   95 yd par 3   sand wedge   25%   10.3 yd     4.4 short  2.2 right aim  -4.0 ft  fairway green
+  R2·  7                   putt         14.6 ft  in the hole  (1 putt)
+  R2·  8  450 yd par 4   3 wood      100%  274.6 yd   175.5 short  8.2 right aim  +3.0 ft  fairway
+  R2·  8  450 yd par 4   3 wood       59%  126.2 yd    49.7 short  5.0 right aim  +2.0 ft  fairway
+  R2·  8  450 yd par 4   7 iron       25%   18.6 yd    31.4 short  0.7 left  aim  +2.0 ft  fairway
+  R2·  8  450 yd par 4   sand wedge   25%   10.8 yd    20.6 short  1.0 left  aim  +3.0 ft  fairway
+  R2·  8  450 yd par 4   sand wedge   25%   10.5 yd    10.2 short  1.2 left  aim  +3.0 ft  fairway
+  R2·  8  450 yd par 4   sand wedge   25%   11.1 yd     0.6 long   2.4 left  aim  +3.0 ft  fairway green
+  R2·  8                   putt          7.5 ft  beside the hole, 0.4 ft right
+  R2·  8                   putt          0.4 ft  in the hole  (2 putts)
+  R2·  9  500 yd par 5   3 wood       99%  271.7 yd   228.4 short  9.0 right aim  -2.0 ft  fairway
+  R2·  9  500 yd par 5   3 wood       80%  198.7 yd    30.3 short 13.8 right aim  -2.0 ft  fairway
+  R2·  9  500 yd par 5   sand wedge   35%   20.4 yd    13.1 short  2.4 right aim  -2.0 ft  fairway
+  R2·  9  500 yd par 5   sand wedge   25%   10.7 yd     2.7 short  1.5 right aim  -3.0 ft  fairway green
+  R2·  9                   putt          9.1 ft  beside the hole, 0.3 ft left
+  R2·  9                   putt          0.3 ft  in the hole  (2 putts)
+      round            48 strokes, par 35, +13   putts 18   penalties 0   miss 43.2 yd, notebook off by 35.9%, 5.02° off line
 
 ROUND 3  (CONTROL: no learning)
-  R3·  1  410 yd par 4   3 wood       98%  265.5 yd   144.8 short 12.4 right fairway
-  R3·  1  410 yd par 4   5 iron       78%  151.2 yd     5.8 long   4.9 right fairway
-  R3·  1                   putt         22.8 ft  0.3 ft past, 2.6 ft left
-  R3·  1                   putt          2.6 ft  in the hole  (2 putts)
-  R3·  2  165 yd par 3   driver       60%  137.1 yd    28.3 short 10.3 right fairway
-  R3·  2  165 yd par 3   sand wedge   37%   22.4 yd     7.8 short  0.8 right fairway
-  R3·  2                   putt         23.5 ft  beside the hole, 0.7 ft right
-  R3·  2                   putt          0.7 ft  in the hole  (2 putts)
-  R3·  3  520 yd par 5   3 wood      101%  277.4 yd   242.6 short  0.7 right fairway
-  R3·  3  520 yd par 5   3 wood       80%  201.6 yd    41.2 short  7.5 right fairway
-  R3·  3  520 yd par 5   sand wedge   34%   19.6 yd    22.2 short  0.4 right fairway
-  R3·  3  520 yd par 5   sand wedge   35%   20.6 yd     1.7 short  1.2 right fairway
-  R3·  3                   putt          6.3 ft  in the hole  (1 putt)
-  R3·  4  300 yd par 4   3 wood      102%  282.2 yd    17.8 short  6.1 right fairway
-  R3·  4  300 yd par 4   sand wedge   35%   20.4 yd     1.5 long   0.7 right fairway
-  R3·  4                   putt          5.0 ft  beside the hole, 0.4 ft left
-  R3·  4                   putt          0.5 ft  in the hole  (2 putts)
-  R3·  5  145 yd par 3   5 iron       81%  159.0 yd    13.8 long   6.5 right fairway
-  R3·  5  145 yd par 3   sand wedge   35%   20.3 yd     5.0 long   1.0 right fairway
-  R3·  5                   putt         15.2 ft  0.2 ft past, 1.7 ft right
-  R3·  5                   putt          1.7 ft  in the hole  (2 putts)
-  R3·  6  385 yd par 4   3 wood      102%  279.0 yd   106.0 short  4.4 right fairway
-  R3·  6  385 yd par 4   sand wedge   99%  120.2 yd    14.0 long   5.0 right fairway
-  R3·  6  385 yd par 4   sand wedge   35%   20.3 yd     5.4 long   0.5 right fairway
-  R3·  6                   putt         16.4 ft  0.1 ft past, 1.6 ft right
-  R3·  6                   putt          1.6 ft  in the hole  (2 putts)
-  R3·  7   95 yd par 3   9 iron       60%   71.0 yd    24.0 short  1.8 right fairway
-  R3·  7   95 yd par 3   sand wedge   35%   20.9 yd     3.1 short  0.1 right fairway
-  R3·  7                   putt          9.4 ft  beside the hole, 0.6 ft right
-  R3·  7                   putt          0.6 ft  in the hole  (2 putts)
-  R3·  8  450 yd par 4   3 wood       99%  270.5 yd   179.8 short 12.5 right fairway
-  R3·  8  450 yd par 4   3 wood       61%  132.8 yd    47.5 short  3.8 right fairway
-  R3·  8  450 yd par 4   sand wedge   44%   31.5 yd    16.1 short  0.3 right fairway
-  R3·  8  450 yd par 4   sand wedge   35%   20.5 yd     4.4 long   0.7 right fairway
-  R3·  8                   putt         13.3 ft  0.1 ft past, 1.1 ft left
-  R3·  8                   putt          1.1 ft  in the hole  (2 putts)
-  R3·  9  500 yd par 5   3 wood       99%  270.4 yd   230.0 short 15.3 right fairway
-  R3·  9  500 yd par 5   3 wood       81%  202.6 yd    28.0 short  4.4 right fairway
-  R3·  9  500 yd par 5   sand wedge   35%   20.6 yd     7.8 short  0.1 left  fairway
-  R3·  9                   putt         23.4 ft  beside the hole, 1.3 ft right
-  R3·  9                   putt          1.3 ft  in the hole  (2 putts)
-      round            41 strokes, par 35,  +6   putts 17   penalties 0   miss 49.9 yd, notebook off by 24.3%, 1.64° off line
+  R3·  1  410 yd par 4   3 wood       98%  265.5 yd   144.7 short 10.2 right aim  +3.0 ft  fairway
+  R3·  1  410 yd par 4   5 iron       78%  151.2 yd     6.1 long   1.1 right aim  +2.0 ft  fairway
+  R3·  1  410 yd par 4   sand wedge   25%   10.6 yd     3.1 long   5.1 right aim  +4.0 ft  fairway green
+  R3·  1                   putt         18.0 ft  0.2 ft past, 2.0 ft right
+  R3·  1                   putt          2.0 ft  beside the hole
+  R3·  1                   putt          0.0 ft  in the hole  (3 putts)
+  R3·  2  165 yd par 3   driver       63%  149.1 yd    16.1 short  8.2 right aim  -2.0 ft  fairway
+  R3·  2  165 yd par 3   sand wedge   25%   10.9 yd     7.3 short  1.5 right aim  -3.0 ft  fairway green
+  R3·  2                   putt         22.3 ft  beside the hole, 0.2 ft right
+  R3·  2                   putt          0.2 ft  in the hole  (2 putts)
+  R3·  3  520 yd par 5   3 wood      100%  275.4 yd   244.8 short  9.8 right aim  +1.0 ft  fairway
+  R3·  3  520 yd par 5   3 wood       78%  194.1 yd    51.0 short  3.6 right aim  +1.0 ft  fairway
+  R3·  3  520 yd par 5   7 iron       25%   18.4 yd    32.7 short  0.6 right aim  +0.0 ft  fairway
+  R3·  3  520 yd par 5   sand wedge   36%   21.4 yd    11.4 short  0.4 left  aim  +0.0 ft  fairway
+  R3·  3  520 yd par 5   sand wedge   25%   10.7 yd     0.8 short  1.8 left  aim  -3.0 ft  fairway green
+  R3·  3                   putt          5.9 ft  beside the hole, 0.7 ft right
+  R3·  3                   putt          0.7 ft  in the hole  (2 putts)
+  R3·  4  300 yd par 4   3 wood      102%  279.7 yd    20.7 short 14.9 right aim  -3.0 ft  fairway
+  R3·  4  300 yd par 4   sand wedge   25%   10.6 yd    15.0 short  1.7 right aim  -4.0 ft  fairway
+  R3·  4  300 yd par 4   sand wedge   25%   11.0 yd     4.3 short  2.2 right aim  -4.0 ft  fairway green
+  R3·  4                   putt         14.4 ft  beside the hole, 0.6 ft left
+  R3·  4                   putt          0.6 ft  in the hole  (2 putts)
+  R3·  5  145 yd par 3   5 iron       79%  153.8 yd     8.7 long   2.9 right aim  +2.0 ft  fairway
+  R3·  5  145 yd par 3   sand wedge   25%   10.7 yd     1.0 long   3.1 right aim  +3.0 ft  fairway green
+  R3·  5                   putt          9.8 ft  beside the hole, 0.8 ft right
+  R3·  5                   putt          0.8 ft  in the hole  (2 putts)
+  R3·  6  385 yd par 4   3 wood       99%  271.7 yd   113.4 short  7.3 right aim  -1.0 ft  fairway
+  R3·  6  385 yd par 4   5 iron       61%  104.3 yd     9.3 short  1.5 right aim  +0.0 ft  fairway green
+  R3·  6                   putt         28.3 ft  beside the hole, 1.5 ft right
+  R3·  6                   putt          1.5 ft  in the hole  (2 putts)
+  R3·  7   95 yd par 3   9 iron       59%   70.6 yd    24.7 short  6.0 right aim  -2.0 ft  fairway
+  R3·  7   95 yd par 3   sand wedge   26%   11.2 yd    14.4 short  1.6 right aim  -4.0 ft  fairway
+  R3·  7   95 yd par 3   sand wedge   25%   10.3 yd     4.4 short  2.2 right aim  -4.0 ft  fairway green
+  R3·  7                   putt         14.6 ft  in the hole  (1 putt)
+  R3·  8  450 yd par 4   3 wood      100%  274.6 yd   175.5 short  8.2 right aim  +3.0 ft  fairway
+  R3·  8  450 yd par 4   3 wood       59%  126.2 yd    49.7 short  5.0 right aim  +2.0 ft  fairway
+  R3·  8  450 yd par 4   7 iron       25%   18.6 yd    31.4 short  0.7 left  aim  +2.0 ft  fairway
+  R3·  8  450 yd par 4   sand wedge   25%   10.8 yd    20.6 short  1.0 left  aim  +3.0 ft  fairway
+  R3·  8  450 yd par 4   sand wedge   25%   10.5 yd    10.2 short  1.2 left  aim  +3.0 ft  fairway
+  R3·  8  450 yd par 4   sand wedge   25%   11.1 yd     0.6 long   2.4 left  aim  +3.0 ft  fairway green
+  R3·  8                   putt          7.5 ft  beside the hole, 0.4 ft right
+  R3·  8                   putt          0.4 ft  in the hole  (2 putts)
+  R3·  9  500 yd par 5   3 wood       99%  271.7 yd   228.4 short  9.0 right aim  -2.0 ft  fairway
+  R3·  9  500 yd par 5   3 wood       80%  198.7 yd    30.3 short 13.8 right aim  -2.0 ft  fairway
+  R3·  9  500 yd par 5   sand wedge   35%   20.4 yd    13.1 short  2.4 right aim  -2.0 ft  fairway
+  R3·  9  500 yd par 5   sand wedge   25%   10.7 yd     2.7 short  1.5 right aim  -3.0 ft  fairway green
+  R3·  9                   putt          9.1 ft  beside the hole, 0.3 ft left
+  R3·  9                   putt          0.3 ft  in the hole  (2 putts)
+      round            48 strokes, par 35, +13   putts 18   penalties 0   miss 43.2 yd, notebook off by 35.9%, 5.02° off line
 
 ROUND 4  (CONTROL: no learning)
-  R4·  1  410 yd par 4   3 wood       98%  265.5 yd   144.8 short 12.4 right fairway
-  R4·  1  410 yd par 4   5 iron       78%  151.2 yd     5.8 long   4.9 right fairway
-  R4·  1                   putt         22.8 ft  0.3 ft past, 2.6 ft left
-  R4·  1                   putt          2.6 ft  in the hole  (2 putts)
-  R4·  2  165 yd par 3   driver       60%  137.1 yd    28.3 short 10.3 right fairway
-  R4·  2  165 yd par 3   sand wedge   37%   22.4 yd     7.8 short  0.8 right fairway
-  R4·  2                   putt         23.5 ft  beside the hole, 0.7 ft right
-  R4·  2                   putt          0.7 ft  in the hole  (2 putts)
-  R4·  3  520 yd par 5   3 wood      101%  277.4 yd   242.6 short  0.7 right fairway
-  R4·  3  520 yd par 5   3 wood       80%  201.6 yd    41.2 short  7.5 right fairway
-  R4·  3  520 yd par 5   sand wedge   34%   19.6 yd    22.2 short  0.4 right fairway
-  R4·  3  520 yd par 5   sand wedge   35%   20.6 yd     1.7 short  1.2 right fairway
-  R4·  3                   putt          6.3 ft  in the hole  (1 putt)
-  R4·  4  300 yd par 4   3 wood      102%  282.2 yd    17.8 short  6.1 right fairway
-  R4·  4  300 yd par 4   sand wedge   35%   20.4 yd     1.5 long   0.7 right fairway
-  R4·  4                   putt          5.0 ft  beside the hole, 0.4 ft left
-  R4·  4                   putt          0.5 ft  in the hole  (2 putts)
-  R4·  5  145 yd par 3   5 iron       81%  159.0 yd    13.8 long   6.5 right fairway
-  R4·  5  145 yd par 3   sand wedge   35%   20.3 yd     5.0 long   1.0 right fairway
-  R4·  5                   putt         15.2 ft  0.2 ft past, 1.7 ft right
-  R4·  5                   putt          1.7 ft  in the hole  (2 putts)
-  R4·  6  385 yd par 4   3 wood      102%  279.0 yd   106.0 short  4.4 right fairway
-  R4·  6  385 yd par 4   sand wedge   99%  120.2 yd    14.0 long   5.0 right fairway
-  R4·  6  385 yd par 4   sand wedge   35%   20.3 yd     5.4 long   0.5 right fairway
-  R4·  6                   putt         16.4 ft  0.1 ft past, 1.6 ft right
-  R4·  6                   putt          1.6 ft  in the hole  (2 putts)
-  R4·  7   95 yd par 3   9 iron       60%   71.0 yd    24.0 short  1.8 right fairway
-  R4·  7   95 yd par 3   sand wedge   35%   20.9 yd     3.1 short  0.1 right fairway
-  R4·  7                   putt          9.4 ft  beside the hole, 0.6 ft right
-  R4·  7                   putt          0.6 ft  in the hole  (2 putts)
-  R4·  8  450 yd par 4   3 wood       99%  270.5 yd   179.8 short 12.5 right fairway
-  R4·  8  450 yd par 4   3 wood       61%  132.8 yd    47.5 short  3.8 right fairway
-  R4·  8  450 yd par 4   sand wedge   44%   31.5 yd    16.1 short  0.3 right fairway
-  R4·  8  450 yd par 4   sand wedge   35%   20.5 yd     4.4 long   0.7 right fairway
-  R4·  8                   putt         13.3 ft  0.1 ft past, 1.1 ft left
-  R4·  8                   putt          1.1 ft  in the hole  (2 putts)
-  R4·  9  500 yd par 5   3 wood       99%  270.4 yd   230.0 short 15.3 right fairway
-  R4·  9  500 yd par 5   3 wood       81%  202.6 yd    28.0 short  4.4 right fairway
-  R4·  9  500 yd par 5   sand wedge   35%   20.6 yd     7.8 short  0.1 left  fairway
-  R4·  9                   putt         23.4 ft  beside the hole, 1.3 ft right
-  R4·  9                   putt          1.3 ft  in the hole  (2 putts)
-      round            41 strokes, par 35,  +6   putts 17   penalties 0   miss 49.9 yd, notebook off by 24.3%, 1.64° off line
+  R4·  1  410 yd par 4   3 wood       98%  265.5 yd   144.7 short 10.2 right aim  +3.0 ft  fairway
+  R4·  1  410 yd par 4   5 iron       78%  151.2 yd     6.1 long   1.1 right aim  +2.0 ft  fairway
+  R4·  1  410 yd par 4   sand wedge   25%   10.6 yd     3.1 long   5.1 right aim  +4.0 ft  fairway green
+  R4·  1                   putt         18.0 ft  0.2 ft past, 2.0 ft right
+  R4·  1                   putt          2.0 ft  beside the hole
+  R4·  1                   putt          0.0 ft  in the hole  (3 putts)
+  R4·  2  165 yd par 3   driver       63%  149.1 yd    16.1 short  8.2 right aim  -2.0 ft  fairway
+  R4·  2  165 yd par 3   sand wedge   25%   10.9 yd     7.3 short  1.5 right aim  -3.0 ft  fairway green
+  R4·  2                   putt         22.3 ft  beside the hole, 0.2 ft right
+  R4·  2                   putt          0.2 ft  in the hole  (2 putts)
+  R4·  3  520 yd par 5   3 wood      100%  275.4 yd   244.8 short  9.8 right aim  +1.0 ft  fairway
+  R4·  3  520 yd par 5   3 wood       78%  194.1 yd    51.0 short  3.6 right aim  +1.0 ft  fairway
+  R4·  3  520 yd par 5   7 iron       25%   18.4 yd    32.7 short  0.6 right aim  +0.0 ft  fairway
+  R4·  3  520 yd par 5   sand wedge   36%   21.4 yd    11.4 short  0.4 left  aim  +0.0 ft  fairway
+  R4·  3  520 yd par 5   sand wedge   25%   10.7 yd     0.8 short  1.8 left  aim  -3.0 ft  fairway green
+  R4·  3                   putt          5.9 ft  beside the hole, 0.7 ft right
+  R4·  3                   putt          0.7 ft  in the hole  (2 putts)
+  R4·  4  300 yd par 4   3 wood      102%  279.7 yd    20.7 short 14.9 right aim  -3.0 ft  fairway
+  R4·  4  300 yd par 4   sand wedge   25%   10.6 yd    15.0 short  1.7 right aim  -4.0 ft  fairway
+  R4·  4  300 yd par 4   sand wedge   25%   11.0 yd     4.3 short  2.2 right aim  -4.0 ft  fairway green
+  R4·  4                   putt         14.4 ft  beside the hole, 0.6 ft left
+  R4·  4                   putt          0.6 ft  in the hole  (2 putts)
+  R4·  5  145 yd par 3   5 iron       79%  153.8 yd     8.7 long   2.9 right aim  +2.0 ft  fairway
+  R4·  5  145 yd par 3   sand wedge   25%   10.7 yd     1.0 long   3.1 right aim  +3.0 ft  fairway green
+  R4·  5                   putt          9.8 ft  beside the hole, 0.8 ft right
+  R4·  5                   putt          0.8 ft  in the hole  (2 putts)
+  R4·  6  385 yd par 4   3 wood       99%  271.7 yd   113.4 short  7.3 right aim  -1.0 ft  fairway
+  R4·  6  385 yd par 4   5 iron       61%  104.3 yd     9.3 short  1.5 right aim  +0.0 ft  fairway green
+  R4·  6                   putt         28.3 ft  beside the hole, 1.5 ft right
+  R4·  6                   putt          1.5 ft  in the hole  (2 putts)
+  R4·  7   95 yd par 3   9 iron       59%   70.6 yd    24.7 short  6.0 right aim  -2.0 ft  fairway
+  R4·  7   95 yd par 3   sand wedge   26%   11.2 yd    14.4 short  1.6 right aim  -4.0 ft  fairway
+  R4·  7   95 yd par 3   sand wedge   25%   10.3 yd     4.4 short  2.2 right aim  -4.0 ft  fairway green
+  R4·  7                   putt         14.6 ft  in the hole  (1 putt)
+  R4·  8  450 yd par 4   3 wood      100%  274.6 yd   175.5 short  8.2 right aim  +3.0 ft  fairway
+  R4·  8  450 yd par 4   3 wood       59%  126.2 yd    49.7 short  5.0 right aim  +2.0 ft  fairway
+  R4·  8  450 yd par 4   7 iron       25%   18.6 yd    31.4 short  0.7 left  aim  +2.0 ft  fairway
+  R4·  8  450 yd par 4   sand wedge   25%   10.8 yd    20.6 short  1.0 left  aim  +3.0 ft  fairway
+  R4·  8  450 yd par 4   sand wedge   25%   10.5 yd    10.2 short  1.2 left  aim  +3.0 ft  fairway
+  R4·  8  450 yd par 4   sand wedge   25%   11.1 yd     0.6 long   2.4 left  aim  +3.0 ft  fairway green
+  R4·  8                   putt          7.5 ft  beside the hole, 0.4 ft right
+  R4·  8                   putt          0.4 ft  in the hole  (2 putts)
+  R4·  9  500 yd par 5   3 wood       99%  271.7 yd   228.4 short  9.0 right aim  -2.0 ft  fairway
+  R4·  9  500 yd par 5   3 wood       80%  198.7 yd    30.3 short 13.8 right aim  -2.0 ft  fairway
+  R4·  9  500 yd par 5   sand wedge   35%   20.4 yd    13.1 short  2.4 right aim  -2.0 ft  fairway
+  R4·  9  500 yd par 5   sand wedge   25%   10.7 yd     2.7 short  1.5 right aim  -3.0 ft  fairway green
+  R4·  9                   putt          9.1 ft  beside the hole, 0.3 ft left
+  R4·  9                   putt          0.3 ft  in the hole  (2 putts)
+      round            48 strokes, par 35, +13   putts 18   penalties 0   miss 43.2 yd, notebook off by 35.9%, 5.02° off line
 
 ROUND 5  (CONTROL: no learning)
-  R5·  1  410 yd par 4   3 wood       98%  265.5 yd   144.8 short 12.4 right fairway
-  R5·  1  410 yd par 4   5 iron       78%  151.2 yd     5.8 long   4.9 right fairway
-  R5·  1                   putt         22.8 ft  0.3 ft past, 2.6 ft left
-  R5·  1                   putt          2.6 ft  in the hole  (2 putts)
-  R5·  2  165 yd par 3   driver       60%  137.1 yd    28.3 short 10.3 right fairway
-  R5·  2  165 yd par 3   sand wedge   37%   22.4 yd     7.8 short  0.8 right fairway
-  R5·  2                   putt         23.5 ft  beside the hole, 0.7 ft right
-  R5·  2                   putt          0.7 ft  in the hole  (2 putts)
-  R5·  3  520 yd par 5   3 wood      101%  277.4 yd   242.6 short  0.7 right fairway
-  R5·  3  520 yd par 5   3 wood       80%  201.6 yd    41.2 short  7.5 right fairway
-  R5·  3  520 yd par 5   sand wedge   34%   19.6 yd    22.2 short  0.4 right fairway
-  R5·  3  520 yd par 5   sand wedge   35%   20.6 yd     1.7 short  1.2 right fairway
-  R5·  3                   putt          6.3 ft  in the hole  (1 putt)
-  R5·  4  300 yd par 4   3 wood      102%  282.2 yd    17.8 short  6.1 right fairway
-  R5·  4  300 yd par 4   sand wedge   35%   20.4 yd     1.5 long   0.7 right fairway
-  R5·  4                   putt          5.0 ft  beside the hole, 0.4 ft left
-  R5·  4                   putt          0.5 ft  in the hole  (2 putts)
-  R5·  5  145 yd par 3   5 iron       81%  159.0 yd    13.8 long   6.5 right fairway
-  R5·  5  145 yd par 3   sand wedge   35%   20.3 yd     5.0 long   1.0 right fairway
-  R5·  5                   putt         15.2 ft  0.2 ft past, 1.7 ft right
-  R5·  5                   putt          1.7 ft  in the hole  (2 putts)
-  R5·  6  385 yd par 4   3 wood      102%  279.0 yd   106.0 short  4.4 right fairway
-  R5·  6  385 yd par 4   sand wedge   99%  120.2 yd    14.0 long   5.0 right fairway
-  R5·  6  385 yd par 4   sand wedge   35%   20.3 yd     5.4 long   0.5 right fairway
-  R5·  6                   putt         16.4 ft  0.1 ft past, 1.6 ft right
-  R5·  6                   putt          1.6 ft  in the hole  (2 putts)
-  R5·  7   95 yd par 3   9 iron       60%   71.0 yd    24.0 short  1.8 right fairway
-  R5·  7   95 yd par 3   sand wedge   35%   20.9 yd     3.1 short  0.1 right fairway
-  R5·  7                   putt          9.4 ft  beside the hole, 0.6 ft right
-  R5·  7                   putt          0.6 ft  in the hole  (2 putts)
-  R5·  8  450 yd par 4   3 wood       99%  270.5 yd   179.8 short 12.5 right fairway
-  R5·  8  450 yd par 4   3 wood       61%  132.8 yd    47.5 short  3.8 right fairway
-  R5·  8  450 yd par 4   sand wedge   44%   31.5 yd    16.1 short  0.3 right fairway
-  R5·  8  450 yd par 4   sand wedge   35%   20.5 yd     4.4 long   0.7 right fairway
-  R5·  8                   putt         13.3 ft  0.1 ft past, 1.1 ft left
-  R5·  8                   putt          1.1 ft  in the hole  (2 putts)
-  R5·  9  500 yd par 5   3 wood       99%  270.4 yd   230.0 short 15.3 right fairway
-  R5·  9  500 yd par 5   3 wood       81%  202.6 yd    28.0 short  4.4 right fairway
-  R5·  9  500 yd par 5   sand wedge   35%   20.6 yd     7.8 short  0.1 left  fairway
-  R5·  9                   putt         23.4 ft  beside the hole, 1.3 ft right
-  R5·  9                   putt          1.3 ft  in the hole  (2 putts)
-      round            41 strokes, par 35,  +6   putts 17   penalties 0   miss 49.9 yd, notebook off by 24.3%, 1.64° off line
+  R5·  1  410 yd par 4   3 wood       98%  265.5 yd   144.7 short 10.2 right aim  +3.0 ft  fairway
+  R5·  1  410 yd par 4   5 iron       78%  151.2 yd     6.1 long   1.1 right aim  +2.0 ft  fairway
+  R5·  1  410 yd par 4   sand wedge   25%   10.6 yd     3.1 long   5.1 right aim  +4.0 ft  fairway green
+  R5·  1                   putt         18.0 ft  0.2 ft past, 2.0 ft right
+  R5·  1                   putt          2.0 ft  beside the hole
+  R5·  1                   putt          0.0 ft  in the hole  (3 putts)
+  R5·  2  165 yd par 3   driver       63%  149.1 yd    16.1 short  8.2 right aim  -2.0 ft  fairway
+  R5·  2  165 yd par 3   sand wedge   25%   10.9 yd     7.3 short  1.5 right aim  -3.0 ft  fairway green
+  R5·  2                   putt         22.3 ft  beside the hole, 0.2 ft right
+  R5·  2                   putt          0.2 ft  in the hole  (2 putts)
+  R5·  3  520 yd par 5   3 wood      100%  275.4 yd   244.8 short  9.8 right aim  +1.0 ft  fairway
+  R5·  3  520 yd par 5   3 wood       78%  194.1 yd    51.0 short  3.6 right aim  +1.0 ft  fairway
+  R5·  3  520 yd par 5   7 iron       25%   18.4 yd    32.7 short  0.6 right aim  +0.0 ft  fairway
+  R5·  3  520 yd par 5   sand wedge   36%   21.4 yd    11.4 short  0.4 left  aim  +0.0 ft  fairway
+  R5·  3  520 yd par 5   sand wedge   25%   10.7 yd     0.8 short  1.8 left  aim  -3.0 ft  fairway green
+  R5·  3                   putt          5.9 ft  beside the hole, 0.7 ft right
+  R5·  3                   putt          0.7 ft  in the hole  (2 putts)
+  R5·  4  300 yd par 4   3 wood      102%  279.7 yd    20.7 short 14.9 right aim  -3.0 ft  fairway
+  R5·  4  300 yd par 4   sand wedge   25%   10.6 yd    15.0 short  1.7 right aim  -4.0 ft  fairway
+  R5·  4  300 yd par 4   sand wedge   25%   11.0 yd     4.3 short  2.2 right aim  -4.0 ft  fairway green
+  R5·  4                   putt         14.4 ft  beside the hole, 0.6 ft left
+  R5·  4                   putt          0.6 ft  in the hole  (2 putts)
+  R5·  5  145 yd par 3   5 iron       79%  153.8 yd     8.7 long   2.9 right aim  +2.0 ft  fairway
+  R5·  5  145 yd par 3   sand wedge   25%   10.7 yd     1.0 long   3.1 right aim  +3.0 ft  fairway green
+  R5·  5                   putt          9.8 ft  beside the hole, 0.8 ft right
+  R5·  5                   putt          0.8 ft  in the hole  (2 putts)
+  R5·  6  385 yd par 4   3 wood       99%  271.7 yd   113.4 short  7.3 right aim  -1.0 ft  fairway
+  R5·  6  385 yd par 4   5 iron       61%  104.3 yd     9.3 short  1.5 right aim  +0.0 ft  fairway green
+  R5·  6                   putt         28.3 ft  beside the hole, 1.5 ft right
+  R5·  6                   putt          1.5 ft  in the hole  (2 putts)
+  R5·  7   95 yd par 3   9 iron       59%   70.6 yd    24.7 short  6.0 right aim  -2.0 ft  fairway
+  R5·  7   95 yd par 3   sand wedge   26%   11.2 yd    14.4 short  1.6 right aim  -4.0 ft  fairway
+  R5·  7   95 yd par 3   sand wedge   25%   10.3 yd     4.4 short  2.2 right aim  -4.0 ft  fairway green
+  R5·  7                   putt         14.6 ft  in the hole  (1 putt)
+  R5·  8  450 yd par 4   3 wood      100%  274.6 yd   175.5 short  8.2 right aim  +3.0 ft  fairway
+  R5·  8  450 yd par 4   3 wood       59%  126.2 yd    49.7 short  5.0 right aim  +2.0 ft  fairway
+  R5·  8  450 yd par 4   7 iron       25%   18.6 yd    31.4 short  0.7 left  aim  +2.0 ft  fairway
+  R5·  8  450 yd par 4   sand wedge   25%   10.8 yd    20.6 short  1.0 left  aim  +3.0 ft  fairway
+  R5·  8  450 yd par 4   sand wedge   25%   10.5 yd    10.2 short  1.2 left  aim  +3.0 ft  fairway
+  R5·  8  450 yd par 4   sand wedge   25%   11.1 yd     0.6 long   2.4 left  aim  +3.0 ft  fairway green
+  R5·  8                   putt          7.5 ft  beside the hole, 0.4 ft right
+  R5·  8                   putt          0.4 ft  in the hole  (2 putts)
+  R5·  9  500 yd par 5   3 wood       99%  271.7 yd   228.4 short  9.0 right aim  -2.0 ft  fairway
+  R5·  9  500 yd par 5   3 wood       80%  198.7 yd    30.3 short 13.8 right aim  -2.0 ft  fairway
+  R5·  9  500 yd par 5   sand wedge   35%   20.4 yd    13.1 short  2.4 right aim  -2.0 ft  fairway
+  R5·  9  500 yd par 5   sand wedge   25%   10.7 yd     2.7 short  1.5 right aim  -3.0 ft  fairway green
+  R5·  9                   putt          9.1 ft  beside the hole, 0.3 ft left
+  R5·  9                   putt          0.3 ft  in the hole  (2 putts)
+      round            48 strokes, par 35, +13   putts 18   penalties 0   miss 43.2 yd, notebook off by 35.9%, 5.02° off line
 
 ROUND 6  (CONTROL: no learning)
-  R6·  1  410 yd par 4   3 wood       98%  265.5 yd   144.8 short 12.4 right fairway
-  R6·  1  410 yd par 4   5 iron       78%  151.2 yd     5.8 long   4.9 right fairway
-  R6·  1                   putt         22.8 ft  0.3 ft past, 2.6 ft left
-  R6·  1                   putt          2.6 ft  in the hole  (2 putts)
-  R6·  2  165 yd par 3   driver       60%  137.1 yd    28.3 short 10.3 right fairway
-  R6·  2  165 yd par 3   sand wedge   37%   22.4 yd     7.8 short  0.8 right fairway
-  R6·  2                   putt         23.5 ft  beside the hole, 0.7 ft right
-  R6·  2                   putt          0.7 ft  in the hole  (2 putts)
-  R6·  3  520 yd par 5   3 wood      101%  277.4 yd   242.6 short  0.7 right fairway
-  R6·  3  520 yd par 5   3 wood       80%  201.6 yd    41.2 short  7.5 right fairway
-  R6·  3  520 yd par 5   sand wedge   34%   19.6 yd    22.2 short  0.4 right fairway
-  R6·  3  520 yd par 5   sand wedge   35%   20.6 yd     1.7 short  1.2 right fairway
-  R6·  3                   putt          6.3 ft  in the hole  (1 putt)
-  R6·  4  300 yd par 4   3 wood      102%  282.2 yd    17.8 short  6.1 right fairway
-  R6·  4  300 yd par 4   sand wedge   35%   20.4 yd     1.5 long   0.7 right fairway
-  R6·  4                   putt          5.0 ft  beside the hole, 0.4 ft left
-  R6·  4                   putt          0.5 ft  in the hole  (2 putts)
-  R6·  5  145 yd par 3   5 iron       81%  159.0 yd    13.8 long   6.5 right fairway
-  R6·  5  145 yd par 3   sand wedge   35%   20.3 yd     5.0 long   1.0 right fairway
-  R6·  5                   putt         15.2 ft  0.2 ft past, 1.7 ft right
-  R6·  5                   putt          1.7 ft  in the hole  (2 putts)
-  R6·  6  385 yd par 4   3 wood      102%  279.0 yd   106.0 short  4.4 right fairway
-  R6·  6  385 yd par 4   sand wedge   99%  120.2 yd    14.0 long   5.0 right fairway
-  R6·  6  385 yd par 4   sand wedge   35%   20.3 yd     5.4 long   0.5 right fairway
-  R6·  6                   putt         16.4 ft  0.1 ft past, 1.6 ft right
-  R6·  6                   putt          1.6 ft  in the hole  (2 putts)
-  R6·  7   95 yd par 3   9 iron       60%   71.0 yd    24.0 short  1.8 right fairway
-  R6·  7   95 yd par 3   sand wedge   35%   20.9 yd     3.1 short  0.1 right fairway
-  R6·  7                   putt          9.4 ft  beside the hole, 0.6 ft right
-  R6·  7                   putt          0.6 ft  in the hole  (2 putts)
-  R6·  8  450 yd par 4   3 wood       99%  270.5 yd   179.8 short 12.5 right fairway
-  R6·  8  450 yd par 4   3 wood       61%  132.8 yd    47.5 short  3.8 right fairway
-  R6·  8  450 yd par 4   sand wedge   44%   31.5 yd    16.1 short  0.3 right fairway
-  R6·  8  450 yd par 4   sand wedge   35%   20.5 yd     4.4 long   0.7 right fairway
-  R6·  8                   putt         13.3 ft  0.1 ft past, 1.1 ft left
-  R6·  8                   putt          1.1 ft  in the hole  (2 putts)
-  R6·  9  500 yd par 5   3 wood       99%  270.4 yd   230.0 short 15.3 right fairway
-  R6·  9  500 yd par 5   3 wood       81%  202.6 yd    28.0 short  4.4 right fairway
-  R6·  9  500 yd par 5   sand wedge   35%   20.6 yd     7.8 short  0.1 left  fairway
-  R6·  9                   putt         23.4 ft  beside the hole, 1.3 ft right
-  R6·  9                   putt          1.3 ft  in the hole  (2 putts)
-      round            41 strokes, par 35,  +6   putts 17   penalties 0   miss 49.9 yd, notebook off by 24.3%, 1.64° off line
+  R6·  1  410 yd par 4   3 wood       98%  265.5 yd   144.7 short 10.2 right aim  +3.0 ft  fairway
+  R6·  1  410 yd par 4   5 iron       78%  151.2 yd     6.1 long   1.1 right aim  +2.0 ft  fairway
+  R6·  1  410 yd par 4   sand wedge   25%   10.6 yd     3.1 long   5.1 right aim  +4.0 ft  fairway green
+  R6·  1                   putt         18.0 ft  0.2 ft past, 2.0 ft right
+  R6·  1                   putt          2.0 ft  beside the hole
+  R6·  1                   putt          0.0 ft  in the hole  (3 putts)
+  R6·  2  165 yd par 3   driver       63%  149.1 yd    16.1 short  8.2 right aim  -2.0 ft  fairway
+  R6·  2  165 yd par 3   sand wedge   25%   10.9 yd     7.3 short  1.5 right aim  -3.0 ft  fairway green
+  R6·  2                   putt         22.3 ft  beside the hole, 0.2 ft right
+  R6·  2                   putt          0.2 ft  in the hole  (2 putts)
+  R6·  3  520 yd par 5   3 wood      100%  275.4 yd   244.8 short  9.8 right aim  +1.0 ft  fairway
+  R6·  3  520 yd par 5   3 wood       78%  194.1 yd    51.0 short  3.6 right aim  +1.0 ft  fairway
+  R6·  3  520 yd par 5   7 iron       25%   18.4 yd    32.7 short  0.6 right aim  +0.0 ft  fairway
+  R6·  3  520 yd par 5   sand wedge   36%   21.4 yd    11.4 short  0.4 left  aim  +0.0 ft  fairway
+  R6·  3  520 yd par 5   sand wedge   25%   10.7 yd     0.8 short  1.8 left  aim  -3.0 ft  fairway green
+  R6·  3                   putt          5.9 ft  beside the hole, 0.7 ft right
+  R6·  3                   putt          0.7 ft  in the hole  (2 putts)
+  R6·  4  300 yd par 4   3 wood      102%  279.7 yd    20.7 short 14.9 right aim  -3.0 ft  fairway
+  R6·  4  300 yd par 4   sand wedge   25%   10.6 yd    15.0 short  1.7 right aim  -4.0 ft  fairway
+  R6·  4  300 yd par 4   sand wedge   25%   11.0 yd     4.3 short  2.2 right aim  -4.0 ft  fairway green
+  R6·  4                   putt         14.4 ft  beside the hole, 0.6 ft left
+  R6·  4                   putt          0.6 ft  in the hole  (2 putts)
+  R6·  5  145 yd par 3   5 iron       79%  153.8 yd     8.7 long   2.9 right aim  +2.0 ft  fairway
+  R6·  5  145 yd par 3   sand wedge   25%   10.7 yd     1.0 long   3.1 right aim  +3.0 ft  fairway green
+  R6·  5                   putt          9.8 ft  beside the hole, 0.8 ft right
+  R6·  5                   putt          0.8 ft  in the hole  (2 putts)
+  R6·  6  385 yd par 4   3 wood       99%  271.7 yd   113.4 short  7.3 right aim  -1.0 ft  fairway
+  R6·  6  385 yd par 4   5 iron       61%  104.3 yd     9.3 short  1.5 right aim  +0.0 ft  fairway green
+  R6·  6                   putt         28.3 ft  beside the hole, 1.5 ft right
+  R6·  6                   putt          1.5 ft  in the hole  (2 putts)
+  R6·  7   95 yd par 3   9 iron       59%   70.6 yd    24.7 short  6.0 right aim  -2.0 ft  fairway
+  R6·  7   95 yd par 3   sand wedge   26%   11.2 yd    14.4 short  1.6 right aim  -4.0 ft  fairway
+  R6·  7   95 yd par 3   sand wedge   25%   10.3 yd     4.4 short  2.2 right aim  -4.0 ft  fairway green
+  R6·  7                   putt         14.6 ft  in the hole  (1 putt)
+  R6·  8  450 yd par 4   3 wood      100%  274.6 yd   175.5 short  8.2 right aim  +3.0 ft  fairway
+  R6·  8  450 yd par 4   3 wood       59%  126.2 yd    49.7 short  5.0 right aim  +2.0 ft  fairway
+  R6·  8  450 yd par 4   7 iron       25%   18.6 yd    31.4 short  0.7 left  aim  +2.0 ft  fairway
+  R6·  8  450 yd par 4   sand wedge   25%   10.8 yd    20.6 short  1.0 left  aim  +3.0 ft  fairway
+  R6·  8  450 yd par 4   sand wedge   25%   10.5 yd    10.2 short  1.2 left  aim  +3.0 ft  fairway
+  R6·  8  450 yd par 4   sand wedge   25%   11.1 yd     0.6 long   2.4 left  aim  +3.0 ft  fairway green
+  R6·  8                   putt          7.5 ft  beside the hole, 0.4 ft right
+  R6·  8                   putt          0.4 ft  in the hole  (2 putts)
+  R6·  9  500 yd par 5   3 wood       99%  271.7 yd   228.4 short  9.0 right aim  -2.0 ft  fairway
+  R6·  9  500 yd par 5   3 wood       80%  198.7 yd    30.3 short 13.8 right aim  -2.0 ft  fairway
+  R6·  9  500 yd par 5   sand wedge   35%   20.4 yd    13.1 short  2.4 right aim  -2.0 ft  fairway
+  R6·  9  500 yd par 5   sand wedge   25%   10.7 yd     2.7 short  1.5 right aim  -3.0 ft  fairway green
+  R6·  9                   putt          9.1 ft  beside the hole, 0.3 ft left
+  R6·  9                   putt          0.3 ft  in the hole  (2 putts)
+      round            48 strokes, par 35, +13   putts 18   penalties 0   miss 43.2 yd, notebook off by 35.9%, 5.02° off line
 
 HELD-OUT: six holes never played
-  H· H1  130 yd par 3   3 wood       44%   76.6 yd    53.5 short  3.6 right fairway
-  H· H1  130 yd par 3   9 iron       34%   26.5 yd    27.2 short  0.9 right fairway
-  H· H1  130 yd par 3   sand wedge   35%   20.3 yd     7.0 short  1.5 right fairway
-  H· H1                   putt         21.4 ft  beside the hole, 1.0 ft right
-  H· H1                   putt          1.0 ft  in the hole  (2 putts)
-  H· H2  375 yd par 4   3 wood      105%  291.1 yd    84.1 short 10.7 right fairway
-  H· H2  375 yd par 4   sand wedge   81%   88.6 yd     3.8 long   0.2 right fairway
-  H· H2                   putt         11.5 ft  beside the hole, 0.9 ft left
-  H· H2                   putt          0.9 ft  in the hole  (2 putts)
-  H· H3  480 yd par 5   3 wood      100%  275.4 yd   204.8 short 10.3 right fairway
-  H· H3  480 yd par 5   7 iron       98%  177.8 yd    27.3 short  4.1 right fairway
-  H· H3  480 yd par 5   sand wedge   35%   20.6 yd     7.1 short  1.2 right fairway
-  H· H3                   putt         21.6 ft  beside the hole, 0.9 ft right
-  H· H3                   putt          0.9 ft  in the hole  (2 putts)
-  H· H4  190 yd par 3   5 iron      102%  217.5 yd    27.4 long   4.7 right fairway
-  H· H4  190 yd par 3   sand wedge   35%   20.4 yd     7.4 short  0.7 right fairway
-  H· H4                   putt         22.4 ft  0.2 ft past, 2.0 ft left
-  H· H4                   putt          2.0 ft  in the hole  (2 putts)
-  H· H5  340 yd par 4   3 wood      102%  279.7 yd    60.5 short 11.4 right fairway
-  H· H5  340 yd par 4   sand wedge   60%   54.0 yd     7.6 short  2.6 right fairway
-  H· H5                   putt         24.2 ft  beside the hole, 0.6 ft right
+  H· H1  130 yd par 3   3 wood       44%   69.9 yd    60.2 short  0.8 right aim  +2.0 ft  fairway
+  H· H1  130 yd par 3   sand wedge   59%   47.5 yd    12.7 short  1.5 left  aim  +3.0 ft  fairway
+  H· H1  130 yd par 3   sand wedge   25%   10.1 yd     2.9 short  1.7 left  aim  +3.0 ft  fairway green
+  H· H1                   putt         10.0 ft  0.1 ft past, 1.1 ft right
+  H· H1                   putt          1.1 ft  in the hole  (2 putts)
+  H· H2  375 yd par 4   3 wood      105%  347.9 yd    27.6 short 19.0 right aim  -2.0 ft  fairway
+  H· H2  375 yd par 4   sand wedge   35%   21.8 yd    11.8 short  1.8 right aim  -2.0 ft  fairway
+  H· H2  375 yd par 4   sand wedge   25%   11.1 yd     1.1 short  2.3 right aim  -3.0 ft  fairway green
+  H· H2                   putt          7.6 ft  beside the hole, 0.7 ft left
+  H· H2                   putt          0.7 ft  in the hole  (2 putts)
+  H· H3  480 yd par 5   3 wood       98%  226.4 yd   253.6 short  5.0 right aim  +2.0 ft  fairway
+  H· H3  480 yd par 5   3 wood       80%  172.8 yd    81.2 short  9.7 right aim  +1.0 ft  fairway
+  H· H3  480 yd par 5   sand wedge   82%   77.6 yd     4.1 short  1.0 left  aim  +0.0 ft  fairway green
+  H· H3                   putt         12.6 ft  beside the hole, 1.0 ft right
+  H· H3                   putt          1.0 ft  in the hole  (2 putts)
+  H· H4  190 yd par 3   5 iron      100%  210.8 yd    19.7 long  21.0 right aim  -2.0 ft  fairway
+  H· H4  190 yd par 3   sand wedge   25%   10.7 yd    18.1 short  0.5 left  aim  -3.0 ft  fairway
+  H· H4  190 yd par 3   sand wedge   25%   10.3 yd     7.8 short  0.9 left  aim  -3.0 ft  fairway green
+  H· H4                   putt         23.6 ft  0.3 ft past, 2.6 ft left
+  H· H4                   putt          2.6 ft  beside the hole
+  H· H4                   putt          0.1 ft  in the hole  (3 putts)
+  H· H5  340 yd par 4   3 wood      102%  318.1 yd    21.9 short  6.1 left  aim  +0.0 ft  fairway
+  H· H5  340 yd par 4   sand wedge   25%   10.8 yd    12.0 short  0.4 left  aim  -3.0 ft  fairway
+  H· H5  340 yd par 4   sand wedge   25%   10.9 yd     1.1 short  1.3 left  aim  -3.0 ft  fairway green
+  H· H5                   putt          5.2 ft  beside the hole, 0.6 ft right
   H· H5                   putt          0.6 ft  in the hole  (2 putts)
-  H· H6   90 yd par 3   7 iron       46%   55.6 yd    34.4 short  0.9 right fairway
-  H· H6   90 yd par 3   sand wedge   35%   20.1 yd    14.3 short  0.8 right fairway
-  H· H6   90 yd par 3   sand wedge   35%   20.3 yd     6.0 long   0.5 right fairway
-  H· H6                   putt         18.1 ft  0.1 ft past, 1.5 ft left
-  H· H6                   putt          1.5 ft  in the hole  (2 putts)
-      round            27 strokes, par 22,  +5   putts 12   penalties 0   miss 38.2 yd, notebook off by 27.5%, 1.57° off line
+  H· H6   90 yd par 3   7 iron       45%   50.0 yd    40.1 short  2.2 right aim  -2.0 ft  fairway
+  H· H6   90 yd par 3   9 iron       25%   14.2 yd    26.0 short  0.9 right aim  -3.0 ft  fairway
+  H· H6   90 yd par 3   sand wedge   25%   10.1 yd    16.0 short  1.4 right aim  -3.0 ft  fairway
+  H· H6   90 yd par 3   sand wedge   26%   10.7 yd     5.5 short  2.0 right aim  -3.0 ft  fairway green
+  H· H6                   putt         17.6 ft  beside the hole, 0.4 ft right
+  H· H6                   putt          0.4 ft  in the hole  (2 putts)
+      round            32 strokes, par 22, +10   putts 13   penalties 0   miss 32.8 yd, notebook off by 42.1%, 3.22° off line
 
-  to par: [6, 6, 6, 6, 6, 6]   held-out +5
+  to par: [13, 13, 13, 13, 13, 13]   held-out +10   policy spread   calm
   notebook against true (yards; full / 80% / 60% / chip, and shots at each):
     driver        277   222   166    97   true   295   216   138    54   n  0  0  0  0
     3 wood        290   232   174   102   true   274   200   128    52   n  0  0  0  0
@@ -611,3 +1053,23 @@ HELD-OUT: six holes never played
     9 iron        160   128    96    56   true   154   113    72    28   n  0  0  0  0
     sand wedge    107    86    64    37   true   122    87    54    20   n  0  0  0  0
   aim bias +0.00°  (its hands are +2.20°)   shots observed 0
+
+4. WHERE TO AIM — one trained athlete, four rounds under each policy, learning off
+
+still air:
+trained: four rounds, notebook off by 2.1%  aim bias -2.21°  sigma 1.83°
+
+four rounds each, same notebook, same seed, learning off:
+  policy    strokes  to par     GIR  putts
+  flag          148      +8    28/36     76
+  centre        140      +0    32/36     76
+  spread        136      -4    32/36     72
+
+windy:
+trained: four rounds, notebook off by 10.5%  aim bias -1.32°  sigma 2.44°
+
+four rounds each, same notebook, same seed, learning off:
+  policy    strokes  to par     GIR  putts
+  flag          128     -12    32/36     64
+  centre        156     +16    24/36     80
+  spread        148      +8    24/36     72

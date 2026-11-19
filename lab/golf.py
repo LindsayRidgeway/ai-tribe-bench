@@ -73,7 +73,9 @@ CD_CAP = 0.2838
 # The lie. One effect, one number: a ball struck out of rough leaves at 88% of the speed the same swing
 # would give from fairway. It is a prior, not a measurement, and it is the only lie effect modelled —
 # no flyer, no buried ball, no uphill or downhill stance.
-ROUGH_SPEED = 0.88
+ROUGH_SPEED = 0.88               # ball speed from rough, as a fraction of the same swing from fairway
+ROUGH_LOSS = 0.20                # what that plus the lost roll comes to in distance, which is what the
+#                                  athlete is told it costs: measured at 0.198-0.213 across three clubs
 
 # What the turf keeps of the ball's horizontal speed at the first bounce, and how fast a rolling ball
 # stops. The second is putt's own law, so a stimp reading means the same thing in both games; the first
@@ -183,25 +185,66 @@ class Hole:
     yards: float
     par: int
     label: str = ""
+    pin: float = 0.0                 # ft the flag is cut right of the green's centre; negative is left
+    wind: tuple[float, float] = (0.0, 0.0)      # (bearing the wind blows FROM, mph)
 
     @property
     def flag(self) -> tuple[float, float]:
+        return self.pin, self.yards * FT_PER_YD
+
+    @property
+    def centre(self) -> tuple[float, float]:
         return 0.0, self.yards * FT_PER_YD
 
 
-COURSE = [Hole(410, 4, "1"), Hole(165, 3, "2"), Hole(520, 5, "3"), Hole(300, 4, "4"),
-          Hole(145, 3, "5"), Hole(385, 4, "6"), Hole(95, 3, "7"), Hole(450, 4, "8"),
-          Hole(500, 5, "9")]
-HELD_OUT = [Hole(130, 3, "H1"), Hole(375, 4, "H2"), Hole(480, 5, "H3"),
-            Hole(190, 3, "H4"), Hole(340, 4, "H5"), Hole(90, 3, "H6")]
+# Nine holes with the flag cut where a greenkeeper cuts it — four of them within a club's length of the
+# green's edge — and a wind on every one. The wind is what the athlete can read and does not model; the pin
+# is what it can see and must decide about.
+COURSE = [Hole(410, 4, "1", pin=+13, wind=(200, 14)),
+          Hole(165, 3, "2", pin=-11, wind=(5, 12)),
+          Hole(520, 5, "3", pin=+4, wind=(180, 15)),
+          Hole(300, 4, "4", pin=-14, wind=(250, 10)),
+          Hole(145, 3, "5", pin=+12, wind=(90, 16)),
+          Hole(385, 4, "6", pin=-3, wind=(355, 9)),
+          Hole(95, 3, "7", pin=-13, wind=(225, 12)),
+          Hole(450, 4, "8", pin=+11, wind=(170, 18)),
+          Hole(500, 5, "9", pin=-9, wind=(330, 10))]
+HELD_OUT = [Hole(130, 3, "H1", pin=+12, wind=(20, 11)),
+            Hole(375, 4, "H2", pin=-10, wind=(190, 14)),
+            Hole(480, 5, "H3", pin=+6, wind=(0, 13)),
+            Hole(190, 3, "H4", pin=-12, wind=(270, 9)),
+            Hole(340, 4, "H5", pin=+2, wind=(150, 12)),
+            Hole(90, 3, "H6", pin=-11, wind=(30, 10))]
+
+CALM = [(h.yards, h.par, h.label, h.pin, (0.0, 0.0)) for h in COURSE]
+
+
+def wind_vector(wind: tuple[float, float]) -> tuple[float, float]:
+    """The air's velocity in ft/s, from the bearing it blows FROM — the way a golfer names it: 'into the
+    wind on the first', and everybody knows which way to face."""
+    frm, mph = wind
+    toward = math.radians(frm + 180.0)
+    v = mph * MPH
+    return v * math.sin(toward), v * math.cos(toward)
 
 FAIRWAY_HALF = 20.0 * FT_PER_YD    # yd either side of the centre line before the lie is rough
 ROUGH_EDGE = 35.0 * FT_PER_YD      # beyond this the ball is in the trees: a stroke and a drop
-GREEN_R = 30.0                     # ft from the flag: inside it, the putter; outside, a club. A 60 ft
-#                                    green is a real green, and the number is load-bearing: at 90 ft the
-#                                    athlete never misses one, and a game whose green cannot be missed
-#                                    scores par with a bag it has never checked.
+# The green is an ellipse round the hole's centre, not a circle round the flag, and that is the whole of the
+# second decision: a flag cut 13 ft from the edge of a 40 ft-wide green is a pin you can aim at or a pin you
+# can play away from, and the two are different scores. At a circle centred on the flag the choice does not
+# exist, because the flag is the safest place on the green.
+GREEN_A = 20.0                     # ft, half the green's width
+GREEN_B = 28.0                     # ft, half its depth
 STROKE_CAP = 12
+# The putter is for the green and nothing else. A Texas wedge from off the edge was tried (2026-11-19) and
+# turned every fringe into a two-putt, which is not golf either.
+PUTT_ZONE = 0.0
+
+
+def on_green(point: tuple[float, float], hole: Hole) -> bool:
+    dx = (point[0] - hole.centre[0]) / GREEN_A
+    dy = (point[1] - hole.centre[1]) / GREEN_B
+    return dx * dx + dy * dy <= 1.0
 
 
 def lie_at(point: tuple[float, float]) -> str:
@@ -214,15 +257,25 @@ def lie_at(point: tuple[float, float]) -> str:
 
 
 # ---- the athlete ------------------------------------------------------------------------------------
-GEARS = (1.0, 0.8, 0.6, 0.45, 0.35)     # what the notebook has columns for: the full swing, something off
-#                                        it, a half, a soft half and the chip. Five, not a continuous dial,
-#                                        because a player's repeatable shots are the named ones — and because
-#                                        an athlete that can hit any effort exactly is an athlete that can
-#                                        always reach the flag, whose distances then never matter.
+GEARS = (1.0, 0.8, 0.6, 0.45, 0.35, 0.25)   # what the notebook has columns for: the full swing, something
+#                                        off it, a half, a soft half, the chip and the little chip. Not a
+#                                        continuous dial, because a player's repeatable shots are the named
+#                                        ones — and because an athlete that can hit any effort exactly can
+#                                        always reach the flag, whose distances then never matter. The last
+#                                        gear was added on 2026-11-19: without it a ball 17 yd off the edge
+#                                        had nothing in the bag that would land on the green, and the athlete
+#                                        played ping-pong until the twelve-stroke cap.
 
 # What a knocked-down swing costs in the choosing: this many yards of accuracy is worth surrendering before
 # the athlete will take 25% off a swing. It is a rule of the athlete's, not a fact about golf.
 FULL_SWING_PREFERENCE = 1.5
+
+# The ball speed a headwind is measured against when the athlete is deciding how much club the wind is worth.
+# One number, because it is a ratio and the coefficient it is fitted with absorbs the choice.
+WIND_REF_SPEED = 150.0            # ft/s
+# A wind blowing more sideways than this, as a fraction of a ball speed, is a wind the athlete cannot read a
+# face angle out of: about 5 mph across. Above it the shot still counts; it just does not teach the hands.
+CROSS_QUIET = 0.035
 
 
 # What a beginner believes about a bag, against what it does. Not random: the shape of the error is the shape
@@ -265,8 +318,13 @@ class Athlete:
         #                                                    the playing code adds this, the learning code
         #                                                    never reads it, and `aim_bias` is what it
         #                                                    estimates from the side of its misses
-        self.misses: list[float] = []                      # the part of each miss that was not the aim
+        self.misses: list[float] = []                      # misses struck in still-ish air, in degrees
         self.shots = 0
+        self.sigma = 1.5                                   # degrees of scatter it believes it has; learned
+        self.cnd_pairs: list[tuple[float, float]] = []      # (head fraction, how short the shot came back)
+        self.wind_c = 0.0                                  # how much wind takes off; learned from zero
+        self.rough_cost = ROUGH_LOSS                       # what the rough costs; told, not learned
+        self.policy = "spread"                             # "flag", "centre" or "spread"
 
     def predict(self, name: str, gear: float) -> float:
         return self.table[name][gear]
@@ -290,14 +348,83 @@ class Athlete:
         self.n[name][gear] = n + 1
         self.table[name][gear] += (total_yd - self.table[name][gear]) / (n + 1)
 
-    def observe_side(self, lateral_yd: float, distance_yd: float, aim_used: float) -> None:
-        """The hands, from the side of the miss. What it learns is *its own* face angle: the miss angle
-        less the aim it chose. Then it aims that much the other way. Two numbers, not one, because a
-        player who only learned "I finish right" could not tell a slice from a mis-aimed club."""
-        if distance_yd < 20.0:
+    def observe_side(self, lateral_yd: float, distance_yd: float, aim_used: float,
+                     cross: float = 0.0) -> None:
+        """The hands, from the side of the miss — on the holes where the air is not doing the work.
+
+        A crosswind moves this ball about 32 degrees per unit of crosswind fraction (measured, not assumed:
+        see the selftest), so a 16 mph crosswind is worth four and a half degrees and a mean of the misses
+        would learn a slice that is not there. **The first version of this did exactly that and spent three
+        rounds aiming four degrees wrong.** So the hands are only read on shots struck in still-ish air, and
+        the scatter is what is left about that mean — which is also the number the target decision needs.
+
+        What the athlete therefore cannot do is aim off for a crosswind. That is not an oversight: it is the
+        wind doing something to a golf ball that a table cannot hold, and the cost of it is measured by
+        running the same athlete round the calm course.
+        """
+        if distance_yd < 20.0 or abs(cross) > CROSS_QUIET:
             return
-        self.misses.append(math.degrees(math.atan2(lateral_yd, distance_yd)) - aim_used)
-        self.aim_bias = -sum(self.misses) / len(self.misses)
+        raw = math.degrees(math.atan2(lateral_yd, distance_yd)) - aim_used
+        self.misses.append(raw)
+        n = len(self.misses)
+        self.aim_bias = -sum(self.misses) / n
+        self.sigma = max(0.3, math.sqrt(sum((m - self.aim_bias * -1.0) ** 2 for m in self.misses) / n))
+
+    def aim_offset(self, cross: float = 0.0) -> float:
+        return self.aim_bias
+
+    def observe_conditions(self, head_fraction: float, ratio: float) -> None:
+        """One condition, one coefficient, least squares through the origin:
+
+            what the shot did / what the notebook said  ≈  1 - wind_c · h
+
+        `h` is the headwind as a fraction of a ball speed, so the coefficient is dimensionless. This is the
+        only place the athlete learns something that is not a tool, and it is identified by the wind changing
+        between holes rather than by its own choices — which is why one parameter works here and the
+        five-parameter effort fit did not.
+
+        The lie is deliberately *not* learned. A first version fitted it alongside the wind and came out at
+        0.46 for a true 0.20, because a rough lie is where a mis-clubbed ball ends up and the coefficient
+        absorbed the notebook's own errors. Guarding it to settled entries then learned nothing (no rough
+        shot is ever hit with a club that has been hit four times). The honest answer is that the rough is
+        not something a player discovers by experiment — it is the first thing anybody tells you — so it is
+        a constant here, `ROUGH_LOSS`, and the notebook stays clean.
+        """
+        self.cnd_pairs.append((head_fraction, 1.0 - ratio))
+        den = sum(h * h for h, _ in self.cnd_pairs)
+        if den > 1e-9:
+            self.wind_c = max(-1.0, min(3.0, sum(h * y for h, y in self.cnd_pairs) / den))
+
+    def target(self, hole: Hole, ball: tuple[float, float], dist_ft: float) -> float:
+        """Where to aim, in feet right of the green's centre. The decision the game is really about.
+
+            flag     aim at the pin, wherever it is cut.
+            centre   aim at the middle of the green, which is what a caddie says.
+            spread   aim where the chance of a putt is best, using the scatter it has measured:
+                     P(on the green) + 0.3 · P(on the green and inside 25 ft). The weights are the athlete's.
+
+        Nothing here is learning. It is what the learned numbers are *for* — a player who knows how much it
+        misses by can spend that knowledge on a target, and a player who does not can only hope.
+        """
+        if self.policy == "flag":
+            return hole.pin
+        if self.policy == "centre":
+            return 0.0
+        s = max(2.0, math.radians(self.sigma) * dist_ft)
+        best = None
+        for k in range(-45, 46):
+            t = float(k)
+            p_on = _phi((GREEN_A - t) / s) - _phi((-GREEN_A - t) / s)
+            p_near = _phi((hole.pin + 25.0 - t) / s) - _phi((hole.pin - 25.0 - t) / s)
+            value = p_on + 0.3 * max(0.0, p_near)
+            if best is None or value > best[0]:
+                best = (value, t)
+        return best[1]
+
+
+def _phi(z: float) -> float:
+    """The normal CDF, from the error function — no scipy, no approximation to argue with."""
+    return 0.5 * (1.0 + math.erf(z / math.sqrt(2.0)))
 
 
 # ---- playing ----------------------------------------------------------------------------------------
@@ -323,16 +450,19 @@ def report_shot(start: tuple[float, float], rest: tuple[float, float],
 
 
 def play_hole(hole: Hole, ath: Athlete, putter: PuttAthlete, green: Green,
-              learn: bool = True, verbose: bool = True, wind: tuple[float, float] = (0.0, 0.0),
+              learn: bool = True, verbose: bool = True, wind: tuple[float, float] | None = None,
               tag: str = "", rng: random.Random | None = None) -> dict:
     rng = rng or random.Random(DEFAULT_SEED)
+    wind = hole.wind if wind is None else wind
+    wx, wy = wind_vector(wind)
     flag = hole.flag
     ball = (0.0, 0.0)
     strokes, log = 0, []
     penalties = 0
     while True:
         dist_ft = math.hypot(flag[0] - ball[0], flag[1] - ball[1])
-        if dist_ft <= GREEN_R or strokes >= STROKE_CAP:
+        if on_green(ball, hole) or math.hypot(flag[0] - ball[0], flag[1] - ball[1]) <= PUTT_ZONE \
+                or strokes >= STROKE_CAP:
             break
         lie = "fairway" if ball == (0.0, 0.0) else lie_at(ball)
         if lie == "trees":
@@ -342,20 +472,38 @@ def play_hole(hole: Hole, ath: Athlete, putter: PuttAthlete, green: Green,
             log.append(dict(kind="penalty", text="in the trees: one stroke, dropped at the edge of the rough"))
             lie = "rough"
             continue
-        club, gear = ath.choose(dist_ft / FT_PER_YD)
+        # where to aim, and how the air is going to change the number the notebook gives
+        offset = ath.target(hole, ball, dist_ft)
+        tx, ty = hole.centre[0] + offset, hole.centre[1]
+        aim_bearing = bearing_to(ball, (tx, ty))
+        ux = math.sin(math.radians(aim_bearing))
+        uy = math.cos(math.radians(aim_bearing))
+        head = -(wx * ux + wy * uy) / WIND_REF_SPEED        # positive into the wind
+        cross = (wx * uy - wy * ux) / WIND_REF_SPEED        # positive: blowing across to the right
+        cost = 1.0 - ath.wind_c * head - (ath.rough_cost if lie == "rough" else 0.0)
+        club, gear = ath.choose(dist_ft / FT_PER_YD / max(0.5, cost))
         predicted = ath.predict(club.name, gear)
-        aim_used = ath.aim_bias
-        aim = bearing_to(ball, flag) + aim_used + ath.face + rng.gauss(0.0, FACE_SD)
+        aim_used = ath.aim_offset(cross)
+        aim = aim_bearing + aim_used + ath.face + rng.gauss(0.0, FACE_SD)
         effort = gear * (1.0 + rng.gauss(0.0, SPEED_SD))
-        res = shot(ball, club, effort, aim, lie=lie, wind=wind)
+        res = shot(ball, club, effort, aim, lie=lie, wind=(wx, wy))
         rest = res["rest"]
         rest = (max(-ROUGH_EDGE * 1.4, min(ROUGH_EDGE * 1.4, rest[0])), rest[1])  # the course ends somewhere
         along, lateral = report_shot(ball, rest, flag)
         strokes += 1
         measured = yards_between(ball, rest)
-        if learn and lie == "fairway":
-            ath.observe(club.name, gear, measured)
-            ath.observe_side(lateral, max(1.0, dist_ft / FT_PER_YD), aim_used)
+        if learn:
+            # the notebook only ever learns from fairway — a number taken off a rough lie is not a number —
+            # but the conditions are learned from every shot, because that is where their evidence is.
+            # Only from shots whose notebook entry is already settled: a rough lie is where a mis-clubbed
+            # ball ends up, so an unsettled entry would be blamed on the grass or on the air.
+            if ath.n[club.name][gear] >= 4:
+                ath.observe_conditions(head, measured / max(1.0, predicted))
+            if lie == "fairway":
+                # the notebook is a calm-day notebook: a shot with the wind behind it is divided back to
+                # what it would have done in still air, or the student learns that its driver goes 317.
+                ath.observe(club.name, gear, measured / max(0.5, cost))
+                ath.observe_side(lateral, max(1.0, dist_ft / FT_PER_YD), aim_used, cross)
         log.append(dict(kind="shot", club=club.name, gear=gear, effort=effort,
                         carried=res["carry"] / FT_PER_YD,
                         ran=res["roll"] / FT_PER_YD, total=measured, along=along, lateral=lateral,
@@ -364,22 +512,23 @@ def play_hole(hole: Hole, ath: Athlete, putter: PuttAthlete, green: Green,
                         # coarseness of the gear ladder, and it says nothing about the player's knowledge.
                         predicted=predicted, notebook_err=abs(measured - predicted) / max(1.0, predicted),
                         angle=math.degrees(math.atan2(lateral, max(1.0, dist_ft / FT_PER_YD))),
-                        lie=lie))
+                        offset=offset, head=head, lie=lie, on_green=on_green(rest, hole)))
         if verbose:
             side = "right" if lateral > 0 else "left"
             depth = "short" if along < 0 else "long"
             print(f"  {tag}{hole.label:>3} {hole.yards:4.0f} yd par {hole.par}   "
                   f"{club.name:<11} {effort * 100:3.0f}%  {measured:5.1f} yd   "
-                  f"{abs(along):5.1f} {depth:<5} {abs(lateral):4.1f} {side:<5} {lie}")
+                  f"{abs(along):5.1f} {depth:<5} {abs(lateral):4.1f} {side:<5} "
+                  f"aim {offset:+5.1f} ft  {lie:<7}{' green' if on_green(rest, hole) else ''}")
         ball = rest
     # ---- the green: games/putt, not a second model of it
     putts = 0
     if math.hypot(flag[0] - ball[0], flag[1] - ball[1]) <= 2.125 / 12.0:
         ball = flag          # it is in the cup; putt.py never has to ask, because a putt never starts there
-    while putts < 4 and strokes < STROKE_CAP:
+    while putts < 4 and strokes < STROKE_CAP and (
+            on_green(ball, hole) or putts > 0
+            or math.hypot(flag[0] - ball[0], flag[1] - ball[1]) <= PUTT_ZONE):
         d_ft = math.hypot(flag[0] - ball[0], flag[1] - ball[1])
-        if d_ft > GREEN_R and putts == 0:
-            break
         bearing = bearing_to(ball, flag) if d_ft > 0 else 0.0
         r = putt_attempt(putter, PuttHole(d_ft, bearing), green, learn=learn)
         putts += 1
@@ -399,7 +548,9 @@ def play_hole(hole: Hole, ath: Athlete, putter: PuttAthlete, green: Green,
             print(f"  {tag}{hole.label:>3} {'':>4} {'':>12} putt        {d_ft:5.1f} ft  {r['text']}")
     if putts == 0 and verbose:
         print(f"  {tag}{hole.label:>3} {'':>4} {'':>12} picked up")
-    return dict(hole=hole, strokes=strokes, putts=putts, penalties=penalties, log=log)
+    approaches = [e for e in log if e["kind"] == "shot"]
+    return dict(hole=hole, strokes=strokes, putts=putts, penalties=penalties, log=log,
+                to_green=len(approaches), gir=len(approaches) <= max(1, hole.par - 2))
 
 
 def play_round(holes, ath: Athlete, putter: PuttAthlete, green: Green,
@@ -519,22 +670,107 @@ def selftest() -> int:
           f"a 60% swing is {lm:.2f} of a full one over {len(learned)} clubs, learnt; {tm:.2f} is true; "
           f"0.60 was assumed")
 
+    # 12. the air: a headwind shortens a shot, and a crosswind pushes it aside at a rate the model can be
+    # asked about directly — 32 degrees per unit of crosswind fraction, which is the number the athlete's
+    # silence about crosswinds is built on.
+    iron = CLUB_BY_NAME["7 iron"]
+    calm_shot = shot((0.0, 0.0), iron, 1.0, 0.0)
+    head_shot = shot((0.0, 0.0), iron, 1.0, 0.0, wind=(0.0, -WIND_REF_SPEED * 0.1))
+    check("a headwind takes distance off", head_shot["total"] < 0.95 * calm_shot["total"],
+          f"{calm_shot['total'] / 3:.1f} yd calm, {head_shot['total'] / 3:.1f} yd into 10% of a ball speed")
+    angles = []
+    for frac in (0.05, 0.10, 0.15):
+        r = shot((0.0, 0.0), iron, 1.0, 0.0, wind=(WIND_REF_SPEED * frac, 0.0))
+        angles.append(math.degrees(math.atan2(r["rest"][0], r["rest"][1])) / frac)
+    drift = sum(angles) / len(angles)
+    check("a crosswind drifts it aside linearly", max(angles) - min(angles) < 1.5,
+          f"{drift:.1f}° per unit of crosswind, spread {min(angles):.1f}–{max(angles):.1f}")
+
+    # 13. the conditions it can learn, and the target decision it can then make
+    windy = list(COURSE)
+    ath2, put2 = Athlete(), PuttAthlete()
+    for _ in range(4):
+        play_round(windy, ath2, put2, green, learn=True, verbose=False)
+    check("it learns what the wind costs", 0.3 < ath2.wind_c < 1.4,
+          f"wind_c {ath2.wind_c:.2f} (the model's own response is about 0.7 per unit of head fraction)")
+    still = [Hole(*c) for c in CALM]   # the same flags on a still day
+    trained = Athlete()
+    trained.policy = "spread"
+    put3 = PuttAthlete()
+    for _ in range(4):
+        play_round(still, trained, put3, green, learn=True, verbose=False)
+    scored = {}
+    for pol in ("flag", "spread"):
+        a = copy_of(trained)
+        a.policy = pol
+        scored[pol] = sum(play_round(still, a, PuttAthlete(), green, learn=False, verbose=False,
+                                     rng=random.Random(DEFAULT_SEED))["strokes"] for _ in range(4))
+    check("aiming away from a tucked pin pays", scored["spread"] < scored["flag"],
+          f"{scored['spread']} strokes against {scored['flag']} over four calm rounds")
+
     print(f"\n  {len(fails)} of {n} checks failed" if fails else f"\n  all {n} checks pass")
     return 1 if fails else 0
+
+
+def copy_of(ath: Athlete) -> Athlete:
+    """A settled athlete, cloned: the target decision is measured on one who has finished learning, so the
+    three policies are compared with the same notebook, the same hands and the same draw."""
+    b = Athlete()
+    b.table = {k: dict(v) for k, v in ath.table.items()}
+    b.n = {k: dict(v) for k, v in ath.n.items()}
+    b.aim_bias, b.sigma = ath.aim_bias, ath.sigma
+    b.wind_c, b.rough_cost = ath.wind_c, ath.rough_cost
+    b.face = ath.face
+    return b
+
+
+def compare(args) -> int:
+    green = Green(stimp=10.0, grade=1.2, downhill=135.0)
+    course = [Hole(*c) for c in CALM] if args.calm else COURSE
+    trained = Athlete()
+    trained.policy = "spread"
+    putter = PuttAthlete()
+    for i in range(4):
+        play_round(course, trained, putter, green, learn=True, verbose=False,
+                   rng=random.Random(DEFAULT_SEED))
+    print(f"trained: four rounds, notebook off by "
+          f"{play_round(course, trained, putter, green, learn=False, verbose=False, rng=random.Random(DEFAULT_SEED))['nerr'] * 100:.1f}%"
+          f"  aim bias {trained.aim_bias:+.2f}°  sigma {trained.sigma:.2f}°")
+    print("\nfour rounds each, same notebook, same seed, learning off:")
+    print(f"  {'policy':8s} {'strokes':>8s} {'to par':>7s} {'GIR':>7s} {'putts':>6s}")
+    for policy in ("flag", "centre", "spread"):
+        a = copy_of(trained)
+        a.policy = policy
+        rows = [play_round(course, a, PuttAthlete(), green, learn=False, verbose=False,
+                           rng=random.Random(DEFAULT_SEED)) for _ in range(4)]
+        strokes = sum(r["strokes"] for r in rows)
+        greens = sum(1 for r in rows for row in r["rows"] if row["gir"])
+        putts = sum(row["putts"] for r in rows for row in r["rows"])
+        print(f"  {policy:8s} {strokes:8d} {strokes - 35 * 4:+7d} {greens:5d}/36 {putts:6d}")
+    return 0
 
 
 # ---- main -------------------------------------------------------------------------------------------
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--learn", type=int, default=1, help="0 for the control: the same athlete, frozen")
+    ap.add_argument("--policy", default="spread", choices=["flag", "centre", "spread"],
+                    help="where it aims: at the pin, at the middle of the green, or where the putt is likeliest")
+    ap.add_argument("--calm", action="store_true", help="the same course on a still day")
+    ap.add_argument("--compare", action="store_true",
+                    help="train one athlete, then play the same rounds under all three target policies")
     ap.add_argument("--rounds", type=int, default=3)
     ap.add_argument("--selftest", action="store_true")
     args = ap.parse_args(argv)
     if args.selftest:
         return selftest()
+    if args.compare:
+        return compare(args)
 
     green = Green(stimp=10.0, grade=1.2, downhill=135.0)
     ath, putter = Athlete(), PuttAthlete()
+    ath.policy = args.policy
+    course = [Hole(*c) for c in CALM] if args.calm else COURSE
     print(__doc__.splitlines()[2])
     print(f"\nBAG (carry + run at a full swing, fairway)")
     for c in CLUBS:
@@ -545,11 +781,13 @@ def main(argv=None) -> int:
     totals = []
     for i in range(1, args.rounds + 1):
         print(f"\nROUND {i}" + ("" if args.learn else "  (CONTROL: no learning)"))
-        r = play_round(COURSE, ath, putter, green, learn=bool(args.learn), tag=f"R{i}·")
+        r = play_round(course, ath, putter, green, learn=bool(args.learn), tag=f"R{i}·")
         totals.append(r["to_par"])
     print(f"\nHELD-OUT: six holes never played")
-    held = play_round(HELD_OUT, ath, putter, green, learn=bool(args.learn), tag="H·")
-    print(f"\n  to par: {totals}   held-out {held['to_par']:+d}")
+    held = play_round([Hole(*h) for h in CALM] if False else HELD_OUT, ath, putter, green,
+                      learn=bool(args.learn), tag="H·")
+    print(f"\n  to par: {totals}   held-out {held['to_par']:+d}   policy {ath.policy}"
+          + ("   calm" if args.calm else ""))
     print("  notebook against true (yards; full / 80% / 60% / chip, and shots at each):")
     for c in CLUBS:
         gs = (1.0, 0.8, 0.6, 0.35)
