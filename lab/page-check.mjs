@@ -1829,10 +1829,12 @@ async function main(){
     reset();
     tpl.sha = HEAD;
     seedTemplate('.tribe-manifest.json', JSON.stringify({schema: 'ait-manifest/1',
-      files: ['wake/wake.py', 'tribe.py', 'USER-MANUAL.md']}));
+      files: ['wake/wake.py', 'tribe.py', 'USER-MANUAL.md', 'lab/paint.py']}));
     seedTemplate('wake/wake.py', WNEW);
     seedTemplate('tribe.py', opts.tribeUpstream || TOLD);
     seedTemplate('USER-MANUAL.md', '# manual v2\n');
+    // a file the template ships and this circle has never had: an addition needs no proof of anything
+    seedTemplate('lab/paint.py', '# paint.py\n');
     // what the tribe was given when it installed: the OLD template commit
     seedTemplate('wake/wake.py', WOLD, OLD);
     seedTemplate('tribe.py', TOLD, OLD);
@@ -1998,13 +2000,30 @@ async function main(){
 
   // 12h — the button exists when there is something to update, and not otherwise
   const ui = await settle(`const a = (UPDATE = {state:'behind', sha:'${HEAD}'}) && updBlock();
+    const u = (UPDATE = {state:'unknown', why:'this circle has no .ait/version.json'}) && updBlock();
     UPDATE = {state:'current', sha:'${HEAD}'};
     const b = updBlock();
-    return {behind: /update/i.test(a) && /updmsg/.test(a), current: b};`);
-  check('the page offers an update only when the check found one', () => {
+    return {behind: /update/i.test(a) && /updmsg/.test(a), unknown: /update/i.test(u) && /updmsg/.test(u), current: b};`);
+  check('the page offers an update unless the check says it is current', () => {
     if (ui.err) return ui.err;
     if (!ui.behind) return 'the behind state draws no button';
+    if (!ui.unknown) return 'a circle with no version record is offered nothing — and that is the circle that most needs it';
     if (ui.current) return 'the current state still draws one: ' + ui.current;
+    return '';
+  });
+
+  // 12i — a circle with no record at all: the press adds what it can and writes the record it lacked
+  seedUpdate({version: null});
+  const stamped = await settle(`const r = await applyUpdate();
+    const v = JSON.parse((await fileText('.ait/version.json')).text);
+    return {done: r.done, said: updateReport(r), v,
+            state: (await updateCheck()).state};`);
+  check('a circle that predates the record gains the files and the record in one press', () => {
+    if (stamped.err) return stamped.err;
+    if (!stamped.done.length) return 'nothing was written';
+    if (stamped.v.updated_to !== HEAD) return 'the record does not name the version just written: ' + JSON.stringify(stamped.v);
+    if (stamped.v.installed_from !== HEAD) return 'a first stamp must say where the circle came from: ' + stamped.v.installed_from;
+    if (stamped.state !== 'current') return 'the circle is still not reported current after the press: ' + stamped.state;
     return '';
   });
 

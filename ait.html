@@ -594,7 +594,9 @@ async function stampVersion(to){
   const cur = await fileText('.ait/version.json').catch(() => null);
   const prev = cur ? (JSON.parse(cur.text) || {}) : {};
   const body = JSON.stringify({schema: 'ait-version/1', template: TEMPLATE,
-    installed_from: prev.installed_from || null, updated_to: to, updated_at: new Date().toISOString()}, null, 1) + '\n';
+    installed_from: prev.installed_from || to, updated_to: to, updated_at: new Date().toISOString()}, null, 1) + '\n';
+  // `installed_from` falls back to `to` when the circle has no record at all: a first stamp says where the circle
+  // came from, and `lab/update_tribe.py` writes the same thing into the same file. Two updaters, one record.
   return putText('.ait/version.json', body, `page: record the machinery this circle now runs (${to.slice(0,7)})`, cur && cur.sha);
 }
 
@@ -657,8 +659,12 @@ async function runUpdate(){
   render();
 }
 // The row under the notice, in one place so the two writes of viewToday cannot disagree about whether it is there.
+// Any answer but "current" gets the buttons, including "could not check" — and that is the case that matters most:
+// a circle with no version record is precisely one that predates the record, which is why the check cannot decide,
+// and it was the case where this page offered nothing at all. Measured 2026-11-19 in a real browser on a real
+// circle, which is the only place it could have been measured: the fake always had a record.
 function updBlock(){
-  if (!UPDATE || UPDATE.state !== 'behind') return '';
+  if (!UPDATE || UPDATE.state === 'current') return '';
   const n = UPD_PLAN ? UPD_PLAN.writes.length + UPD_PLAN.adds.length : 0;
   return `<div class="row" style="margin:-6px 0 14px">
     <button class="plain" onclick="planUpdate()">See what an update would change</button>
