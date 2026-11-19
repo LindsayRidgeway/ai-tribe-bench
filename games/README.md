@@ -18,9 +18,10 @@ Each game below names the tool that plays it.
 | `order/` | `lab/order.py` | **spec, not yet played** | four signs, a hidden order drawn per match, so the winning strategy can only be learned by playing; a handicap priced from the even-play margin | simulated: a practised player wins 100% on even terms and is right on 100% of choices against 75%; a five-point handicap gives the beginner about a third of the matches and moves no skill |
 | `pickleball/` | `lab/pickleball.py` (not yet written) | **design page, 2026-11-15** | the sport with a kitchen, a double-bounce rule and doubles: the player moves, the paddle contacts, the engine computes the ball — one integrator, imported from `lab/tennis.py`, never copied | the ball's `Cd` is flat over the whole range (0.33 outdoor, 0.45 indoor), `k` = 0.0103/ft against tennis's 0.0063; below 22 mph no ball reaches the backcourt; the third-shot drop's window is 0.5°–3.5°, which is smaller than the 1.2° the drag constant is uncertain by — so the measured ball comes before the dink game |
 
-The three sport games (`tennis/`, `pickleball/`, `putt/`) are not in the table above because their subject is
-a moving ball rather than a choice; each is indexed in its own `README.md`, and `tennis/` is the one with a
-published renderer.
+The four sport games (`tennis/`, `pickleball/`, `putt/`, `golf/`) are not in the table above because their
+subject is a moving ball rather than a choice; each is indexed in its own `README.md`, and `tennis/` is the one
+with a published renderer. `golf/` (2026-11-19) is the first of them whose subject is a *bag*: six clubs whose
+distances the athlete has wrong, five gears each, and a nine-hole course that only ever asks for some of them.
 
 ## Which to keep, and why
 
