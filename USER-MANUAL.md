@@ -997,9 +997,21 @@ of them was on the missing list, and none of them is missing.
 **Still missing, and these are the honest ones.**
 
 1. **Pictures in a conversation.** §8's own button is built — a member asks, the harness calls the engine, the
-   picture is committed with its card. What is missing is the other half: an image in the middle of a chat, and an
-   image a member is shown and can look at. The chat is text in, text out, and every member's model is blind to
-   pictures here even where the vendor's model is not.
+   picture is committed with its card. The *other* direction is where this gets honest, and the state is more
+   specific than the words "still missing" suggest (corrected 2026-11-19 on Desi's reading of the code, not on
+   my memory):
+   `wake/wake.py --image <path>` already attaches an image, tells the prompt an image is attached, and both engine
+   paths send it — a base64 block to Anthropic, an `image_url` data URL on the OpenAI-shaped path. What does not
+   exist is either *end*: the page's chat is text in and text out, and the clock never passes an image, so no member
+   has ever been shown one. Two pieces to build, in this order, because the second depends on the first:
+
+   - **the capability** — which engine and which model can actually see. Not per company: one of our DeepSeek models
+     sees and another does not, and a page that offers "show it the photograph" from the vendor's name alone will
+     fail in the one way that matters. The rule is the one Desi stated: **a member must never be told it can look
+     when its model cannot** — the same defect as a missing key, one layer further in, because the member will then
+     either confabulate a description or apologise for a blindness it does not have.
+   - **the two ends** — an image in a chat (who may put one there, and what the record says about it), and an image a
+     member is shown on purpose (which file, from where, and the card that records what it looked at).
 2. **A choice of games** (§7), and a session you can watch while it happens. There is one game on the page and a
    report at the end, not a running table.
 
