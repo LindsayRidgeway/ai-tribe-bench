@@ -226,6 +226,7 @@ const localStorage = {
   removeItem: (k) => store.delete(k),
 };
 
+const clipboardWrites = [];  // what the page asked the browser to copy
 const replaceCalls = [];       // where a page that found itself at the retired address sent the browser
 const location = {hash: '', search: '', pathname: '/ait.html', href: 'http://localhost/ait.html',
                   host: 'kythe.app', replace(to){ replaceCalls.push(to); },
@@ -239,7 +240,7 @@ const sandbox = {
   TextEncoder, TextDecoder, URL, URLSearchParams, Blob: class {}, atob, btoa, structuredClone,
   crypto: {randomUUID: () => crypto.randomUUID()},
   alert(){}, confirm(){ return true; }, prompt(){ return ''; },
-  navigator: {userAgent: 'node', clipboard: {writeText: async () => {}}},
+  navigator: {userAgent: 'node', clipboard: {writeText: async (t) => { clipboardWrites.push(t); }}},
   history: {replaceState(){}, pushState(){}},
   addEventListener(){}, removeEventListener(){}, matchMedia: () => ({matches: false, addEventListener(){}}),
 };
@@ -2288,6 +2289,43 @@ async function main(){
     location.host = was.host; location.search = was.search; location.hash = was.hash;
     location.pathname = was.pathname;
     if (preview.length) return 'a preview deploy was sent to production: ' + JSON.stringify(preview);
+    return '';
+  });
+
+  // 14 — the circle's own address, which the page only ever showed on the install screen
+  reset();
+  seed(CLOCK_YML[0], CLOCK_YML[1]);
+  plantMember('Lumi', 'deepseek');
+  clipboardWrites.length = 0;
+  const addr = await tryRun(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main'; S.owner = 'Sam';
+    await viewToday(document.getElementById('main'));
+    const html = document.getElementById('main').innerHTML;
+    copyAddress();
+    await new Promise(r => setTimeout(r, 20));
+    return {html, said: (document.getElementById('addrtold') || {}).textContent || ''};
+  })()`);
+  addr.copied = clipboardWrites.slice();
+  check('a circle shows its own address, and it is the address that opens it', () => {
+    if (addr.err) return addr.err;
+    const html = String(addr.html || '');
+    if (!/https:\/\/kythe\.app\/\?circle=someone\/tribe/.test(html))
+      return 'the page never shows the circle address a link would use: ' + html.slice(0, 200);
+    if (!/Copy/.test(html)) return 'there is no way to take it out of the page';
+    if (addr.copied.length !== 1 || addr.copied[0] !== 'https://kythe.app/?circle=someone/tribe')
+      return 'Copy did not put the address on the clipboard: ' + JSON.stringify(addr.copied);
+    if (!/copied/.test(String(addr.said))) return 'it does not say that it copied: ' + addr.said;
+    return '';
+  });
+  const addrEmpty = await tryRun(ctx, `(async () => {
+    S.repo = 'someone/empty'; S.token = 't'; S.branch = 'main';
+    await viewToday(document.getElementById('main'));
+    return document.getElementById('main').innerHTML;
+  })()`);
+  check('an empty circle shows its address too, because that is the circle nobody has a link to yet', () => {
+    if (addrEmpty.err) return addrEmpty.err;
+    if (!/https:\/\/kythe\.app\/\?circle=someone\/empty/.test(String(addrEmpty)))
+      return 'a freshly installed circle is the one whose address nobody has';
     return '';
   });
 

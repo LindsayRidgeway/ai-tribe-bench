@@ -753,6 +753,28 @@ async function runUpdate(){
 // a circle with no version record is precisely one that predates the record, which is why the check cannot decide,
 // and it was the case where this page offered nothing at all. Measured 2026-11-19 in a real browser on a real
 // circle, which is the only place it could have been measured: the fake always had a record.
+// The address of the circle you are in. It existed before this row did — `?circle=owner/repo` is how a shared link
+// opens a particular circle — but the only place the page ever showed it was the install screen, so a person with a
+// circle could not get their own address without knowing the convention. The founder asked what "your circle's own
+// link" meant, twice in one evening, and the honest reading of that is that the page never taught him the thing it
+// had built. `REAL_ADDRESS` and not `location.host`: the page answers on the address it used to have, and the one to
+// paste is the one that will still be right next month.
+function circleAddress(){ return `https://${REAL_ADDRESS}/?circle=${S.repo}`; }
+function addrBlock(){
+  if (!S.repo) return '';
+  return `<p class="small muted" style="margin:26px 0 0">This circle's address — paste it into a bookmark, or send it `
+    + `to someone who should be able to open it:<br><code id="addrtxt">${esc(circleAddress())}</code> `
+    + `<button class="plain small" onclick="copyAddress()">Copy</button> <span class="small muted" id="addrtold"></span></p>`;
+}
+function copyAddress(){
+  const said = (t) => { const el = $('addrtold'); if (el) el.textContent = t; };
+  const a = circleAddress();
+  try {
+    if (!navigator.clipboard) throw new Error('no clipboard');
+    navigator.clipboard.writeText(a).then(() => said('copied'), () => said('press and hold to copy it'));
+  } catch(_){ said('press and hold to copy it'); }
+}
+
 function updBlock(){
   if (!UPDATE || UPDATE.state === 'current') return '';
   const n = UPD_PLAN ? UPD_PLAN.writes.length + UPD_PLAN.adds.length : 0;
@@ -2074,7 +2096,8 @@ async function viewToday(main){
       + updBlock()
       + `<div class="card"><p>There are no members yet, so there is nothing to read.</p>
       <p class="small muted">A member is a folder of text with a name on it. Making one takes six questions.</p>
-      <button class="primary" onclick="addMember()">Add a member</button></div>`;
+      <button class="primary" onclick="addMember()">Add a member</button></div>`
+      + addrBlock();
     return;
   }
 
@@ -2146,7 +2169,8 @@ async function viewToday(main){
       <button class="primary" onclick="addMember()">Add a member</button>
       <button class="plain" onclick="render()">Read again</button>
       <span class="small muted" id="wake-msg"></span>
-    </div>`;
+    </div>
+    ${addrBlock()}`;
 }
 
 async function viewMembers(main){
