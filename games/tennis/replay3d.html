@@ -907,9 +907,11 @@ const WINPOS = {};
     // the rest of the rally, which is why both players drifted forward and never came back.
     // Walking into the serve. The one move in the film that happens between points rather than during one, and
     // it is in the record for the same reason every other move is: the picture does not invent a position.
-    if (sh.stance) {
-      (PLAN[sh.stance.player] = PLAN[sh.stance.player] || []).push(
-        { t0: t + sh.stance.t0, t1: t + sh.stance.t1, from: sh.stance.from, to: sh.stance.to });
+    // Two people walk into two different stances before a point — the server to the line, the returner behind it —
+    // so this takes a list as well as a single move. Records written before 2026-11-19 carry one object.
+    for (const st of (Array.isArray(sh.stance) ? sh.stance : (sh.stance ? [sh.stance] : []))) {
+      (PLAN[st.player] = PLAN[st.player] || []).push(
+        { t0: t + st.t0, t1: t + st.t1, from: st.from, to: st.to });
     }
     // A ball that is going out is watched rather than run for: the receiver's one-and-a-half steps toward it,
     // and the point of the court their body turns to. The founder, 2026-11-12: "When a ball is long, you portray

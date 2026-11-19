@@ -86,6 +86,11 @@ COMPASS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
 NET_ABSORBS = 0.08         # the fraction of its own speed a ball rebounds off the tape with
 NET_DROP = 0.25            # and of its vertical speed, before gravity takes the rest
 OUT_SECONDS = 1.5          # how long the picture may watch a ball that landed out bounce away
+PLAY_AREA = 12.0           # ft beyond each line a player can be and still be on the ground: the run-off. A ball that
+                           # has left it is a ball nobody can return, and the picture draws `VISIBLE_PAD` so the edge
+                           # of the ground is visible before the ball reaches it. Added 2026-11-19 (Item 17): without
+                           # it the interception chased a serve 25ft behind the baseline and a foot outside the
+                           # sideline, and the rally then played itself further off the court, shot by shot.
 VISIBLE_PAD = 22.0         # feet beyond each line the court picture still shows, so a ball leaving frame is not
                            # followed into the dark and does not stretch the shot by walking there
 
@@ -665,6 +670,9 @@ def interception(p: Player, land, flight_time: float, bounce: dict, surface: str
     ok_at = None                        # the first slice the player could reach at all
     zone_at = None                      # the same, at a height a player would choose
     while t <= 4.0:
+        # there is a finite amount of ground, and a ball that has left it has gone past everybody
+        if (not (-PLAY_AREA <= x <= LENGTH + PLAY_AREA) or not (-PLAY_AREA <= y <= WIDTH + PLAY_AREA)):
+            break
         if z <= RACQUET_HIGH:           # a ball above nine feet is not intercepted, it is smashed — later
             gap = math.hypot(hx - x, hy - y)
             # the ground is covered from a standstill, and the split step is charged before it starts
@@ -698,6 +706,15 @@ def interception(p: Player, land, flight_time: float, bounce: dict, surface: str
                 "meet": (round(xh, 3), round(yh, 3), round(zh, 3)), "gap": gap_h,
                 "got": _run_to((hx, hy), (xh, yh), max(0.0, gap_h - reach)), "why": "",
                 "height": round(zh, 3)}
+
+    if best is None:
+        # The ball never spent a single slice inside the ground a player can stand on: it is past the run-off, and
+        # nobody plays it from there. Not a miss and not a mistake — the picture has to say so in words, so this is
+        # a sentence rather than a `short` of zero, which would read as "reached it" with no feet under it.
+        return {"ok": False, "need": 0.0, "have": 0.0, "short": 0.0, "short_ft": 0.0, "run_time": 0.0,
+                "dx": 0.0, "dy": 0.0, "speed": speed, "at": flight_time, "meet": (round(x, 3), round(y, 3), 0.0),
+                "gap": math.hypot(hx - x, hy - y), "got": (round(hx, 3), round(hy, 3)),
+                "why": "past the back of the court", "height": 0.0}
 
     short, dx, dy, t_best, ball = best
     short_ft = short * speed

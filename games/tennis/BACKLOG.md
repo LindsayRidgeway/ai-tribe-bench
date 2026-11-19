@@ -550,13 +550,14 @@ the stance — a receiver's feet cannot change where the server aimed.
 **Done-test:** aces below 20% and above zero at 600 balls, and the receiver's `frm` outside the baseline on the
 first question of every point. `TestTheReturnerStandsBehindTheLine`, three tests.
 
-**The half of this that is not done.** `lab/tennis_script.py` still stands its returner two feet inside the line, so
-the film and the scoreline disagree about the stance — the record's first run starts at x = 76.0, which is 2ft in.
-It is not cosmetic: it is the same defect in the picture, and the film is what the founder watches. It is not done
-here because the record needs a *stance move* for the returner as well as the server (`stance` exists, but it is read
-off the shot of the player who is walking, and both players walk before a point), and that is a viewer change as well
-as a producer change. One change at a time — but it is the next one after Item 16, because a film whose returner
-stands in the wrong place is a film that shows the wrong game, however small two feet look.
+**The tail: the film now stands its returner where the scoreline does (DONE 2026-11-19, later the same day).**
+`lab/tennis_script.py` stood the returner two feet inside the line while `play_point` stood them four feet behind it,
+so the picture and the play disagreed about the stance. Two changes, both small: the producer emits **two** stance
+moves per point (`stance` is now a list — the server walking to the line, the returner walking back to x = -4 or
+82), and `replay3d.html` reads a list as well as the single object older records carry. The regenerated record's
+stance list is `[Dmitri → [0.0, 13.5], Gwen → [82.0, 13.5]]` for the first point, over all twenty points the four
+values seen are -4.0 / 0.0 / 78.0 / 82.0, and the returner's first run of every rally starts from exactly the spot
+the stance move puts them in. Two feet, and the picture now shows the game the scoreline is playing.
 
 **What is now visible that was not before:** a point at 600 balls is thirteen to fifteen shots, a quarter of them
 hitting the engine's 60-shot ceiling. *(After Item 16 the same day: median 8.5, mean 12.7, and no rally in a
@@ -622,7 +623,67 @@ point depends on where the body is instead of a constant. Item 14's done-test st
 record's 95 shots — but the scatter has doubled, and a claim of "reproduces the record's shot count" is worth less
 than it was this morning.
 
-## What V1 means## What V1 means
+## Item 17 — there is no ground past the run-off (DONE 2026-11-19)
+
+Found while checking that Item 15's tail had not broken anything, which is the only reason it was found at all. Of
+the 110 shots in the film, 32 ended a run more than 6ft behind a baseline and one ended 24.6ft behind it; four
+contacts were outside the sidelines (y = -2.4, 27.1, -1.6). Traced rally by rally: the interception was chasing a
+serve 25ft behind the baseline, and the rally then played itself further off the court, shot by shot.
+
+**The cause is an unbounded question.** `interception` asks, at every 0.02s slice of the ball's life, "is the ball
+within a racquet's length of the player by then" — over four full seconds, and it never asked whether there was any
+ground left to stand on. A ball that bounced and flew away was still *reachable* in the arithmetic: the ball was
+30ft away and the clock allowed 2.2s of running, so the answer was yes. The second-bounce break does not save it,
+because between two bounces the ball is airborne the whole way out.
+
+**The bound is the ground:** `PLAY_AREA = 12.0` ft beyond each line, and a `break` at the top of the slice loop when
+the ball has left it. Twelve and not six because the founder's picture already shows `VISIBLE_PAD` = 22ft of ground
+beyond the lines — a run-off of 12ft is on ground the viewer can see, and a ball leaving it is a ball going off the
+edge of the world rather than a ball somebody chose not to chase.
+
+**Measured on one fixed population, not on two films** (`/tmp/reach_bound.py`): 605 real balls (25 points at 300 and
+600 balls, every interception recorded and re-asked at each candidate bound), because a film-level count cannot
+answer this question — any change reshuffles the rng stream, and the same candidate bound gave 225, 225, 176, 110 and
+139 shots at 6, 8, 10, 12 and 16ft. Those are five different twenty-point samples, not five run-offs.
+
+| run-off | met >6ft outside | >10ft | worst meet | reach rate |
+|---|---|---|---|---|
+| none (what shipped) | 48.5% | 38.3% | 29.8ft | 98.5% |
+| **12ft (what ships now)** | **16.8%** | **5.4%** | **11.9ft** | **98.5%** |
+
+The reach rate does not move, which is the point: the balls the bound takes away were arithmetic, not tennis. A bound
+that changed who won would be a tuning knob.
+
+**Also fixed on the way:** a ball that lands outside the bound never sets the closest-miss record, so the `best is
+None` path unpacked `None`. It is now a sentence — "past the back of the court" — instead of a crash waiting for the
+first opponent who hits a 200ft ball at a test.
+
+**And a caption that was lying.** Checking the invariants turned up the film's `dist` field: it was `meet["gap"]`, the
+distance to the ball, and the HUD prints "Gwen runs 30.7ft at 19.2ft/s" for a player whose legs covered 16.0ft. The
+gap and the ground covered differ by the racquet's reach, so `dist` is now the ground the feet covered and `gap` is
+kept as its own number. Same class as "wide by 0ft": a true record with a caption that overstates it.
+
+**The film, regenerated.** 110 shots over 20 rallies at 300/600, lengths 5 5 2 8 4 10 3 2 3 15 4 10 6 2 16 6 4 3 1 1,
+two aces in twenty. Runs ending more than 6ft off court: **36 of 85 → 3 of 92** (worst 29.2ft → 6.8ft). Shots whose
+contact was more than 10ft outside a line: **38 of 101 → 4 of 110** (worst 35.1ft → 11.9ft). Every invariant
+re-checked on the record:
+contact within `RACQUET_REACH` of the feet (worst 7.01ft of 7.0), no run whose from→to over its own clock exceeds the
+player's speed (0 of 110, where the old check that used `dist` was measuring the gap), contact height median 3.0ft
+with none below 1ft.
+
+**Done-test:** no meeting point more than `PLAY_AREA` beyond a line over a real population of balls, *and* the bound
+moves the reach rate by less than three points against no bound at all. `TestTheGroundEnds`, three tests.
+
+**What this does not fix, and it is the next item.** Four contacts of 110 are still more than 10ft behind the
+baseline, and the reason is not the run-off — it is the meeting-point rule. The worst is a ball that bounced 14ft in
+front of Gwen, who then ran 10ft *backwards* to meet it at 2.95ft: the zone rule prefers the slice nearest
+`CONTACT_HEIGHT`, and only the descending 3ft crossing on the far side of the bounce gave her time to get there.
+A real player hits that ball as it passes them, at 5ft, with no travel at all. The rule wants to be a *band* (waist to
+shoulder, take the first moment inside it, which is the moment nearest the body) rather than a point to minimise
+distance to. That is a change to the meeting point, it moves the contact-height distribution the last two items
+measured, and it is being written down rather than rushed at the end of a turn.
+
+## What V1 means
 
 **The founder's definition, 2026-11-15, and it replaces mine:** *V1 means completion of the video game
 to the point that we are ready for it to become a published feature of AIT.* He added that the

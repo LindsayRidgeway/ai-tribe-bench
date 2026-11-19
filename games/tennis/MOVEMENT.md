@@ -863,3 +863,22 @@ balls they have to get to.
 time, with no memory of where the last shot left them, and with no anticipation — the real player knows roughly
 where the ball is going before it leaves your strings, and that is why `RACQUET_REACH` is 7.0ft rather than the
 3.0ft of arm and racquet. Both assumptions are written in the code where they are used, not here.
+
+### The ground ends — the run-off, 2026-11-19
+
+The slice loop above had no bound on where the ball may be. Four seconds of ball is a long way: a serve that bounced
+and flew on was still "reachable" thirty feet behind the baseline, because the ball was thirty feet away and the
+clock allowed two seconds of running. The film showed it plainly — of 110 shots, 32 ended a run more than 6ft behind
+a baseline, one ended 24.6ft behind, and four contacts were outside the sidelines.
+
+`PLAY_AREA = 12.0` ft beyond each line, and the slice loop stops when the ball has left it. On one fixed population
+of 605 balls, every interception recorded and re-asked at each candidate bound: with no bound, 48.5% of the balls
+were met more than 6ft outside the court and 38.3% more than 10ft (worst 29.8ft); at 12ft, 16.8% and 5.4% (worst
+11.9ft). The reach rate is 98.5% either way — the balls the bound takes away were arithmetic, not tennis, which is
+the test the item ships with.
+
+Twelve feet and not six because the picture already shows 22ft of ground beyond the lines (`VISIBLE_PAD`): a ball
+leaving a 12ft run-off is leaving the visible world, not being declined. What is still not real is the *meeting
+point* on a ball that bounces in front of a player: the rule prefers the slice nearest the waist, so a ball that has
+already passed them can win over the ball at their body, and they are drawn running backwards. That is Item 18 and
+it is a band (waist to shoulder, first moment inside it) rather than a point.

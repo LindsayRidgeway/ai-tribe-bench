@@ -265,6 +265,21 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str,
                        "from": [round(stance_from[0], 2), round(stance_from[1], 2)],
                        "to": [round(where[server_i][0], 2), round(where[server_i][1], 2)],
                        "t0": -0.6, "t1": -0.05}          # the walk to the line happens in the pause between points
+        # The RETURNER waits behind the baseline, which is where the engine has stood them since Item 15 and where
+        # the film did not: two feet inside the line is the server's stance, and a returner standing there is beaten
+        # by a wide serve that a returner four feet further back reaches. The engine measured it (120 real serves:
+        # 89% reached from inside the line, 97% from behind it at 600 balls) and the scoreline has used it since;
+        # this is the picture catching up. Two stance moves go on the first shot of the point, because they are two
+        # people walking into two different stances, and the record has to say both or the viewer has to guess.
+        ret_i = 1 - server_i
+        returner = players[ret_i]
+        ret_from = where[ret_i]
+        where[ret_i] = (-T.RETURN_DEPTH if returner.north else T.LENGTH + T.RETURN_DEPTH, T.WIDTH / 2)
+        return_move = {"player": returner.name, "north": returner.north,
+                       "from": [round(ret_from[0], 2), round(ret_from[1], 2)],
+                       "to": [round(where[ret_i][0], 2), round(where[ret_i][1], 2)],
+                       "t0": -0.6, "t1": -0.05}
+        stance_move = [stance_move, return_move]
         # The corner is chosen once per point, at random, and both serves go there: a second serve is the same
         # intention with less pace, not a change of plan.
         serve_corner = rng.choice(T.serve_corners(server.north, server.skill("control")))
@@ -479,7 +494,12 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str,
                 "from": [round(v, 2) for v in receiver_at],
                 "to": [round(v, 2) for v in got_to],
                 "t0": 0.0, "t1": round(min(meet["at"], deadline) if meet["ok"] else deadline, 3),
-                "dist": round(meet["gap"], 1), "speed": round(meet["speed"], 1),
+                # `dist` is the ground the feet covered, and `gap` is how far the ball was. They differ by the
+                # racquet's reach, and until 2026-11-19 the record called the gap "dist" — so the HUD said a beaten
+                # player "runs 10.5ft at 18.5ft/s" when the legs had covered 7.7ft and the ball was 18ft away. A
+                # caption that overstates the run is the same class of defect as "wide by 0ft".
+                "dist": round(math.hypot(got_to[0] - receiver_at[0], got_to[1] - receiver_at[1]), 1),
+                "gap": round(meet["gap"], 1), "speed": round(meet["speed"], 1),
                 "met": bool(meet["ok"]),
                 "need": round(meet["need"], 2), "have": round(meet["have"], 2),
                 "short": round(meet["short_ft"], 1),

@@ -4481,6 +4481,101 @@ class TestTheReturnerStandsBehindTheLine(unittest.TestCase):
                                              f"the first ball is not this game")
 
 
+class TestTheGroundEnds(unittest.TestCase):
+    """Item 17, 2026-11-19: the run-off. `interception` asked one question — is the ball within a racquet's
+    length of the player by this 0.02s slice — over every slice for four seconds, and never asked whether there
+    was any ground left to stand on. So a ball that had bounced and flown away was still "reachable", and the
+    film showed players running twenty-five feet behind the baseline and striking the ball a foot outside the
+    sideline. The bound is the ground: `PLAY_AREA` feet beyond each line.
+
+    Measured on one fixed population of 605 balls (25 points at 300 and 600 balls, every interception recorded
+    and re-asked): with no bound, 48.5% of the balls were met more than 6ft outside the court and 38.3% more
+    than 10ft, the worst 29.8ft. At a 12ft run-off those are 16.8% / 5.4% / 11.9ft, and the reach rate does not
+    move — 98.5% either way. The balls the bound takes away were arithmetic, not tennis."""
+
+    def setUp(self):
+        import importlib
+        import random as _random
+        self.random = _random
+        sys.path.insert(0, str(REPO / "lab"))
+        self.T = importlib.import_module("tennis")
+        self._saved = self.T.PLAY_AREA
+
+    def tearDown(self):
+        self.T.PLAY_AREA = self._saved
+
+    def _balls(self, want=120):
+        """A population of real questions asked of the interception, captured so every candidate bound is asked
+        about the same balls. A film-level count cannot answer this: the rng stream reshuffles on any change."""
+        t = self.T
+        calls, orig = [], t.interception
+
+        def recording(p, land, flight_time, bounce, surface, *a, **kw):
+            calls.append((p, land, flight_time, dict(bounce), surface, a, dict(kw)))
+            return orig(p, land, flight_time, bounce, surface, *a, **kw)
+
+        t.interception = recording
+        try:
+            seed = 0
+            while len(calls) < want:
+                seed += 1
+                t.play_point(t.Player("A", seed % 2 == 0, 300, rng=self.random.Random(seed)),
+                             t.Player("C", seed % 2 == 1, 600, rng=self.random.Random(seed + 500)),
+                             "clay", (-6.22, -6.22), 6.0, self.random.Random(seed + 900))
+        finally:
+            t.interception = orig
+        return calls
+
+    def _outside(self, x, y):
+        t = self.T
+        return max(-x, x - t.LENGTH, -y, y - t.WIDTH, 0.0)
+
+    def test_a_ball_that_lands_outside_the_ground_does_not_raise(self):
+        """The bound is checked before the first slice, so a ball that lands past it never sets the closest-miss
+        record. That path used to unpack `None` and would have crashed the point; now it says what happened."""
+        t = self.T
+        p = t.Player("A", True, 300, rng=self.random.Random(3))
+        m = t.interception(p, (200.0, t.WIDTH / 2), 1.0, {"v": (10.0, 0.0, 20.0)}, "clay")
+        self.assertFalse(m["ok"])
+        self.assertIn("back of the court", m["why"])
+        self.assertGreater(m["gap"], 100.0, "the ball was not actually far away — this test proves nothing")
+
+    def test_no_ball_is_met_past_the_run_off(self):
+        """The film's defect, asked directly: where do the contacts happen? With the bound, no meeting point is
+        more than `PLAY_AREA` feet outside a line, and the worst of them is a run-off, not a chase."""
+        t = self.T
+        calls = self._balls(120)
+        meets = []
+        for p, land, ft, bounce, surface, a, kw in calls:
+            m = t.interception(p, land, ft, bounce, surface, *a, **kw)
+            if m["ok"]:
+                meets.append(self._outside(m["meet"][0], m["meet"][1]))
+        self.assertGreater(len(meets), 40, "not enough reachable balls to say anything")
+        worst = max(meets)
+        self.assertLessEqual(worst, t.PLAY_AREA + 0.5,
+                             f"a ball was met {worst:.1f}ft outside the court, past the {t.PLAY_AREA:.0f}ft run-off")
+
+    def test_the_bound_costs_no_reach(self):
+        """A bound that changed who wins would be a tuning knob, and this one is not: the same balls, asked with
+        no ground at all and with the run-off, are reached at the same rate."""
+        t = self.T
+        calls = self._balls(120)
+
+        def reached():
+            ok = 0
+            for p, land, ft, bounce, surface, a, kw in calls:
+                ok += bool(t.interception(p, land, ft, bounce, surface, *a, **kw)["ok"])
+            return ok / len(calls)
+
+        t.PLAY_AREA = 1e9
+        free = reached()
+        t.PLAY_AREA = self._saved
+        bounded = reached()
+        self.assertLess(abs(free - bounded), 0.03,
+                        f"the run-off moved the reach rate from {free:.1%} to {bounded:.1%} — it is deciding "
+                        f"points, not describing the ground")
+
+
 class TestTheBallAfterThePointIsOver(unittest.TestCase):
     """Item 14 of the tennis backlog, third move: the seconds of ball that are left after the point is decided.
 
