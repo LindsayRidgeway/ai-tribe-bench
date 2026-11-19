@@ -2563,6 +2563,46 @@ async function main(){
     return '';
   });
 
+  // 15f — a job put in front of a member, in the file a wake reads
+  //
+  // The founder's question of 2026-11-19: if he just says "produce a doc", will the member know where to put it?
+  // The path was never the problem — the contract names it and the harness keeps only the basename — but the
+  // *channel* was: a wake is given the member's files and the shelf, and never the conversation, so a suggestion
+  // made in the talk reaches it only if the member wrote it down. This is the door that is open, and it had no
+  // handle in the page: open-items.md was displayed in "its files" and nothing could edit it.
+  reset();
+  plantMember('Lumi', 'deepseek');
+  seed('wake/members/Lumi/state/open-items.md', '# Open items\n\n1. Read my identity.\n2. Read my journal.\n');
+  calls.length = 0;
+  const jobDlg = await tryRun(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
+    await giveJob('Lumi');
+    return document.getElementById('dlg').innerHTML;
+  })()`);
+  check('a job is offered in the file a wake reads, and the screen says the chat is not', () => {
+    if (jobDlg.err) return jobDlg.err;
+    const d = String(jobDlg || '');
+    if (!/open-items\.md/.test(d)) return 'the dialog does not say which file it writes: ' + d;
+    if (!/never the conversation|not<\/strong> reach a wake/.test(d))
+      return 'it does not say that what is said in the talk does not reach a wake: ' + d;
+    if (!/Read my journal/.test(d)) return 'it does not show the items it already has: ' + d;
+    return '';
+  });
+  const jobSaved = await tryRun(ctx, `(async () => {
+    document.getElementById('job').value = 'Write one page on the workshop — finished when it has three sections.';
+    await saveJob('Lumi');
+    return document.getElementById('mmsg').innerHTML;
+  })()`);
+  check('pressing it appends one numbered item, after the ones already there', () => {
+    if (jobSaved.err) return jobSaved.err;
+    const now = (files.get('wake/members/Lumi/state/open-items.md') || {}).text || '';
+    if (!/^3\. Write one page on the workshop/m.test(now)) return 'the item did not land numbered after the others: ' + JSON.stringify(now);
+    if (!/^1\. Read my identity\./m.test(now) || !/^2\. Read my journal\./m.test(now))
+      return 'it lost the items that were already there: ' + JSON.stringify(now);
+    if (!/item 3 is in its open items/.test(String(jobSaved || ''))) return 'it does not say what it did: ' + jobSaved;
+    return '';
+  });
+
   // 16 — what its wakes produced, from the page
   //
   // The founder asked on 2026-11-19: "How will I be able to see any results George produces in a wake?" The honest

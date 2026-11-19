@@ -239,3 +239,33 @@ product is for.
   function closing over one document's state was being called as another's — it built `/repos//contents/...` from
   an empty repository and the page was blamed. A browser never shares a global between two documents. Fixed by
   giving each context `this.window = this`.
+
+## The channel a job actually travels on — 2026-11-19
+
+The founder's follow-up: *"If I just suggest to GW that he produce a doc, will he know where to put it during the
+wake so that I'll be able to see it, or do I have to provide some guidance?"*
+
+**Where it goes was never in doubt, and that is worth stating rather than assuming.** The reply contract hands a
+member `wake/members/<name>/output/<short-name>.md`, and `wake.py`'s `safe_path()` keeps only `Path(p).name` — so
+`works/George/doc.md`, `../../etc/passwd`, `/etc/passwd` and `wake/output/../x.md` all land in the member's own
+`output/`. A member cannot overwrite the workflows, the ledger, or another member's journal, and cannot put a
+document where the page will not list it. Now pinned by a test, because the failure mode (a wake that succeeds and
+writes over the clock) is one nobody would notice until it was too late to see the diff.
+
+**The channel was the real gap.** A wake's prompt is assembled from identity, state, journal, open items, beat, soil,
+brief, projects, own works, the shelf, the reading and the requests — and **`state/conversation.md` is not among
+them.** A wake has never read the conversation file. So a suggestion made in the talk reaches the next wake only if
+the member wrote it down as a `NOTE:` in its journal during that turn, and then it arrives as one line inside a
+4,000-character journal tail that the prompt treats as history. "George, please produce a doc" was, in practice, a
+sentence spoken to the member in a room the next wake cannot enter.
+
+**So the page grew a handle on the door that is open:** *Give it a job* on the member page. It reads
+`state/open-items.md`, keeps the existing items, appends one numbered item (max existing number + 1, continuation
+lines indented, the same shape the file already uses), and writes it with the identity editor's three-try 409 retry.
+The dialog says the thing a person needs to hear — the chat does not reach a wake, this does — and it says the other
+honest thing: the prompt ranks open items as *the chores*, below the member's beat and below a peer's work, so the
+member may say why something else outranks the job. That ranking is not a bug to fix; it is why a member is not a
+form.
+
+Manual: §6 gained "What reaches a wake, and what does not", with the three places a finished document appears
+(*What its wakes produced*, the magazine, the commit); the Appendix gained the button and what it writes.

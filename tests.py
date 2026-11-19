@@ -1685,6 +1685,23 @@ class TestFiling(unittest.TestCase):
         self.assertFalse(wake.echoes_instruction("State, Not Transition — B2, rules, 267 words", prompt,
                                                 own=shelf))
 
+    def test_a_member_cannot_be_talked_into_writing_outside_its_own_output_folder(self):
+        """The founder asked on 2026-11-19 whether a member would know where to put a document.
+
+        The answer is that it cannot get it wrong. The reply contract hands it
+        `wake/members/<name>/output/<short-name>.md`, and `safe_path` keeps only the last component of whatever
+        it says — so `works/George/doc.md`, `../../etc/passwd` and an absolute path all land in the member's own
+        `output/`, beside the raw reply, which is the folder the page lists. That is worth pinning: a member that
+        could write anywhere could overwrite the workflows, the ledger, or another member's journal, and the
+        failure would be a wake that succeeded.
+        """
+        for said in ("wake/members/George/output/doc.md", "works/George/doc.md", "../../etc/passwd",
+                     "/etc/passwd", "wake/output/../x.md", "doc"):
+            got = wake.safe_path(said)
+            self.assertIsNotNone(got, said)
+            self.assertEqual(got.parent, wake.OUTPUT, f"{said} escaped the member's folder: {got}")
+            self.assertEqual(got.name, Path(said).name)
+
     def test_a_short_item_is_never_an_echo(self):
         self.assertFalse(wake.echoes_instruction("C's letter", "C's letter is on the shelf", own=""))
 

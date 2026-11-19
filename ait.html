@@ -2498,6 +2498,7 @@ async function viewMember(main, name){
     </div>
     <div class="row" style="margin-top:8px">
       <button class="plain small" onclick="wakeNow('${escq(m.name)}')">Wake now</button>
+      <button class="plain small" onclick="giveJob('${escq(m.name)}')">Give it a job</button>
       <button class="plain small" onclick="retellMemory('${escq(m.name)}')">Retell its memory</button>
       <button class="plain small" onclick="fileConversation('${escq(m.name)}')">Save this talk to its memory</button>
       <button class="plain small" onclick="putAway('${escq(m.name)}')">Put away</button>
@@ -2775,6 +2776,101 @@ async function showFiles(name){
     <label>voice.md</label><div class="file">${esc(m.voice)}</div>
     <label>open-items.md</label><div class="file">${esc(m.openItems)}</div>
     <div class="row" style="margin-top:14px"><button class="plain" onclick="closeDialog()">Close</button></div>`);
+}
+
+/* Giving a member a job, in the one place a wake actually reads one.
+
+   The founder asked on 2026-11-19 whether a suggestion made in the chat would reach the next wake, or whether he
+   had to explain where the file goes. The path was never the problem: the reply contract hands the member
+   `wake/members/<name>/output/<short-name>.md` and the harness keeps only the basename of whatever it writes, so a
+   file cannot land anywhere but where the page can list it. The problem is the *channel*. A wake is given its
+   identity, its state, its journal, its open items, its beat, the soil, the brief, its projects and the shelf — and
+   **never `state/conversation.md`**. So "George, write me a doc about X", said in the talk above, is not in front of
+   the next wake unless George happened to write it down as a NOTE. This dialog is the door that is actually open.
+
+   One honest limit, said on the screen rather than discovered later: the prompt ranks open items below the member's
+   own beat and below a peer's work ("the chores… do them when nothing else claims you"). A job is put in front of it,
+   not imposed on it — which is the difference between a circle and a form. */
+let JOB_OPEN = null;
+
+const jobNumber = (text) => {
+  let n = 0;
+  for (const m of String(text || '').matchAll(/^\s*(\d+)[.)]/gm)) n = Math.max(n, Number(m[1]));
+  return n + 1;
+};
+
+async function giveJob(name){
+  let cur;
+  try { cur = await fileText(`wake/members/${name}/state/open-items.md`); }
+  catch(e){
+    // No file yet is the ordinary state of a member made in a hurry: the wake then gets "(nothing queued)". Making
+    // the file is not something a person should have to do by hand in GitHub's editor.
+    if (!String(e.message).startsWith('404')){
+      openDialog(`<h3 style="margin-top:0">Could not read its open items</h3><p class="err">${esc(e.message)}</p>
+        <div class="row" style="margin-top:14px"><button class="plain" onclick="closeDialog()">Close</button></div>`);
+      return;
+    }
+    cur = {text: `# Open items — ${name}\n`, sha: null};
+  }
+  JOB_OPEN = {name, text: cur.text, sha: cur.sha};
+  const have = String(cur.text || '').trim();
+  openDialog(`<h3 style="margin-top:0">Give ${esc(name)} a job</h3>
+    <p class="small muted">This adds one numbered item to <code>state/open-items.md</code> — the file a wake reads as
+      <em>YOUR OPEN ITEMS</em>. What you say in the talk above does <strong>not</strong> reach a wake: a wake is given
+      the member's files and the shelf, never the conversation. This box is.</p>
+    ${have ? `<label>What it already has</label>
+      <div class="file" style="white-space:pre-wrap;max-height:20vh;overflow:auto">${esc(have)}</div>` : ''}
+    <label for="job">The job — one thing, in plain words, and what would count as finished</label>
+    <textarea id="job" autocapitalize="sentences" style="width:100%;min-height:110px"
+      placeholder="Write one page on … — finished when it has a title, three sections and a source for each number."></textarea>
+    <p class="small muted">It will notice this; it may still say why its own beat or someone else's work outranks
+      it, and that answer is allowed. Addressed to it, in writing, is what a request is.</p>
+    <div class="row" style="margin-top:10px">
+      <button class="primary" onclick="saveJob('${escq(name)}')">Give it the job</button>
+      <button class="plain" onclick="closeDialog()">Never mind</button>
+      <span class="small muted" id="jobmsg"></span>
+    </div>`);
+}
+
+async function saveJob(name){
+  const box = $('job'), msg = $('jobmsg');
+  if (!box || !JOB_OPEN) return;
+  const said = String(box.value || '').trim();
+  const say = (html) => { if (msg) msg.innerHTML = html; };
+  if (said.length < 8){ say('<span class="err">Too short to be a job — say what it should make.</span>'); return; }
+  const item = jobNumber(JOB_OPEN.text) + '. ' + said.split('\n')
+    .map((ln, i) => (i ? '   ' + ln.trim() : ln.trim())).join('\n');
+  const text = String(JOB_OPEN.text || '').replace(/\s*$/, '') + '\n\n' + item + '\n';
+  const path = `wake/members/${name}/state/open-items.md`;
+  const message = `open items: ${name} — a job from the person who keeps this circle`;
+  say('saving…');
+  try {
+    // The same three tries the identity editor makes: GitHub's read can lag its own write, and a 409 here is a
+    // file that changed under us, not a mistake by the person. A second edit made elsewhere is theirs to keep.
+    let put = null;
+    for (let attempt = 1; attempt <= 3 && !put; attempt++){
+      const fresh = await fileText(path).catch(e => (String(e.message).startsWith('404') ? {text: '', sha: null} : Promise.reject(e)));
+      if (String(fresh.text || '').trim() !== String(JOB_OPEN.text || '').trim()){
+        say('<span class="err">Its open items changed since you opened this — something else wrote to them. '
+          + 'Press <em>Give it a job</em> again to add yours on top of the new list.</span>');
+        return;
+      }
+      const merged = String(fresh.text || '').replace(/\s*$/, '') + '\n\n' + item + '\n';
+      try { put = await putText(path, merged, message, fresh.sha); }
+      catch(e){
+        if (!/^409/.test(String(e.message))) throw e;
+        if (attempt < 3) await sleep(900);
+      }
+    }
+    if (!put) throw new Error('GitHub kept refusing the write (409) after three tries');
+    JOB_OPEN = null;
+    closeDialog();
+    const line = `item ${item.split('.')[0]} is in its open items. It reads them at its next wake.`;
+    const where = $('mmsg');
+    if (where) where.innerHTML = esc(line) + ' <button class="plain small" onclick="wakeNow(\'' + escq(name) + '\')">Wake now</button>';
+  } catch(e){
+    say('<span class="err">Not saved: ' + esc(e.message) + '</span>');
+  }
 }
 
 /* What a wake left behind. `output/` gains a file per wake that reached an engine, so the folder before and after

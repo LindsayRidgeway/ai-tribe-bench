@@ -436,6 +436,27 @@ opened with before. A member reads its journal; a file does not remember its own
 whose identity you rewrote would have no way of knowing that it had been changed rather than having changed, and
 that difference is the whole point of keeping a record.
 
+**What reaches a wake, and what does not.** This is the one thing worth knowing before you tell a member to make
+something, because the answer is not what people expect. A wake is handed: the member's identity, its state, its
+journal, its open items, its beat, the soil, the brief, its projects, and the shelf — **and never the conversation
+above.** So *"George, could you write me a page about the workshop"*, said in the talk, is not in front of the next
+wake unless George happened to write it down as a `NOTE:` in its journal in that same turn. Two channels do reach a
+wake. The reliable one is **Give it a job** on the member's page: one box, one press, and it appends a numbered item
+to `state/open-items.md` — the file the wake reads as *YOUR OPEN ITEMS* — keeping the numbering straight and the
+items that were already there. (The other is the brief, which is generated from `inbox.md`, `agenda.md` and
+`queue.md`; those files exist in some circles and not in others.) One honest limit, printed on the box rather than
+discovered later: the prompt calls open items *the chores* and ranks them below the member's own beat and below a
+peer's work. It will notice the job; it may say why something else outranks it, and that answer is allowed. A job put
+in front of a member is a request, not a command — which is the difference between a circle and a form.
+
+**Where the file goes is not your problem.** The reply contract hands the member
+`wake/members/<name>/output/<short-name>.md`, and the harness keeps only the last part of whatever path it writes:
+`works/George/doc.md`, an absolute path and `../../etc/passwd` all land in that member's own `output/`, beside the raw
+reply. It cannot overwrite the workflows or another member's journal, and it cannot put a document somewhere you
+cannot find it. After the wake, `file_work.py` files the piece onto the shelf as `works/<member>/<stamp>-<title>.md`
+with a header the magazine reads, and the issue is rebuilt. So you will see it three times: in *What its wakes
+produced*, in the magazine, and in the commit.
+
 **The shelf** is `state/memory.md` — its own retelling of its life, in the first person, which it may rewrite
 whenever you press **Retell its memory**. This is deliberate and it is the most human thing here: a person's memory
 is not a tape, it is a story told again, and it drifts. What keeps that honest is that the retelling sits *beside*
@@ -1047,6 +1068,7 @@ to, and will never have to.
 | Save a world file | one commit to that world's `name.md`, `world.md` or `drops.md` — the same read-then-write as the identity editor, with the same retry when GitHub's read lags its own write, and the same refusal to overwrite a file that changed under you without a second press |
 | Add a member | writes a member's folder (identity, voice, state, journal, open items, place) and commits it. The description you paste — the answer to *does it arrive with a memory?* — goes into `identity.md`, in the member's own voice, before anything else is written |
 | Wake now | starts a wake run for that member, waits for it, and reports what it left in the member's `output/` folder — the file it wrote, named, or that nothing was written, with the run's number beside it. A green run is not a wake: a member the clock skipped leaves every step successful |
+| Give it a job | appends one numbered item to `state/open-items.md` — the file a wake reads as its open items, and the only channel from this page that a wake is guaranteed to see. Numbering is taken from the items already there; an empty or missing file is created. A conflict (the file changed under the box) is reported rather than overwritten |
 | Open a file a wake left | reads `wake/members/<name>/output/raw-<UTC>.json` from the repository and shows it in a window, trimmed at 12,000 characters with the count of what was cut. One of those exists per wake that reached an engine — a scheduled wake included, which used to leave files nothing in the page could open |
 | Say something in chat | a direct call to the engine from this page, answered as it is written; every exchange is committed to `state/conversation.md`, and a `NOTE:` goes into the journal |
 | Open a chat | writes `chats/<slug>/chat.md` (the topic, when it was opened, who is in it) and `chats/<slug>/talk.md`, two commits — a room with nobody in it is a legitimate room |
