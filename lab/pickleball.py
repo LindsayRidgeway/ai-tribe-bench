@@ -797,6 +797,10 @@ def play_game(names: list[str], practice: list[int], choose_factory, surface: st
         if lesson is not None:
             lesson(r, pos, players)
         serving_team = match.serving
+        # whose serve this rally was: a fault by the serving team costs the serve, a fault by the receiver costs a
+        # point, and side-out scoring makes those two very different prices for the same mistake. The record has
+        # to be able to say which one it was (page §5g measures the kitchen's fault in that currency).
+        r["serving_at"] = serving_team
         if r["fault_by"] is None and r["winner"] is None:          # the record's ceiling: no score either way
             outcome = "no score (ceiling)"
         elif r["fault_by"] == serving_team:
