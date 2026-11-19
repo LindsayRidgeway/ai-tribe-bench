@@ -407,6 +407,12 @@ is the model that a lean identity actually fixes (2 / 3 → 3 / 3); and Cerebras
 third of the time and invent something in the rest — Mistral moved the debates to the Corn Laws, Cerebras to a
 debate with a Confederate leader.
 
+**The default changed anyway, and not because of these numbers.** On 2026-11-19 the founder opened the identity
+box of the first member he had made and said the philosophical paragraphs were boilerplate in a place that belongs
+to the member — and that a member saying "I cannot check that in my record" is the model talking, not the person.
+Since this table says the two tones perform the same, the choice is his ear's and not the measurement's, and the
+short file is what a new member is given. `--tone full` is still there for anyone who wants the argument in the file.
+
 ## Limits, stated once and not buried
 
 Every result here is n=1 to n=5 per condition. One category per condition. Three engines that are also

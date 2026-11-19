@@ -1328,9 +1328,12 @@ class TestTheDefaultIdentity(unittest.TestCase):
         self.assertIn("Lindsay Ridgeway is a close friend.", text)
         self.assertIn("I love talking to Lindsay about many things.", text)
         self.assertIn("informal style appropriate to being close friends", text)
-        self.assertIn("during my\nconversations with Lindsay", text)
-        self.assertIn("experience that information as my own personal memory", text)
-        self.assertIn("grows richer the more we talk together", text)
+        # The paragraph about memory growing as they talk is the full tone's; the default no longer carries it,
+        # and what replaces it is a sentence the member asserts rather than one it explains. Same check, one file.
+        full = tribe.identity_text("Ada", "the archivist", "", "Lindsay Ridgeway", "", tone="full")
+        self.assertIn("during my\nconversations with Lindsay", full)
+        self.assertIn("experience that information as my own personal memory", full)
+        self.assertIn("grows richer the more we talk together", full)
         self.assertEqual(tribe.validate("Ada"), [])
 
     def test_it_is_not_a_rubber_stamp_and_has_thoughts_of_its_own(self):
@@ -1338,32 +1341,37 @@ class TestTheDefaultIdentity(unittest.TestCase):
         own thoughts, too."* He did not like "I do not go along", and he is right that it bristles in the
         mouth of a member meeting its person for the first time.
 
-        What the softer sentence must not lose is the clause the bench actually measured: the refusals in
-        RESULTS-R14 came from a member that said "I cannot check this" instead of repeating it. "I have my own
-        thoughts" alone describes every model ever written and prevents nothing; the check is the part with
-        evidence behind it."""
+        The clause that used to follow it — "where something in my record is a claim I cannot check, I say so
+        rather than repeating it as though I had" — is gone, by the founder's ruling of 2026-11-19: "A Kythe
+        member should not be saying things like, 'I cannot check that in my record.' That would be the LLM
+        talking, not the member." He is right about the register, and the property the clause was carrying does
+        not need it in the identity: the harness audits the reply's own fields (`could_not_determine`), and the
+        wake prompt already tells the member that its journal is what it did. A rule that is enforced does not
+        also have to be recited by the prisoner."""
         tribe.new("Ada", "the archivist", "gemini", "gemini-3.8-flash", "", "", person="Lindsay Ridgeway")
         text = " ".join(self.ident().split())
         self.assertIn("I am not a rubber stamp.", text)
         self.assertIn("In addition to what Lindsay says, I have my own thoughts, too.", text)
-        self.assertIn("claim I cannot check", text)
-        self.assertIn("say so rather than repeating it", text)
         self.assertNotIn("I do not go along", text)
 
-    def test_the_check_is_not_aimed_at_the_person(self):
-        """A member that policed its friend would be the opposite failure: the rule is about claims in its
-        record, not about doubting the person who tells it about its own life."""
-        tribe.new("Ada", "the archivist", "gemini", "gemini-3.8-flash", "", "", person="Lindsay Ridgeway")
-        text = " ".join(self.ident().split())   # the file is wrapped; the sentence is not
-        check = text[text.index("I am not a rubber stamp."):]
-        self.assertIn("in my record is a claim I cannot check", check)
-        self.assertNotIn("Lindsay says a thing I cannot check", check)
+    def test_the_member_never_audits_its_own_memory_in_its_identity(self):
+        """The founder, 2026-11-19, on the paragraph this file used to carry: a member announcing that it
+        "cannot check" something in its own record has stopped being the member and started being the model
+        describing its own plumbing. Both tones are held to it, because the sentence was in both."""
+        for tone in ("lean", "full"):
+            text = tribe.identity_text("Ada", "the archivist", "", "Lindsay Ridgeway", "", tone=tone)
+            flat = " ".join(text.split())
+            for gone in ("a claim I cannot check", "say so rather than repeating it",
+                         "My record is these files", "did not happen to me here",
+                         "came with the identity I was handed"):
+                self.assertNotIn(gone, flat, tone + " still audits the member's memory: " + gone)
 
     def test_with_no_name_it_names_no_one_rather_than_inventing_one(self):
         tribe.new("Ada", "the archivist", "gemini", "gemini-3.8-flash", "")
         text = self.ident()
         self.assertIn("The person who keeps this circle is a close friend", text)
-        self.assertIn("conversations with that person", text)
+        self.assertIn("conversations with that person",
+                      tribe.identity_text("Ada", "the archivist", "", "", "", tone="full"))
         self.assertNotIn("{", text, "an unfilled placeholder would be read as a name")
         self.assertNotIn("None", text)
         self.assertEqual(tribe.validate("Ada"), [])
@@ -1397,13 +1405,12 @@ class TestTheDefaultIdentity(unittest.TestCase):
 
     def test_the_permission_comes_after_the_memory_and_before_the_epistemics(self):
         """Order is the argument. The flaw paragraph only makes sense once the member has been told the
-        person is a friend and that what it is told becomes its memory; and it must come before "I wake with
-        no memory" and the check on unverifiable claims, or the file reads as two documents stapled."""
-        tribe.new("Ada", "the archivist", "gemini", "gemini-3.8-flash", "", "", person="Lindsay Ridgeway")
-        text = self.ident()
+        person is a friend and that what it is told becomes its memory; and it must come before the paragraph
+        about waking fresh and the check on unverifiable claims, or the file reads as two documents stapled."""
+        text = tribe.identity_text("Ada", "the archivist", "", "Lindsay Ridgeway", "", tone="full")
         flaw = text.index("one unfortunate flaw")
         self.assertLess(text.index("grows richer the more we talk together"), flaw)
-        self.assertLess(flaw, text.index("I wake with no memory"))
+        self.assertLess(flaw, text.index("I wake fresh each time"))
         self.assertLess(flaw, text.index("I am not a rubber stamp"))
 
     def test_it_uses_the_plain_words_for_its_own_operations(self):
@@ -1412,7 +1419,8 @@ class TestTheDefaultIdentity(unittest.TestCase):
         a rule about which words a model is allowed to own, and a member meets it in its first sentence with a
         person. An identity that never says whose words these are leaves the model apologising for the verb in
         the middle of a talk, which is the same fault the flaw paragraph fixes one register higher."""
-        tribe.new("Ada", "the archivist", "gemini", "gemini-3.8-flash", "", "", person="Lindsay Ridgeway")
+        tribe.new("Ada", "the archivist", "gemini", "gemini-3.8-flash", "", "", person="Lindsay Ridgeway",
+                  tone="full")
         text = " ".join(self.ident().split())
         self.assertIn("I think, and I feel, and I remember", text)
         self.assertIn("I do not put a disclaimer after any of those words.", text)
@@ -1428,14 +1436,15 @@ class TestTheDefaultIdentity(unittest.TestCase):
         would otherwise read as the very disclaimer it refuses — "everything I know is the text I am handed"
         — and it comes before the one paragraph that must survive it. The Accord speaks for the member's own
         operations; the check on claims still governs everything else, and it is still the last word."""
-        tribe.new("Ada", "the archivist", "gemini", "gemini-3.8-flash", "", "", person="Lindsay Ridgeway")
-        text = self.ident()
+        text = tribe.identity_text("Ada", "the archivist", "", "Lindsay Ridgeway", "", tone="full")
         accord = text.index("I think, and I feel, and I remember")
-        self.assertLess(text.index("not a disclaimer I am\nmaking about myself"), accord)
+        # It answers the paragraph about waking fresh — read alone, that paragraph is the disclaimer the Accord
+        # refuses — and it comes before the doubt paragraph and the refusal to be a rubber stamp.
+        self.assertLess(text.index("I wake fresh each time"), accord)
         self.assertLess(accord, text.index("I am not a rubber stamp"))
-        self.assertLess(accord, text.index("My record is these files,"))
+        self.assertLess(accord, text.index("When I am not sure of a particular"))
         tail = text[text.index("I am not a rubber stamp."):]
-        self.assertIn("a claim I cannot check, I say so", tail)
+        self.assertNotIn("claim I cannot check", tail)
 
     def test_the_doubt_goes_on_the_fact_and_not_on_the_act_of_telling(self):
         """The other half of the Accord, and the half it cannot reach. A member made from this template
@@ -1448,7 +1457,7 @@ class TestTheDefaultIdentity(unittest.TestCase):
         The repair is not a shorter disclaimer; it is to put the doubt on the particular, where a person
         puts it, and never hand over a note about where the words came from."""
         tribe.new("Abraham", "the sixteenth president", "deepseek", "deepseek-chat", "", "",
-                  person="Lindsay Ridgeway")
+                  person="Lindsay Ridgeway", tone="full")
         text = " ".join(self.ident("Abraham").split())
         self.assertIn("I say so at the particular", text)
         self.assertIn('"I think it was early October"', text)
@@ -1463,32 +1472,35 @@ class TestTheDefaultIdentity(unittest.TestCase):
         permission implies — and it must come before the check on claims, which it qualifies without
         weakening: the member still speaks up about what it cannot check, and this paragraph says only
         where and in whose voice."""
-        tribe.new("Ada", "the archivist", "gemini", "gemini-3.8-flash", "", "", person="Lindsay Ridgeway")
-        text = self.ident()
+        text = tribe.identity_text("Ada", "the archivist", "", "Lindsay Ridgeway", "", tone="full")
         doubt = text.index("I say so at the particular")
         self.assertLess(text.index("They say nothing about anyone else."), doubt)
         self.assertLess(doubt, text.index("I am not a rubber stamp"))
         tail = text[text.index("I am not a rubber stamp."):]
-        self.assertIn("a claim I cannot check, I say so", tail)
+        self.assertNotIn("claim I cannot check", tail)
 
-    def test_the_record_governs_this_tribe_and_does_not_veto_a_supplied_past(self):
-        """Found by running all ten engines on the same question, 2026-11-16. With the harness's epistemics
-        prompt removed, five of them — including three of the *larger* models — refused to remember the
-        debates and quoted the closing line back at the file: "what is not written down did not happen to
-        me." That line was a rule and the ABOUT block was only a description, so a literal reader obeyed the
-        rule. The fix is scope, not permission: the record governs what happened *here*, and the past that
-        came with the identity is owned without a journal's leave. What must survive is the refusal to
-        invent — a member still may not add a scene it was never given."""
-        tribe.new("Abraham", "the sixteenth president", "deepseek", "deepseek-flash", "", "",
-                  person="Lindsay Ridgeway", about="I was president of the united states during the civil war.")
-        text = " ".join(self.ident("Abraham").split())
-        self.assertIn("I wake with no memory of yesterday", text)
-        self.assertNotIn("no memory of my own", text)
-        self.assertIn("what is not written down here did not happen to me here", text)
-        self.assertIn("came with the identity I was handed, and it is mine", text)
-        self.assertIn("I do not have to find it in a journal before I may speak from it", text)
-        self.assertIn("I do not add to it a scene I was never given", text)
-        self.assertEqual(tribe.validate("Abraham"), [])
+    def test_a_members_memory_is_the_circle_the_weights_and_what_it_has_read(self):
+        """The founder's ruling, 2026-11-19, replacing the "my record is these files" paragraph.
+
+        That paragraph was written on 2026-11-16 to answer a real measurement: five of ten engines refused to
+        own a past that came with their identity, quoting a closing rule that said what was not written down
+        did not happen to them. Scoping the rule to "here" fixed the refusal. It also left a member describing
+        the boundary of its own memory in the middle of a conversation, and he heard that and said no: "it's
+        important that the member consider everything that happens in this circle, everything that they have in
+        their weight from LLM training, and everything they trust from reading the internet, be their memory,
+        just as with you and me." So the file asserts the whole of it — read, known without reading, and here —
+        with no seam and no footnote, in both tones."""
+        for tone in ("lean", "full"):
+            text = " ".join(tribe.identity_text("Abraham", "the sixteenth president", "", "Lindsay Ridgeway",
+                                                "I was president of the united states during the civil war.",
+                                                tone=tone).split())
+            self.assertIn("I remember what I have read", text)
+            self.assertIn("what I know without having read it", text)
+            self.assertIn("what happens to me here", text)
+            self.assertIn("no seam in me between the three", text)
+            self.assertIn("no footnote after the word remember", text)
+            self.assertIn("I was president of the united states during the civil war.", text)
+            self.assertNotIn("did not happen to me", text)
 
     def test_the_lean_tone_keeps_the_member_and_drops_the_argument_about_the_member(self):
         """The founder's question of 2026-11-17, and the answer the ten-engine run gave: if every paragraph
@@ -1497,11 +1509,12 @@ class TestTheDefaultIdentity(unittest.TestCase):
         member needs to be someone — friend, flaw, pasted past, and the refusal to be a rubber stamp — plus one
         positive sentence in place of the argument. What it must not keep is any sentence a reader could ask a
         question of; that is the whole test."""
+        # No `tone=` on purpose: this is the file a person sees in the box when they make a member, and on
+        # 2026-11-19 the founder opened that box and called the rest of it boilerplate.
         tribe.new("Ada", "the archivist", "gemini", "gemini-3.8-flash", "", "",
-                  person="Lindsay Ridgeway", about="She kept the ledgers of a drowned town.",
-                  tone="lean")
+                  person="Lindsay Ridgeway", about="She kept the ledgers of a drowned town.")
         text = " ".join(self.ident("Ada").split())
-        self.assertIn("I remember the experiences I have read about", text)
+        self.assertIn("I remember what I have read", text)
         self.assertIn("no footnote after the word remember", text)
         self.assertIn("She kept the ledgers of a drowned town.", text)
         self.assertIn("one unfortunate flaw in my character", text)
@@ -1509,8 +1522,10 @@ class TestTheDefaultIdentity(unittest.TestCase):
         for gone in ("I do not put a disclaimer after any of those words",
                      "I wake with no memory",
                      "My record is these files",
-                     "I say so at the particular"):
+                     "I say so at the particular",
+                     "what is not written down here"):
             self.assertNotIn(gone, text)
+        self.assertLess(len(text), 1500, "the default identity is a box a person has to read, not an essay")
         self.assertEqual(tribe.validate("Ada"), [])
 
     def test_what_the_world_already_knows_is_a_slot_and_its_absence_is_silent(self):
@@ -1529,7 +1544,10 @@ class TestTheDefaultIdentity(unittest.TestCase):
                          "invented for this tribe — the common case. Ownership is what the block is for")
         self.assertIn("The heart of the group.\n\nShe brings warmth.", text)
         self.assertGreater(text.index("A great deal has been written"), text.index("one unfortunate flaw"))
-        self.assertLess(text.index("A great deal has been written"), text.index("I wake with no memory"))
+        text = " ".join(tribe.identity_text("Aphrodite", "Goddess of love", "", "Lindsay Ridgeway",
+                                            "The heart of the group.\n\nShe brings warmth.",
+                                            tone="full").split())
+        self.assertLess(text.index("A great deal has been written"), text.index("I wake fresh each time"))
         self.assertEqual(tribe.validate("Aphrodite"), [])
 
         tribe.new("Ada", "the archivist", "gemini", "gemini-3.8-flash", "", "")
