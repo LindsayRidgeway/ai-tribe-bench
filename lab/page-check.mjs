@@ -2190,6 +2190,51 @@ async function main(){
     return '';
   });
 
+  // 12j — a circle whose files are already the template's, and which has no record. This is what a real install
+  // produced on 2026-11-19: the machinery copied, the receipt not written. Every file matches, so there is nothing to
+  // copy and `applyUpdate` used to return without writing anything — a circle that could never stop being "unchecked".
+  seedUpdate({version: null});
+  seed('wake/wake.py', WNEW); seed('tribe.py', TOLD);
+  seed('USER-MANUAL.md', '# manual v2\n'); seed('lab/paint.py', '# paint.py\n');
+  // The button appears on the second look, not the first: this page never writes before it has shown what it would
+  // write, so the plan press comes first here exactly as it does in front of a person.
+  const same = await settle(`const p = await updatePlan();
+    const u = await updateCheck();
+    UPD_PLAN = p;
+    const row = (UPDATE = u) && updBlock();
+    return {writes: p.writes.map(f => f.path), adds: p.adds.map(f => f.path), waiting: p.waiting,
+            identical: p.identical, provable: p.provable, said: planSentence(p),
+            sentence: updateSentence(u), why: u.why, row};`);
+  check('a circle that already has the current files is offered the record, not told nothing', () => {
+    if (same.err) return same.err;
+    if (!same.identical) return 'the plan does not notice that every file already matches';
+    if (same.writes.length || same.adds.length) return 'it wants to write files that already match';
+    if (!/Record this version/.test(same.row)) return 'no press is offered: ' + same.row;
+    if (!/none of them is replaced/.test(same.said)) return 'the plan does not say nothing will be replaced: ' + same.said;
+    if (/predates the version record/.test(same.sentence))
+      return 'it tells the owner of a circle made today that their circle predates the record: ' + same.sentence;
+    if (!/no record of which template it came from/.test(same.sentence)) return 'the sentence does not say what is missing: ' + same.sentence;
+    if (/Could not check for updates/.test(same.sentence)) return 'a circle with no record is reported as a failed check: ' + same.sentence;
+    return '';
+  });
+  const recorded = await settle(`const r = await applyUpdate();
+    const got = await fileText('.ait/version.json').catch(() => null);
+    const u = await updateCheck();
+    return {recorded: !!r.recorded, done: r.done, v: got ? JSON.parse(got.text) : null,
+            state: u.state, said: updateReport(r)};`);
+  check('pressing it writes the record, replaces nothing, and the circle is current afterwards', () => {
+    if (recorded.err) return recorded.err;
+    if (!recorded.recorded) return 'the press did not write a record';
+    if (!recorded.v) return 'no record was written at all, so this circle can never be told it is current';
+    if (recorded.done.length !== 1 || recorded.done[0] !== '.ait/version.json') return 'it wrote something else: ' + JSON.stringify(recorded.done);
+    if (recorded.v.updated_to !== HEAD) return 'the record does not name the version it just verified: ' + JSON.stringify(recorded.v);
+    if (recorded.v.installed_from !== null) return 'it invented an origin it does not know: ' + JSON.stringify(recorded.v.installed_from);
+    if (recorded.v.confirmed !== 'by content') return 'the record does not say how it was known: ' + JSON.stringify(recorded.v);
+    if (recorded.state !== 'current') return 'the check afterwards says ' + recorded.state;
+    if (!/Nothing was replaced/.test(recorded.said)) return 'the report does not say nothing was replaced: ' + recorded.said;
+    return '';
+  });
+
   for (const r of results){
     if (r.ok) console.log('PASS  ' + r.name);
     else { bad++; console.log('FAIL  ' + r.name + (r.why ? '\n        ' + r.why : '')); }

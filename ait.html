@@ -462,8 +462,13 @@ async function updateCheck(){
   const head = await templateHead();
   const from = v && String(v.updated_to || v.installed_from || '');
   if (!head) return {state:'unknown', why:'the template could not be read just now'};
-  if (!v) return {state:'unknown', why:'this circle has no .ait/version.json, so it predates the version record',
-                  sha: head};
+  // A circle can be missing this record for two reasons, and only one of them is about age. A circle installed
+  // before the record existed predates it; a circle installed today can lack it because the install's write did not
+  // land — measured on the founder's own circle 2026-11-19, which was created at 05:23 with no record in it. Saying
+  // "it predates the version record" to the owner of the second kind is a false story about their repository, and the
+  // false story is the page's, not theirs. So it says what it knows: there is no record, and what that costs.
+  if (!v) return {state:'unknown', noRecord: true, sha: head,
+                  why:'this circle has no .ait/version.json'};
   if (v.touched && !from) return {state:'unknown', sha: head, touched: v.touched,
     why:`${v.touched.files} file${v.touched.files === 1 ? '' : 's'} were added from `
       + `${String(v.touched.template).slice(0,7)} on ${String(v.touched.at).slice(0,10)}, and the rest of this `
@@ -476,6 +481,11 @@ function updateSentence(u){
   if (!u) return '';
   if (u.state === 'current') return ` Machinery up to date (${u.sha.slice(0,7)}).`;
   if (u.state === 'behind') return ` A newer template exists (${u.from.slice(0,7)} → ${u.sha.slice(0,7)}); nothing has been changed yet.`;
+  // "Could not check" is for a page that tried and was refused. A circle with no record was not refused: the page has
+  // nothing to compare a version against, which is a different fact and needs a different sentence — one that says
+  // what can still be done rather than leaving a person with a failure they cannot act on.
+  if (u.noRecord) return ` This circle has no record of which template it came from, so the page cannot say whether`
+    + ` it is current. It can compare the files themselves — see below.`;
   return ` Could not check for updates: ${u.why}.`;
 }
 
@@ -552,14 +562,29 @@ async function updatePlan(){
     else if (credible && base.get(path)) kept.push(path);
     else waiting.push(path);                                // no proof: the record does not vouch for this path
   }
-  return {head, from, writes, adds, kept, waiting, missing, provable: credible, agree, shared: shared.length};
+  // Every file this page manages is already the template's, byte for byte. That is a comparison of *contents*, so it
+  // needs no record to be true — and it is the state a circle is in when its install wrote the files and not the
+  // receipt. Without this flag `applyUpdate` returns early (there is nothing to write), so such a circle could never
+  // acquire the record that every later press is judged by: a dead end with a button on it. Measured on the
+  // founder's own circle, 2026-11-19, installed at 05:23 and identical to the template, offered nothing it could do.
+  const identical = !missing.length && want.length > 0
+    && want.every(p => theirs.has(p) && ours.get(p) === theirs.get(p));
+  return {head, from, writes, adds, kept, waiting, missing, provable: credible, agree, shared: shared.length, identical};
 }
 
 // The plan, in one sentence a person can act on. Every branch says what will happen rather than that something is
 // available: "a newer version exists" is the sentence that trains people to ignore update notices.
 function planSentence(p){
   const touch = p.writes.length + p.adds.length;
-  if (!touch && !p.kept.length && !p.waiting.length) return '';
+  if (!touch && !p.kept.length && !p.waiting.length){
+    // The first press still has to explain itself here, because the answer is not the usual one: nothing will be
+    // replaced. A person who has just been told the page cannot check this circle is owed the reason it can act anyway.
+    if (p.identical && !p.provable)
+      return `Every file this page manages already matches the template's current version `
+        + `(${p.head.slice(0,7)}), so none of them is replaced. What this circle lacks is the record of that — one `
+        + `small file — and pressing it writes it.`;
+    return '';
+  }
   const bits = [];
   if (touch) bits.push(`${touch} file${touch === 1 ? '' : 's'} will be replaced`);
   if (p.adds.length) bits.push(`${p.adds.length} of them new to this circle`);
@@ -577,7 +602,17 @@ function planSentence(p){
 async function applyUpdate(){
   const p = await updatePlan();
   const done = [], clash = [];
-  if (!p.writes.length && !p.adds.length) return {p, done, clash};
+  // Nothing to copy — but "nothing to copy" is not "nothing to do". A circle can be identical to the template file
+  // for file and still lack the one line saying so, which is what every later press is judged against. Writing that
+  // line is not an update: it is the record of a fact this comparison has just established by reading the files, and
+  // it is the only way such a circle ever stops being told it cannot be checked.
+  if (!p.writes.length && !p.adds.length){
+    if (p.identical && !p.provable){
+      await recordVersionByContent(p.head);
+      return {p, done: ['.ait/version.json'], clash, recorded: true, complete: true, stamped: true};
+    }
+    return {p, done, clash};
+  }
   const short = p.head.slice(0, 7);
   for (const f of [...p.writes, ...p.adds]){
     const {text} = await templateText(f.path, p.head);
@@ -599,6 +634,23 @@ async function applyUpdate(){
   }
   return {p, done, clash, stamped: !clash.length, complete};
 }
+// The record written when there is nothing to copy and no record to trust: the circle's files *are* the template's,
+// checked one by one just now. `installed_from` stays null because the page still does not know where it came from —
+// claiming the current commit as its origin would be inventing a history — while `updated_to` is a claim about
+// content, which was verified rather than remembered. The extra field says which of the two kinds of knowledge this
+// record is, so a later reader is not left guessing whether it was a receipt or a comparison.
+async function recordVersionByContent(head){
+  const cur = await fileText('.ait/version.json').catch(() => null);
+  let prev = {};
+  try { prev = (cur && JSON.parse(cur.text)) || {}; } catch(_){ prev = {}; }
+  const body = {schema: 'ait-version/1', template: TEMPLATE,
+    installed_from: prev.installed_from || null, updated_to: head, updated_at: new Date().toISOString(),
+    confirmed: 'by content'};
+  return putText('.ait/version.json', JSON.stringify(body, null, 1) + '\n',
+    `page: record which machinery this circle runs (${head.slice(0,7)}) — the files already matched`,
+    cur && cur.sha);
+}
+
 // The record is a claim about what this circle *has*, so it may only claim a version the press actually reached.
 // A press that adds the three files a circle never had and leaves twenty-one older ones alone has not brought it to
 // the template, and writing `updated_to` anyway makes the page say "Machinery up to date" about a circle that is
@@ -625,6 +677,8 @@ async function stampVersion(to, complete, files){
 // 1 kept" is a fact somebody can check against the repository.
 function updateReport(r){
   if (!r) return 'Nothing was changed.';
+  if (r.recorded) return 'Nothing was replaced: every file already matched. 1 file written — the record of which '
+    + 'version this circle is.';
   const parts = [];
   if (r.done && r.done.length) parts.push(`${r.done.length} file${r.done.length === 1 ? '' : 's'} updated`);
   if (r.clash && r.clash.length) parts.push(`${r.clash.length} changed while the page was reading ${r.clash.length === 1 ? 'it' : 'them'}, so ${r.clash.length === 1 ? 'it was' : 'they were'} left alone (${r.clash.slice(0,3).join(', ')})`);
@@ -687,9 +741,14 @@ async function runUpdate(){
 function updBlock(){
   if (!UPDATE || UPDATE.state === 'current') return '';
   const n = UPD_PLAN ? UPD_PLAN.writes.length + UPD_PLAN.adds.length : 0;
+  // Nothing to copy and nothing provable: the circle is the template's file for file, and the only missing thing is
+  // the line that says so. Naming the press after what it actually writes, because "Update 0 files" is not a button
+  // a person presses and "Record this version" is.
+  const rec = !!(UPD_PLAN && UPD_PLAN.identical && !UPD_PLAN.provable);
   return `<div class="row" style="margin:-6px 0 14px">
     <button class="plain" onclick="planUpdate()">See what an update would change</button>
     ${n ? `<button class="primary" onclick="runUpdate()">Update ${n} file${n === 1 ? '' : 's'}</button>` : ''}
+    ${rec ? `<button class="primary" onclick="runUpdate()">Record this version</button>` : ''}
     <span class="small muted" id="updmsg"></span></div>`;
 }
 
