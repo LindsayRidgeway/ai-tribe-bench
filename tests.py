@@ -1323,7 +1323,7 @@ class TestTheDefaultIdentity(unittest.TestCase):
     def test_it_names_the_person_the_member_talks_to(self):
         tribe.new("Ada", "the archivist", "gemini", "gemini-3.8-flash", "", "", person="Lindsay Ridgeway")
         text = self.ident()
-        self.assertIn("**member Ada** of a tribe", text)
+        self.assertIn("**member Ada** of a circle", text)
         self.assertIn("My seat is the archivist.", text)
         self.assertIn("Lindsay Ridgeway is a close friend.", text)
         self.assertIn("I love talking to Lindsay about many things.", text)
@@ -1362,7 +1362,7 @@ class TestTheDefaultIdentity(unittest.TestCase):
     def test_with_no_name_it_names_no_one_rather_than_inventing_one(self):
         tribe.new("Ada", "the archivist", "gemini", "gemini-3.8-flash", "")
         text = self.ident()
-        self.assertIn("The person who keeps this tribe is a close friend", text)
+        self.assertIn("The person who keeps this circle is a close friend", text)
         self.assertIn("conversations with that person", text)
         self.assertNotIn("{", text, "an unfilled placeholder would be read as a name")
         self.assertNotIn("None", text)
@@ -3067,7 +3067,7 @@ class TestOutbox(unittest.TestCase):
         self.assertIn("four rules long", shown)
 
         before = magazine.build("2", magazine.load_all(tmp), tmp)
-        self.assertIn("Addressed out of the tribe: to teacher@school.example — the game we made", before)
+        self.assertIn("Addressed out of the circle: to teacher@school.example — the game we made", before)
         self.assertIn("Not posted", before)
         self.assertNotIn("Posted from a person's own mail client", before)
 
@@ -5720,7 +5720,7 @@ class TheTemplateMustBeEnough(unittest.TestCase):
         r = subprocess.run([sys.executable, str(REPO / "lab" / "update_tribe.py"),
                             "--root", tempfile.mkdtemp()], capture_output=True, text=True, timeout=60)
         self.assertEqual(r.returncode, 1)
-        self.assertIn("does not look like a tribe", r.stderr)
+        self.assertIn("does not look like a circle", r.stderr)
 
     def test_the_bench_and_the_page_agree_on_what_an_update_would_do(self):
         """`lab/repos.py verdict()` and `ait.html`'s updatePlan() are the same rule written twice, in two languages,

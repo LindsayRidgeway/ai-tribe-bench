@@ -20,7 +20,7 @@ name: publish
 # Nothing else in this repository uses it, and the deploy cannot read the repository's contents beyond the
 # checkout it already has.
 #
-# The site is not load-bearing: every tribe lives in its own repository, so if this site vanished no tribe
+# The site is not load-bearing: every circle lives in its own repository, so if this site vanished no circle
 # would notice. That is what makes a 15-credit press worth deciding rather than automating.
 
 on:

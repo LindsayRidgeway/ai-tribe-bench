@@ -1,7 +1,7 @@
 /* Turns the ?code= GitHub hands back into an access token.
  *
  * This is the whole reason AIT needs a server at all: the exchange requires the client secret, and a
- * page cannot keep a secret. Nothing else about an owner's tribe passes through here — no member, no
+ * page cannot keep a secret. Nothing else about an owner's circle passes through here — no member, no
  * repository, no key, no usage. It takes one code and gives back one token, and it logs neither.
  *
  * The client id below is public on purpose; it is in the page as well. The secret lives in the site's

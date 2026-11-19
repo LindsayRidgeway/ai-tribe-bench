@@ -62,7 +62,7 @@ jobs:
   beat:
     # This workflow is the project's own instrument: it exists to measure whether GitHub's scheduler
     # delivers what it promises, and it answers that question by appending a line to a table four times an
-    # hour. A tribe somebody just built has no use for that and no interest in a commit every ten minutes,
+    # hour. A circle somebody just built has no use for that and no interest in a commit every ten minutes,
     # so it only runs where the repository variable HEARTBEAT_ON is set to true. Nothing has to be done to
     # silence it in a copy: an unset variable skips the job. To turn it on somewhere:
     #   gh variable set HEARTBEAT_ON --body true --repo <owner>/<repo>
@@ -92,7 +92,7 @@ jobs:
       - name: Commit it
         run: |
           set -euo pipefail
-          git config user.name "AI Tribe Bench"
+          git config user.name "Kythe Bench"
           git config user.email "ai-tribe-bench@users.noreply.github.com"
           git add lab/heartbeat.md
           if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi

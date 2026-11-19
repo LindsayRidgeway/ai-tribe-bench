@@ -5,7 +5,7 @@ name: traction
 #
 # Two signals, and they answer different questions:
 #   - forks and clones: public, durable, and blind to a copy made without forking (a zip, a template);
-#   - the beacon in wake.yml/clock.yml: fires the first time a repository actually runs the tribe, and
+#   - the beacon in wake.yml/clock.yml: fires the first time a repository actually runs the circle, and
 #     names it — which is the only signal that reaches a copy with no fork to look at.
 #
 # No secrets are used here. GITHUB_TOKEN reads the repository it already belongs to.
@@ -31,7 +31,7 @@ jobs:
       - name: Commit if it changed
         run: |
           set -euo pipefail
-          git config user.name "AI Tribe Bench"
+          git config user.name "Kythe Bench"
           git config user.email "ai-tribe-bench@users.noreply.github.com"
           git add lab/traction.md
           if git diff --cached --quiet; then echo "no change"; exit 0; fi

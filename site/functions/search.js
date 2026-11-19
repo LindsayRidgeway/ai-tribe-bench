@@ -8,11 +8,11 @@
  * no API account, nothing to sign up for, and nothing to break in six months but the shape of an
  * <item>. If it does break, the member is told the search failed, which is honest.
  *
- * What this holds: nothing. No key, no tribe, no per-person state, no history of what was searched.
+ * What this holds: nothing. No key, no circle, no per-person state, no history of what was searched.
  */
 const MAX_Q = 200;
 const TIMEOUT_MS = 10_000;
-const UA = 'AIT/1 (a member of a household looking something up; +https://ai-tribe.netlify.app)';
+const UA = 'Kythe/1 (a member of a household looking something up; +https://ai-tribe.netlify.app)';
 
 const json = (status, body, cache) => ({
   statusCode: status,

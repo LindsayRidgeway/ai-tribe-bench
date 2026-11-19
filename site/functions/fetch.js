@@ -4,7 +4,7 @@
  * header on our side changes that. A member asking "what does this page say" needs something that
  * fetches from outside a browser — and it must be the smallest thing that does the job.
  *
- * What this holds: nothing. No key, no tribe, no storage, no memory between calls. It takes a URL,
+ * What this holds: nothing. No key, no circle, no storage, no memory between calls. It takes a URL,
  * fetches it, returns the text, and forgets. The engine key stays in the owner's browser where it
  * belongs, so this can never become a place where keys accumulate.
  *
@@ -45,7 +45,7 @@ exports.handler = async (event) => {
       redirect: 'follow',
       signal: ctl.signal,
       headers: {
-        'user-agent': 'AIT/1 (a member of a household reading a page; +https://ai-tribe.netlify.app)',
+        'user-agent': 'Kythe/1 (a member of a household reading a page; +https://ai-tribe.netlify.app)',
         accept: 'text/html,application/xhtml+xml,text/plain;q=0.9,*/*;q=0.5',
       },
     });
