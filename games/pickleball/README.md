@@ -1020,3 +1020,55 @@ shape as every finding in §5.
 **Kept on main:** `bodies_ahead`, `open_target_at`, `placement_chooser(anticipate=...)`, `--level anticipate`,
 and two tests — a walking body is predicted forward and a standing one is not, and the anticipating chooser
 returns exactly the plain answer when nothing is moving. `TestPickleball` is 39 tests.
+
+---
+
+## §5l What knowing is worth when the body cannot reach — 2026-11-19
+
+§5k ended with a testable claim: *the 6-ft paddle makes anticipation cheap to skip, so shrink the reach and see
+whether knowing grows in value.* That sweep is this section. `PADDLE_REACH` is the one constant both paddle sites
+read — the volley and the interception — and a test now pins that, so moving it moves the whole engine and not
+part of it.
+
+Nine blocks of games: for each reach, a baseline with nobody learning, the value of **sight** (placement against a
+coin-flipping dinker) and the value of **anticipation** (ahead against placement). Every value is 24 games with the
+seats swapped over the same pinned clocks, practice 200.
+
+| PADDLE_REACH | rallies/game (baseline) | unreachable faults per 12 games | value of sight | value of anticipation |
+|---|---|---|---|---|
+| **6.0 ft** (shipped) | 33.2 | 44 | **+42** | **+41** |
+| 4.5 ft | 28.6 | 92 | **+82** | +26 |
+| 3.0 ft | 26.6 | 109 | +70 | **−26** |
+
+**Three findings, one of them against my own prediction.**
+
+1. **The game hardens exactly as expected**, and it is measurable in the baseline nobody needs intelligence for:
+   rallies shorten from 33.2 to 26.6 shots and unreachable faults more than double, 44 to 109. The reach is a
+   difficulty knob, and it is the only one in the file with a visible effect on rallies that does not touch the
+   rules.
+2. **Sight's value doubles when the reach falls from six feet to four and a half** — 42 points to 82 — and holds
+   near 70 at three. So the prediction was right in its first half: **the 6-ft reach was what made choosing the
+   gap cheap.** It saturates, though, because by 3 ft the rallies are ending on other things (the `out` faults
+   still dominate the count) and a gap you cannot reach is no longer worth aiming at.
+3. **Anticipation does not grow; it inverts.** +41 at six feet, +26 at four and a half, **−26 at three**. A
+   prediction built from a body's own velocity assumes the body is **committed** to that heading. At six feet it
+   is: it cannot cover the correction in the time left, so aiming where it is going beats aiming where it is. At
+   three feet it can change course, so the ball aimed at its old heading is aimed into the path it is about to
+   choose — and plain placement, which aims at the space it is *not* in, wins. **Anticipation is a bet that the
+   opponent cannot correct, and the reach is what decides whether they can.**
+
+**And a correction to §5k, kept rather than quietly fixed.** §5k reported anticipation at +27 (205–178). The same
+experiment re-run here, with a cleaner seat swap (`first_team=0` then `first_team=1` rather than alternating inside
+one loop), gives **209–168, +41**. Both are the same code and the same pins; the difference is which games the
+pins produce. So the honest number is **thirty-odd points, plus or minus seven**, and §5k's "two thirds of sight"
+was a precision the data did not carry.
+
+**What this changes in the build: nothing, deliberately.** The shipped reach stays 6.0 ft, because 3.0 ft's
+baseline is a shorter and dumber rally and the game that was tuned for six is the game that was measured. What the
+sweep gives is a *design tool* rather than a setting: the reach decides which kind of intelligence pays. A tight
+reach rewards placement and punishes prediction; a generous one makes both cheap. That is the first time in this
+page that a single number has been shown to change the *shape* of what is worth knowing, and it is worth knowing
+before a renderer is built on top of it.
+
+**Kept on main:** one test — the reach is read at both paddle sites and the primitive answers differently at six
+feet and at two. `TestPickleball` is 40 tests.
