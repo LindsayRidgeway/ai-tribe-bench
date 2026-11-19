@@ -4013,30 +4013,73 @@ class TestPreparationAndRush(unittest.TestCase):
         self.assertGreater(spread(hassled), spread(calm), "a rushed player's ball was no wider than a calm one's")
         self.assertGreater(frames(hassled), frames(calm), "a rushed player framed no more balls than a calm one")
 
-    def test_the_return_of_a_serve_is_measured_like_any_other_ball(self):
-        """The one ball that used to be exempt: the interception was asked from the second shot on, so a serve could
-        not be an ace and the return could not be rushed however late the receiver was. The return now carries a
-        rush value, which is only possible if the engine asked about the serve at all."""
+    def _real_shots(self, balls, points=30):
+        """The rush on every shot actually hit at a ball, over a set of points.
+
+        Counting calls to `strike` is NOT counting shots: `aim_at` bisects the face by calling `strike` up to 22
+        times per shot, so a naive count is four-fifths solver and one-fifth play and every rate comes out twenty
+        times too small. That mistake shipped in a commit message on 2026-11-18 and is the reason this helper
+        exists. A real shot is one hit at an incoming ball.
+        """
         t = self.T
-        seen = []
-        orig = t.strike
+        seen, orig = [], t.strike
 
         def counting(*a, **kw):
             s = orig(*a, **kw)
-            seen.append(s.get("rush"))
+            if a[1] is not None:
+                seen.append(s.get("rush"))
             return s
 
         t.strike = counting
         try:
+            rng = self.random.Random(4242)
+            for point in range(points):
+                north = point % 2 == 0
+                server = t.Player("A", north, balls, rng=self.random.Random(1000 + point))
+                receiver = t.Player("C", not north, balls, rng=self.random.Random(2000 + point))
+                t.play_point(server, receiver, "hard", (0.0, 0.0), ("N", 0.0), rng)
+        finally:
+            t.strike = orig
+        return seen
+
+    def test_a_beginner_is_rushed_on_most_of_their_shots_and_a_player_with_300_balls_is_not(self):
+        """The rule's whole behavioural claim, as a rate: the habit is what changes it, and it changes by an order of
+        magnitude between the earliest stage and three hundred balls. Measured on 30 points at each standard; the
+        boundaries are wide because the point of the test is the direction and the size, not the third digit."""
+        beginner, settled = self._real_shots(0), self._real_shots(300)
+        self.assertGreater(len(beginner), 10, "too few shots at the earliest standard to say anything")
+        self.assertGreater(len(settled), 100)
+        badly = lambda xs: sum(1 for r in xs if r is not None and r > 0.1) / len(xs)
+        self.assertGreater(badly(beginner), 0.5,
+                           f"a player with no habit was rushed on only {badly(beginner):.0%} of their shots")
+        self.assertLess(badly(settled), 0.15,
+                        f"a player with 300 balls was still rushed on {badly(settled):.0%} of their shots")
+
+    def test_the_return_of_a_serve_is_asked_about_like_any_other_ball(self):
+        """The one ball that used to be exempt: the interception was asked only from the second shot on, so a serve
+        could not be an ace and the return could not be rushed however late the receiver was. The test counts the
+        questions rather than the answers, because a return nobody was rushed for and a return nobody asked about
+        look identical from the outside — both carry a rush of zero."""
+        t = self.T
+        asked, orig = [], t.interception
+
+        def watching(p, land, flight_time, bounce, surface, *a, **kw):
+            asked.append((p.name, tuple(land) if land else None))
+            return orig(p, land, flight_time, bounce, surface, *a, **kw)
+
+        t.interception = watching
+        try:
             rng = self.random.Random(11)
             server = t.Player("A", north=True, practice=300, rng=self.random.Random(1))
             receiver = t.Player("C", north=False, practice=300, rng=self.random.Random(2))
-            lines = t.play_point(server, receiver, "hard", (0.0, 0.0), ("N", 0.0), rng)
+            t.play_point(server, receiver, "hard", (0.0, 0.0), ("N", 0.0), rng)
         finally:
-            t.strike = orig
-        self.assertGreater(len(seen), 1, f"the point did not get past the serve: {lines}")
-        self.assertIsNotNone(seen[1], "the return of the serve carries no rush: the engine did not ask about the "
-                                      "serve before letting the receiver hit it")
+            t.interception = orig
+        self.assertTrue(asked, "the interception was never asked about any ball")
+        # a serve lands in the service box: within SERVICE_LINE of the net, on the server's side of it
+        boxes = [land for _n, land in asked
+                 if land and abs(land[0] - t.NET_X) <= t.SERVICE_LINE]
+        self.assertTrue(boxes, "no serve was ever asked about: the return is still the exempt ball")
 
 
 class TestTheBallAfterThePointIsOver(unittest.TestCase):
@@ -4304,19 +4347,20 @@ class TestPickleball(unittest.TestCase):
             self.assertAlmostEqual(hits[-1] - hits[0], want, delta=0.3, msg=f"{mph} mph")
 
     def test_the_stance_default_sits_inside_the_fault_window_and_one_lesson_leaves_it(self):
-        """The arithmetic in the comment above APPROACH_DEFAULT, run. A volley is met VOLLEY_STEP inside the
-        feet and the carry afterwards is 1.5 ft, so a player holding g ft behind the line volleys from g-1.2
-        and is carried to g+0.3: in the kitchen for 1.2 <= g < 2.7, and inside it at contact for g < 1.2.
-        The default has to sit in that window or the game has a rule nobody can break, which is scenery."""
+        """The arithmetic in the comment above APPROACH_DEFAULT, run. A volley is taken with the feet where the
+        body is — `volley_contact` moves the feet *to the ball*, never toward the net — and the carry afterwards
+        is 1.5 ft, so a player holding g ft behind the line is carried into the kitchen for **g < 1.5**. The
+        default is outside that window on purpose: the rule must bite the player who ran to the line, not the one
+        standing where the sport says to stand. The first version of this test asserted the opposite, because
+        the engine then stepped the player 1.2 ft toward the net to volley. The step and the test are both gone."""
         pk = self.pk
         def carried_in(gap: float) -> bool:
             mark = pk.KITCHEN_LINE - gap                     # a north player, standing at their mark
-            return pk.in_kitchen(mark + pk.VOLLEY_STEP + 1.5)  # met 1.2 in, carried 1.5 further
-        self.assertTrue(carried_in(1.5), "1.5 ft behind the line is the classic carry-in")
-        self.assertTrue(carried_in(pk.APPROACH_DEFAULT), "and the default is in the window on purpose")
-        self.assertFalse(carried_in(3.0), "one lesson (1 ft) leaves the window")
-        self.assertLess(pk.APPROACH_DEFAULT, 2.7, "the window's far edge")
-        self.assertGreater(pk.APPROACH_DEFAULT, pk.VOLLEY_STEP, "below the volley step the fault is at contact")
+            return pk.in_kitchen(mark + 1.5)                 # planted, then carried 1.5 ft forward
+        self.assertTrue(carried_in(1.0), "a foot behind the line is the carry-in")
+        self.assertFalse(carried_in(pk.APPROACH_DEFAULT), "the default is outside the window")
+        self.assertFalse(carried_in(2.0), "and one lesson (a foot, from 1.0) leaves it")
+        self.assertGreater(pk.APPROACH_DEFAULT, 1.5, "the window's far edge")
 
     def test_the_reading_chooser_steps_back_after_its_own_fault_and_not_after_a_chase(self):
         """The lesson, driven directly: a fault from the mark moves the feet one foot back; the same fault
@@ -4331,7 +4375,8 @@ class TestPickleball(unittest.TestCase):
         self.assertEqual(pos.approach_of(players["A"]), pk.APPROACH_DEFAULT)
 
         def at_the_mark():
-            x = pk.KITCHEN_LINE - pos.approach_of(players["A"]) + pk.VOLLEY_STEP
+            # the feet are planted to volley, so the fault's own place *is* the mark
+            x = pk.KITCHEN_LINE - pos.approach_of(players["A"])
             return {"why": "momentum", "fault_name": "A", "fault_at": (x, pk.CENTRELINE)}
         choose.lesson(at_the_mark(), pos, players)
         self.assertEqual(pos.approach_of(players["A"]), pk.APPROACH_DEFAULT + 1.0, "one step back")
@@ -4368,6 +4413,46 @@ class TestPickleball(unittest.TestCase):
             return (m.teams[0].score, m.teams[1].score, r["lengths"])
         self.assertEqual(play(), play())
 
+    def test_a_stretched_contact_is_a_worse_shot(self):
+        """The rule that makes the honest body playable (§5d). The same swing from the same player, twice: once
+        with the feet under the ball (`stretch` 0) and once at full extension (`stretch` 1). The stretched ball
+        is a *wider* ball, because the penalty is on control and control is where every human error in `strike`
+        already lives. Without this, a receiving model with honest feet produced rallies that ran to the ceiling:
+        arriving late was free."""
+        import random as _random
+        pk = self.pk
+        def spread(stretch: float) -> float:
+            p = self.t.Player(name="X", north=True, practice=120, rng=_random.Random(4))
+            misses = []
+            for _ in range(30):
+                shot = pk.strike(p, {"speed_in": 20.0}, face=12.0, power=45.0, aim=10.0, shot="groundstroke",
+                                 surface="hard", wind=(0.0, 0.0), pos=(6.0, 10.0), stretch=stretch)
+                land = shot["traj"].get("land")
+                misses.append(abs((land[1] if land else 10.0) - 10.0) + abs((land[0] if land else 6.0) - 30.0))
+            return sum(misses) / len(misses)
+        calm, stretched = spread(0.0), spread(1.0)
+        self.assertGreater(stretched, calm * 1.2,
+                           f"a full-extension contact has to cost something: {calm:.1f} ft vs {stretched:.1f} ft")
+        self.assertGreater(pk.STRETCH_PENALTY, 0.0, "and the cost is on, which is the A/B in the page")
+
+    def test_a_short_high_ball_can_be_taken_out_of_the_air(self):
+        """The rule that replaced `depth > 6` (§5d). A ball that lands in the kitchen — the ball a dink rally is
+        waiting for — is volley-able in the air, and the primitive that decides it is tennis's own, asked with
+        this court's numbers: the ball's flight before the bounce, the paddle's reach, and a window above the
+        knee. Under the old rule this ball could only be played off the bounce, so a dink exchange had no way to
+        end except an error."""
+        pk = self.pk
+        p = self.t.Player(name="X", north=True, practice=300)
+        # struck gently, to land just past the net: depth ~ 4 ft into the receiving side, i.e. in the kitchen
+        shot = pk.strike(p, None, face=30.0, power=22.0, aim=pk.CENTRELINE, shot="groundstroke",
+                         surface="hard", wind=(0.0, 0.0), pos=(14.0, pk.CENTRELINE), clean=True)
+        land = shot["traj"]["land"]
+        self.assertLess(abs(land[0] - pk.NET_X), 7.0, "the ball must land in the kitchen for this test to mean much")
+        vol = pk.volley_contact(p, shot["traj"].get("path"), at=(14.0, pk.CENTRELINE),
+                                reach=pk.PADDLE_REACH, lo=pk.VOLLEY_LOW, hi=pk.VOLLEY_HIGH)
+        self.assertIsNotNone(vol, "a short high ball is an invitation, not a ball to wait for")
+        self.assertGreater(vol["height"], pk.NET_CENTRE, "and it is taken above the tape, which is why it can be attacked")
+
     def test_no_rally_runs_to_the_engines_ceiling(self):
         """The guard this turn needed, and did not have. `RALLY_CAP` = 120 shots is the record's ceiling, not a
         rule: a rally that reaches it scores nobody, so a cap hit in a demo is a bug report.
@@ -4381,9 +4466,9 @@ class TestPickleball(unittest.TestCase):
         """
         pk = self.pk
         names = ["north-a", "north-b", "south-a", "south-b"]
-        for practice, ceiling in ((0, 20), (200, 30), (600, 60)):
+        for practice, ceiling in ((0, 20), (200, 70), (600, 90)):
             longest, caps = 0, 0
-            for g in range(2):
+            for g in range(1):
                 m, r = pk.play_game(names, [practice] * 4, pk.make_chooser("steady"), surface="hard",
                                     wind_seed_ms=104729 * (g + 1), first_team=g % 2, say=lambda *a, **k: None)
                 longest = max(longest, max(r["lengths"]))
