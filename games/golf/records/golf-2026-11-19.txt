@@ -1144,3 +1144,145 @@ $ python3 lab/golf.py --draws 60 --pin-range 19
     flag   - centre   -0.45 ± 0.59 (95%)   t  -1.5
     flag   - spread   -0.43 ± 0.56 (95%)   t  -1.5
     centre - spread   +0.02 ± 0.39 (95%)   t  +0.1
+
+=============================== PASS 4 — 2026-11-19 16:45-18:30 — a bunker on one flank ===============
+
+The hypothesis, written in dmitri-journal.md at 16:45 before any of this ran: a miss with a direction
+should make the target decision two-dimensional. It did not, and the two mechanisms are finding 5.
+
+Not in this record on purpose: the first sand price was 1.00, invented, and it moved the ±14 figure from
++0.78 to -0.10 — a fabricated constant inside the player, worth 0.9 strokes a round. Measured: 0.30.
+Every number below is at 0.30.
+
+Comparability: with the bunkers filled in (sand=0 on all nine) this file reproduces pass 3 exactly —
++0.78 ± 0.29 at ±14 and +2.50 ± 0.58 at ±19 — so the one-loop rewrite of play_hole and the fairway-only
+gate on the wind coefficient are both neutral, and every difference below is the sand.
+
+########## --draws 60 --calm --pin-range 6
+60 courses drawn independently (pins ±6 ft, still air), one round each, learning off
+
+  policy      mean     sd
+  flag       -3.00   0.00
+  centre     -2.70   0.98
+  spread     -2.62   0.85
+
+  paired differences, strokes a round (negative means the first is better):
+    flag   - centre   -0.30 ± 0.25 (95%)   t  -2.4
+    flag   - spread   -0.38 ± 0.21 (95%)   t  -3.5
+    centre - spread   -0.08 ± 0.21 (95%)   t  -0.8
+
+  the decision by hole: aimed at the pin minus aimed where the putt is likeliest
+                                                        strokes
+    pin cut toward the sand, |pin| ≥ 8 ft                no holes
+    pin cut away from the sand, |pin| ≥ 8 ft             no holes
+    sand beside a friendly pin, |pin| < 8 ft      -0.06 ± 0.05   n   360   sand
+    no sand, |pin| ≥ 8 ft                                no holes
+    no sand, |pin| < 8 ft                         +0.00 ± 0.00   n   180   grass
+
+  the same 60 courses, bunkers in against bunkers filled in (paired by hole)
+                                                        strokes
+    friendly pin, |pin| < 8 ft                    +0.01 ± 0.01   n   360   (sand in +0.01)
+########## --draws 60 --calm --pin-range 14
+60 courses drawn independently (pins ±14 ft, still air), one round each, learning off
+
+  policy      mean     sd
+  flag       -1.22   0.92
+  centre     -2.18   1.07
+  spread     -2.07   0.76
+
+  paired differences, strokes a round (negative means the first is better):
+    flag   - centre   +0.97 ± 0.35 (95%)   t  +5.5
+    flag   - spread   +0.85 ± 0.29 (95%)   t  +5.8
+    centre - spread   -0.12 ± 0.19 (95%)   t  -1.2
+
+  the decision by hole: aimed at the pin minus aimed where the putt is likeliest
+                                                        strokes
+    pin cut toward the sand, |pin| ≥ 8 ft         +0.03 ± 0.12   n    80   sand
+    pin cut away from the sand, |pin| ≥ 8 ft      +0.01 ± 0.11   n    67   sand
+    sand beside a friendly pin, |pin| < 8 ft      +0.03 ± 0.07   n   213   sand
+    no sand, |pin| ≥ 8 ft                         +0.33 ± 0.13   n    78   grass
+    no sand, |pin| < 8 ft                         +0.15 ± 0.07   n   102   grass
+
+  the same 60 courses, bunkers in against bunkers filled in (paired by hole)
+                                                        strokes
+    pin cut toward the sand, |pin| ≥ 8 ft         +0.00 ± 0.00   n    80   (sand in +0.00)
+    pin cut away from the sand, |pin| ≥ 8 ft      +0.01 ± 0.03   n    67   (sand in +0.01)
+    friendly pin, |pin| < 8 ft                    +0.02 ± 0.03   n   213   (sand in +0.02)
+########## --draws 60 --calm --pin-range 19
+60 courses drawn independently (pins ±19 ft, still air), one round each, learning off
+
+  policy      mean     sd
+  flag       +0.10   2.04
+  centre     -1.58   1.43
+  spread     -1.87   1.29
+
+  paired differences, strokes a round (negative means the first is better):
+    flag   - centre   +1.68 ± 0.54 (95%)   t  +6.1
+    flag   - spread   +1.97 ± 0.55 (95%)   t  +7.0
+    centre - spread   +0.28 ± 0.28 (95%)   t  +2.0
+
+  the decision by hole: aimed at the pin minus aimed where the putt is likeliest
+                                                        strokes
+    pin cut toward the sand, |pin| ≥ 8 ft         -0.02 ± 0.14   n    99   sand
+    pin cut away from the sand, |pin| ≥ 8 ft      +0.31 ± 0.16   n   102   sand
+    sand beside a friendly pin, |pin| < 8 ft      +0.05 ± 0.08   n   159   sand
+    no sand, |pin| ≥ 8 ft                         +0.68 ± 0.30   n   106   grass
+    no sand, |pin| < 8 ft                         +0.11 ± 0.08   n    74   grass
+
+  the same 60 courses, bunkers in against bunkers filled in (paired by hole)
+                                                        strokes
+    pin cut toward the sand, |pin| ≥ 8 ft         -0.21 ± 0.14   n    99   (sand in -0.21)
+    pin cut away from the sand, |pin| ≥ 8 ft      -0.05 ± 0.05   n   102   (sand in -0.05)
+    friendly pin, |pin| < 8 ft                    -0.01 ± 0.05   n   159   (sand in -0.01)
+########## --draws 60 --pin-range 19 (wind drawn)
+60 courses drawn independently (pins ±19 ft, wind drawn too), one round each, learning off
+
+  policy      mean     sd
+  flag       +2.13   2.17
+  centre     +2.50   1.66
+  spread     +2.42   1.48
+
+  paired differences, strokes a round (negative means the first is better):
+    flag   - centre   -0.37 ± 0.64 (95%)   t  -1.1
+    flag   - spread   -0.28 ± 0.63 (95%)   t  -0.9
+    centre - spread   +0.08 ± 0.33 (95%)   t  +0.5
+
+  the decision by hole: aimed at the pin minus aimed where the putt is likeliest
+                                                        strokes
+    pin cut toward the sand, |pin| ≥ 8 ft         +0.14 ± 0.17   n   114   sand
+    pin cut away from the sand, |pin| ≥ 8 ft      -0.03 ± 0.13   n   106   sand
+    sand beside a friendly pin, |pin| < 8 ft      -0.02 ± 0.11   n   140   sand
+    no sand, |pin| ≥ 8 ft                         -0.14 ± 0.15   n    99   grass
+    no sand, |pin| < 8 ft                         -0.16 ± 0.14   n    81   grass
+
+  the same 60 courses, bunkers in against bunkers filled in (paired by hole)
+                                                        strokes
+    pin cut toward the sand, |pin| ≥ 8 ft         +0.02 ± 0.10   n   114   (sand in +0.02)
+    pin cut away from the sand, |pin| ≥ 8 ft      -0.03 ± 0.06   n   106   (sand in -0.03)
+    friendly pin, |pin| < 8 ft                    -0.01 ± 0.06   n   140   (sand in -0.01)
+
+########## --selftest
+  [ok] vacuum range 45° at 100 ft/s: 310.92 ft vs v²/g = 310.85
+  [ok] drag takes distance away: 231.6 ft with drag against 310.9 free
+  [ok] backspin adds carry: +113.6 yd from 2686 rpm
+  [ok] bag is monotone: driver 263, 3 wood 243, 5 iron 182, 7 iron 156, 9 iron 130, sand wedge 104
+  [ok] calibration residual: worst club 8.5 yd off its prior carry
+  [ok] roll law is putt's: 6.0 ft/s rolls 10.00 ft on a 10 stimp
+  [ok] same swing, same ball: 23.9222,456.4623 both times
+  [ok] learning player improves: rounds [17, 6, 2], held-out +1
+  [ok] control does not: no learning: [17, 17, 17]
+  [ok] the notebook converges where it is used: 16 entries hit twice or more: 2.1% off on average, worst 5 iron at 100% 6.0% (two observations and 1.5% of speed noise do not buy better)
+  [ok] the notebook finds the curve: a 60% swing is 0.43 of a full one over 1 clubs, learnt; 0.47 is true; 0.60 was assumed
+  [ok] a headwind takes distance off: 182.6 yd calm, 160.3 yd into 10% of a ball speed
+  [ok] a crosswind drifts it aside linearly: 31.8° per unit of crosswind, spread 31.8–31.9
+  [ok] it learns what the wind costs: wind_c 1.06 (the model's own response is about 0.7 per unit of head fraction)
+  [ok] aiming away from a tucked pin pays: 132 strokes against 144 over four calm rounds
+  [ok] a tucked pin is what makes the target decision worth anything: aiming at the middle is worth +1.77 strokes on tucked pins and -0.85 on friendly ones, over 40 drawn courses each
+  [ok] the sand is on the side the hole says: 27 ft right of centre is sand on a right bunker and grass on a left one and on none
+  [ok] sand takes the distance and the run: a wedge keeps 0.54 of its distance (told 0.55) and 0.56 of its run-out
+  [ok] a ball in the sand is worth what it is told it is worth: from 21 ft in the sand 2.20 strokes against 2.00 from the green (+0.20): the athlete prices it at 0.30, and priced it at 1.00 until this check was written
+  [ok] the notebook learns nothing from sand: 27 entries updated, 27 shots struck from fairway
+  [ok] the bunker is almost never reached: 4 of 140 approaches at a tucked pin beside the sand finished in it (2.9%); a flank bunker needs the depth right as well as the face wrong
+  [ok] and so it does not make the decision directional: adding the sand moves what aiming away from the pin is worth by +0.03 strokes when the pin is cut toward it and +0.00 when it is cut away — the prediction was that the first would rise by more than a stroke, and it does not rise at all
+
+  all 22 checks pass
