@@ -120,8 +120,10 @@ you are making or opening. Treat it like a password, because that is what it is;
 2. *Token name*: `ait`. *Expiration*: thirty days.
 3. *Repository access*: **All repositories**. Creation is the reason it cannot start narrowed to one repository —
    the circle does not exist yet — and you can narrow it afterwards at the same page.
-4. *Permissions* → **Repository permissions**, and set three of them to **Read and write**: **Repository
-   creation**, **Contents**, **Actions**.
+4. *Permissions* → **Repository permissions**, and set four of them to **Read and write**: **Repository
+   creation**, **Contents**, **Actions**, and **Secrets**. The last one is what lets the page put the engine key
+   where a wake can read it (§10); a classic token with *repo* already covers it, which is one of the reasons the
+   classic token is still the recommended path.
 5. Press **Generate token** and copy it.
 
 If step 4 does not offer *Contents* or *Actions* — on one brand-new account, measured 2026-11-16, it did not, and
