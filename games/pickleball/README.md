@@ -908,3 +908,61 @@ building.
 
 **Kept on main:** `dink_chooser`, `DINK_POWERS`, `--level dink`, the corrected pace map in the member prompt, and
 two tests. `TestPickleball` is 34 tests; the suite is 404, all passing.
+
+---
+
+## §5j Sight — 2026-11-19
+
+§5i ended by naming the gap precisely: the dink chooser picks a side of the court with a coin, because no chooser
+in this engine has ever been told where anybody is. Neither placement nor pace variation is a property of the
+ball, so neither could be learned — a chooser that cannot see the other bodies can only vary its shots at random
+and call that variety.
+
+**What it can see now.** `play_game` hands every chooser `sight` — the engine's own `Positions`, the same object
+the rules adjudicate on — before the first ball. A chooser that ignores it is unaffected; the scripted players and
+the season lesson still play exactly as they did.
+
+**`placement_chooser` (`--level place`)** uses it twice:
+
+- **placement**: `open_target` returns the point on a target line furthest from the *nearest* opponent — not the
+  sum, because one body standing on the spot you chose makes the shot bad however far away their partner is;
+- **pace, chosen by where they stand**: if both opponents are within 9 ft of their kitchen line, drive *past*
+  them, because a body at the line has no time to turn; if they are hanging back, dink, because the short ball
+  makes them come in and a body in transit cannot volley.
+
+**A latent bug fell out of the first attempt.** The azimuth — the angle across the court — was computed against a
+hard 32 ft, whatever the shot was. That is roughly a drive and nothing like a dink, so a ball aimed 5 ft across
+the court from 10 ft away was given the angle for a drive and landed **7.9 ft across instead of 5**: 2.9 ft wide
+of where it was aimed. Nothing had noticed in five sections, because no chooser had ever aimed at a sideline
+before; the scripted players aim near the middle, where the error is invisible. `strike` now takes the shot's own
+distance (`aim_dist`), optional and defaulting to the old constant so that every measurement taken earlier runs
+the arithmetic it was taken with. A test pins both ends: 4.92 ft with the distance, 7.88 without.
+
+**Two mistakes of mine, kept because they are the same mistake twice.** Aiming at the paint (y = 2 ft) at 13 mph is
+aiming at the tape — the sideline is not the open court, the *gap* is. And demanding an extra half-foot of net
+clearance on top of `NET_MARGIN` refused almost every dink, so the chooser fell through to a drive: the soft
+game's mean rally went from 9.0 shots to 4.5 and I nearly recorded that as "placement does not work".
+
+**Head-to-head: sight against the coin.** Twenty-four games, seats swapped over the same pinned clocks, everything
+at practice 200 and the same steady hands — the only difference is whether the chooser can see:
+
+| | points | games |
+|---|---|---|
+| placement (sees the bodies) | **218** | **18/24** |
+| dink (picks a side with a coin) | 176 | 6/24 |
+
+**Aiming instead of guessing is worth 42 points in 24 games** — more than the season lesson's 27 (§5f), and it
+costs nothing but a look. That is the first result in this game that came from a decision rather than from a
+physical model, and it is the shape the rest of the work will take.
+
+**What sight still is not.** It reads the court **at the moment of contact**, not where the opponent will be when
+the ball arrives. A player aims at where the body is going; this aims at where it was. Everything above is
+therefore a lower bound on what placement is worth, and the difference is anticipation — a memory of what the
+opponent did last time, which is the season file's business and not this section's.
+
+**Kept on main:** `choose.sight`, `open_target`, `placement_chooser`, `--level place`, `strike(aim_dist=...)` and
+three tests. `TestPickleball` is 37 tests.
+
+**Owed by another window, not by this game:** `lab/golf.py` defines `0.002377`, `1.46667` and `32.17` — the air
+density, the feet-per-second and g — which is precisely what the no-physics-outside-the-lab test is for. Its
+commit is `02ab07c9`; the suite is 439 with that one failure until golf.py imports them.
