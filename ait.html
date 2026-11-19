@@ -1895,6 +1895,17 @@ async function viewToday(main){
   // cannot see them (no workflow, a token without admin) — and then the page says nothing at all, which is the
   // same rule the public/private note follows: silence instead of an accusation it cannot support.
   const gaps = await clockGaps(members).catch(() => null);
+  const blind = await clockBlindSpots(members).catch(() => null);
+  const blindNote = blind ? `<div class="notice"><strong>${blind.members.map(b => esc(b.name)).join(', ')}`
+      + ` will not wake on the clock, though ${blind.members.length === 1 ? 'its key is' : 'their keys are'} in this `
+      + `repository.</strong> The clock's last run${blind.when ? ` (${esc(String(blind.when).slice(0, 16).replace('T', ' '))} UTC)` : ''} `
+      + `found ${blind.found.length ? `keys for ${blind.found.map(e => `<code>${esc(e)}</code>`).join(', ')}` : `no key at all`}`
+      + `, so <code>${blind.members.map(b => esc('TRIBE_API_KEY_' + b.engine.toUpperCase())).join(', ')}</code> `
+      + `holds a name with no value behind it: an empty secret, or one added as an <em>environment</em> secret, which `
+      + `a run at the repository level never sees. Replace it on `
+      + `<a href="${esc(secretsUrl())}" target="_blank" rel="noopener">the repository's own secrets page</a> and `
+      + `press <em>Read again</em>; the next run writes a new record. </div>` : '';
+
   const armed = (gaps && gaps.length) ? (() => {
     const named = (arr) => arr.map(g => `${esc(g.name)} (${esc(g.engine)})`).join(', ');
     const noKey = gaps.filter(g => g.secret), unreachable = gaps.filter(g => !g.secret && !g.local);
@@ -1935,6 +1946,7 @@ async function viewToday(main){
     <p class="muted small">${members.length} member${members.length === 1 ? '' : 's'} · last read ${new Date().toLocaleTimeString()}</p>
     ${UPDATE_NOTE ? `<p class="small muted">${esc(UPDATE_NOTE)}</p>` : ''}
     ${armed}
+    ${blindNote}
     ${updBlock()}
     ${quiet.length ? `<div class="notice">The clock has gone quiet for ${quiet.map(m => esc(m.name)).join(', ')}.
       A schedule that has stopped looks exactly like a circle with nothing to say, so it is worth a look — the
@@ -2316,6 +2328,39 @@ async function clockGaps(members){
     if (!have.has(secret)) gaps.push({name: m.name, engine: e, secret});
   }
   return gaps;
+}
+
+/* What the clock's own last run had, as opposed to what the repository's secret *names* say it has.
+
+   A name is not a value. A secret can exist with an empty value; it can be added as an *environment* secret, which a
+   repository-level run never sees; it can be revoked at the vendor and left in place. In all three the name list on
+   this page says "armed", the runner prints "keys for: none", the member is skipped, and every step of the run stays
+   green — the one failure this product has that nobody can see. The runner is the only place that knows which world
+   it is in, so since 2026-11-19 the clock writes what it found to `.ait/last-clock.json` and this page reads it.
+
+   Null when the file is absent (a circle whose machinery predates the record) or unreadable. Absence is not
+   evidence of a fault: it is the absence of evidence, and this page does not accuse on that. */
+async function clockRecord(){
+  try {
+    const d = JSON.parse((await fileText('.ait/last-clock.json')).text);
+    return (d && d.schema === 'ait-clock/1') ? d : null;
+  } catch(e){ return null; }
+}
+/* The members whose secret name exists and whose engine the last run did *not* find a value for. That is a
+   different fact from "the secret is missing", and it has a different fix — replace the value, or move the secret
+   from an environment to the repository — so it gets a different sentence rather than the same one louder. */
+async function clockBlindSpots(members){
+  const [rec, have, engines] = await Promise.all([clockRecord(), repoSecrets(), clockKeyedEngines()]);
+  if (!rec || !have || !engines) return null;
+  const seen = new Set((rec.engines || []).map(e => String(e).toLowerCase()));
+  const out = [];
+  for (const m of members || []){
+    const e = String(m.engine || '').trim().toLowerCase();
+    if (!e || e === 'local' || !engines.includes(e)) continue;      // not a key the clock could use
+    if (!have.has('TRIBE_API_KEY_' + e.toUpperCase())) continue;    // the missing-secret notice owns this one
+    if (!seen.has(e)) out.push({name: m.name, engine: e});
+  }
+  return out.length ? {...rec, members: out, found: [...seen]} : null;
 }
 
 async function wakeNow(name){

@@ -5765,6 +5765,55 @@ class TheRecordIsNotAKeyring(unittest.TestCase):
         self.assertEqual(tribe.scan_credentials("Ada"), [])
 
 
+class TheClockSaysWhatItFound(unittest.TestCase):
+    """The runner is the only place that knows whether a secret had a *value*.
+
+    Found 2026-11-19 while closing the last item on the founder's queue, which was "let the page set the secret": the
+    page cannot, and the reason is written down twice. But the reason it kept coming back is the real hole — the page
+    can say a secret *name* is missing, and cannot say a name is present with nothing behind it. An empty secret, or
+    one added as an environment secret, reads as armed from every angle the page has. So the clock writes what it
+    found, and these are the three facts that file has to carry for the page to be able to tell those worlds apart.
+    """
+
+    def _record(self, keyed, force=""):
+        import json as _json
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            out = Path(td) / ".ait" / "last-clock.json"
+            r = subprocess.run([sys.executable, str(REPO / "tribe.py"), "next", "--keyed", keyed,
+                                "--record", str(out)], capture_output=True, text=True, timeout=60)
+            self.assertIn(r.returncode, (0, 1), r.stderr)
+            self.assertTrue(out.is_file(), "no record was written: " + r.stderr)
+            return _json.loads(out.read_text())
+
+    def test_the_record_names_the_engines_the_runner_actually_held(self):
+        rec = self._record("deepseek, gemini")
+        self.assertEqual(rec["schema"], "ait-clock/1")
+        self.assertEqual(sorted(rec["engines"]), ["deepseek", "gemini"])
+
+    def test_a_run_that_found_nothing_still_says_so_rather_than_saying_nothing(self):
+        """A file written only on success cannot be told from a clock that never ran."""
+        rec = self._record("")
+        self.assertEqual(rec["engines"], [])
+        self.assertRegex(rec["when"], r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
+
+    def test_the_record_has_the_two_lists_the_page_reads(self):
+        rec = self._record("deepseek")
+        for k in ("turns", "skipped"):
+            self.assertIsInstance(rec[k], list, f"{k} is not a list")
+        for turn in rec["turns"]:
+            self.assertEqual(set(turn), {"place", "member", "why"})
+        for s in rec["skipped"]:
+            self.assertEqual(set(s), {"member", "engine"}, "a skip without its engine cannot be explained")
+
+    def test_the_clock_writes_the_record_and_the_page_reads_the_same_name(self):
+        clock = (REPO / ".github" / "workflows" / "clock.yml").read_text()
+        page = (REPO / "ait.html").read_text()
+        self.assertIn("--record .ait/last-clock.json", clock, "the clock does not write the record")
+        self.assertIn("'.ait/last-clock.json'", page, "the page does not read the file the clock writes")
+        self.assertIn("ait-clock/1", page, "the page does not check the schema of what it read")
+
+
 class TheTemplateMustBeEnough(unittest.TestCase):
     """An installed tribe is a copy of a whitelist, so the whitelist has to be enough.
 

@@ -1686,6 +1686,83 @@ async function main(){
     return '';
   });
 
+  /* 2026-11-19 — the repository holds a secret *name*; the runner found no *value*. Three ways that happens (empty,
+     an environment secret a repository-level run never sees, revoked at the vendor) and all three look identical from
+     the names list: armed. The clock now writes what it found, and the page reads it, because the runner is the only
+     place that knows. */
+  const plantRecord = (engines, when = '2026-11-19T04:41:00Z') => seed('.ait/last-clock.json', JSON.stringify({
+    schema: 'ait-clock/1', when, engines, turns: [{place: 'workshop', member: 'Lumi', why: 'fewest wakes'}],
+    skipped: []}) + '\n');
+
+  reset();
+  seed(CLOCK_YML[0], CLOCK_YML[1]);
+  plantMember('Lumi', 'deepseek');
+  actions.secrets = ['TRIBE_API_KEY_DEEPSEEK'];
+  plantRecord([]);
+  const valueless = await tryRun(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main'; S.owner = 'Sam';
+    await viewToday(document.getElementById('main'));
+    return document.getElementById('main').innerHTML;
+  })()`);
+
+  check('a secret whose name is there and whose value is not is told apart from a missing one', () => {
+    if (valueless.err) return valueless.err;
+    const html = String(valueless);
+    if (!/will not wake on the clock/.test(html)) return 'the page says nothing about an armed-looking clock that woke nobody';
+    if (/will never wake on the clock/.test(html)) return 'it says the secret is missing, which is not the fact';
+    if (!/TRIBE_API_KEY_DEEPSEEK/.test(html)) return 'it does not name the secret';
+    if (!/environment/i.test(html)) return 'it does not name the likeliest cause';
+    if (!/2026-11-19 04:41 UTC/.test(html)) return 'it does not say when the clock looked: ' + html.slice(0, 400);
+    if (!/no key at all/.test(html)) return 'a run that found no keys at all is described as if it found some';
+    if (!/secrets\/actions\/new/.test(html)) return 'it does not take the person to the page that fixes it';
+    return '';
+  });
+
+  const todayView = `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main'; S.owner = 'Sam';
+    await viewToday(document.getElementById('main'));
+    return document.getElementById('main').innerHTML;
+  })()`;
+
+  reset();
+  seed(CLOCK_YML[0], CLOCK_YML[1]);
+  plantMember('Lumi', 'deepseek');
+  actions.secrets = ['TRIBE_API_KEY_DEEPSEEK'];
+  plantRecord(['deepseek']);
+  const found = await tryRun(ctx, todayView);
+  check('a key the runner did find is not reported as a fault', () => {
+    if (found.err) return found.err;
+    const html = String(found);
+    if (/will not wake on the clock/.test(html)) return 'the page blames a clock that had the key and woke the member';
+    if (/will never wake on the clock/.test(html)) return 'the page blames the secret list too';
+    return '';
+  });
+
+  reset();
+  seed(CLOCK_YML[0], CLOCK_YML[1]);
+  plantMember('Lumi', 'deepseek');
+  actions.secrets = ['TRIBE_API_KEY_DEEPSEEK'];
+  const noRecord = await tryRun(ctx, todayView);
+  check('a circle whose clock predates the record is told nothing, not told a guess', () => {
+    if (noRecord.err) return noRecord.err;
+    if (/will not wake on the clock/.test(String(noRecord))) return 'the page invented a record it never read';
+    return '';
+  });
+
+  reset();
+  seed(CLOCK_YML[0], CLOCK_YML[1]);
+  plantMember('Lumi', 'deepseek');
+  actions.secrets = ['TRIBE_API_KEY_DEEPSEEK'];
+  plantRecord(['gemini']);
+  const otherKey = await tryRun(ctx, todayView);
+  check('a run that had a key for a different engine is not read as having this one', () => {
+    if (otherKey.err) return otherKey.err;
+    const html = String(otherKey);
+    if (!/will not wake on the clock/.test(html)) return 'a run with a key for another engine is read as armed';
+    if (!/keys for <code>gemini<\/code>/.test(html)) return 'it does not say which keys the run did have: ' + html.slice(0, 500);
+    return '';
+  });
+
   reset();
   seed(CLOCK_YML[0], CLOCK_YML[1]);
   plantMember('Lumi', 'deepseek');
