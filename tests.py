@@ -4072,10 +4072,17 @@ class TestPreparationAndRush(unittest.TestCase):
     racquet is not rushed by a ball the player beside them is; and a rushed ball is measurably a worse ball.
 
     **Measured, and it is the honest finding of the port:** over 300 points at each skill level, rush fires on 0-3%
-    of shots. To be rushed a player needs a run of about a second and a flight of about a second, and this game
-    gives 1.5-2s flights because the serve is a 50mph arc with no toss and no overhead (movement list item 3). So
-    the rule is in, it is correct, and it will not bite until the game is faster than it is. Nothing was tuned to
-    make it bite: a rule that only fires when the physics says so is the only kind worth having."""
+    of shots — and it still does, for reasons worth writing down. To be rushed a player needs the ball to arrive
+    before the take-back is finished, and the two costs that would make that common are charged somewhere else: the
+    interception charges the run, so a ball nobody can get to is a miss and not a rushed shot. So the rule is in,
+    it is correct, and it bites where the physics says the day is hard. Nothing was tuned to make it bite.
+
+    **Re-measured 2026-11-19, after the serve stopped being a 53mph arc:** 120 points at each standard, same
+    seeds — rushed on 86% of shots at no practice, 5% at three hundred balls, 3% at six hundred; mean rush 0.269 /
+    0.012 / 0.006. The serve change moved the practised numbers by a point or two and moved the beginner's, who
+    now faces a ball arriving in half a second instead of three-quarters. The reason rush is rare at three hundred
+    balls is not that the game is slow; it is that a practised player overlaps the run and the take-back, which is
+    what `prep` measures."""
 
     def setUp(self):
         import importlib
@@ -4204,6 +4211,121 @@ class TestPreparationAndRush(unittest.TestCase):
         boxes = [land for _n, land in asked
                  if land and abs(land[0] - t.NET_X) <= t.SERVICE_LINE]
         self.assertTrue(boxes, "no serve was ever asked about: the return is still the exempt ball")
+
+
+class TestTheServeIsAFastBall(unittest.TestCase):
+    """Item 14's sixth move's shadow: the defect the producer found in `play_point`, 2026-11-19.
+
+    `play_point` served by fixing the face at four to eight degrees and *searching the power*. A ball struck from
+    8.8ft at six degrees needs only about fifty miles an hour to land inside the service box, so the search had
+    nothing to push against and settled where the bisection started: the measured serve was a 53mph arc, the
+    slowest ball in the game, in a sport where the serve is the fastest. Nobody had to run for it, so the return
+    of serve was never rushed and the ace did not exist.
+
+    Two things changed and both are held here: the pace is now *chosen* from `SERVE_MPH` and scaled by control (a
+    server decides how hard they hit it, and the face absorbs the difference), and the numbers are the ones a
+    game can be built on — 120 points at each standard, same seeds: median serve 63mph at no practice, 75mph at
+    three hundred and at six hundred; serve in 42% / 87% / 83%; rally median 1 / 5.5 / 6.0 and mean 1.9 / 12.2 /
+    11.5; rushed on 86% / 5% / 3% of real shots, against 84% / 3% / 2.5% before the serve was fixed.
+
+    What is *not* claimed: this is still an arc with no toss and no overhead (movement list item 3), so the swing
+    is a standstill swing and the fastest serves are a coin flip for the receiver — 17-22% aces is more than
+    tennis has, and that is the return-of-serve model's next job, not the serve's."""
+
+    def setUp(self):
+        import importlib
+        import random as _random
+        self.random = _random
+        sys.path.insert(0, str(REPO / "lab"))
+        self.T = importlib.import_module("tennis")
+
+    def _serves(self, balls, points=40):
+        """Every serve's *chosen* pace and every point's flight, from `aim_at`'s own argument.
+
+        The pace cannot be read off `strike`: `aim_at` bisects the face by calling `strike` up to 22 times, so a
+        speed collected from the strike records is four-fifths search and one-fifth serve — the measurement bug
+        that made a rush rate look twenty times smaller than it was. `aim_at` is *given* the pace by the caller,
+        which is exactly the number the serve was asked to be."""
+        t = self.T
+        paces, flights = [], []
+        orig_aim, orig_strike = t.aim_at, t.strike
+
+        def aim(p, target, shot, surface, wind, power, at=None):
+            if shot == "serve":
+                paces.append(power)
+            return orig_aim(p, target, shot, surface, wind, power, at=at)
+
+        def struck(*a, **kw):
+            s = orig_strike(*a, **kw)
+            if a[1] is None and kw.get("shot") == "serve" and kw.get("trace"):
+                traj = s.get("traj") or {}
+                if traj.get("time"):
+                    flights.append(traj["time"])
+            return s
+
+        t.aim_at, t.strike = aim, struck
+        try:
+            rng = self.random.Random(11)
+            for point in range(points):
+                north = point % 2 == 0
+                server = t.Player("A", north, balls, rng=self.random.Random(1000 + point))
+                receiver = t.Player("C", not north, balls, rng=self.random.Random(2000 + point))
+                t.play_point(server, receiver, "hard", (0.0, 0.0), ("N", 0.0), rng)
+        finally:
+            t.aim_at, t.strike = orig_aim, orig_strike
+        return paces, flights
+
+    def test_the_serve_is_the_fastest_ball_on_the_court_and_not_the_slowest(self):
+        """The defect in one assertion: 53mph was the number this game served at, from a bisection with nothing
+        to push against. A first serve at three hundred balls is in the seventies, and the spread is wide enough
+        that twenty serves are not a metronome — the face search is what absorbs the variation now."""
+        t = self.T
+        self.assertTrue(hasattr(t, "SERVE_MPH"), "the serve has no speed of its own again")
+        paces, flights = self._serves(300)
+        self.assertGreaterEqual(len(paces), 35, "not enough serves to say anything")
+        median = sorted(paces)[len(paces) // 2]
+        self.assertGreater(median, 68.0, f"the serve is a {median:.0f}mph ball: it is still the slowest ball "
+                                         f"in the game and the return of serve is still a walk")
+        self.assertLess(median, 85.0, f"a {median:.0f}mph serve is a second serve at a level nobody here plays at")
+        spread = sorted(paces)[int(0.9 * len(paces))] - sorted(paces)[int(0.1 * len(paces))]
+        self.assertGreater(spread, 6.0, f"every serve within {spread:.0f}mph of the next: a metronome, not a "
+                                        f"player")
+        self.assertTrue(flights, "no serve was struck")
+        self.assertLess(max(flights), 1.1, f"the slowest serve in the set took {max(flights):.1f}s to cross the "
+                                           f"court; nobody is rushed by a ball with a second of flight")
+
+    def test_a_beginner_does_not_serve_like_a_professional(self):
+        """The pace is scaled by control, so the serve is a skill like everything else: 63mph from a player who has
+        never played, 75 from one who has, and neither is the same ball. Before this, the search gave everybody
+        the same fifty-odd miles an hour, which made the serve the one stroke practice did not improve."""
+        beginner, _ = self._serves(0)
+        practised, _ = self._serves(600)
+        med = lambda xs: sorted(xs)[len(xs) // 2]
+        self.assertGreater(med(practised), med(beginner) + 5.0,
+                           f"a 600-ball player served {med(practised):.0f}mph against a beginner's "
+                           f"{med(beginner):.0f}mph: the serve does not respond to practice")
+        self.assertLess(med(beginner), 70.0, f"a player who has never held a racquet served {med(beginner):.0f}mph")
+
+    def test_a_fast_serve_is_still_a_serve_and_most_of_them_go_in(self):
+        """The one way this change could be wrong rather than merely different: pace bought at the price of the
+        box. Asked of the scoreline rather than the geometry — a server who serves at seventy-five and faults on
+        a third of them is not a better server, and the film would be double faults.
+
+        Measured, and recorded rather than tuned: 87% in at three hundred balls, 83% at six hundred (the faster
+        serve faults a little more), against 42% from a beginner who has neither the pace nor the control."""
+        t = self.T
+        for balls, floor in ((300, 0.70), (600, 0.65)):
+            rng = self.random.Random(11)
+            ins = 0
+            points = 40
+            for point in range(points):
+                north = point % 2 == 0
+                server = t.Player("A", north, balls, rng=self.random.Random(1000 + point))
+                receiver = t.Player("C", not north, balls, rng=self.random.Random(2000 + point))
+                lines = t.play_point(server, receiver, "hard", (0.0, 0.0), ("N", 0.0), rng)
+                ins += 0 if any("fault" in line for line in lines) else 1
+            self.assertGreater(ins / points, floor,
+                               f"at {balls} balls only {ins / points:.0%} of serves landed in the box")
 
 
 class TestTheBallAfterThePointIsOver(unittest.TestCase):

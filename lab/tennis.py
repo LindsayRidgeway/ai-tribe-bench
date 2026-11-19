@@ -540,6 +540,7 @@ STEP = 0.02                           # s; the slice the ball's plan is stepped 
 REACTION_BASE = 0.26     # seconds, for a player who has never played
 REACTION_SKILL = 0.15    # of that, taken off by proficiency (`skill("reach")`)
 SETTLE = 0.20
+SERVE_MPH = (66.0, 18.0)  # a first serve, spread; scaled down by control so a beginner does not serve like a pro
 PREP_TIME = 0.55         # seconds to take the racquet back, for a player who does not overlap it with the run.
                          # A player who does overlap them needs max(run, prep) instead of run + prep: that is
                          # `Player.rush`, and it is the reason the same ball is a different ball at 0 balls
@@ -985,37 +986,11 @@ def placement(p: Player, receiver: Player, at, record: dict) -> tuple[float, flo
     return c_north
 
 
-def aim_serve(p: Player, target, surface: str, wind, face: float = 6.0) -> tuple[float, float]:
-    """The face is chosen, the power is searched, and that is the other way round from a groundstroke.
-
-    `aim_at` bisects the face to find a depth and leaves the power alone, which is right for a ball struck from
-    three feet: the face sets everything. A serve is struck from 8.8ft with the face nearly fixed by the rule
-    that you hit down on it, and the depth is set by how hard it is hit — a first serve at 66mph and one at 84mph
-    differ in length by twenty feet. Bisecting power at a face of six degrees is what a server actually does, and
-    it is why so many serves used to land in the net: the search raised the face to its ceiling trying to find a
-    depth that only a harder ball could reach.
-
-    Returns the face it used and the power it found."""
-    fwd = 1.0 if p.north else -1.0
-    p0 = contact_point(p, "serve")
-    lo, hi = 45.0, 105.0
-    for _ in range(18):
-        mid = (lo + hi) / 2
-        probe = strike(p, None, face=face, power=mid, aim=target[1], shot="serve",
-                       surface=surface, wind=wind, clean=True,
-                       aim_dist=math.hypot(target[0] - p0[0], target[1] - p0[1]))
-        land = probe["traj"].get("land")
-        if land is None:
-            lo = mid                                # netted or lost: hit it harder
-            continue
-        short = (land[0] - target[0]) * fwd
-        if abs(short) < 0.6:
-            break
-        if short < 0:
-            lo = mid
-        else:
-            hi = mid
-    return face, max(45.0, min(105.0, (lo + hi) / 2))
+# `aim_serve` used to live here: it fixed the face at six degrees *up* and bisected the power until the ball
+# reached the service box. A ball struck from 8.8ft with the face held up needs only about fifty miles an hour to
+# do that, so every serve in the game was a 53mph arc and the serve was the slowest ball on the court. Deleted
+# 2026-11-19: the pace is what a server chooses and the face is what is solved (the search allows -20 degrees),
+# which is `play_point`'s serve and the producer's.
 
 
 def serve_corners(north: bool, control: float = 1.0):
@@ -1283,9 +1258,17 @@ def play_point(server: Player, receiver: Player, surface: str, wind_vec, wind_in
     corners = serve_corners(server.north, server.hands())
     c = corners[0] if rng.random() < 0.5 else corners[1]
     side = "left" if (c[1] > WIDTH / 2) == server.north else "right"
-    # the face varies a little from serve to serve, and the power search absorbs the difference: a server does not
-    # put the racquet through the same angle twenty times, and a film of twenty identical serves is a metronome
-    face, power = aim_serve(server, c, surface, wind_vec, face=rng.uniform(4.0, 8.0))
+    # The pace is chosen and the face is searched, not the other way round. A server picks how hard they hit it;
+    # `aim_serve` picked a face and searched the power, and because a ball struck from 8.8ft at six degrees needs
+    # only about fifty miles an hour to land in the box, that search made the serve the slowest ball in the game —
+    # a 53mph arc nobody had to rush for. The producer has always picked the pace first (`SERVE_MPH`), and this is
+    # that rule, so there is one serve in the game and not two. Found 2026-11-19 by putting the producer on main
+    # and finding that its rallies were a third the length of this function's.
+    # The face still varies from serve to serve, which was the old comment's point and is still true: the search
+    # returns whatever face sends the ball into the corner at the pace it was given, so twenty serves are not a
+    # metronome. What changed is which of the two numbers the player is deciding.
+    pace = (SERVE_MPH[0] + SERVE_MPH[1] * rng.random()) * (0.72 + 0.30 * server.skill("control"))
+    face, power = aim_at(server, c, "serve", surface, wind_vec, power=pace)
     _p0 = contact_point(server, "serve")
     shot = strike(server, None, face=face, power=power, aim=c[1], shot="serve", surface=surface, wind=wind_vec,
                   trace=0.02, aim_dist=math.hypot(c[0] - _p0[0], c[1] - _p0[1]))

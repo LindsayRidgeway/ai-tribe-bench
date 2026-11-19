@@ -442,10 +442,12 @@ at 0 balls, 11 → 18% at 100, 6 → 13% at 300, 5 → 12% at 600. Through 300 p
 1/8/14, points ending on a beat 0/23/31 → 0/31/59. The game gets harder and the point still lasts — eight shots at
 300 balls, fourteen at 600.
 
-**Still owed in this item: `lab/tennis_script.py`, and it is now a translation job with a list.** Everything it
-calls exists on main; what differs are three argument names and one return shape:
+**The producer, 2026-11-19 (`lab/tennis_script.py`, 595 lines).** The sixth and last move, and the one that turns the
+engine into a film: `lab/tennis_script.py` writes the per-shot JSON the 3D viewer replays, and it now runs on main's
+own engine rather than the branch's. Everything it calls already existed here; what differed were three argument
+names and one return shape:
 
-| the script says | main says |
+| the script said | main says |
 |---|---|
 | `strike(..., contact=X)` | `strike(..., at=X)` |
 | `strike(..., aim_x=X)` | `aim_dist=abs(X - contact[0])` |
@@ -454,13 +456,50 @@ calls exists on main; what differs are three argument names and one return shape
 | `intercept(...)` | `interception(...)`; its `t_arrive` is `at`, `ball` is `meet`, `distance` is `gap`; `window` is `hit_window(bounce)[1]`, and it has no `legs` (use `speed`) |
 | `T.OUT_BOUNCES`, `T.AFTER_LAND`, `T.PLAY_PAD` | literals in the script, or `2`, `1.4`, `4.0` |
 
-`intercept` itself is superseded by `interception` and must **not** be ported. The one judgement in the translation
-is the `run` timing, which is what puts a body where it walked to; the record's `t0` is the previous strike, so the
-branch's `t_arrive` becomes main's `at`. Translation is mechanical but it is not a copy, and the test of it is the
-film: a player must not be placed anywhere their legs did not carry them.
+`intercept` itself is superseded by `interception` and was **not** ported. The one judgement in the translation was
+the `run` timing, which is what puts a body where it walked to; the record's `t0` is the previous strike, so the
+branch's `t_arrive` became main's `at`. The test of it is the film, and the film is the criterion: a player must not
+be placed anywhere their legs did not carry them.
 
-The serve is also still visibly a 50mph arc rather than a tennis serve, because it has no toss and no overhead: that
-is the movement list's item 3, and it is why serve-in is 93% and not 65%.
+The first run: `python3 lab/tennis_script.py --rallies 20 --practice 300,600` → **107 shots over 20 rallies, rally
+lengths 5 5 8 1 7 2 5 4 7 4 6 8 6 3 6 7 5 8 7 3, two points ending on a beat, rating 6.51 vs 6.96**, in eleven
+seconds. `games/tennis/records/film-2026-11-19.json` is that run.
+
+**What the producer found in `play_point`, and it is the reason this move was worth more than a translation.** A
+30-rally run at practice 600/600 gave a median of four shots where `play_point` gave eight. The producer picks the
+serve's pace and bisects the face; `play_point` called `aim_serve`, which fixed the face at six degrees *up* and
+bisected the **power** — and a ball struck from 8.8ft with the face held up needs only about fifty miles an hour to
+land in the service box, so the search had nothing to push against and settled at the top of its own range.
+Measured: 441 serves, **median 53.5mph, min 46, max 79**. The serve was the slowest ball in the game, in the one
+sport where the serve is the fastest, and that is why nobody was ever rushed returning it and why an ace had never
+been seen (0 in 900 serves).
+
+The fix, 2026-11-19: the pace is what a server chooses (`SERVE_MPH = (66.0, 18.0)`, scaled by control so a beginner
+does not serve like a professional) and the face is what is solved, which is the producer's rule and therefore the
+only serve in the game. `aim_serve` is deleted, with a note where it stood. Measured after, 120 points at each
+standard, same seeds:
+
+| | 0 balls | 300 balls | 600 balls |
+|---|---|---|---|
+| serve, median | 63mph | 75mph | 74mph |
+| serve, 10th–90th | 56–71 | 67–81 | 67–82 |
+| serve in | 42% | 87% | 83% |
+| rally, median | 1 | 5.5 | 6.0 |
+| rally, mean | 1.9 | 12.2 | 11.5 |
+| aces | 0% | 17% | 22% |
+| rushed on (rush > 0.1) | 86% | 5% | 3% |
+
+Before the fix the serve was in 95% of the time and the point was long for the wrong reason: nobody could be beaten by
+the first ball, so every rally started with a free return. Now the point got shorter and faster, and the two engines
+agree about what a serve is — the producer's 20 rallies and `play_point`'s 120 points both come out at five to six
+shots.
+
+**Two things this does not do.** There is still no toss and no overhead — the serve is struck from a standing
+position 8.8ft up, which is movement list item 3, and it is why the swing looks like a swing and not like a serve.
+And **17-22% aces is more than tennis has**: the fastest serves (82mph at the 90th percentile) arrive 55ft away in
+0.5s, and the receiver's 7ft reach, 0.11s split step and 0.20s brake make those a coin flip. The return of serve is
+the next thing the pace exposes, and it is a model of the return — standing behind the baseline and playing the ball
+after the bounce — not another number in the serve.
 
 ## What V1 means
 

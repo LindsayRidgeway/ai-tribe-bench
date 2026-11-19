@@ -181,6 +181,19 @@ In the same commit the return of a serve stopped being the one ball exempt from 
 from the second shot on, so an ace was impossible); aces in 900 serves: 0, which is what a 50mph serve deserves and
 is no longer something the code assumes.
 
+**Re-measured 2026-11-19, because the serve stopped being a 50mph ball** (`play_point` chose the face and searched
+the power, so every serve in the game settled at 53.5mph; it now chooses the pace and solves the face, and a
+three-hundred-ball server serves 75). 120 points at each standard, same instrument, same seeds — rushed on **86%**
+of shots at no practice, **5%** at three hundred, **3%** at six hundred; mean rush 0.269 / 0.012 / 0.006; aces 0% /
+17% / 22%. The practised rows moved by a point or two, which is the honest size of the effect: a practised player
+overlaps the run and the take-back, and a fast serve does not change that. The beginner's row moved because the ball
+now arrives in half a second instead of three quarters.
+
+**And the number that was hiding behind the slow serve: aces, 0 in 900, then 17-22% in 120 points.** That is too
+many for tennis, and it is not the serve's fault: the receiver's 7ft reach, 0.11s split step and 0.20s brake make an
+82mph ball that lands 55ft away a coin flip, and a real returner does not stand on the baseline centre waiting to be
+beaten — they stand deep and play it after the bounce. The return of serve is the next model, not the next constant.
+
 **In the picture** the windup now depends on it: a prepared receiver has the racquet back and the shoulders turned
 for the whole run; a rushed one starts the backswing late, over `0.55 - 0.30·rush` seconds instead of 0.55. The
 shoulders also turn towards the side they will hit from, which is the founder's second half-sentence — "on the
