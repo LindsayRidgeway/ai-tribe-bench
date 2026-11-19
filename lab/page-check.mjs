@@ -2398,6 +2398,31 @@ async function main(){
     if (clocked.none !== '') return 'with no record it invents one: ' + clocked.none;
     return '';
   });
+  /* 15e — the page that asks for a token has a token field on it.
+     Two turns of "how do I supply my token" were spent looking at a page where the field was behind a link, and then
+     behind a "we already hold one" rule. A field the instruction names must be on screen, in the same card as the
+     button that needs it. */
+  reset();
+  const shape = await tryRun(ctx, `(async () => {
+    S.repo = ''; S.token = ''; S.circles = {}; S.app = ''; S.members = [];
+    location.hash = '#/connect';
+    await viewConnect(document.getElementById('main'));
+    const html = document.getElementById('main').innerHTML || '';
+    const card = html.slice(html.indexOf('id="pastecard"'), html.indexOf('id="cstore"'));
+    return {hasToken: /id="token"/.test(card), hasFind: /id="find"/.test(card),
+            hasRepo: /id="repo"/.test(card), hidden: /id="pastecard"[^>]*hidden/.test(html),
+            fieldHidden: document.getElementById('token').hidden === true};
+  })()`);
+  check('the card that asks for a token has the token field in it, on screen', () => {
+    if (shape.err) return shape.err;
+    if (!shape.hasToken) return 'no token field in the card that needs one';
+    if (!shape.hasFind) return 'the search button is not in that card, so the field it needs is somewhere else';
+    if (!shape.hasRepo) return 'the name field is not in that card';
+    if (shape.hidden) return 'the whole card is hidden';
+    if (shape.fieldHidden) return 'the field itself is hidden';
+    return '';
+  });
+
   /* 15a — the sentence that answers "that circle isn't in either of them". He asked it twice: once about the list,
      and again with a screenshot of the home page and the words "where is Find my circles, and what token". A page
      that shows a list must say what the list is a list of, and what to do about what it does not contain. */

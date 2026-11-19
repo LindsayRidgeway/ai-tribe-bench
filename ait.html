@@ -1979,12 +1979,10 @@ function knownToken(repo){
 // old one — a token about to be rotated, or one that belongs to somebody else for a minute. Reveals the box and
 // puts the cursor in it, without pretending the page has forgotten what it holds.
 function useAnotherToken(){
-  const box = $('ctokbox'), held = $('tokheld');
-  if (box) box.hidden = false;
+  const held = $('tokheld');
   if (held) held.hidden = true;
-  const lab = $('toklab');
-  if (lab) lab.innerHTML = 'A token that can read and write it <span class="small muted">— this will replace the one this browser holds</span>';
-  const t = $('token'); if (t) t.focus();
+  const t = $('token');
+  if (t){ t.focus(); if (t.select) t.select(); }
 }
 
 function viewConnect(main){
@@ -2040,36 +2038,29 @@ function viewConnect(main){
     <p class="lede">${GH_APP ? 'Sign in, then press the circle you want to open.' : 'The repository it lives in, and a token that can see it.'}</p>
     <p class="small" id="cflash" style="margin:10px 0 0"></p>
     ${appBlock}
-    <div class="card" style="margin-bottom:12px">
-      <p class="small" style="margin:0 0 8px"><strong>Find my circles</strong> — this page looks in every repository
-      your token can see for the one file a circle carries, so you do not have to remember a name. It is also the way
-      back to a circle Kythe's App was never let into, which is invisible to the list above.</p>
-      <div class="row"><button class="plain small" id="find">Find my circles</button>
+    <div class="card" id="pastecard" style="margin-bottom:12px">
+      <p class="small" style="margin:0 0 10px"><strong>Or use a token.</strong> One field, and two things it can do:
+      look in every repository it can see for a circle, with no name to remember, or open the one you name. This is
+      also the door to a circle Kythe's sign-in was never let into — the list above only knows the ones it was.</p>
+
+      <label for="token" id="toklab">Token</label>
+      <input id="token" type="password" placeholder="ghp_… or github_pat_…" autocapitalize="off" spellcheck="false">
+      <p class="small muted" id="tokheld" hidden style="margin:8px 0 0"></p>
+      <p class="small muted" style="margin:8px 0 0">Make a <strong>classic</strong> token at
+      <a href="https://github.com/settings/tokens/new" target="_blank" rel="noopener">github.com/settings/tokens/new</a>
+      and tick two boxes — <strong>repo</strong> and <strong>workflow</strong>. Know its reach: a classic token can
+      write to every repository you own, and a fine-grained one can be held to a single circle
+      (<a href="${MANUAL}#3a-using-a-token-instead-of-signing-in" target="_blank" rel="noopener">five steps in the
+      manual</a>). Either kind stays in this browser and goes only to GitHub.</p>
+      <div id="ctokbox"></div>
+
+      <div class="row" style="margin-top:12px"><button class="primary" id="find">Find my circles</button>
       <span class="small muted" id="findmsg"></span></div>
       <div id="findlist"></div>
-    </div>
-    <div class="card" id="pastecard" style="margin-bottom:12px">
-      <p class="small" style="margin:0 0 8px"><strong>Open a repository by name and token</strong> — the door that
-      needs nothing of Kythe's, and the one that reaches a circle no sign-in has been let into.</p>
-      <label for="repo">Repository</label>
+
+      <label for="repo" style="margin-top:16px">Repository, if you know its name</label>
       <input id="repo" placeholder="your-name/your-circle" autocapitalize="off" autocorrect="off" spellcheck="false">
-      <div id="ctokbox">
-      <label for="token" id="toklab">A token that can read and write it</label>
-      <input id="token" type="password" placeholder="ghp_… or github_pat_…" autocapitalize="off" spellcheck="false">
-      <p class="small muted" style="margin-top:8px">A <strong>token</strong> is a password for this page, made at
-      GitHub, which you can delete at any time. It is not your GitHub password, and it is kept in this browser and
-      sent only to GitHub.</p>
-      <p class="small muted" style="margin-top:6px">Make a <strong>classic</strong> token —
-      <a href="https://github.com/settings/tokens/new" target="_blank" rel="noopener">github.com/settings/tokens/new</a>
-      — and tick exactly two boxes: <strong>repo</strong> and <strong>workflow</strong>. Nothing else, and no
-      expiry date you have to remember. <strong>If you already keep repositories you care about</strong>, know this
-      now: a classic token can write to all of them. A fine-grained token can be held to the one above —
-      <a href="${MANUAL}#3a-using-a-token-instead-of-signing-in" target="_blank" rel="noopener">the manual walks
-      through it in five steps</a>. Either kind stays in this browser, goes nowhere but GitHub, and is deleted at
-      github.com whenever you like.</p>
-      </div>
-      <p class="small muted" id="tokheld" hidden style="margin-top:8px"></p>
-      <div class="row" style="margin-top:10px"><button class="primary" id="go">Connect</button>
+      <div class="row" style="margin-top:10px"><button class="plain" id="go">Connect</button>
       <span class="small muted" id="cmsg"></span></div>
       <p class="small" id="cstore" style="margin:10px 0 0"></p>
     </div>
@@ -2259,23 +2250,22 @@ or <a href="#/today" onclick="WANT='';WANT_WHY='';return true;">stay in ${esc(S.
   const sayStore = () => {
     const box = $('cstore'); if (!box) return;
     const repo = $('repo').value.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\/$/, '');
-    const b = $('go'), tokbox = $('ctokbox'), held = $('tokheld'), lab = $('toklab'), inp = $('token');
+    const b = $('go'), held = $('tokheld'), inp = $('token');
     const stored = knownToken(repo);
-    const reuse = !!stored;
-    if (tokbox) tokbox.hidden = reuse;
+    // The field is never hidden. It spent a day behind a link and then behind a "we already have one" rule, and both
+    // times the person asking "how do I supply my token" was looking at a page with no token field on it. A stored
+    // credential is a convenience to mention, not a reason to take the door away.
     if (held){
-      held.hidden = !reuse;
-      if (reuse){
-        held.innerHTML = `Using the token this browser already holds for <code>${esc(repo)}</code>. It can be
-          refused — revoked, expired, or narrowed since it was pasted — and if GitHub refuses it, the line above
-          will say so and this box will come back for a current one.
-          <a href="#" onclick="useAnotherToken();return false;">Use a different token</a>`;
+      held.hidden = !stored;
+      if (stored){
+        held.innerHTML = `This browser already holds a token for <code>${esc(repo)}</code> — leave the field empty
+          and that one is used. It can be refused (revoked, expired, narrowed); if it is, the line under the button
+          says so.`;
       }
     }
-    if (lab) lab.innerHTML = 'A token that can read and write it';
-    if (inp) inp.placeholder = 'ghp_… or github_pat_…';
+    if (inp) inp.placeholder = stored ? 'leave empty to use the one this browser holds' : 'ghp_… or github_pat_…';
     if (!repo){ box.textContent = ''; if (b) b.textContent = 'Connect'; return; }
-    if (reuse){
+    if (stored){
       box.innerHTML = repo.toLowerCase() === String(S.repo || '').toLowerCase()
         ? `This is the repository this page is set to open. <strong>Open</strong> asks GitHub whether the token
            still works and goes there.`
