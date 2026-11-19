@@ -824,8 +824,13 @@ racquet's length of it by then.
 
 | cost | seconds | what it is | what it costs a 19ft/s player |
 |---|---|---|---|
-| `REACTION` | 0.25 | the split step: you do not leave on the opponent's contact, you leave a quarter-second later | 4.8ft |
+| `reaction_time` | 0.26 → 0.11 | the split step: you do not leave on the opponent's contact, and a player who has hit more balls reads the swing sooner | 5.0ft → 2.1ft |
+| `FIRST_STEP` | 42 ft/s² | the first step is an acceleration, not a speed: five feet from a standstill is 0.49s, not 0.26s | 4.4ft on a five-foot ball |
 | `SETTLE` | 0.20 | the brake: a ball met at a full sprint is a frame, not a shot — the feet plant first | 3.8ft |
+
+The reaction was a flat 0.25s for every player until 2026-11-18, and distance was divided by top speed, which is the
+time a player needs if they are already moving. Both are now what they are: the split step is a skill and the run
+accelerates. The same 600 fixed balls, before → after: 26 → 32% not reached at 0 balls, 5 → 12% at 600.
 
 Together they are 8.6ft on a 27ft-wide court, which is most of the width of the singles court, and that is the
 honest size of what the old rule was handing out for free. The brake is Item 5 in the movement list; this is the

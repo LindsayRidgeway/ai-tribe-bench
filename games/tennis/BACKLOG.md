@@ -231,7 +231,12 @@ only. This was not a look — it was the game refusing to model the thing that m
   **Re-measured after the shot chooser came over (Item 14, same day): 3-5% of balls, and 31 points in 60 ending on a
   beat rather than a miss.** A point is ten shots now instead of two, so most balls are reached and the *points*
   are still won; the band in the done-test above was a proxy for that and the proxy has stopped meaning anything.
-- **Guard:** met. A player with `reach=0.35` reaches 74% of the fixed population — the 70% floor, and only just.
+- **Guard:** met when this item closed — a player with `reach=0.35` reached 74% of the fixed population, the 70%
+  floor, and only just. **Re-based 2026-11-18:** the run is now an accelerating run with a skill-timed split step
+  (Item 14, fifth move), and the same seven feet reaches 67% of the same 600 balls at 0 balls, 87% at 300 and 87% at
+  600. The 7.0ft was not re-tuned to hit the old number, because that number was calibrated against arithmetic this
+  commit replaced; the floor in the test is now 60% for a beginner and 85% at six hundred balls, and the reason is
+  written beside it.
   The radius is what bought it: at 3.0ft the same population was 40% reached and beginner points were 56% not
   reached, which is the guard doing its job. The 7.0ft is generous on purpose and the reason is written in the code:
   this model gives the player no anticipation, and the step is charged for twice, here and as `REACTION`.
@@ -430,10 +435,29 @@ can matter, and at 300+ it rarely fires. The 600-ball row is inside the run-to-r
 bisection probes per shot as shots hit at a ball, dividing the true rate by twenty. A rate over a population is only
 a rate if you can say what one member is.
 
-**Still owed in this item:** `lab/tennis_script.py` — the record producer itself — and the last of the three things
-it needs: the accelerating run model (`reaction_time`, `run_time`, `run_distance` — nobody is at top speed on the
-first step). That one changes the reach arithmetic Item 10 was calibrated on, so it is a measurement of its own and
-goes next. `intercept` is superseded by `interception` and must **not** be ported.
+**The run, 2026-11-18 (`f2ab7e73`).** The last of the three things the producer needs. `FIRST_STEP` 42 ft/s² to top
+speed and then flat out, `run_distance` as its exact inverse, and `reaction_time` as a skill (0.26s at no balls to
+0.11s at six hundred) instead of 0.25s for everybody. Same 600 in-court balls, before → after: 26 → 32% not reached
+at 0 balls, 11 → 18% at 100, 6 → 13% at 300, 5 → 12% at 600. Through 300 points a level: median rally 1/10/16 →
+1/8/14, points ending on a beat 0/23/31 → 0/31/59. The game gets harder and the point still lasts — eight shots at
+300 balls, fourteen at 600.
+
+**Still owed in this item: `lab/tennis_script.py`, and it is now a translation job with a list.** Everything it
+calls exists on main; what differs are three argument names and one return shape:
+
+| the script says | main says |
+|---|---|
+| `strike(..., contact=X)` | `strike(..., at=X)` |
+| `strike(..., aim_x=X)` | `aim_dist=abs(X - contact[0])` |
+| `aim_at(..., contact=X)` | `aim_at(..., at=X)` |
+| `volley_contact(other, traj, at)` | `volley_contact(other, traj["path"], at)` |
+| `intercept(...)` | `interception(...)`; its `t_arrive` is `at`, `ball` is `meet`, `distance` is `gap`; `window` is `hit_window(bounce)[1]`, and it has no `legs` (use `speed`) |
+| `T.OUT_BOUNCES`, `T.AFTER_LAND`, `T.PLAY_PAD` | literals in the script, or `2`, `1.4`, `4.0` |
+
+`intercept` itself is superseded by `interception` and must **not** be ported. The one judgement in the translation
+is the `run` timing, which is what puts a body where it walked to; the record's `t0` is the previous strike, so the
+branch's `t_arrive` becomes main's `at`. Translation is mechanical but it is not a copy, and the test of it is the
+film: a player must not be placed anywhere their legs did not carry them.
 
 The serve is also still visibly a 50mph arc rather than a tennis serve, because it has no toss and no overhead: that
 is the movement list's item 3, and it is why serve-in is 93% and not 65%.
