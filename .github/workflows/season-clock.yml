@@ -67,7 +67,10 @@ jobs:
             echo '```'
             echo
           } >> "$GITHUB_STEP_SUMMARY"
-          for s in $(ls -1d games/tennis/seasons/*/ 2>/dev/null | sed 's:games/tennis/seasons/::; s:/$::' | sort -r | awk 'NR<=2'); do
+          # Newest by mtime, not by name: a season called "2026-11-19" sorts below "2026-tour" as a string, so a
+          # name-sorted summary would report last month's season while looking perfectly reasonable.
+          for s in $(ls -1t games/tennis/seasons/*/practice.json 2>/dev/null \
+                     | sed 's:/practice.json::; s:^games/tennis/seasons/::' | awk 'NR<=2'); do
             echo "### $s" >> "$GITHUB_STEP_SUMMARY"
             echo '```' >> "$GITHUB_STEP_SUMMARY"
             python3 lab/tennis.py --report "$s" 2>&1 | awk 'NR<=60' >> "$GITHUB_STEP_SUMMARY" || true
