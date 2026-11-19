@@ -32,7 +32,7 @@ const actions = { runs: [], onPoll: null, secrets: [], secretsDenied: false, ins
                   // Which account answers `/user`, what `/user/repos` says it owns, and which of those are *not*
                   // circles. A page that can only ever see one repository cannot be asked whether it finds a
                   // circle by searching rather than by being told the name.
-                  login: 'someone', userRepos: [], notCircles: [] };
+                  login: 'someone', userRepos: [], notCircles: [], denyUser: false };
 // What GitHub says about the repository itself. `private` is the one field the page reads out of it, and on
 // 2026-11-15 it read nothing: an owner could turn a tribe public and the page went on saying nothing while the
 // record — every journal, every word said to a member — became readable by anyone. Kept here so a check can
@@ -146,7 +146,10 @@ function githubFetch(url, init = {}){
       ({path: k, type: 'blob', mode: '100644', sha: shaOf(body(k))}))});
   }
 
-  if (/^\/user$/.test(p)) return jsonResponse(200, {login: actions.login, name: ''});
+  if (/^\/user$/.test(p)){
+    if (actions.denyUser) return jsonResponse(401, {message: 'Bad credentials'});
+    return jsonResponse(200, {login: actions.login, name: ''});
+  }
   if (/^\/user\/repos$/.test(p)) return jsonResponse(200, actions.userRepos);
   // A per-repository answer, so "one of these is a circle and one is not" is testable: until 2026-11-19 the fake
   // held exactly one repository, which made every name in the world a circle.
@@ -333,7 +336,7 @@ function reset(){
   tpl.sha = null; tpl.files.clear(); tpl.refs.clear();
   actions.runs.length = 0; actions.onPoll = null; actions.secrets = []; actions.secretsDenied = false;
   actions.secretPublicKey = null; actions.secretWrites.length = 0; actions.secretWriteDenied = false;
-  actions.login = 'someone'; actions.userRepos = []; actions.notCircles = [];
+  actions.login = 'someone'; actions.userRepos = []; actions.notCircles = []; actions.denyUser = false;
   exchanges.length = 0; actions.installationsDenied = false;
   actions.missingWorkflows = []; actions.busy = {};
   for (const id of ['mmsg', 'chaptsmsg', 'main']) if (elements.has(id)) elements.delete(id);
@@ -2415,6 +2418,46 @@ async function main(){
     if (!says.missing) return 'nothing tells a person their circle may simply not be in this list';
     if (!says.why) return 'it does not say why a circle would be missing';
     if (!says.ways) return 'it does not say where to look for one';
+    return '';
+  });
+
+  /* 15d — the eight-hour sign-in, and the box that takes a token.
+     He pressed "Find my circles" a day after signing in and got `401 · Bad credentials` on a card that said "your
+     token"; his question back was "How do I supply my token?" — the box that takes one was hidden behind a link two
+     cards away. GitHub App sign-ins last eight hours, and nothing in the page knew that. */
+  const expiredSearch = async (opts) => {
+    reset();
+    actions.login = 'someone';
+    actions.denyUser = !!opts.denyUser;      // set after reset(), which clears the fake's flags
+    return tryRun(ctx, `(async () => {
+      S.repo = ''; S.token = ''; S.circles = {}; S.members = [];
+      S.app = ${JSON.stringify(opts.token)}; S.appAt = Date.now() - ${JSON.stringify(opts.ageMs)};
+      location.hash = '#/connect';
+      await viewConnect(document.getElementById('main'));
+      document.getElementById('token').value = '';
+      await document.getElementById('find').onclick();
+      const m = document.getElementById('findmsg');
+      return {said: m.innerHTML || m.textContent,
+              boxShown: document.getElementById('pastecard').hidden === false,
+              appForgotten: !S.app};
+    })()`);
+  };
+  const stale = await expiredSearch({token: 'gho_old', ageMs: 9 * 3600e3});
+  check('a sign-in from yesterday is said to have expired, and never blamed on a token nobody gave', () => {
+    if (stale.err) return stale.err;
+    if (/Bad credentials|401/.test(stale.said)) return 'it shows a status code: ' + stale.said.slice(0, 160);
+    if (!/expired/.test(stale.said) || !/eight hours/.test(stale.said)) return 'it does not say what happened: ' + stale.said.slice(0, 160);
+    if (!stale.boxShown) return 'the box that takes a token is still hidden behind a link';
+    if (!stale.appForgotten) return 'it kept a dead token and will fail the same way again';
+    return '';
+  });
+  const signInRefused = await expiredSearch({token: 'gho_live', ageMs: 60e3, denyUser: true});
+  actions.denyUser = false;
+  check('a sign-in GitHub refuses is reported as an expired sign-in, not as an error', () => {
+    if (signInRefused.err) return signInRefused.err;
+    if (/Bad credentials|401/.test(signInRefused.said)) return 'it shows a status code: ' + signInRefused.said.slice(0, 160);
+    if (!/expired/.test(signInRefused.said)) return 'it does not say the sign-in is the thing that expired: ' + signInRefused.said.slice(0, 160);
+    if (!signInRefused.boxShown) return 'no token box is offered after the refusal';
     return '';
   });
 

@@ -273,7 +273,7 @@ const PAINTERS = {
 const painterNames = () => Object.values(PAINTERS).map(p => p.label).join(', ');
 
 const S = {repo:'', token:'', branch:'main', keys:{}, members:[], chat:{}, member:null, view:'today',
-           owner:'', circles:{}, app:'', isPrivate:null, need:{}};   // null = this page has not been told; see noteVisibility()
+           owner:'', circles:{}, app:'', appAt:0, isPrivate:null, need:{}};   // null = this page has not been told; see noteVisibility()
 
 // Which circles this browser has been in, and the credential it used for each. Without this there is exactly one
 // way back to a circle you have already opened: retype its name and paste a token. Found 2026-11-09, when the
@@ -391,7 +391,8 @@ function nowStamp(){
 
 function save(){
   localStorage.setItem('ait', JSON.stringify({repo:S.repo, token:S.token, keys:S.keys, owner:S.owner || '',
-                                             circles:S.circles || {}, app:S.app || '', need:S.need || {}}));
+                                             circles:S.circles || {}, app:S.app || '', appAt:S.appAt || 0,
+                                             need:S.need || {}}));
   // An unfiled conversation is kept here too: a person who reloads the page should not lose what a
   // member said, even though only filing it puts it in the record.
   try {
@@ -402,7 +403,7 @@ function save(){
 }
 function load(){ try{ const j = JSON.parse(localStorage.getItem('ait') || '{}');
   S.repo = j.repo || ''; S.token = j.token || ''; S.keys = j.keys || {}; S.owner = j.owner || '';
-  S.circles = j.circles || {}; S.app = j.app || ''; S.need = j.need || {}; }catch(e){}
+  S.circles = j.circles || {}; S.app = j.app || ''; S.appAt = j.appAt || 0; S.need = j.need || {}; }catch(e){}
   try { S.chat = JSON.parse(localStorage.getItem('ait.chat') || '{}'); } catch(e){ S.chat = {}; } }
 
 /* ---- the GitHub door ------------------------------------------------------------------- */
@@ -1602,6 +1603,23 @@ async function scanCircles(token, onProgress){
 // change exists to remove — and it reaches only the repositories they granted.
 const appTok = () => OAUTH || S.app || '';
 
+// GitHub's App sign-ins last eight hours. Then the token is dead, GitHub answers `401 · Bad credentials`, and the
+// sentence the page was showing for it — a raw status code, on a card that says "your token" — is a sentence about
+// plumbing shown to a person who has no token at all. That is the founder's screenshot of 2026-11-19, taken a full
+// day after the sign-in that produced the token. So the age is kept with the token, and a token that is old enough
+// to be dead is treated as gone: better to ask for a fresh sign-in half an hour early than to fail mid-press.
+const APP_LIFE = 8 * 3600e3, APP_GRACE = 30 * 60e3;
+const appAge = () => (S.appAt ? Date.now() - S.appAt : 0);
+const appStale = () => !!appTok() && appAge() > APP_LIFE - APP_GRACE;
+// Whether this page has *learned* that the sign-in is dead — by its age, or by GitHub's answer. The token goes, the
+// fact stays, because "paste a token" and "your sign-in expired" are different sentences and the page was giving the
+// first one to a person who had just used the second.
+let APP_EXPIRED = false;
+const forgetApp = () => { S.app = ''; S.appAt = 0; OAUTH = ''; APP_EXPIRED = true; save(); };
+const appExpiredWords = 'The GitHub sign-in in this browser has expired — GitHub keeps those eight hours, and this '
+  + 'one is older than that. Press <strong>Sign in with GitHub</strong> above and it is a second; a token pasted '
+  + 'below works too and lasts until you delete it.';
+
 // Opening one of them. The App's token is the credential for every repository it covers, so there is nothing
 // per-circle to keep beyond the name — and the token stays in memory and in this browser, never in the markup.
 window.openAppCircle = (repo, branch) => {
@@ -2030,9 +2048,9 @@ function viewConnect(main){
       <span class="small muted" id="findmsg"></span></div>
       <div id="findlist"></div>
     </div>
-    ${GH_APP ? `<p class="small" style="margin:14px 0 0"><a href="#" id="usepaste">Or open a repository by name
-    and token</a> — the door that needs nothing of Kythe's.</p>` : ''}
-    <div class="card" id="pastecard"${GH_APP ? ' hidden' : ''}>
+    <div class="card" id="pastecard" style="margin-bottom:12px">
+      <p class="small" style="margin:0 0 8px"><strong>Open a repository by name and token</strong> — the door that
+      needs nothing of Kythe's, and the one that reaches a circle no sign-in has been let into.</p>
       <label for="repo">Repository</label>
       <input id="repo" placeholder="your-name/your-circle" autocapitalize="off" autocorrect="off" spellcheck="false">
       <div id="ctokbox">
@@ -2071,13 +2089,9 @@ or <a href="#/today" onclick="WANT='';WANT_WHY='';return true;">stay in ${esc(S.
   if (GH_APP){
     const ghb = $('ghapp');
     if (ghb) ghb.onclick = () => { if (appTok()) paintApp(); else signInApp('connect'); };
-    const up = $('usepaste');
-    if (up) up.onclick = (e) => {
-      e.preventDefault();
-      const c = $('pastecard'); if (c) c.hidden = false;
-      up.hidden = true;
-      const r = $('repo'); if (r) r.focus();
-    };
+    // There is no "or open by name" link any more: the card it used to reveal is on the page from the start. A door
+    // behind a link is a door a person has to know about, and the founder spent two turns being asked to walk
+    // through walls he could not see.
     if (appTok()) paintApp();
   }
   // A link to a circle this browser cannot open is the one case where the token box must be on screen without being
@@ -2091,8 +2105,18 @@ or <a href="#/today" onclick="WANT='';WANT_WHY='';return true;">stay in ${esc(S.
     const box = $('applist'), msg = $('appmsg');
     if (!box || !msg) return;
     msg.className = 'small muted';
-    msg.textContent = 'asking GitHub which circles this account can open…';
     box.innerHTML = '';
+    if (appStale()){
+      forgetApp();
+      msg.innerHTML = appExpiredWords;
+      const again = document.createElement('button');
+      again.className = 'primary'; again.style.marginTop = '8px';
+      again.textContent = 'Sign in with GitHub again';
+      again.onclick = () => signInApp('connect');
+      (msg.parentNode || msg).insertBefore(again, msg.nextSibling);
+      return;
+    }
+    msg.textContent = 'asking GitHub which circles this account can open…';
     try {
       const repos = await appRepos(appTok());
       // Whose sign-in this is, said out loud. He has two GitHub accounts and two tabs were listing two different
@@ -2133,7 +2157,15 @@ or <a href="#/today" onclick="WANT='';WANT_WHY='';return true;">stay in ${esc(S.
       // carrying it in `state`, but a token already in a browser stays the wrong kind until it is replaced). Until
       // now the page answered "Look again", which re-ran the same doomed call: the founder sat in front of exactly
       // that. So here it offers the only thing that helps — a fresh sign-in through the App.
-      if (/authorized to a GitHub App|installation/i.test(String(e.message))){
+      if (/401|Bad credentials/i.test(String(e.message))){
+        forgetApp();
+        msg.innerHTML = appExpiredWords;
+        const again = document.createElement('button');
+        again.className = 'primary'; again.style.marginTop = '8px';
+        again.textContent = 'Sign in with GitHub again';
+        again.onclick = () => signInApp('connect');
+        (msg.parentNode || msg).insertBefore(again, msg.nextSibling);
+      } else if (/authorized to a GitHub App|installation/i.test(String(e.message))){
         msg.textContent = 'This browser holds a GitHub token that is not an App token, so Kythe cannot ask GitHub '
           + 'which circles your account has given it. Signing in again replaces it.';
         const again = document.createElement('button');
@@ -2155,16 +2187,28 @@ or <a href="#/today" onclick="WANT='';WANT_WHY='';return true;">stay in ${esc(S.
   if (findBtn) findBtn.onclick = async () => {
     const tell = (html, cls) => { const el = $('findmsg'); if (el){ el.className = cls || 'small muted'; el.innerHTML = html; } };
     const list = $('findlist');
-    const t = ((($('token') || {}).value || '').trim()) || appTok();
-    if (!t){
-      // The box it is asking for was hidden behind a link, so saying "paste a token below" would be pointing at
-      // nothing. Open the door and put the cursor in it.
-      tell('A token is needed for this: the sign-in only reaches the repositories you ticked for Kythe, so it '
-        + 'cannot look in the rest. Make one at <a href="https://github.com/settings/tokens/new" target="_blank" '
-        + 'rel="noopener">github.com/settings/tokens/new</a> — tick <strong>repo</strong> and '
-        + '<strong>workflow</strong> — and paste it below. A minute, once.');
+    // Which credential, and never a dead one: the founder pressed this card and got `401 · Bad credentials`, on a
+    // card whose own text says "your token" — a sentence written for someone who has one. The box that takes a
+    // token was hidden behind a link two cards down, so the answer to "how do I supply my token" was a door with
+    // no handle. Both are fixed here: the expired sign-in is replaced by the sentence and the button that renews
+    // it, and the token box is opened and focused whenever it is the way forward.
+    const openTokBox = () => {
       const pc = $('pastecard'); if (pc) pc.hidden = false;
-      const ti = $('token'); if (ti) ti.focus();
+      const usepaste = $('usepaste'); if (usepaste && usepaste.parentNode) usepaste.parentNode.hidden = true;
+      const ti = $('token'); if (ti && ti.focus) ti.focus();
+    };
+    let t = (($('token') || {}).value || '').trim();
+    const fromSignIn = !t;
+    if (!t && appTok() && !appStale()) t = appTok();
+    if (!t){
+      tell((appTok() || APP_EXPIRED)
+        ? appExpiredWords
+        : 'A token is needed for this: the sign-in only reaches the repositories you ticked for Kythe, so it '
+          + 'cannot look in the rest. Make one at <a href="https://github.com/settings/tokens/new" target="_blank" '
+          + 'rel="noopener">github.com/settings/tokens/new</a> — tick <strong>repo</strong> and '
+          + '<strong>workflow</strong> — and paste it in the box below. A minute, once.');
+      if (appTok()) forgetApp();
+      openTokBox();
       return;
     }
     findBtn.disabled = true; list.innerHTML = '';
@@ -2184,7 +2228,14 @@ or <a href="#/today" onclick="WANT='';WANT_WHY='';return true;">stay in ${esc(S.
         list.innerHTML = rows;
       }
     } catch(e){
-      tell('GitHub would not answer: ' + esc(String(e.message)), 'err');
+      if (/401|Bad credentials/i.test(String(e.message))){
+        if (fromSignIn){ forgetApp(); tell(appExpiredWords); openTokBox(); }
+        else tell('GitHub refused that token: <em>' + esc(String(e.message)) + '</em> — a token shows once, so a '
+          + 'mistyped one has to be made again. <a href="https://github.com/settings/tokens/new" target="_blank" '
+          + 'rel="noopener">Make another</a>.');
+      } else {
+        tell('GitHub would not answer: ' + esc(String(e.message)), 'err');
+      }
     }
     findBtn.disabled = false;
   };
@@ -5554,7 +5605,7 @@ window.addEventListener('hashchange', () => render());
         const d = await r.json();
         if (!d.access_token) throw new Error(d.error || 'GitHub sent no token');
         OAUTH = d.access_token;
-        if (wasApp){ S.app = OAUTH; save(); }
+        if (wasApp){ S.app = OAUTH; S.appAt = Date.now(); APP_EXPIRED = false; save(); }
         try { sessionStorage.removeItem('ait.code'); sessionStorage.removeItem('ait.retried'); } catch(_){}
         location.hash = (await resumeWant(circleFromState(returned))) ? '#/today' : '#/' + want;
       } catch(e){
