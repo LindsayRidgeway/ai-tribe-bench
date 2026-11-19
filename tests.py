@@ -4613,6 +4613,65 @@ class TestPickleball(unittest.TestCase):
         self.assertAlmostEqual(pos.approach_of(players["A"]), 2.0, places=6)
         self.assertTrue(any("paid in points" in line for line in said))
 
+    def test_the_season_lesson_holds_one_stance_for_a_whole_game(self):
+        """The unit §5e said was missing. A game lesson decides a stance *before* the game and holds it, so one
+        bucket collects the whole game's rallies — thirty-odd samples for one decision, against the point
+        lesson's two or three. That ratio is the entire difference between the two, so it is what is tested."""
+        pk = self.pk
+        tmp = Path(tempfile.mkdtemp())
+        names = ["A", "B", "C", "D"]
+        lesson = pk.SeasonLesson("test", names, start=4.0, override=str(tmp), say=lambda *a, **k: None)
+        res = pk.play_season(names, [200] * 4, lesson, pk.scripted_chooser("steady"), 1,
+                             clock=1234500, say=lambda *a, **k: None)
+        book = lesson.member("A")["buckets"]
+        self.assertEqual(len(book), 1, f"one stance per game, not a bucketful: {book}")
+        rec = book["4"]
+        self.assertEqual(rec["games"], 1)
+        self.assertGreaterEqual(rec["played"], 15, "a game's worth of rallies in one bucket is the sample")
+        self.assertEqual(len(res["rows"]), 1)
+        self.assertEqual({round(v, 1) for v in res["rows"][0]["stances"].values()}, {4.0},
+                         "every seat held one stance for the whole game")
+
+    def test_the_season_lesson_steps_toward_the_stance_that_won(self):
+        """Driven directly, so the test reads the decision and not a game's noise: 2 ft won 70% over three
+        games, 4 ft won 40% over three, and the lesson takes one foot toward the line."""
+        pk = self.pk
+        tmp = Path(tempfile.mkdtemp())
+        lesson = pk.SeasonLesson("test", ["A"], start=4.0, override=str(tmp), say=lambda *a, **k: None)
+        m = lesson.member("A")
+        m["buckets"] = {"4": {"won": 40, "played": 100, "games": 3},
+                        "2": {"won": 70, "played": 100, "games": 3}}
+        self.assertAlmostEqual(lesson.stances()["A"], 3.0, places=6, msg="one foot, not two")
+
+    def test_the_season_lesson_stays_when_the_difference_is_a_coin(self):
+        """Eight points of win rate is the margin, and a bucket that beats it by less is not evidence: the
+        lesson was built because a small sample plus a greedy step is how §5e's lesson lost 61-77."""
+        pk = self.pk
+        tmp = Path(tempfile.mkdtemp())
+        lesson = pk.SeasonLesson("test", ["A"], start=4.0, override=str(tmp), say=lambda *a, **k: None)
+        lesson.member("A")["buckets"] = {"4": {"won": 52, "played": 100, "games": 3},
+                                         "5": {"won": 56, "played": 100, "games": 3},
+                                         "3": {"won": 48, "played": 100, "games": 3}}
+        self.assertAlmostEqual(lesson.stances()["A"], 4.0, places=6, msg="four points is not a lesson")
+
+    def test_the_seasons_book_survives_the_process_that_wrote_it(self):
+        """A lesson whose unit is a game and whose sample is a season has to outlive the command line: the
+        book is a file in the season's own directory, and it loads back with its buckets intact."""
+        pk = self.pk
+        tmp = Path(tempfile.mkdtemp())
+        lesson = pk.SeasonLesson("test", ["A"], start=4.0, override=str(tmp), say=lambda *a, **k: None)
+        lesson.member("A")["buckets"] = {"4": {"won": 40, "played": 100, "games": 3}}
+        lesson.member("A")["held"] = 3.0
+        path = lesson.save()
+        self.assertTrue(path.exists())
+        self.assertEqual(path.name, "stance.json")
+        again = pk.SeasonLesson("test", ["A"], override=str(tmp), say=lambda *a, **k: None)
+        self.assertAlmostEqual(again.held("A"), 3.0, places=6)
+        self.assertEqual(again.member("A")["buckets"]["4"], {"won": 40, "played": 100, "games": 3})
+        d, f = pk.stance_paths("2026-autumn")
+        self.assertEqual(f.parent.name, "2026-autumn")
+        self.assertEqual(f.parent.parent.name, "seasons")
+
     def test_the_points_chooser_explores_or_it_has_nothing_to_learn_from(self):
         """A lesson that never tries anything measures only where it started: with every player at the default
         and no results to read, the ledger holds one bucket and the greedy step has nothing to prefer. So the

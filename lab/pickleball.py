@@ -41,6 +41,7 @@ trajectories), which gives k = 0.0103/ft against a tennis ball's 0.0063.
 from __future__ import annotations
 
 import argparse
+import json
 import math
 import random
 import sys
@@ -938,6 +939,221 @@ def points_chooser(level: str = "steady", say=print, settle: int = 8, margin: fl
     return factory
 
 
+# ---- the season-shaped lesson ---------------------------------------------------------------------
+# §5e's rule was "a lesson is only worth its noise when it has more samples per decision than the noise has
+# causes", and the point lesson failed its own rule for an arithmetic reason: a game is 30-50 rallies *shared*
+# between four players and four one-foot buckets, so the bucket a player stood in held two or three rallies, and
+# the win rate in it turned on who happened to be serving. The fix is not a better estimator — it is a bigger
+# unit. Hold the stance for a whole game, so one bucket collects that game's thirty-odd rallies into ONE
+# decision, and keep the buckets in the season file, so a dozen games are a sample that outnumbers the causes
+# of the noise. That is this section, and `--level season` is how it is played.
+#
+# Two things it does not do, stated because they are the design:
+#   - it credits a rally to a player whose *team* won it, so a learner's number is half its partner's when the
+#     partner is not learning. True of the sport (a doubles point is a team's point) and the reason the
+#     head-to-head below puts both members of one team in the lesson;
+#   - it cannot see the opponent. A stance is worth what the opponent cannot reach, and this lesson only knows
+#     what its own team scored — which is the whole of what a player knows at the end of a game.
+
+STANCE_FILE = "stance.json"          # one file, in the season's own directory: a record of decisions, not a
+                                     # rating. `practice.json` is the engine's; this is the lesson's.
+
+
+def stance_paths(season: str, override: str | None = None) -> tuple[Path, Path]:
+    """Where the lesson's book lives. The same directory as the season, because a lesson that outlives a game
+    belongs to the season and not to the process: it has to survive the command line that made it."""
+    d, _ = season_paths(season, override, "pickleball")
+    return d, d / STANCE_FILE
+
+
+def load_stance_ledger(season: str, override: str | None = None) -> dict:
+    _, f = stance_paths(season, override)
+    if not f.exists():
+        return {"season": season, "note": "", "members": {}}
+    return json.loads(f.read_text(encoding="utf-8"))
+
+
+def save_stance_ledger(book: dict, season: str, override: str | None = None) -> Path:
+    d, f = stance_paths(season, override)
+    d.mkdir(parents=True, exist_ok=True)
+    f.write_text(json.dumps(book, indent=1, sort_keys=True) + "\n", encoding="utf-8")
+    return f
+
+
+class SeasonLesson:
+    """A lesson whose unit is a game and whose memory is a season.
+
+    Each learner holds one stance for a whole game. When the game ends the rallies are counted into the bucket
+    the learner stood in — `{won, played, games}` — and the next stance is decided by three rules in order:
+
+      1. **sample where you stand.** A bucket with fewer than `need_games` games has a win rate that is a coin
+         flip wearing a percentage sign, and a lesson that moves on a coin is §5e's point lesson again. Hold.
+      2. **move one foot toward a bucket that has beaten you by `margin`.** Both directions, so the lesson can
+         walk to the line as well as away from it — which the fault reader cannot, because no fault ever says
+         *close the gap*.
+      3. **if nothing has beaten you, measure somewhere new.** A neighbour with fewer than `need_games` games
+         is visited; ties are broken by the season's own coin (the parity of the learner's games), so the
+         search order is not told where the answer is. A lesson that never tries anything learns only about
+         where it started.
+
+    What it is not: an optimiser. It takes one step per game because a person does, and its margin is 8 points
+    of win rate because a game's worth of rallies is still a noisy estimate. Whether eight is enough is a
+    measurement, and the number is on the page.
+    """
+
+    def __init__(self, season: str, names: list[str], learners: tuple[str, ...] | list[str] | None = None,
+                 start: float | None = None, need_games: int = 3, margin: float = 0.08, band: float = 2.0,
+                 override: str | None = None, say=print):
+        self.season = season
+        self.names = list(names)
+        self.learners = tuple(learners) if learners else tuple(names)
+        self.need_games = need_games
+        self.margin = margin
+        self.band = band
+        self.override = override
+        self.say = say
+        self.book = load_stance_ledger(season, override)
+        self.book.setdefault("members", {})
+        for n in self.learners:
+            m = self.book["members"].setdefault(
+                n, {"held": float(APPROACH_DEFAULT if start is None else start), "games": 0, "buckets": {}})
+            m.setdefault("buckets", {})
+            m.setdefault("games", 0)
+        self.log: list[str] = []
+
+    # -- the book, per learner ----------------------------------------------------------------------
+    def member(self, name: str) -> dict:
+        return self.book["members"][name]
+
+    def held(self, name: str) -> float:
+        return float(self.member(name)["held"])
+
+    def buckets(self, name: str) -> dict[str, dict]:
+        return self.member(name).setdefault("buckets", {})
+
+    def _rec(self, name: str, bucket: int) -> dict:
+        return self.buckets(name).setdefault(str(bucket), {"won": 0, "played": 0, "games": 0})
+
+    def _seen(self, name: str, bucket: int) -> dict:
+        """Read a bucket without creating it. A book that grows rows for stances nobody ever held is a book
+        that flatters its own thoroughness: `--report` would list 9 ft as tried."""
+        return self.buckets(name).get(str(bucket), {"won": 0, "played": 0, "games": 0})
+
+    # -- the decision, made once per game -----------------------------------------------------------
+    def stances(self) -> dict[str, float]:
+        return {n: self._decide(n) for n in self.learners}
+
+    def _decide(self, name: str) -> float:
+        m = self.member(name)
+        held = float(m["held"])
+        here = self._rec(name, int(round(held)))
+        if here.get("games", 0) < self.need_games:                 # rule 1: no coin flips
+            return held
+        my_rate = here["won"] / here["played"] if here["played"] else 0.0
+        measured = []
+        for key, rec in self.buckets(name).items():
+            if rec.get("games", 0) < self.need_games or abs(int(key) - held) > self.band:
+                continue
+            measured.append((rec["won"] / rec["played"] if rec["played"] else 0.0, int(key)))
+        measured.sort(reverse=True)
+        if measured and measured[0][1] != int(round(held)) and measured[0][0] > my_rate + self.margin:
+            best_rate, best_b = measured[0]
+            target = held + (1.0 if best_b > held else -1.0)       # rule 2: one step, not a solver's jump
+            self.say(f"       == {name} is paid in games — {best_b}ft won {best_rate:.0%} of its points, "
+                     f"{held:.0f}ft won {my_rate:.0%}. Standing {target:.0f}ft behind the line.")
+            self.log.append(f"{name}: {best_b}ft {best_rate:.0%} beats {held:.0f}ft {my_rate:.0%} -> "
+                            f"{target:.0f}ft")
+            return target
+        # rule 3: measure a neighbour. Ties are broken by the season's coin, so the order the buckets are
+        # visited in carries no knowledge of which end is good.
+        coin = (1.0, -1.0) if m.get("games", 0) % 2 == 0 else (-1.0, 1.0)
+        todo = [b for b in (held + s for s in coin) if 1.0 <= b <= APPROACH_MAX]
+        todo.sort(key=lambda b: (self._seen(name, int(round(b)))["games"], abs(b - held)))
+        if todo and self._seen(name, int(round(todo[0])))["games"] < self.need_games:
+            pick = float(int(round(todo[0])))
+            self.say(f"       == {name} has measured {int(round(held))}ft for {here['games']} games; nothing "
+                     f"has beaten it by {self.margin:.0%}, so it measures {pick:.0f}ft instead.")
+            self.log.append(f"{name}: explore {int(round(held))}ft -> {pick:.0f}ft")
+            return pick
+        return held
+
+    # -- the game's result, counted once per game ---------------------------------------------------
+    def record(self, match, rallies: list[dict], stances: dict[str, float]) -> None:
+        for name in self.learners:
+            if name not in stances:
+                continue
+            bucket = int(round(stances[name]))
+            rec = self._rec(name, bucket)
+            team = match.team_of(name)
+            for r in rallies:
+                if r.get("winner") is None:                        # the record's ceiling: no score either way
+                    continue
+                rec["played"] += 1
+                if r["winner"] == team:
+                    rec["won"] += 1
+            rec["games"] += 1
+            m = self.member(name)
+            m["held"] = float(bucket)
+            m["games"] = m.get("games", 0) + 1
+
+    def save(self) -> Path:
+        self.book["season"] = self.season
+        return save_stance_ledger(self.book, self.season, self.override)
+
+    # -- what the season says so far ----------------------------------------------------------------
+    def table(self, title: str = "") -> str:
+        lines = [title] if title else []
+        for name in self.learners:
+            m = self.member(name)
+            lines.append(f"  {name}: {m.get('games', 0)} games, holding {self.held(name):.0f}ft behind the line")
+            for key in sorted(self.buckets(name), key=int):
+                rec = self.buckets(name)[key]
+                rate = rec["won"] / rec["played"] if rec["played"] else 0.0
+                mark = " <-" if int(key) == int(round(self.held(name))) else ""
+                lines.append(f"    {int(key):2d}ft  {rec['games']:2d} games  {rec['played']:3d} rallies  "
+                             f"won {rec['won']:3d}  {rate:5.1%}{mark}")
+        return "\n".join(lines)
+
+
+def play_season(names: list[str], practice: list[int], lesson: SeasonLesson, choose_factory, games: int,
+                surface: str = "hard", clock: int | None = None, first_team: int = 0, say=print,
+                static: dict[str, float] | None = None) -> dict:
+    """A season is a loop of games, and the only thing that carries between them is the lesson's book.
+
+    `static` pins the stances of players who are *not* learning, which is what makes a head-to-head possible:
+    the same pinned clocks played twice, once with a team learning and once with the same team standing still.
+    The clock advances one millisecond per game, so a season is a season of different winds and not one
+    afternoon repeated — and the clock of every game is printed, so any game in the record can be replayed.
+    """
+    wins = {0: 0, 1: 0}
+    points = [0, 0]
+    rows: list[dict] = []
+    for g in range(games):
+        stances = lesson.stances()
+        if static:
+            for n in names:
+                if n not in lesson.learners:
+                    stances[n] = float(static.get(n, APPROACH_DEFAULT))
+        ms = None if clock is None else clock + g
+        say(f"\n-- game {g + 1} of the season " +
+            " ".join(f"{n} {stances[n]:.0f}ft" for n in names if n in stances))
+        match, result = play_game(names, practice, choose_factory, surface=surface, wind_seed_ms=ms,
+                                  first_team=(first_team + g) % 2, say=say, stances=stances)
+        lesson.record(match, result["rallies"], stances)
+        lesson.save()
+        w = 0 if match.teams[0].score > match.teams[1].score else 1
+        wins[w] += 1
+        points[0] += match.teams[0].score
+        points[1] += match.teams[1].score
+        rows.append({"game": g + 1, "stances": dict(stances), "clock": ms, "winner": w,
+                     "score": (match.teams[0].score, match.teams[1].score)})
+    say("")
+    say(lesson.table(f"  the season's book after {games} games:"))
+    say(f"  games won: {names[0]}/{names[1]} {wins[0]}, {names[2]}/{names[3]} {wins[1]}; "
+        f"points {points[0]}-{points[1]}")
+    return {"wins": wins, "points": points, "rows": rows, "lesson": lesson}
+
+
 def make_chooser(level: str):
     """A demo's chooser. `read` and `learn` are the steady player's hands with a lesson attached — the first
     paid in faults, the second in points — so a difference between them and `--level steady` is the learning
@@ -1100,9 +1316,18 @@ def main(argv=None) -> int:
                          "mistaken for a match a member played")
     ap.add_argument("--clock", type=int, default=None,
                     help="pin the wind to a millisecond count, so a record can be replayed")
-    ap.add_argument("--level", default="steady", choices=["beginner", "steady", "hard", "read", "learn"],
+    ap.add_argument("--level", default="steady",
+                    choices=["beginner", "steady", "hard", "read", "learn", "season"],
                     help="`read` is the steady hands with a fault-reading lesson attached; `learn` is the "
-                         "same hands paid in points instead, so the two lessons can be compared at one clock")
+                         "same hands paid in points instead; `season` is the same hands with a lesson whose "
+                         "unit is a game and whose memory is the season file, so its sample can outgrow its "
+                         "noise. `season` writes games/pickleball/seasons/<season>/stance.json")
+    ap.add_argument("--learners", default=None,
+                    help="for --level season: which names learn; the rest hold --static (default: all four)")
+    ap.add_argument("--static", type=float, default=None,
+                    help="for --level season: the stance the non-learners hold, in ft behind their kitchen line")
+    ap.add_argument("--start", type=float, default=None,
+                    help="for --level season: the stance a learner starts from, before it has a record")
     ap.add_argument("--practice", default=None, help="balls hit before this session, one per name")
     ap.add_argument("--seed", default=None, help="give a new member a past: balls carried in")
     ap.add_argument("--surface", default="hard", choices=sorted(SURFACES))
@@ -1128,6 +1353,21 @@ def main(argv=None) -> int:
         practice = [int(x) for x in (args.practice or "0,0,0,0").split(",")]
         if len(practice) != 4:
             practice = [0, 0, 0, 0]
+        if args.level == "season":
+            # A season, not a game: `--game` is how many games the season is, and the lesson's book is the file
+            # the next run reads. This is the only demo path that writes anything, and what it writes is the
+            # record of a decision, not a rating.
+            season = args.season or "2026-autumn"
+            learners = tuple(n.strip() for n in args.learners.split(",")) if args.learners else None
+            static = ({n: args.static for n in names if n not in (learners or names)}
+                      if args.static is not None else None)
+            lesson = SeasonLesson(season, names, learners=learners, start=args.start,
+                                  override=args.season_dir)
+            play_season(names, practice, lesson, make_chooser("steady"), max(1, args.game),
+                        surface=args.surface, clock=args.clock, say=print, static=static)
+            print(f"\n  the lesson's book is {stance_paths(season, args.season_dir)[1]} "
+                  f"({len(lesson.log)} decisions recorded in it)")
+            return 0
         for g in range(max(1, args.game)):
             print(f"\n-- game {g + 1}")
             play_game(names, practice, make_chooser(args.level), surface=args.surface,
