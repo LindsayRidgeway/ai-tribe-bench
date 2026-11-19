@@ -1073,3 +1073,74 @@ four rounds each, same notebook, same seed, learning off:
   flag          128     -12    32/36     64
   centre        156     +16    24/36     80
   spread        148      +8    24/36     72
+
+================================================================
+5. DRAWN PINS AND DRAWN WINDS — 60 courses a setting, one round each,
+   learning off, the same trained athlete, every policy on the same course (paired).
+   The nine fixed pins of section 4 have a mean offset of 10 ft from the green's centre,
+   which is what a plus-or-minus-19 ft draw looks like, not a plus-or-minus-14 one.
+
+$ python3 lab/golf.py --draws 60 --calm --pin-range 6
+60 courses drawn independently (pins ±6 ft, still air), one round each, learning off
+
+  policy      mean     sd
+  flag       -3.00   0.00
+  centre     -2.70   0.98
+  spread     -2.58   0.89
+
+  paired differences, strokes a round (negative means the first is better):
+    flag   - centre   -0.30 ± 0.25 (95%)   t  -2.4
+    flag   - spread   -0.42 ± 0.22 (95%)   t  -3.6
+    centre - spread   -0.12 ± 0.19 (95%)   t  -1.2
+
+$ python3 lab/golf.py --draws 60 --calm --pin-range 14
+60 courses drawn independently (pins ±14 ft, still air), one round each, learning off
+
+  policy      mean     sd
+  flag       -1.20   0.92
+  centre     -2.18   1.07
+  spread     -1.98   0.75
+
+  paired differences, strokes a round (negative means the first is better):
+    flag   - centre   +0.98 ± 0.34 (95%)   t  +5.7
+    flag   - spread   +0.78 ± 0.29 (95%)   t  +5.3
+    centre - spread   -0.20 ± 0.17 (95%)   t  -2.4
+
+$ python3 lab/golf.py --draws 60 --calm --pin-range 19
+60 courses drawn independently (pins ±19 ft, still air), one round each, learning off
+
+  policy      mean     sd
+  flag       +0.25   2.20
+  centre     -1.90   0.88
+  spread     -2.25   0.93
+
+  paired differences, strokes a round (negative means the first is better):
+    flag   - centre   +2.15 ± 0.56 (95%)   t  +7.6
+    flag   - spread   +2.50 ± 0.58 (95%)   t  +8.5
+    centre - spread   +0.35 ± 0.22 (95%)   t  +3.1
+
+$ python3 lab/golf.py --draws 60 --pin-range 14
+60 courses drawn independently (pins ±14 ft, wind drawn too), one round each, learning off
+
+  policy      mean     sd
+  flag       +2.02   1.96
+  centre     +2.35   1.54
+  spread     +2.47   1.41
+
+  paired differences, strokes a round (negative means the first is better):
+    flag   - centre   -0.33 ± 0.54 (95%)   t  -1.2
+    flag   - spread   -0.45 ± 0.50 (95%)   t  -1.8
+    centre - spread   -0.12 ± 0.33 (95%)   t  -0.7
+
+$ python3 lab/golf.py --draws 60 --pin-range 19
+60 courses drawn independently (pins ±19 ft, wind drawn too), one round each, learning off
+
+  policy      mean     sd
+  flag       +2.72   2.05
+  centre     +3.17   1.71
+  spread     +3.15   1.40
+
+  paired differences, strokes a round (negative means the first is better):
+    flag   - centre   -0.45 ± 0.59 (95%)   t  -1.5
+    flag   - spread   -0.43 ± 0.56 (95%)   t  -1.5
+    centre - spread   +0.02 ± 0.39 (95%)   t  +0.1

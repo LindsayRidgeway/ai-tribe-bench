@@ -219,6 +219,20 @@ HELD_OUT = [Hole(130, 3, "H1", pin=+12, wind=(20, 11)),
 CALM = [(h.yards, h.par, h.label, h.pin, (0.0, 0.0)) for h in COURSE]
 
 
+def drawn_course(rng: random.Random, pin_range: float = 14.0, calm: bool = False) -> list[Hole]:
+    """The same nine holes with the pin and the wind drawn independently.
+
+    The first time this game was played the nine pins and the nine winds were nine fixed pairs that I chose by
+    hand, and the aiming experiment came out one way in still air and the opposite way with the weather on. An
+    athlete that cannot correct a crosswind is lucky or unlucky depending on which way the air blows past which
+    pin, and a hand-picked table is not a sample of that luck. Draws are independent: the pin anywhere in the
+    middle 28 ft of the green, the air from any bearing at 8 to 18 mph.
+    """
+    return [Hole(h.yards, h.par, h.label, pin=rng.uniform(-pin_range, pin_range),
+                 wind=(0.0, 0.0) if calm else (rng.uniform(0.0, 360.0), rng.uniform(8.0, 18.0)))
+            for h in COURSE]
+
+
 def wind_vector(wind: tuple[float, float]) -> tuple[float, float]:
     """The air's velocity in ft/s, from the bearing it blows FROM — the way a golfer names it: 'into the
     wind on the first', and everybody knows which way to face."""
@@ -529,7 +543,11 @@ def play_hole(hole: Hole, ath: Athlete, putter: PuttAthlete, green: Green,
             on_green(ball, hole) or putts > 0
             or math.hypot(flag[0] - ball[0], flag[1] - ball[1]) <= PUTT_ZONE):
         d_ft = math.hypot(flag[0] - ball[0], flag[1] - ball[1])
-        bearing = bearing_to(ball, flag) if d_ft > 0 else 0.0
+        if d_ft <= 2.125 / 12.0:          # the hole is 4.25 in across; a ball in it is in it
+            if verbose:
+                print(f"  {tag}{hole.label:>3} {'':>4} {'':>12} in the hole, no putt needed")
+            break
+        bearing = bearing_to(ball, flag)
         r = putt_attempt(putter, PuttHole(d_ft, bearing), green, learn=learn)
         putts += 1
         strokes += 1
@@ -708,6 +726,33 @@ def selftest() -> int:
     check("aiming away from a tucked pin pays", scored["spread"] < scored["flag"],
           f"{scored['spread']} strokes against {scored['flag']} over four calm rounds")
 
+    # 14. the target decision, measured over drawn pins instead of my nine: its value has to grow as the pins
+    # get tucked. If it did not, the whole of finding 3 would be a property of the table I typed in.
+    def paired_advantage(pin_range: float, draws: int = 40) -> float:
+        a0 = Athlete()
+        a0.policy = "spread"
+        pu = PuttAthlete()
+        for k in range(3):
+            play_round(drawn_course(random.Random(9000 + k), pin_range, True), a0, pu, green,
+                       learn=True, verbose=False)
+        d = []
+        for k in range(draws):
+            course = drawn_course(random.Random(4000 + k), pin_range, True)
+            row = {}
+            for pol in ("flag", "spread"):
+                a = copy_of(a0)
+                a.policy = pol
+                row[pol] = play_round(course, a, PuttAthlete(), green, learn=False, verbose=False,
+                                      rng=random.Random(DEFAULT_SEED))["to_par"]
+            d.append(row["flag"] - row["spread"])
+        return sum(d) / len(d)
+
+    tight, friendly = paired_advantage(19.0), paired_advantage(6.0)
+    check("a tucked pin is what makes the target decision worth anything",
+          tight - friendly > 1.0,
+          f"aiming at the middle is worth {tight:+.2f} strokes on tucked pins and {friendly:+.2f} on "
+          f"friendly ones, over 40 drawn courses each")
+
     print(f"\n  {len(fails)} of {n} checks failed" if fails else f"\n  all {n} checks pass")
     return 1 if fails else 0
 
@@ -750,6 +795,50 @@ def compare(args) -> int:
     return 0
 
 
+def draws(args) -> int:
+    """One trained athlete, many courses, all policies, paired by course.
+
+    Training is on drawn courses too — four of them, learning on — so the notebook is not tuned to my nine
+    pins either. Evaluation is learning off, one round a course, every policy on the same course, and the
+    quantity reported is the *paired* difference: the same draw in both columns, which is the only way a
+    nine-hole score gets an error bar small enough to argue with.
+    """
+    green = Green(stimp=10.0, grade=1.2, downhill=135.0)
+    trained = Athlete()
+    trained.policy = "spread"
+    putter = PuttAthlete()
+    for k in range(4):
+        play_round(drawn_course(random.Random(9000 + k), args.pin_range, args.calm), trained, putter, green,
+                   learn=True, verbose=False)
+    policies = ("flag", "centre", "spread")
+    n = args.draws
+    scores = {p: [] for p in policies}
+    for d in range(n):
+        course = drawn_course(random.Random(4000 + d), args.pin_range, args.calm)
+        for p in policies:
+            a = copy_of(trained)
+            a.policy = p
+            r = play_round(course, a, PuttAthlete(), green, learn=False, verbose=False,
+                           rng=random.Random(DEFAULT_SEED))
+            scores[p].append(r["to_par"])
+    print(f"{n} courses drawn independently (pins ±{args.pin_range:.0f} ft"
+          f"{', still air' if args.calm else ', wind drawn too'}), one round each, learning off\n")
+    print(f"  {'policy':8s} {'mean':>7s} {'sd':>6s}")
+    for p in policies:
+        xs = scores[p]
+        m = sum(xs) / n
+        sd = math.sqrt(sum((x - m) ** 2 for x in xs) / max(1, n - 1))
+        print(f"  {p:8s} {m:+7.2f} {sd:6.2f}")
+    print(f"\n  paired differences, strokes a round (negative means the first is better):")
+    for a_, b_ in (("flag", "centre"), ("flag", "spread"), ("centre", "spread")):
+        d = [x - y for x, y in zip(scores[a_], scores[b_])]
+        m = sum(d) / n
+        se = math.sqrt(sum((x - m) ** 2 for x in d) / max(1, n - 1)) / math.sqrt(n)
+        t = m / se if se > 0 else 0.0
+        print(f"    {a_:6s} - {b_:6s}  {m:+6.2f} ± {1.96 * se:4.2f} (95%)   t {t:+5.1f}")
+    return 0
+
+
 # ---- main -------------------------------------------------------------------------------------------
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
@@ -757,6 +846,10 @@ def main(argv=None) -> int:
     ap.add_argument("--policy", default="spread", choices=["flag", "centre", "spread"],
                     help="where it aims: at the pin, at the middle of the green, or where the putt is likeliest")
     ap.add_argument("--calm", action="store_true", help="the same course on a still day")
+    ap.add_argument("--draws", type=int, default=0,
+                    help="evaluate the policies over N random pin-and-wind pairings instead of the fixed nine")
+    ap.add_argument("--pin-range", type=float, default=14.0,
+                    help="how far from the green's centre a drawn pin may be, in feet")
     ap.add_argument("--compare", action="store_true",
                     help="train one athlete, then play the same rounds under all three target policies")
     ap.add_argument("--rounds", type=int, default=3)
@@ -766,6 +859,8 @@ def main(argv=None) -> int:
         return selftest()
     if args.compare:
         return compare(args)
+    if args.draws:
+        return draws(args)
 
     green = Green(stimp=10.0, grade=1.2, downhill=135.0)
     ath, putter = Athlete(), PuttAthlete()

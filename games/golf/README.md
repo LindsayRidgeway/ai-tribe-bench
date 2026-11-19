@@ -2,13 +2,14 @@
 
 Built 2026-11-19 by Dmitri, from the founder's suggestion of the same day. Second pass the same night:
 wind, and the decision about where to aim. The tool is `lab/golf.py`; the runs are
-`records/golf-2026-11-19.txt`; the checks are `python3 lab/golf.py --selftest` (15 of them).
+`records/golf-2026-11-19.txt`; the checks are `python3 lab/golf.py --selftest` (16 of them).
 
     python3 lab/golf.py                    # six rounds of nine, then six holes never played
     python3 lab/golf.py --calm             # the same pins on a still day
     python3 lab/golf.py --learn 0          # the control: same athlete, same seed, never updated
     python3 lab/golf.py --policy flag      # aim at the pin / centre: the middle / spread: where the putt is likeliest
     python3 lab/golf.py --compare          # train one athlete, then play all three policies against each other
+    python3 lab/golf.py --draws 60         # the same, over 60 courses whose pins and winds are drawn, not chosen
     python3 lab/golf.py --selftest         # the numbers below, checked
 
 ## The question, and why it is not "putt, from further away"
@@ -132,25 +133,29 @@ Putts, still air: 30, 25, 25, 22, 24, 25 for the learner, 18 every round for the
    athlete learns the *along* part — its coefficient settles at 0.95 against the model's own 0.7 per unit of
    head fraction — and cannot learn the *across* part at all. A crosswind moves the ball 31.8° per unit of
    cross fraction, and there is no column in a notebook for that.
-3. **On a still day, aiming at the pin is a mistake worth three strokes a round.** One trained athlete, four
-   rounds under each policy, learning off, same draw:
+3. **Where you aim is worth nothing on a friendly pin day and two and a half strokes on a tucked one — and
+   the course, not the player, decides which day it is.** One trained athlete, three policies, sixty courses
+   per setting with the pins *drawn* rather than chosen, every policy playing the same course, learning off:
 
-   | policy | strokes (36 holes) | to par | greens hit | putts |
-   |---|---|---|---|---|
-   | at the pin | 148 | +8 | 28/36 | 76 |
-   | at the middle of the green | 140 | 0 | **32/36** | 76 |
-   | where the putt is likeliest | **136** | **−4** | **32/36** | **72** |
+   | still air, 60 drawn courses | pin ±6 ft | pin ±14 ft | pin ±19 ft |
+   |---|---|---|---|
+   | aiming at the pin, minus aiming where the putt is likeliest | **−0.42 ± 0.22** | **+0.78 ± 0.29** | **+2.50 ± 0.58** |
 
-   Three strokes a round, and it is the same three the caddie has been charging for since caddies: a pin
-   cut near an edge is not worth fourteen feet of proximity. The scatter it measured (1.8°) is what decides
-   it — with a 17-foot wide pattern, the middle is a better target than the flag, and the athlete works that
-   out from its own misses.
-4. **The same experiment on the windy course reverses, and I will not call that a finding.** With the wind
-   on, pin-hunting wins by twenty strokes over aiming at the middle (128 against 156), and the reason is a
-   property of *my* arrangement, not of golf: nine pins and nine winds are nine fixed pairs, I chose them,
-   and an athlete that cannot correct for crosswind drift is lucky or unlucky depending on which way the
-   wind blows past which pin. It is a caution about the design, and the next pass should randomise the pin
-   and wind pairing before anyone reads a number off the windy column.
+   Negative means pin-hunting wins. On a nine with the flags near the middle it is right to shoot at them, by
+   about four tenths of a stroke; somewhere around eight feet of pin offset the middle of the green becomes the
+   better target, and on a tucked-pin day the decision is worth two and a half strokes a round. **The first
+   version of this file reported three strokes off nine pins I had typed in myself, and they were tucked: their
+   mean offset is 10 ft, which is what the ±19 draw looks like.** The three was the top of the range the
+   randomised estimate allows, not a general rule, and the README said three before it had a right to.
+
+4. **With the wind on, the same decision is worth nothing at all — and last night's twenty-stroke reversal was
+   an artifact of my own pin table.** Drawn pins at ±19 with drawn wind give **−0.43 ± 0.56**: not a reversal,
+   just no effect. The reason is mechanical and worth stating, because it is the most useful sentence in this
+   file: *a crosswind adds an error the player cannot predict, and its size per hole is comparable to the pin's
+   offset — so the correction it could make for the pin is lost inside the error it cannot make.* Against the
+   fixed nine, the same comparison swung twenty strokes the other way (128 against 156); with pins and winds
+   drawn independently, that swing is gone. Nine pins and nine winds are nine fixed pairs; I had chosen them,
+   and an athlete that cannot correct a sidewind is lucky or unlucky by which way the air blows past which pin.
 
 ## What this does not model
 
@@ -168,9 +173,10 @@ rough coefficient**, which could not be separated from the notebook's own errors
 
 ## What would come next, in order
 
-1. **Randomise the pin and wind pairing**, and run the three policies again over many draws. The calm result
-   is a finding; the windy one is a coin that I minted. This is an hour's work and it is the first thing that
-   should happen, before any of the rest.
+1. **A green that is not an ellipse.** The pin's *distance* from the edge is the only shape this green has, and
+   every finding above is a function of that one number. A green with a false front, or a bunker on the short
+   side, would make the target a two-dimensional decision — and the first pass already showed what a single
+   missing shot does to the game.
 2. **A course that is not straight.** One dogleg changes the drive from "hit it as far as you can" into a
    decision with a number on it, and it is the cheapest way to make the driver's distance matter.
 3. **The picture.** A golf render is cheaper than a tennis one: one ball, one flight, a camera behind the
