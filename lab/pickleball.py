@@ -16,7 +16,7 @@ repository has been broken before. Twelve imports, zero copies — `lab/pickleba
     MPH, G                       the unit constants
     Player, Player.skill         the player and the 1-exp(-n/120) learning curve
     movement_speed               feet per second from the reach skill
-    reachable                    the meeting problem: can they get to it before it passes them
+    interception                 the meeting problem as numbers: can they get there, and where do the feet stop
     parse_command                the FACE / POWER / AIM reply grammar
     vendors_of, open_book        who plays, and the season file that outranks the flag
     member_chooser               ask -> parse -> fall back, one prompt per contact
@@ -51,8 +51,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from tennis import (  # noqa: E402  the twelve, not a thirteenth copy
     COMPASS, G, MPH, RHO, Player, flight, load_season, member_chooser, movement_speed, net_height, open_book,
-    parse_command, practice_of, reachable, record_session, save_season, season_paths, vendors_of, wind_at,
-    wind_vector,
+    VOLLEY_HIGH, VOLLEY_LOW, interception, parse_command, practice_of, record_session, save_season, season_paths,
+    vendors_of, volley_contact, wind_at, wind_vector,
 )
 
 # ---- the court, in feet ---------------------------------------------------------------------------
@@ -74,8 +74,18 @@ WIND_CAP = 12.0                          # mph. The clock's own wind rule runs t
                                          # reaches 49.5 ft in still air, 35.6 ft into a 12 mph headwind, and
                                          # 27.5 ft into 20 mph — short of the kitchen line, so no legal serve
                                          # exists at all. Capped, and the cap is printed with the session.
-VOLLEY_STEP = 1.2                         # ft a player steps in to meet a ball in the air
-VOLLEY_ZONE = 4.0                        # ft outside the kitchen line: a player standing this close takes a
+STRETCH_PENALTY = 0.55                   # how much of the player's control a full-extension contact costs. Not
+                                         # measured against anything yet: it is the one number in this file that is
+                                         # a guess, and the page says so. A/B'd against 0.0 in §5d.
+COMFORT = 0.55                           # fraction of the reach a player can use and still be balanced: inside
+                                         # this the contact is not a stretch, beyond it the arm does the work
+PADDLE_REACH = 6.0                       # ft the paddle covers beyond the feet, by the same construction as
+                                         # tennis's 7: arm 2.5 + paddle 1.35 (a 15-17 in paddle) + lunge 2.2. The
+                                         # first number I wrote was 3.0 — arm and paddle, lunge forgotten — and at 3 ft
+                                         # 69% of rallies ended "nobody could reach it", which is not a hard game,
+                                         # it is a game with one strategy. The reach is the *same* reach as tennis
+                                         # to within a foot; the difference between the sports is where the feet are,
+                                         # not how long the arm is.
                                          # deep ball out of the air, and further back lets it bounce
 
 # The ball. Mass and size are the equipment standard's own range, mid-point taken: 2.87 in and 0.88 oz are
@@ -201,7 +211,7 @@ def launch_for(shot: str, face: float) -> float:
 
 def strike(p: Player, incoming: dict | None, face: float, power: float, aim: float, shot: str,
            surface: str, wind: tuple[float, float], pos: tuple[float, float] | None = None,
-           clean: bool = False) -> dict:
+           clean: bool = False, stretch: float = 0.0) -> dict:
     """Movement in, ball out. Face in degrees, power in per cent, aim in feet across the court.
 
     Spin is off by decision, not by omission: the design page measures the fitted lift coefficient's effect
@@ -211,6 +221,13 @@ def strike(p: Player, incoming: dict | None, face: float, power: float, aim: flo
     control = p.skill("control")
     pace_in = (incoming or {}).get("speed_in", 20.0)          # mph; pickleball rallies are slower than tennis
     control *= 1 - 0.18 * min(1.0, pace_in / 45.0)            # a hard ball gives less time to set the paddle
+    # ...and a ball met at the end of the reach is hit with the arm and not the body. `stretch` is 0 when the
+    # feet are comfortably under the ball and 1 when the paddle is at full extension; it is the cost of arriving
+    # late, and without it the engine has a perfect defence: on 2026-11-16 an honest receiving model produced
+    # rallies that never ended because being stretched was free (page §5c). The penalty is on control, which is
+    # where `strike` already puts every other human error, so a stretched ball is a *wider* ball and not a
+    # weaker one — it goes out, or it sits up, and the rally can end.
+    control *= 1 - STRETCH_PENALTY * max(0.0, min(1.0, stretch))
     pos = pos if pos is not None else (BASELINE_N + 1.0 if p.north else LENGTH - 1.0, CENTRELINE)
 
     if not clean:
@@ -236,8 +253,10 @@ def strike(p: Player, incoming: dict | None, face: float, power: float, aim: flo
     vx = v * math.cos(elevation) * math.cos(azimuth) * (1 if p.north else -1)
     vy = v * math.cos(elevation) * math.sin(azimuth)
     vz = v * math.sin(elevation)
+    # The path is traced because the next player's volley decision needs the ball's flight *before* it bounces:
+    # "can I take it out of the air" cannot be asked of a bounce point. One integrator, one call, a trace.
     traj = flight(p0, (vx, vy, vz), wind, surface, cl=0.0, drag=DRAG, lift=LIFT,
-                  net_x=NET_X, surfaces=SURFACES, net_profile=net_profile)
+                  net_x=NET_X, surfaces=SURFACES, net_profile=net_profile, trace=0.02)
     return {"player": p, "shot": shot, "speed": speed, "sweet": clean_hit, "contact": p0, "traj": traj,
             "face": face_actual, "power": power_actual, "spin": 0.0, "ball": BALL["make"]}
 
@@ -435,15 +454,16 @@ def serve_first(match: Match, first_team: int) -> None:
 
 # ---- one rally -------------------------------------------------------------------------------------
 APPROACH_DEFAULT = 2.0                   # ft outside the player's own kitchen line that they hold. Two feet is
-                                         # where the sport tells you to stand — close enough to take time away —
-                                         # and it is *inside* the fault window, which is the point: see below
+                                         # where the sport tells you to stand: close enough to take time away,
+                                         # far enough that the follow-through does not carry you in.
 APPROACH_MAX = 9.0                       # the deepest a frightened player will stand and still call it doubles
-# The fault window, and why the default sits inside it. A volley is met VOLLEY_STEP (1.2 ft) inside where the
-# feet were, and the carry afterwards is 1.5 ft forward, so a player holding g feet behind the line volleys
-# from g-1.2 and is carried to g+0.3: they are in the kitchen for 1.2 <= g < 2.7 (and inside it at contact for
-# g < 1.2). A default of 2.0 is in that window, so the game has a fault to learn from; the reader in
-# `reading_chooser` steps out of it with one lesson. A default of 4.0 — the first number I wrote — was outside
-# the window, and a rule nobody can break is not a rule, it is scenery.
+# The fault window, and why the default is outside it. A volley is taken with the feet planted (see
+# `play_rally`), so the contact is where the player stands; the carry afterwards is 1.5 ft forward, so a player
+# holding g feet behind the line is carried in for g < 1.5. A default of 2.0 is *outside* the window and one
+# lesson (a foot, from 1.0) leaves it — which is the right shape for a rule: it bites a player who has gone to
+# the line chasing a ball, not a player who is standing where the sport says to stand. The first version had
+# the volley step 1.2 ft toward the net and put the default *inside* the window, so the engine manufactured a
+# fault out of correct footwork: 540 carried-in volleys in twelve games, from a stance nobody would coach.
 
 
 @dataclass
@@ -457,9 +477,15 @@ class Positions:
     kitchen by its own volley raises it; see `reading_chooser`."""
     at: dict[str, tuple[float, float]] = field(default_factory=dict)
     approach: dict[str, float] = field(default_factory=dict)
+    stretch: dict[str, float] = field(default_factory=dict)
 
     def approach_of(self, p: Player) -> float:
         return self.approach.setdefault(p.name, APPROACH_DEFAULT)
+
+    def stretch_of(self, p: Player) -> float:
+        """0 when the feet are comfortably under the ball, 1 at full extension. Set when the player is put
+        somewhere by `interception`, read when they strike."""
+        return self.stretch.setdefault(p.name, 0.0)
 
     def home(self, p: Player) -> tuple[float, float]:
         """Where a player waits: a couple of feet behind their own kitchen line in a dink exchange, or on
@@ -508,22 +534,33 @@ def play_rally(match: Match, players: dict[str, Player], pos: "Positions", choos
         if shot_no == 0:                                  # the server stands on their service side, behind
             here = (-1.0 if p.north else LENGTH + 1.0, match.server_y())   # the baseline; the engine knows
             pos.at[p.name] = here                                          # which side from the score
-        # The shot type is the engine's, not the member's: the command is three numbers and none of them is
-        # "volley". A player standing within four feet outside the kitchen line takes a deep ball out of the
-        # air; anyone else lets it bounce. A player standing *inside* the kitchen never swings at it in the
-        # air, because that is always a fault — so the only kitchen fault the sim can produce is the
-        # momentum one, and the contact fault exists anyway for the day a fourth field is added.
-        deep_ball = (incoming or {}).get("depth", 99.0) > 6.0
-        can_volley = may_volley and deep_ball and 0 < feet_from_kitchen_line(here[0]) <= VOLLEY_ZONE
-        shot_kind = "serve" if shot_no == 0 else ("volley" if can_volley else "groundstroke")
-        if shot_kind == "volley":
-            contact_pos = (here[0] + (VOLLEY_STEP if p.north else -VOLLEY_STEP), here[1])
-        else:
-            contact_pos = here
+        # THE BALL IN THE AIR, asked properly. `volley_contact` is tennis's own primitive — the same one the
+        # tennis records are built from — and it answers the only question a volley asks: is the ball within the
+        # paddle's reach at a hittable height *before it bounces*, and where are the feet when it is?
+        #
+        # The rule it replaces was a fiction in two halves. It asked whether the incoming ball would land DEEP
+        # (`depth > 6`), so a short, high ball — exactly the ball a dink rally is waiting for — could never be
+        # attacked, and a dink exchange could only end in an error. And it stepped the player 1.2 ft toward the
+        # net to meet every ball in the air, which is not what a volley is: the ball comes to you. Both halves
+        # are gone. Any ball that can be reached in the air is a volley; whether it is an attack or a dig is the
+        # height's business and the player's nerve, not the engine's.
+        vol = None
+        if may_volley and shot_no > 0 and incoming and incoming.get("path"):
+            vol = volley_contact(p, incoming["path"], at=here, reach=PADDLE_REACH,
+                                 lo=VOLLEY_LOW, hi=VOLLEY_HIGH)
+            if vol is not None and in_kitchen(vol["feet"][0]):
+                vol = None                     # the feet would be in the kitchen: that is a fault, not a volley
+        shot_kind = "serve" if shot_no == 0 else ("volley" if vol else "groundstroke")
+        contact_pos = (vol["feet"][0], vol["feet"][1]) if vol else here
+        # How stretched the contact is: a lunge for a volley, or the reach the receiving model left the feet at.
+        stretch = min(1.0, vol["step"] / PADDLE_REACH) if vol else pos.stretch_of(p)
+        if vol is not None:
+            incoming = dict(incoming)
+            incoming["volley_height"] = round(vol["height"], 2)   # the height is the attack's invitation
         face, power, aim = choose(p, players.get(_opponent_name(match, players, p.name)), incoming,
                                   shot_no, [], shot_kind, may_volley, contact_pos)
         shot = strike(p, incoming, face=face, power=power, aim=aim, shot=shot_kind, surface=surface,
-                      wind=wind_vec, pos=contact_pos)
+                      wind=wind_vec, pos=contact_pos, stretch=stretch)
         pos.at[p.name] = contact_pos
         ok, why = verdict(shot)
         shot_no += 1
@@ -555,13 +592,33 @@ def play_rally(match: Match, players: dict[str, Player], pos: "Positions", choos
         else:
             receiver = _receiver_for(match, players, pos, land, hitter_team)
         rp = players[receiver]
-        can, why_not = reachable(rp, land, t["time"], t["bounce"], surface,
-                                 home_x=3.0, court_len=LENGTH, court_wid=WIDTH)
-        if not can:
-            say(f"       -- point: {rp.name} is {why_not}")
+        # THE BODY, not the ball's landing point. `interception` is tennis's own arithmetic — the same one the
+        # renderer draws and the scoreline judges — asked with this sport's reach and with `frm`: where the
+        # player is standing *right now*, because a player who has just hit from the forecourt is not on the
+        # baseline. The feet come to rest where the legs brought them (`got`), never on the bounce point.
+        # Before this line the engine assigned `pos.at[rp] = land`, i.e. it teleported the receiver onto the
+        # ball and then asked whether a foot inside the kitchen is a fault. That is why the stance measured as
+        # irrelevant (§5b): between shots the feet were not the player's.
+        m = interception(rp, land, t["time"], t["bounce"], surface, frm=pos.get(rp), reach=PADDLE_REACH)
+        if not m["ok"]:
+            say(f"       -- point: {rp.name} is {m['why']}")
             return {"shots": shot_no, "why": "unreachable", "fault_by": None, "fault_name": receiver,
-                    "winner": hitter_team}
-        pos.at[rp.name] = pos.move_toward(rp, land, t["time"] + 0.4)
+                    "why_not": m["why"], "winner": hitter_team}
+        pos.at[rp.name] = m["got"]
+        # Stretched means the ball is out towards the end of the paddle's reach: 0 with the feet under it, 1 at
+        # full extension. This is the fact that was missing on 2026-11-16 — without it a player who arrives late
+        # hits as well as a player who arrived early, and defence never breaks (page §5c).
+        pos.stretch[rp.name] = max(0.0, min(1.0, (m["gap"] - COMFORT * PADDLE_REACH)
+                                   / (PADDLE_REACH - COMFORT * PADDLE_REACH)))
+        # ...and whatever time is left over is spent getting back to the stance. That leftover is the only
+        # place the player's own number (`approach`) can act, and therefore the only place a lesson about the
+        # kitchen can land: a player who arrives early chooses where to stand, a player who arrives late does not.
+        spare = m["have"] - m["need"]
+        if spare > 0.05:
+            line_x = KITCHEN_LINE if rp.north else NET_X + KITCHEN
+            gap = pos.approach_of(rp)
+            want_x = line_x - gap if rp.north else line_x + gap
+            pos.move_toward(rp, (want_x, pos.get(rp)[1]), spare)
         # the volley's momentum: the rules say a player carried into the kitchen after a volley has faulted,
         # even though the ball is already dead. Adjudicated on the position the follow-through leaves them in.
         if shot_kind == "volley" and 0 < feet_from_kitchen_line(contact_pos[0]) <= 2.0:
@@ -574,18 +631,16 @@ def play_rally(match: Match, players: dict[str, Player], pos: "Positions", choos
                 return {"shots": shot_no, "why": "momentum", "fault_by": hitter_team, "fault_name": p.name,
                         "fault_at": (round(contact_pos[0], 2), round(contact_pos[1], 2)),
                         "winner": 1 - hitter_team}
-        if shot_kind == "groundstroke":                 # the approach step, and the recovery that must pair
-            line_x = KITCHEN_LINE if p.north else NET_X + KITCHEN
-            gap = pos.approach_of(p)
-            want_x = line_x - gap if p.north else line_x + gap
-            # Both directions, and that is a defect fix, not a kindness. The first version only moved a player
-            # *forward* to their mark, so a player who chased a ball to the kitchen line hit from there and
-            # stayed there for the rest of the rally — 42 momentum faults in four scripted games, every one of
-            # them a volley taken from between 0.03 and 1.41 ft outside the line. A pickleball player recovers
-            # after the shot; a body that only walks forward is a body that is not being simulated.
-            if abs(pos.get(p)[0] - want_x) > 0.25:
-                pos.move_toward(p, (want_x, pos.get(p)[1]), 1.0)
+        # The hitter's own move, and the same rule as the receiver's: a player who is not hitting is walking to
+        # their stance. The budget is this shot's own flight time — the time before the ball can possibly come
+        # back — rather than the fixed 1.0 s the first version used, which was a number with no referent. It is
+        # deliberately *one* rule stated twice rather than two behaviours that have to be kept in agreement.
+        line_x = KITCHEN_LINE if p.north else NET_X + KITCHEN
+        want_x = line_x - pos.approach_of(p) if p.north else line_x + pos.approach_of(p)
+        if shot_kind != "volley" and abs(pos.get(p)[0] - want_x) > 0.25:
+            pos.move_toward(p, (want_x, pos.get(p)[1]), t["time"])
         incoming = dict(t["bounce"])
+        incoming["path"] = t.get("path")           # the flight, for the next player's volley decision
         incoming["speed_in"] = t["bounce"]["speed_out"] / MPH
         incoming["depth"] = abs(land[0] - NET_X)
         hitter = receiver
@@ -739,6 +794,7 @@ def reading_chooser(level: str = "steady", say=print):
     """
     base = scripted_chooser(level)
     STEP = 1.0                            # ft per fault: one step back, like a person, not a solver
+    STANCE_TOL = 0.6                      # ft: a fault taken from within this of the mark is the stance's fault
 
     def factory(players, wind_in, surface):
         choose = base(players, wind_in, surface)
@@ -760,7 +816,7 @@ def reading_chooser(level: str = "steady", say=print):
             line_x = KITCHEN_LINE if p.north else NET_X + KITCHEN
             mark_x = line_x - before if p.north else line_x + before
             at = r.get("fault_at")
-            if at is not None and abs(at[0] - mark_x) > VOLLEY_STEP + 0.3:
+            if at is not None and abs(at[0] - mark_x) > STANCE_TOL:
                 say(f"       == {name} reads its own fault ({r['why']}) and it was not the stance: it was "
                     f"{abs(at[0] - line_x):.1f}ft from its own line, having gone to the ball. Nothing changes.")
                 return

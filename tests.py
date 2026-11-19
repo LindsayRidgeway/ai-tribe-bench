@@ -4311,8 +4311,11 @@ class TestPickleball(unittest.TestCase):
                                say=say.append, rally_no=1)
         kinds = [ln.split()[2] for ln in say if ln.strip()[:2].strip().rstrip(".").isdigit()]
         self.assertEqual(kinds[0], "serve")
-        for k in kinds[1:3]:
-            self.assertIn(k, ("shot", "groundstroke"), f"the third shot cannot be a volley, got {k}")
+        # The serve and the RETURN of serve may not be volleyed; the third shot may, because the ball has then
+        # bounced on both sides. The first version asserted otherwise, against an engine that also required a
+        # DEEP ball to volley — two accidents encoded as rules. Both are gone (§5d).
+        self.assertIn(kinds[1], ("shot", "groundstroke"), "the return of serve must bounce")
+        self.assertIn(kinds[2], ("shot", "groundstroke", "volley"))
 
     def test_the_wind_is_capped_because_a_20mph_headwind_leaves_no_legal_serve(self):
         pk = self.pk
@@ -4451,7 +4454,12 @@ class TestPickleball(unittest.TestCase):
         vol = pk.volley_contact(p, shot["traj"].get("path"), at=(14.0, pk.CENTRELINE),
                                 reach=pk.PADDLE_REACH, lo=pk.VOLLEY_LOW, hi=pk.VOLLEY_HIGH)
         self.assertIsNotNone(vol, "a short high ball is an invitation, not a ball to wait for")
-        self.assertGreater(vol["height"], pk.NET_CENTRE, "and it is taken above the tape, which is why it can be attacked")
+        # The earliest reachable contact is what `volley_contact` returns — a player coming forward takes the
+        # ball when they can, not when it is prettiest. Its height is handed to the chooser, and that is what
+        # decides an attack (above the tape) from a dig: the engine no longer decides it by asking how DEEP the
+        # ball would have landed, which was the rule that made short balls unhittable in the air.
+        self.assertLess(vol["contact"][0], pk.NET_X, "taken on the receiving side of the net")
+        self.assertGreaterEqual(vol["height"], pk.VOLLEY_LOW, "and above the knee, or it is a dig off the ground")
 
     def test_no_rally_runs_to_the_engines_ceiling(self):
         """The guard this turn needed, and did not have. `RALLY_CAP` = 120 shots is the record's ceiling, not a
