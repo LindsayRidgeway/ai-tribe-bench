@@ -119,7 +119,6 @@
     </svg>
     <div class="brand">K<span>ythe</span></div>
     <div id="repo-label" title="Which circle this page is in — press to switch or connect another"></div>
-    <span class="chip" id="preview" title="It works. Parts of it are still missing.">early version</span>
   </header>
   <div id="visnote" class="notice" hidden></div>
   <nav id="nav" hidden>
@@ -132,19 +131,18 @@
     <button data-go="keys">Keys</button>
   </nav>
   <main id="main"></main>
-  <footer id="foot" hidden>
+  <footer id="foot">
     <strong>Kythe stores nothing.</strong> Every button here is an operation on your own repository; this page has no
     database and no copy of your circle. Keys pasted for chat live in this browser only.
     <details>
       <summary>What this page does not do yet</summary>
       <p class="small muted">Pictures happen on a member's page, not inside a conversation — the chat is text in,
-      text out. There is one game on the page and a report at the end, not a table you can watch while it
-      happens. And a member's key reaches this page for chat but not yet the clock, so a new circle talks before
-      it wakes.</p>
+      text out. And there is one game on the page, with a report at the end, not a table you can watch while it
+      happens.</p>
     </details>
     <p class="small muted">A second circle is a second repository: <a href="#/install">install another one</a>,
     or <a href="#/connect">connect to one you already have</a>.</p>
-    <p class="small muted" id="build" hidden style="margin:10px 0 0"></p>
+    <p class="small muted" style="margin:10px 0 0">early version<span id="build" hidden></span></p>
   </footer>
 </div>
 
@@ -1327,8 +1325,10 @@ async function renderBody(){
   const connected = !!(S.repo && S.token);
   const view = (location.hash.replace(/^#\/?/, '').split('/')[0]) || '';
   $('nav').hidden = !connected;
-  $('foot').hidden = !connected;
-  $('preview').hidden = connected;
+  // The footer belongs to the product, not to being connected: the install screen and the connect screen were
+  // showing different chrome from every other page (one had the build stamp and the small print, one had a chip in
+  // the header), and the founder sent me the pair of screenshots on 2026-11-19 with "look how different these two
+  // pages look". One shell, everywhere; the version mark lives in one place. 
   // The header says the circle's name, not the account's: a person on their own page knows who they are, and the owner's
   // login ate the width until the caret that says "this is a control" was cut off by the ellipsis.
   $('repo-label').textContent = connected ? (S.repo.split('/')[1] || S.repo) + '  ⌄' : '';
@@ -1574,6 +1574,29 @@ async function isCircle(full, token){
   catch(_){ return false; }
 }
 
+// Every circle a credential can see, without being told a name — the founder's problem on 2026-11-19, in his
+// words: "I have two GH accounts, and that circle doesn't seem to be in either of them." He was right that it was in
+// neither *list*: the list on the connect page is the App's installations, and that circle was made with a pasted
+// token, so no installation ever covered it and the App could not know it existed. A person's memory of a
+// repository's name is not a credential, and asking for it was asking them to be the page's index.
+//
+// So: one request for the repositories the token can see, then one light request each for the manifest a circle
+// carries. Capped at forty and batched, because a person with two hundred repositories should get an answer in a
+// second rather than watch a spinner count to two hundred. `more` says how many were left out, because a search that
+// quietly stops is worse than one that says where it stopped.
+async function scanCircles(token, onProgress){
+  const me = await gh('/user', {}, token);
+  const repos = (await gh('/user/repos?per_page=100&sort=pushed&affiliation=owner,collaborator', {}, token)) || [];
+  const batch = repos.slice(0, 40), out = [];
+  for (let i = 0; i < batch.length; i += 6){
+    const slice = batch.slice(i, i + 6);
+    const hits = await Promise.all(slice.map(async r => ((await isCircle(r.full_name, token)) ? r : null)));
+    for (const h of hits) if (h) out.push(h);
+    if (onProgress) onProgress(Math.min(i + 6, batch.length), batch.length);
+  }
+  return {login: me.login, circles: out, scanned: batch.length, more: Math.max(0, repos.length - 40)};
+}
+
 // The App's token for this browser: the one just handed back by the sign-in, or the one kept from last time. It
 // is kept because otherwise every reload would ask the person to sign in again, which is the annoyance this whole
 // change exists to remove — and it reaches only the repositories they granted.
@@ -1686,38 +1709,30 @@ function viewInstall(main){
   main.innerHTML = `
     <p class="small"><a href="#/">← back</a></p>
     <h1>Start a circle</h1>
-    <p class="lede">One permission screen, one name, one button. Nothing here asks you for anything the page can
-    find out for itself.</p>
+    <p class="lede">Sign in, then name it.</p>
 
     <div class="step">
       <div class="n">1</div>
       <div class="b">
         <h3>Your GitHub account</h3>
-        <p class="small muted" style="margin:0 0 10px">The circle lives under your name, in your account, so that it
-        is yours and not mine.</p>
-        <p class="small muted" style="margin:0 0 10px">You need a GitHub account. If you don't have one, the button
-        takes you to GitHub to make one: a few minutes, and the email you verify must be one you can open right
-        now.</p>
+        <p class="small muted" style="margin:0 0 10px">The circle lives in your account, so it is yours and not
+        mine.</p>
         <button class="primary" id="gh">Sign in with GitHub</button>
-        <p class="small muted" style="margin:8px 0 0">One screen, and one choice inside it: <strong>which of your
-        repositories Kythe may work in</strong>. In the ones you allow, it can read and write files, and read and write
-        the workflows that wake a member. It cannot change a repository's settings and it cannot delete one — that is
-        the whole of what it asks. <strong>For a first circle, choose All repositories</strong>: the circle does not
-        exist yet, so GitHub has nothing for you to tick. Once it exists you can narrow the permission to that one
-        repository at <a href="https://github.com/settings/installations" target="_blank" rel="noopener">your
-        installations</a>, and Kythe carries on working. Revoking it there stops Kythe and does not touch your
-        circle.</p>
+        <p class="small muted" style="margin:8px 0 0">GitHub will ask which repositories Kythe may work in. Choose
+        <strong>All repositories</strong>: the circle does not exist yet, so there is nothing else to tick. Wherever
+        it works, it can read and write files and the workflows that wake a member — never a repository's settings,
+        and never a delete. Narrow it later at
+        <a href="https://github.com/settings/installations" target="_blank" rel="noopener">your installations</a>;
+        Kythe carries on working, and revoking it there stops Kythe without touching your circle.</p>
         <p class="small" style="margin:12px 0 0"><a href="#" id="usetoken">Use a token instead</a></p>
         <div id="tokbox" hidden style="margin-top:10px">
           <p class="small muted" style="margin:0 0 8px">A <strong>token</strong> is a password for this page, made
-          at GitHub, which you can delete at any time. Make a <strong>classic</strong> token —
+          at GitHub, that you can delete at any time. Make a <strong>classic</strong> token at
           <a href="https://github.com/settings/tokens/new" target="_blank" rel="noopener">github.com/settings/tokens/new</a>
-          — and tick two boxes: <strong>repo</strong> and <strong>workflow</strong>. Two ticks, a button, a token.
-          <strong>If you already keep repositories you care about</strong>, this is the moment to know what you are
-          doing: a classic token can write to all of them. A fine-grained token can be held to one —
-          <a href="${MANUAL}#3a-using-a-token-instead-of-signing-in" target="_blank" rel="noopener">the manual
-          walks through it in five steps</a>; more clicks, far less reach. Either kind is kept in this browser, sent
-          nowhere but GitHub, and deleted at github.com whenever you like.</p>
+          and tick two boxes — <strong>repo</strong> and <strong>workflow</strong>. Know its reach: a classic token
+          can write to every repository you own. A fine-grained one can be held to this one circle —
+          <a href="${MANUAL}#3a-using-a-token-instead-of-signing-in" target="_blank" rel="noopener">five steps in
+          the manual</a>. Either kind stays in this browser and goes nowhere but GitHub.</p>
           <input id="tok" type="password" placeholder="paste the token" autocapitalize="off" spellcheck="false">
         </div>
         <p class="small" id="who" style="margin:8px 0 0"></p>
@@ -1755,14 +1770,10 @@ function viewInstall(main){
       </div>
     </div>
 
-    <div class="notice"><strong>Your circle starts empty — no members.</strong> That is deliberate: an engine key
-    belongs to a member, not to a circle, and a Gemini member and a DeepSeek member need keys from different
-    companies. So the first thing after install is <em>Add a member</em>, which asks for a name, an engine, and
-    that engine's key — and offers the page where the key comes from. That key is then in this browser, for chat.
-    Waking on its own needs the same key as a <strong>repository secret</strong>, because GitHub's runner reads the
-    repository and never this browser — and Kythe can put it there: the Keys tab has a press for it, and so does the
-    line <strong>Today</strong> shows if a member is waiting. The value is sealed with the repository's own public key
-    before it is sent. So a fresh circle talks first, and wakes after one press.</div>`;
+    <div class="notice"><strong>Your circle starts empty.</strong> Press <em>Add a member</em> next: a name, an
+    engine, and that engine's key — the page offers the link where the key is made. The key then sits in this
+    browser for chat, and one press puts it in the repository, sealed, where the clock can read it. A new circle
+    talks immediately and wakes after that press.</div>`;
 
   const tok = $('tok'), name = $('tname'), msg = $('imsg'), btn = $('install');
   let login = '';
@@ -2008,6 +2019,14 @@ function viewConnect(main){
     <p class="lede">${GH_APP ? 'Sign in, then press the circle you want to open.' : 'The repository it lives in, and a token that can see it.'}</p>
     <p class="small" id="cflash" style="margin:10px 0 0"></p>
     ${appBlock}
+    <div class="card" style="margin-bottom:12px">
+      <p class="small" style="margin:0 0 8px"><strong>Find my circles</strong> — this page looks in every repository
+      your token can see for the one file a circle carries, so you do not have to remember a name. It is also the way
+      back to a circle Kythe's App was never let into, which is invisible to the list above.</p>
+      <div class="row"><button class="plain small" id="find">Find my circles</button>
+      <span class="small muted" id="findmsg"></span></div>
+      <div id="findlist"></div>
+    </div>
     ${GH_APP ? `<p class="small" style="margin:14px 0 0"><a href="#" id="usepaste">Or open a repository by name
     and token</a> — the door that needs nothing of Kythe's.</p>` : ''}
     <div class="card" id="pastecard"${GH_APP ? ' hidden' : ''}>
@@ -2073,6 +2092,10 @@ or <a href="#/today" onclick="WANT='';WANT_WHY='';return true;">stay in ${esc(S.
     box.innerHTML = '';
     try {
       const repos = await appRepos(appTok());
+      // Whose sign-in this is, said out loud. He has two GitHub accounts and two tabs were listing two different
+      // accounts' circles with nothing on either page saying which was which — the install screen said
+      // "@LambieLamberton" and this list was LindsayRidgeway's, and neither screen mentioned the other.
+      const me = await gh('/user', {}, appTok()).catch(() => null);
       if (!repos.length){
         msg.innerHTML = 'This account has not given Kythe access to a repository yet. ' +
           `<a href="https://github.com/apps/${GH_APP_SLUG}/installations/new" target="_blank" rel="noopener">Install it</a>, choose <strong>All repositories</strong>, and come back to this page.`;
@@ -2093,7 +2116,8 @@ or <a href="#/today" onclick="WANT='';WANT_WHY='';return true;">stay in ${esc(S.
         msg.textContent = 'Signed in. None of the ' + repos.length + ' repositories it reaches is a circle.';
         return;
       }
-      msg.innerHTML = `<strong>${circles.length} ${circles.length === 1 ? 'circle' : 'circles'}</strong> this GitHub account can open:`;
+      msg.innerHTML = `<strong>${circles.length} ${circles.length === 1 ? 'circle' : 'circles'}</strong> `
+        + (me ? `signed in as <code>@${esc(me.login)}</code> can open:` : 'this GitHub account can open:');
       box.innerHTML = '' +
         circles.map(r => `<div class="row" style="justify-content:space-between;padding:6px 0">
           <button class="plain small" onclick="openAppCircle('${escq(r.full_name)}','${escq(r.default_branch || 'main')}')">${esc(r.full_name)}</button>
@@ -2120,6 +2144,52 @@ or <a href="#/today" onclick="WANT='';WANT_WHY='';return true;">stay in ${esc(S.
       }
     }
   }
+  // The search. Prefers the token in the box below — the App's sign-in only reaches repositories somebody ticked for
+  // Kythe, so it cannot find a circle made before the App existed — and falls back to the App's own token, which
+  // still narrows the whole account to the ones it can reach.
+  let scannedTok = '';
+  const findBtn = $('find');
+  if (findBtn) findBtn.onclick = async () => {
+    const tell = (html, cls) => { const el = $('findmsg'); if (el){ el.className = cls || 'small muted'; el.innerHTML = html; } };
+    const list = $('findlist');
+    const t = ((($('token') || {}).value || '').trim()) || appTok();
+    if (!t){
+      // The box it is asking for was hidden behind a link, so saying "paste a token below" would be pointing at
+      // nothing. Open the door and put the cursor in it.
+      tell('Paste a token below first — a sign-in only reaches the repositories you ticked for Kythe.');
+      const pc = $('pastecard'); if (pc) pc.hidden = false;
+      const ti = $('token'); if (ti) ti.focus();
+      return;
+    }
+    findBtn.disabled = true; list.innerHTML = '';
+    tell('looking…');
+    try {
+      scannedTok = t;
+      const r = await scanCircles(t, (done, total) => tell('looking in ' + done + ' of ' + total + ' repositories…'));
+      const rows = r.circles.map(c => `<div class="row" style="justify-content:space-between;padding:6px 0">
+        <button class="plain small" onclick="openScanned('${escq(c.full_name)}','${escq(c.default_branch || 'main')}')">${esc(c.full_name)}</button>
+        <span class="small muted">${c.private ? 'private' : 'public'}</span></div>`).join('');
+      if (!r.circles.length){
+        tell('Signed in as <code>@' + esc(r.login) + '</code>. None of the ' + r.scanned +
+             ' repositories that token reaches is a circle.');
+      } else {
+        tell('<strong>' + r.circles.length + (r.circles.length === 1 ? ' circle' : ' circles') + '</strong> for <code>@'
+             + esc(r.login) + '</code>' + (r.more ? ' — and ' + r.more + ' older repositories were not looked in' : '') + ':');
+        list.innerHTML = rows;
+      }
+    } catch(e){
+      tell('GitHub would not answer: ' + esc(String(e.message)), 'err');
+    }
+    findBtn.disabled = false;
+  };
+  window.openScanned = (repo, branch) => {
+    if (!scannedTok) return;
+    setCircle(repo, scannedTok, branch || 'main');
+    rememberRepo(repo, scannedTok);       // so it is in "circles this browser has been in" next time, not only now
+    location.hash = '#/today';
+    render();
+  };
+
   // What the box already knows. The founder's question, twice: the page can answer "which credential" before
   // anybody presses anything, so it should say so rather than wait to be told twice — and where it holds one, it
   // should not show a token field and an explanation of what a token is at all. He is right that a page carrying a
@@ -5415,13 +5485,31 @@ window.addEventListener('hashchange', () => render());
     const el = document.getElementById('build');
     if (el && !BUILD.startsWith('__')){
       el.hidden = false;
-      el.textContent = 'build ' + BUILD + ' — if a change you expect is missing, reload the page; this one was loaded before it.';
+      el.textContent = ' · build ' + BUILD + ' — if a change you expect is missing, reload the page; this one was loaded before it.';
     }
   }
 
   // GitHub sends the browser back here with ?code=. Turn it into a token before anything renders, so the
   // Install screen comes back with the account already known and only the name to type.
   const q = new URLSearchParams(location.search);
+  // What GitHub appends to the App's callback and setup URLs means nothing to this page, and left in the bar it
+  // reads as the page's own address. The founder sent me a screenshot on 2026-11-19 of a browser sitting on
+  // `?iss=https%3A%2F%2Fgithub.com%2Flogin%2Foauth&install` next to another tab on `#/connect`, and asked why the
+  // two pages looked like different products. Part of that answer is here: one of them was wearing GitHub's
+  // leftovers as its address. Read what is useful, then put the address back into words a person could say out loud.
+  {
+    let hadInstall = false, changed = false;
+    for (const k of ['iss', 'install', 'setup_action', 'installation_id']){
+      if (!q.has(k)) continue;
+      if (k === 'install' || (k === 'setup_action' && /install/i.test(q.get(k) || ''))) hadInstall = true;
+      q.delete(k); changed = true;
+    }
+    if (changed){
+      try { history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString() : '') + location.hash); } catch(_){}
+      // An install that comes back to this page belongs on the install screen, not on a name-and-token form.
+      if (hadInstall && !q.get('code') && !location.hash) location.hash = '#/install';
+    }
+  }
   if (q.get('code')){
     const code = q.get('code');
     const returned = q.get('state') || '';       // `where.flag.random`, or '' for a link from before 2026-11-19

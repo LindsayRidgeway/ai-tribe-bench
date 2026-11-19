@@ -28,7 +28,11 @@ const clashWrites = new Set();    // paths whose PUT answers 409: somebody else 
 const calls = [];                 // every request, for the failure messages to be specific
 const dispatches = [];            // every workflow_dispatch, with the inputs the page sent it
 const actions = { runs: [], onPoll: null, secrets: [], secretsDenied: false, installationsDenied: false,
-                  secretPublicKey: null, secretWrites: [], secretWriteDenied: false };
+                  secretPublicKey: null, secretWrites: [], secretWriteDenied: false,
+                  // Which account answers `/user`, what `/user/repos` says it owns, and which of those are *not*
+                  // circles. A page that can only ever see one repository cannot be asked whether it finds a
+                  // circle by searching rather than by being told the name.
+                  login: 'someone', userRepos: [], notCircles: [] };
 // What GitHub says about the repository itself. `private` is the one field the page reads out of it, and on
 // 2026-11-15 it read nothing: an owner could turn a tribe public and the page went on saying nothing while the
 // record — every journal, every word said to a member — became readable by anyone. Kept here so a check can
@@ -142,6 +146,14 @@ function githubFetch(url, init = {}){
       ({path: k, type: 'blob', mode: '100644', sha: shaOf(body(k))}))});
   }
 
+  if (/^\/user$/.test(p)) return jsonResponse(200, {login: actions.login, name: ''});
+  if (/^\/user\/repos$/.test(p)) return jsonResponse(200, actions.userRepos);
+  // A per-repository answer, so "one of these is a circle and one is not" is testable: until 2026-11-19 the fake
+  // held exactly one repository, which made every name in the world a circle.
+  {
+    const cir = p.match(/^\/repos\/([^/]+)\/([^/]+)\/contents\/\.tribe-manifest\.json$/);
+    if (cir && actions.notCircles.includes(cir[1] + '/' + cir[2])) return jsonResponse(404, {message: 'Not Found'});
+  }
   const m = p.match(/^\/repos\/([^/]+)\/([^/]+)(?:\/contents\/?(.*))?$/);
   if (!m) return jsonResponse(404, {message: 'Not Found'});
   const rest = m[3] || '';
@@ -239,6 +251,7 @@ const localStorage = {
 };
 
 const clipboardWrites = [];  // what the page asked the browser to copy
+const historyWrites = [];    // every address the page put back into the bar, so a leftover query can be checked
 const replaceCalls = [];       // where a page that found itself at the retired address sent the browser
 const location = {hash: '', search: '', pathname: '/ait.html', href: 'http://localhost/ait.html',
                   host: 'kythe.app', replace(to){ replaceCalls.push(to); },
@@ -256,7 +269,7 @@ const sandbox = {
            getRandomValues: (u8) => globalThis.crypto.getRandomValues(u8)},
   alert(){}, confirm(){ return true; }, prompt(){ return ''; },
   navigator: {userAgent: 'node', clipboard: {writeText: async (t) => { clipboardWrites.push(t); }}},
-  history: {replaceState(){}, pushState(){}},
+  history: {replaceState(_a, _b, to){ if (typeof to === 'string') historyWrites.push(to); }, pushState(){}},
   addEventListener(){}, removeEventListener(){}, matchMedia: () => ({matches: false, addEventListener(){}}),
 };
 sandbox.window = sandbox;
@@ -320,6 +333,7 @@ function reset(){
   tpl.sha = null; tpl.files.clear(); tpl.refs.clear();
   actions.runs.length = 0; actions.onPoll = null; actions.secrets = []; actions.secretsDenied = false;
   actions.secretPublicKey = null; actions.secretWrites.length = 0; actions.secretWriteDenied = false;
+  actions.login = 'someone'; actions.userRepos = []; actions.notCircles = [];
   exchanges.length = 0; actions.installationsDenied = false;
   actions.missingWorkflows = []; actions.busy = {};
   for (const id of ['mmsg', 'chaptsmsg', 'main']) if (elements.has(id)) elements.delete(id);
@@ -2381,6 +2395,70 @@ async function main(){
     if (clocked.none !== '') return 'with no record it invents one: ' + clocked.none;
     return '';
   });
+  /* 15b — a circle the App was never installed on, found without being told its name.
+     His words, 2026-11-19: "I have two GH accounts, and that circle doesn't seem to be in either of them." It was
+     in neither list because the list was the App's installations, and his circle predates it. */
+  reset();
+  seed('.tribe-manifest.json', '{"schema":"ait-manifest/1"}');
+  seed('members.json', '{"members":[]}');
+  actions.login = 'LambieLamberton';
+  actions.userRepos = [
+    {full_name: 'LambieLamberton/test-circle-20261119-1223', private: true, default_branch: 'main'},
+    {full_name: 'LambieLamberton/notes', private: false, default_branch: 'main'},
+  ];
+  actions.notCircles = ['LambieLamberton/notes'];
+  const foundBySearch = await tryRun(ctx, `(async () => {
+    S.repo = ''; S.token = ''; S.circles = {}; S.app = ''; S.members = [];
+    location.hash = '#/connect';
+    await viewConnect(document.getElementById('main'));
+    const btn = document.getElementById('find');
+    if (!btn) return {err: 'the connect page has no way to look for circles'};
+    document.getElementById('token').value = 't';
+    await btn.onclick();
+    const said = document.getElementById('findmsg').innerHTML || document.getElementById('findmsg').textContent;
+    const rows = document.getElementById('findlist').innerHTML || '';
+    window.openScanned('LambieLamberton/test-circle-20261119-1223', 'main');
+    return {said, rows, repo: S.repo, remembered: Object.keys(S.circles || {})};
+  })()`);
+  check('a circle the App was never installed on is found by looking, not by being told its name', () => {
+    if (foundBySearch.err) return foundBySearch.err;
+    if (!/test-circle-20261119-1223/.test(foundBySearch.rows)) return 'the search did not find it: ' + foundBySearch.rows.slice(0, 200);
+    if (/LambieLamberton\/notes/.test(foundBySearch.rows)) return 'a repository that is not a circle is offered as one';
+    if (!/@LambieLamberton/.test(foundBySearch.said)) return 'it does not say whose account was searched: ' + foundBySearch.said;
+    if (foundBySearch.repo !== 'LambieLamberton/test-circle-20261119-1223') return 'pressing it did not open it: ' + foundBySearch.repo;
+    if (!foundBySearch.remembered.includes('LambieLamberton/test-circle-20261119-1223'))
+      return 'the circle was opened but not kept, so the next visit has to search again';
+    return '';
+  });
+
+  /* 15c — the leftover query GitHub leaves behind, and the shell that was two shells. */
+  reset();
+  replaceCalls.length = 0; historyWrites.length = 0;
+  const before = location.search, beforeHash = location.hash;
+  location.search = '?iss=https%3A%2F%2Fgithub.com%2Flogin%2Foauth&install';
+  location.hash = '';
+  const hopped = loadPage(true);
+  const bar = {search: location.search, hash: location.hash, writes: historyWrites.slice()};
+  location.search = before; location.hash = beforeHash;
+  check('the address GitHub hands back is put into words before anyone has to read it', () => {
+    if (!bar.writes.length) return 'the page kept `?iss=…&install` in the address bar, which is what he sent me';
+    if (/iss=|&install/.test(bar.writes[bar.writes.length - 1]))
+      return 'it wrote the leftover back: ' + bar.writes[bar.writes.length - 1];
+    return '';
+  });
+  const shell = await tryRun(hopped, `(async () => {
+    location.hash = '#/install';
+    await renderBody();
+    const foot = document.getElementById('foot');
+    return {footHidden: !!foot.hidden, hasChip: /id="preview"/.test(document.documentElement.innerHTML || '')};
+  })()`);
+  check('the install screen wears the same shell as every other page', () => {
+    if (shell.err) return shell.err;
+    if (shell.footHidden) return 'an unconnected page still hides the footer, so it looks like a different product';
+    if (shell.hasChip) return 'the header still carries the version chip, so the mark is in two places';
+    return '';
+  });
+
   // 16 — the person's key goes into the repository, sealed, without leaving the page
   //
   // In a fresh load, and not in the shared context that every other check uses. A page's globals belong to its
