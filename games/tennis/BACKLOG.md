@@ -916,7 +916,7 @@ no way for a viewer to know. *Done-test:* the film's record carries the season s
 number of sessions in the season at the time it was made); the page prints "session 3 of 7 — four since this
 film"; and a season whose last session has no film says exactly that.
 
-## Item 24 — the cast is six, and competition is same-sex (design 2026-11-19; enforcement OPEN)
+## Item 24 — the cast is six, and competition is same-sex (DONE 2026-11-19, less the scheduler)
 
 The founder, 2026-11-19, replaced the four-player cast with: *"three males and three females who play, always
 same-sex competition, same or mixed sex practice, intentionally staggered automatic play (practice/compete) time
@@ -933,10 +933,31 @@ worth repeating here because they are not design opinions:
   indistinguishable players, which dissolves the ranking the paragraph asks for. Six staggered sessions keeps the
   cast inside the sloped part of the curve and gives a **0.09** spread of control inside a group.
 
-*Done-test:* a competition between two members of the same group plays and is recorded with `mode: "compete"`; a
-competition across groups is refused by name and nothing is written; a mixed practice plays and is recorded with
-`mode: "practice"`; and every session says `by: "a person"` or `by: "the schedule"`, with the season report
-printing the two totals apart.
+**Enforced, in both producers, on 2026-11-19.** The group is `sex` in the season's `setup.json` — the only fact
+in these files that is about a person, and therefore the only place a rule may read one from. `cast_of()` reads it;
+`may_compete()` decides; `settle_pairing()` is called before a ball is hit by `--watch` and by `--rally`, because a
+rule enforced in one of two producers is a rule the other one breaks.
+
+- **Same sex competes; anyone practises.** `--mode compete` is the default and `--mode practice` pairs anybody.
+  A cross-group competition is refused by name — *"Dmitri is in the male group and Gwen in the female group, and
+  competition is same-sex; practice may pair anybody. Nothing was played."* — and nothing is written. The silent
+  failure this prevents is the interesting one: a mixed pair quietly relabelled a practice, with the season's
+  ranking built out of it.
+- **An unnamed group is a refusal, not a default.** There is no fact in these files that implies a group, so a
+  member the season does not place is named and the session stops, rather than being assumed to match whoever is
+  across the net.
+- **The session records `competition: true|false` and `by: "a person"|"the schedule"`.** `mode` already means what
+  KIND of session (rallies, fed balls, the person's seat) and the report sorts on it, so competition is its own
+  field rather than a fourth value of an overloaded one. The report prints *"1 competition; started by a person
+  (1x)"* — two totals, never averaged.
+- **A session older than the rule says nothing.** Every session already in the seasons predates this field, and
+  filling the gap with either word would invent a fact about balls already hit. The report names them:
+  *"2 sessions are older than the rule that records whether a session was a competition and who started it, and
+  say nothing about either."* That includes the one filmed session in 2026-spring — Dmitri and Gwen — which the
+  rule would now call a practice, and which is left unlabelled rather than rewritten.
+
+*Done-test:* six tests in `TestTheCastPlaysByItsOwnRules`, plus `TestTheCastCanBeDrawn` reading the real `sex`
+field instead of a garment. Still open in this item: nothing, and the scheduler is item 25.
 
 ## Item 25 — a season plays itself, and says when a person shaped it (OPEN)
 

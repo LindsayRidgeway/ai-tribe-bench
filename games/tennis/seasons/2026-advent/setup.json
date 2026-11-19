@@ -1,10 +1,11 @@
 {
   "schema": "ait-tennis-setup/1",
   "written": "2026-11-19T20:50:00Z",
-  "written_by": "the renderer, by hand — there is no runner yet (see SETUP.md §6). Two players, because this season's record is Ada and Bo's; the film cannot draw a member this file does not name.",
+  "written_by": "the renderer, by hand \u2014 there is no runner yet (see SETUP.md \u00a76). Two players, because this season's record is Ada and Bo's; the film cannot draw a member this file does not name.",
   "players": [
     {
       "name": "Ada",
+      "sex": "female",
       "history": 4,
       "look": {
         "height_m": 1.74,
@@ -19,6 +20,7 @@
     },
     {
       "name": "Bo",
+      "sex": "male",
       "history": 2,
       "look": {
         "height_m": 1.92,

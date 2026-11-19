@@ -4850,6 +4850,119 @@ class TestTheBallAfterThePointIsOver(unittest.TestCase):
         self.assertTrue(any(ch.isdigit() for ch in why), "the fault names no distance, so nothing can be learnt")
 
 
+class TestTheCastPlaysByItsOwnRules(unittest.TestCase):
+    """The founder, 2026-11-19: *"always same-sex competition, same or mixed sex practice... Those outcomes can be
+    skewed by the user putting particular pairs together for manual play."*
+
+    Three things follow, and none of them is a preference:
+
+    * the rule is enforced in BOTH producers (`--watch` and `--rally`), because a rule enforced in one of two is a
+      rule the other one breaks;
+    * a member whose group the season does not state is refused by name rather than defaulted, because a default
+      here silently decides somebody's group for them;
+    * a session records whether it was a competition and whether a person started it, so a season a human
+      hand-shaped cannot be read as one that played itself. `mode` already means what KIND of session (rallies,
+      fed balls, the person's seat), so this is its own field rather than a fourth value of one the report sorts
+      on."""
+
+    def setUp(self):
+        import importlib, tempfile, shutil
+        sys.path.insert(0, str(REPO / "lab"))
+        self.T = importlib.import_module("tennis")
+        self.tmp = Path(tempfile.mkdtemp(prefix="tennis-cast-"))
+        self.addCleanup(shutil.rmtree, self.tmp, True)
+
+    def _season(self, name="s1", groups=("female", "female", "male"), unnamed=()):
+        d = self.tmp / name
+        d.mkdir(parents=True, exist_ok=True)
+        people = ["Ann", "Belle", "Cid"][:len(groups)]
+        players = []
+        for who, sex in zip(people, groups):
+            row = {"name": who, "look": {"height_m": 1.7, "build": 1.0, "kit": "#334455", "skin": "#aa8866",
+                                         "hair": "#222222", "lower": "skirt", "racquet": True, "hand": "right"}}
+            if sex and who not in unnamed:
+                row["sex"] = sex
+            players.append(row)
+        (d / "setup.json").write_text(json.dumps({"schema": "ait-tennis-setup/1", "players": players}),
+                                      encoding="utf-8")
+        return d
+
+    def _watch(self, d, names, *extra, season="s1"):
+        import contextlib, io
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            code = self.T.main(["--watch", "--season", season, "--season-dir", str(d), "--names", names,
+                                "--rallies", "2", "--clock", "1794200000000", "--surface", "clay", *extra])
+        return code, out.getvalue(), err.getvalue()
+
+    def _book(self, d):
+        f = Path(d) / "practice.json"
+        return json.loads(f.read_text(encoding="utf-8")) if f.exists() else None
+
+    def test_two_members_of_one_group_may_compete(self):
+        d = self._season(groups=("female", "female"))
+        code, out, err = self._watch(d, "Ann,Belle")
+        self.assertEqual(code, 0, err)
+        session = self._book(d)["members"]["Ann"]["sessions"][-1]
+        self.assertIs(session["competition"], True, "a same-group competition was not recorded as one")
+        self.assertEqual(session["by"], "a person")
+
+    def test_a_competition_across_groups_is_refused_and_writes_nothing(self):
+        """Refused by name and not re-paired: the interesting failure is the silent one, where a mixed pair is
+        quietly relabelled a practice and the season's ranking is built out of it."""
+        d = self._season(groups=("female", "female", "male"))
+        code, out, err = self._watch(d, "Ann,Cid")
+        self.assertEqual(code, 2, "a cross-group competition was allowed to play")
+        self.assertIn("same-sex", err)
+        self.assertIsNone(self._book(d), "a refused competition wrote a season file")
+
+    def test_the_same_pair_may_practice(self):
+        d = self._season(groups=("female", "female", "male"))
+        code, out, err = self._watch(d, "Ann,Cid", "--mode", "practice")
+        self.assertEqual(code, 0, err)
+        session = self._book(d)["members"]["Ann"]["sessions"][-1]
+        self.assertIs(session["competition"], False, "a practice was recorded as a competition")
+
+    def test_an_unnamed_group_is_refused_rather_than_assumed(self):
+        """The rule reads `sex` from the season's setup.json and there is no other fact about a person in these
+        files. If it is absent the answer is "I cannot place this player", not "assume they match"."""
+        d = self._season(groups=("female", "", "male"), unnamed=("Belle",))
+        code, out, err = self._watch(d, "Ann,Belle")
+        self.assertEqual(code, 2)
+        self.assertIn("Belle", err, "the refusal does not name the member whose group is missing")
+        self.assertIn("setup.json", err, "the refusal does not say where the group should be written")
+        self.assertIsNone(self._book(d))
+
+    def test_a_session_says_who_started_it_and_the_report_prints_the_split(self):
+        """The founder's own sentence about skewing a season by pairing players by hand is only checkable if the
+        file distinguishes his sessions from the schedule's. It is printed as two totals, not averaged away."""
+        d = self._season(groups=("female", "female"))
+        self._watch(d, "Ann,Belle")
+        self._watch(d, "Ann,Belle", "--by", "the schedule", "--clock", "1794200000001")
+        book = self._book(d)
+        bys = [x["by"] for x in book["members"]["Ann"]["sessions"]]
+        self.assertEqual(bys, ["a person", "the schedule"])
+        report = self.T.season_report("s1", str(d))
+        self.assertIn("started by a person (1x), the schedule (1x)", report,
+                      "the report does not tell a hand-shaped season from a scheduled one")
+
+    def test_a_session_older_than_the_rule_is_not_guessed_at(self):
+        """Every session in the existing seasons predates this field. A report that filled the gap with "practice"
+        or "competition" would be inventing a fact about balls already hit, so it says which sessions it cannot
+        speak for and leaves them out of the totals."""
+        d = self._season(groups=("female", "female"))
+        self._watch(d, "Ann,Belle")
+        book = self._book(d)
+        for m in book["members"].values():
+            for x in m["sessions"]:
+                x.pop("competition", None)
+                x.pop("by", None)
+        (Path(d) / "practice.json").write_text(json.dumps(book, indent=1, sort_keys=True), encoding="utf-8")
+        report = self.T.season_report("s1", str(d))
+        self.assertIn("older than the rule", report)
+        self.assertNotIn("1 competition", report, "the report counted a session it cannot classify")
+
+
 class TestTheCastCanBeDrawn(unittest.TestCase):
     """The founder's cast, 2026-11-19: three males and three females who play. A cast is only a cast if every one of
     them can be PUT ON THE COURT, and until this test existed the failure was silent in the two places it hurts:
@@ -4916,10 +5029,14 @@ class TestTheCastCanBeDrawn(unittest.TestCase):
         seen = {}
         for d in (self.seasons / "2026-spring", self.seasons / "2026-advent"):
             for p in json.loads((d / "setup.json").read_text(encoding="utf-8"))["players"]:
-                seen[p["name"]] = p["look"]["lower"]
+                seen[p["name"]] = (p.get("sex") or "").strip().lower()
         self.assertEqual(len(seen), 6, f"the cast is {sorted(seen)}, which is not six players")
-        self.assertEqual(sum(1 for v in seen.values() if v == "skirt"), 3,
-                         "the cast is not three and three: `lower` is the only sex-adjacent fact in the files")
+        for name, sex in seen.items():
+            self.assertIn(sex, ("male", "female"),
+                          f"{name} has no group, so {name} cannot compete — an unnamed group is a refusal in "
+                          f"may_compete, not a default")
+        self.assertEqual(sum(1 for v in seen.values() if v == "female"), 3,
+                         f"the cast is not three and three: {sorted(seen.items())}")
 
 
 class TestTheFilmIsTheSession(unittest.TestCase):
@@ -4952,7 +5069,7 @@ class TestTheFilmIsTheSession(unittest.TestCase):
         with contextlib.redirect_stdout(out):
             code = self.T.main(["--watch", "--season", season, "--season-dir", str(d),
                                 "--names", names, "--rallies", str(rounds),
-                                "--clock", str(clock), "--surface", "clay", *extra])
+                                "--clock", str(clock), "--surface", "clay", "--mode", "practice", *extra])
         return code, d, out.getvalue()
 
     def _json(self, d, name):

@@ -792,6 +792,49 @@ def season_paths(season: str, override: str | None = None, sport: str = "tennis"
     return d, d / "practice.json"
 
 
+def cast_of(season: str, override: str | None = None, sport: str = "tennis") -> dict:
+    """The season's people, from its appearance file — who they are and which group they play in.
+
+    `setup.json` is the page's appearance file, and it is now also the only place a rule can read a group from:
+    a `sex` field per player, explicit, because there is no other fact in these files that is about a person
+    rather than about a skirt. A member the file does not name has no group, and that is a refusal to compete
+    rather than a default — see `may_compete`. 2026-11-19."""
+    d, _ = season_paths(season, override, sport)
+    f = d / "setup.json"
+    if not f.exists():
+        return {}
+    try:
+        data = json.loads(f.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    out = {}
+    for p in data.get("players", []):
+        if not p.get("name"):
+            continue
+        out[p["name"]] = {"sex": str(p.get("sex") or "").strip().lower(), **(p.get("look") or {})}
+    return out
+
+
+def may_compete(a: str, b: str, cast: dict) -> tuple[bool, str]:
+    """Whether these two may play a competition, and if not, the sentence that says why.
+
+    The founder, 2026-11-19: *"always same-sex competition, same or mixed sex practice."* So the rule is one
+    line and the interesting part is what happens when a group is unknown: a competition nobody can place in a
+    group is not one, so an unnamed group is refused by name rather than treated as equal to whatever is across
+    the net. A default here would be a rule that silently decides somebody's group for them."""
+    sa, sb = cast.get(a, {}).get("sex", ""), cast.get(b, {}).get("sex", "")
+    if not sa or not sb:
+        miss = [n for n, v in ((a, sa), (b, sb)) if not v]
+        verb = "has" if len(miss) == 1 else "have"
+        return False, (f"{' and '.join(miss)} {verb} no group in this season's setup.json, and a competition "
+                       f"that cannot be placed in a group is not one. Add a `sex` field there, or play a "
+                       f"practice")
+    if sa != sb:
+        return False, (f"{a} is in the {sa} group and {b} in the {sb} group, and competition is same-sex; "
+                       f"practice may pair anybody")
+    return True, ""
+
+
 def load_season(season: str, override: str | None = None, sport: str = "tennis") -> dict:
     d, f = season_paths(season, override, sport)
     if not f.exists():
@@ -811,7 +854,8 @@ def save_season(book: dict, season: str, override: str | None = None, sport: str
 
 
 def record_session(book: dict, *, when: str, surface: str, clock: int, players, results, lengths,
-                   partners: dict, mode: str = "rally") -> None:
+                   partners: dict, mode: str = "rally", competition: bool = None,
+                   by: str = "a person") -> None:
     """Add one session to the book. The balls are the ones the ENGINE counted, not the ones a member
     claims — a being that inflates its own practice should be findable in the record, and here it cannot
     inflate it at all."""
@@ -821,6 +865,14 @@ def record_session(book: dict, *, when: str, surface: str, clock: int, players, 
         m = book["members"].setdefault(p.name, {"balls": 0, "sessions": []})
         m["sessions"].append({
             "when": when, "surface": surface, "clock": clock, "mode": mode,
+            # WAS IT A COMPETITION, and WHO STARTED IT. The founder asked for staggered automatic play that one
+            # of each sex can be made to skew by pairing particular players by hand, and a season cannot show
+            # that unless the file distinguishes the two. `mode` already means what KIND of session (rallies,
+            # fed balls, the person's seat), so competition is its own field rather than a fourth value of one
+            # that the report already sorts on. A session recorded before 2026-11-19 has no `competition` key
+            # at all, and the report says so instead of guessing. 2026-11-19.
+            **({"competition": bool(competition)} if competition is not None else {}),
+            "by": by,
             "with": partners.get(p.name, []),
             "shots": p.shots, "in_play": sum(r), "of": len(r),
             "mean_rally": round(sum(lengths) / len(lengths), 2) if lengths else 0.0,
@@ -908,6 +960,36 @@ def season_report(season: str, override: str | None = None, sport: str = "tennis
                        + ".")
         else:
             out.append("- No balls hit in this season yet.")
+        # WHAT WAS PLAYED, AND WHO SAID SO. The founder, 2026-11-19, wants a season that can play itself and can
+        # also be shaped by a person pairing particular players by hand — so the record has to distinguish them,
+        # and the report has to print the two totals apart. A session recorded before the rule existed carries
+        # neither field, and saying so is the only honest answer: a default here would invent a fact.
+        comp = [x for x in ss if x.get("competition") is True]
+        prac = [x for x in ss if x.get("competition") is False]
+        older = [x for x in ss if "competition" not in x]
+        if comp or prac or older:
+            line = ""
+            if comp or prac:
+                bits = []
+                if comp:
+                    bits.append(f"{len(comp)} competition{'' if len(comp) == 1 else 's'}")
+                if prac:
+                    bits.append(f"{len(prac)} practice{'' if len(prac) == 1 else 's'}")
+                line = f"- {' and '.join(bits)}"
+                hands: dict[str, int] = {}
+                for x in ss:
+                    if x.get("by"):
+                        hands[x["by"]] = hands.get(x["by"], 0) + 1
+                if hands:
+                    line += ("; started by "
+                             + ", ".join(f"{k} ({v}x)" for k, v in sorted(hands.items(), key=lambda kv: -kv[1])))
+            if older:
+                tail = (f"{len(older)} session{'' if len(older) == 1 else 's'} "
+                        f"{'is' if len(older) == 1 else 'are'} older than the rule that records whether a "
+                        f"session was a competition and who started it, and "
+                        f"{'says' if len(older) == 1 else 'say'} nothing about either")
+                line = (line + ". " + tail) if line else f"- {tail}"
+            out.append(line + ".")
         if person_points:
             pp_in = sum(s["in_play"] for s in person_points)
             pp_of = sum(s["of"] for s in person_points)
@@ -1894,6 +1976,9 @@ def run_rally(args) -> int:
                       else vendors_of(names)), len(names), "--vendor")
     # The season wins over `--practice`, and says so: two sources for one number is the defect this project
     # has fixed twice. Here the file is the record and the flag is a test hook.
+    ok, code = settle_pairing(args, names)
+    if not ok:
+        return code
     book, practice = open_book(names, args)
     models = spread(([m.strip() for m in args.model.split(",")] if args.model
                      else [default_model(v) for v in vendors]), len(names), "--model")
@@ -1963,7 +2048,7 @@ def run_rally(args) -> int:
     if book is not None:
         when = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         record_session(book, when=when, surface=surface, clock=ms, players=players, results=results,
-                       lengths=lengths,
+                       lengths=lengths, competition=(args.mode == "compete"), by=args.by,
                        partners={a.name: [b.name] for a, b in ((players[0], players[1]),
                                                               (players[1], players[0]))})
         f = save_season(book, args.season, args.season_dir)
@@ -1975,6 +2060,26 @@ def run_rally(args) -> int:
               + ", ".join(f"{p.name} {practice_of(book, p.name)} balls this season" for p in players))
         print(f"  next: python3 lab/tennis.py --report {args.season}")
     return 0
+
+
+def settle_pairing(args, names: list[str]) -> tuple[bool, int]:
+    """Decide whether these two may play what `--mode` says they are playing, and say so.
+
+    Both producers call this before a ball is hit, because a rule enforced in one of two producers is a rule the
+    other one breaks — the same sentence this file has had to write about the season file winning over a flag, and
+    about there being one vendor table. Returns (ok, exit code). 2026-11-19."""
+    mode = (getattr(args, "mode", "compete") or "compete").strip().lower()
+    if mode not in ("compete", "practice"):
+        print(f"   --mode is compete or practice; it was {mode!r}. Nothing was played.", file=sys.stderr)
+        return False, 2
+    if mode == "practice" or not getattr(args, "season", None):
+        return True, 0
+    cast = cast_of(args.season, args.season_dir)
+    ok, why = may_compete(names[0], names[1], cast)
+    if not ok:
+        print(f"   {why}. Nothing was played.", file=sys.stderr)
+        return False, 2
+    return True, 0
 
 
 class FilmedPlayer:
@@ -2027,6 +2132,9 @@ def run_watch(args) -> int:
               file=sys.stderr)
         return 2
 
+    ok, code = settle_pairing(args, names)
+    if not ok:
+        return code
     book, practice = open_book(names, args)
     ms = args.clock if args.clock is not None else int(time.time() * 1000)
     surface = args.surface or surface_at(ms)
@@ -2071,7 +2179,7 @@ def run_watch(args) -> int:
     played = [FilmedPlayer(row, len(results[row["name"]])) for row in data["players"]]
     when = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     record_session(book, when=when, surface=surface, clock=ms, players=played, results=results,
-                   lengths=lengths,
+                   lengths=lengths, competition=(args.mode == "compete"), by=args.by,
                    partners={a: [b] for a, b in ((names[0], names[1]), (names[1], names[0]))})
     f = save_season(book, args.season, args.season_dir)
     try:
@@ -2227,7 +2335,8 @@ def run_person(args) -> int:
 
     if book is not None:
         record_session(book, when=when, surface=surface, clock=ms, players=players, results=results,
-                       lengths=lengths, partners={who: [opponent], opponent: [who]}, mode="person")
+                       lengths=lengths, partners={who: [opponent], opponent: [who]}, mode="person",
+                       competition=False, by="a person")
         f = save_season(book, args.season, args.season_dir)
         d, _ = season_paths(args.season, args.season_dir)
         note = unique_path(d / "points" / f"{when}.md")
@@ -2377,6 +2486,15 @@ def main(argv=None) -> int:
                     help="their engines; read from each member's voice.md when blank")
     ap.add_argument("--model", default=None)
     ap.add_argument("--temperature", type=float, default=1.0)
+    ap.add_argument("--mode", default="compete", choices=("compete", "practice"),
+                    help="compete (the default) is same-sex only, read from the season's setup.json; practice "
+                         "pairs anybody, in either group. The founder, 2026-11-19: 'always same-sex competition, "
+                         "same or mixed sex practice'. A competition between two members whose group the season "
+                         "does not state is refused by name rather than defaulted")
+    ap.add_argument("--by", default="a person",
+                    help="who started this session, written into the record beside the numbers so a season a "
+                         "person hand-shaped can be told from one that played itself. A schedule passes "
+                         "'--by \'the schedule\''")
     ap.add_argument("--shots", type=int, default=40, help="for --drill: balls to hit")
     ap.add_argument("--drill", action="store_true", help="early spring: balls fed one at a time, no scoring")
     ap.add_argument("--person-shot", default=None,
