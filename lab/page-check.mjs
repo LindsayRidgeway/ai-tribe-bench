@@ -228,20 +228,30 @@ const sandbox = {
 };
 sandbox.window = sandbox;
 sandbox.globalThis = sandbox;
+const exchanges = [];           // what the page told the token exchange about itself, one entry per code
 sandbox.fetch = async (url, init = {}) => {
   const u = String(url);
   if (u.startsWith('https://api.github.com')) return githubFetch(u, init);
   if (/\/chat\/completions$/.test(u)) return sseResponse(MEMBER_ENTRY);
+  // The one server this page has: it turns a code into a token with either the App's pair of credentials or the
+  // classic one, and `app` is how it is told which. That flag is the whole of the check below.
+  if (/\.netlify\/functions\/auth$/.test(u)){
+    try { exchanges.push(JSON.parse(init.body || '{}')); } catch(_){ exchanges.push({unparsable: init.body}); }
+    return jsonResponse(200, {access_token: 'gho_test_token'});
+  }
   return jsonResponse(404, {message: 'this harness does not answer ' + u});
 };
 
 /* ---- run the page ---------------------------------------------------------------------- */
 
-export function loadPage(){
+export function loadPage(fresh = false){
   const html = fs.readFileSync(PAGE, 'utf8');
   const m = html.match(/<script>([\s\S]*?)<\/script>/);
   if (!m) throw new Error('ait.html has no script — did the page move?');
-  const context = vm.createContext(sandbox);
+  // `fresh` boots the page a second time as a *new* document would: its own globals, the same browser underneath
+  // (storage, document, fetch). Without it the context is the one already running and every top-level `const`
+  // collides with itself.
+  const context = vm.createContext(fresh ? {...sandbox} : sandbox);
   vm.runInContext(m[1], context, {filename: 'ait.html'});
   return context;
 }
@@ -267,6 +277,7 @@ function reset(){
   files.clear(); failWrites.clear(); clashWrites.clear(); calls.length = 0; dispatches.length = 0; store.clear();
   tpl.sha = null; tpl.files.clear(); tpl.refs.clear();
   actions.runs.length = 0; actions.onPoll = null; actions.secrets = []; actions.secretsDenied = false;
+  exchanges.length = 0;
   actions.missingWorkflows = [];
   for (const id of ['mmsg', 'chaptsmsg', 'main']) if (elements.has(id)) elements.delete(id);
 }
@@ -1776,6 +1787,41 @@ async function main(){
   check('a token that cannot see the secrets is told nothing rather than told a guess', () => {
     if (blind.err) return blind.err;
     if (/will never wake on the clock/.test(String(blind))) return 'the page accuses a repository it could not read';
+    return '';
+  });
+
+  /* 2026-11-19 — which sign-in this is, after a round trip that changes hostname.
+
+     The founder's own install produced a circle he could not enter: GitHub said
+     `403 · You must authenticate with an access token authorized to a GitHub App in order to list installations`,
+     because the exchange had been told "classic" about a flow that was the App's. The flag lived in sessionStorage,
+     and sessionStorage belongs to one origin — while this app answers on two, and the OAuth callback returns to
+     whichever GitHub has registered. So the flag now travels in `state`, which comes back in the URL.
+
+     The harness has no sessionStorage at all, which is exactly the losing half of that round trip: a page that can
+     only read the URL must still get this right. */
+  reset();
+  const askExchange = async (search) => {
+    const was = location.search;
+    location.search = search;
+    exchanges.length = 0;
+    loadPage(true);                              // boots the page the way a reload after GitHub does
+    await new Promise(r => setTimeout(r, 60));
+    location.search = was;
+    return exchanges[0] || null;
+  };
+
+  const appReturn = await askExchange('?code=one&state=connect.a.7f2k');
+  check('a return from the App\'s sign-in is exchanged as the App, with no memory in the browser', () => {
+    if (!appReturn) return 'the page never exchanged the code';
+    if (appReturn.app !== true) return 'the exchange was told app=' + JSON.stringify(appReturn.app);
+    return '';
+  });
+
+  const classicReturn = await askExchange('?code=two&state=install.c.9d1x');
+  check('and a return from the classic token sign-in is not handed to the App\'s credentials', () => {
+    if (!classicReturn) return 'the page never exchanged the code';
+    if (classicReturn.app !== false) return 'the exchange was told app=' + JSON.stringify(classicReturn.app);
     return '';
   });
 

@@ -1183,13 +1183,30 @@ function keptName(){
   try { return sessionStorage.getItem('ait.name') || ''; } catch(_){ return ''; }
 }
 
+/* Which sign-in this is — the App's or the classic token's — and which screen asked for it.
+
+   Both travel in `state`, because `state` is the only thing that survives the round trip reliably: it comes back in
+   the URL, on whatever hostname GitHub was told to return to. Until 2026-11-19 the flag lived only in sessionStorage,
+   and sessionStorage is per-origin — so a flow that started on one of this app's two hostnames and returned on the
+   other lost the flag, exchanged the code with the classic client's credentials, and then called
+   `/user/installations` with a classic token. GitHub answers `403 · You must authenticate with an access token
+   authorized to a GitHub App in order to list installations`, which is a true sentence that means nothing to the
+   person reading it. Measured on the founder's own install: a circle made, and no way into it.
+
+   `where.flag.random`, where flag is `a` for the App and `c` for the classic token. The sessionStorage copies stay,
+   because a link from before this change carries an unparsable state and falling back to the old behaviour is
+   kinder than failing. */
+function oauthState(where, app){
+  return `${where}.${app ? 'a' : 'c'}.${Math.random().toString(36).slice(2, 10)}`;
+}
+
 function signIn(where){
   // The redirect URI is the one registered on the OAuth app, so it is not passed here: GitHub sends
   // the browser back to the site itself, whatever page it started from.
   const u = new URL('https://github.com/login/oauth/authorize');
   u.searchParams.set('client_id', GH_CLIENT);
   u.searchParams.set('scope', 'repo');
-  u.searchParams.set('state', where + '.' + Math.random().toString(36).slice(2, 10));
+  u.searchParams.set('state', oauthState(where, false));
   try {
     sessionStorage.setItem('ait.state', u.searchParams.get('state'));
     sessionStorage.removeItem('ait.app');
@@ -1208,7 +1225,7 @@ function signInApp(where){
   if (!GH_APP){ alert('This copy of the page has no GitHub App registered yet.'); return; }
   const u = new URL('https://github.com/login/oauth/authorize');
   u.searchParams.set('client_id', GH_APP);
-  u.searchParams.set('state', where + '.' + Math.random().toString(36).slice(2, 10));
+  u.searchParams.set('state', oauthState(where, true));
   try { sessionStorage.setItem('ait.state', u.searchParams.get('state')); } catch(_){}
   // Which of the two ids asked. The exchange endpoint is the same for both; only the pair of credentials differs,
   // and the function reads this flag to know which pair it is holding.
@@ -5021,15 +5038,21 @@ window.addEventListener('hashchange', () => render());
   const q = new URLSearchParams(location.search);
   if (q.get('code')){
     const code = q.get('code');
+    const returned = q.get('state') || '';       // `where.flag.random`, or '' for a link from before 2026-11-19
     q.delete('code');
     let want = 'install';
+    // The URL first, and sessionStorage second: the URL is what GitHub handed back on whatever host it was told to
+    // return to, and sessionStorage belongs to one origin only.
+    const parts = returned.split('.');
+    if (parts[0] === 'install' || parts[0] === 'connect') want = parts[0];
+    let wasApp = parts[1] === 'a';
     try {
       const saved = sessionStorage.getItem('ait.state');
-      if (saved) want = saved.split('.')[0];
+      if (!returned && saved && parts[0] !== 'install' && parts[0] !== 'connect') want = saved.split('.')[0] || want;
       sessionStorage.removeItem('ait.state');
     } catch(_){}
-    let wasApp = false;
-    try { wasApp = sessionStorage.getItem('ait.app') === '1'; sessionStorage.removeItem('ait.app'); } catch(_){}
+    try { if (parts[1] !== 'a' && parts[1] !== 'c') wasApp = sessionStorage.getItem('ait.app') === '1';
+          sessionStorage.removeItem('ait.app'); } catch(_){}
     q.delete('state');
     try { history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString() : '')); } catch(_){}
     // One code, one exchange. A code is single-use and dies in ten minutes, so a second document loading this same
