@@ -151,13 +151,35 @@ At 150 balls every ball is rushed and a rally is under three shots. That is not 
 what that standard of player is, and it means the demo has to be generated with practised players or it shows
 nothing but mistakes.
 
-**On main since 2026-11-18** (`9207d370`), with the measurement that says what it is worth today: over 300 points
-at each skill level, **rush fires on 0-3% of shots**. To be rushed a player needs a run of about a second *and* a
-flight of about a second, and this game gives 1.5-2s flights — because the fastest ball in it is a 50mph arc with no
-toss and no overhead. The rule is correct, it is in, and it is waiting on the serve. Nothing was tuned to make it
-fire. In the same commit the return of a serve stopped being the one ball exempt from the interception (it was asked
-only from the second shot on, so an ace was impossible); aces in 900 serves: 0, which is what a 50mph serve deserves
-and is no longer something the code assumes.
+**On main since 2026-11-18** (`9207d370`), and this is the table that says who it happens to. 60 points at each
+standard, counting only shots actually hit at a ball:
+
+| balls | shots | rushed at all | rushed badly (rush > 0.1) | mean rush |
+|---|---|---|---|---|
+| 0 | 50 | 88% | **84%** | 0.24 |
+| 60 | 53 | 83% | 77% | 0.19 |
+| 150 | 135 | 73% | 43% | 0.09 |
+| 300 | 850 | 7% | **3%** | 0.01 |
+| 600 | 1,336 | 3% | **2.5%** | 0.01 |
+
+The rule bites hardest exactly where the founder said it would — the earliest stage, where the racquet is not back
+in time on four balls in five — and it stops biting once a player has three hundred balls behind them, because by
+then they prepare while they run. That is the shape of a learned habit rather than a tuned knob.
+
+Note what the first version of this measurement said: 0-3% at *every* standard. It was wrong, and the reason is
+worth keeping: `aim_at` bisects the face by calling `strike` up to 22 times per shot, so counting "every strike" as
+"a shot hit at a ball" divided the true rate by twenty. **The instrument was counting the solver's probes as
+play.** A rate over a population is only a rate if you can say what one member of the population is.
+
+**What it does to the scoreline: almost nothing yet, and for a different reason at each end.** At 0 balls it changes
+nearly every shot and the point was already decided by the serve (43-47% in, and the rest are faults). At 300 and
+600 balls it hardly fires. Over 300 points the mean rally went 15.0 → 13.9 at 300 balls and 23.4 → 21.5 at 600,
+which is inside the run-to-run scatter of the same build — so the honest claim is "the rule is in and correct", not
+"the rule is improving the game".
+
+In the same commit the return of a serve stopped being the one ball exempt from the interception (it was asked only
+from the second shot on, so an ace was impossible); aces in 900 serves: 0, which is what a 50mph serve deserves and
+is no longer something the code assumes.
 
 **In the picture** the windup now depends on it: a prepared receiver has the racquet back and the shoulders turned
 for the whole run; a rushed one starts the backswing late, over `0.55 - 0.30·rush` seconds instead of 0.55. The

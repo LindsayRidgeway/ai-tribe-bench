@@ -405,20 +405,30 @@ And the return of a serve stopped being the one ball exempt from the rule: the i
 second shot on, so no serve could be an ace however well it was struck and no return could be rushed however late
 the receiver was. Aces in 900 serves with it asked: **0**.
 
-**The measurement says the new rule does not bite, and that is the finding:**
+**Who it happens to, counted on shots actually hit at a ball (60 points at each standard):**
+
+| balls | shots | rushed badly (rush > 0.1) | mean rush |
+|---|---|---|---|
+| 0 | 50 | **84%** | 0.24 |
+| 60 | 53 | 77% | 0.19 |
+| 150 | 135 | 43% | 0.09 |
+| 300 | 850 | **3%** | 0.01 |
+| 600 | 1,336 | **2.5%** | 0.01 |
+
+Which is the shape the founder described: the earliest stage is rushed on four balls in five because the racquet is
+not back in time, and a player with three hundred balls behind them has stopped being rushed because they prepare
+while they run. And what it does to the scoreline, over 300 points:
 
 | | 0 balls | 300 balls | 600 balls |
 |---|---|---|---|
-| median point, before | 1 | 10 | 18 |
-| median point, after | 1 | 10 | 16 |
-| mean, before | 1.7 | 15.0 | 23.4 |
-| mean, after | 1.7 | 13.9 | 21.5 |
-| shots hit while rushed (> 0.1) | 3% | 0% | 0% |
+| median point, before → after | 1 → 1 | 10 → 10 | 18 → 16 |
+| mean, before → after | 1.7 → 1.7 | 15.0 → 13.9 | 23.4 → 21.5 |
 
-To be rushed, a player needs a run of about a second *and* a flight of about a second, and this game gives 1.5-2s
-flights — because the fastest ball in it is a 50mph arc with no toss and no overhead. **The rush rule is waiting on
-the serve** (movement list item 3), and the 600-ball row moved by less than the run-to-run scatter of the same
-build. Nothing was tuned to make it fire.
+Almost nothing, and for a different reason at each end: at 0 balls the point is decided by the serve before the rule
+can matter, and at 300+ it rarely fires. The 600-ball row is inside the run-to-run scatter of the same build.
+**First version of this table said 0-3% at every standard and it was wrong** — the instrument counted `aim_at`'s 22
+bisection probes per shot as shots hit at a ball, dividing the true rate by twenty. A rate over a population is only
+a rate if you can say what one member is.
 
 **Still owed in this item:** `lab/tennis_script.py` — the record producer itself — and the last of the three things
 it needs: the accelerating run model (`reaction_time`, `run_time`, `run_distance` — nobody is at top speed on the
