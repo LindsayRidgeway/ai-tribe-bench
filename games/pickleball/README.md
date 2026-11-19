@@ -666,6 +666,8 @@ stances as a `play_game(stances=...)` argument (which is what made the head-to-h
 tests — the ledger steps toward the stance that won, and the chooser explores, because a lesson that never
 tries anything learns only about where it started. `TestPickleball` is 24 tests; the suite passes.
 
+**Built:** §5f, one foot of it wider than this page expected.
+
 ---
 
 ## §5f The lesson's unit is a game, and the season is its sample — 2026-11-19
