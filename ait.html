@@ -5212,11 +5212,23 @@ async function viewPlay(main){
 async function readSeason(season){
   const box = $('result'); if (!box) return;
   box.innerHTML = '<p class="muted small">reading…</p>';
+  // The film, if this season has one — and a sentence if it does not. Item 21: a season with no `watch.json`
+  // must say so rather than showing a stale one from a season that does. The two files are different kinds of
+  // thing: `practice.json` (and the report under it) is the record and keeps every session; `watch.json` is a
+  // rendering of the season at ONE clock, so it belongs to the last session somebody played as a film and is
+  // replaced by the next one. The link therefore says "its last session", because that is what it is.
+  const files = await dirNames(`games/tennis/seasons/${season}`).catch(() => []);
+  const film = files.includes('watch.json')
+    ? `<p><a href="games/tennis/replay3d.html?record=seasons/${encodeURIComponent(season)}/watch.json"
+          target="_blank" rel="noopener">watch the film of its last session</a>
+       <span class="small muted">— the same two players, at the skill the record had when it was played.</span></p>`
+    : `<p class="small muted">No film yet: no session in this season has been played as a film, so there is
+       nothing here to watch and nothing stale to show. Play one and the link appears.</p>`;
   try {
     const {text} = await fileText(`games/tennis/seasons/${season}/report.md`);
-    box.innerHTML = `<h2>${esc(season)}</h2><div class="prose">${md(text)}</div>`;
+    box.innerHTML = `<h2>${esc(season)}</h2>${film}<div class="prose">${md(text)}</div>`;
     box.scrollIntoView({behavior:'smooth', block:'start'});
-  } catch(e){ box.innerHTML = `<p class="err">${esc(e.message)}</p>`; }
+  } catch(e){ box.innerHTML = `<h2>${esc(season)}</h2>${film}<p class="err">${esc(e.message)}</p>`; }
 }
 
 /* ---- magazine --------------------------------------------------------------------------- */

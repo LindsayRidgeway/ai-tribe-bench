@@ -7436,6 +7436,26 @@ class TheClockSaysWhatItFound(unittest.TestCase):
         self.assertIn("ait-clock/1", page, "the page does not check the schema of what it read")
 
 
+    def test_the_page_offers_the_film_a_session_wrote_and_says_so_when_there_is_none(self):
+        """The founder's ask has three parts and the page had only two of them: the sessions play, the record
+        keeps them, and there was no way to WATCH one without knowing the URL. A page that can only reach the
+        record is a page where the film exists for whoever wrote it.
+
+        The two files are different kinds of thing and the page must not blur them: `practice.json` is the record
+        and keeps every session; `watch.json` is a rendering of the season at one clock, so it belongs to the last
+        session played as a film and is replaced by the next. Hence "its last session" rather than "the season",
+        and a sentence — not a broken image and not a stale film — for a season that has none."""
+        page = (REPO / "ait.html").read_text()
+        self.assertIn("replay3d.html?record=seasons/", page, "the page never links a season's film")
+        self.assertIn("watch.json", page)
+        self.assertIn("watch the film of its last session", page,
+                      "the link does not say which session the film is")
+        self.assertIn("No film yet", page,
+                      "a season with no film says nothing, so a reader cannot tell 'not filmed' from 'broken'")
+        films = list((REPO / "games" / "tennis" / "seasons").glob("*/watch.json"))
+        self.assertTrue(films, "the page links a film and no season on disk has one to fetch")
+
+
 class TheTemplateMustBeEnough(unittest.TestCase):
     """An installed tribe is a copy of a whitelist, so the whitelist has to be enough.
 
