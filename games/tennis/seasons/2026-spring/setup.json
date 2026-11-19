@@ -1,7 +1,7 @@
 {
   "schema": "ait-tennis-setup/1",
-  "written": "2026-11-12T19:57:00Z",
-  "written_by": "the renderer, by hand — there is no runner yet (see SETUP.md §6)",
+  "written": "2026-11-19T20:45:00Z",
+  "written_by": "the renderer, by hand — there is no runner yet (see SETUP.md §6). Six players since 2026-11-19 (CAST.md); the four after Gwen and Dmitri were built the same day from lab/body.py at commit 10c99298.",
   "players": [
     {
       "name": "Gwen",
@@ -26,6 +26,62 @@
         "kit": "#26324a",
         "skin": "#6b4630",
         "hair": "#141210",
+        "lower": "shorts",
+        "racquet": true,
+        "hand": "right"
+      }
+    },
+    {
+      "name": "Colette",
+      "history": 0,
+      "look": {
+        "height_m": 1.66,
+        "build": 0.98,
+        "kit": "#6d4a63",
+        "skin": "#e8c0a8",
+        "hair": "#3b2a24",
+        "lower": "skirt",
+        "racquet": true,
+        "hand": "right"
+      }
+    },
+    {
+      "name": "Ada",
+      "history": 0,
+      "look": {
+        "height_m": 1.74,
+        "build": 0.9,
+        "kit": "#6e7f92",
+        "skin": "#d9a98b",
+        "hair": "#6b4a2e",
+        "lower": "skirt",
+        "racquet": true,
+        "hand": "right"
+      }
+    },
+    {
+      "name": "Remy",
+      "history": 0,
+      "look": {
+        "height_m": 1.81,
+        "build": 1.0,
+        "kit": "#1f4a44",
+        "skin": "#c98f6b",
+        "hair": "#2a211b",
+        "lower": "shorts",
+        "racquet": true,
+        "hand": "right"
+      }
+    },
+    {
+      "name": "Bo",
+      "history": 0,
+      "look": {
+        "height_m": 1.92,
+        "build": 1.12,
+        "kit": "#d8cfb4",
+        "skin": "#8a5a3c",
+        "hair": "#141414",
         "lower": "shorts",
         "racquet": true,
         "hand": "right"

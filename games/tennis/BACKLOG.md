@@ -860,7 +860,7 @@ Two gaps, and the second is the one that decides whether "integral part of Kythe
    *watch* one. That set is **4.6MB**. *Done-test:* a fresh clone of the template plays and watches one session
    from one command and one URL, with no terminal beyond the one that started the server.
 
-## Item 22 — the cast is two people, and the film cannot draw anyone else (OPEN)
+## Item 22 — the cast is six, and now all six can be drawn (DONE 2026-11-19, less the four portraits)
 
 `replay3d.html` derives the body file from the name (`p.body`, which `tennis_script.py` writes as
 `name.lower()`), and `games/tennis/bodies/` holds `dmitri.glb` and `gwen.glb` and nothing else.
@@ -883,10 +883,26 @@ headshots of 2026-11-11. So:
 - **a missing face degrades worse than a missing body.** `bodies/faces/` holds `dmitri.jpg` and `gwen.jpg`; for
   anyone else the `<img>` 404s and the break card shows a broken-image glyph with a name under it.
 
-This is the founder's four-player cast, and it is the V1 line *"a person can add themselves to it and be drawn from
-the same rig"* with its renderer half one unpushed commit away. *Done-test:* `lab/body.py` is on `main` and builds
-a body from the command in its own docstring; a film of any two names in the season's `setup.json` draws two
-bodies; and with a face file absent, the card draws a named placeholder and no broken-image glyph.
+This is the V1 line *"a person can add themselves to it and be drawn from the same rig"*, and on 2026-11-19 it
+got its renderer half back:
+
+- **`lab/body.py` is on `main`**: recovered from `10c99298` and committed, 433 lines, with a test that asserts it
+  is there and that it declares Blender and takes `--name`. A `.glb` is a build artifact; losing the builder is how
+  a cast becomes unable to grow and nobody can tell why.
+- **Four bodies built in 1.5 seconds each**: `colette`, `ada`, `remy`, `bo`, at the heights and kit colours in
+  `seasons/2026-spring/setup.json`, which now names the whole six. A film of Ada and Bo was played and rendered —
+  `records/cast-2026-11-19.json`, 82 shots, both new bodies on screen at 1.74m and 1.92m.
+- **A missing portrait no longer breaks the card.** `bodies/faces/` holds two drawings; the other four draw a
+  monogram on the same paper with the same name and rating, because a broken-image glyph reads as a fault in the
+  page rather than as a member nobody has drawn yet. The flag lives on the image, not on the card — the card's
+  `className` is rebuilt every frame, and the first version of this lost its own monogram while drawing the
+  right name.
+- **The invariant, as a test**: every member a season's `practice.json` names has a `.glb` and a look in that
+  season's `setup.json`. That is the check that would have caught Colette and Remy, and it is why `2026-advent`
+  now has a `setup.json` it did not have.
+
+**Still open: four portraits.** The two that exist are the founder's; the other four cannot be generated here and
+are in the REQUEST that goes to him when the code is as far as it goes without his eyes.
 
 ## Item 23 — the live game keeps playing, and the film says how far behind it is (OPEN)
 

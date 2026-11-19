@@ -1,0 +1,41 @@
+{
+  "schema": "ait-tennis-setup/1",
+  "written": "2026-11-19T20:50:00Z",
+  "written_by": "the renderer, by hand — there is no runner yet (see SETUP.md §6). Two players, because this season's record is Ada and Bo's; the film cannot draw a member this file does not name.",
+  "players": [
+    {
+      "name": "Ada",
+      "history": 4,
+      "look": {
+        "height_m": 1.74,
+        "build": 0.9,
+        "kit": "#6e7f92",
+        "skin": "#d9a98b",
+        "hair": "#6b4a2e",
+        "lower": "skirt",
+        "racquet": true,
+        "hand": "right"
+      }
+    },
+    {
+      "name": "Bo",
+      "history": 2,
+      "look": {
+        "height_m": 1.92,
+        "build": 1.12,
+        "kit": "#d8cfb4",
+        "skin": "#8a5a3c",
+        "hair": "#141414",
+        "lower": "shorts",
+        "racquet": true,
+        "hand": "right"
+      }
+    }
+  ],
+  "session": {
+    "season": "2026-advent",
+    "surface": "clay",
+    "rallies": 20,
+    "temperature": 1.0
+  }
+}

@@ -48,6 +48,15 @@
     transition:opacity .3s ease;pointer-events:none}
   #facecard.on{opacity:1}
   #facecard img{width:100%;display:block;filter:grayscale(1) contrast(1.06)}
+  /* NOT EVERY MEMBER HAS A DRAWING. Two of the six do (the founder's, 2026-11-11) and the other four are bodies
+     with no portrait, so `bodies/faces/<body>.jpg` is a 404 and the card showed a broken-image glyph with a name
+     under it — worse than no card, because a glyph reads as a fault in the page rather than as a person who has
+     not been drawn yet. So a missing face falls back to a monogram: the same paper card, the same name and
+     rating, a letter where the drawing would be. Nothing is invented and nothing looks broken. */
+  #facecard img.none{display:none}
+  #facecard .mono{display:none;height:250px;line-height:250px;text-align:center;font-size:96px;
+    font-weight:600;color:#c8c1b2;letter-spacing:.06em;background:#efeade}
+  #facecard.noface .mono{display:block}
   #facecard .nm{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#14161a;padding:7px 10px 8px;
     font-weight:600}
   #facecard .nm span{color:#6b6f77;font-weight:400}
@@ -87,7 +96,8 @@
   <div class="mono" id="winline">—</div>
 </div>
 <div id="cut">between points</div>
-<div id="facecard"><img id="faceimg" alt=""><div class="nm" id="facename">—</div></div>
+<div id="facecard"><img id="faceimg" alt=""><div class="mono" id="facemono">—</div>
+  <div class="nm" id="facename">—</div></div>
 <div id="sign"><div class="box"><div class="k" id="signk">point</div><div class="who" id="signwho">—</div>
   <div class="why" id="signwhy"></div><div class="ctx" id="signctx"></div></div></div>
 <div id="err"></div>
@@ -1644,7 +1654,17 @@ function tick(now) {
     if (pl) {
       const img = el("faceimg");
       const src = `bodies/faces/${pl.body}.jpg`;
-      if (img.getAttribute("src") !== src) img.setAttribute("src", src);
+      if (img.getAttribute("src") !== src) {
+        img.setAttribute("src", src);
+        // The card is a still of a person, so it may only claim a person the record can show. A body with no
+        // drawing gets a monogram and the same name; the alternative on 2026-11-19 was a broken-image glyph.
+        // The flag lives on the IMAGE and not on the card, because the card's className is rebuilt every frame
+        // from `on` — which is how the first version of this lost its own monogram while drawing the right name.
+        const mono = el("facemono");
+        mono.textContent = pl.name.slice(0, 1).toUpperCase();
+        img.onerror = () => { img.className = "none"; mono.style.display = "block"; };
+        img.onload = () => { img.className = ""; mono.style.display = "none"; };
+      }
       el("facename").innerHTML = `${pl.name} <span>${pl.rating.toFixed(1)}</span>`;
     }
   }

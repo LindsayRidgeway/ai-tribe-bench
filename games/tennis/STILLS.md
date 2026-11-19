@@ -31,6 +31,16 @@ The page takes three query parameters, all of which pause the film so the still 
 - `?shot=12` — shot 12, with `&at=0.8` to choose how far through it (0 to 1).
 - `?t=41.2` — an absolute time in seconds of film.
 
+`?at=` is a **fraction** of the shot (0 to 1), not a number of seconds — a distinction worth writing down
+because I lost twenty minutes to it on 2026-11-19 reading `at=2.6` as "2.6 seconds into the shot" and getting a
+frame from the next rally. `?at=2.6` is 2.6× past the end of the segment, i.e. the film simply plays on.
+
+**The break is `?point=N` and nothing else.** `?shot=13&at=0.95` looks like it lands on the walk between points and
+does not reliably: the settle lives in the segment's `hold`, and a fraction of `dur` cannot address it. `?point=`
+sets the clock to `start + dur + 0.02`, holds it there (`playing = false`) and forces the caption up
+(`signAlways = true`), which is the only repeatable way to photograph the point board, the face card, or the
+monogram that stands in for a member with no portrait. Every still of a break in this folder was taken that way.
+
 `?cam=near` puts the camera beside the near baseline for looking at feet. `?cam=hit` goes over the striker's own
 shoulder, and `?cam=net` stands square on to the net from the side — which is the only way to see whether the
 headband follows the sag and whether the centre strap reaches the ground.

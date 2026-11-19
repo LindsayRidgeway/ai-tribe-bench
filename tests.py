@@ -4850,6 +4850,78 @@ class TestTheBallAfterThePointIsOver(unittest.TestCase):
         self.assertTrue(any(ch.isdigit() for ch in why), "the fault names no distance, so nothing can be learnt")
 
 
+class TestTheCastCanBeDrawn(unittest.TestCase):
+    """The founder's cast, 2026-11-19: three males and three females who play. A cast is only a cast if every one of
+    them can be PUT ON THE COURT, and until this test existed the failure was silent in the two places it hurts:
+
+    * `replay3d.html` builds the body file from the player's name (`p.body`, which `tennis_script.py` writes as
+      `name.lower()`), so a member with no `bodies/<name>.glb` does not draw — the page shows its error overlay and
+      the film is a black screen with an apology. Colette and Remy had 32 recorded balls and no body at all;
+    * a missing `bodies/faces/<name>.jpg` was a 404 in an `<img>`, so the break card showed a broken-image glyph
+      with a name under it. That is worse than no card: a glyph reads as a fault in the page, not as a member who
+      has not been drawn.
+
+    `lab/body.py` — the file that builds a body from parameters — was also lost once: committed on 2026-11-10 and
+    never pushed, so every clone had the finished `.glb` files and none had the machine that makes them. That is
+    item 0's disease, and the first test here is what stops it recurring quietly."""
+
+    def setUp(self):
+        self.games = REPO / "games" / "tennis"
+        self.bodies = self.games / "bodies"
+        self.seasons = self.games / "seasons"
+
+    def test_the_body_builder_is_in_the_repository(self):
+        """A `.glb` is a build artifact. If the script that makes one is not on `main`, then the cast cannot grow and
+        nobody can tell why — which is exactly what happened: two bodies in every clone, no builder in any."""
+        f = REPO / "lab" / "body.py"
+        self.assertTrue(f.exists(), "lab/body.py is not in the repository, so no new member can be given a body")
+        head = f.read_text(encoding="utf-8")[:400]
+        self.assertIn("blender", head.lower(), "lab/body.py does not declare that it runs under Blender")
+        self.assertIn("--name", f.read_text(encoding="utf-8"),
+                      "the builder has no --name argument, so it cannot build a member by name")
+
+    def test_every_member_a_season_record_names_can_be_drawn(self):
+        """The invariant that would have caught Colette and Remy before a film was ever attempted: a season's record
+        and a season's appearance file must name the same people, and each of them must have a body on disk."""
+        for season in sorted(p.name for p in self.seasons.iterdir() if p.is_dir()):
+            d = self.seasons / season
+            book = json.loads((d / "practice.json").read_text(encoding="utf-8"))
+            setup = json.loads((d / "setup.json").read_text(encoding="utf-8"))
+            looks = {p["name"] for p in setup["players"]}
+            for name in sorted(book.get("members", {})):
+                self.assertIn(name, looks,
+                              f"{season} records {name} but its setup.json does not give {name} a look, so a "
+                              f"film of that season would draw a stranger or nothing")
+                glb = self.bodies / f"{name.lower()}.glb"
+                self.assertTrue(glb.exists(),
+                                f"{season} records {name} and the film looks for {glb.name}, which does not exist — "
+                                f"a player who cannot be drawn is a player who cannot be watched")
+
+    def test_a_missing_portrait_draws_a_monogram_and_not_a_broken_image(self):
+        """The page cannot know a face file is absent without asking for it, so the fallback has to be an `onerror`
+        on the image itself. The flag lives on the IMAGE and not on the card, because the card's `className` is
+        rebuilt every frame from `on` — the first version of this lost its own monogram while drawing the right
+        name, which is the sort of defect only a still catches."""
+        page = (self.games / "replay3d.html").read_text(encoding="utf-8")
+        self.assertIn('id="facemono"', page, "the break card has no monogram element to fall back to")
+        self.assertIn("img.onerror", page, "a 404 portrait has no handler, so it draws a broken-image glyph")
+        self.assertIn('img.className = "none"', page,
+                      "the fallback does not hide the image, so a broken glyph sits above the monogram")
+        self.assertNotIn('card.className += " noface"', page,
+                         "the no-face flag is on an element whose className is rewritten every frame")
+
+    def test_the_cast_is_three_and_three(self):
+        """`CAST.md` is prose and prose does not fail. This reads the six names out of the seasons' setup files and
+        checks the two things the founder asked for that a test can see: six players, and both groups present."""
+        seen = {}
+        for d in (self.seasons / "2026-spring", self.seasons / "2026-advent"):
+            for p in json.loads((d / "setup.json").read_text(encoding="utf-8"))["players"]:
+                seen[p["name"]] = p["look"]["lower"]
+        self.assertEqual(len(seen), 6, f"the cast is {sorted(seen)}, which is not six players")
+        self.assertEqual(sum(1 for v in seen.values() if v == "skirt"), 3,
+                         "the cast is not three and three: `lower` is the only sex-adjacent fact in the files")
+
+
 class TestTheFilmIsTheSession(unittest.TestCase):
     """The founder's definition of "an integral part of Kythe", 2026-11-19: a session the user can WATCH and a
     session the members PLAY are the same session, and its result reaches the season "the same as if his own

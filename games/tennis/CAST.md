@@ -85,10 +85,12 @@ directory with everybody at zero — which is how the existing design already re
 
 ## What this costs
 
-- **Six bodies.** `lab/body.py` (recoverable from commit `10c99298`, 433 lines, Blender 5.3.0 installed here)
-  builds one member from parameters. Four of these six have no `.glb` today, so four builds.
-- **Four faces.** `bodies/faces/` holds `dmitri.jpg` and `gwen.jpg`, both drawn by the founder. The other four
-  cannot be generated here; until they exist the break card must draw a named placeholder rather than a
-  broken-image glyph.
+- **Six bodies — done 2026-11-19.** `lab/body.py` (recovered from commit `10c99298`, 433 lines) is on `main` and
+  builds one member from parameters in **1.5 seconds**. The four missing ones are built, at the heights and kit
+  colours in `seasons/2026-spring/setup.json`: Colette 1.66m plum, Ada 1.74m slate, Remy 1.81m teal, Bo 1.92m
+  cream. A film of Ada and Bo is `records/cast-2026-11-19.json`.
+- **Four faces — open.** `bodies/faces/` holds `dmitri.jpg` and `gwen.jpg`, both drawn by the founder. The other
+  four cannot be generated here. The break card now draws a monogram in their place, so the season is watchable
+  without them; the drawings are a request, not a blocker.
 - **A clock.** Something has to start a session on the staggering above without a person, and it has to be a
   workflow rather than a habit.
