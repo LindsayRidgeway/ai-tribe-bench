@@ -2521,6 +2521,10 @@ kept whole: not summarised, not rewritten</span></span>
       <div id="chapts" style="margin-top:6px"><p class="small muted">reading the chapters…</p></div>
     </div>
 
+    <h2>What its wakes produced <span class="small muted" style="font-weight:400">— the files it wrote while nobody was
+      watching: one per wake that reached an engine, stamped in UTC</span></h2>
+    <div class="card" id="wakes"><p class="small muted">reading its output…</p></div>
+
     <h2>Its own words <span class="small muted" style="font-weight:400">— its long-term memory: what it wrote down, and what no conversation can take away</span></h2>
     <div class="prose">${md(m.journal.split(/\n(?=## )/).slice(-2).join('\n\n'))}</div>
 
@@ -2544,6 +2548,7 @@ kept whole: not summarised, not rewritten</span></span>
   showIdentity(name).catch(() => {});
   showChapters(name).catch(() => {});
   showPictures(name).catch(() => {});
+  showWakes(name).catch(() => {});
 
   // The comparison reads two API endpoints; it must not delay the talk, and a failure is a footnote.
   compareMemories(name).catch(e => {
@@ -2786,6 +2791,68 @@ async function outputFiles(name){
     throw e;
   }
 }
+
+/* What its wakes produced, readable without opening GitHub. The founder's question, 2026-11-19: "How will I be able
+   to see any results George produces in a wake?" The honest state was that `output/` existed, the *live* "Wake now"
+   button diffed the folder to prove it had done something, and a *scheduled* wake — the whole promise of the product,
+   work while you sleep — left files nothing in the page could open. That is the same fault as the circle list and the
+   token field: the machinery wrote, and the way to read it was missing.
+
+   Newest first by name, because a wake's file is stamped in UTC and sorts as text; a `.json` is the raw exchange with
+   the engine and is shown as it is, trimmed, because a person asking "what did it do" should not be handed a file they
+   cannot read. */
+async function showWakes(name){
+  const box = $('wakes'); if (!box) return;
+  let list;
+  try {
+    const d = await gh(`/repos/${S.repo}/contents/${encodeURI(`wake/members/${name}/output`)}?ref=${S.branch}`);
+    list = Array.isArray(d) ? d.filter(x => x.type === 'file' && x.name !== '.gitkeep') : [];
+  } catch(e){
+    // 404 is not an error here: a member whose every wake was free has no `output/` in the repository at all,
+    // because git does not keep an empty folder. That is the normal state of a new circle, and reporting it as
+    // "could not read its output" would tell a person their circle is broken on the day it was made.
+    if (!String(e.message).startsWith('404')){
+      box.innerHTML = '<p class="small muted">Could not read its output: ' + esc(e.message) + '</p>';
+      return;
+    }
+    list = [];
+  }
+  if (!list.length){
+    box.innerHTML = '<p class="small muted">Nothing yet — and that is the ordinary state of a new member. A wake '
+      + 'that reaches an engine leaves the exchange here. A wake that runs without a key is only the bookkeeping '
+      + 'and costs nothing, so it leaves nothing; a member whose key the clock cannot see never gets that far.</p>';
+    return;
+  }
+  list.sort((a, b) => String(b.name).localeCompare(String(a.name)));
+  box.innerHTML = list.slice(0, 12).map(f => {
+    const stamp = String(f.name).replace(/^raw-/, '').replace(/\.json$/, '').replace(/\.md$/, '');
+    const when = /^\d{8}T\d{6}Z$/.test(stamp)
+      ? stamp.slice(0, 4) + '-' + stamp.slice(4, 6) + '-' + stamp.slice(6, 8) + ' ' +
+        stamp.slice(9, 11) + ':' + stamp.slice(11, 13) + ' UTC'
+      : '';
+    return `<div class="row" style="justify-content:space-between;padding:6px 0">
+      <button class="plain small" onclick="openWakeFile('${escq(name)}','${escq(f.name)}')">${esc(f.name)}</button>
+      <span class="small muted">${when ? esc(when) : '&nbsp;'}${f.size ? ' · ' + Math.max(1, Math.round(f.size / 1024)) + ' KB' : ''}</span>
+    </div>`;
+  }).join('') + (list.length > 12 ? `<p class="small muted">${list.length - 12} older files not listed.</p>` : '');
+}
+
+window.openWakeFile = async (name, file) => {
+  openDialog(`<h3 style="margin-top:0">${esc(file)}</h3><p class="small muted">reading it…</p>
+    <div class="row" style="margin-top:14px"><button class="plain" onclick="closeDialog()">Close</button></div>`);
+  try {
+    const d = await gh(`/repos/${S.repo}/contents/${encodeURI(`wake/members/${name}/output/${file}`)}?ref=${S.branch}`);
+    const text = b64d(d.content || '');
+    const shown = text.length > 12000 ? text.slice(0, 12000) + '\n\n… ' + (text.length - 12000) + ' more characters' : text;
+    openDialog(`<h3 style="margin-top:0">${esc(file)} <span class="small muted" style="font-weight:400">— what its wake
+      left behind</span></h3>
+      <div class="file" style="white-space:pre-wrap;max-height:60vh;overflow:auto">${esc(shown)}</div>
+      <div class="row" style="margin-top:14px"><button class="plain" onclick="closeDialog()">Close</button></div>`);
+  } catch(e){
+    openDialog(`<h3 style="margin-top:0">${esc(file)}</h3><p class="err">Could not read it: ${esc(e.message)}</p>
+      <div class="row" style="margin-top:14px"><button class="plain" onclick="closeDialog()">Close</button></div>`);
+  }
+};
 
 /* Which engines the clock will hand a key to — read out of the workflow, not copied into this page. A list written
    here a second time would drift the same way clock.yml's did: the page offers ten engines, the clock wired three,

@@ -309,7 +309,13 @@ export function loadPage(fresh = false){
   // A browser's global object answers to `self`, and the vendored sealed-box library asks for it by that name
   // (UMD wrappers do). The fake browser did not have one, which is the fake's gap and not the page's, so it gets
   // one: `self` is the global, as it is in a window.
-  vm.runInContext('this.self = this;', context);
+  //
+  // `window` is set here too, and it must be *this* context, not the shared one. It used to be inherited from the
+  // sandbox (`sandbox.window = sandbox`), which meant every page loaded here — the main one and each fresh one —
+  // assigned its `window.*` functions onto the same object. So the last page to load decided what the shared
+  // context's `openWakeFile` was, and a function that closed over one document's state was being called as
+  // another's: a browser has never behaved that way, and a harness that did made a correct page fail.
+  vm.runInContext('this.self = this; this.window = this;', context);
   vm.runInContext(source, context, {filename: 'ait.html'});
   return context;
 }
@@ -2557,7 +2563,69 @@ async function main(){
     return '';
   });
 
-  // 16 — the person's key goes into the repository, sealed, without leaving the page
+  // 16 — what its wakes produced, from the page
+  //
+  // The founder asked on 2026-11-19: "How will I be able to see any results George produces in a wake?" The honest
+  // answer before this check was "open GitHub and look in `output/`". A scheduled wake is the whole promise of the
+  // product — work while you sleep — and the *only* thing it leaves in `output/` is the raw exchange with the engine,
+  // which nothing in the page could open. The live "Wake now" button diffed the folder to prove it had done
+  // something, and then dropped it.
+  reset();
+  plantMember('Lumi', 'deepseek');
+  plantMember('Quiet', 'deepseek');
+  // The real shape and the real name: `tribe.py next --record` and wake.py stamp UTC as `raw-20261119T172307Z.json`,
+  // which sorts newest-first as text — the page leans on that, so the fixture must not be a prettier name.
+  seed('wake/members/Lumi/output/raw-20261119T052307Z.json', '{"chosen_item": "the older one", "journal": "old"}');
+  seed('wake/members/Lumi/output/raw-20261119T172307Z.json', '{"chosen_item": "the boat", "journal": "I built it."}');
+  const woke = await tryRun(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main'; S.owner = 'Sam';
+    await viewMember(document.getElementById('main'), 'Lumi');
+    await showWakes('Lumi');
+    return document.getElementById('wakes').innerHTML;
+  })()`);
+  check('a member page lists the files its wakes left, newest first, with the hour they were written', () => {
+    if (woke.err) return woke.err;
+    const box = String(woke || '');
+    if (!box) return 'the member page has no place for what its wakes produced';
+    const newer = box.indexOf('raw-20261119T172307Z.json'), older = box.indexOf('raw-20261119T052307Z.json');
+    if (newer < 0 || older < 0) return 'it does not list them: ' + box;
+    if (newer > older) return 'the oldest is first, so the newest work is at the bottom: ' + box;
+    if (!/2026-11-19 17:23 UTC/.test(box)) return 'it does not say when the wake ran: ' + box;
+    if (/Nothing yet/.test(box)) return 'it says there is nothing while listing two files';
+    return '';
+  });
+  calls.length = 0;
+  const openedW = await tryRun(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
+    await openWakeFile('Lumi', 'raw-20261119T172307Z.json');
+    return document.getElementById('dlg').innerHTML;
+  })()`);
+  const openAsked = calls.slice();
+  check('pressing one opens the file itself, not a message about it', () => {
+    if (openedW.err) return openedW.err;
+    const d = String(openedW || '');
+    if (!openAsked.includes('GET /repos/someone/tribe/contents/wake/members/Lumi/output/raw-20261119T172307Z.json'))
+      return 'it read something else: ' + JSON.stringify(openAsked);
+    if (!/I built it\./.test(d)) return 'the file did not open: ' + d;
+    if (!/raw-20261119T172307Z\.json/.test(d)) return 'the window does not say which file it is: ' + d;
+    return '';
+  });
+  const noWakes = await tryRun(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
+    await showWakes('Quiet');
+    return document.getElementById('wakes').innerHTML;
+  })()`);
+  check('a member with nothing there says a free wake leaves nothing — and is not told it is broken', () => {
+    if (noWakes.err) return noWakes.err;
+    const s = String(noWakes || '');
+    if (!/Nothing yet/.test(s)) return 'it does not say there is nothing yet: ' + s;
+    if (!/free bookkeeping|needs no key|without a key/.test(s))
+      return 'it does not explain why an empty folder is normal: ' + s;
+    if (/Could not|error|failed/i.test(s)) return 'it reads as a fault: ' + s;
+    return '';
+  });
+
+  // 17 — the person's key goes into the repository, sealed, without leaving the page
   //
   // In a fresh load, and not in the shared context that every other check uses. A page's globals belong to its
   // document; this harness keeps one global across a hundred checks, and by the time these run the shared `nacl`

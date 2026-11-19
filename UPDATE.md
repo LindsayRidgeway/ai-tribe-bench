@@ -216,3 +216,26 @@ reader will want and that are easy to get wrong:
 
 What this does not change: the key is still never in the repository's *contents*, secrets are still write-only, and a
 wake still reads only what the repository holds. It changes who does the typing.
+
+## Where a wake's work can be read — 2026-11-19
+
+The founder asked: *"How will I be able to see any results George produces in a wake?"* The answer until this
+evening was "open GitHub and look in `wake/members/<name>/output/`". That is not an answer for the person the
+product is for.
+
+- **The gap was structural, not cosmetic.** `output/` was read in exactly one place: the *Wake now* button diffed
+  the folder before and after a run to prove the run had done something, then dropped the list. So a **scheduled**
+  wake — the whole promise, work while you sleep — left files that nothing in the page could open. Same defect as
+  the circle list and the token field: the machinery wrote, and the way to read it was missing.
+- **Now:** the member page has *What its wakes produced*, above *Its own words*. One row per file, newest first,
+  with the UTC hour pulled out of the name (`raw-20261119T172307Z.json` sorts as text, which is why the naming was
+  worth keeping), the size, and a press that opens the file itself, trimmed at 12,000 characters with the count of
+  what was cut.
+- **A 404 is not an error here.** git keeps no empty directory, so a member whose every wake was free has no
+  `output/` at all. The page says so in a sentence instead of "could not read its output" — an empty folder is the
+  ordinary state of a new member, and a product that calls it a fault on day one teaches a person to stop looking.
+- **The harness had been lying about `window`.** `loadPage()` gave each page the *shared* sandbox as its `window`
+  (`sandbox.window = sandbox`), so every fresh load's `window.openWakeFile` overwrote the main context's, and a
+  function closing over one document's state was being called as another's — it built `/repos//contents/...` from
+  an empty repository and the page was blamed. A browser never shares a global between two documents. Fixed by
+  giving each context `this.window = this`.
