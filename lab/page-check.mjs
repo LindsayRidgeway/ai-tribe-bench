@@ -2395,6 +2395,29 @@ async function main(){
     if (clocked.none !== '') return 'with no record it invents one: ' + clocked.none;
     return '';
   });
+  /* 15a — the sentence that answers "that circle isn't in either of them". He asked it twice: once about the list,
+     and again with a screenshot of the home page and the words "where is Find my circles, and what token". A page
+     that shows a list must say what the list is a list of, and what to do about what it does not contain. */
+  reset();
+  actions.login = 'LambieLamberton';
+  const says = await tryRun(ctx, `(async () => {
+    S.repo = ''; S.token = ''; S.circles = {}; S.app = 'app-token'; S.members = [];
+    location.hash = '#/connect';
+    await viewConnect(document.getElementById('main'));
+    await new Promise(r => setTimeout(r, 40));
+    const main = document.getElementById('main').innerHTML || '';
+    return {missing: /A circle missing from this list/.test(main),
+            why: /never let into/.test(main),
+            ways: /by name/.test(main) && /token/.test(main)};
+  })()`);
+  check('a list says what it is a list of, and what to do about a circle it does not contain', () => {
+    if (says.err) return says.err;
+    if (!says.missing) return 'nothing tells a person their circle may simply not be in this list';
+    if (!says.why) return 'it does not say why a circle would be missing';
+    if (!says.ways) return 'it does not say where to look for one';
+    return '';
+  });
+
   /* 15b — a circle the App was never installed on, found without being told its name.
      His words, 2026-11-19: "I have two GH accounts, and that circle doesn't seem to be in either of them." It was
      in neither list because the list was the App's installations, and his circle predates it. */

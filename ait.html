@@ -2012,6 +2012,9 @@ function viewConnect(main){
       — no others, and narrower than a classic token, which can write everything you own. Change what it reaches at
       any time at
       <a href="https://github.com/settings/installations" target="_blank" rel="noopener">GitHub → Installations</a>.</p>
+      <p class="small muted" style="margin:6px 0 0"><strong>A circle missing from this list</strong> is one this
+      sign-in was never let into — made with a pasted token, or made before the sign-in existed. Those are not gone:
+      look for them below with a token, or open one by name.</p>
     </div>`;
   main.innerHTML = `
     <p class="small"><a href="#/">← back</a></p>
@@ -2156,7 +2159,10 @@ or <a href="#/today" onclick="WANT='';WANT_WHY='';return true;">stay in ${esc(S.
     if (!t){
       // The box it is asking for was hidden behind a link, so saying "paste a token below" would be pointing at
       // nothing. Open the door and put the cursor in it.
-      tell('Paste a token below first — a sign-in only reaches the repositories you ticked for Kythe.');
+      tell('A token is needed for this: the sign-in only reaches the repositories you ticked for Kythe, so it '
+        + 'cannot look in the rest. Make one at <a href="https://github.com/settings/tokens/new" target="_blank" '
+        + 'rel="noopener">github.com/settings/tokens/new</a> — tick <strong>repo</strong> and '
+        + '<strong>workflow</strong> — and paste it below. A minute, once.');
       const pc = $('pastecard'); if (pc) pc.hidden = false;
       const ti = $('token'); if (ti) ti.focus();
       return;
@@ -2225,7 +2231,8 @@ or <a href="#/today" onclick="WANT='';WANT_WHY='';return true;">stay in ${esc(S.
         : `<strong>Open</strong> asks GitHub whether the token still works and goes there.`;
       if (b) b.textContent = 'Open';
     } else {
-      box.textContent = 'This browser has no credential for that repository. A token is needed, once.';
+      box.textContent = 'This browser has no credential for that repository. A token is needed, once —'
+        + ' the sign-in never reaches a repository it was not let into.';
       if (b) b.textContent = 'Connect';
     }
   };
