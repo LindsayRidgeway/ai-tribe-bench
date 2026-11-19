@@ -1,10 +1,10 @@
 # golf — a bag, a course, and the number that says which club was wrong
 
 Built 2026-11-19 by Dmitri, from the founder's suggestion of the same day. Second pass the same night:
-wind, and the decision about where to aim. Third pass: the pins drawn instead of typed. **Fourth pass: a
-bunker beside the green, put there to test the third pass and mostly to refute it.** The tool is
-`lab/golf.py`; the runs are `records/golf-2026-11-19.txt`; the checks are `python3 lab/golf.py --selftest`
-(22 of them).
+wind, and the decision about where to aim. Third pass: the pins drawn instead of typed. Fourth pass: a
+bunker beside the green, put there to test the third pass and mostly to refute it. **Fifth pass: the bunker's
+face, and the end of the game.** The tool is `lab/golf.py`; the runs are `records/golf-2026-11-19.txt`; the
+checks are `python3 lab/golf.py --selftest` (25 of them).
 
     python3 lab/golf.py                    # six rounds of nine, then six holes never played
     python3 lab/golf.py --calm             # the same pins on a still day
@@ -50,8 +50,16 @@ Six of the nine holes have a **bunker on one flank**: 14 ft of sand outside the 
 3, 4 and 8 and on the left of 2, 7 and 9. Three holes have none, so a sandless green is in the sample too. The
 bunker does not move with the pin — that is the point of putting it there: a pin cut toward the sand and a pin
 cut away from it are different problems with the same distance from the middle. The ball leaves sand at 70% of
-its grass speed, bounces dead, and cannot be putted from; the *lip* is not modelled, and that omission turns
-out to be the whole of the result below.
+its grass speed, bounces dead, and cannot be putted from.
+
+Its **face** is 18 in high along the green-side edge and nothing along the others, and it is a constraint
+rather than a law of motion: the integrator already knows how high the ball is, so a shot that is below
+`LIP_H` when it crosses that edge is a shot into the wall — the ball stays where it was and the stroke is
+spent. From a foot away no club in the bag gets out forwards; from six feet a sand wedge does, since 28° buys
+2.8 ft of climb. The outer edge is level with the fairway, so **a player can always take his medicine and play
+out sideways**, and the athlete does exactly that — one stroke out, then a chip. A ball that has hit the face
+once is played out on the next stroke without being asked again, because otherwise this game has a hole that
+can be played twelve times into the same wall.
 
 Every hole has a **wind**, blowing at 9 to 18 mph from a stated bearing, and it is told to the athlete
 before every shot — all nine are in the `COURSE` table with their pins. `--calm` is the same pins with no
@@ -103,6 +111,7 @@ friction law, a = STIMPMETER²/(2·stimp). One integrator, one roll law, no seco
 | calibration residual | worst club **8.5 yd** off its prior carry |
 | roll law | 6.0 ft/s rolls **10.00 ft** on a 10 stimp, exactly putt's |
 | sand | a wedge keeps **0.54** of its distance and **0.56** of its run-out, against 0.55 and 17.3 → 9.8 yd |
+| the face | 1 ft from it, **6 of 6 clubs** hit it; 6 ft away a full wedge clears (needs 2.8 ft of run, has 3.2) |
 
 **Nothing here was measured on a launch monitor.** The six clubs' ball speeds, launch angles and spin rates
 are priors from published tour averages; the four drag/lift constants (Cl = min(0.131, 1.68·S), Cd =
@@ -132,7 +141,7 @@ notebook said| against |what the shot did|, over every shot in the round.*
 
 Putts, still air: 30, 25, 25, 22, 24, 25 for the learner, 18 every round for the control.
 
-### Five findings
+### Six findings
 
 1. **A wrong notebook costs about five strokes a round, and only after it has been paid for.** The learner
    starts four strokes worse than a player who never practises (+16 against +13) and finishes five to eight
@@ -199,11 +208,37 @@ Putts, still air: 30, 25, 25, 22, 24, 25 for the learner, 18 every round for the
    within their error bars (−0.38 ± 0.21 and +0.85 ± 0.29). And with the wind on, nothing: ±19 with drawn
    wind gives **−0.28 ± 0.63**, which is the fourth finding's null, still standing.
 
+6. **The lip was built, sand got five times dearer, and the answer did not change.** Finding 5 blamed the
+   missing face: a bunker without a lip is a slow lie, so of course a player need not fear it. So the face went
+   in (18 in at the green-side edge, a trajectory test rather than a new force) and the athlete's price for
+   sand was **re-measured**, because the world had changed: 0.30 strokes became **1.70** (1.67 against a green
+   lie at the same distance over 27 sand landings; 2.00 from a ball 1.5 ft from the face, 4 strokes against 2).
+   Five times dearer, and the same paired experiment on the same drawn courses:
+
+   | still air, 60 drawn courses | no face (pass 4) | with the face (pass 5) |
+   |---|---|---|
+   | pin ±14 ft: aiming at the pin minus aiming where the putt is likeliest | +0.85 ± 0.29 | **−0.20 ± 0.33** |
+   | pin ±19 ft | +1.97 ± 0.55 | **+2.82 ± 0.71** |
+   | the bunker's effect on that difference, pin cut **toward** the sand | −0.21 ± 0.14 | **−0.13 ± 0.20** |
+   | the same, pin cut **away** from the sand | −0.05 ± 0.05 | **−0.14 ± 0.07** |
+
+   The two halves of the last two rows are the whole finding: with a face and a price five times higher, the
+   hazard is still **symmetric to within 0.01 strokes**. It does not matter which side of the green the flag is
+   on. The reason is not that sand is cheap any more — it is that a player who can see the bunker pays for
+   avoiding it on *every* hole, while a player who cannot pays only on the holes where the flag sits near it,
+   and the two bills come out the same. **A hazard on one flank is not a direction unless the player who
+   responds to it can respond differently on the holes that have no hazard near the pin — and this one cannot,
+   because where the pin is cannot change where the sand is.** The headline numbers move around by about a
+   stroke between passes and the error bars barely separate them: ±19 is 2.82 ± 0.71 against 2.50 ± 0.58, which
+   is one and a half standard errors on the difference. So the honest summary of the last two passes is that a
+   course feature worth less than the player's own scatter moves the headline no more than the headline's own
+   noise. With the wind drawn, ±19 gives −0.05 ± 0.67 and the fourth finding's null stands again.
+
 ## What this does not model
 
-- **no bunker lip, and no plugged lie or killed spin in sand** — a bunker is a slow lie here, which the fourth
-  pass measured to be worth 0.2 strokes rather than a stroke; water, dogleg, tree line, green contour and
-  green slope are absent for the same reason: each is a new law, and each was left out rather than invented
+- **no plugged lie, no stance with the feet below the ball, no spin killed at contact, no flyer from the
+  rough** — the face is geometry, those are laws, and they are the half of a bunker that is still missing;
+  water, dogleg, tree line, green contour and green slope are absent for the same reason
 - a ball in sand must still be "carried" out by the same bag from a flat surface; no stance, no shallow
   explosion, no downhill lie in a bunker
 - no lie effect but rough, and no uphill or downhill stance; no flyer
@@ -217,16 +252,25 @@ Two things were tried and thrown out, both in the code with their reasons: a **T
 60 ft of the flag, which turned every fringe into a two-putt and every round under par; and a **learned
 rough coefficient**, which could not be separated from the notebook's own errors.
 
-## What would come next, in order
+## Where it stops, and why
 
-1. **The bunker's lip, if golf is to keep going.** The fourth pass built the bunker that the third pass asked
-   for and got nothing, because the missing half of a bunker is the wall you have to carry; without it the
-   sand is a slow lie and the target decision never becomes two-dimensional. A lip is cheap to state — a
-   minimum carry height over the sand's inner edge — and it would make the recovery a real decision instead of
-   a shorter shot. By the stopping condition I set before this pass, that is the honest next step and this is
-   the last cheap one: after it, the untested claims need slope, sand physics or spin, and the game rests.
-2. **A course that is not straight.** One dogleg changes the drive from "hit it as far as you can" into a
-   decision with a number on it, and it is the cheapest way to make the driver's distance matter.
-3. **The picture.** A golf render is cheaper than a tennis one: one ball, one flight, a camera behind the
-   ball, no opponent, and the whole shot is over in six seconds. `games/tennis/replay3d.html` is the template
-   and `lab/tennis.py`'s `trace=` is the data. It should be built when there is a round worth watching.
+The game rests here. The condition was set before pass 4 and it has now been reached: **every remaining
+question needs a law I would have to invent** — the stance in a bunker, a plugged lie, spin dying at contact,
+a green that slopes, a false front that returns a ball, water. Each is a new force or a new surface, and the
+last two passes are exactly why I am not going to add one to make a hypothesis come out: I predicted twice that
+a hazard would make the target decision directional, and twice the measurement said no, the second time at five
+times the price of the hazard.
+
+What is left that is **not** a new law, in the order it would be worth doing:
+
+1. **A field.** One athlete against a card, not against the arithmetic. Golf's other half is that somebody
+   else's number is on the board, and nothing in this file needs to change except a loop around `play_round`.
+2. **The picture.** One ball, one flight, a camera behind the ball, six seconds, `games/tennis/replay3d.html`
+   as the template and `lab/tennis.py`'s `trace=` as the data. The lip gives the renderer something to show
+   that a still frame cannot: a ball that comes back.
+3. **A dogleg.** The driver's distance has never been a decision, because the corridor is straight and 40 yd
+   wide. A corner with trees on the inside and a rough edge on the outside turns "hit it as far as you can"
+   into a question with a number on it — and it is still geometry.
+
+Both of the first two are worth doing when there is a round worth watching. There is not one yet: the athlete
+shoots within a few strokes of par on a nine-hole course of my own construction, against a field of one.

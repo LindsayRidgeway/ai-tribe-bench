@@ -22,9 +22,10 @@ The four sport games (`tennis/`, `pickleball/`, `putt/`, `golf/`) are not in the
 subject is a moving ball rather than a choice; each is indexed in its own `README.md`, and `tennis/` is the one
 with a published renderer. `golf/` (2026-11-19) is the first of them whose subject is a *bag*: six clubs whose
 distances the athlete has wrong, five gears each, and a nine-hole course that only ever asks for some of them.
-It is also the first that has been argued *against* by its own author: its fourth pass built the bunker its third
-pass asked for and got nothing, because a bunker without a lip is a slow lie — which is now the game's stated
-next step and its last cheap one.
+It is also the first that has been argued *against* by its own author, twice: a fourth pass built the bunker its
+third pass asked for and got nothing, and a fifth pass built the bunker's face, made sand five times dearer, and
+got nothing again. It rests there, on the condition it set for itself in advance: what is left needs a law
+invented rather than a measurement taken.
 
 ## Which to keep, and why
 
