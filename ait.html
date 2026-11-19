@@ -651,6 +651,21 @@ async function recordVersionByContent(head){
     cur && cur.sha);
 }
 
+// A brand-new circle, stamped: retried, because the moment after GitHub generates a repository is the one moment it
+// is not writable. Four attempts over about four seconds, and a false return the caller may log: an install that
+// worked must not fail over a record, and a record that failed must not be silent either.
+async function stampFreshCircle(){
+  for (let i = 0; i < 4; i++){
+    const head = await templateHead();
+    if (head){
+      try { await writeVersion(head); return true; }
+      catch(e){ /* the repository is not ready yet, or the branch is not there yet */ }
+    }
+    await new Promise(r => setTimeout(r, 700 + 500 * i));
+  }
+  return false;
+}
+
 // The record is a claim about what this circle *has*, so it may only claim a version the press actually reached.
 // A press that adds the three files a circle never had and leaves twenty-one older ones alone has not brought it to
 // the template, and writing `updated_to` anyway makes the page say "Machinery up to date" about a circle that is
@@ -1667,9 +1682,10 @@ function viewInstall(main){
       msg.textContent = 'copied the machinery into it…';
       setCircle(full, t, 'main');
       // Stamp the template's sha into the new circle, so "what did this come from" is a fact in the repository
-      // rather than a recollection. Best effort: a circle without the stamp still works, and saying so beats
-      // failing an install that has already succeeded.
-      try { await writeVersion(await templateHead()); } catch(err){ console.warn('no version stamp:', err.message); }
+      // rather than a recollection. Best effort, but with a retry: a repository GitHub has just generated for you is
+      // not writable for a moment, and one attempt against it fails — measured 2026-11-19 on the first circle the
+      // page ever made: 47 files copied, no `.ait/version.json`, and nothing said, because best effort swallowed it.
+      if (!await stampFreshCircle()) console.warn('no version stamp: the new circle would not take one');
       // Remember the name GitHub has for them, so the first member made in this circle is told who it is
       // talking to without being asked. Blank when the account has no display name — the add-a-member
       // dialog asks then, and does not guess a login.

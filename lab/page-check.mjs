@@ -159,6 +159,7 @@ function githubFetch(url, init = {}){
   if (method === 'PUT'){
     if (failWrites.has(rest)) return jsonResponse(500, {message: 'the repository said no'});
     if (clashWrites.has(rest)) return jsonResponse(409, {message: 'sha does not match'});
+    if (actions.busy[rest] > 0){ actions.busy[rest]--; return jsonResponse(409, {message: 'Git Repository is empty.'}); }
     const body = JSON.parse(init.body || '{}');
     const text = Buffer.from(String(body.content || ''), 'base64').toString('utf8');
     const prev = files.get(rest);
@@ -292,7 +293,7 @@ function reset(){
   tpl.sha = null; tpl.files.clear(); tpl.refs.clear();
   actions.runs.length = 0; actions.onPoll = null; actions.secrets = []; actions.secretsDenied = false;
   exchanges.length = 0; actions.installationsDenied = false;
-  actions.missingWorkflows = [];
+  actions.missingWorkflows = []; actions.busy = {};
   for (const id of ['mmsg', 'chaptsmsg', 'main']) if (elements.has(id)) elements.delete(id);
 }
 
@@ -2155,6 +2156,22 @@ async function main(){
     if (!ui.behind) return 'the behind state draws no button';
     if (!ui.unknown) return 'a circle with no version record is offered nothing — and that is the circle that most needs it';
     if (ui.current) return 'the current state still draws one: ' + ui.current;
+    return '';
+  });
+
+  // the install path's stamp: retried, because a repository GitHub has just generated is not writable for a moment
+  reset();
+  tpl.sha = HEAD;
+  seed('.tribe.py', '');
+  actions.busy['.ait/version.json'] = 2;
+  const fresh = await settle(`const ok = await stampFreshCircle();
+    let v = null; try { v = JSON.parse((await fileText('.ait/version.json')).text); } catch(e){}
+    return {ok, v, tries: 0};`);
+  check('a circle the page has just installed is stamped even though the repository answers "empty" at first', () => {
+    if (fresh.err) return fresh.err;
+    if (!fresh.ok) return 'the stamp gave up';
+    if (!fresh.v) return 'no .ait/version.json after a successful stamp';
+    if (fresh.v.installed_from !== HEAD) return 'the stamp does not name the template: ' + JSON.stringify(fresh.v);
     return '';
   });
 
