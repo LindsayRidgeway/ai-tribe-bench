@@ -27,7 +27,8 @@ const failWrites = new Set();     // paths whose PUT is refused, to test the fai
 const clashWrites = new Set();    // paths whose PUT answers 409: somebody else wrote the file since it was read
 const calls = [];                 // every request, for the failure messages to be specific
 const dispatches = [];            // every workflow_dispatch, with the inputs the page sent it
-const actions = { runs: [], onPoll: null, secrets: [], secretsDenied: false, installationsDenied: false };
+const actions = { runs: [], onPoll: null, secrets: [], secretsDenied: false, installationsDenied: false,
+                  secretPublicKey: null, secretWrites: [], secretWriteDenied: false };
 // What GitHub says about the repository itself. `private` is the one field the page reads out of it, and on
 // 2026-11-15 it read nothing: an owner could turn a tribe public and the page went on saying nothing while the
 // record — every journal, every word said to a member — became readable by anyone. Kept here so a check can
@@ -104,6 +105,17 @@ function githubFetch(url, init = {}){
       return jsonResponse(403, {message: 'You must authenticate with an access token authorized to a GitHub App in '
         + 'order to list installations'});
     return jsonResponse(200, {total_count: 0, installations: []});
+  }
+  if (/^\/repos\/[^/]+\/[^/]+\/actions\/secrets\/public-key$/.test(p)){
+    // GitHub hands the page a key to seal with, and a sealed box cannot be opened by the key that made it — so the
+    // harness can check exactly what a person is promised: what lands in the repository is unreadable as it stands.
+    if (!actions.secretPublicKey) return jsonResponse(404, {message: 'Not Found'});
+    return jsonResponse(200, {key_id: 'k1', key: actions.secretPublicKey});
+  }
+  if (/^\/repos\/[^/]+\/[^/]+\/actions\/secrets\/[A-Z0-9_]+$/.test(p)){
+    if (actions.secretWriteDenied) return jsonResponse(403, {message: 'Resource not accessible by integration'});
+    actions.secretWrites.push({name: p.split('/').pop(), body: JSON.parse(init.body || '{}')});
+    return jsonResponse(201, {});
   }
   if (/^\/repos\/[^/]+\/[^/]+\/actions\/secrets$/.test(p)){
     if (actions.secretsDenied) return jsonResponse(403, {message: 'Must have admin rights to Repository.'});
@@ -238,7 +250,10 @@ const sandbox = {
   // and the wait is not what is being tested — the answer is.
   setTimeout: (fn) => setTimeout(fn, 0), clearTimeout,
   TextEncoder, TextDecoder, URL, URLSearchParams, Blob: class {}, atob, btoa, structuredClone,
-  crypto: {randomUUID: () => crypto.randomUUID()},
+  crypto: {randomUUID: () => crypto.randomUUID(),
+           // A page that seals a secret needs a real random ephemeral keypair; the fake browser's crypto had only
+           // `randomUUID`, so the vendored library refused with 'no PRNG'. That gap was the harness's, not the page's.
+           getRandomValues: (u8) => globalThis.crypto.getRandomValues(u8)},
   alert(){}, confirm(){ return true; }, prompt(){ return ''; },
   navigator: {userAgent: 'node', clipboard: {writeText: async (t) => { clipboardWrites.push(t); }}},
   history: {replaceState(){}, pushState(){}},
@@ -264,13 +279,22 @@ sandbox.fetch = async (url, init = {}) => {
 
 export function loadPage(fresh = false){
   const html = fs.readFileSync(PAGE, 'utf8');
-  const m = html.match(/<script>([\s\S]*?)<\/script>/);
-  if (!m) throw new Error('ait.html has no script — did the page move?');
+  // Every script block, in order, joined as one program — because a browser runs them in one global scope and this
+  // harness should see what the browser sees. The page gained a second block on 2026-11-19 (a vendored sealed-box
+  // library, so the page can write an Actions secret without sending a person's key through a server of ours), and
+  // a harness that read only the first block would have silently stopped testing the page at all.
+  const blocks = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]);
+  if (!blocks.length) throw new Error('ait.html has no script — did the page move?');
+  const source = blocks.join('\n;\n');
   // `fresh` boots the page a second time as a *new* document would: its own globals, the same browser underneath
   // (storage, document, fetch). Without it the context is the one already running and every top-level `const`
   // collides with itself.
   const context = vm.createContext(fresh ? {...sandbox} : sandbox);
-  vm.runInContext(m[1], context, {filename: 'ait.html'});
+  // A browser's global object answers to `self`, and the vendored sealed-box library asks for it by that name
+  // (UMD wrappers do). The fake browser did not have one, which is the fake's gap and not the page's, so it gets
+  // one: `self` is the global, as it is in a window.
+  vm.runInContext('this.self = this;', context);
+  vm.runInContext(source, context, {filename: 'ait.html'});
   return context;
 }
 
@@ -295,6 +319,7 @@ function reset(){
   files.clear(); failWrites.clear(); clashWrites.clear(); calls.length = 0; dispatches.length = 0; store.clear();
   tpl.sha = null; tpl.files.clear(); tpl.refs.clear();
   actions.runs.length = 0; actions.onPoll = null; actions.secrets = []; actions.secretsDenied = false;
+  actions.secretPublicKey = null; actions.secretWrites.length = 0; actions.secretWriteDenied = false;
   exchanges.length = 0; actions.installationsDenied = false;
   actions.missingWorkflows = []; actions.busy = {};
   for (const id of ['mmsg', 'chaptsmsg', 'main']) if (elements.has(id)) elements.delete(id);
@@ -1685,7 +1710,11 @@ async function main(){
     if (!/will never wake on the clock/.test(html)) return 'the page says nothing about a clock that cannot wake anyone';
     if (!/TRIBE_API_KEY_DEEPSEEK/.test(html)) return 'it does not name the secret the repository is missing';
     if (!/Settings .* Secrets and variables .* Actions/s.test(html)) return 'it does not say where a repository secret goes';
-    if (!/Keys tab holds this browser.s copy/.test(html)) return 'it does not say why the key on the Keys tab is not enough';
+    // Either it explains that the browser's copy is not where the runner looks, or — when this browser does hold a
+    // key for that engine, which is the common case — it offers the press that puts it there. Both are the same
+    // fact, and since 2026-11-19 the second one is the better answer to it.
+    if (!/Keys tab holds this browser.s copy/.test(html) && !/Put my .* key in the repository/.test(html))
+      return 'it neither explains why the browser copy is not enough nor offers to put it in the repository';
     if (!/https:\/\/github\.com\/someone\/tribe\/settings\/secrets\/actions\/new/.test(html))
       return 'it says where the secret goes but does not take the person there';
     if (!/Read again/.test(html)) return 'it does not say the notice is re-read rather than remembered';
@@ -2352,6 +2381,130 @@ async function main(){
     if (clocked.none !== '') return 'with no record it invents one: ' + clocked.none;
     return '';
   });
+  // 16 — the person's key goes into the repository, sealed, without leaving the page
+  //
+  // In a fresh load, and not in the shared context that every other check uses. A page's globals belong to its
+  // document; this harness keeps one global across a hundred checks, and by the time these run the shared `nacl`
+  // functions are no longer in the realm of the arrays the page hands them, so every call trips an
+  // `instanceof Uint8Array` that says nothing about the shipped page — a browser never shares a global between two
+  // documents. A second load is cheaper than a red that sends somebody looking in the wrong place.
+  const sctx = loadPage(true);
+  const kp = await tryRun(sctx, `(async () => {
+    const k = nacl.box.keyPair();
+    const b64 = (u8) => btoa(String.fromCharCode(...u8));
+    return {pub: b64(k.publicKey), sec: Array.from(k.secretKey)};
+  })()`);
+  if (kp.err) throw new Error('the harness could not make a repository keypair: ' + kp.err);
+  actions.secretPublicKey = kp.pub;
+  actions.secretWrites.length = 0;
+  const sealed = await tryRun(sctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
+    await putSecret('TRIBE_API_KEY_DEEPSEEK', 'sk-live-123456');
+    return 'written';
+  })()`);
+  const posted = actions.secretWrites[0] || {name: '', body: {}};
+  const opened = await tryRun(sctx, `(async () => {
+    const raw = atob(${JSON.stringify(posted.body.encrypted_value || '')});
+    const bytes = Uint8Array.from(raw, c => c.charCodeAt(0));
+    const epk = bytes.subarray(0, 32);
+    // The nonce is derived the way libsodium derives it, not chosen: crypto_generichash(epk || pk, 24). A harness that
+    // opened with a zero nonce would agree with a page that sealed with a zero nonce, and both would be wrong in a way
+    // GitHub cannot see — so the derivation here is the page's, and the page's own derivation is pinned to Python's
+    // hashlib, below, which is the same algorithm libsodium uses.
+    const repoPub = Uint8Array.from(atob(${JSON.stringify(kp.pub)}), c => c.charCodeAt(0));
+    const nonce = blake2b((() => { const c = new Uint8Array(64); c.set(epk, 0); c.set(repoPub, 32); return c; })(), 24);
+    // The third argument is the *ephemeral* key, not the repository's: a sealed box is opened from the sender's
+    // keypair, which the message carries in its first 32 bytes. Passing the repository's own key there is what a
+    // person would try first, and it fails as "cannot open". That is also why this harness is not the last word:
+    // lab/seal-check.mjs hands the page's output to libsodium itself, which is the only thing that can say whether
+    // the runner will be able to open it.
+    const pt = nacl.box.open(bytes.subarray(32), nonce, epk, new Uint8Array(${JSON.stringify(kp.sec)}));
+    const zero = nacl.box.open(bytes.subarray(32), new Uint8Array(24), epk, new Uint8Array(${JSON.stringify(kp.sec)}));
+    return {pt: pt ? String.fromCharCode(...pt) : null, zeroOpens: !!zero};
+  })()`);
+  check('the key is sealed with the repository\'s own key, and what is sent cannot be read without it', () => {
+    if (sealed.err) return sealed.err;
+    if (opened.err) return opened.err;
+    if (posted.name !== 'TRIBE_API_KEY_DEEPSEEK') return 'it wrote to the wrong secret: ' + posted.name;
+    if (posted.body.key_id !== 'k1') return 'the write does not name the key it was sealed with: ' + JSON.stringify(posted.body.key_id);
+    const asSent = String(posted.body.encrypted_value || '');
+    if (!asSent || /sk-live/.test(asSent)) return 'the key went in the clear: ' + asSent.slice(0, 60);
+    if (opened.pt !== 'sk-live-123456') return 'the repository key cannot open what was sent: ' + JSON.stringify(opened);
+    if (opened.zeroOpens) return 'it opens with a zero nonce too, so the derived nonce is not being used';
+    return '';
+  });
+  // The nonce derivation, pinned to an implementation that is not this page's: Python's hashlib.blake2b, which is
+  // what libsodium's crypto_generichash computes. A page and a harness that agree with each other about a wrong
+  // derivation would pass every round trip above and still write a secret no runner can open.
+  const digests = await tryRun(sctx, `(async () => ({
+    empty: Array.from(blake2b(new Uint8Array(0), 24)),
+    abc:   Array.from(blake2b(new TextEncoder().encode('abc'), 24)),
+    sixtyfour: Array.from(blake2b(new TextEncoder().encode('a'.repeat(64)), 24)),
+    long:  Array.from(blake2b(new TextEncoder().encode('a'.repeat(300)), 32)),
+    full:  Array.from(blake2b(new TextEncoder().encode('abc'), 64))
+  }))()`);
+  check('the nonce is derived with real BLAKE2b — checked against hashlib, not against itself', () => {
+    if (digests.err) return digests.err;
+    const want = {
+      empty: 'ab3b5331a7135ed50d0f182d026e60abdb3646fd51bcf8a3',
+      abc: '56a17e38cc371a46b12c32f18e0c61de2a84e9c2555b114e',
+      sixtyfour: '2c91b27f14d18e8f22d8d3bbb1b8686efe440e8a7299abb2',
+      long: '3c1292de00a518e36823f9ff908ac2da46be38718c018713403461df077e15f6',
+      full: 'ba80a53f981c4d0d6a2797b69f12f6e94c212f14685ac4b74b12bb6fdbffa2d17d87c5392aab792dc252d5de4533cc9518d38aa8dbf1925ab92386edd4009923'
+    };
+    const toHex = (a) => a.map(x => x.toString(16).padStart(2, '0')).join('');
+    for (const [k, v] of Object.entries(want)){
+      if (!v) continue;
+      const got = toHex(digests[k] || []);
+      if (got !== v) return k + ' is ' + got + ', hashlib says ' + v;
+    }
+    if ((digests.abc || []).length !== 24) return 'the digest is not 24 bytes, and a nonce must be';
+    if ((digests.full || []).length !== 64) return 'a 64-byte digest fails, so the length is being faked';
+    return '';
+  });
+  const secondWrite = await tryRun(sctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
+    await putSecret('TRIBE_API_KEY_DEEPSEEK', 'sk-live-123456');
+    return 'written';
+  })()`);
+  const second = (actions.secretWrites[1] || {body: {}}).body.encrypted_value || '';
+  check('two writes of the same key do not look alike, so the sealed value says nothing about the key', () => {
+    if (secondWrite.err) return secondWrite.err;
+    if (!second) return 'the second write did not happen';
+    if (second === posted.body.encrypted_value) return 'the same ciphertext twice: the sealing is not really a sealed box';
+    return '';
+  });
+
+  // and the sentence a person gets when the token may not write there
+  actions.secretWriteDenied = true;
+  const refused = await tryRun(sctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main'; S.keys = {deepseek: {key: 'sk-x'}};
+    const ok = await keepKeyInRepository('deepseek', 'keymsg');
+    return {ok, said: document.getElementById('keymsg').innerHTML};
+  })()`);
+  actions.secretWriteDenied = false;
+  check('a key the token may not write is reported as a wall with the paste that still works', () => {
+    if (refused.err) return refused.err;
+    if (refused.ok) return 'it reported success after a 403';
+    if (!/secrets page/.test(refused.said)) return 'it does not say where the paste goes: ' + refused.said;
+    if (/is in the repository now/.test(refused.said)) return 'it claims the key is in the repository: ' + refused.said;
+    return '';
+  });
+  actions.secretPublicKey = kp.pub;
+  actions.secretWrites.length = 0;
+  const kept = await tryRun(sctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main'; S.keys = {deepseek: {key: 'sk-y'}};
+    const ok = await keepKeyInRepository('deepseek', 'keymsg');
+    return {ok, said: document.getElementById('keymsg').innerHTML};
+  })()`);
+  check('and when it may, one press puts the key where the clock reads it — with no trip to GitHub', () => {
+    if (kept.err) return kept.err;
+    if (!kept.ok) return 'the press failed: ' + kept.said;
+    if (!/is in the repository now/.test(kept.said)) return 'it did not say so: ' + kept.said;
+    if ((actions.secretWrites[0] || {}).name !== 'TRIBE_API_KEY_DEEPSEEK') return 'it wrote the wrong name';
+    return '';
+  });
+  actions.secretPublicKey = null;
 
   for (const r of results){
     if (r.ok) console.log('PASS  ' + r.name);

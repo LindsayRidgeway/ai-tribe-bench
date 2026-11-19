@@ -185,3 +185,34 @@ that has brought a circle forward without bringing it home records what it touch
 and claims no version. The gate for making the update automatic on connect is still open for that reason: a real press
 has now written a record, but no real press has yet *replaced* a file on somebody's circle, and the automatic version
 is exactly the one nobody is watching.
+
+## The page writes the secret — 2026-11-19
+
+The one thing this document left to a person's hands was the engine key a wake reads: GitHub accepts an Actions
+secret only sealed with the repository's own public key, and the page said it would not carry that arithmetic. The
+founder overruled it in one paragraph — *"Asking a naive user to sign into GH and add a setting, when you can do it
+yourself, is shooting yourself in the foot. If they don't do it, wakes won't work, and you've lost a potential
+ally"* — and the reasoning he overruled was wrong on its own terms: the page already holds that key for chat, and
+the person at the install screen is paying for our caution with the one thing the product is for.
+
+So `ait.html` now carries tweetnacl 1.0.3 (18,456 bytes, verbatim, as a separate `<script>`) and forty lines of
+BLAKE2b, and `PUT /repos/{owner}/{repo}/actions/secrets/{name}` happens from the browser. Three details that a later
+reader will want and that are easy to get wrong:
+
+- **The nonce is derived, not chosen.** libsodium's sealed box takes no nonce: `crypto_box_seal` computes
+  `crypto_generichash(epk || pk, 24)`, and `crypto_generichash` is BLAKE2b with the digest length *in the parameter
+  block* — a 24-byte digest is not the first 24 bytes of a 32-byte one. The first draft of this used a zero nonce. It
+  round-tripped perfectly against the harness's own copy of the library, and no runner on earth could have opened it:
+  the failure would have read as a wrong API key, for ever, with nothing to see. `lab/seal-check.mjs` now hands the
+  page's output to libsodium itself (`crypto_box_seal_open`, the same call the runner makes), and `tests.py` runs it;
+  where libsodium is absent the test skips and says it has proved nothing.
+- **A sealed box is opened with the sender's key.** The first 32 bytes of the value are the ephemeral public key, and
+  `nacl.box.open` takes *that* as the peer key on the receiving side. Passing the repository's own key there is the
+  natural mistake and it fails as a silent `null`.
+- **The permission is the only thing that can refuse.** A classic token with `repo` scope can write secrets; a GitHub
+  App installation token needs the *Secrets* repository permission at write. Where the token may not, GitHub answers
+  403, and the page says so, names the exact secret, and links to the page that takes the paste — the manual step is
+  still reachable for that case and is no longer the default.
+
+What this does not change: the key is still never in the repository's *contents*, secrets are still write-only, and a
+wake still reads only what the repository holds. It changes who does the typing.

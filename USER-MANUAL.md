@@ -735,22 +735,33 @@ Kythe shows you the last four characters and nothing more, and no member ever se
 call.
 
 **Where a key lives, and why it is two places.** For **chat** it has to be reachable by the page itself, so it is in
-this browser and nowhere else. For a **wake** it has to be in the repository, as an Actions secret — and **this page
-does not write one.** You add it yourself, once, in the repository's own *Settings → Secrets and variables →
-Actions*, named `TRIBE_API_KEY_<ENGINE>`. GitHub stores it sealed and write-only: it is opened only inside the run,
-never written into a file, and not even you can read it back afterwards. So no key is ever in the repository's
-contents, and making a repository public does not expose one.
+this browser and nowhere else. For a **wake** it has to be in the repository, as an Actions secret named
+`TRIBE_API_KEY_<ENGINE>`, because a scheduled run reads the repository's secrets and never your browser. **The page
+puts it there for you**, from the key it already holds: on the Keys page the button reads *Also keep it in the
+repository, so wakes can use it*, and the same button appears on the notice that says a wake has no key for somebody.
+GitHub stores a secret sealed and write-only: it is opened only inside the run, never written into a file, and not
+even you can read it back afterwards. So no key is ever in the repository's *contents*, and making a repository
+public does not expose one.
 
-**Why the page cannot do this for you**, since it plainly knows the key you just pasted. GitHub accepts a secret only
-in a form sealed with that repository's own public key, and sealing is a piece of cryptography the page would have to
-carry and run itself — in a single file that anyone can read, guarding the one thing here worth stealing. A mistake in
-it would either leak a key or break arming in a way nothing would notice. So the page does the four things it can do:
-it says plainly that the copy is missing, it names the exact secret, it links to the page that takes it, and it reads
-the repository again when you come back rather than remembering what it saw.
+**What the page sends, and why that is not a hole.** GitHub accepts a secret only in a form sealed with that
+repository's own public key, so the page carries the sealing itself — a small, well-known library (tweetnacl) and
+forty lines of BLAKE2b, both in the file you are looking at, with no server of ours anywhere in the path. The key is
+sealed in your browser with the repository's public key and the result is posted straight to GitHub; the public key
+cannot open what it sealed, and nothing that leaves the page can be turned back into your key. What can stop it is
+permission: if the token in this browser may not write the repository's secrets, GitHub refuses and the page says so,
+naming the exact secret and linking to the page that takes it — the paste is still there for that case, and it is
+still once.
+
+That paragraph replaces one that said this page must never write a secret, and the founder's correction is worth
+keeping: *"Asking a naive user to sign into GH and add a setting, when you can do it yourself, is shooting yourself
+in the foot. If they don't do it, wakes won't work, and you've lost a potential ally."* He was right. The earlier
+reasoning treated "carries cryptography" as the danger and forgot that the page already holds the key, for chat, and
+that the person on the install screen is the one who pays for our arithmetic. The rule that survives is the one he
+stated: a person is asked for only what the amigo cannot do by itself.
 
 This section said "AIT keeps the two copies in step; you paste once" until 2026-11-15. That was not true, and the
 correction matters more than the sentence did: the two copies are **set separately**, on two pages, and when a wake
-fails because its copy is missing the page names the secret and tells you where it goes.
+fails because its copy is missing the page names the secret and asks whether to write it.
 
 The chat copy is the one somebody else could spend: anyone sitting at your unlocked laptop could use it. The
 alternative is a server of ours holding your key, and that is worse — it is the one thing this manual is promising
@@ -977,6 +988,9 @@ of them was on the missing list, and none of them is missing.
 - **The attic** (§11) — **Put away** and **Bring back**: a folder moved to `attic/<name>-<stamp>/`, a `WHY.md`
   inside it, one commit, nothing deleted.
 - **Plain-language failures** (§12) — a refused key is a sentence about the key, not a number.
+- **The clock's key, set from the page** (§10) — one press seals the key this browser already holds to the
+  repository's own public key and writes it as the Actions secret a wake reads. Nothing of ours sits in that path,
+  and where the token may not write secrets the refusal names the paste that still works.
 
 **Still missing, and these are the honest ones.**
 
@@ -986,9 +1000,6 @@ of them was on the missing list, and none of them is missing.
    pictures here even where the vendor's model is not.
 2. **A choice of games** (§7), and a session you can watch while it happens. There is one game on the page and a
    report at the end, not a running table.
-3. **The clock's key, set from the page** (§10). The Keys page holds the copy the browser uses for chat; the copy
-   a wake needs is a repository secret, and setting one still means opening the repository's own settings. This is
-   the one place a person with no terminal is still sent to one. Nothing here sums what a month costs, either.
 
 Where a chapter and this list disagree, the chapter is the promise and this list is the status — and where either
 disagrees with the page, the page is the one you can check in ten seconds.
@@ -1023,7 +1034,7 @@ to, and will never have to.
 | Play a session | starts a **tennis** season with the players, court, rally count and season name you chose (`season.yml`); the result is committed under `games/tennis/seasons/<season>/` and read back into the page. The same form takes a **person's seat**: fill in `person` and `shot` and one point is played with your typed movement against one member, written to `games/tennis/seasons/<season>/points/` — no engine is asked for your shot. Putting is a terminal script (`lab/putt.py`) and no page starts it — §7 says why |
 | Ask for a picture | calls the engine that paints (OpenAI, Gemini or Qwen — the member's own `voice.md` decides), files the image in `plates/` with a card naming the maker and the sentence it was asked with, and commits both together. A member whose engine has no image model never reaches this: the form is replaced by the refusal, which names the three that can. A picture named for a piece takes the sentence from that piece's own `commission:` line, and lands under the piece's name so the magazine prints it there |
 | Build an issue | assembles the magazine from the shelf and commits the issue |
-| Keys | keeps the chat copy in this browser and nothing else. The wake copy is an Actions secret you create yourself, in the repository's own settings: sealed, write-only, never in a file, and unreadable back — by you or by Kythe |
+| Keys | keeps the chat copy in this browser, and offers to put the wake copy where a scheduled run can read it: `PUT /repos/<owner>/<name>/actions/secrets/TRIBE_API_KEY_<ENGINE>`, the key sealed in your browser with that repository's own public key, so what crosses the network cannot be turned back into the key — not by the company, not by Kythe, not by you afterwards. A token without permission to write secrets is refused by GitHub, and the refusal names the paste that still works |
 | Check every key | asks each engine that has a key here for one word, and answers in a sentence per engine — a dead key is named in words, not as a status code |
 | Put away | moves the member's folder to `attic/<name>-<stamp>/`, writes a `WHY.md` inside it, and commits the move — nothing is deleted |
 | Bring back | moves an attic folder back onto the shelf under its own name, and republishes the member list |

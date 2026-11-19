@@ -6388,6 +6388,25 @@ class ThePageIsCheckedByDrivingIt(unittest.TestCase):
                            cwd=REPO, capture_output=True, text=True, timeout=120)
         self.assertEqual(r.returncode, 0, "the page failed its own checks:\n" + r.stdout + r.stderr)
 
+    def test_the_sealed_secret_is_one_libsodium_can_open(self):
+        """The page puts a person's engine key into the repository, sealed, without a server of ours in the middle
+        (the founder's ruling of 2026-11-19: a human is only asked to do what the amigo cannot do itself). The
+        harness in `page-check.mjs` can prove that the page round-trips through its *own* copy of the library, and
+        that its BLAKE2b matches Python's hashlib — neither proves the runner can open what the page sent, because
+        a page and a harness agree perfectly about a wrong nonce. The first draft of the seal used a zero nonce: it
+        passed every check in this repository and no runner could ever have read the key. So the last word belongs
+        to libsodium itself, in `lab/seal-check.mjs`, and it is the same call the runner makes.
+        """
+        node = shutil.which("node")
+        if not node:
+            self.skipTest("node is not installed here, so the sealed box was not checked at all")
+        r = subprocess.run([node, str(REPO / "lab" / "seal-check.mjs")],
+                           cwd=REPO, capture_output=True, text=True, timeout=120)
+        if "SKIPPED" in r.stdout:
+            self.skipTest("no libsodium on this machine, so nothing opened the page's sealed box: the check is "
+                          "written and will run where libsodium exists, and until then it is evidence of nothing")
+        self.assertEqual(r.returncode, 0, "the page's sealed secret is not one libsodium can open:\n" + r.stdout + r.stderr)
+
 
 class TheRecordIsNotAKeyring(unittest.TestCase):
     """A key pasted into a file, not into the browser. The founder's question on 2026-11-15 was about keys kept
