@@ -37,6 +37,11 @@ games/tennis/open.sh "replay3d.html?record=seasons/2026-tour/watch.json"
 # or let the season's own plan choose the next session, and close the season when it is done
 python3 lab/tennis.py --schedule --season 2026-tour
 python3 lab/tennis.py --close-season 2026-tour --why "the reason the record will carry"
+
+# and with no --season at all, the clock chooses: the newest season still open, or — when they have
+# all closed — the next one, opened from the last one's cast and plan with everybody starting level.
+# This is what `.github/workflows/season-clock.yml` runs every night at 04:17 UTC, unattended.
+python3 lab/tennis.py --schedule
 ```
 
 **`--watch` is the seam between the film and the season**, and it is one command because they are one session. It

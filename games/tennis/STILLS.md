@@ -58,3 +58,33 @@ demo films, and `?setup=` beside it says which body and which look each player h
 `stills/out-of-reach.png` is the first still of a point that is *lost* rather than missed: the ball is past the
 player and the caption says how far short of it they were. It took a record rebuilt by `lab/tennis_record.py`,
 because no record on this branch had ever had a ball nobody reached.
+
+## Measuring the reach invariant: `run`, not `watch`
+
+The gate this project holds itself to — *no frame where the ball and the racquet disagree* — is checkable from a
+record without rendering anything, and the check is one line per shot: the distance from a shot's `contact` to the
+hitter's feet must be inside `RACQUET_REACH` (7.0ft), and the contact's height inside `RACQUET_HIGH` (9.0ft).
+
+**The feet are in `run`, not in `watch`, and the difference cost me a false alarm on 2026-11-19.** `run` is the
+receiver's movement to the ball that is coming at them: `run.player`, `run.from`, `run.to`, plus `dist` (ground the
+feet covered), `gap` (how far the ball was) and `met`. It is attached to the shot that was hit *to* them. `watch`
+is something else entirely — a ball going *out*, where the receiver takes one step, reads the length and lets it
+go (`watch_out`), so it carries a 0.35s step and not a run to contact.
+
+Walking a record with `watch` put the hitter's feet at their stance from the last serve and reported five
+"violations" up to 22.8ft in a film whose true worst contact was **7.005ft against a 7.0ft reach**. The engine was
+right and the instrument was wrong, which is the failure mode this file exists to catch. Serve shots are the other
+half: a serve's feet come from the `stance` entry on the first shot of the point, because nobody ran to a ball they
+are holding.
+
+```python
+feet = {}
+for s in shots:
+    for st in s.get("stance") or []:           # a serve: the stance walked into before the first ball
+        feet[st["player"]] = st.get("to") or st["from"]
+    f = feet.get(s["player"])
+    if f:
+        d = math.dist(s["contact"][:2], f[:2])  # must be <= 7.0
+    if s.get("run"):                            # the ball in play: this is where the next hitter's feet came to
+        feet[s["run"]["player"]] = s["run"]["to"]
+```

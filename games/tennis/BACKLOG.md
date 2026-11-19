@@ -992,7 +992,7 @@ Its first session is a legal one — Gwen and Colette, both female, `competition
 
 *Done-test:* six tests in `TestASeasonCanBeClosed`.
 
-## Item 25 — a season plays itself, and closes when it is done (DONE 2026-11-19, less the cron)
+## Item 25 — a season plays itself, and closes when it is done (DONE 2026-11-19)
 
 "Automatic play" with no human: something has to start the sessions on the staggering in `CAST.md` without
 somebody typing. The machinery already exists twice over — `.github/workflows/season.yml` dispatches a session from
@@ -1032,14 +1032,43 @@ across the female group and **0.203** across the male, against the 0.06 this ite
    every session, so the stagger cancels itself. Three is the number at which one can rest while the other two
    play, and that is the real reason the cast is three and three rather than two and two.
 
-**Still open in this item: the clock.** `--schedule` is a command; nothing runs it while nobody is looking. A cron
-workflow needs a pull-rebase-retry that this shared checkout makes impossible to skip — the same reconciliation
-every push in this session needed. Until it exists, a season plays itself only while somebody types one line per
-session, which is not what "automatic" means.
+**The clock is built (2026-11-19).** `--schedule` was a command and nothing ran it, which is a feature in a
+README rather than in the game. `.github/workflows/season-clock.yml` runs it nightly at 04:17 UTC and commits the
+session with the pull-rebase-retry this shared checkout makes impossible to skip. It needed one thing the command
+did not have: **`--schedule` with no `--season` now chooses.** A closed season takes no more sessions by design, so
+a clock with no open season would have stopped the first time a season played its plan out — which every season on
+disk had done by the time the clock was written. So it plays the newest season still open, and when they have all
+closed it **opens the next one** from the last one's cast and plan, with every member starting level
+(`SEASON_START_BALLS = 20`).
 
-**And a season must end.** Six sessions, then the record is closed and the next season opens with beginners, which
-is the design's existing reset — a season is a directory and starting over is opening a new one. *Done-test:* the
-scheduler refuses to add an eighth session to a closed season and names the next one.
+Why level and not carried forward, in one measurement: `Player.skill()` is asymptotic, so six members carried out of
+a finished season would begin 0.001 of control apart and end 0.001 apart. The ranking would be over before the first
+ball, and "one of each sex best, one worst" would be true of every season equally and so of none. Starting level is
+what leaves the deciding to the stagger, which is the thing the stagger was asked to do.
+
+The first session the clock ever played is in `seasons/2026-11-19/`: Dmitri vs Remy, a competition the rule chose,
+hard court, 20 rallies, 28 shots, mean rally 1.4 — beginners at 20 balls each. Re-measured on that film: worst
+contact-to-hitter's-feet **7.005ft against a 7.0ft reach** and contact heights **3.01–8.8ft** against a 9.0ft
+ceiling, no violations. The gate holds on the clock's own session, not just on the ones I played.
+
+**A season must end**, and now it does: six sessions, then the record is closed and the next season opens level.
+*Done-test:* the scheduler refuses to add an eighth session to a closed season, and the clock opens a new one
+rather than reviving it.
+
+## Item 27 — the films accumulate in git, and the record already knows how to rebuild them (OPEN, not on the V1 path)
+
+Found while measuring the clock's first session. `watch.json` is committed so the page can fetch it, and each
+session writes one: 208KB for tonight's 28-shot session, 760KB for the 129-shot one. A season is six sessions and
+about a week, so a year of unattended play is roughly 150 films — 30-120MB in the working tree, and git keeps every
+version of every one, because each session rewrites the file.
+
+Not urgent, and not free either. What makes it a small problem rather than a design flaw is a property asserted in
+`TestTheFilmIsTheSession`: **one clock is one film, to three decimals.** The session in `practice.json` carries the
+clock, and the film is a function of the clock and the players' practice, so *every film in this repository can be
+rebuilt from its record*. The remedy when it is worth doing is therefore not "stop committing them" but "stop keeping
+the old ones": keep the current season's film in the tree, and rebuild an older one on demand at its recorded clock.
+That needs the page to say "this film is being rebuilt" rather than showing a 404, which is the same shape as item
+21's "a season with no watch.json says so rather than showing a stale film".
 
 ## What V1 means
 

@@ -1,0 +1,118 @@
+{
+ "members": {
+  "Ada": {
+   "balls": 0,
+   "carried": 20,
+   "seeded": {
+    "balls": 20,
+    "by": "the clock, opening the season",
+    "when": "2026-11-19T23:19:44Z"
+   },
+   "sessions": []
+  },
+  "Bo": {
+   "balls": 0,
+   "carried": 20,
+   "seeded": {
+    "balls": 20,
+    "by": "the clock, opening the season",
+    "when": "2026-11-19T23:19:44Z"
+   },
+   "sessions": []
+  },
+  "Colette": {
+   "balls": 0,
+   "carried": 20,
+   "seeded": {
+    "balls": 20,
+    "by": "the clock, opening the season",
+    "when": "2026-11-19T23:19:44Z"
+   },
+   "sessions": []
+  },
+  "Dmitri": {
+   "balls": 15,
+   "carried": 20,
+   "seeded": {
+    "balls": 20,
+    "by": "the clock, opening the season",
+    "when": "2026-11-19T23:19:44Z"
+   },
+   "sessions": [
+    {
+     "by": "the schedule",
+     "clock": 1795130384239,
+     "competition": true,
+     "control": 0.367,
+     "in_play": 6,
+     "longest": 4,
+     "mean_rally": 1.4,
+     "mode": "rally",
+     "of": 15,
+     "reach": 0.502,
+     "shots": 15,
+     "surface": "hard",
+     "when": "2026-11-19T23:19:47Z",
+     "with": [
+      "Remy"
+     ]
+    }
+   ]
+  },
+  "Gwen": {
+   "balls": 0,
+   "carried": 20,
+   "seeded": {
+    "balls": 20,
+    "by": "the clock, opening the season",
+    "when": "2026-11-19T23:19:44Z"
+   },
+   "sessions": []
+  },
+  "Remy": {
+   "balls": 13,
+   "carried": 20,
+   "seeded": {
+    "balls": 20,
+    "by": "the clock, opening the season",
+    "when": "2026-11-19T23:19:44Z"
+   },
+   "sessions": [
+    {
+     "by": "the schedule",
+     "clock": 1795130384239,
+     "competition": true,
+     "control": 0.358,
+     "in_play": 6,
+     "longest": 4,
+     "mean_rally": 1.4,
+     "mode": "rally",
+     "of": 13,
+     "reach": 0.494,
+     "shots": 13,
+     "surface": "hard",
+     "when": "2026-11-19T23:19:47Z",
+     "with": [
+      "Dmitri"
+     ]
+    }
+   ]
+  }
+ },
+ "note": "opened by the clock from 2026-tour: the same cast and the same plan, and every member starting with 20 balls of history rather than where the last season left them, because a season that began where the last one ended would be decided before it was played",
+ "opened": "2026-11-19T23:19:44Z",
+ "plan": {
+  "by": "the clock, from 2026-tour",
+  "members": {
+   "Ada": 2,
+   "Bo": 2,
+   "Colette": 4,
+   "Dmitri": 6,
+   "Gwen": 6,
+   "Remy": 4
+  },
+  "rallies": 20,
+  "sessions": 6
+ },
+ "season": "2026-11-19"
+}

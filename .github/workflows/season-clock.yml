@@ -1,0 +1,87 @@
+name: season clock
+
+# The game plays itself, off-screen, while nobody is looking.
+#
+# The founder, 2026-11-19: *"Dmitri's game still function for live but off-screen playing and during wakes."* The
+# schedule existed as a command and nothing ran it, which is a feature in a README rather than in the game. This
+# is the thing that runs it: one session a night, chosen by `next_session` — whoever is furthest behind their
+# plan plays the next-most-behind member of their own group (a competition), or, if nobody in their group is
+# behind, somebody from the other group (a practice). No rng anywhere in the choice: the random stream belongs to
+# the tennis, so a schedule drawn by lot would make the season's ranking partly a lottery.
+#
+# `--schedule` with no `--season` is deliberate. The season it plays is the newest one still open; when every
+# season has closed it opens the next one from the last one's cast and plan, with every member starting level.
+# So there is no season name to hard-code here, and no input to keep in step with the record.
+#
+# Once a night rather than once an hour: a season is six sessions, so a nightly clock is a week of tennis and a
+# film that is a day stale at worst. An hourly one would close a season before anybody had watched the one before
+# it. 04:17 UTC is 23:17 in the founder's winter — after the evening, and off the top of the hour, since that is
+# where the queue is.
+#
+# The commit dance at the end is not optional in this repository: the checkout is shared with other bodies and
+# with the founder's own sessions, so a push will be rejected, and a schedule that drops a session on a rejected
+# push is worse than no schedule. Pull, rebase, push again.
+
+on:
+  schedule:
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  play:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    concurrency:
+      group: season
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Work from the branch as it is now
+        run: |
+          set -euo pipefail
+          ref="${GITHUB_REF_NAME:-main}"
+          git fetch --depth=1 origin "$ref"
+          git reset --hard "origin/$ref"
+
+      - name: One session, chosen by the plan
+        run: |
+          set -euo pipefail
+          # No --season: the clock picks the newest open season, or opens the next one. No --vendor, no --model,
+          # no --rallies: a film is played by the engine, and the plan owns the shape of the session — a schedule
+          # that could be shortened by a flag is a schedule nobody can reproduce.
+          python3 lab/tennis.py --schedule | tee /tmp/session.txt
+
+      - name: What the seasons say now
+        if: always()
+        run: |
+          set -euo pipefail
+          {
+            echo "## the clock"
+            echo
+            echo '```'
+            cat /tmp/session.txt 2>/dev/null || echo "(nothing was played)"
+            echo '```'
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+          for s in $(ls -1d games/tennis/seasons/*/ 2>/dev/null | sed 's:games/tennis/seasons/::; s:/$::' | sort -r | awk 'NR<=2'); do
+            echo "### $s" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            python3 lab/tennis.py --report "$s" 2>&1 | awk 'NR<=60' >> "$GITHUB_STEP_SUMMARY" || true
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          done
+
+      - name: Keep the session in the record
+        if: always()
+        run: |
+          set -euo pipefail
+          git config user.name "Kythe"
+          git config user.email "tribe@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then echo "nothing to commit — no session was due"; exit 0; fi
+          git commit -m "season: the clock plays a session"
+          git pull -q --rebase || true
+          git push -q || { git pull -q --rebase; git push -q; }

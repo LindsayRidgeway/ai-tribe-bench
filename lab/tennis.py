@@ -38,6 +38,7 @@ import math
 import os
 import random
 import re
+import shutil
 import sys
 import time
 from dataclasses import dataclass, field
@@ -926,7 +927,8 @@ def practice_of(book: dict, name: str) -> int:
     return int(m.get("balls", 0)) + int(m.get("carried", 0))
 
 
-def seed_practice(book: dict, values: dict[str, int], when: str) -> list[tuple[str, int]]:
+def seed_practice(book: dict, values: dict[str, int], when: str,
+                  by: str = "a person, before this member had a record here") -> list[tuple[str, int]]:
     """Give a member a history, once, before it has one in this season.
 
     The founder asked, 2026-11-12, whether a person may put a number into a member instead of waiting for the
@@ -944,8 +946,7 @@ def seed_practice(book: dict, values: dict[str, int], when: str) -> list[tuple[s
             continue
         entry = m or book["members"].setdefault(name, {"balls": 0, "sessions": []})
         entry["carried"] = int(entry.get("carried", 0)) + int(n)
-        entry["seeded"] = {"when": when, "balls": int(n),
-                           "by": "a person, before this member had a record here"}
+        entry["seeded"] = {"when": when, "balls": int(n), "by": by}
         applied.append((name, int(n)))
     return applied
 
@@ -2576,6 +2577,91 @@ def next_session(book: dict, cast: dict) -> tuple[str, str, str]:
     return "", "", ""
 
 
+SEASON_START_BALLS = 20
+
+
+def seasons_on_disk(base: Path | str | None = None, sport: str = "tennis") -> list[tuple[str, dict]]:
+    """Every season on disk, newest opening first. A season is a directory and nothing else is one."""
+    base = Path(base) if base else (SEASONS if sport == "tennis" else ROOT / "games" / sport / "seasons")
+    if not base.is_dir():
+        return []
+    found = []
+    for d in sorted(p for p in base.iterdir() if p.is_dir()):
+        f = d / "practice.json"
+        if not f.exists():
+            continue
+        try:
+            found.append((d.name, json.loads(f.read_text(encoding="utf-8"))))
+        except json.JSONDecodeError:
+            continue
+    found.sort(key=lambda nb: (str(nb[1].get("opened") or ""), nb[0]), reverse=True)
+    return found
+
+
+def clock_season(base: Path | str | None = None, when: str | None = None,
+                 sport: str = "tennis") -> tuple[str, str]:
+    """Which season an unattended clock plays in, opening the next one if every season has closed.
+
+    The founder, 2026-11-19: *"Dmitri's game still function for live but off-screen playing and during wakes."*
+    A season that closes and is never replaced is a game that stopped, and the last two seasons here were closed
+    by their own rules (one played its plan out; one was recorded before the cast rule existed). So the clock
+    opens the next one rather than waiting for somebody to type a name — but it opens it the only way this design
+    allows: a NEW directory, the same cast, the same plan, and every member starting level.
+
+    Level, and not carried forward, is a decision with a measurement behind it. `Player.skill()` is strictly
+    increasing and asymptotic, so six members carried into a second season would start 0.001 apart and end 0.001
+    apart — the ranking would be over before the first ball, and "one of each sex best, one worst" would be true
+    of every season equally and therefore of none. Starting level is what lets the stagger do the deciding, which
+    is the thing the founder asked the stagger to do.
+
+    Returns (season, a sentence saying how it was chosen). ("", reason) when there is nothing to copy a cast
+    from — a clock with no cast does not invent one.
+    """
+    found = seasons_on_disk(base, sport)
+    for name, book in found:
+        if season_is_closed(book):
+            continue
+        if not plan_of(book)["members"]:
+            # An open season with no plan is a person's season: this clock has no rule to pick a session by, and
+            # inventing one would overwrite somebody's evening with a schedule.
+            continue
+        return name, f"the newest open season is {name}"
+    with_plan = [(n, b) for n, b in found if plan_of(b)["members"]]
+    if not with_plan:
+        return "", ("no season on disk has a plan, so there is no cast or schedule to open the next one from; "
+                    "play a session by hand first")
+    base_dir = Path(base) if base else (SEASONS if sport == "tennis" else ROOT / "games" / sport / "seasons")
+    src_name, src = with_plan[0]
+    src_setup = base_dir / src_name / "setup.json"
+    if not src_setup.exists():
+        return "", (f"{src_name} has a plan but no setup.json, so the clock cannot build the same cast again; "
+                    f"a competition that cannot be placed in a group is not one")
+    plan = plan_of(src)
+    stamp = when or datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    name = stamp[:10]
+    taken = {n for n, _ in found}
+    stem, i = name, 2
+    while name in taken:
+        name, i = f"{stem}-{i}", i + 1
+    book = {
+        "season": name,
+        "opened": stamp,
+        "note": (f"opened by the clock from {src_name}: the same cast and the same plan, and every member "
+                 f"starting with {SEASON_START_BALLS} balls of history rather than where the last season left "
+                 f"them, because a season that began where the last one ended would be decided before it was "
+                 f"played"),
+        "plan": {"sessions": plan["sessions"], "rallies": plan["rallies"],
+                 "members": dict(plan["members"]), "by": f"the clock, from {src_name}"},
+        "members": {},
+    }
+    for n, k in seed_practice(book, {m: SEASON_START_BALLS for m in plan["members"]}, stamp,
+                              by="the clock, opening the season"):
+        print(f"  {n}: starts this season with {k} balls — recorded as carried, not as hit here")
+    save_season(book, name, str(base_dir / name), sport)
+    shutil.copyfile(src_setup, base_dir / name / "setup.json")
+    return name, f"every season had closed, so the clock opened {name} from {src_name}'s cast and plan"
+
+
 def run_schedule(args) -> int:
     """Play one session of a season, chosen by the schedule rather than by a person.
 
@@ -2585,8 +2671,18 @@ def run_schedule(args) -> int:
     stays watchable while it plays itself), and closes the season when the plan is done — which is what stops a
     season acquiring an eighth session or a ranking nobody can attribute."""
     if not args.season:
-        print("   --schedule needs a --season to play a session of. Nothing was played.", file=sys.stderr)
-        return 2
+        # No season named: the clock chooses, and opens the next one if every season has closed. This is the only
+        # path that is allowed to create a season, and it creates it from the last one's cast and plan — never
+        # from nothing, which is why a colony that has never played a session gets a sentence instead of a file.
+        base = Path(args.season_dir).parent if args.season_dir else None
+        name, why = clock_season(base)
+        if not name:
+            print(f"\n  the clock has no season to play in: {why}. Nothing was played.")
+            return 0
+        args.season = name
+        if args.season_dir:
+            args.season_dir = str(Path(args.season_dir).parent / name)
+        print(f"\n# {why}")
     book = load_season(args.season, args.season_dir)
     why = season_is_closed(book)
     if why:
@@ -2719,7 +2815,9 @@ def main(argv=None) -> int:
     ap.add_argument("--schedule", action="store_true",
                     help="play the next session a season's plan says is due: whoever is furthest behind plays "
                          "the next-most-behind of their own group, as a film, recorded `by: the schedule`. When "
-                         "the plan is done the season closes itself. Needs --season")
+                         "the plan is done the season closes itself. With no --season it plays the newest "
+                         "season still open, and opens the next one from the last one's cast and plan when "
+                         "they have all closed — which is what runs unattended")
     ap.add_argument("--close-season", default=None, metavar="SEASON",
                     help="close a season: keep every number, take no more sessions. The next one is a new "
                          "`--season`, which is how this design has always reset — a season is a directory")

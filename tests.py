@@ -4973,6 +4973,131 @@ class TestASeasonPlaysItself(unittest.TestCase):
                          "a season with no plan had a session played into it anyway")
 
 
+class TestTheClockPlaysUnattended(unittest.TestCase):
+    """The founder, 2026-11-19: *"Dmitri's game still function for live but off-screen playing and during wakes."*
+
+    `--schedule` was a command, and a command nobody runs is a feature in a README. Two things were missing and
+    both are here: the workflow that runs it while nobody is looking, and the answer to the question the workflow
+    immediately raises — *which season?* A closed season takes no more sessions by design, so a clock with no
+    open season has to open one, or the game stops the first time a season plays its plan out.
+
+    The clock opens a season from the last one's cast and plan, with every member starting level. That is the
+    decision that keeps the founder's stagger meaningful: `Player.skill()` is asymptotic, so six members carried
+    forward from a finished season would begin 0.001 apart and end 0.001 apart, and "one of each sex best, one
+    worst" would be true of every season equally and so of none."""
+
+    def setUp(self):
+        import importlib, tempfile, shutil
+        sys.path.insert(0, str(REPO / "lab"))
+        self.T = importlib.import_module("tennis")
+        self.tmp = Path(tempfile.mkdtemp(prefix="tennis-clock-"))
+        self.addCleanup(shutil.rmtree, self.tmp, True)
+        self.base = self.tmp / "seasons"
+        self.base.mkdir()
+
+    def _season(self, name, balls=("Ann", 20), closed="", plan=None,
+                people=(("Ann", "female"), ("Belle", "female"))):
+        d = self.base / name
+        d.mkdir(parents=True, exist_ok=True)
+        (d / "setup.json").write_text(json.dumps({"schema": "ait-tennis-setup/1", "players": [
+            {"name": n, "sex": x, "look": {"height_m": 1.7}} for n, x in people]}), encoding="utf-8")
+        book = {"season": name, "opened": f"2026-11-{len(list(self.base.iterdir())):02d}T00:00:00Z",
+                "note": "", "members": {n: {"balls": b, "sessions": []} for n, b in [balls]}}
+        if plan:
+            book["plan"] = plan
+        if closed:
+            book["closed"] = {"when": "2026-11-19T00:00:00Z", "by": "a person", "why": closed}
+        (d / "practice.json").write_text(json.dumps(book), encoding="utf-8")
+        return d
+
+    def _plan(self):
+        return {"sessions": 3, "rallies": 4, "members": {"Ann": 2, "Belle": 2}}
+
+    def _book(self, name):
+        return json.loads((self.base / name / "practice.json").read_text(encoding="utf-8"))
+
+    def test_the_repository_has_a_workflow_that_plays_a_session_unattended(self):
+        w = (REPO / ".github" / "workflows" / "season-clock.yml").read_text(encoding="utf-8")
+        self.assertIn("schedule:", w, "there is no clock: nothing runs the schedule while nobody is looking")
+        self.assertIn("cron:", w)
+        self.assertIn("--schedule", w, "the clock does not run the schedule")
+        self.assertIn("contents: write", w)
+        # The checkout is shared with other bodies and with the founder's sessions, so the push will be
+        # rejected. A schedule that drops a session on a rejected push is worse than no schedule.
+        self.assertIn("--rebase", w, "the clock commits without rebasing, so a rejected push loses the session")
+        self.assertIn("push -q ||", w, "the clock has no retry after a rejected push")
+
+    def test_the_clock_plays_the_newest_season_that_is_still_open(self):
+        self._season("2026-a", plan=self._plan(), closed="played out")
+        self._season("2026-b", plan=self._plan())          # newer, open
+        self._season("2026-c", closed="before the rule")   # newest, closed
+        name, why = self.T.clock_season(self.base, when="2026-11-20T04:17:00Z")
+        self.assertEqual(name, "2026-b", f"the clock chose {name}: {why}")
+        self.assertIn("newest open season", why)
+
+    def test_a_closed_season_is_never_the_clocks_choice(self):
+        self._season("2026-a", plan=self._plan(), closed="completed")
+        name, why = self.T.clock_season(self.base, when="2026-11-20T04:17:00Z")
+        self.assertNotEqual(name, "2026-a", "the clock played into a closed season")
+        self.assertEqual(name, "2026-11-20")
+
+    def test_an_open_season_with_no_plan_is_a_persons_and_is_skipped(self):
+        self._season("2026-a", plan=self._plan(), closed="completed")
+        self._season("2026-b")                             # open, and no plan: a person's evening
+        name, _ = self.T.clock_season(self.base, when="2026-11-20T04:17:00Z")
+        self.assertEqual(name, "2026-11-20", "the clock invented a schedule for a season with no plan")
+        self.assertEqual(self._book("2026-b")["members"]["Ann"]["sessions"], [],
+                         "the clock played a session in a season whose plan it does not own")
+
+    def test_the_clock_opens_the_next_season_from_the_last_ones_cast_and_plan(self):
+        self._season("2026-a", balls=("Ann", 213), plan=self._plan(), closed="completed")
+        name, why = self.T.clock_season(self.base, when="2026-11-20T04:17:00Z")
+        self.assertIn("opened", why)
+        book = self._book(name)
+        self.assertEqual(book["plan"]["members"], self._plan()["members"], "the plan was not carried over")
+        self.assertEqual(book["plan"]["by"], "the clock, from 2026-a")
+        self.assertIn("2026-a", book["note"])
+        self.assertTrue((self.base / name / "setup.json").exists(),
+                        "the new season has no cast, so no competition in it could be placed in a group")
+
+    def test_a_season_the_clock_opens_starts_level_and_not_where_the_last_one_ended(self):
+        # 2026-a ends with Ann on 213 balls: a season that began there would be decided before it was played.
+        self._season("2026-a", balls=("Ann", 213), plan=self._plan(), closed="completed")
+        name, _ = self.T.clock_season(self.base, when="2026-11-20T04:17:00Z")
+        book = self._book(name)
+        for n in self._plan()["members"]:
+            self.assertEqual(book["members"][n]["carried"], self.T.SEASON_START_BALLS,
+                             f"{n} did not start level: {book['members'][n]}")
+            self.assertEqual(book["members"][n]["balls"], 0, "carried balls were counted as hit here")
+            self.assertEqual(book["members"][n]["seeded"]["by"], "the clock, opening the season")
+        self.assertEqual(len({book["members"][n]["carried"] for n in self._plan()["members"]}), 1,
+                         "the members did not all start with the same history")
+
+    def test_the_name_it_invents_does_not_collide_with_a_season_already_on_disk(self):
+        self._season("2026-11-20", plan=self._plan(), closed="completed")
+        name, _ = self.T.clock_season(self.base, when="2026-11-20T04:17:00Z")
+        self.assertEqual(name, "2026-11-20-2", "the clock wrote its season over one already on disk")
+        self.assertEqual(self._book("2026-11-20")["closed"]["why"], "completed",
+                         "an existing season was rewritten")
+
+    def test_a_colony_with_nothing_to_copy_a_cast_from_gets_a_sentence_and_not_a_file(self):
+        name, why = self.T.clock_season(self.base, when="2026-11-20T04:17:00Z")
+        self.assertEqual(name, "")
+        self.assertIn("no season on disk has a plan", why)
+        self.assertEqual(list(self.base.iterdir()), [], "the clock invented a season out of nothing")
+
+    def test_a_clock_with_nothing_to_play_is_not_a_failure(self):
+        """A scheduler that goes red because a colony has never played a session sends somebody to fix a working
+        thing. Nothing due is an answer, not an error."""
+        import contextlib, io
+        d = self._season("2026-a")      # a bare season: no plan, nothing due
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            code = self.T.main(["--schedule", "--season-dir", str(d)])
+        self.assertEqual(code, 0, err.getvalue())
+        self.assertIn("no season to play in", out.getvalue())
+
+
 class TestASeasonCanBeClosed(unittest.TestCase):
     """The founder, 2026-11-19: *"Why don't you just discard that data?"*
 
