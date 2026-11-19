@@ -859,3 +859,52 @@ page to say which pace it is played at. At dink pace (18–22 mph, a 7–15 ft s
 the Cd uncertainty does not touch it. **A phone, a marked ball and a borrowed court would buy a worse Cd than the
 eighty-six that are already published** — uncalibrated lens, hand-timed release, one camera — so the experiment was
 never the answer and the ask was a defect in my own reasoning, not a request for the founder's afternoon.
+
+---
+
+## §5i The soft game — 2026-11-19
+
+Every chooser in this engine until now has driven. Its groundstroke is power 42 (25 mph) at a target 24–32 ft
+away, so the seven feet of kitchen on the other side of the net — the whole sport — had never been played. This
+section plays it, and starts by correcting a sentence the engine was telling its own members.
+
+**A dink is 12–15 mph, and the prompt said power 30 was one.** Power is six tenths of a mile an hour, so power 30
+is 18 mph; from the kitchen line an 18 mph ball travels sixteen feet before it lands, which is **nine feet past
+the opponent's kitchen** at every face that clears the tape. `rally_prompt_pb` was telling a member "POWER 30 is
+a dink at 18mph", which is a statement that cannot be true, and a member would have obeyed it. The prompt now
+carries the measured map — 20 is a 12 mph dink, 30 is an 18 mph drive from the line, 55 a 33 mph serve, 100 is
+60 mph — and a test pins both halves: a dink exists at 14 mph, and a drive from the line cannot land in the
+kitchen at most faces.
+
+**What sets the dink's window is the tape, not the kitchen.** The contact is at 2.46 ft and the tape is at 2.83, so
+a dink has to *rise* a foot over seven feet of travel, and the face that does that also decides where it comes
+down. At power 24 (14.4 mph) the ball lands 4–6 ft past the net; at power 26 (15.6 mph) it lands past the kitchen
+at every face that clears the net. That is a different shape from §5h's table, and both are true: §5h measured a
+drop hit *from the baseline*, where the constraint is landing short; this is a dink hit *from the line*, where the
+constraint is getting over.
+
+**`dink_chooser` (`--level dink`)** plays it. Given a ball arriving under 25 mph near the line, it aims 4.5 ft past
+the net, tries 14.4 / 13.2 / 12.0 mph in that order, and checks its own clean strike before committing: if no face
+at dink pace lands in the kitchen, it plays the base shot rather than pretend. Six games at each practice:
+
+| practice | shots at dink pace | landed in the kitchen | mean rally |
+|---|---|---|---|
+| 200 balls | 2085 | **1851 (89%)** | 9.9 shots |
+| 600 balls | 4152 | **3930 (95%)** | 23.5 shots |
+
+**Two things that table says.** The learning curve reaches the soft game: the same chooser at 600 balls plays
+rallies **2.4× as long** as at 200, because the shots stop finding the tape (102 → 78 net faults on twice the
+shots). And at 600 balls **six rallies hit the record's 120-shot ceiling in six games** — the soft game at a good
+standard is close to unbreakable, which is §5c's perfect-defence defect arriving in the other half of the sport.
+The ceiling is doing what it was built for: it is named, printed, and counted rather than quietly ending the
+rally.
+
+**What the chooser cannot do, and it is the same missing piece twice.** A real dinker wins by *placement* — putting
+the ball where the opponent is not — and by varying pace to break their rhythm. This one knows neither: it picks a
+side of the court with a coin and always dinks at the same three speeds. Both need the opponent's reply, and that
+is the same omission §5g left when it priced the kitchen line: **this engine can compute what a shot does and
+still cannot see what it is for.** That is the next unit, and it is the last one before a renderer is worth
+building.
+
+**Kept on main:** `dink_chooser`, `DINK_POWERS`, `--level dink`, the corrected pace map in the member prompt, and
+two tests. `TestPickleball` is 34 tests; the suite is 404, all passing.
