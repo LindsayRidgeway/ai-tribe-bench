@@ -393,12 +393,37 @@ clay are not given the same constant), `serve_verdict()` (the box, not the court
 `contact` is the whole of what a record needs to be replayable, and which `lab/tennis_record.py` had been
 reconstructing without.
 
-**Still owed in this item:** `lab/tennis_script.py` — the record producer itself — and three things it needs that
-are measurements and not ports: `hands(pace)` (a fast ball gives less time to set up, so the same player is less
-accurate returning it), `rush` (a ball they were late to the racquet for is a ball they hit worse), and the
-accelerating run model (`reaction_time`, `run_time`, `run_distance` — a player is not at top speed on the first
-step). Those three would change every number in this file, which is why the producer is last and not first.
-`intercept` is superseded by `interception` and must **not** be ported.
+**The racquet back, and a serve that can be missed, 2026-11-18 (`9207d370`).** Two of the three things the producer
+needs are in. `prep` is a fourth skill with an onset at sixty balls and a slower curve than the other three, and
+`Player.rush` is how much of the racquet's preparation the flight did not allow: a player who overlaps the run and
+the racquet needs `max(run, prep)`, one who does not needs `run + prep`. `strike` pays for being rushed twice —
+worse hands and 0.55× the sweet spot — which makes movement affect the *ball* and not only the miss, for the first
+time in this engine. `hands(pace)` was already here from 2026-11-15 but was never fed a real pace; it is now, since
+`strike` reads it instead of recomputing the same line.
+
+And the return of a serve stopped being the one ball exempt from the rule: the interception was asked only from the
+second shot on, so no serve could be an ace however well it was struck and no return could be rushed however late
+the receiver was. Aces in 900 serves with it asked: **0**.
+
+**The measurement says the new rule does not bite, and that is the finding:**
+
+| | 0 balls | 300 balls | 600 balls |
+|---|---|---|---|
+| median point, before | 1 | 10 | 18 |
+| median point, after | 1 | 10 | 16 |
+| mean, before | 1.7 | 15.0 | 23.4 |
+| mean, after | 1.7 | 13.9 | 21.5 |
+| shots hit while rushed (> 0.1) | 3% | 0% | 0% |
+
+To be rushed, a player needs a run of about a second *and* a flight of about a second, and this game gives 1.5-2s
+flights — because the fastest ball in it is a 50mph arc with no toss and no overhead. **The rush rule is waiting on
+the serve** (movement list item 3), and the 600-ball row moved by less than the run-to-run scatter of the same
+build. Nothing was tuned to make it fire.
+
+**Still owed in this item:** `lab/tennis_script.py` — the record producer itself — and the last of the three things
+it needs: the accelerating run model (`reaction_time`, `run_time`, `run_distance` — nobody is at top speed on the
+first step). That one changes the reach arithmetic Item 10 was calibrated on, so it is a measurement of its own and
+goes next. `intercept` is superseded by `interception` and must **not** be ported.
 
 The serve is also still visibly a 50mph arc rather than a tennis serve, because it has no toss and no overhead: that
 is the movement list's item 3, and it is why serve-in is 93% and not 65%.
