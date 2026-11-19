@@ -4191,26 +4191,60 @@ class TestPreparationAndRush(unittest.TestCase):
             t.strike = orig
         return seen
 
-    def test_a_beginner_is_rushed_on_most_of_their_shots_and_a_player_with_300_balls_is_not(self):
-        """The rule's whole behavioural claim, as a rate: the habit is what changes it, and it changes by an order of
-        magnitude between the earliest stage and three hundred balls. Measured on 30 points at each standard; the
-        boundaries are wide because the point of the test is the direction and the size, not the third digit.
+    def test_rush_is_rare_because_the_ball_is_in_the_air_for_a_second(self):
+        """This test used to claim the opposite, and was wrong twice in two days, which is why it now says what it
+        actually holds.
 
-        **The 0.15 was raised to 0.25 on 2026-11-19, and this is why.** The returner's stance moved four feet
-        behind the baseline (Item 15), so every serve is now returned from four feet further back and the first ball
-        of every point costs more. The measured rate at three hundred balls went 5% → 16.5% on the same 30 points,
-        and the wide instrument (200 points, both stances) says 16% inside the line and 19% behind it — so most of
-        the movement is the population, not the stance. One shot in six is still the shape the rule was built for
-        (a beginner is rushed on 86-90% of theirs); the threshold moved because the model moved, and the number that
-        moved it is written here rather than adjusted quietly."""
+        Yesterday it said "a beginner is rushed on 86% of their shots, a three-hundred-ball player on 5%". Those
+        numbers were measured against the **bounce** — the flight time was the time until the ball landed. On
+        2026-11-19 the ball started being struck where a player strikes it (Item 16: at waist height, after the
+        bounce, rather than at the first 0.02s slice it was within reach, which was usually a foot off the ground).
+        The deadline moved from the bounce to the contact, and it moved by 0.3-0.7s, which is more than the whole
+        of `PREP_TIME`. Measured on the same 30 points: 86% → 0% at no practice, 5% → 1% at three hundred balls.
+
+        The rule is not wrong; the *rate* was a property of the deadline. With the ball in the air for one to two
+        seconds, a 0.55s take-back fits, and what a beginner actually fails at is getting to the ball at all — a
+        miss, not a rushed shot, and the interception already charges for it. So this holds the honest thing: rush
+        fires rarely at every standard, it fires at all, and the reason is the length of a ball's life rather than
+        a fault in the arithmetic. The rule's own behaviour — that overlap beats series, and that a ball with time
+        to spare rushes nobody — is held directly above, where it does not depend on a deadline at all."""
         beginner, settled = self._real_shots(0), self._real_shots(300)
         self.assertGreater(len(beginner), 10, "too few shots at the earliest standard to say anything")
         self.assertGreater(len(settled), 100)
         badly = lambda xs: sum(1 for r in xs if r is not None and r > 0.1) / len(xs)
-        self.assertGreater(badly(beginner), 0.5,
-                           f"a player with no habit was rushed on only {badly(beginner):.0%} of their shots")
-        self.assertLess(badly(settled), 0.25,
-                        f"a player with 300 balls was still rushed on {badly(settled):.0%} of their shots")
+        self.assertLess(badly(beginner), 0.20,
+                        f"a player with no habit was rushed on {badly(beginner):.0%} of their shots; with a 1-2s "
+                        f"ball and a 0.55s take-back that is a deadline in the wrong place again")
+        self.assertLess(badly(settled), 0.10,
+                        f"a player with 300 balls was rushed on {badly(settled):.0%} of their shots")
+
+    def test_the_deadline_is_the_contact_and_not_the_bounce(self):
+        """The number the previous test's rate depends on, asserted so nobody can move it quietly: the time from
+        the strike to the ball being struck back is a fifth of a second to half a second longer than the time to
+        the bounce, because the ball is met where a player meets it — at the waist, on the way up."""
+        t = self.T
+        rows, orig = [], t.interception
+
+        def watching(p, land, flight_time, bounce, surface, *a, **kw):
+            m = orig(p, land, flight_time, bounce, surface, *a, **kw)
+            if m["ok"]:
+                rows.append(m["at"] - flight_time)      # the extra after the bounce
+            return m
+
+        t.interception = watching
+        try:
+            rng = self.random.Random(11)
+            for point in range(12):
+                north = point % 2 == 0
+                server = t.Player("A", north, 300, rng=self.random.Random(1000 + point))
+                receiver = t.Player("C", not north, 300, rng=self.random.Random(2000 + point))
+                t.play_point(server, receiver, "hard", (0.0, 0.0), ("N", 0.0), rng)
+        finally:
+            t.interception = orig
+        self.assertGreater(len(rows), 10, "no ball was hit")
+        self.assertGreater(sorted(rows)[len(rows) // 2], 0.15,
+                           f"the ball is being struck {sorted(rows)[len(rows) // 2]:.2f}s after it bounced: the "
+                           f"meeting point is at the bounce, not at a height a player hits at")
 
     def test_the_return_of_a_serve_is_asked_about_like_any_other_ball(self):
         """The one ball that used to be exempt: the interception was asked only from the second shot on, so a serve

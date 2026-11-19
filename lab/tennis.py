@@ -518,6 +518,13 @@ def aim_at(p: Player, target, shot: str, surface: str, wind, power: float, at=No
 # where an overhead stops being an overhead and a ball stops being returnable at all.
 RACQUET_REACH = 7.0
 RACQUET_HIGH = 9.0
+# The height a player chooses to hit at, as opposed to the height they can touch the ball at. Between the knee and
+# the shoulder: below it they let the ball come up or scrape it, above it this game has no overhead (movement list
+# item 3). Added with the meeting point (Item 16, 2026-11-19): the first slice a ball is within reach of a player
+# is usually a foot off the ground, so "where the racquet meets the ball" and "where the ball is touchable" were
+# the same number and two groundstrokes in five were struck at 0.0ft.
+CONTACT_HEIGHT = 3.0                  # ft above the court: the waist, which is the height a player moves their
+                                      # feet to meet the ball at. Not the height they can touch it at.
 STEP = 0.02                           # s; the slice the ball's plan is stepped in, and why a miss is measured in tenths
 # Two costs that are not distance and that the first version of this rule ignored entirely. A player does not
 # leave on the opponent's contact: they split-step, read the ball, and are moving a quarter of a second later.
@@ -647,6 +654,16 @@ def interception(p: Player, land, flight_time: float, bounce: dict, surface: str
     vz = abs(vz)                        # a hand-written record can carry the pre-bounce sign; the ball goes up
     t = 0.0
     best = None                         # (shortfall, dx, dy, t, ball point) at the closest the player ever got
+    # Where the ball is a ball to hit, which is not the same question as where it can be touched (Item 16,
+    # 2026-11-19). The first version returned at the first 0.02s slice the ball was within a racquet's length, and
+    # for a ball coming at you from a bounce that slice is a foot off the ground: measured on the shipped film,
+    # two groundstrokes in five were struck at 0.0ft and the median contact was 1.8ft. A player does not hit a ball
+    # at ground level when they have the time — they wait for it to come up, or take it on the rise at a height
+    # they chose. So the meeting point is the first slice that is both within reach AND inside the hitting zone,
+    # falling back to the first reachable slice when the ball never gets there (a skidding ball is scraped, and
+    # that is a real shot).
+    ok_at = None                        # the first slice the player could reach at all
+    zone_at = None                      # the same, at a height a player would choose
     while t <= 4.0:
         if z <= RACQUET_HIGH:           # a ball above nine feet is not intercepted, it is smashed — later
             gap = math.hypot(hx - x, hy - y)
@@ -657,11 +674,14 @@ def interception(p: Player, land, flight_time: float, bounce: dict, surface: str
             if best is None or short < best[0]:
                 best = (short, hx - x, hy - y, t, (x, y, z))
             if short <= 0.0:
-                return {"ok": True, "need": need, "have": have, "short": 0.0, "short_ft": 0.0,
-                        "run_time": max(0.0, need - SETTLE),
-                        "dx": hx - x, "dy": hy - y, "speed": speed, "at": flight_time + t,
-                        "meet": (round(x, 3), round(y, 3), round(z, 3)), "gap": gap,
-                        "got": _run_to((hx, hy), (x, y), max(0.0, gap - reach)), "why": ""}
+                slice_ = (need, have, t, x, y, z, gap)
+                if ok_at is None:
+                    ok_at = slice_
+                # The height a player wants is the height they hit at, not the first one they can reach, so the
+                # scan runs the whole ball and keeps the slice nearest the waist — first one wins a tie, which is
+                # the ball taken on the rise rather than the same ball on the way down.
+                if zone_at is None or abs(z - CONTACT_HEIGHT) < abs(zone_at[5] - CONTACT_HEIGHT):
+                    zone_at = slice_
         if t > 0.0 and z <= 0.0:        # the second bounce: the ball is dead and the chance has gone
             break
         rel = math.sqrt(vx * vx + vy * vy + vz * vz)
@@ -669,6 +689,15 @@ def interception(p: Player, land, flight_time: float, bounce: dict, surface: str
         x, y, z = x + vx * STEP, y + vy * STEP, z + vz * STEP
         vx, vy, vz = vx + ax * STEP, vy + ay * STEP, vz + az * STEP
         t += STEP
+
+    if zone_at is not None or ok_at is not None:
+        need, have, t_hit, xh, yh, zh, gap_h = zone_at or ok_at
+        return {"ok": True, "need": need, "have": have, "short": 0.0, "short_ft": 0.0,
+                "run_time": max(0.0, need - SETTLE),
+                "dx": hx - xh, "dy": hy - yh, "speed": speed, "at": flight_time + t_hit,
+                "meet": (round(xh, 3), round(yh, 3), round(zh, 3)), "gap": gap_h,
+                "got": _run_to((hx, hy), (xh, yh), max(0.0, gap_h - reach)), "why": "",
+                "height": round(zh, 3)}
 
     short, dx, dy, t_best, ball = best
     short_ft = short * speed
@@ -685,7 +714,7 @@ def interception(p: Player, land, flight_time: float, bounce: dict, surface: str
             "short": short, "short_ft": short_ft, "run_time": asked,
             "dx": dx, "dy": dy, "speed": speed,
             "at": flight_time + t_best, "meet": ball, "gap": math.hypot(dx, dy),
-            "got": _run_to((hx, hy), ball, allowed), "why": why}
+            "got": _run_to((hx, hy), ball, allowed), "why": why, "height": round(ball[2], 3)}
 
 
 def _run_to(frm, to, ground: float):
@@ -1248,7 +1277,11 @@ def play_point(server: Player, receiver: Player, surface: str, wind_vec, wind_in
     the hitter back (or in, after an approach) before the next ball is chosen. That position is what `interception`
     is asked about, so the runner starts where their legs actually left them."""
     lines, where = [], {}
-    where[server.name] = (2.0 if server.north else LENGTH - 2.0, WIDTH / 2)
+    # The server's feet are on the baseline, not two feet inside it: a serve struck from inside the court is a foot
+    # fault, and the ball is struck 2.2ft in front of the feet (Item 16, 2026-11-19 — `contact_point` used to answer
+    # this with a fixed point two feet inside the line whatever the server was doing, and the ball was launched
+    # 2.2ft further forward than that as soon as the launch point followed the body).
+    where[server.name] = (0.0 if server.north else LENGTH, WIDTH / 2)
     # The returner stands BEHIND the baseline, not on it. This was one line for both, two feet inside the line, and
     # that is not where anybody returns from: a returner is on the back foot with the ball coming at them, and the
     # two feet matter because a serve arriving in half a second is decided by feet, not by reach. Measured on 120
@@ -1276,10 +1309,16 @@ def play_point(server: Player, receiver: Player, surface: str, wind_vec, wind_in
     # returns whatever face sends the ball into the corner at the pace it was given, so twenty serves are not a
     # metronome. What changed is which of the two numbers the player is deciding.
     pace = (SERVE_MPH[0] + SERVE_MPH[1] * rng.random()) * (0.72 + 0.30 * server.skill("control"))
-    face, power = aim_at(server, c, "serve", surface, wind_vec, power=pace)
-    _p0 = contact_point(server, "serve")
+    # The ball is struck in front of the server's own feet (Item 16, 2026-11-19). `contact_point` answered with a
+    # point two feet inside the baseline and up to five feet off centre, whatever the server was doing, so the
+    # launch was from a place no player was standing. The numbers here are the producer's
+    # (`lab/tennis_script.py`), which the film has used since 2026-11-19: 2.2ft in front of the feet and a foot to
+    # the side, 8.8ft up — high enough that the serve is struck over the net rather than into it.
+    _sx, _sy = where[server.name]
+    _p0 = (_sx + 2.2 * (1.0 if server.north else -1.0), _sy + 1.1, 8.8)
+    face, power = aim_at(server, c, "serve", surface, wind_vec, power=pace, at=_p0)
     shot = strike(server, None, face=face, power=power, aim=c[1], shot="serve", surface=surface, wind=wind_vec,
-                  trace=0.02, aim_dist=math.hypot(c[0] - _p0[0], c[1] - _p0[1]))
+                  trace=0.02, at=_p0, aim_dist=math.hypot(c[0] - _p0[0], c[1] - _p0[1]))
     server.serves += 1
     lines.append(line_for(shot, receiver.name, surface, wind_in))
     t = shot["traj"]
@@ -1288,7 +1327,8 @@ def play_point(server: Player, receiver: Player, surface: str, wind_vec, wind_in
         lines.append(f"fault — the point goes to {receiver.name}.")
         return lines
     server.serves_in += 1
-    where[server.name] = (2.0 if server.north else LENGTH - 2.0, WIDTH / 2)
+    # and after the serve they are behind the line, where a server recovers — the same spot `recovery_spot` uses
+    where[server.name] = (-RECOVER_DEPTH if server.north else LENGTH + RECOVER_DEPTH, WIDTH / 2)
     incoming = t["bounce"]
     incoming["speed_in"] = t["bounce"]["speed_out"] / MPH
 
@@ -1314,7 +1354,10 @@ def play_point(server: Player, receiver: Player, surface: str, wind_vec, wind_in
                 lines.append(f"{receiver.name} is {m['why']} — {server.name} takes the point.")
                 server.winners += 1
                 return lines
-            incoming["rush"] = receiver.rush(min(m["run_time"], t["time"]), t["time"])
+            # The time they had is the time to the *contact*, not the time to the bounce: since Item 16 the ball is
+            # met where a player meets it, which is usually after it has come up, and a player who waits for a ball
+            # has that much longer to get the racquet back. Passing `t["time"]` kept charging them for time they had.
+            incoming["rush"] = receiver.rush(min(m["run_time"], m["at"]), m["at"])
         if vol is not None:
             where[receiver.name] = vol["feet"]
             at = vol["contact"]
@@ -1322,7 +1365,14 @@ def play_point(server: Player, receiver: Player, surface: str, wind_vec, wind_in
             # a volley is the ball you have least time for, and the record should be able to say so
             incoming["rush"] = receiver.rush(vol["step"] / max(movement_speed(receiver), 1.0), vol["t"])
         else:
-            at = None
+            # The ball is struck where the ball was (Item 16, 2026-11-19). `contact_point` put every groundstroke at
+            # two feet inside the baseline and the middle of the court, so a player who had run twenty feet to reach
+            # it struck it from where they were not. `meet` is the interception's own point — the first slice of the
+            # ball's life at which it is within a racquet's length — so the launch height is the ball's real height:
+            # a ball scraped off the ground is a low ball here for the first time, and the face search has to hit up
+            # from it. The film has done this since 2026-11-19 (`lab/tennis_script.py`, `carry[hitter]`); this is the
+            # scoreline catching up with the picture.
+            at = m["meet"]
             kind = rng.choice(["forehand", "backhand", "backhand", "forehand"])
         plan = choose_shot(receiver, server, where[receiver.name], where[server.name], record, rng,
                            height=vol["height"] if vol else None, last=last[receiver.name])
@@ -1392,8 +1442,12 @@ def verdict(shot: dict) -> tuple[bool, str]:
         how = "less than a foot" if over < 1 else f"{over:.0f}ft"
         return False, f"long by {how}{side} — too much height or too much pace"
     if not (0 <= y <= WIDTH):
-        return False, (f"wide by {abs(lat) - WIDTH / 2:.0f}ft — the court is 27ft wide, "
-                       f"aim between 4 and 23")
+        # the same rule the long ball follows: below a foot, say so rather than rounding it to nothing. A caption
+        # reading "wide by 0ft" (seen on `film-2026-11-19.json` after Item 16, 2026-11-19) says a ball is out and
+        # then reports that it is zero feet out, which is the kind of number a player cannot learn from.
+        out_by = abs(lat) - WIDTH / 2
+        how = "less than a foot" if out_by < 1 else f"{out_by:.0f}ft"
+        return False, f"wide by {how} — the court is 27ft wide, aim between 4 and 23"
     return True, (f"IN, {depth:.0f}ft past the net, {abs(lat):.0f}ft {'east' if lat > 0 else 'west'} of centre, "
                   f"arrives at {t['speed_in'] / MPH:.0f}mph and comes up at "
                   f"{t['bounce']['speed_out'] / MPH:.0f}mph")

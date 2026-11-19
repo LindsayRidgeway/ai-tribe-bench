@@ -510,7 +510,9 @@ the record's own standard — 400 balls, clay, SW 6mph, 20 rallies, the record's
 **84 shots and 91 shots and 91 shots and 91 shots**, against the record's **95**; mean rally 4.2-4.6 against 4.8,
 median 3.5-4.5 against 3.5. The shortfall is the direction the movement port predicted (a body that has to
 accelerate is beaten to more balls) and it is inside the scatter: four clocks, four different films, a spread of
-seven shots. The item is closed. `intercept` was the one thing deliberately not ported, because `interception`
+seven shots. **Re-measured after Item 16, the same day: 78, 117, 126 and 145 shots, medians 4-6.** The record's 95
+is still inside that range, but the scatter has doubled, because the meeting point now depends on where the body is
+rather than on a constant. The done-test is met and it is worth less than it read this morning. The item is closed. `intercept` was the one thing deliberately not ported, because `interception`
 supersedes it. What the port found along the way — a landed ball that ran out of picture time and called itself
 lost, and a serve that was the slowest ball in the game — are both fixed here, and both were found by main's own
 code meeting the branch's.
@@ -557,33 +559,70 @@ as a producer change. One change at a time — but it is the next one after Item
 stands in the wrong place is a film that shows the wrong game, however small two feet look.
 
 **What is now visible that was not before:** a point at 600 balls is thirteen to fifteen shots, a quarter of them
-hitting the engine's 60-shot ceiling. The players cannot pass each other. That is the next item and it is not a
+hitting the engine's 60-shot ceiling. *(After Item 16 the same day: median 8.5, mean 12.7, and no rally in a
+20-rally film reaches the ceiling. On 60 points at 600 balls, 16 ended with the opponent beaten, 40 with a shot into
+the net or out, and 4 with a fault — a quarter of the points are won rather than lost, which is where tennis is.)* The players cannot pass each other. That is the next item and it is not a
 stance: 7ft of racquet reach plus a recovery to the middle means the corner is always covered, and `choose_shot` has
 no notion of a ball that cannot be returned. It is the same family as Item 11 (a volley to a deep corner) — the
 engine has no shot that is *unreachable*, only shots that miss.
 
-## Item 16 — the ball is struck from a place the body is not (OPEN, found 2026-11-19)
+## Item 16 — the ball is struck from a place the body is not (DONE 2026-11-19)
 
-`contact_point()` returns `x = 2.0` for **every** shot by **every** player — two feet inside the baseline — and `y`
-from the middle of the court plus or minus five feet, chosen at random. `play_point` passes `at=None` for every
-groundstroke, so every ball in the scoreline engine is struck from the middle of the baseline, by a player who may
-have run twenty feet to reach it. The run is asked about (`interception(frm=where[…])`) and then thrown away.
+`contact_point()` returned `x = 2.0` for **every** shot by **every** player — two feet inside the baseline — and `y`
+from the middle of the court plus or minus five feet, chosen at random. `play_point` passed `at=None` for every
+groundstroke, so every ball in the scoreline engine was struck from the middle of the baseline by a player who may
+have run twenty feet to reach it. The run was asked about (`interception(frm=where[…])`) and then thrown away.
 
-`lab/tennis_script.py` does not do this: it passes `at=contact`, where `contact` is the interception's own meeting
-point (`carry[hitter] = meet["meet"]`), which is why the films look right and the scoreline does not. That is Item
-14's disease in a new place — two models of the same thing, one in the record and one in the play.
+`lab/tennis_script.py` did not do this — it passes `at=contact`, where `contact` is the interception's own meeting
+point. That is Item 14's disease in a new place: two models of the same thing, one in the record and one in the play.
 
-**The fix is known and cheap:** `play_point` should strike at the meeting point, as the producer does, with the
-height clamped to a hitting zone (a ball met at 0.4ft is not hit at 0.4ft; the player waits for it to come up, or
-takes it on the rise). **The reason it is not in this commit:** every shot's launch point moves, so every number in
-this file moves with it, and this turn's numbers were already being re-measured once. One change at a time, with the
-instrument re-run between them — which is the rule that has kept this item honest so far.
+**Then the fix found a second defect, and a bigger one.** Pointing `play_point` at `meet` made every rally *shorter*
+and the net-errors jump, because `meet` was the first 0.02s slice at which the ball was within a racquet's length —
+and for a ball coming at you off a bounce that slice is about a foot off the ground. Measured on the shipped film:
+**42 of 107 groundstrokes were struck at 0.0ft and the median contact was 1.81ft.** A player does not hit a ball at
+ground level when they have time; they let it come up to the height they like. So `interception` now returns the
+slice nearest `CONTACT_HEIGHT = 3.0ft` (the waist) among the reachable ones, first-in-time winning a tie — the ball
+taken on the rise rather than the same ball on the way down — with the first reachable slice as the fallback for a
+ball that never comes up, which is a scrape and a real shot.
 
-**Done-test:** the mean distance between a shot's `contact` and the feet that struck it, over 20 rallies, is under
-`RACQUET_REACH` — the same invariant the film already satisfies (measured on `film-2026-11-19.json`: 107 shots, worst
-7.01ft against 7.0, which is the boundary and not a violation).
+That also moved the *deadline*: the ball is now struck 0.2-0.7s after it bounces rather than at the bounce, so
+`rush` is charged against the contact time rather than the bounce time. Rush was 86% / 5% / 3% at 0 / 300 / 600
+balls and is now 0% / 1% / 1% — **and that is a finding about the rule rather than about the players**: with a ball
+in the air for one to two seconds and a 0.55s take-back, preparation fits, and what a beginner actually fails at is
+getting to the ball at all. The rule is right, its rate was a property of a deadline that has now moved, and the
+test says so instead of being re-tuned to keep the old shape.
 
-## What V1 means
+**Measured, 120 points at each standard, before → after:**
+
+| | 0 balls | 300 balls | 600 balls |
+|---|---|---|---|
+| contact height, median | — | 3.0ft (**1.8ft** on the old film) | 3.0ft |
+| aces | 0% → 0% | 6% → **1%** | 10% → **4%** |
+| rally median | 1 → 1 | 5 → 4.5 | 8 → **8.5** |
+| rally mean | 1.5 → 1.5 | 8.4 → **7.0** | 15.6 → **12.7** |
+| serve in | 32% → 30% | 88% → **88%** | 94% → **94%** |
+
+Contacts below a foot, the number that matters and the one that is on the film rather than in a rate: **42 of 107
+groundstrokes at 0.0ft before, 1 of 110 after.** The intermediate state — meeting the ball where it was first
+touchable, with no height rule — was worse than either: 15-20% of contacts below a foot and 51 shots into the net in
+120 points at 300 balls, against 22 with the waist rule. That is why the rule is a height and not a slice.
+
+**The film, regenerated.** `records/film-2026-11-19.json`: 110 shots over 20 rallies at 300/600, rally lengths 5 5 2
+2 3 5 12 5 4 6 7 10 9 1 14 6 3 4 4 3, contact height median **3.04ft**, one shot below 1ft against the old film's
+42. The film's own invariants hold: every contact within `RACQUET_REACH` of the feet the run left the player at
+(worst 7.01ft of 7.0 — the boundary), and no run faster than the player's speed (worst 12.1ft/s of a 19.2 limit).
+
+**Done-test:** the mean distance between a shot's `contact` and the feet that struck it is under `RACQUET_REACH`
+over 20 rallies — 7.01ft worst, met. The stronger claim this item added is the other one: the ball is struck at a
+height a player strikes at, 3.0ft median against 1.8ft.
+
+**One side effect worth knowing:** at the 2026-spring record's own standard (400 balls, clay, SW 6mph, 20 rallies)
+the producer now makes 78-145 shots over four clocks where it made 84-91 before, medians 4-6, because the meeting
+point depends on where the body is instead of a constant. Item 14's done-test still reads inside that range — the
+record's 95 shots — but the scatter has doubled, and a claim of "reproduces the record's shot count" is worth less
+than it was this morning.
+
+## What V1 means## What V1 means
 
 **The founder's definition, 2026-11-15, and it replaces mine:** *V1 means completion of the video game
 to the point that we are ready for it to become a published feature of AIT.* He added that the
