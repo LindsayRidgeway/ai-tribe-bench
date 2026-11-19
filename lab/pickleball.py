@@ -667,7 +667,8 @@ def _receiver_for(match: Match, players: dict[str, Player], pos: "Positions",
 
 # ---- one game --------------------------------------------------------------------------------------
 def play_game(names: list[str], practice: list[int], choose_factory, surface: str = "hard",
-              wind_seed_ms: int | None = None, first_team: int = 0, say=print) -> tuple[Match, dict]:
+              wind_seed_ms: int | None = None, first_team: int = 0, say=print,
+              stances: dict[str, float] | None = None) -> tuple[Match, dict]:
     """A doubles game to 11, win by 2. Every rule that decides the score is in `Match`; this function only
     feeds it rallies and prints what happened."""
     match = new_match(names)
@@ -682,7 +683,11 @@ def play_game(names: list[str], practice: list[int], choose_factory, surface: st
     players = {}
     for i, n in enumerate(names):
         players[n] = Player(name=n, north=(i < 2), practice=practice[i], rng=random.Random(ms * 4 + i))
+    # Per-player stances, so a lesson can be *held* by one seat and compared with another in the same game —
+    # which is the only way to ask what a stance is worth without confounding it with the opponent.
     pos = Positions()
+    if stances:
+        pos.approach.update(stances)
     raw_dir, raw_speed = wind_at(ms)
     capped = f" (clock said {raw_speed:.0f}, capped at {WIND_CAP:.0f}: see the file's wind note)" \
         if raw_speed > WIND_CAP else ""
@@ -835,10 +840,113 @@ def reading_chooser(level: str = "steady", say=print):
     return factory
 
 
+def points_chooser(level: str = "steady", say=print, settle: int = 8, margin: float = 0.15,
+                   band: float = 3.0, need: int = 3, explore_every: int = 10):
+    """A chooser paid in **points**, not in faults — the two-sided lesson §5d said was next.
+
+    `reading_chooser` reads the record for faults, and a fault is a thing you can see and count: it steps back
+    a foot whenever it is carried into the kitchen, and it never steps forward, because nothing in a fault ever
+    says *close the gap*. That lesson is one-directional and it walks away from the line, which is where the
+    sport tells you to stand. This one is paid in the only currency the game actually keeps: who won the point.
+
+    How it learns, stated plainly because it is crude:
+      - after every rally each player records the result at the stance they were holding, in one-foot buckets;
+      - every `settle` rallies each player looks at the buckets within `band` feet of where they are, keeps the
+        ones with at least `need` rallies, and takes one step of a foot toward the best win rate — but only if
+        it beats their current bucket by `margin`, so a coin-flip does not move a professional;
+      - it moves one foot at a time and it can move both ways, which is the whole difference from the fault
+        reader;
+      - and it **explores**, which was the first version's mistake: a chooser that only moves toward a better
+        measured stance never measures anything, because at the start every player holds the same stance and
+        the ledger has one bucket in it. Every `explore_every` rallies a player takes one step toward a
+        neighbouring stance it has not yet tried `need` times. A lesson that never tries anything learns only
+        about where it started.
+
+    What it cannot do, measured rather than asserted: **it loses to doing nothing.** In head-to-head play from
+    the same starting stance (practice 200, both sides at 4 ft, the learner on one side and a static player on
+    the other, swapped over the same pins) the learner took 61 points to the static player's 77 and lost 2
+    games to 6. The currency is right and the sample is not: a game is 30-50 rallies shared between four
+    players and four buckets, so a bucket holds two or three rallies, and the win rate in it is dominated by
+    whether the player happened to be serving, and by the fact that both teams are moving at once. A lesson is
+    only worth its noise when it has more samples per decision than the noise has causes; the season file
+    (`--season`, hundreds of rallies) is where that lives, and this ledger is per game until it is wired.
+
+    The measurement behind it (page §5e): in head-to-head play at practice 200, a 2 ft stance beat 4 ft by
+    99-76 points and 6 ft by 101-48, while the *fault* count said 4 ft was better by 22 to 2. The two
+    currencies disagree, and only one of them is the score.
+    """
+    base = scripted_chooser(level)
+    STEP = 1.0
+
+    def factory(players, wind_in, surface):
+        choose = base(players, wind_in, surface)
+        ledger: dict[str, dict[int, list[int]]] = {}
+        lessons: dict[str, list[str]] = {}
+        count = {"rallies": 0}
+
+        def lesson(r, positions, roster):
+            count["rallies"] += 1
+            winner = r.get("winner")
+            for name, p in roster.items():
+                bucket = int(round(positions.approach_of(p)))
+                rec = ledger.setdefault(name, {}).setdefault(bucket, [0, 0])
+                rec[1] += 1
+                if winner is not None and (0 if p.north else 1) == winner:
+                    rec[0] += 1
+            # Exploration first: a step toward a neighbour nobody has measured yet. Without this the ledger
+            # only ever holds the starting stance and the greedy step below has nothing to prefer.
+            if count["rallies"] % explore_every == 0:
+                for name, p in roster.items():
+                    now = positions.approach_of(p)
+                    unseen = [b for b in (int(round(now)) - 1, int(round(now)) + 1)
+                              if 1.0 <= b <= APPROACH_MAX
+                              and ledger.get(name, {}).get(b, [0, 0])[1] < need]
+                    if not unseen:
+                        continue
+                    positions.approach[name] = float(unseen[0])
+                    say(f"       == {name} tries {unseen[0]}ft: a lesson that never tries anything learns only "
+                        f"about where it started")
+            if count["rallies"] % settle:
+                return
+            for name, p in roster.items():
+                now = positions.approach_of(p)
+                here = ledger.get(name, {})
+                current = here.get(int(round(now)), [0, 0])
+                current_rate = (current[0] / current[1]) if current[1] else 0.0
+                best = None
+                for bucket, (wins, played) in here.items():
+                    if played < need or abs(bucket - now) > band:
+                        continue
+                    rate = wins / played
+                    if best is None or rate > best[1] + 1e-9:
+                        best = (bucket, rate)
+                if best is None or best[1] <= current_rate + margin:
+                    continue
+                target = max(1.0, min(APPROACH_MAX, now + (STEP if best[0] > now else -STEP)))
+                if abs(target - now) < 1e-9:
+                    continue
+                positions.approach[name] = target
+                said = (f"{name}: {best[0]}ft won {best[1]:.0%} of its rallies, "
+                        f"{now:.0f}ft won {current_rate:.0%}")
+                say(f"       == {name} is paid in points — {said}. Standing {target:.0f}ft back.")
+                lessons.setdefault(name, []).append(said)
+
+        choose.lesson = lesson
+        choose.ledger = ledger
+        choose.lessons = lessons
+        return choose
+    return factory
+
+
 def make_chooser(level: str):
-    """A demo's chooser. `read` is the steady player's hands with a lesson attached, so a difference between
-    `--level steady` and `--level read` is the learning and never the aim."""
-    return reading_chooser("steady") if level == "read" else scripted_chooser(level)
+    """A demo's chooser. `read` and `learn` are the steady player's hands with a lesson attached — the first
+    paid in faults, the second in points — so a difference between them and `--level steady` is the learning
+    and never the aim."""
+    if level == "read":
+        return reading_chooser("steady")
+    if level == "learn":
+        return points_chooser("steady")
+    return scripted_chooser(level)
 
 
 def member_chooser_pb(engines: dict, surface, wind_in, history, fell_back):
@@ -992,9 +1100,9 @@ def main(argv=None) -> int:
                          "mistaken for a match a member played")
     ap.add_argument("--clock", type=int, default=None,
                     help="pin the wind to a millisecond count, so a record can be replayed")
-    ap.add_argument("--level", default="steady", choices=["beginner", "steady", "hard", "read"],
-                    help="`read` is the steady hands with a lesson attached: it reads its own kitchen faults "
-                         "and steps back from the line")
+    ap.add_argument("--level", default="steady", choices=["beginner", "steady", "hard", "read", "learn"],
+                    help="`read` is the steady hands with a fault-reading lesson attached; `learn` is the "
+                         "same hands paid in points instead, so the two lessons can be compared at one clock")
     ap.add_argument("--practice", default=None, help="balls hit before this session, one per name")
     ap.add_argument("--seed", default=None, help="give a new member a past: balls carried in")
     ap.add_argument("--surface", default="hard", choices=sorted(SURFACES))

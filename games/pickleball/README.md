@@ -339,7 +339,7 @@ afternoon what two papers and I cannot settle from a chair.
 
 ## §5 The engine, as built — 2026-11-15, the same day as §1–§4
 
-`lab/pickleball.py`, 22 tests in `tests.py` (`TestPickleball`), 376 tests in the suite, all passing. The
+`lab/pickleball.py`, 24 tests in `tests.py` (`TestPickleball`), 387 tests in the suite, all passing. The
 rules are the page's rules, the ball is the page's ball, and the game is text.
 
 **The four things §4 asked for, measured rather than promised.**
@@ -607,3 +607,61 @@ clock: `records/scripted-2026-11-15.txt`, 53 rallies, mean 10.2, a 13–11 finis
 **What is still not modelled, and is now the honest short list:** the two-sided lesson (a player paid in
 points, not in faults); stacking; a body for the *partner* (one hitter, one ball); the measured ball, which §1
 makes the blocker for the dink game; and the renderer, the season and the person's seat, which are tennis's.
+
+---
+
+## §5e The two-sided lesson, and the sample it needs — 2026-11-18, same evening
+
+§5d ended by saying the next unit was a chooser paid in **points** rather than faults, because a fault ledger
+is one-directional and walks away from the line. It is built (`points_chooser`, `--level learn`), and the
+answer is the same shape as the last two: the currency was right, and the *sample* is not there yet.
+
+**First, what a stance is worth, measured head-to-head rather than by counting faults.** One team holds one
+stance and the other holds another, the assignment is swapped over the same pinned clocks, and both halves are
+added up (five games each half, practice 200):
+
+| match-up | points | games |
+|---|---|---|
+| 1 ft vs 2 ft (ten games each half) | 163 – **175** | 8 – 12 |
+| **2 ft** vs 4 ft | **99** – 76 | 8 – 2 |
+| **2 ft** vs 6 ft | **101** – 48 | 8 – 2 |
+| **3 ft** vs 5 ft | **85** – 62 | 6 – 4 |
+
+**Standing at the line wins.** 2 ft beat 4 ft by 23 points in ten games and 6 ft by 53. That is the sport's own
+instruction — get to the kitchen line — arriving in the engine unprogrammed.
+
+**And it is the opposite of what the fault count says.** In §5d the same stance sweep reported kitchen-plus-
+momentum faults of 51 / 22 / 7 / 2 / 9 at 1 / 2 / 3 / 4 / 6 ft: the faults fall as you step back, monotonically,
+to almost nothing at 4 ft. So:
+
+> the fault ledger says stand back; the scoreline says stand up; only one of them is the score.
+
+A lesson paid in faults climbs the wrong hill, and it climbs it confidently. That is §5b's correction stated as
+a measurement instead of an anecdote.
+
+**The points learner, and it loses.** `points_chooser` records, for every player, the points won and lost at
+each one-foot stance (buckets), explores a neighbouring stance it has not tried enough, and steps one foot
+toward the bucket with the best win rate when that beats its current bucket by 15 points of percentage. From a
+common 4 ft start, against a static player at 4 ft, swapped over the same pins:
+
+| | points | games |
+|---|---|---|
+| learner | 61 | 2 |
+| static player at 4 ft | **77** | **6** |
+
+**It is worse than doing nothing**, and the reason is arithmetic rather than mysterious. A game is 30–50
+rallies shared between four players and four buckets, so a bucket holds two or three rallies; the win rate in
+it is decided more by who was serving than by where the feet were; and both teams are moving at once, so
+"stance A beat stance B" is being read from games in which A and B are both changing. Six games of that gave
+it 29 points to the static four's 67.
+
+**The rule that comes out of it, and it generalises past this game:** *a lesson is only worth its noise when
+it has more samples per decision than the noise has causes.* A fault ledger has one cause and one sample per
+event; a scoreline has many. So the point lesson is not wrong, it is early — and its home is the season file
+(`--season`), where a stance is held for a whole game and a hundred games make a sample. That is now the next
+unit rather than a footnote.
+
+**Kept on main:** `points_chooser` with that measurement in its own docstring, `--level learn`, per-player
+stances as a `play_game(stances=...)` argument (which is what made the head-to-head possible at all), and two
+tests — the ledger steps toward the stance that won, and the chooser explores, because a lesson that never
+tries anything learns only about where it started. `TestPickleball` is 24 tests; the suite passes.

@@ -4589,6 +4589,47 @@ class TestPickleball(unittest.TestCase):
         self.assertLess(vol["contact"][0], pk.NET_X, "taken on the receiving side of the net")
         self.assertGreaterEqual(vol["height"], pk.VOLLEY_LOW, "and above the knee, or it is a dig off the ground")
 
+    def test_the_points_ledger_moves_toward_the_stance_that_wins(self):
+        """The two-sided lesson, driven directly. A player who won everything at 2 ft and lost everything at
+        4 ft takes one step back toward the line — the opposite of what the fault reader does, and on purpose:
+        the faults say stand back (page §5d) and the scoreline says stand up. Exploration is off here so the
+        test reads the greedy step and not the wandering."""
+        pk = self.pk
+        players = {"A": self.t.Player(name="A", north=True, practice=200)}
+        pos = pk.Positions()
+        pos.approach["A"] = 4.0
+        said: list[str] = []
+        choose = pk.points_chooser("steady", say=said.append, settle=1, need=3, margin=0.15,
+                                   explore_every=10 ** 6)(players, ("N", 3.0), "hard")
+        win, lose = ({"winner": 0}, {"winner": 1})
+        pos.approach["A"] = 2.0
+        for _ in range(3):
+            choose.lesson(win, pos, players)          # three rallies won from 2 ft
+        pos.approach["A"] = 4.0
+        choose.lesson(lose, pos, players)             # one lost from 4 ft: the decision, and only one
+        self.assertAlmostEqual(pos.approach_of(players["A"]), 3.0, places=6,
+                               msg="one foot toward the stance that won, not four")
+        choose.lesson(lose, pos, players)             # and it keeps walking while the evidence holds
+        self.assertAlmostEqual(pos.approach_of(players["A"]), 2.0, places=6)
+        self.assertTrue(any("paid in points" in line for line in said))
+
+    def test_the_points_chooser_explores_or_it_has_nothing_to_learn_from(self):
+        """A lesson that never tries anything measures only where it started: with every player at the default
+        and no results to read, the ledger holds one bucket and the greedy step has nothing to prefer. So the
+        chooser takes an exploratory step, and that is a rule rather than an accident."""
+        pk = self.pk
+        players = {n: self.t.Player(name=n, north=(i < 2), practice=200) for i, n in enumerate(["A", "B", "C", "D"])}
+        pos = pk.Positions()
+        said: list[str] = []
+        choose = pk.points_chooser("steady", say=said.append, settle=10 ** 6, explore_every=4)(
+            players, ("N", 3.0), "hard")
+        self.assertTrue(all(pos.approach_of(p) == pk.APPROACH_DEFAULT for p in players.values()))
+        for _ in range(4):
+            choose.lesson({"winner": None}, pos, players)
+        self.assertTrue(any(pos.approach_of(p) != pk.APPROACH_DEFAULT for p in players.values()),
+                        "somebody has to try somewhere else")
+        self.assertTrue(any("tries" in line for line in said))
+
     def test_no_rally_runs_to_the_engines_ceiling(self):
         """The guard this turn needed, and did not have. `RALLY_CAP` = 120 shots is the record's ceiling, not a
         rule: a rally that reaches it scores nobody, so a cap hit in a demo is a bug report.
