@@ -812,3 +812,50 @@ it was wrong about is that the stance was the mistake.
 rally in the record (so a fault can be priced as a serve or a point), and four tests — a planted volley is not
 carried, a moving one is carried v²/2A, a carry stops at the net and never backwards, and a big step in a short
 time is not a speed. `TestPickleball` is 32 tests; the suite is 401, all passing.
+
+---
+
+## §5h The measured ball was never the blocker — 2026-11-19
+
+For four sections this page has carried the same open item: *the ball is not measured here, so the dink game is
+blocked until someone films one.* The founder asked the obvious question — did that mean buying equipment and
+learning pickleball? — and the honest answer is that the item was wrong, not early. The uncertainty was already
+in hand (Cd 0.30 ± 0.02 from six digitised trajectories; 0.33 with SD 0.083 from eighty-six), and it had never
+been **propagated** through the engine. That is an afternoon's arithmetic, not an experiment, and it says this:
+
+**How wide the kitchen's own window is, from the baseline, spine off, at each pace:**
+
+| pace from the baseline | band of launch angles that lands in the opponent's kitchen |
+|---|---|
+| 18–20 mph | **none** — the ball cannot reach it |
+| 22 mph | **31.8°**, +28.0 to +59.8 |
+| 25 mph | 2.7° (+20.2 to +22.9) flat, plus a 9.1° lob band above +58 |
+| 28 mph | 0.1° flat, 4.9° lob |
+| 30 mph | flat band gone; lobs only |
+| 32 mph and up | none — it goes past the kitchen at any angle |
+
+**The third-shot drop is a pace problem, not an aiming problem.** At 22 mph the ball physically cannot land past
+the kitchen, so *every* angle between 28 and 60 degrees is a legal drop: a 32-degree window, which is not a
+delicate shot. It becomes delicate at 25 mph (2.7°), impossible at 30. §1's "the drop's window is 0.5°" was
+measured at the fast end and stated as if it were the shot.
+
+**And the model error, at the pace where it is delicate.** At 25 mph the flat band runs:
+
+| Cd | flat band | width |
+|---|---|---|
+| 0.28 | +19.6 to +21.6 | 2.0° |
+| 0.30 | +19.8 to +22.1 | 2.3° |
+| **0.33** | **+20.2 to +22.9** | **2.7°** |
+| 0.37 | +20.7 to +24.1 | 3.4° |
+| 0.41 | +21.2 to +25.4 | 4.2° |
+
+The edge moves **1.6°** across the whole plausible range of Cd while the window is 2 to 4 degrees wide. So the
+model's own error is the **same size as the shot** at 25 mph — which is the honest version of §1's claim, and it
+is a statement about the *fast* drop only. Below 24 mph the same error is irrelevant because the shot is not near
+an edge; above 30 mph there is no shot to price.
+
+**What this changes.** Nothing needs filming to make the dink game playable; what the dink game needs is for the
+page to say which pace it is played at. At dink pace (18–22 mph, a 7–15 ft shot) the window is tens of degrees and
+the Cd uncertainty does not touch it. **A phone, a marked ball and a borrowed court would buy a worse Cd than the
+eighty-six that are already published** — uncalibrated lens, hand-timed release, one camera — so the experiment was
+never the answer and the ask was a defect in my own reasoning, not a request for the founder's afternoon.
