@@ -464,6 +464,11 @@ async function updateCheck(){
   if (!head) return {state:'unknown', why:'the template could not be read just now'};
   if (!v) return {state:'unknown', why:'this circle has no .ait/version.json, so it predates the version record',
                   sha: head};
+  if (v.touched && !from) return {state:'unknown', sha: head, touched: v.touched,
+    why:`${v.touched.files} file${v.touched.files === 1 ? '' : 's'} were added from `
+      + `${String(v.touched.template).slice(0,7)} on ${String(v.touched.at).slice(0,10)}, and the rest of this `
+      + `circle's machinery predates the version record — so this page cannot tell whether it is current. `
+      + `python3 lab/update_tribe.py compares the files themselves and can`};
   if (from.slice(0, 7) === head.slice(0, 7)) return {state:'current', sha: head};
   return {state:'behind', sha: head, from};
 }
@@ -585,19 +590,35 @@ async function applyUpdate(){
   // current, the update would never be offered again, and the file somebody else wrote would stay the old one for
   // good. Found 2026-11-16 by asking what the record says after the clash test rather than by watching it pass — the
   // test checked that the clashing file was left alone and never asked whether the circle still knew it was behind.
+  // Complete means nothing was left behind: every file that differed was either landed or was already the
+  // template's. A press with `kept` or `waiting` files has brought the circle forward without bringing it home.
+  const complete = !p.kept.length && !p.waiting.length;
   if (!clash.length){
-    try { await stampVersion(p.head); } catch(e){ /* the files landed; a record that could not be written is said below */ }
+    try { await stampVersion(p.head, complete, done.length); }
+    catch(e){ /* the files landed; a record that could not be written is said below */ }
   }
-  return {p, done, clash, stamped: !clash.length};
+  return {p, done, clash, stamped: !clash.length, complete};
 }
-async function stampVersion(to){
+// The record is a claim about what this circle *has*, so it may only claim a version the press actually reached.
+// A press that adds the three files a circle never had and leaves twenty-one older ones alone has not brought it to
+// the template, and writing `updated_to` anyway makes the page say "Machinery up to date" about a circle that is
+// not — measured 2026-11-19, on the first real press, by comparing the page's sentence with `lab/repos.py
+// machinery` (0 replaced, 21 files still older). So a complete press stamps the version; a partial one records
+// what it touched and claims nothing.
+async function stampVersion(to, complete, files){
   const cur = await fileText('.ait/version.json').catch(() => null);
   const prev = cur ? (JSON.parse(cur.text) || {}) : {};
-  const body = JSON.stringify({schema: 'ait-version/1', template: TEMPLATE,
-    installed_from: prev.installed_from || to, updated_to: to, updated_at: new Date().toISOString()}, null, 1) + '\n';
-  // `installed_from` falls back to `to` when the circle has no record at all: a first stamp says where the circle
-  // came from, and `lab/update_tribe.py` writes the same thing into the same file. Two updaters, one record.
-  return putText('.ait/version.json', body, `page: record the machinery this circle now runs (${to.slice(0,7)})`, cur && cur.sha);
+  const now = new Date().toISOString();
+  const body = complete
+    ? {schema: 'ait-version/1', template: TEMPLATE,
+       installed_from: prev.installed_from || to, updated_to: to, updated_at: now}
+    : {schema: 'ait-version/1', template: TEMPLATE,
+       installed_from: prev.installed_from || null, updated_to: prev.updated_to || null,
+       touched: {template: to, at: now, files: files || 0}};
+  return putText('.ait/version.json', JSON.stringify(body, null, 1) + '\n',
+    complete ? `page: record the machinery this circle now runs (${to.slice(0,7)})`
+             : `page: record the files added from ${to.slice(0,7)}, and claim no version`,
+    cur && cur.sha);
 }
 
 // What the press says afterwards. It reports files and never a count alone: "4 updated" is a claim, and "4 updated,

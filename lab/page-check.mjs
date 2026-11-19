@@ -2162,14 +2162,31 @@ async function main(){
   seedUpdate({version: null});
   const stamped = await settle(`const r = await applyUpdate();
     const v = JSON.parse((await fileText('.ait/version.json')).text);
-    return {done: r.done, said: updateReport(r), v,
-            state: (await updateCheck()).state};`);
-  check('a circle that predates the record gains the files and the record in one press', () => {
+    const u = await updateCheck();
+    return {done: r.done, said: updateReport(r), v, complete: r.complete,
+            state: u.state, why: u.why, touched: u.touched};`);
+  check('a press that leaves files behind records what it did and claims no version', () => {
     if (stamped.err) return stamped.err;
     if (!stamped.done.length) return 'nothing was written';
-    if (stamped.v.updated_to !== HEAD) return 'the record does not name the version just written: ' + JSON.stringify(stamped.v);
-    if (stamped.v.installed_from !== HEAD) return 'a first stamp must say where the circle came from: ' + stamped.v.installed_from;
-    if (stamped.state !== 'current') return 'the circle is still not reported current after the press: ' + stamped.state;
+    if (stamped.complete) return 'a circle with files nobody could judge was called complete';
+    if (stamped.v.updated_to !== null) return 'the record claims a version the press did not reach: ' + stamped.v.updated_to;
+    if (!stamped.v.touched || stamped.v.touched.template !== HEAD) return 'it does not say what it touched: ' + JSON.stringify(stamped.v);
+    if (stamped.state !== 'unknown') return 'a partial press was reported as ' + stamped.state;
+    if (!/cannot tell whether it is current/.test(stamped.why || '')) return 'the line does not say what it cannot know: ' + stamped.why;
+    if (!/lab\/update_tribe\.py/.test(stamped.why || '')) return 'it does not name the tool that compares the files: ' + stamped.why;
+    return '';
+  });
+  // and a press that leaves nothing behind does claim the version — the same fixture as 12b, where every file that
+  // differed is landed.
+  seedUpdate();
+  const wholePress = await settle(`const r = await applyUpdate();
+    const v = JSON.parse((await fileText('.ait/version.json')).text);
+    return {complete: r.complete, v, state: (await updateCheck()).state};`);
+  check('a press with nothing left behind stamps the version it reached', () => {
+    if (wholePress.err) return wholePress.err;
+    if (!wholePress.complete) return 'a plan with nothing left behind was called partial';
+    if (wholePress.v.updated_to !== HEAD) return 'the record does not name the version: ' + JSON.stringify(wholePress.v);
+    if (wholePress.state !== 'current') return 'the check afterwards says ' + wholePress.state;
     return '';
   });
 
