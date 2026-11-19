@@ -534,12 +534,53 @@ STEP = 0.02                           # s; the slice the ball's plan is stepped 
 # reached 100% of every one of them at every skill level, which is the defect. In 150-point matches the member at
 # 300 and at 600 balls is beaten on 18-28% of the balls they have to get to. With a three-foot radius those
 # matches were 56% and nobody could play; that is what the guard in the backlog is for.
-REACTION = 0.25
+# The split step is now a skill, not a constant: a player who has hit more balls reads the swing sooner — 0.26s for
+# a beginner down to 0.11s for someone with six hundred balls behind them. Before this it was 0.25s for everybody,
+# which is the same kind of fiction as a serve that is the same speed for everybody.
+REACTION_BASE = 0.26     # seconds, for a player who has never played
+REACTION_SKILL = 0.15    # of that, taken off by proficiency (`skill("reach")`)
 SETTLE = 0.20
 PREP_TIME = 0.55         # seconds to take the racquet back, for a player who does not overlap it with the run.
                          # A player who does overlap them needs max(run, prep) instead of run + prep: that is
                          # `Player.rush`, and it is the reason the same ball is a different ball at 0 balls
                          # and at 600.
+
+
+FIRST_STEP = 42.0        # ft/s²: a split step and the first two strides, about 1.3g. Nobody leaves a standstill at
+                         # top speed, and the difference is not small: a five-foot ball is 0.26s of running at 19ft/s
+                         # and 0.49s of accel-then-run, which is most of the time a rushed ball gives you.
+
+
+def reaction_time(p: Player) -> float:
+    """Seconds between the ball leaving the other racquet and this player's first step."""
+    return REACTION_BASE - REACTION_SKILL * p.skill("reach")
+
+
+def run_time(need: float, speed: float) -> float:
+    """Seconds to cover `need` feet from a standing start: accelerated to top speed, then flat out.
+
+    The old rule divided distance by speed, which is the time a player would need if they were already running. It
+    made every short ball free — and the short ball is the one you have to sprint for. Ported from the longer
+    engine, 2026-11-18 (Item 14)."""
+    if need <= 0.0:
+        return 0.0
+    t_top = speed / FIRST_STEP
+    d_top = 0.5 * FIRST_STEP * t_top * t_top
+    if need <= d_top:
+        return math.sqrt(2.0 * need / FIRST_STEP)
+    return t_top + (need - d_top) / speed
+
+
+def run_distance(t: float, speed: float) -> float:
+    """The inverse: feet covered in `t` seconds from a standing start. A beaten player is as far along this as the
+    clock allowed, and never further."""
+    if t <= 0.0:
+        return 0.0
+    t_top = speed / FIRST_STEP
+    d_top = 0.5 * FIRST_STEP * t_top * t_top
+    if t <= t_top:
+        return 0.5 * FIRST_STEP * t * t
+    return d_top + (t - t_top) * speed
 
 
 def movement_speed(p: Player) -> float:
@@ -586,6 +627,7 @@ def interception(p: Player, land, flight_time: float, bounce: dict, surface: str
         hx = default_home if home_x is None else (home_x if p.north else (court_len or LENGTH) - home_x)
         hy = court_w / 2.0
     speed = movement_speed(p)
+    react = reaction_time(p)
 
     # THE INTERCEPTION, not a shortcut. Everything below asks one question at every 0.02s slice of the ball's
     # life: is the ball within a racquet's length of the player *by then*? The player has had `flight_time`
@@ -606,8 +648,9 @@ def interception(p: Player, land, flight_time: float, bounce: dict, surface: str
     while t <= 4.0:
         if z <= RACQUET_HIGH:           # a ball above nine feet is not intercepted, it is smashed — later
             gap = math.hypot(hx - x, hy - y)
-            need = max(0.0, gap - reach) / speed + SETTLE
-            have = flight_time + t - REACTION
+            # the ground is covered from a standstill, and the split step is charged before it starts
+            need = run_time(max(0.0, gap - reach), speed) + SETTLE
+            have = flight_time + t - react
             short = need - have
             if best is None or short < best[0]:
                 best = (short, hx - x, hy - y, t, (x, y, z))
@@ -632,11 +675,11 @@ def interception(p: Player, land, flight_time: float, bounce: dict, surface: str
     why = (f"{max(1.0, short_ft):.0f}ft short of it, beaten by the "
            f"{'wide' if abs(dy) > abs(dx) else 'deep'} ball")
     # Where the feet came to rest: as far along the line to the ball as the clock allowed, never past it.
-    allowed = max(0.0, flight_time + t_best - REACTION - SETTLE) * speed
+    allowed = run_distance(max(0.0, flight_time + t_best - react - SETTLE), speed)
     # `run_time` is the ground the legs were asked for at the closest moment, in seconds — the same number the
     # successful case reports, so a caller computing how rushed a player was does not need a second model of it.
-    asked = max(0.0, math.hypot(dx, dy) - RACQUET_REACH) / speed
-    return {"ok": False, "need": short + (flight_time + t_best - REACTION), "have": flight_time + t_best - REACTION,
+    asked = run_time(max(0.0, math.hypot(dx, dy) - RACQUET_REACH), speed)
+    return {"ok": False, "need": short + (flight_time + t_best - react), "have": flight_time + t_best - react,
             "short": short, "short_ft": short_ft, "run_time": asked,
             "dx": dx, "dy": dy, "speed": speed,
             "at": flight_time + t_best, "meet": ball, "gap": math.hypot(dx, dy),

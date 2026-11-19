@@ -3934,6 +3934,130 @@ class TestTheVolley(unittest.TestCase):
                          "every shot was a volley, which is not a rally — the bounce is not being played")
 
 
+class TestTheFirstStepIsNotFree(unittest.TestCase):
+    """Item 14 of the tennis backlog, fifth move: the run, as a run.
+
+    The reach rule divided distance by top speed, which is the time a player would need if they were already moving.
+    It made every short ball free — and the short ball is the one you have to sprint for. Ported from the longer
+    engine on 2026-11-18: an acceleration of `FIRST_STEP` ft/s² to top speed and then flat out, plus a split step
+    that is now a skill (`reaction_time`) rather than the same quarter-second for everybody.
+
+    What these hold: the acceleration costs real time and the inverse recovers the distance; the split step is
+    quicker for a player who has hit more balls; nobody is ever drawn further than the clock allowed; and the
+    calibration still puts a beginner above the floor the game needs — because a rule that is right and unplayable
+    is a rule that gets switched off in a month."""
+
+    def setUp(self):
+        import importlib
+        import random as _random
+        self.random = _random
+        sys.path.insert(0, str(REPO / "lab"))
+        self.T = importlib.import_module("tennis")
+
+    def test_a_standing_start_costs_more_than_distance_over_speed(self):
+        t = self.T
+        self.assertEqual(t.run_time(0.0, 19.0), 0.0)
+        for need in (1.0, 3.0, 5.0, 12.0, 30.0):
+            self.assertGreater(t.run_time(need, 19.0), need / 19.0,
+                               f"{need}ft from a standstill cannot take less time than {need}ft already running")
+            self.assertAlmostEqual(t.run_distance(t.run_time(need, 19.0), 19.0), need, places=6,
+                                   msg="the run and its inverse disagree, so a beaten player is drawn past the ball")
+        # the size of it, which is the whole reason for the port: a five-foot ball is not a quarter-second
+        self.assertGreater(t.run_time(5.0, 19.0), 1.5 * (5.0 / 19.0),
+                           "a five-foot sprint from a standstill is being charged as if the legs were already going")
+
+    def test_the_split_step_is_quicker_for_a_player_who_has_hit_more_balls(self):
+        t = self.T
+        times = [t.reaction_time(t.Player("x", True, n)) for n in (0, 60, 300, 600)]
+        self.assertEqual(times, sorted(times, reverse=True), "reaction time does not improve with practice")
+        self.assertGreater(times[-1], 0.08, "a six-hundred-ball player reacts faster than a human can")
+        self.assertLess(times[0], 0.40, "a beginner is given longer than a third of a second to start moving")
+
+    def test_a_beaten_player_never_travels_further_than_the_clock_allowed(self):
+        """The picture's invariant, and the reason `run_distance` exists: a player who did not get there is drawn
+        where their legs actually brought them. If the feet travelled further than the accelerating run allows,
+        the film would be teleporting them towards a ball they are supposed to be losing to."""
+        t = self.T
+        p = t.Player("x", True, 200, rng=self.random.Random(8))
+        cases = [((t.NET_X - 4.0, 1.0), 0.9, {"v": (40.0, -14.0, 12.0), "speed_out": 50.0}),
+                 ((t.NET_X - 30.0, 1.0), 0.6, {"v": (20.0, -8.0, 10.0), "speed_out": 20.0})]
+        misses = 0
+        for land, ft, bounce in cases:
+            frm = (2.0, t.WIDTH / 2)
+            m = t.interception(p, land, ft, bounce, "hard", frm=frm)
+            if m["ok"]:
+                continue
+            misses += 1
+            travelled = ((m["got"][0] - frm[0]) ** 2 + (m["got"][1] - frm[1]) ** 2) ** 0.5
+            allowed = t.run_distance(max(0.0, m["at"] - t.reaction_time(p) - t.SETTLE), m["speed"])
+            self.assertLessEqual(travelled, allowed + 0.01,
+                                 f"the feet covered {travelled:.2f}ft in a clock that allows {allowed:.2f}ft")
+            self.assertLess(travelled, m["gap"], "a beaten player's feet reached the ball")
+        self.assertEqual(misses, 2, "these two balls are supposed to be unreachable — the test proves nothing")
+
+    def test_the_rule_charges_the_first_step_and_the_split_step_both(self):
+        """`need` is the seconds the legs are asked for. It must be more than distance-over-speed plus the brake,
+        because the first step is charged as acceleration and the split step is charged again as reaction."""
+        t = self.T
+        p = t.Player("x", True, 300, rng=self.random.Random(9))
+        land, ft, bounce = (t.NET_X - 15.0, 4.0), 2.0, {"v": (18.0, -6.0, 14.0), "speed_out": 28.0}
+        m = t.interception(p, land, ft, bounce, "hard", frm=(2.0, t.WIDTH / 2))
+        self.assertTrue(m["ok"], "this test needs a ball the player does get to")
+        flat = max(0.0, m["gap"] - t.RACQUET_REACH) / m["speed"] + t.SETTLE
+        self.assertGreater(m["need"], flat + 0.05,
+                           f"a ball {m['gap']:.0f}ft away is being charged {m['need']:.2f}s, which is what it would "
+                           f"cost somebody already running — the first step is free again")
+
+    def test_the_calibration_still_lets_a_game_be_played(self):
+        """The floor, in code rather than in a docstring. A fixed population of in-court balls the engine struck
+        with the hands taken out of it, asked of a beginner and of a player with six hundred balls: the beginner
+        must reach most of them and the practised player must reach nearly all, or the rule has become a game
+        nobody can play and the next reader will not know it happened."""
+        t = self.T
+        rng = self.random.Random(11)
+        hitter = t.Player("H", True, 400, rng=self.random.Random(12))
+        ms, pop = 1793809110303, []
+        tries = 0
+        while len(pop) < 120 and tries < 4000:
+            tries += 1
+            surface = t.surface_at(ms + tries)
+            wv = t.wind_vector(*t.wind_at(ms + tries))
+            kind = rng.choice(["forehand", "backhand"])
+            depth = t.NET_X + rng.uniform(4, 34)
+            wide = t.WIDTH * (0.2 if rng.random() < 0.5 else 0.8) + rng.gauss(0, 6)
+            face, power = t.aim_at(hitter, (depth, wide), kind, surface, wv, power=rng.uniform(58, 82))
+            sh = t.strike(hitter, None, face=face, power=power, aim=wide, shot=kind,
+                          surface=surface, wind=wv, clean=True)
+            tr = sh["traj"]
+            land = tr.get("land")
+            if land is None or not (0 < land[0] < t.LENGTH and 0 <= land[1] < t.WIDTH):
+                continue
+            if len(pop) % 2:                      # half to each end, and the bounce mirrored with the landing
+                v = tr["bounce"]["v"]
+                land = (t.LENGTH - land[0], t.WIDTH - land[1])
+                bounce = dict(tr["bounce"])
+                bounce["v"] = (-v[0], -v[1], v[2])
+            else:
+                bounce = tr["bounce"]
+            pop.append((land, tr["time"], bounce, surface, bool(len(pop) % 2)))
+
+        def reached(practice):
+            p = t.Player("P", True, practice, rng=self.random.Random(3))
+            got = 0
+            for land, ft, bounce, surface, north in pop:
+                p.north = north
+                got += t.reachable(p, land, ft, bounce, surface)[0]
+            return got / len(pop)
+
+        beginner, practised = reached(0), reached(600)
+        self.assertGreater(beginner, 0.60,
+                           f"a beginner reaches only {beginner:.0%} of the balls they must get to — the game is "
+                           f"unplayable and the floor is 60%")
+        self.assertGreater(practised, 0.85,
+                           f"a player with 600 balls reaches only {practised:.0%} of them")
+        self.assertGreater(practised, beginner, "practice buys nothing")
+
+
 class TestPreparationAndRush(unittest.TestCase):
     """Item 14 of the tennis backlog, fourth move: the one place where HOW a player got to the ball changes the ball.
 
