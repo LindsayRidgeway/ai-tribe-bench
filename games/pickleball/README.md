@@ -966,3 +966,57 @@ three tests. `TestPickleball` is 37 tests.
 **Owed by another window, not by this game:** `lab/golf.py` defines `0.002377`, `1.46667` and `32.17` — the air
 density, the feet-per-second and g — which is precisely what the no-physics-outside-the-lab test is for. Its
 commit is `02ab07c9`; the suite is 439 with that one failure until golf.py imports them.
+
+---
+
+## §5k Anticipation — 2026-11-19
+
+§5j ended with its own limit stated: sight reads the court **at the moment of contact**, not where the opponent
+will be when the ball arrives. A player aims at where a body is going. This section closes that, measures it, and
+finds it worth **two thirds of what sight was worth** — with a mechanism that explains the fraction.
+
+**The number was already in the engine.** `Positions.vel` is the residual walk that the momentum rule reads
+(§5g): set while a player is walking to their stance, cleared the moment they arrive. So `bodies_ahead` needs no
+memory and no model of a habit — a player who has arrived is predicted to stand, a player mid-jog is carried
+forward by their own velocity over the flight time. `placement_chooser(anticipate=True)` (`--level anticipate`)
+then makes the second pass a hitter makes: see the gap, see how long the ball is in the air, aim again.
+
+**The mechanism, measured first, because it predicts the size of the result.** Over 1640 second passes in six
+games:
+
+| | |
+|---|---|
+| opponent bodies looked at | 3280 |
+| **moving when the ball was struck** | **780 (24%)** |
+| mean correction (velocity × flight time) | **2.30 ft** |
+| 90th percentile correction | 9.65 ft |
+| the paddle's reach | 6.00 ft |
+
+**Three quarters of the time there is nothing to anticipate** — the body is at its stance and stopped — and the
+mean correction is 2.3 ft against a paddle that covers 6. Anticipation is therefore a refinement *inside* the
+space the body already owns, and no amount of it can be worth what choosing the right half of the court is
+worth.
+
+**Head-to-head, and it agrees with the mechanism.** Twenty-four games, seats swapped over the same pins, both
+sides with sight, the only difference being the second pass:
+
+| | points | games |
+|---|---|---|
+| anticipates (second pass) | **205** | 14/24 |
+| aims at where they are | 178 | 10/24 |
+
+**+27 points**, against sight's +42 (§5j) and the season lesson's +27 (§5f). Said plainly: 27 points in 24 games
+is at the edge of what 24 games can resolve — these pins carry roughly a 21-point seat bias per half, which is why
+every comparison on this page is a swapped pair — so the mechanism measurement above is the stronger of the two
+evidences. It is a small effect with a measured reason, not a large one with a story.
+
+**What this says about the engine rather than the game.** The three numbers in the mechanism table are one
+sentence: *a 6-ft paddle reach makes anticipation cheap to skip.* A player who can cover six feet without moving
+does not have to know where the ball is going. The test that would settle it is obvious and is now the most
+interesting thing on this page: **shrink the reach and see whether anticipation's value grows.** If it does, the
+reach is what has been making this game easy all along — the same shape as §5c's perfect defence, and the same
+shape as every finding in §5.
+
+**Kept on main:** `bodies_ahead`, `open_target_at`, `placement_chooser(anticipate=...)`, `--level anticipate`,
+and two tests — a walking body is predicted forward and a standing one is not, and the anticipating chooser
+returns exactly the plain answer when nothing is moving. `TestPickleball` is 39 tests.
