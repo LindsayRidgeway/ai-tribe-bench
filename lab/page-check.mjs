@@ -2329,6 +2329,30 @@ async function main(){
     return '';
   });
 
+  // 15 — the clock's own account of its last run, which the page had no way of showing when it went right
+  const clocked = await tryRun(ctx, `(async () => {
+    const now = new Date().toISOString().replace(/\.\d+Z$/, 'Z');
+    const old = new Date(Date.now() - 40 * 3600e3).toISOString().replace(/\.\d+Z$/, 'Z');
+    const ran = {schema: 'ait-clock/1', when: now, engines: ['deepseek'], turns: [{member: 'George', why: 'work'}], skipped: []};
+    const empty = {schema: 'ait-clock/1', when: now, engines: [], turns: [], skipped: []};
+    const blocked = {schema: 'ait-clock/1', when: now, engines: ['deepseek'], turns: [],
+                     skipped: [{member: 'Lumi', engine: 'gemini'}]};
+    const stale = {schema: 'ait-clock/1', when: old, engines: ['deepseek'], turns: [{member: 'George'}], skipped: []};
+    return {ran: clockSentence(ran), empty: clockSentence(empty), blocked: clockSentence(blocked),
+            stale: clockSentence(stale), none: clockSentence(null)};
+  })()`);
+  check('the page says what the clock did, not only when it failed', () => {
+    if (clocked.err) return clocked.err;
+    if (!/took 1 turn/.test(clocked.ran) || !/George/.test(clocked.ran) || !/deepseek/.test(clocked.ran))
+      return 'a run that woke somebody is not reported: ' + clocked.ran;
+    if (!/found no engine key at all/.test(clocked.empty)) return 'a run with no keys is silent: ' + clocked.empty;
+    if (!/Lumi/.test(clocked.blocked) || !/no key/.test(clocked.blocked))
+      return 'a member the run could not reach is not named: ' + clocked.blocked;
+    if (!/hours ago/.test(clocked.stale)) return 'a clock that stopped looks like a clock that is fine: ' + clocked.stale;
+    if (clocked.none !== '') return 'with no record it invents one: ' + clocked.none;
+    return '';
+  });
+
   for (const r of results){
     if (r.ok) console.log('PASS  ' + r.name);
     else { bad++; console.log('FAIL  ' + r.name + (r.why ? '\n        ' + r.why : '')); }

@@ -2109,6 +2109,7 @@ async function viewToday(main){
   // same rule the public/private note follows: silence instead of an accusation it cannot support.
   const gaps = await clockGaps(members).catch(() => null);
   const blind = await clockBlindSpots(members).catch(() => null);
+  const clocked = clockSentence(await clockRecord().catch(() => null));
   const blindNote = blind ? `<div class="notice"><strong>${blind.members.map(b => esc(b.name)).join(', ')}`
       + ` will not wake on the clock, though ${blind.members.length === 1 ? 'its key is' : 'their keys are'} in this `
       + `repository.</strong> The clock's last run${blind.when ? ` (${esc(String(blind.when).slice(0, 16).replace('T', ' '))} UTC)` : ''} `
@@ -2158,6 +2159,7 @@ async function viewToday(main){
     <h1>Today</h1>
     <p class="muted small">${members.length} member${members.length === 1 ? '' : 's'} · last read ${new Date().toLocaleTimeString()}</p>
     ${UPDATE_NOTE ? `<p class="small muted">${esc(UPDATE_NOTE)}</p>` : ''}
+    ${clocked ? `<p class="small muted">${clocked}</p>` : ''}
     ${armed}
     ${blindNote}
     ${updBlock()}
@@ -2560,6 +2562,29 @@ async function clockRecord(){
     return (d && d.schema === 'ait-clock/1') ? d : null;
   } catch(e){ return null; }
 }
+/* What the clock did the last time it ran, in its own words. The page has had a notice for the clock going wrong
+   and nothing at all for the clock going right, which is backwards for a product whose whole promise is that it works
+   while the person is asleep: the absence of a fault is not evidence that anything happened. The record says it —
+   when, which keys the run actually held, who woke, and who it could not reach. */
+function clockSentence(rec){
+  if (!rec || !rec.when) return '';
+  const when = String(rec.when).slice(0, 16).replace('T', ' ');
+  const engines = (rec.engines || []).map(e => `<code>${esc(e)}</code>`);
+  const turns = rec.turns || [], skipped = rec.skipped || [];
+  const hours = (Date.now() - Date.parse(rec.when)) / 3600e3;
+  const stale = hours > 26 ? ` That is ${Math.floor(hours)} hours ago; a schedule GitHub has disabled looks exactly `
+    + `like this, so it is worth a look on the Actions tab.` : '';
+  if (!turns.length && !engines.length)
+    return `The clock last ran ${esc(when)} UTC and found no engine key at all, so nobody woke.${stale}`;
+  if (!turns.length && skipped.length)
+    return `The clock last ran ${esc(when)} UTC, held ${engines.join(', ')}, and woke nobody: `
+      + `${skipped.map(s => esc(s.member)).join(', ')} ${skipped.length === 1 ? 'is' : 'are'} on an engine this run `
+      + `had no key for.${stale}`;
+  return `The clock last ran ${esc(when)} UTC, held ${engines.join(', ')}, and took ${turns.length} `
+    + `turn${turns.length === 1 ? '' : 's'} — ${turns.slice(0, 3).map(t => esc(t.member || t.place || 'a member')).join(', ')}`
+    + `${turns.length > 3 ? `, and ${turns.length - 3} more` : ''}.${stale}`;
+}
+
 /* The members whose secret name exists and whose engine the last run did *not* find a value for. That is a
    different fact from "the secret is missing", and it has a different fix — replace the value, or move the secret
    from an environment to the repository — so it gets a different sentence rather than the same one louder. */
