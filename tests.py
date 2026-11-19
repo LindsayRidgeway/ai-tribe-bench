@@ -3934,6 +3934,111 @@ class TestTheVolley(unittest.TestCase):
                          "every shot was a volley, which is not a rally — the bounce is not being played")
 
 
+class TestPreparationAndRush(unittest.TestCase):
+    """Item 14 of the tennis backlog, fourth move: the one place where HOW a player got to the ball changes the ball.
+
+    Until now movement decided only whether a player reached the ball, never how well they hit it: reaching it by
+    half a second and reaching it with half a second to spare were the same stroke. The longer engine has two
+    pieces that fix this and both came over on 2026-11-18 — `prep`, a fourth skill with an onset at sixty balls
+    ("inexperienced players don't know to get their racquets back as they're running", the founder, 2026-11-11),
+    and `Player.rush`, which is how much of the racquet's preparation the flight time did not allow. `strike` then
+    pays for it twice: worse hands and a wider frame.
+
+    What these hold: preparation arrives after control and never before it; a player who overlaps the run and the
+    racquet is not rushed by a ball the player beside them is; and a rushed ball is measurably a worse ball.
+
+    **Measured, and it is the honest finding of the port:** over 300 points at each skill level, rush fires on 0-3%
+    of shots. To be rushed a player needs a run of about a second and a flight of about a second, and this game
+    gives 1.5-2s flights because the serve is a 50mph arc with no toss and no overhead (movement list item 3). So
+    the rule is in, it is correct, and it will not bite until the game is faster than it is. Nothing was tuned to
+    make it bite: a rule that only fires when the physics says so is the only kind worth having."""
+
+    def setUp(self):
+        import importlib
+        import random as _random
+        self.random = _random
+        sys.path.insert(0, str(REPO / "lab"))
+        self.T = importlib.import_module("tennis")
+
+    def test_preparation_arrives_after_control_and_never_before_it(self):
+        """The onset is the point: at sixty balls a player has hands and no habit, which is exactly the stage the
+        founder described. A skill that arrives with control would make the two the same attribute."""
+        t = self.T
+        at = lambda n: t.Player("x", True, n).skill("prep")
+        self.assertEqual(at(0), 0.0)
+        self.assertEqual(at(60), 0.0)
+        self.assertAlmostEqual(at(160), 0.34, places=2)
+        self.assertAlmostEqual(at(300), 0.63, places=2)
+        self.assertAlmostEqual(at(600), 0.89, places=2)
+        self.assertGreater(t.Player("x", True, 60).skill("control"), 0.45,
+                           "at sixty balls control is already 0.47 of a player while prep is nothing — that is "
+                           "the whole difference between the two attributes")
+
+    def test_the_player_who_takes_the_racquet_back_while_running_is_not_rushed(self):
+        """Same court, same run, same ball: only the habit differs. And a ball with time to spare rushes nobody."""
+        t = self.T
+        beginner, expert = t.Player("x", True, 60), t.Player("y", True, 600)
+        self.assertGreater(beginner.rush(1.0, 1.0), 0.2, "a beginner with a second to run and a second of ball "
+                                                         "must be rushed")
+        self.assertLess(expert.rush(1.0, 1.0), beginner.rush(1.0, 1.0),
+                        "the player who prepares while running was rushed as much as the one who does not")
+        for p in (beginner, expert):
+            self.assertEqual(p.rush(0.5, 1.5), 0.0, "a ball with time to spare rushed somebody")
+            self.assertLessEqual(p.rush(2.0, 0.2), 1.0, "rush is not capped at 1")
+
+    def _spread(self, rush, n=200):
+        """The same shot, at the same target, from the same hands — differing only in how rushed they were."""
+        t = self.T
+        out = []
+        for i in range(n):
+            p = t.Player("x", True, 300, rng=self.random.Random(9000 + i))
+            incoming = {"speed_in": 55.0, "rush": rush}
+            out.append(t.strike(p, incoming, face=6.0, power=62.0, aim=9.0, shot="forehand",
+                                surface="hard", wind=(0.0, 0.0), aim_dist=60.0))
+        return out
+
+    def test_being_rushed_makes_the_ball_worse(self):
+        """The claim the port exists for, measured on the same hands: a rushed player's landing point is scattered
+        wider and they frame more balls. If this were not true, `rush` would be a word in a docstring."""
+        calm, hassled = self._spread(0.0), self._spread(0.6)
+
+        def spread(shots):
+            ys = [s["traj"]["land"][1] for s in shots if s["traj"].get("land")]
+            mean = sum(ys) / len(ys)
+            return (sum((y - mean) ** 2 for y in ys) / len(ys)) ** 0.5
+
+        def frames(shots):
+            return sum(1 for s in shots if not s["sweet"])
+
+        self.assertGreater(spread(hassled), spread(calm), "a rushed player's ball was no wider than a calm one's")
+        self.assertGreater(frames(hassled), frames(calm), "a rushed player framed no more balls than a calm one")
+
+    def test_the_return_of_a_serve_is_measured_like_any_other_ball(self):
+        """The one ball that used to be exempt: the interception was asked from the second shot on, so a serve could
+        not be an ace and the return could not be rushed however late the receiver was. The return now carries a
+        rush value, which is only possible if the engine asked about the serve at all."""
+        t = self.T
+        seen = []
+        orig = t.strike
+
+        def counting(*a, **kw):
+            s = orig(*a, **kw)
+            seen.append(s.get("rush"))
+            return s
+
+        t.strike = counting
+        try:
+            rng = self.random.Random(11)
+            server = t.Player("A", north=True, practice=300, rng=self.random.Random(1))
+            receiver = t.Player("C", north=False, practice=300, rng=self.random.Random(2))
+            lines = t.play_point(server, receiver, "hard", (0.0, 0.0), ("N", 0.0), rng)
+        finally:
+            t.strike = orig
+        self.assertGreater(len(seen), 1, f"the point did not get past the serve: {lines}")
+        self.assertIsNotNone(seen[1], "the return of the serve carries no rush: the engine did not ask about the "
+                                      "serve before letting the receiver hit it")
+
+
 class TestTheBallAfterThePointIsOver(unittest.TestCase):
     """Item 14 of the tennis backlog, third move: the seconds of ball that are left after the point is decided.
 
