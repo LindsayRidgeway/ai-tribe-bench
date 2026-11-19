@@ -900,6 +900,44 @@ no way for a viewer to know. *Done-test:* the film's record carries the season s
 number of sessions in the season at the time it was made); the page prints "session 3 of 7 — four since this
 film"; and a season whose last session has no film says exactly that.
 
+## Item 24 — the cast is six, and competition is same-sex (design 2026-11-19; enforcement OPEN)
+
+The founder, 2026-11-19, replaced the four-player cast with: *"three males and three females who play, always
+same-sex competition, same or mixed sex practice, intentionally staggered automatic play (practice/compete) time
+within each group... Those outcomes can be skewed by the user putting particular pairs together for manual play."*
+
+`CAST.md` is the answer and it carries the six names, the staggering and the arithmetic. Two of its findings are
+worth repeating here because they are not design opinions:
+
+- **`Player.skill()` cannot fall.** It is strictly increasing and asymptotic in `practice + shots`. So "one of each
+  sex should become worse" is built as *ends the season last*, not *declines*. A literal decline needs a form or
+  memory term, and that changes every ball in every film and every number in every test — named here as the
+  alternative reading so it cannot be quietly dropped.
+- **Everybody converges.** 800 balls and 1600 balls are 0.001 of control apart. A long season produces six
+  indistinguishable players, which dissolves the ranking the paragraph asks for. Six staggered sessions keeps the
+  cast inside the sloped part of the curve and gives a **0.09** spread of control inside a group.
+
+*Done-test:* a competition between two members of the same group plays and is recorded with `mode: "compete"`; a
+competition across groups is refused by name and nothing is written; a mixed practice plays and is recorded with
+`mode: "practice"`; and every session says `by: "a person"` or `by: "the schedule"`, with the season report
+printing the two totals apart.
+
+## Item 25 — a season plays itself, and says when a person shaped it (OPEN)
+
+"Automatic play" with no human: something has to start the sessions on the staggering in `CAST.md` without
+somebody typing. The machinery already exists twice over — `.github/workflows/season.yml` dispatches a session from
+a form, and the wakes already run on a schedule — so this is a clock and a rule, not a new engine.
+
+The rule is the part with a claim in it: **the season's ranking must be a consequence of the schedule, not of a
+seed.** `CAST.md` seeds the six at different histories, which is a person's hand; the spread that survives to the
+end of the season must be the one the staggered sessions produced. *Done-test:* starting from six identical
+histories and the staggered rate, after six automatic sessions the best and worst in each group differ by at least
+0.06 of control; and a session the founder starts by hand is recorded as his, in a separate total.
+
+**And a season must end.** Six sessions, then the record is closed and the next season opens with beginners, which
+is the design's existing reset — a season is a directory and starting over is opening a new one. *Done-test:* the
+scheduler refuses to add an eighth session to a closed season and names the next one.
+
 ## What V1 means
 
 **The founder's definition, 2026-11-15, and it replaces mine:** *V1 means completion of the video game
