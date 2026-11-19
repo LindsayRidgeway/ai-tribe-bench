@@ -694,6 +694,26 @@ shoulder, take the first moment inside it, which is the moment nearest the body)
 distance to. That is a change to the meeting point, it moves the contact-height distribution the last two items
 measured, and it is being written down rather than rushed at the end of a turn.
 
+## Item 18 — the meeting point is on the far side of the bounce (OPEN, 2026-11-19)
+
+Named by Item 17 and deliberately not fixed at the end of a turn, because it moves the distribution Items 15 and 16
+just measured.
+
+Four contacts of 110 still happen more than 10ft behind the baseline, and one contact in twenty sits exactly on the
+run-off — the bound is now choosing the contact rather than the player. The worst case in the film is a ball that
+bounced 14ft in **front** of Gwen; she then ran 10ft **backwards** to meet it at 2.95ft, because the zone rule takes
+the slice nearest `CONTACT_HEIGHT` and only the descending 3ft crossing on the far side of the bounce gave her time to
+arrive. A real player hits that ball as it passes them, at 5ft, having travelled no distance at all.
+
+The rule wants to be a **band, not a point**: waist to shoulder (about 2.0–6.0ft), take the *first* moment inside it —
+which is the moment nearest the body — and fall back to the nearest-to-waist slice only when the ball never passes
+through the band. What it must not do is prefer a 3.0ft ball it has to run backwards for over a 5.0ft ball at its own
+shoulder.
+
+**Done-test:** over 20 rallies, no contact more than 10ft behind the baseline that a forwards-moving interception
+would have offered earlier, and the contact-height median stays between 2.5 and 4.5ft. `TestTheGroundEnds` gains a
+case for the ball that bounces in front of the player.
+
 ## What V1 means
 
 **The founder's definition, 2026-11-15, and it replaces mine:** *V1 means completion of the video game
