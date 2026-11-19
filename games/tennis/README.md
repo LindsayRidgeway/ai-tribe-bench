@@ -29,7 +29,18 @@ rather than started.
 games/tennis/open.sh                                             # the 20-point 3D film
 games/tennis/open.sh replay.html                                 # the top-down view
 games/tennis/open.sh "replay3d.html?record=seasons/2026-spring/rally.json&cam=net"   # a season, a camera
+
+# a session the season keeps: play it as a film and write it back into practice.json
+python3 lab/tennis.py --watch --season 2026-spring --names Dmitri,Gwen --rallies 20
+games/tennis/open.sh "replay3d.html?record=seasons/2026-spring/watch.json"
 ```
+
+**`--watch` is the seam between the film and the season**, and it is one command because they are one session. It
+reads both players' practice out of `seasons/<S>/practice.json`, plays the film at that skill, and records what the
+film played through the same writer the live game uses. So the page and the report cannot disagree: the session in
+the file *is* the film, down to its `in` flags and its rally lengths. `practice.json` is the record and is never
+overwritten; `watch.json` is the current rendering of it and is replaced by the next session. Without `--season` the
+same command is a preview played from `--practice`, and it writes nothing.
 
 ## On a phone
 

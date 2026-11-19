@@ -793,6 +793,101 @@ whole throw; the *tossing* arm is not drawn, so the ball rises from a hand that 
 jump, so both feet are on the ground at a contact that is 8.8ft up; and there is still only one serve, so a fault
 costs the point rather than the serve.
 
+## Item 20 — the film is the season's session (DONE 2026-11-19)
+
+The founder, 2026-11-19, on what "an integral part of Kythe" means, and it is not embedding a film in a page:
+*"for the user to be able to watch a video of the same players, at their current skill levels, practice or compete
+together, with their character pictures appearing during the breaks. The results from your video game would then
+feed into Dmitri's seasonal data the same as if his own calculations had simulated the same game."*
+
+Until today the game had two halves that shared an engine and nothing else:
+
+| | reads whose skill | writes the season | produces a film | asks a member |
+|---|---|---|---|---|
+| `lab/tennis.py --rally` | `practice.json` | yes | no | yes — one shot line each |
+| `lab/tennis_script.py` | `--practice` flags | no | yes | no |
+
+So a member could practise all season and the film would never know, and the film could be watched all night while
+the season did not move. Two tennis games, one of them scored.
+
+**`python3 lab/tennis.py --watch --season <S> --names A,B --rallies N`** is the seam. It reads both players'
+practice out of the season file, plays the film at that skill, and records the session the film played through
+`record_session` — the same function, not a second one — so the session entry in `practice.json` and the shot list
+in the film are the same facts. Every number in the entry is read off the film: `shots` and `of` are the player's
+shots in the record, `in_play` is the count of its own `in` flags, `mean_rally` and `longest` are its rally
+lengths. There is no second count that could disagree.
+
+**The first watched session, and its numbers.** 2026-spring, Dmitri 300 balls and Gwen 600 (both `carried`, from
+`--seed`, and named as carried in `report.md`), 20 rallies, clay, wind N 18mph, clock `1794000000000`:
+
+- **129 shots**, lengths `14 5 1 3 6 14 4 11 10 4 5 5 1 2 10 2 5 9 16 2`, mean 6.45, longest 16 of a 60 cap;
+- in play 55/64 (Dmitri) and 55/65 (Gwen) — *the same number in `practice.json` and in the film*;
+- the invariants, re-measured on this record: worst contact-to-the-hitter's-own-feet **7.01ft** against
+  `RACQUET_REACH` 7.0 — the boundary, not a violation; **no run faster than the player who ran it**; no run ending
+  more than 6ft off the court; contact heights 2.85 / 3.59 / 8.8ft with none below a foot; a toss on **20 of 20**
+  serves; and the only stance destinations in the record are −4.0 / 0.0 / 78.0 / 82.0, which is item 15 still
+  holding under a new producer.
+
+**One clock is one film.** Two runs at one clock and one practice produce the same shots, the same contacts and the
+same `v0` to three decimals, which is asserted. That is what lets a film be *derived*: it is the season, played.
+
+**The decision about overwriting, made explicit because it contradicts the season's own rule.** `practice.json` is
+the record — nothing is ever reset and nothing is ever overwritten, so two watched sessions are two entries.
+`watch.json` is a *rendering* of the season at one clock, so there is one of it and each session replaces it. The
+record of a session outlives its film; the film does not pay rent in the repository forever. Both halves of that
+are asserted.
+
+**What a film must not do:** take `--vendor` or `--model`. It is played by the engine, and the flags being accepted
+and silently ignored is the exact defect `main()` already refuses on the physics path — so they are refused here
+too. A watch with no `--season` is a preview, plays from the flags, says it is not recorded, and writes nothing.
+
+**Not done here, and it is item 21:** the film is not reachable from Kythe, and the game is not in the manifest
+another tribe would receive. The founder can watch at
+`games/tennis/replay3d.html?record=seasons/2026-spring/watch.json` from a local server and nowhere else yet.
+
+## Item 21 — Kythe can show the film, and a tribe can receive it (OPEN)
+
+Two gaps, and the second is the one that decides whether "integral part of Kythe" means anything.
+
+1. **The watch has no door.** `ait.html`'s tennis card dispatches `season.yml` and reads `report.md`. There is no
+   link to the film, so a person has to know a URL and run a local server (the page fetches a `.glb` and loads an
+   ES module, so `file://` is refused by the browser). *Done-test:* the card carries one link per season to
+   `games/tennis/replay3d.html?record=seasons/<S>/watch.json`; opening it on Pages draws the film; and a season
+   with no `watch.json` says so instead of showing a stale film from an earlier session.
+2. **`games/tennis` is not in the auto-update manifest.** `lab/make_template.py` carries `season.yml` and
+   `lab/tennis.py`, so another tribe can *play* a session. It carries no `lab/tennis_script.py`, no
+   `replay3d.html`, no `vendor/three.*`, no `bodies/*.glb`, no `bodies/faces/*.jpg` — so another tribe cannot
+   *watch* one. That set is **4.6MB**. *Done-test:* a fresh clone of the template plays and watches one session
+   from one command and one URL, with no terminal beyond the one that started the server.
+
+## Item 22 — the cast is two people, and the film cannot draw anyone else (OPEN)
+
+`replay3d.html` derives the body file from the name (`p.body`, which `tennis_script.py` writes as
+`name.lower()`), and `games/tennis/bodies/` holds `dmitri.glb` and `gwen.glb` and nothing else. `lab/body.py` —
+the file that built them — is **not in the repository at all**, and it needs Blender. So:
+
+- **the actual 2026-spring record cannot be filmed.** Colette and Remy have 32 balls between them and no body;
+  a film of them shows the page's error overlay, which is why the first watched session here is Dmitri and Gwen —
+  the two names `seasons/2026-spring/setup.json` already gives as the season's cast;
+- **a missing face degrades worse than a missing body.** `bodies/faces/` holds `dmitri.jpg` and `gwen.jpg`; for
+  anyone else the `<img>` 404s and the break card shows a broken-image glyph with a name under it.
+
+This is the founder's four-player cast, and it is the V1 line *"a person can add themselves to it and be drawn from
+the same rig"* with its renderer half missing. *Done-test:* a film of any two names in the season's `setup.json`
+draws two bodies; and with a face file absent, the card draws a named placeholder and no broken-image glyph.
+
+## Item 23 — the live game keeps playing, and the film says how far behind it is (OPEN)
+
+The founder, same message: *"Dmitri's game still function for live but off-screen playing and during wakes."*
+That path is untouched and must stay untouched: `--rally` asks each member's engine for a shot line, plays it, and
+writes the season. Item 20 gave both paths one writer, so the shapes cannot drift.
+
+What is now true and unmarked: `watch.json` is the last session somebody *watched*, not the last session that was
+*played*. Dmitri may play five sessions in a night and the film on the page is still the one from before them, with
+no way for a viewer to know. *Done-test:* the film's record carries the season session it is (`clock`, and the
+number of sessions in the season at the time it was made); the page prints "session 3 of 7 — four since this
+film"; and a season whose last session has no film says exactly that.
+
 ## What V1 means
 
 **The founder's definition, 2026-11-15, and it replaces mine:** *V1 means completion of the video game
@@ -806,9 +901,15 @@ it is necessary and nowhere near sufficient. "Published feature of AIT" brings i
 the part I can already name:
 
 - it opens on a machine that is not mine, from the repository, with no terminal and no key
-  (`SETUP.md` §6 and the 1.4 MB of base64 bodies are the known sharp edges);
+  (`SETUP.md` §6 and the 4.6MB of bodies, faces and vendor code are the known sharp edges);
+- **the game ships to a tribe that is not this one** — `games/tennis` is not in the auto-update manifest,
+  so today another tribe can play a session and cannot watch one (item 21);
 - a person can add themselves to it and be drawn from the same rig, which is `e20c61bf`'s engine half
-  plus item 8's renderer half;
+  plus item 8's renderer half plus item 22's bodies — `lab/body.py` is not in the repository, so today
+  the film can draw exactly the two members who already have a `.glb`;
+- **a session can be watched, and watching it moves the season** — the founder's words of 2026-11-19,
+  built as item 20: `--watch` reads the season's skill and writes the session it played back into the same
+  file the live game writes, through the same writer;
 - a season is one command and one URL, and the record of it outlives the process;
 - the movement survives a person watching it, which is items 2–6 in his order;
 - and the scoreboard is the science: rally length and first-serve-in are the numbers the season report

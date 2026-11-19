@@ -37,6 +37,60 @@
     }
    ]
   },
+  "Dmitri": {
+   "balls": 64,
+   "carried": 300,
+   "seeded": {
+    "balls": 300,
+    "by": "a person, before this member had a record here",
+    "when": "2026-11-19T19:41:42Z"
+   },
+   "sessions": [
+    {
+     "clock": 1794000000000,
+     "control": 0.884,
+     "in_play": 55,
+     "longest": 16,
+     "mean_rally": 6.45,
+     "mode": "rally",
+     "of": 64,
+     "reach": 0.921,
+     "shots": 64,
+     "surface": "clay",
+     "when": "2026-11-19T19:41:57Z",
+     "with": [
+      "Gwen"
+     ]
+    }
+   ]
+  },
+  "Gwen": {
+   "balls": 65,
+   "carried": 600,
+   "seeded": {
+    "balls": 600,
+    "by": "a person, before this member had a record here",
+    "when": "2026-11-19T19:41:42Z"
+   },
+   "sessions": [
+    {
+     "clock": 1794000000000,
+     "control": 0.917,
+     "in_play": 55,
+     "longest": 16,
+     "mean_rally": 6.45,
+     "mode": "rally",
+     "of": 65,
+     "reach": 0.948,
+     "shots": 65,
+     "surface": "clay",
+     "when": "2026-11-19T19:41:57Z",
+     "with": [
+      "Dmitri"
+     ]
+    }
+   ]
+  },
   "Remy": {
    "balls": 18,
    "sessions": [

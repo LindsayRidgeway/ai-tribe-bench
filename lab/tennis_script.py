@@ -240,7 +240,14 @@ def corridor(p: T.Player, incoming, power: float, aim: float, contact, surface, 
 
 
 def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str,
-         swap_every: int = SWAP_EVERY) -> dict:
+         swap_every: int = SWAP_EVERY, season: str = None) -> dict:
+    """Play `rallies` points into a film record.
+
+    `practice` is each player's balls, and it is the caller's business where that number came from — a flag, or
+    the season file, which is where it should come from once a season exists (`lab/tennis.py --watch`). `season`
+    is a LABEL and nothing else: it is copied into the record so the page can say which season's skill this
+    film was played at. The film does not read the season and does not write it; that is the caller's job, and
+    it is one writer (`record_session`) for both this path and `--rally`. 2026-11-19."""
     wind_in = T.wind_at(ms)
     wv = T.wind_vector(*wind_in)
     rng = random.Random(ms)
@@ -607,6 +614,9 @@ def play(practice: tuple[int, int], names, rallies: int, ms: int, surface: str,
 
     return {
         "generated": "lab/tennis_script.py — every number below came out of lab/tennis.py",
+        # The season this film was played at, when one was named. A film with no season is a preview: it was
+        # played at somebody's flags and nobody's record moved.
+        "season": season,
         "clock_ms": ms,
         "surface": surface,
         "wind": {"direction": wind_in[0], "mph": wind_in[1], "vector": [round(v, 2) for v in wv]},

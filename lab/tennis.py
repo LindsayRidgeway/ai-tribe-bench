@@ -1977,6 +1977,115 @@ def run_rally(args) -> int:
     return 0
 
 
+class FilmedPlayer:
+    """Enough of a player for `record_session` and nothing more: a name, a number of balls, and the three
+    skills the report prints, all taken from the film's own players block.
+
+    This exists because the two halves of a session live in two files. `lab/tennis_script.py` plays the film and
+    knows what each player actually did; `record_session` writes the season and asks `Player` objects for their
+    skill, because on the rally path the same objects played the balls. Handing the film's *record* to the
+    season's *writer* is the point: a session the user watched and a session the members played are one shape of
+    fact, and neither should be able to invent a number the other cannot check. 2026-11-19."""
+
+    def __init__(self, row: dict, shots: int):
+        self.name = row["name"]
+        self.shots = shots
+        self._row = row
+
+    def skill(self, which: str) -> float:
+        return float(self._row[which])
+
+
+def run_watch(args) -> int:
+    """One session, twice over: played as a film, and recorded as a season.
+
+    The founder, 2026-11-19, on what "an integral part of Kythe" means: *"for the user to be able to watch a video
+    of the same players, at their current skill levels, practice or compete together... The results from your video
+    game would then feed into Dmitri's seasonal data the same as if his own calculations had simulated the same
+    game."*
+
+    So this is the seam. Until today there were two tennis games and they only shared an engine:
+
+      * `--rally` asks each member's engine for a shot line, plays it, and writes `practice.json`;
+      * `lab/tennis_script.py` plays the same engine into a film record, and wrote nothing back.
+
+    A member could practise all season and the film would never know, and the film could be watched all night and
+    the season would never move. Here the film reads its players' practice OUT of the season file and writes the
+    session it played back INTO it, through the one writer (`record_session`) the rally path also uses. The numbers
+    that go in are the film's own — each shot's `in` flag, each rally's length — not a re-count and not a claim.
+
+    What is deliberately NOT here: any model. A film is played by nobody's words, so `--vendor` and `--model` are
+    refused rather than ignored; and because the film is a function of the clock, two runs of one clock are one
+    film, which is what makes the page's film a rendering of the season rather than a second game beside it."""
+    names = [n.strip() for n in args.names.split(",")]
+    if len(names) != 2:
+        print("   --watch takes two names, one per side of the net. Nothing was played.", file=sys.stderr)
+        return 2
+    if args.vendor or args.model:
+        print("   --vendor and --model mean nothing on --watch: a film is played by the engine, not by a member. "
+              "Use --rally for a session the members play, or drop the flags. Nothing was played.",
+              file=sys.stderr)
+        return 2
+
+    book, practice = open_book(names, args)
+    ms = args.clock if args.clock is not None else int(time.time() * 1000)
+    surface = args.surface or surface_at(ms)
+    if book is None:
+        print(f"  no --season, so this film is not recorded anywhere: {names[0]} {practice[0]} balls, "
+              f"{names[1]} {practice[1]} balls, from the flags. Nothing will be added to a season.")
+    else:
+        print(f"  the film is played at these two players' current skill, read from season {args.season}: "
+              + ", ".join(f"{n} {b} balls" for n, b in zip(names, practice)))
+
+    # Imported here and not at the top: `tennis_script` imports this file for the engine, so a module-level
+    # import in this direction would be a circle. The dependency is real and one-way at call time.
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import tennis_script as S
+
+    data = S.play(tuple(practice), tuple(names), args.rallies, ms, surface, args.swap_every,
+                  season=args.season)
+
+    print(f"\n# the film — {surface}, wind {data['wind']['direction']} {data['wind']['mph']:.0f}mph, "
+          f"{args.rallies} rallies, clock {ms}\n")
+    lens = [r["length"] for r in data["rallies"]]
+    for n in names:
+        mine = [s for s in data["shots"] if s["player"] == n]
+        inn = sum(1 for s in mine if s["in"])
+        print(f"  {n}: {len(mine)} shots, in play {inn}/{len(mine)} = "
+              f"{inn / max(1, len(mine)) * 100:.0f}%")
+    print(f"  rallies: {len(lens)}   mean {sum(lens) / max(1, len(lens)):.1f}   longest {max(lens) if lens else 0}")
+    print(f"  the lengths, in order: {' '.join(str(x) for x in lens)}")
+
+    if book is None:
+        return 0
+
+    d, _ = season_paths(args.season, args.season_dir)
+    target = d / "watch.json"
+    d.mkdir(parents=True, exist_ok=True)
+    target.write_text(json.dumps(data, indent=1), encoding="utf-8")
+
+    # The session the film just played, written by the season's one writer. `results` is the film's own `in`
+    # flag per shot and `lengths` its own rally lengths, so there is no second count that could disagree.
+    results = {n: [bool(s["in"]) for s in data["shots"] if s["player"] == n] for n in names}
+    lengths = list(lens)
+    played = [FilmedPlayer(row, len(results[row["name"]])) for row in data["players"]]
+    when = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    record_session(book, when=when, surface=surface, clock=ms, players=played, results=results,
+                   lengths=lengths,
+                   partners={a: [b] for a, b in ((names[0], names[1]), (names[1], names[0]))})
+    f = save_season(book, args.season, args.season_dir)
+    try:
+        shown = f.relative_to(ROOT)
+    except ValueError:
+        shown = f
+    print(f"\n  season {args.season}: written to {shown} — "
+          + ", ".join(f"{p.name} {practice_of(book, p.name)} balls this season" for p in played))
+    print(f"  the film: {target.relative_to(ROOT) if target.is_relative_to(ROOT) else target}")
+    print(f"  watch it: games/tennis/replay3d.html?record=seasons/{args.season}/watch.json")
+    print(f"  next: python3 lab/tennis.py --report {args.season}")
+    return 0
+
+
 # ---- the person's seat ---------------------------------------------------------------------------
 def shot_word(n: int) -> str:
     return "shot" if n == 1 else "shots"
@@ -2277,6 +2386,13 @@ def main(argv=None) -> int:
                          "written beside the season's other records")
     ap.add_argument("--rally", action="store_true", help="early spring: rallies that last until someone misses")
     ap.add_argument("--rallies", type=int, default=20, help="for --rally: how many rallies to play")
+    ap.add_argument("--watch", action="store_true",
+                    help="play a session as a FILM and record it in the season: the same engine, no member asked. "
+                         "Reads the players' practice out of practice.json and writes the session it played back "
+                         "into it, so a film and a live rally are one shape of fact. Writes "
+                         "games/tennis/seasons/<season>/watch.json, which the page can fetch")
+    ap.add_argument("--swap-every", type=int, default=None,
+                    help="for --watch: points at one end before both players change ends (0 never)")
     ap.add_argument("--clock", type=int, default=None,
                     help="pin the clock, and with it the surface, the wind and the hands a player was born with "
                          "(a test hook: replaying one match against a different opponent is the only way to see "
@@ -2306,6 +2422,11 @@ def main(argv=None) -> int:
         return 0
     if args.rally:
         return run_rally(args)
+    if args.watch:
+        import tennis_script as _S
+        if args.swap_every is None:
+            args.swap_every = _S.SWAP_EVERY
+        return run_watch(args)
     if args.drill:
         return run_drill(args)
     if args.person_shot is not None:

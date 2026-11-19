@@ -4850,6 +4850,142 @@ class TestTheBallAfterThePointIsOver(unittest.TestCase):
         self.assertTrue(any(ch.isdigit() for ch in why), "the fault names no distance, so nothing can be learnt")
 
 
+class TestTheFilmIsTheSession(unittest.TestCase):
+    """The founder's definition of "an integral part of Kythe", 2026-11-19: a session the user can WATCH and a
+    session the members PLAY are the same session, and its result reaches the season "the same as if his own
+    calculations had simulated the same game".
+
+    Until this was built there were two tennis games sharing one engine. `--rally` asked each member's engine for
+    a shot line, played it, and wrote `practice.json`. `lab/tennis_script.py` played the same engine into a film
+    and wrote nothing back. So a member could practise all season and the film would never know, and the film
+    could be watched all night while the season did not move. `--watch` is the seam: it reads the players'
+    practice out of the season file, plays the film at that skill, and records the session the film played
+    through the one writer the rally path also uses.
+
+    What these hold is that the two halves cannot disagree — every number in the session entry is the film's own —
+    and that one clock is one film, which is what makes the page's film a rendering of a season rather than a
+    second game played beside it."""
+
+    def setUp(self):
+        import importlib, tempfile, shutil
+        sys.path.insert(0, str(REPO / "lab"))
+        self.T = importlib.import_module("tennis")
+        self.tmp = Path(tempfile.mkdtemp(prefix="tennis-watch-"))
+        self.addCleanup(shutil.rmtree, self.tmp, True)
+
+    def _watch(self, *extra, rounds=4, clock=1793809110303, names="Colette,Remy", season="s1"):
+        import contextlib, io
+        d = self.tmp / season
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            code = self.T.main(["--watch", "--season", season, "--season-dir", str(d),
+                                "--names", names, "--rallies", str(rounds),
+                                "--clock", str(clock), "--surface", "clay", *extra])
+        return code, d, out.getvalue()
+
+    def _json(self, d, name):
+        return json.loads((Path(d) / name).read_text(encoding="utf-8"))
+
+    def test_every_number_in_the_session_is_the_films_own(self):
+        """The whole claim in one assertion set: balls, shots, in-play, the mean rally and the longest rally are
+        read off the film, not counted a second time. A season that re-derived them could drift from the film
+        that was watched, and then the user would be looking at a game that is not the one in the record."""
+        code, d, _out = self._watch()
+        self.assertEqual(code, 0)
+        book, film = self._json(d, "practice.json"), self._json(d, "watch.json")
+        self.assertEqual([r["length"] for r in film["rallies"]], [2, 2, 3, 1])   # the film this test plays
+        for name in ("Colette", "Remy"):
+            mine = [s for s in film["shots"] if s["player"] == name]
+            session = book["members"][name]["sessions"][-1]
+            self.assertEqual(session["shots"], len(mine), f"{name}'s session and film disagree on the shots")
+            self.assertEqual(session["of"], len(mine), "the denominator is not the film's")
+            self.assertEqual(session["in_play"], sum(1 for s in mine if s["in"]),
+                             "the in-play count is not the film's own `in` flags")
+            self.assertEqual(book["members"][name]["balls"], len(mine))
+            self.assertEqual(session["mean_rally"], round(sum(r["length"] for r in film["rallies"]) / 4, 2))
+            self.assertEqual(session["longest"], max(r["length"] for r in film["rallies"]))
+            self.assertEqual(session["with"], ["Remy" if name == "Colette" else "Colette"])
+            self.assertEqual(session["mode"], "rally", "a watched film is a rally, and the report sorts on it")
+
+    def test_the_film_is_played_at_the_skill_the_season_wrote(self):
+        """The other direction of the same seam, and the one the founder named: "the same players, at their current
+        skill levels". The second film must be played by players who own the balls the first session gave them."""
+        _c, d, _o = self._watch(season="two")
+        first = self._json(d, "watch.json")
+        self.assertEqual([p["balls"] for p in first["players"]], [0, 0],
+                         "this test needs a first session where nobody has a history")
+        _c, d, _o = self._watch(season="two", clock=1793809110404)
+        second = self._json(d, "watch.json")
+        book = self._json(d, "practice.json")
+        self.assertEqual([p["balls"] for p in second["players"]],
+                         [book["members"][p["name"]]["sessions"][0]["shots"] for p in first["players"]],
+                         "the second film was played at a practice the season had not given it")
+        self.assertGreater(second["players"][0]["control"], first["players"][0]["control"],
+                           "the film's two runs are the same player, so practising must have improved them")
+        self.assertEqual(second["season"], "two", "the film does not say which season's skill it was played at")
+
+    def test_one_clock_is_one_film(self):
+        """Why a film may overwrite the last one: it is derived from the season and a clock. Two films at the same
+        clock and the same practice are the same film, to the shot. That is the property that makes watching it
+        evidence about the season rather than about a random stream."""
+        _c, a, _o = self._watch(season="a")
+        _c, b, _o = self._watch(season="b")
+        fa, fb = self._json(a, "watch.json"), self._json(b, "watch.json")
+        self.assertEqual(len(fa["shots"]), len(fb["shots"]))
+        self.assertEqual([r["length"] for r in fa["rallies"]], [r["length"] for r in fb["rallies"]])
+        self.assertEqual([s["v0"] for s in fa["shots"]], [s["v0"] for s in fb["shots"]],
+                         "the same clock and the same hands produced a different film")
+        self.assertEqual([s["contact"] for s in fa["shots"]], [s["contact"] for s in fb["shots"]])
+
+    def test_the_season_keeps_every_session_and_the_film_keeps_only_the_last(self):
+        """Stated as a test because it is a decision and not an accident. `practice.json` is the record: nothing is
+        ever reset and nothing is ever overwritten, so two watched sessions are two entries. `watch.json` is a
+        rendering of the season at one clock, so there is one of it and each session replaces it. The record of a
+        session outlives its film; the film does not have to pay rent in the repository forever."""
+        _c, d, _o = self._watch(season="kept", clock=1793809110303)
+        _c, d, _o = self._watch(season="kept", clock=1793809110404)
+        book = self._json(d, "practice.json")
+        for name in ("Colette", "Remy"):
+            self.assertEqual(len(book["members"][name]["sessions"]), 2, "a second session overwrote the first")
+        films = [p for p in Path(d).iterdir() if p.name.startswith("watch") and p.suffix == ".json"]
+        self.assertEqual(len(films), 1, f"a film per session would be a film per session in git: {films}")
+        self.assertEqual(self._json(d, "watch.json")["clock_ms"], 1793809110404, "the film is not the last session")
+
+    def test_a_film_asks_nobody_and_needs_no_key(self):
+        """A film is played by the engine. `--watch` therefore has no business accepting `--vendor`, and on the
+        night there is no key in the environment it must still play — the member's own key is for the sessions the
+        members play, and a scouting error here would be the flags being accepted and silently ignored, which is
+        the defect `main()` already refuses on the physics path."""
+        import contextlib, io, os
+        self.assertEqual(self.T.main(["--watch", "--season", "k", "--season-dir", str(self.tmp / "k"),
+                                      "--names", "A,B", "--rallies", "2", "--vendor", "groq"]), 2,
+                         "--watch accepted a member's engine and would have ignored it")
+        saved = {k: v for k, v in os.environ.items() if k.startswith("TRIBE_")}
+        for k in saved:
+            os.environ.pop(k)
+        try:
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                code, d, _o = self._watch(season="nokey")
+        finally:
+            os.environ.update(saved)
+        self.assertEqual(code, 0, "a film needed a key, so it is not the engine playing")
+        self.assertTrue((d / "watch.json").exists())
+
+    def test_a_watch_with_no_season_is_a_preview_and_writes_nothing(self):
+        """`--watch` without `--season` plays from the flags. It is allowed — it is how a change to the legs gets
+        looked at in ten seconds — but it must not touch a season, and it must say so rather than looking like a
+        recorded session in a folder nobody opened."""
+        import contextlib, io
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            code = self.T.main(["--watch", "--names", "A,B", "--rallies", "2", "--clock", "1793809110303",
+                                "--surface", "clay", "--practice", "400,20"])
+        self.assertEqual(code, 0)
+        self.assertIn("not recorded anywhere", out.getvalue(), "a preview did not admit it was not a session")
+        self.assertEqual(list(self.tmp.iterdir()), [], "a preview wrote into a season folder")
+
+
 class TestPickleball(unittest.TestCase):
     """The second sport: the rules that are not tennis's, and the ball that is not a tennis ball.
 
