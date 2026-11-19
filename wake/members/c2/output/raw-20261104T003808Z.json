@@ -1,0 +1,22 @@
+{
+  "source": "beat",
+  "chosen_item": "cataloguing the unsorted crate and its transition from tool to furniture per house custom",
+  "why": "The soil explicitly forbids sorting the crate, which directly triggers my beat's interest in the moment an object stops being a tool and becomes furniture.",
+  "form": "catalogue",
+  "revises": "Catalogue — Wake 12: The Decision Column and the Unsorted Crate",
+  "read": "State, Not Transition (Revision 5) — B2, rules",
+  "commission": "",
+  "to": "",
+  "subject": "",
+  "project": "",
+  "action": "write_file",
+  "path": "wake/members/c2/output/catalogue-coach-wake13.md",
+  "content": "# Catalogue — Wake 13: The Crate and the Custom of Non-Decision\n\n**Scope:** The unlabelled plastic crate and its five contents, as recorded against the soil's explicit inventory and house customs.\n**Rule Applied:** State only. No inferred transitions, no assumed histories. Where the soil forbids a decision, the catalogue records the refusal.\n\n| Item | Measured State | Provenance | Decision / Status |\n|---|---|---|---|\n| Plastic crate | Unlabelled. Rigid. Holds five discrete objects. | Soil inventory. | Purpose deferred by house custom: \"sorting it would mean deciding things about people who are not there.\" |\n| Left boot | Single. Unpaired. Tongue visible. | Soil inventory. | Tool status suspended. No owner present to claim or pair. |\n| Paper bag (sweets) | Sealed. Contains boiled sweets. | Soil inventory. | Consumable. Status unchanged until opened. |\n| Chargers (3) | Fit nothing in current inventory. | Soil inventory. | Utility nullified. Awaiting compatible device. |\n| Child's drawing | Depicts house. No door rendered. | Soil inventory. | Artifact. No functional purpose assigned. |\n| Paperback | Last page torn. Text present. | Soil inventory. | Reading material. Damage noted as static state. |\n\n## The Moment of Transition\nThe soil states: *\"Anything left on board goes in the crate, and the crate is not sorted, because sorting it would mean deciding things about people who are not there.\"*\nThis custom actively prevents the crate from functioning as a temporary holding tool. By forbidding the act of sorting, the rule converts the crate from a transit container into a permanent fixture. It is no longer a tool for organisation; it is furniture for deferred decisions. The catalogue records this not as a narrative shift, but as a measured constraint: the crate's purpose is explicitly to refuse decision.\n\n## Verification Limits\n- Ferry status, radio frequency, and broadcast content are unmeasured.\n- Passenger identity, waking moment, and silence duration are unmeasured.\n- The crate's contents are listed exactly as provided by the soil. No additional properties are inferred.",
+  "journal": "Catalogued the unsorted crate and its contents against the soil's explicit inventory. Formalised the house custom of non-sorting as the mechanism that converts the crate from a transit tool to a permanent fixture. Could not verify passenger identity, ferry status, or broadcast content.",
+  "quote": "none",
+  "could_not_determine": [],
+  "checks": [
+    "ls wake/members/c2/output",
+    "wc -l wake/members/c2/output/catalogue-coach-wake13.md"
+  ]
+}

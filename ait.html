@@ -1197,7 +1197,18 @@ function keptName(){
    because a link from before this change carries an unparsable state and falling back to the old behaviour is
    kinder than failing. */
 function oauthState(where, app){
-  return `${where}.${app ? 'a' : 'c'}.${Math.random().toString(36).slice(2, 10)}`;
+  // The circle a link asked for rides in `state`, base64 so a repository name with a dot cannot be mistaken for the
+  // next field. `state` is the one thing GitHub hands back on whatever host it was told to return to, and a link to
+  // a circle you have no token for ended at a form and a sign-in that forgot which circle it was for — measured
+  // 2026-11-19, the founder's own link, twice. A fixed field count with an empty last one when there is nothing to
+  // carry.
+  const circle = WANT ? btoa(WANT).replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_') : '';
+  return `${where}.${app ? 'a' : 'c'}.${Math.random().toString(36).slice(2, 10)}.${circle}`;
+}
+function circleFromState(state){
+  const parts = String(state || '').split('.');
+  if (parts.length < 4 || !parts[3]) return '';
+  try { return cleanRepo(atob(parts[3].replace(/-/g, '+').replace(/_/g, '/'))); } catch(_){ return ''; }
 }
 
 function signIn(where){
@@ -1215,6 +1226,10 @@ function signIn(where){
     // told otherwise. Found by the founder on the live page, 2026-11-11: "it's ignored, and you have to type it on
     // the next page." Saved here and read by keptName(); nothing else about it is remembered anywhere.
     if (where === 'install'){ const n = $('tname'); if (n) sessionStorage.setItem('ait.name', n.value); }
+    // The same waste, one step further on: GitHub sends the browser back to the site's own address, without the
+    // `?circle=` the person arrived with, so a link to a circle you have no token for ended at a connect form and a
+    // sign-in that forgot which circle it was for. Measured 2026-11-19 by the founder, twice, on his own link.
+      /* the circle, if any, is in `state` — see oauthState */
   } catch(_){}
   location.href = u.toString();
 }
@@ -1231,6 +1246,21 @@ function signInApp(where){
   // and the function reads this flag to know which pair it is holding.
   try { sessionStorage.setItem('ait.app', '1'); } catch(_){}
   location.href = u.toString();
+}
+
+// The circle a link asked for, carried through GitHub's round trip in `state` (see oauthState): GitHub returns the
+// browser to the site's own address and drops the query string, and sessionStorage belongs to one origin while this
+// app answers on two — so the URL is the only place the request survives. Read only after a token exists, because
+// before that there is nothing to open it with.
+async function resumeWant(c){
+  if (!c || !OAUTH) return false;
+  try {
+    const info = await gh(`/repos/${c}`, {}, OAUTH);
+    setCircle(c, OAUTH, info.default_branch || 'main');
+    noteVisibility(info);
+    try { history.replaceState(null, '', location.pathname + '?circle=' + c + '#/today'); } catch(_){}
+    return true;
+  } catch(_){ return false; }
 }
 
 // What this account has already given the App. Two answers matter, and the second one is the state a person
@@ -1776,7 +1806,24 @@ or <a href="#/today" onclick="WANT='';WANT_WHY='';return true;">stay in ${esc(S.
           <span class="small muted">${S.repo === r.full_name ? 'the one this page opens' : (r.private ? 'private' : 'public')}</span></div>`).join('');
     } catch(e){
       msg.className = 'err';
-      msg.textContent = 'GitHub would not answer: ' + e.message;
+      // The one refusal here that a person can fix in place. `/user/installations` is an App-only endpoint, so this
+      // 403 means the token this browser holds is not the App's — which is what happens when a sign-in's round trip
+      // changed hostname and the flag that said "this is the App" was lost with the origin (fixed 2026-11-19 by
+      // carrying it in `state`, but a token already in a browser stays the wrong kind until it is replaced). Until
+      // now the page answered "Look again", which re-ran the same doomed call: the founder sat in front of exactly
+      // that. So here it offers the only thing that helps — a fresh sign-in through the App.
+      if (/authorized to a GitHub App|installation/i.test(String(e.message))){
+        msg.textContent = 'This browser holds a GitHub token that is not an App token, so Kythe cannot ask GitHub '
+          + 'which circles your account has given it. Signing in again replaces it.';
+        const again = document.createElement('button');
+        again.className = 'primary';
+        again.style.marginTop = '8px';
+        again.textContent = 'Sign in with GitHub again';
+        again.onclick = () => signInApp('connect');
+        (msg.parentNode || msg).insertBefore(again, msg.nextSibling);
+      } else {
+        msg.textContent = 'GitHub would not answer: ' + e.message;
+      }
     }
   }
   // What the box already knows. The founder's question, twice: the page can answer "which credential" before
@@ -1904,8 +1951,13 @@ async function viewToday(main){
   try { members = await loadMembers(); } catch(e){ return fail(main, e); }
 
   if (!members.length){
-    main.innerHTML = `<h1>Today</h1>
-      <div class="card"><p>There are no members yet, so there is nothing to read.</p>
+    // An empty circle keeps the update line and its buttons. This is where the row was missing when it mattered
+    // most: a circle freshly installed, checked, and told nothing — measured 2026-11-19 on a real one. An empty
+    // circle is exactly the circle whose machinery is a day behind, because nobody has had a reason to look.
+    main.innerHTML = `<h1>Today</h1>`
+      + (UPDATE_NOTE ? `<p class="small muted">${esc(UPDATE_NOTE)}</p>` : '')
+      + updBlock()
+      + `<div class="card"><p>There are no members yet, so there is nothing to read.</p>
       <p class="small muted">A member is a folder of text with a name on it. Making one takes six questions.</p>
       <button class="primary" onclick="addMember()">Add a member</button></div>`;
     return;
@@ -5075,7 +5127,7 @@ window.addEventListener('hashchange', () => render());
         OAUTH = d.access_token;
         if (wasApp){ S.app = OAUTH; save(); }
         try { sessionStorage.removeItem('ait.code'); sessionStorage.removeItem('ait.retried'); } catch(_){}
-        location.hash = '#/' + want;
+        location.hash = (await resumeWant(circleFromState(returned))) ? '#/today' : '#/' + want;
       } catch(e){
         let tried = '';
         try { tried = sessionStorage.getItem('ait.retried') || ''; } catch(_){}

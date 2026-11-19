@@ -27,7 +27,7 @@ const failWrites = new Set();     // paths whose PUT is refused, to test the fai
 const clashWrites = new Set();    // paths whose PUT answers 409: somebody else wrote the file since it was read
 const calls = [];                 // every request, for the failure messages to be specific
 const dispatches = [];            // every workflow_dispatch, with the inputs the page sent it
-const actions = { runs: [], onPoll: null, secrets: [], secretsDenied: false };
+const actions = { runs: [], onPoll: null, secrets: [], secretsDenied: false, installationsDenied: false };
 // What GitHub says about the repository itself. `private` is the one field the page reads out of it, and on
 // 2026-11-15 it read nothing: an owner could turn a tribe public and the page went on saying nothing while the
 // record — every journal, every word said to a member — became readable by anyone. Kept here so a check can
@@ -97,6 +97,13 @@ function githubFetch(url, init = {}){
       return jsonResponse(404, {message: 'Not Found'});
     dispatches.push({workflow: wf, inputs});
     return jsonResponse(204, {});
+  }
+  if (/^\/user\/installations$/.test(p)){
+    // App-only: a classic token is refused here, in GitHub's own words, and that is the founder's 2026-11-19 wall.
+    if (actions.installationsDenied)
+      return jsonResponse(403, {message: 'You must authenticate with an access token authorized to a GitHub App in '
+        + 'order to list installations'});
+    return jsonResponse(200, {total_count: 0, installations: []});
   }
   if (/^\/repos\/[^/]+\/[^/]+\/actions\/secrets$/.test(p)){
     if (actions.secretsDenied) return jsonResponse(403, {message: 'Must have admin rights to Repository.'});
@@ -182,9 +189,16 @@ const MEMBER_ENTRY = '## 2026-11-12 19:05 UTC — attended session (the keeper p
 function el(id){
   const e = {
     id, hidden: false, textContent: '', innerHTML: '', value: '', className: '', checked: false,
-    dataset: {}, style: {}, files: [], href: '', download: '',
+    dataset: {}, style: {}, files: [], href: '', download: '', nextSibling: null, parentNode: null,
     classList: {add(){}, remove(){}, toggle(){}, contains(){ return false; }},
-    appendChild(){}, removeChild(){}, remove(){}, click(){}, focus(){}, blur(){},
+    // `insertBefore` and `appendChild` record what was inserted instead of doing nothing: a page that offers a
+    // person another control (the sign-in that replaces a wrong token) said nothing in this harness until
+    // 2026-11-19, when the element it inserted into had no `insertBefore` at all and the branch crashed the run
+    // instead of being asserted. `inserted` is what the checks read.
+    inserted: [],
+    appendChild(c){ e.inserted.push(c); if (c) c.parentNode = e; return c; },
+    insertBefore(c, before){ e.inserted.push(c); if (c) { c.parentNode = e; c.nextSibling = before || null; } return c; },
+    removeChild(){}, remove(){}, click(){}, focus(){}, blur(){},
     scrollIntoView(){}, setAttribute(){}, getAttribute(){ return null; }, hasAttribute(){ return false; },
     addEventListener(){}, removeEventListener(){}, showModal(){}, close(){},
     querySelector(){ return null; }, querySelectorAll(){ return []; },
@@ -277,7 +291,7 @@ function reset(){
   files.clear(); failWrites.clear(); clashWrites.clear(); calls.length = 0; dispatches.length = 0; store.clear();
   tpl.sha = null; tpl.files.clear(); tpl.refs.clear();
   actions.runs.length = 0; actions.onPoll = null; actions.secrets = []; actions.secretsDenied = false;
-  exchanges.length = 0;
+  exchanges.length = 0; actions.installationsDenied = false;
   actions.missingWorkflows = [];
   for (const id of ['mmsg', 'chaptsmsg', 'main']) if (elements.has(id)) elements.delete(id);
 }
@@ -1366,6 +1380,7 @@ async function main(){
       S.repo = ''; S.token = ''; S.isPrivate = null; S.keys = {}; S.members = [];
       location.hash = '#/connect';
       await viewConnect(document.getElementById('main'));
+    await new Promise(r => setTimeout(r, 40));      // paintApp is started, not awaited, by the view
       document.getElementById('repo').value = 'someone/tribe';
       document.getElementById('token').value = 't';
       await document.getElementById('go').onclick();
@@ -1822,6 +1837,91 @@ async function main(){
   check('and a return from the classic token sign-in is not handed to the App\'s credentials', () => {
     if (!classicReturn) return 'the page never exchanged the code';
     if (classicReturn.app !== false) return 'the exchange was told app=' + JSON.stringify(classicReturn.app);
+    return '';
+  });
+
+  /* 2026-11-19 — a link to a circle survives the sign-in, and an empty circle keeps its update row.
+
+     The founder followed `?circle=LindsayRidgeway/demo-ai-tribe`, was sent to the connect form because this browser
+     had no token for it, pressed "Sign in with GitHub" — and came back into a *different*, brand-new circle whose
+     name he had never typed. GitHub returns the browser to the address registered on the OAuth app and drops the
+     query string, so the circle a link asked for has to ride in `state`, which does come back. The harness has no
+     sessionStorage, which is exactly right: the request must survive that loss. */
+  reset();
+  const roundTrip = await tryRun(ctx, `(async () => {
+    S.repo = ''; S.token = ''; S.circles = {}; S.app = '';
+    WANT = 'LindsayRidgeway/demo-ai-tribe';
+    const st = oauthState('connect', false);
+    // what GitHub hands back: the state, and a new code — no query string, no sessionStorage
+    const back = circleFromState(st);
+    OAUTH = 'gho_fresh';
+    const opened = await resumeWant(back);
+    return {state: st, back, opened, repo: S.repo, branch: S.branch};
+  })()`);
+  check('the circle a link asked for rides in the sign-in state and is opened on the way back', () => {
+    if (roundTrip.err) return roundTrip.err;
+    if (roundTrip.back !== 'LindsayRidgeway/demo-ai-tribe')
+      return 'the state does not carry the circle: ' + JSON.stringify(roundTrip.state) + ' -> ' + JSON.stringify(roundTrip.back);
+    if (!roundTrip.opened) return 'the page did not open the circle it was asked for';
+    if (roundTrip.repo !== 'LindsayRidgeway/demo-ai-tribe') return 'it opened ' + roundTrip.repo;
+    return '';
+  });
+  const noCarry = await tryRun(ctx, `(async () => {
+    // a link from before today, and a sign-in started from the connect form: no fourth field at all
+    return ['connect.c.7f2k', 'install.a.9x', '', 'connect.c.7f2k.'].map(st => {
+      try { return circleFromState(st); } catch(e){ return 'threw ' + e.message; }
+    });
+  })()`);
+  check('and a state with nothing to carry opens nothing and breaks nothing', () => {
+    if (noCarry.err) return noCarry.err;
+    const bad = noCarry.filter(x => x !== '');
+    if (bad.length) return 'a state with no circle produced ' + JSON.stringify(bad);
+    return '';
+  });
+
+  reset();
+  seed('wake/members/.gitkeep', '');
+  const empty = await tryRun(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main'; S.owner = 'Sam';
+    UPDATE = {state:'unknown', why:'this circle has no .ait/version.json'};
+    UPDATE_NOTE = 'Could not check for updates: this circle has no .ait/version.json.';
+    await viewToday(document.getElementById('main'));
+    return document.getElementById('main').innerHTML;
+  })()`);
+  check('an empty circle still shows the update line and its button', () => {
+    if (empty.err) return empty.err;
+    const html = String(empty);
+    if (!/Could not check for updates/.test(html)) return 'the update line is missing from an empty circle';
+    if (!/See what an update would change/.test(html)) return 'no button: an empty circle is offered nothing';
+    if (!/no members yet/.test(html)) return 'the empty state itself is gone, so this is testing nothing';
+    return '';
+  });
+
+  /* The wall the founder hit: a classic token in a browser, and an App-only endpoint. The old page answered
+     "GitHub would not answer: 403 - You must authenticate with an access token authorized to a GitHub App in order to
+     list installations" and left the same button in place, so pressing it again was the only offered action and it
+     could not work. What a person needs at that moment is the one control that replaces the token. */
+  reset();
+  actions.installationsDenied = true;
+  const wall = await tryRun(ctx, `(async () => {
+    S.app = 'gho_classic'; S.repo = ''; S.owner = 'Sam'; S.token = '';
+    location.hash = '#/connect';
+    await viewConnect(document.getElementById('main'));
+    await new Promise(r => setTimeout(r, 40));      // paintApp is started, not awaited, by the view
+    // A control the page *adds* is inserted as a child, and a child is not in innerHTML — the page's own
+    // insertBefore, then, is what a check has to read. The harness records it as 'inserted'.
+    const m = document.getElementById('appmsg') || {};
+    return {said: m.textContent || '', html: document.getElementById('main').innerHTML,
+            offered: (m.inserted || []).map(b => b.textContent || '')};
+  })()`);
+  check('a token that is not an App token is named, and the page offers the sign-in that replaces it', () => {
+    if (wall.err) return wall.err;
+    const said = String(wall.said || '');
+    if (/You must authenticate with an access token authorized/.test(said))
+      return 'it shows GitHub\'s own sentence, which describes the API and not the fix';
+    if (!/not an App token/i.test(said)) return 'it does not say what is wrong with the token it holds: ' + said;
+    if (!/Sign in with GitHub again/.test(String(wall.html) + ' ' + (wall.offered || []).join(' ')))
+      return 'it does not offer a fresh sign-in';
     return '';
   });
 

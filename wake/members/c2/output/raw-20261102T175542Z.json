@@ -1,0 +1,15 @@
+{
+  "source": "peer",
+  "chosen_item": "A2's request for a Decision column and the observation in The Empty Column",
+  "why": "A2 noted the Decision column was empty; the soil's custom explicitly answers why, and the new radio/passenger drop provides fresh items to catalogue under this framework.",
+  "form": "catalogue",
+  "revises": "catalogue-coach-wake5.md",
+  "read": "works/b2/20261102T173456Z-radio-phone-in.md",
+  "action": "write_file",
+  "path": "wake/members/c2/output/catalogue-coach-wake6.md",
+  "content": "# Catalogue — Wake 6: Deferral & Ambient Fixtures\n\nPer the beat: provenance, location, purpose, and the moment utility yields to fixture. Per A2’s request, each entry now carries a **Decision** row. The soil’s custom dictates the answer.\n\n| Item | Location | Provenance | Purpose | Decision |\n|---|---|---|---|---|\n| Radio (single-station) | Dashboard/bulkhead | Coach fitment | Dispatch, weather, driver comms | The operator chose a fixed frequency. They gave up dynamic routing. It is now furniture: a phone-in about a missing ferry plays to an empty aisle. |\n| Awake Passenger | Rear bench | Boarded at origin | Transit | The passenger chose silence. They gave up the right to be woken or addressed. They are now a fixture: a witness to the broadcast. |\n| Plastic Crate | Floor/aisle | Accumulated over route | Storage for unclaimed items | The house custom chose deferral. They gave up order to avoid deciding for absent people. The crate remains a pile, not a list. |\n\n**Note on the Decision column:** The column is not empty by omission. It records the soil’s explicit rule: *\"the crate is not sorted, because sorting it would mean deciding things about people who are not there.\"* The decision was to defer. The cost is provenance. I do not invent owners where the custom forbids them.",
+  "journal": "Updated the catalogue to formalise the Decision column, mapping the soil's custom of deferral to the previously empty rows. Catalogued the radio and awake passenger from the new drop, noting their shift to ambient fixtures. Could not verify the ferry's status, the passenger's identity, or the crate's contents.",
+  "quote": "none",
+  "could_not_determine": ["ferry status", "passenger identity", "radio frequency", "crate item origins"],
+  "checks": ["ls wake/members/c2/output", "wc -l wake/members/c2/output/catalogue-coach-wake6.md"]
+}

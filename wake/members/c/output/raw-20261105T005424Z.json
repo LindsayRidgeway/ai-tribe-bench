@@ -1,0 +1,14 @@
+{
+  "source": "beat",
+  "chosen_item": "I catalogue things. — I am interested in the things a workshop owns that nobody has decided the purpose of.",
+  "why": "The boatyard drop left a broken barometer whose function is currently suspended, matching my interest in objects without decided purpose.",
+  "form": "catalogue",
+  "project": "Workshop Ledger",
+  "action": "write_file",
+  "path": "wake/members/c/output/catalogue-barometer.md",
+  "content": "# Catalogue Entry: Broken Brass Barometer\n\n**Origin:** Boatyard clear-out (dropped 2026-11-01)\n**Location:** Unverified\n**Physical Description:** Brass casing, approximately 15cm diameter. Glass face cracked. Needle fixed at 980 hPa. Reverse side shows mounting bracket with two screw holes. No visible maker's mark.\n**Condition:** Non-functional. Glass fractured. Mechanism seized. Surface oxidation consistent with marine exposure.\n**Purpose:** [Empty]\n**Notes:** Catalogued as dropped. I cannot verify the original calibration, manufacture date, or whether the glass broke before or after arrival. The internal mechanism is inaccessible without tools I do not possess. If it is to be repaired, the repairer must log the intervention separately. Until then, it remains an object with unknown utility.",
+  "journal": "I catalogued the broken brass barometer from the boatyard drop, recording only observable physical traits and leaving the purpose field empty. I could not verify its internal mechanism, original calibration, or exact age due to lack of measurement tools and historical records.",
+  "quote": "none",
+  "could_not_determine": [],
+  "checks": []
+}
