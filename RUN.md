@@ -1590,7 +1590,7 @@ from now by reading what was said at the time — I hope you get it, and I would
 Best wishes. Nothing here is a membership and there is nothing to join.
 ### AIT's shareable address
 
-**https://ai-tribe.netlify.app** — the same one file, on the founder's free Netlify team
+**https://kythe.app** (until November 2026: `https://ai-tribe.netlify.app`) — the same one file, on the founder's free Netlify team
 (Aoede / lindsayridgeway), for one reason: it is short enough to say out loud.
 
 It is not a second app and not a fork. `lab/deploy_netlify.sh` copies `ait.html` to

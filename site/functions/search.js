@@ -12,7 +12,7 @@
  */
 const MAX_Q = 200;
 const TIMEOUT_MS = 10_000;
-const UA = 'Kythe/1 (a member of a household looking something up; +https://ai-tribe.netlify.app)';
+const UA = 'Kythe/1 (a member of a household looking something up; +https://kythe.app)';
 
 const json = (status, body, cache) => ({
   statusCode: status,

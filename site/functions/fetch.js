@@ -45,7 +45,7 @@ exports.handler = async (event) => {
       redirect: 'follow',
       signal: ctl.signal,
       headers: {
-        'user-agent': 'Kythe/1 (a member of a household reading a page; +https://ai-tribe.netlify.app)',
+        'user-agent': 'Kythe/1 (a member of a household reading a page; +https://kythe.app)',
         accept: 'text/html,application/xhtml+xml,text/plain;q=0.9,*/*;q=0.5',
       },
     });
