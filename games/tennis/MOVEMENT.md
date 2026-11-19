@@ -872,10 +872,11 @@ clock allowed two seconds of running. The film showed it plainly — of 110 shot
 a baseline, one ended 24.6ft behind, and four contacts were outside the sidelines.
 
 `PLAY_AREA = 12.0` ft beyond each line, and the slice loop stops when the ball has left it. On one fixed population
-of 605 balls, every interception recorded and re-asked at each candidate bound: with no bound, 48.5% of the balls
-were met more than 6ft outside the court and 38.3% more than 10ft (worst 29.8ft); at 12ft, 16.8% and 5.4% (worst
-11.9ft). The reach rate is 98.5% either way — the balls the bound takes away were arithmetic, not tennis, which is
-the test the item ships with.
+of 614 balls, every interception recorded and re-asked at each candidate bound: with no bound, 50% of the balls were
+met more than 6ft outside the court and 40% more than 10ft (worst 31.9ft); at 12ft, 16% and 6% (worst 12.0ft). The
+reach rate is 98% either way, and *that* is the interesting part: the bound takes nothing away, because every ball it
+clips was already reachable at an earlier slice inside the ground. It changes which moment is chosen, not who wins
+the point — which is the test the item ships with.
 
 Twelve feet and not six because the picture already shows 22ft of ground beyond the lines (`VISIBLE_PAD`): a ball
 leaving a 12ft run-off is leaving the visible world, not being declined. What is still not real is the *meeting

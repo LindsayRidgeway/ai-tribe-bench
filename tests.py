@@ -4490,8 +4490,11 @@ class TestTheGroundEnds(unittest.TestCase):
 
     Measured on one fixed population of 605 balls (25 points at 300 and 600 balls, every interception recorded
     and re-asked): with no bound, 48.5% of the balls were met more than 6ft outside the court and 38.3% more
-    than 10ft, the worst 29.8ft. At a 12ft run-off those are 16.8% / 5.4% / 11.9ft, and the reach rate does not
-    move — 98.5% either way. The balls the bound takes away were arithmetic, not tennis."""
+    than 10ft, the worst 29.8ft. At a 12ft run-off those are 16.1% / 5.8% / 12.0ft, and the reach rate does not
+    move — 98% either way. That is because no ball is taken away: every ball the bound clips was already reachable
+    at an earlier slice inside the ground, and the old code preferred a later slice nearer the waist. The run-off
+    does not filter contacts, it corrects which moment is chosen — and the fact that the worst meet sits exactly on
+    the bound is why the choice itself is Item 18."""
 
     def setUp(self):
         import importlib

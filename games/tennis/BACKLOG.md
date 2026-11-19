@@ -641,18 +641,29 @@ the ball has left it. Twelve and not six because the founder's picture already s
 beyond the lines — a run-off of 12ft is on ground the viewer can see, and a ball leaving it is a ball going off the
 edge of the world rather than a ball somebody chose not to chase.
 
-**Measured on one fixed population, not on two films** (`/tmp/reach_bound.py`): 605 real balls (25 points at 300 and
-600 balls, every interception recorded and re-asked at each candidate bound), because a film-level count cannot
+**Measured on one fixed population, not on two films** (`games/tennis/instruments/reach_bound.py`, promoted out of
+`/tmp` with the item so the numbers can be re-run): 614 real balls (59 points, every interception recorded and
+re-asked at each candidate bound), because a film-level count cannot
 answer this question — any change reshuffles the rng stream, and the same candidate bound gave 225, 225, 176, 110 and
 139 shots at 6, 8, 10, 12 and 16ft. Those are five different twenty-point samples, not five run-offs.
 
 | run-off | met >6ft outside | >10ft | worst meet | reach rate |
 |---|---|---|---|---|
-| none (what shipped) | 48.5% | 38.3% | 29.8ft | 98.5% |
-| **12ft (what ships now)** | **16.8%** | **5.4%** | **11.9ft** | **98.5%** |
+| none (what shipped) | 50.0% | 40.4% | 31.9ft | 98.0% |
+| 6ft | 0.0% | 0.0% | 6.0ft | 98.0% |
+| **12ft (what ships now)** | **16.1%** | **5.8%** | **12.0ft** | **98.0%** |
+| 22ft | 39.2% | 28.9% | 22.0ft | 98.0% |
 
-The reach rate does not move, which is the point: the balls the bound takes away were arithmetic, not tennis. A bound
-that changed who won would be a tuning knob.
+**The reach rate does not move — and the reason is not the one I first wrote down.** I assumed the bound was a filter
+that took balls away from players. It is not: the reach rate is 98% at every bound *including none*, because every
+ball the bound clips was already reachable at an earlier slice inside the ground. What the old code did was refuse
+that answer and prefer a later slice nearer the waist, which is how a contact ended up thirty feet out. The run-off
+does not filter contacts; it corrects which moment is chosen.
+
+That also says the number should not be trusted to choose itself: `worst meet` equals the bound exactly at 6, 8, 10,
+12, 16 and 22ft — the waist preference is still pushing contact out to the edge of whatever ground is allowed, and at
+12ft one contact in twenty sits right on it. That is Item 18, and it is why the band rewrite is the next thing and not
+a nicety.
 
 **Also fixed on the way:** a ball that lands outside the bound never sets the closest-miss record, so the `best is
 None` path unpacked `None`. It is now a sentence — "past the back of the court" — instead of a crash waiting for the
@@ -672,7 +683,7 @@ player's speed (0 of 110, where the old check that used `dist` was measuring the
 with none below 1ft.
 
 **Done-test:** no meeting point more than `PLAY_AREA` beyond a line over a real population of balls, *and* the bound
-moves the reach rate by less than three points against no bound at all. `TestTheGroundEnds`, three tests.
+moves the reach rate by less than three points against no bound at all — 98.0% both, over 614 balls. `TestTheGroundEnds`, three tests.
 
 **What this does not fix, and it is the next item.** Four contacts of 110 are still more than 10ft behind the
 baseline, and the reason is not the run-off — it is the meeting-point rule. The worst is a ball that bounced 14ft in
