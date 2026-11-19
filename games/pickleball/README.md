@@ -751,3 +751,64 @@ stance in this engine.
 with `--learners`, `--static` and `--start`, and four tests — one stance and one game's rallies in one bucket,
 the one-foot step toward the bucket that won, the eight-point margin that refuses a coin, and the book surviving
 the process that wrote it. `TestPickleball` is 28 tests; the suite is 394, all passing.
+
+---
+
+## §5g The momentum fault is a speed, not a place — 2026-11-19
+
+§5f indicted the carry and named two suspects: the rule charges in the wrong currency, or the line is worth more
+here than in the sport. This section fixes the currency and then finds that the second suspect was the right one —
+and, worse for §5f's own wording, that **1 ft behind the line is not past the line; it is the line.**
+
+**What was wrong.** The rule was a flat 1.5 ft step applied to every volley taken within 2 ft of the line, and to
+nothing else. So *standing in a place* was the offence: a player who lunged at full stretch from 3 ft was innocent,
+and a player standing still at 1 ft who took a ball that came straight to them had faulted. That is not the
+rulebook's rule and it is not a physical one; it is a number with a place attached.
+
+**The model now.** The body gets a velocity. `Positions.move_toward` records what is left of the walk toward the
+stance and clears it when the player arrives, so the engine knows which bodies are still moving. The carry is
+`v²/(2·A_STOP)` in the direction of travel, and the player's feet end up where they stop — which is the ground
+they must win back before they can volley again, and the first time this engine has had a reason to care.
+
+**Two mistakes made while building it, both measured, both kept in the tests.**
+
+- **The step is not speed.** The first version divided the step to the ball by the time from the ball's strike to
+  the contact, so a one-foot step at a fast ball came out at ten feet per second: measured contact speed
+  **17.8 ft/s — the cap — at every stance from 1 to 3 ft**, and every volley in the game was bowled into the
+  kitchen. A lunge is a plant, not a glide. The momentum is the unfinished walk and nothing invented from
+  geometry.
+- **Repositioning is a jog.** The second version carried at `movement_speed`, which is a 12 mph sprint; a player
+  walking to their stance is carried 3.8 ft by the split step and the game has no volley in it. `WALK_SHARE = 0.6`
+  is that correction, and it is the same class of defect as the 1.5 ft carry with the sign reversed.
+
+**A/B on the one declared guess.** `A_STOP` is a plant — two feet down, about a g — and it is a guess, the second
+in this file after `STRETCH_PENALTY`. Eight games at each value, everybody at 2 ft:
+
+| A_STOP | rallies | momentum faults | mean carry | charged on the serve | charged on the point |
+|---|---|---|---|---|---|
+| 16 ft/s² | 295 | 27 (9.2%) | 3.6 ft | 16 | 11 |
+| **32 ft/s²** | 258 | 25 (9.7%) | 1.8 ft | 13 | 12 |
+| 48 ft/s² | 279 | 23 (8.2%) | 1.2 ft | 12 | 11 |
+
+Two things in that table are worth keeping. The **rate is flat** across a factor of three in braking: what decides
+whether a carry faults you is whether it takes you across a line that is a foot or two away, not how far past it
+you would have gone. And **about half the faults are charged on the point**, not the serve — so the hypothesis
+that a stance could buy the line with cheap serving-side faults is tested and false. The currency was not the
+defect.
+
+**What the fix changed, and what it did not.** Under the honest rule, 1 ft against 2 ft over the same 24 swapped
+games §5f used is **234–203** — the line wins by more than it did under the broken rule (214–220). So §5f's first
+suspect is cleared and the second one stands: **standing at the kitchen line is worth more in this engine than the
+momentum fault costs**, and the mechanism is the one the sport is built on — every ball taken a foot earlier is a
+foot less time for the opponent.
+
+**And the correction to §5f, kept rather than edited away.** §5f wrote that the season lesson "finds the line and
+steps one foot past it". That was a misreading of its own geometry: `approach` is measured *behind* the line, the
+line is at 0 ft, and a body cannot stand at 0 — so 1 ft behind the line is where a good player's toe goes. The
+lesson walked to the line and stopped. What §5f was right about is that the old rule made that stance a fault; what
+it was wrong about is that the stance was the mistake.
+
+**Kept on main:** `volley_carry`, `Positions.vel`/`velocity_of`, `A_STOP`, `WALK_SHARE`, `serving_at` on every
+rally in the record (so a fault can be priced as a serve or a point), and four tests — a planted volley is not
+carried, a moving one is carried v²/2A, a carry stops at the net and never backwards, and a big step in a short
+time is not a speed. `TestPickleball` is 32 tests; the suite is 401, all passing.
