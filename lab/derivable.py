@@ -63,9 +63,24 @@ def rebuild(root: Path) -> None:
 
 
 def check() -> int:
-    tmp = Path(tempfile.mkdtemp())
-    work = tmp / "repo"
-    shutil.copytree(HERE, work, ignore=shutil.ignore_patterns(".git", "__pycache__"))
+    """Rebuild every derived file in a scratch copy and diff it against what is published.
+
+    The scratch copy is removed in a `finally`, not at the end of the happy path. The original
+    version called `shutil.rmtree` as the second-to-last statement, so every early `return` or
+    exception leaked a full copy of this repository into the OS temp directory. By 2026-11-20
+    there were 288 leaked copies holding 121 GB, which is what took the founder's Mac to 8 GB
+    free and made a disk guard fire every six hours for three days.
+    """
+    tmp = Path(tempfile.mkdtemp(prefix="derivable-check-"))
+    try:
+        work = tmp / "repo"
+        shutil.copytree(HERE, work, ignore=shutil.ignore_patterns(".git", "__pycache__"))
+        return _check_copy(work)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def _check_copy(work: Path) -> int:
     before = {p.relative_to(work): p.read_text(encoding="utf-8") for p in derived_files(work)}
     for p in derived_files(work):
         p.unlink()
@@ -84,7 +99,6 @@ def check() -> int:
             diff = list(difflib.unified_diff(a.splitlines(), b.splitlines(), "on disk", "rebuilt", lineterm="", n=1))
             for line in diff[:12]:
                 print("    " + line)
-    shutil.rmtree(tmp, ignore_errors=True)
     print()
     if bad:
         print(f"{bad} published file(s) are not a function of the record. Either somebody edited one by "
