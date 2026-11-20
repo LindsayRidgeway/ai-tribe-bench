@@ -2962,9 +2962,11 @@ manual, and the last item of the three passes the founder's objection bought on 
       — the failure mode of a project that writes as much down as this one.
 
   counts: 38 checks (unchanged by this pass — the door is not a number), README 1017 lines, record 2908, and the
-      door's own figures read from a 4-round, 4-bag season: bad start +5.3 ±1.2 in round 4 and −10.8 ±1.9 against the
-      frozen player, practiser −8.5 ±1.7, cautious −9.5 ±3.2, blind hands −6.5 ±2.8, flag-hunter −8.5 ±2.5, and the
-      frozen player at +16 ±1 a round with a notebook still wrong by 43.7%.
+      door's own figures read from a 4-round, 4-bag season: bad start +5.2 ±1.1 in round 4 and −10.8 ±1.9 against
+      the frozen player, practiser +7.5 ±1.2 and −8.5 ±1.7, cautious +6.5 ±2.5 and −9.5 ±3.2, blind hands +9.5 ±2.2
+      and −6.5 ±2.8, flag-hunter +7.5 ±3.2 and −8.5 ±2.5, and the frozen player at +16.0 ±0.9 a round with a
+      notebook still wrong by 43.7% ±1.5 — which is the paragraph the door's own table is, and the reason the
+      sentence under it is computed and not typed.
 
   what this pass did not do: the film's putts still have no height (nothing drops into the cup), and the door has no
       page for the *field* — six athletes over many bags with their beliefs — because that is the season page and
