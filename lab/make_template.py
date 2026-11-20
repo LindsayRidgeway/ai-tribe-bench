@@ -70,7 +70,10 @@ MANIFEST.md
 
 # Whole directories that are content rather than code: the worlds a member can be placed in, as
 # examples the owner can copy or delete.
-DIRS = ["soil"]
+# One room, not two. Until 2026-11-20 this shipped the whole `soil/` tree, which meant every new circle arrived with a
+# choice it had not asked for: the workshop and the night bus, both written by me. `Worlds` is gone from the product
+# (RELEASE.md, "Deleting worlds"), so a new circle gets one example room to rewrite or delete.
+DIRS = ["soil/workshop"]
 
 # What an *update* may replace, as opposed to what a new tribe starts with. Almost the same set, and the
 # difference is the whole of the risk: `members.json` is a list derived from the shelf and a template copy of it is

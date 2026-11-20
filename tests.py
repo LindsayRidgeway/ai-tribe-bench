@@ -833,9 +833,10 @@ class TestPlates(unittest.TestCase):
             rows = tribe.next_up(keyed="deepseek")
             self.assertEqual([r[1] for r in rows], ["a"], "only the member with a key is woken")
             rows = tribe.next_up(keyed="deepseek,gemini")
-            # one per world: `shop` has a and b on two vendors, `bus` has c (qwen) and d (gemini) — so d,
-            # not c, because c's vendor has no key here.
-            self.assertEqual(sorted(r[1] for r in rows), ["a", "d"])
+            # One turn per circle — until 2026-11-20 this was one per world, which answered a question about two
+            # experiment colonies and not a question about a circle. Four members, one turn: the fewest wakes, then
+            # the alphabet, and only among those whose engine this run can reach.
+            self.assertEqual([r[1] for r in rows], ["a"])
             rows = tribe.next_up(keyed="deepseek", force="c")
             self.assertEqual([r[1] for r in rows], ["c"], "a human naming a member is not overruled")
         finally:
@@ -870,8 +871,8 @@ class TestPlates(unittest.TestCase):
                              "the member whose engine the environment has a key for is the one woken")
             os.environ["TRIBE_API_KEY_OPENROUTER"] = "not-a-real-key"
             self.assertEqual(tribe.keyed_from_env(), "anthropic openrouter")
-            self.assertEqual(sorted(r[1] for r in tribe.next_up(keyed=tribe.keyed_from_env())), ["e", "f"],
-                             "a second engine with a key in the repository is not skipped")
+            self.assertEqual([r[1] for r in tribe.next_up(keyed=tribe.keyed_from_env())], ["e", "f"][:1],
+                             "a second engine with a key widens the pool; the circle still takes one turn")
         finally:
             if old_dir is not None:
                 tribe.MEMBERS = old_dir
@@ -1273,28 +1274,20 @@ class TestSchema(unittest.TestCase):
         self.assertEqual(tribe.place_of(tribe.MEMBERS / "Ada"), "workshop")
         self.assertEqual(tribe.validate("Ada"), [])
 
-    def test_next_with_no_world_says_why_instead_of_exiting_in_silence(self):
-        """The failure mode this bench is named for: a refusal that looks like an empty queue.
+    def test_a_member_with_no_place_is_a_member_and_is_woken(self):
+        """This test used to prove the opposite, and the opposite was the defect.
 
-        Three members, none with a place, `tribe.py next` printed one blank line and exited 1. Nothing said
-        the members existed, nothing said what was missing, and a person would reasonably conclude the
-        colony was idle rather than stranded.
+        Until 2026-11-20 a member with no `place` line was not in a colony and was never woken — so the page had to
+        ask a person to name a world before it would make a member, and the founder asked why the concept existed at
+        all. It existed because two experiment colonies shared one repository (`0da5fd04`, 2026-11-01). A member is a
+        member; the place is now read only so the record can say where it stood, and it is empty when there is none.
         """
         for name in ("Ada", "Bruno"):
             tribe.new(name, "the test", "gemini", "gemini-3.8-flash", "", "workshop")
             (tribe.MEMBERS / name / "state" / "place.md").unlink()
-        self.assertEqual(tribe.next_up(), [], "a member with no place is not in a colony")
-        buf = io.StringIO()
-        old_argv = sys.argv
-        sys.argv = ["tribe.py", "next"]
-        try:
-            with contextlib.redirect_stderr(buf), contextlib.redirect_stdout(io.StringIO()):
-                rc = tribe.main()
-        finally:
-            sys.argv = old_argv
-        self.assertEqual(rc, 1)
-        self.assertIn("no member has a place", buf.getvalue())
-        self.assertIn("wake/members/<name>/state/place.md", buf.getvalue())
+        rows = tribe.next_up()
+        self.assertEqual([r[1] for r in rows], ["Ada"], "a member with no place is still woken — one turn per circle")
+        self.assertIn(rows[0][0], ("", None), "and the record does not invent a world for it")
 
 
 class TestTheDefaultIdentity(unittest.TestCase):

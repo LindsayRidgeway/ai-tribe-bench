@@ -421,3 +421,29 @@ outcome rather than a failure. If you want a member thinking on its own, put one
 written by the template and signed with the owner's name. In this circle it is now *"the workshop, before you"*, with
 a line above the table saying nobody in your circle dropped those rows and the first one does not say "you" for a
 reason: a file that signs a person's name to something they never did is a small lie that a member will build on.
+
+### Worlds are gone — 2026-11-20, after the founder asked twice
+
+*"Why did you introduce the concept of 'worlds', especially multiple worlds, into Kythe? Can we delete that concept
+and all the code, memory, and repo structure associated with it?"* — and then, when the answer was already dying:
+*"Have you removed visibility of the world concept, even for a single world, from visibility to the user?"*
+
+**Where it came from**, from the record and not from memory: `0da5fd04`, 2026-11-01 23:43 — *"a second colony in a
+second soil … so two colonies share one repo and the magazine names where each issue was made."* Two experiment
+groups, one repository. Nothing about it was a question a person with a circle would ask.
+
+**What is deleted.** The **Worlds** tab and its three views, the box that made a world, the world line on every member
+row and page, the world step in *Add a member* and the world line in its confirmation, the per-world turn in the clock
+(a circle now takes one turn, given to whoever has fewest wakes), and the requirement itself — a member with no
+`place` used to be invisible to the clock and now is a member like any other. Three page checks went with the views;
+one test changed its mind about what it was proving.
+
+**What is left, and why.** One room per circle: `soil/<any-name>/world.md` and `drops.md`, read into every wake. It is
+four files a person writes once, and without it a member writes generic prose about nothing. The page does not mention
+it; the manual describes it as a file, not a feature.
+
+**What still reads old circles.** `place.md` is kept for a circle that already has one — it only chooses between
+folders when a circle has more than one, and two rooms no longer buy two turns. Nothing writes it any more.
+
+**And the template ships one room**, not two, with the first drop's attribution corrected: the row used to say `the
+human`, and the human in question had never dropped anything.
