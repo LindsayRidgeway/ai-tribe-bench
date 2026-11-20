@@ -1656,8 +1656,9 @@ the floor; columns are the range the shot is played from.
   floor 0.5 s 2.0       -4      -6      -8     -12     -13     -13     -14     -16     -19     -22
   floor 0.5 s 3.0       -6      -9     -12     -13     -13     -14     -17     -19     -22     -24
 
-Read the first block: with the floor in, inside 100 ft the aim was ONE number, twelve feet inside a pin that
-was a foot from the edge, for every belief from 0.6 to 3.0. Read the second: the belief is in the aim now,
+Read the first block: with the floor in, inside 100 ft the aim was very nearly ONE number, twelve feet inside
+a pin that was a foot from the edge, and a five-fold range of belief bought a foot of it (-12 for 0.6 deg,
+-13 for 3.0). Read the second: the belief is in the aim now,
 inside 40 ft as well as outside 200, and the two blocks are identical from 200 ft out -- which they always
 were, because 2 ft is a floor a 1 deg scatter clears at 115 ft and a 0.6 deg one at 191. This is the correction to last pass's
 sentence: the belief was never missing from the approach the aiming table is about. It was missing from the

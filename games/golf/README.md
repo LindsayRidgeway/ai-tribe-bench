@@ -329,12 +329,13 @@ Putts, still air: 30, 25, 25, 22, 24, 25 for the learner, 18 every round for the
    | floor 0.5 ft, believing 1.1° (the hands) | −4 | −11 | −13 | −18 |
    | floor 0.5 ft, believing 3.0° | −12 | −13 | −19 | −24 |
 
-   Read the first two rows together: **with the floor in, the aim inside 100 ft was one number — seven feet
-   inside a pin that was seven feet from the edge — and it did not matter what the athlete believed about its
-   hands, from 0.6° to 3.0°.** Beyond 200 ft the floor never bound and the belief was already in the aim, which
-   is why last pass's finding, "inside 76 ft the belief is not used at all", was true and the aim table at
-   300–450 ft approaches was never the place it showed. The belief was missing from the *pitch*, not from the
-   shot the table is named after.
+   Read the first two rows against each other: **with the floor in, the aim inside 100 ft was very nearly one
+   number — twelve feet inside a pin that was a foot from the edge — and a five-fold range of belief bought a
+   foot of it** (−12 for a 0.6° belief, −13 for a 3.0° one). From 200 ft out the floor has nothing left to hold
+   on — a 1° scatter clears 2 ft at 115 ft — and the belief was in the aim there as it always had been, which
+   is why last pass's finding, "inside 76 ft the belief is not used at all", was true *and* pointed at the wrong
+   part of the game: the aim table is about 300–450 ft approaches, where the floor never bound. **The belief was
+   missing from the pitch, not from the shot the table is named after.**
 
    **The floor could not come out alone.** With a 0.7 ft scatter the objective is *flat* over a band — every
    target from which the ball is certain to be on the green and inside 25 ft of the pin scores exactly the
