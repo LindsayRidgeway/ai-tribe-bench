@@ -11,8 +11,11 @@ game's putter has no scatter at all, so the green has no gradient and the step t
 targets with was decoration. Eleventh: the putter given the hands every other club has, and the two things
 that were hiding behind the flat green — the athlete had no *eyes* (it aimed at the hole on a green falling
 1.2%, missing by feet) and no *pace* (it aims to die at the cup, so half its putts from 3 ft stop short of it).
-The first is built, the second is measured and named.** The tool is `lab/golf.py`; the runs are
-`records/golf-2026-11-19.txt`; the checks are `python3 lab/golf.py --selftest` (33 of them).
+The first is built, the second is measured and named. Twelfth: the second built too — the putter now decides
+how far past the cup to aim from what it has learned about its own scatter — and two more instruments found
+reading the wrong thing, one of which had been making the cost table measure the wrong distance for two
+passes.** The tool is `lab/golf.py`; the runs are `records/golf-2026-11-19.txt`; the checks are
+`python3 lab/golf.py --selftest` (34 of them).
 
     python3 lab/golf.py                    # six rounds of nine, then six holes never played
     python3 lab/golf.py --calm             # the same pins on a still day
@@ -150,12 +153,12 @@ number a floor had chosen, and scoring the aim in strokes instead of in proximit
 
 | still air | 1 | 2 | 3 | 4 | 5 | 6 | held-out | notebook error |
 |---|---|---|---|---|---|---|---|---|
-| **learning** | +8 | +7 | 0 | 0 | −1 | −1 | −1 | 13.2 → 1.2, 1.1 by the sixth |
+| **learning** | +6 | +3 | +4 | +1 | −2 | −2 | −1 | 14.3 → 1.5, 1.5 by the sixth |
 | **control** | +9 | +9 | +9 | +9 | +9 | +9 | +8 | 36.7% flat |
 
 | windy | 1 | 2 | 3 | 4 | 5 | 6 | held-out | notebook error |
 |---|---|---|---|---|---|---|---|---|
-| **learning** | +7 | +1 | +3 | +3 | +2 | +2 | −1 | 18.9 → 11.0, 11.4 by the sixth |
+| **learning** | +13 | +6 | −3 | −4 | −2 | −2 | −1 | 21.0 → 12.0, 12.0 by the sixth |
 | **control** | +10 | +10 | +10 | +10 | +10 | +10 | +8 | 38.9% flat |
 
 What the second pass printed from the same command was +16, +13, +10, +3, +5, +8 against a control of +13 all
@@ -167,12 +170,14 @@ in still air, eight in wind, and one *under* par on six holes it has never playe
 *to par over nine holes (par 35); held-out is six holes never played (par 22). Notebook error is |what the
 notebook said| against |what the shot did|, over every shot in the round.*
 
-Putts, still air: 20, 18, 17, 18, 18, 18 for the learner, 14 every round for the control.
+Putts, still air: 20, 16, 22, 16, 16, 16 for the learner, 14 every round for the control; wind 18, 21, 12,
+10, 14, 14.
 
-*Where the putter's new hands show on a card is not in the count but in the odd four-putt: round 1, hole 2 is
-11 ft → 7.8 ft past → 8.3 ft → 3.1 ft → in. Until pass 11 every one of those was one putt and a tap-in.*
+*The wind table is the one that moved most in pass 12 — from +18 over six rounds to +8 — and the reason is
+visible in its putt counts, which fall from 18-21 to 10-14 as the athlete learns: a putter that holes its
+putts makes a windy round recoverable.*
 
-### Ten findings
+### Eleven findings
 
 1. **A wrong notebook costs about eight strokes a round — and pass 9 changed the shape of the bill.** The
    learner starts level at worst with a player who never practises (+7 against +9 in still air, +11 against +16
@@ -197,32 +202,32 @@ Putts, still air: 20, 18, 17, 18, 18, 18 for the learner, 14 every round for the
 
    | still air, 40 drawn courses × 8 bags | pin ±6 ft | pin ±14 ft | pin ±19 ft |
    |---|---|---|---|
-   | aiming at the pin, minus aiming where the ball is cheapest to hole out from | +0.25 ± 0.58 | −0.05 ± 0.80 | **+0.48 ± 0.60** |
-   | aiming at the middle, minus the same | +0.46 ± 0.58 | +1.01 ± 0.56 | **+1.01 ± 0.41** |
+   | aiming at the pin, minus aiming where the ball is cheapest to hole out from | −0.20 ± 0.36 | +0.40 ± 0.61 | **+1.05 ± 0.74** |
+   | aiming at the middle, minus the same | +0.52 ± 0.53 | +1.26 ± 0.31 | **+1.91 ± 0.56** |
 
    On a nine with the flags near the middle all three are the same shot, inside the noise. At fourteen feet of
-   pin offset the pin-hunter and the belief are the same shot (−0.05 ± 0.80) and the caddie's middle is a full
-   stroke behind. On a tucked-pin day the pin is half a stroke behind the belief and the middle is a stroke
-   behind both. **That is the whole of what a belief about your hands buys in this game now: it is never worse
-   than the pin and it is a stroke better than not looking at all.**
+   pin offset the pin-hunter is four tenths behind the belief and the caddie's middle is a stroke and a quarter
+   behind. On a tucked-pin day the pin is a stroke behind the belief and the middle is nearly two behind both.
+   **The belief is worth a stroke on a tucked pin and nothing on a friendly one, and it is never worse than
+   either crude rule.**
 
    The history, because this table has moved every pass and each move has a cause. It read −0.42 / +0.78 /
    +2.50 on one athlete whose sigma was wrong; the repair in pass 8 halved the tucked-pin figure and doubled
    its bar; the floor coming out in pass 9 put a quarter of a stroke back on it; pass 10 replaced the objective
-   it is scored with and took a sixth (finding 9); **and pass 11 put hands and eyes on the putter and took the
-   rest** — the ±19 figure fell from +1.30 ± 0.67 to +0.48 ± 0.60, and ±14 from +0.75 ± 0.62 to −0.05 ± 0.80.
-   The two passes' estimates differ by 0.82 ± 0.63, which is a little over one sigma on the difference: the
-   honest reading is *smaller*, not *gone*.
+   it is scored with and took a sixth (finding 9); pass 11 put hands and eyes on the putter and took the rest —
+   the ±19 figure fell from +1.30 ± 0.67 to +0.48 ± 0.60, and ±14 from +0.75 ± 0.62 to −0.05 ± 0.80; **and pass
+   12 gave the putter a pace, which put the stroke back** (+1.05 ± 0.74 at ±19). That is the shape of the whole
+   file: the aim is worth something exactly when the thing it aims at is worth something, and a putter that dies
+   at the cup makes every landing on the green the same.**
 
    The mechanism is the objective's, and pass 11 measured it in the objective rather than in the arms. There is
-   one gradient in the model — the lie — and on the green every distance from 2.5 ft to 28 ft is priced at
-   2.00, so a target thirty feet from the hole is worth exactly what a target three feet from it is worth
-   (finding 10). The pin aim and the belief aim therefore differ only in the edge-of-the-grass arithmetic
-   between them, and the game now has a gradient the model is not told about: a hundredth of a stroke a foot,
-   which is 0.2 of a stroke across a green. Half of what the tenth pass measured was not the aim at all — it
-   was a game in which every putt cost two strokes, so the card could not tell the two aims apart, and half of
-   the rest is the paired design's own noise, because two arms stop sharing a shot stream at the first decision
-   they disagree about.
+   one gradient in the model — the lie — and on the green every distance is priced at 2.00, so a target thirty
+   feet from the hole is worth exactly what a target three feet from it is worth (finding 11). The pin aim and
+   the belief aim therefore differ only in the edge-of-the-grass arithmetic. What the aim is worth on this
+   course is a question about the *lie prices*, not about distance, and pass 12 measured the lie prices moving:
+   the green is 1.00–1.93 depending on the putt and the rough 2.0–2.6, so the gap the objective calls 0.60 is
+   really 0.5 to 1.0, and patching the two constants to the measured numbers gains every policy in the table
+   above 0.2 to 0.5 strokes (finding 11, item 6 under "where it stops").
 
 4. **In wind the same decision is worth more, not less — and the reversal this file carried for three passes
    was the putter's.** Drawn pins at ±19 with drawn wind, eight bags, floor out, cost objective: aiming at the
@@ -389,20 +394,24 @@ Putts, still air: 20, 18, 17, 18, 18, 18 for the learner, 14 every round for the
 
    | 8 streams, pins ±19 ft, wind drawn, 16 courses to learn on, 4 rounds each | strokes/round | believes |
    |---|---|---|
-   | told 2.0° | 33.30 ± 0.21 | 2.00° |
-   | told 0.6° | 33.42 ± 0.36 | 0.60° |
-   | told 1.1° (the hands) | 33.44 ± 0.28 | 1.10° |
-   | gated, learned | 33.66 ± 0.48 | 1.27° |
-   | ungated, learned | 33.67 ± 0.24 | 2.62° |
-   | told 3.0° | 33.83 ± 0.16 | 3.00° |
+   | told 0.6° | 34.31 ± 0.36 | 0.60° |
+   | told 1.1° (the hands) | 34.80 ± 0.19 | 1.10° |
+   | told 2.0° | 34.88 ± 0.35 | 2.00° |
+   | ungated, learned | 35.08 ± 0.37 | 2.56° |
+   | gated, learned | 35.10 ± 0.32 | 1.40° |
+   | told 3.0° | 35.72 ± 0.53 | 3.00° |
 
-   The table's own spread, paired by stream, is **0.52 ± 0.27 strokes a round** across a five-fold range of
-   self-knowledge. Pass 10 read this table as monotone — the wilder the athlete thinks it is, the worse it
-   plays — and pass 11 does not: the six arms are ordered 2.0°, 0.6°, 1.1°, gated, ungated, 3.0°, and only the
-   ends of that are more than one bar apart. What is left is the size, and the size is: **a belief about its
-   own hands is worth at most half a stroke a round, on a five-fold range of beliefs, in a game whose short
-   game is now worth more than that** (finding 10). Two passes of this file called the belief the whole subject;
-   the eleventh pass is where it stopped being the biggest thing in the short game.
+   The table's own spread, paired by stream, is **1.41 ± 0.64 strokes a round** across a five-fold range of
+   self-knowledge — nearly three times what it was in pass 11 (0.52 ± 0.27), because a putter that holes putts
+   makes a landing near the flag worth something and a player who thinks it is wild aims away from the flag.
+
+   **And the awkward result of pass 9 is back, on a game that is now honest.** The sharpest belief wins: told
+   0.6° finishes 0.79 ± 0.43 ahead of the 1.10° hands it actually has, which is 1.8 sigma — leaning, not
+   settled. Pass 10 made that anomaly go away by scoring in strokes; pass 12 brought it back by giving the
+   putter a pace, so the explanation pass 10 offered ("the anomaly was the objective's") was at best half of
+   it. What is left is uncomfortable and simple: in this game an athlete that *believes* it is accurate aims at
+   the flag, and the flag is where the strokes are, so a flattering belief pays for itself at a rate the truth
+   does not. Finding 11 is the pass that made that visible again and did not repair it.
 
    **The awkward part of this finding, which pass 10 resolved.** Under the floor and the step objective the
    best belief was 0.6°, *sharper* than the 1.10° hands, and this file could not say whether that was real.
@@ -545,9 +554,9 @@ Putts, still air: 20, 18, 17, 18, 18, 18 for the learner, 14 every round for the
    | real golf, roughly | 95% | 50% | 30% | 15% | 7% | 4% |
 
    **The pace is worth more than the dispersion and more than the read: 37 points at 3 ft, 13 at 20 ft, in the
-   one direction that matters.** And it is not built, because it is not a dispersion and it is not a read — it is
-   a decision about *what to intend*, which is the same class of thing as the target decision, and it needs its
-   own pass to be measured rather than slipped in. It is the first item under "where it stops".
+   one direction that matters.** It was left unbuilt in pass 11 on purpose — it is a decision about *what to
+   intend*, not a dispersion and not a read, and the two lessons of passes 9 and 10 are what an unmeasured
+   intent costs. **Pass 12 built it: finding 11.**
 
    The honest part of the last row is this: with a pace that finishes 1 ft past, this game holes **more** putts
    than golf does at every distance from 6 ft out (60/43/29/17 against 50/30/15/7). The line error here is one
@@ -556,16 +565,86 @@ Putts, still air: 20, 18, 17, 18, 18, 18 for the learner, 14 every round for the
    built: **this game's short game, with the pace fixed, would be better than golf's, and the reason is that it
    reads greens perfectly.** That is the next lie the model would be telling itself.
 
+11. **The pace is a decision, and once the putter made it the green cost what a green costs — and two instruments
+   turned out to have been reading the wrong thing for two passes.** Pass 11 priced this and refused to build
+   it: a putt that dies at the cup cannot go in, and aiming past the cup instead was worth 37 points at 3 ft and
+   13 at 20. What was missing was not a number. It was that `putt.py`'s athlete carries two *means* — a pace gain
+   and a line bias — and **no variances at all**, so it aims the way a player aims who is certain to hit the
+   number it picks, and a player who hits the number exactly should die the ball at the cup. It does not hit the
+   number exactly, so it should not, and how far past the cup it should aim is a function of **how badly it
+   misses**, which it can only know if it has an opinion about its own scatter.
+
+   So the putter has one now. Two numbers, learned from the same printed miss the two means are learned from —
+   the lateral miss at a known distance is an angle, and the along miss is half a fraction of speed because a
+   ball's roll goes as the square of its speed — starting at the clubs' own 1.1° and 1.5% because that is the
+   only evidence a player has about its own hands before it has putted. Then it chooses its overshoot by
+   maximising the two ways a scattered putt *fails*: stopping short of the plane (the ball never crosses the
+   hole) against arriving faster than the 4.5 ft/s the hole accepts (pass 5's lip). Both terms are physics and
+   the scatter is measured; there is no fitted constant in the decision.
+
+   | what it chooses | 2 ft | 3 ft | 4 ft | 6 ft | 9 ft | 12 ft | 20 ft | 45 ft |
+   |---|---|---|---|---|---|---|---|---|
+   | aim past the cup (downhill line, a_eff 2.07) | 0.51 | 0.81 | 1.02 | 1.53 | 2.24 | 2.24 | 2.24 | 2.44 |
+   | the same up the slope (a_eff 1.53) | 0.55 | 0.83 | 1.11 | 1.52 | 2.35 | 3.04 | 3.04 | 3.18 |
+
+   | 3 ft and 20 ft putts, 240 draws each | holed |
+   |---|---|
+   | aiming past the cup (pass 12) | 84% / 23% |
+   | aiming at it (pass 11) | 45% / **14%** |
+
+   **And the green now costs what golf's greens cost**, which is the thing pass 10 went looking for and pass 11
+   could not deliver:
+
+   | strokes to hole out, from the *flag* | 2 ft | 3 ft | 4 ft | 6 ft | 9 ft | 12 ft | 16 ft | 20 ft |
+   |---|---|---|---|---|---|---|---|---|
+   | this game | 1.00 | 1.21 | 1.23 | 1.54 | 1.62 | 1.70 | 1.89 | 1.93 |
+   | golf, roughly | 1.02 | 1.05 | 1.12 | 1.35 | 1.6 | 1.75 | 1.85 | 1.9 |
+
+   **Two instruments were lying, and one of them explains why two passes could not see this curve even after the
+   putter had the hands to produce it.** The cost table places a ball at a distance `d` from the green's *centre*
+   and then reports `d` as the distance to the hole — but the pin is cut 13 ft off centre, so the row marked
+   2.5 ft was a 13 ft putt and the row marked 28 ft was a 15 ft one. Every cell in a table that was supposed to be
+   about distance was within a few feet of every other cell. It is measured from the flag now, and the column
+   reads 1.00 to 1.93. And the check that prices the sand ran its forty trials on **one seed** — one trial,
+   forty times — which is how it came to report the sand's price as a whole number. Both are the same species of
+   error as pass 11's shared seed in the same function: an instrument that looks like it is averaging and is not.
+
+   What it did to the cards, and two of them are uncomfortable:
+
+   | | before (pass 11) | after (pass 12) |
+   |---|---|---|
+   | learner, still air, six rounds | +8 +7 0 0 −1 −1 | **+6 +3 +4 +1 −2 −2** |
+   | learner, wind drawn | +7 +1 +3 +3 +2 +2 | **+13 +6 −3 −4 −2 −2** |
+   | field, eight rounds, best learner | flag-hunter +39 | practiser +49 (**flag-hunter +77, last**) |
+   | belief table, spread over a five-fold range | 0.52 ± 0.27 | **1.41 ± 0.64** |
+
+   The wind rounds get three strokes a round better and the field's `flag-hunter` — first in passes 10 and 11 —
+   goes from +39 to +77 and last of the five learners. The frozen player does not move at all (+115 both times),
+   so this is not a change in the game's difficulty; it is what happens when putting stops being free. The
+   reading I would defend: **when a putt could not miss, a landing near the flag was worth nothing and the
+   athlete that ignored the flag did not pay for it; now a putt can miss, and the policy that lives at the pin
+   pays for every hole it is short-sided on.**
+
+   The one thing that got *worse* is the aim, and it is the next pass. With the short game real, the objective is
+   still priced for the old one: it is told the green costs 2.00 (really 1.00–1.93) and off the green 2.60
+   (really 2.0–2.6), so it believes a safe green lie is worth 0.60 of a stroke more than the rough when it is
+   worth 0.5 to 1.0, and it aims too boldly near the sand and the edge. Patching the two constants to the
+   measured numbers is one line and gains every policy on ±19 pins a chunk of a stroke: `flag` −0.86 → −1.22,
+   `spread` −1.92 → −2.10, `centre` −0.01 → −0.54. That is the size of the next pass, measured before it is
+   built rather than after.
+
+   And the lip, which pass 11 found dead, is still nearly dead: 0.2% of 45 ft putts lip out and none inside 12 ft,
+   because the chosen overshoot keeps the arrival speed under the capture speed *by construction*. The decision
+   trades lipouts away on purpose and the trade is right, but it means the bunker's face and the hole's lip —
+   the same geometry — still only bite the chip.
+
 ## What this does not model
 
-- **the putter aims to die at the cup, so half its short putts never reach it.** This is now the largest single
-  thing wrong with the model. `putt.py`'s athlete drives its mean miss to zero, which is the pace that stops at
-  the hole; with hands on it, 31% of its 3 ft putts and 41% of its 6 ft putts finish at least an inch short of
-  the plane, and a putt that stops short cannot go in, so it holes 45% of them where golf holes 95% (finding
-  10). A golfer who knows the ball scatters aims to finish past the hole. Fixing it is a change of *intent* —
-  it needs to be measured and shown, not slipped in — and it would move every putting number here again, so it
-  is the first item under "where it stops". What the putter does have now is the clubs' own 1.1° face and 1.5%
-  of speed, and the read that a green falling 1.2% requires; both were missing until pass 11
+- **the putting stroke has one shape.** `putt.py`'s athlete models a pace gain and a line bias, and the game
+  has added the clubs' two dispersions (pass 11) and a pace the athlete decides (pass 12) — but a real putter
+  also has a stroke that is not a straight line: no arc, no clubface rotation through impact, no strike low or
+  high on the face. What that would add is a dispersion that grows with the length of the stroke rather than one
+  constant 1.1°, and it is the same missing thing as the read error below
 - **a read error.** The putter's read is exact to a third of an inch, so its line error is one constant 1.1° at
   every distance, while a real golfer's grows with distance because a real golfer misreads the green. With the
   pace fixed this game would already hole more putts than golf from 6 ft out (finding 10), and the only thing
@@ -610,15 +689,19 @@ at all, and the first two of them are now built:
 
    | wind drawn, ±14 ft, 8 rounds (par 280) | R1 | R4 | R8 | total | best | change |
    |---|---|---|---|---|---|---|
-   | flag-hunter | +12 | +2 | −3 | **+39** | −3 | −15 |
-   | bad start (worse prior on the bag) | +7 | +2 | +3 | +44 | +2 | −4 |
-   | practiser | +10 | +9 | +0 | +45 | +0 | −10 |
-   | blind hands (told a scatter it does not have) | +11 | +6 | +0 | +47 | +0 | −11 |
-   | cautious (middle of the green) | +11 | +3 | +2 | +59 | +2 | −9 |
-   | no practice (frozen) | +14 | +16 | +11 | **+115** | +11 | −3 |
+   | practiser | +11 | +6 | +0 | **+49** | +0 | −11 |
+   | bad start (worse prior on the bag) | +13 | +2 | +1 | +52 | −1 | −12 |
+   | blind hands (told a scatter it does not have) | +14 | +3 | +2 | +56 | +2 | −12 |
+   | cautious (middle of the green) | +17 | +1 | +1 | +66 | +1 | −16 |
+   | flag-hunter | +15 | +8 | +3 | **+77** | +3 | −12 |
+   | no practice (frozen) | +14 | +17 | +11 | **+115** | +11 | −3 |
 
-   Re-run in pass 11, with hands and eyes on the putter. Every learner gains four to fifteen strokes over eight
-   rounds; the frozen player gains three and finishes sixty-eight strokes behind. **The order among the five learners is
+   Re-run in pass 12, with a putter that holes putts. Every learner gains eleven to sixteen strokes over eight
+   rounds; the frozen player gains three and finishes sixty-six strokes behind. **The order has turned over:**
+   `flag-hunter` led this table in passes 10 and 11 and is last of the five learners here, and `practiser` —
+   middle of the pack before — leads. Finding 11 is why: when a putt could not miss, a landing near the flag was
+   worth nothing; now it can, and the policy that lives at the pin pays for the holes it is short-sided on. The
+   frozen player's total is identical to pass 11's, so this is not the course getting harder. **The order among the five learners is
    inside the noise** and should not be read: on eight rounds of a nine-hole course, four of them are the same
    golfer — and the one that is not is `cautious`, which is last by nine strokes and aims at the middle with a
    policy that knows where the bunker is but not where the pin is. What the card shows is the distance between
@@ -679,21 +762,22 @@ at all, and the first two of them are now built:
    in "what this does not model", and it is the reason the belief that plays best is not the belief that is
    true.
 
-5. **How hard to hit a putt — named, pass 11, not built, and the biggest thing left.** The putter's hands and
-   its read are in. What is still wrong is what it *intends*: it drives its mean miss to zero, which is the pace
-   that dies at the hole, and half its putts from inside 6 ft therefore never reach the cup. Aiming to finish a
-   foot past instead of at it is worth 37 points of holed putts at 3 ft and 13 at 20 (finding 10), which is more
-   than the dispersion and more than the read and more than the whole target decision (finding 3, finding 8).
-   It is the same class of defect as the floor and the step function — a target the player is aiming at, not a
-   force — so it gets a pass with a measurement, not an edit.
+5. **How hard to hit a putt — built, pass 12.** The putter's hands, its read and now its pace: it learns two
+   scatters from its own printed miss and settles the overshoot from them and the capture law, which is a
+   decision and not a number I typed. Holes 84% of 3 ft putts against 45%, 23% of 20 ft against 14%, and the
+   green costs 1.00 to 1.93 across 2-20 ft — golf's curve. Finding 11. What came with it: the belief about its
+   own hands is worth three times what it was worth (1.41 ± 0.64), the field's order turned over, and the
+   sharpest belief in the sigma table wins again, which is pass 9's open sore reopened.
 
-6. **The cost curve in `target()`.** The objective is told that a green costs 2.00 from 2 ft and from 28, and
-   that is no longer true: the measured curve runs 1.60 to 2.17, about a hundredth of a stroke a foot. So the
-   model still cannot tell a three-foot putt from a thirty-foot one, and on a wide belief it aims at the room
-   rather than at the flag — 20 ft from the pin on my own nine, 41 ft on the worst hole (check: *a wide belief
-   aims at the room, not at the flag*). Putting the measured curve in place of the two constants is a small
-   edit with a large consequence: it is the first time the objective would be able to *want* to be near the
-   hole. It also invalidates the aiming numbers again, which is why it has not been done inside this pass.
+6. **The cost curve in `target()`, and this is the next pass.** The objective is told that a green costs 2.00
+   from 2 ft and from 28 and off it 2.60, and since pass 12 the first is wrong by up to a stroke: the measured
+   curve runs 1.00 (2 ft) to 1.93 (20 ft) on the green and 2.0–2.6 off it. So the objective still believes the
+   lie gap is 0.60 when it is 0.5 to 1.0, it aims too boldly near the sand and the edge, and it still cannot
+   tell a three-foot putt from a thirty-foot one — which is why a wide belief aims at the room, 20 ft from the
+   pin on my own nine and 41 ft on the worst hole (check: *a wide belief aims at the room, not at the flag*).
+   The size of the pass is already measured: patching the two constants to 1.50 and 2.40 gains `flag` 0.36,
+   `spread` 0.18 and `centre` 0.53 strokes a round at ±19 on 40 courses × 8 bags, and swapping the constants for
+   the curve itself should beat that, because the curve is what the game actually charges.
 
 7. **A dogleg.** The driver's distance has never been a decision, because the corridor is straight and 40 yd
    wide. A corner with trees inside turns "hit it as far as you can" into a question with a number on it — and

@@ -42,7 +42,12 @@ eleventh pass put the dispersion in and found that the count was wrong: giving t
 athlete that had never been given *eyes* (it aimed at the hole on a green falling 1.2%, and missed by a foot and
 a half from twenty feet) and, behind that, a putter that aims to die at the cup and therefore cannot hole half
 its three-footers. Three missing things, one of them built, one built, one measured and named — and the short
-game is now the biggest single thing wrong with any game in this directory.
+game is now the biggest single thing wrong with any game in this directory. The twelfth pass built the third:
+the putter now decides how far past the cup to aim from what it has learned about its own scatter, and the green
+starts costing what golf's greens cost (1.00 at 2 ft, 1.93 at 20). It also found that two of the game's own
+instruments had been reading the wrong thing — a cost table whose "distance" was distance from the green's
+centre, and a price check that ran forty trials on one seed — which is the third time this game has caught a
+defect in the measuring rather than in the physics.
 
 ## Which to keep, and why
 

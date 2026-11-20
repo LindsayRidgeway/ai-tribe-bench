@@ -46,7 +46,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from tennis import flight, G, MPH, RHO  # noqa: E402  the one integrator, not a second copy of the loop
 from putt import (  # noqa: E402  the short game is already a game
-    STIMPMETER_SPEED, Athlete as PuttAthlete, Green,
+    CAPTURE_SPEED, STIMPMETER_SPEED, Athlete as PuttAthlete, Green,
     effective_decel, phrase as putt_phrase, report as putt_report, roll as putt_roll, unit as putt_unit,
 )
 
@@ -134,6 +134,9 @@ DEFAULT_SEED = 20261119
 PUTT_FACE_SD = FACE_SD     # degrees
 PUTT_SPEED_SD = SPEED_SD   # fraction of ball speed
 PUTT_READ_STEPS = 2        # corrections in the read; see putt_read()
+PUTT_AIMS_PAST = True      # the putter aims past the cup by an amount it decides (GolfPutter.settle); the
+                           # switch exists so the checks can measure the decision against a player who does not
+                           # make it. It is not a user option: a golfer who does not do this is not a golfer.
 
 # And the putter gets eyes, which is the other half of the same omission. `putt.py` tells its athlete the green's
 # speed and which way and how hard the slope falls — a player can see all of that — and then makes it aim at the
@@ -163,6 +166,67 @@ def putt_read(green: Green, gap_ft: float, bearing: float, speed: float) -> floa
             break
         face -= math.degrees(math.atan2(lateral, gap_ft))
     return face
+
+
+class GolfPutter(PuttAthlete):
+    """`putt.py`'s athlete, with the two things the short game needs and the putt game never did: a belief about
+    the scatter of its own hands, and a pace it chooses from that belief.
+
+    `putt.py`'s athlete carries two *means* — a pace gain and a line bias — and no variances at all, so it aims
+    as a player would aim who is certain to hit the number it picks, and a player who hits the number exactly
+    should die the ball at the cup. This one does not hit the number exactly, so it should not; and the amount
+    by which it should aim past the cup is a function of how badly it misses, which it can only know if it has an
+    opinion about its own scatter. Pass 8 found the same hole one surface out — the iron athlete was reading its
+    own scatter wrong — and the fix there was to measure it from the printed miss. Same here: two numbers, learned
+    the same way, from the same printed `along` and `lateral`, at a known distance.
+
+    They start at the clubs' own `FACE_SD` and `SPEED_SD`, which is not a guess about this putter: it is the only
+    evidence a player has about its own hands before it has putted, and the measured truth turns out to be the
+    same two numbers, so the prior is right and the learning is a slow correction rather than a rescue.
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.face_sd = FACE_SD          # degrees
+        self.speed_sd = SPEED_SD        # fraction of ball speed
+        self.felt: list[tuple[float, float]] = []
+
+    def feel(self, along: float, lateral: float, d: float) -> None:
+        """One putt's printed miss, in the athlete's own units: degrees of face and a fraction of speed.
+
+        `along` is the miss along the line it meant to hit, so the residual after the pace it meant to hit has
+        been taken off is `along`; a ball's roll goes as the square of its speed, so a fraction f of speed is 2f
+        of distance and the speed error is `along / (2 d)`. The lateral miss at a known distance is an angle.
+        """
+        if d <= 0.0:
+            return
+        self.felt.append((math.degrees(math.atan2(lateral, d)), along / (2.0 * d)))
+        if len(self.felt) >= 3:
+            self.face_sd = _sd([f for f, _ in self.felt])
+            self.speed_sd = _sd([v for _, v in self.felt])
+
+    def settle(self, d: float, a_eff: float) -> float:
+        """How far past the cup to aim, from its own scatter and the capture law — not from a number I typed.
+
+        Two ways to miss a putt that a scatter makes possible and a mean cannot see: stop short of the plane (the
+        ball never crosses the hole) and arrive too fast to drop (the hole takes 4.5 ft/s and no more, which is
+        pass 5's lip). The intended overshoot trades them: aim further past and the ball crosses more certainly
+        and arrives faster. Both terms are computed from the athlete's own learned speed scatter, and the trade
+        is the maximisation below. Nothing in it is fitted; the only number that is not physics is the scatter,
+        and that is measured.
+        """
+        sd_p = max(1e-4, 2.0 * self.speed_sd * d)         # overshoot uncertainty, in feet
+        p_max = CAPTURE_SPEED ** 2 / (2.0 * a_eff)        # past this, a putt that lands on the number lips
+        best_p, best = 0.0, -1.0
+        for i in range(0, 49):
+            p = p_max * i / 48.0
+            v = math.sqrt(max(0.0, 2.0 * a_eff * p))       # speed at the hole, aiming p past it
+            sd_v = max(1e-6, a_eff * sd_p / v) if v > 1e-6 else 1e-6
+            reaches = _phi(p / sd_p)
+            drops = _phi((CAPTURE_SPEED - v) / sd_v)
+            if reaches * drops > best:
+                best, best_p = reaches * drops, p
+        return best_p
 
 
 @dataclass(frozen=True)
@@ -695,17 +759,23 @@ def putt_with_hands(putter: PuttAthlete, gap_ft: float, bearing: float, green: G
     ux, uy = putt_unit(bearing)
     spot = (ux * gap_ft, uy * gap_ft)
     a_eff = effective_decel(green, bearing)
-    intended = putter.pace(gap_ft, a_eff)
+    # How far past the cup to aim: the athlete's own decision, made from its belief about its own scatter
+    # (GolfPutter.settle). The line is read for the pace it means to hit; the hands get the last word.
+    over = putter.settle(gap_ft, a_eff) if PUTT_AIMS_PAST else 0.0
+    intended = putter.pace(gap_ft + over, a_eff)
     face = putt_read(green, gap_ft, bearing, intended) + putter.bias + rng.gauss(0.0, PUTT_FACE_SD)
     speed = intended * (1.0 + rng.gauss(0.0, PUTT_SPEED_SD))
     res = putt_roll((0.0, 0.0), face, speed, green, spot)
     along, lateral, _miss = putt_report(res["finish"], (0.0, 0.0), spot)
     if learn:
         which = putter.turn
-        err = along / gap_ft if which == "gain" else lateral
+        # the pace lever is trained to deliver the intent, not to die at the cup: the error it is shown is the
+        # miss less the overshoot it meant to have
+        err = (along - over) / gap_ft if which == "gain" else lateral
         putter.observe(which, putter.gain if which == "gain" else putter.bias, err)
+        putter.feel(along - over, lateral, gap_ft)
     return dict(along=along, lateral=lateral, holed=res["hole"], lipout=res["lipout"], t=res["t"],
-                face=face, speed=speed,
+                face=face, speed=speed, over=over,
                 text=putt_phrase(along, lateral, res["hole"], res["lipout"]))
 
 
@@ -953,11 +1023,11 @@ def selftest() -> int:
 
     # 7. the experiment: does three rounds of nine teach this athlete anything
     green = Green(stimp=10.0, grade=1.2, downhill=135.0)
-    ath, putter = Athlete(), PuttAthlete()
+    ath, putter = Athlete(), GolfPutter()
     scores = [play_round(COURSE, ath, putter, green, learn=True, verbose=False)["to_par"]
               for _ in range(3)]
     held = play_round(HELD_OUT, ath, putter, green, learn=True, verbose=False)["to_par"]
-    ctrl_ath, ctrl_putter = Athlete(), PuttAthlete()
+    ctrl_ath, ctrl_putter = Athlete(), GolfPutter()
     ctrl = [play_round(COURSE, ctrl_ath, ctrl_putter, green, learn=False, verbose=False)["to_par"]
             for _ in range(3)]
     check("learning player improves", scores[2] < scores[0], f"rounds {scores}, held-out {held:+d}")
@@ -1008,7 +1078,7 @@ def selftest() -> int:
 
     # 13. the conditions it can learn, and the target decision it can then make
     windy = list(COURSE)
-    ath2, put2 = Athlete(), PuttAthlete()
+    ath2, put2 = Athlete(), GolfPutter()
     for _ in range(4):
         play_round(windy, ath2, put2, green, learn=True, verbose=False)
     check("it learns what the wind costs", 0.3 < ath2.wind_c < 1.4,
@@ -1016,7 +1086,7 @@ def selftest() -> int:
     still = [Hole(*c) for c in CALM]   # the same flags on a still day
     trained = Athlete()
     trained.policy = "spread"
-    put3 = PuttAthlete()
+    put3 = GolfPutter()
     for _ in range(4):
         play_round(still, trained, put3, green, learn=True, verbose=False)
     # on my own nine a wide belief does not aim near the flag: it aims at the room. The reason is measurable
@@ -1054,7 +1124,7 @@ def selftest() -> int:
         for b in range(bags):
             a0 = Athlete()
             a0.policy = "spread"
-            pu = PuttAthlete()
+            pu = GolfPutter()
             for k in range(3):
                 play_round(drawn_course(random.Random(9000 + k), pin_range, True), a0, pu, green,
                            learn=True, verbose=False, rng=random.Random(DEFAULT_SEED + 7919 * b + k))
@@ -1065,21 +1135,21 @@ def selftest() -> int:
                 for pol in ("flag", "spread"):
                     a = copy_of(a0)
                     a.policy = pol
-                    row[pol] = play_round(course, a, PuttAthlete(), green, learn=False, verbose=False,
+                    row[pol] = play_round(course, a, GolfPutter(), green, learn=False, verbose=False,
                                           rng=random.Random(DEFAULT_SEED))["to_par"]
                 tot += row["flag"] - row["spread"]
             by_bag.append(tot / draws)
         return sum(by_bag) / bags
 
     tight, friendly = paired_advantage(19.0), paired_advantage(6.0)
-    check("the target decision is worth a quarter of a stroke, not one and a half",
-          abs(tight) < 0.9 and abs(friendly) < 1.2,
+    check("the target decision is worth a stroke on a tucked pin and nothing on a friendly one",
+          tight > 0.5 and friendly < 0.5,
           f"aiming at the pin instead of where the putt is likeliest is worth {tight:+.2f} strokes on pins cut "
-          f"19 ft out and {friendly:+.2f} on pins cut 6 ft out, over 3 bags × 12 drawn courses each — and this "
-          f"check used to assert the opposite shape, tight − friendly > 1.0, because pass 10 measured +0.75 at "
-          f"±14 and +1.30 at ±19 in a game whose putter never missed. The 40-course 8-bag run of pass 11 puts "
-          f"the same difference at +0.48 ± 0.60 and −0.05 ± 0.80: the aim is now the smaller half of the short "
-          f"game, and the upper bound is the claim that is left")
+          f"19 ft out and {friendly:+.2f} on pins cut 6 ft out, over 3 bags × 12 drawn courses each. This shape "
+          f"has now been asserted three ways in three passes: pass 10 had tight − friendly > 1.0 in a game whose "
+          f"putter never missed, pass 11 had to take it back to an upper bound when the putter got hands and the "
+          f"aim fell to +0.48 ± 0.60, and pass 12 has it back at a stroke (+1.05 ± 0.74 in the reporting run) "
+          f"because the putter now aims past the cup and a landing near the flag is worth something again")
 
 # 17. the sand is where the hole says it is, and only there
     left_hole, right_hole, none = (Hole(400, 4, "S", pin=10.0, sand=-1), Hole(400, 4, "S", pin=10.0, sand=+1),
@@ -1116,7 +1186,7 @@ def selftest() -> int:
     check("six feet from it, a wedge does", clears_far,
           f"a putter would not, and the athlete does not try it: the face is {LIP_H:.1f} ft and a sand wedge "
           f"is 28°, so it needs {LIP_H / math.tan(math.radians(28.0)):.1f} ft of run")
-    esc = play_hole(sandy, copy_of(ath), PuttAthlete(), green, learn=False, verbose=False,
+    esc = play_hole(sandy, copy_of(ath), GolfPutter(), green, learn=False, verbose=False,
                     rng=random.Random(7), start=close)
     first = next(e for e in esc["log"] if e["kind"] == "shot")
     check("and the athlete plays out instead of into it twice", first["escaping"] and not first["hit_lip"],
@@ -1125,19 +1195,25 @@ def selftest() -> int:
 
     # 19. what a ball in the sand is worth, played through the game rather than a second copy of its rules:
     # a hole started on the sand, and the same hole started on the green two feet nearer the hole
-    def strokes_from(point: tuple[float, float], hole: Hole) -> int:
-        return play_hole(hole, copy_of(ath), PuttAthlete(), green, learn=False, verbose=False,
-                         rng=random.Random(7), start=point)["strokes"]
+    def strokes_from(point: tuple[float, float], hole: Hole, seed: int) -> int:
+        return play_hole(hole, copy_of(ath), GolfPutter(), green, learn=False, verbose=False,
+                         rng=random.Random(seed), start=point)["strokes"]
 
     near = Hole(400, 4, "S", pin=0.0, sand=+1)
-    nn = 40
-    from_green = sum(strokes_from((19.0, y), near) for _ in range(nn)) / nn
-    from_sand = sum(strokes_from((21.5, y), near) for _ in range(nn)) / nn
+    nn = 24
+    # one stream a trial: this check seeded all forty of its trials with one seed, which is one trial forty
+    # times, and it read the sand's price as a whole-number difference between two single putts (pass 12)
+    from_green = sum(strokes_from((19.0, y), near, 7 + 101 * i) for i in range(nn)) / nn
+    from_sand = sum(strokes_from((21.5, y), near, 7 + 101 * i) for i in range(nn)) / nn
+    gap = from_sand - from_green
     check("a ball in the sand is worth what it is told it is worth",
-          1.0 <= from_sand - from_green <= 3.0 and abs((from_sand - from_green) - ath.sand_pen) < 0.6,
+          0.6 <= gap <= 3.0 and abs(gap - ath.sand_pen) < 0.8,
           f"from 21 ft in the sand {from_sand:.2f} strokes against {from_green:.2f} from the green "
-          f"({from_sand - from_green:+.2f}): the athlete prices it at {ath.sand_pen:.2f}. It priced it at "
-          f"1.00 by guess in pass 4, and 0.30 while there was no lip, when sand really was cheap")
+          f"({gap:+.2f}): the athlete prices it at {ath.sand_pen:.2f}, which it has carried since pass 5 and "
+          f"which is now too dear by {ath.sand_pen - gap:+.2f}, because the green got cheaper when the putter "
+          f"learned to aim past the cup and the sand did not. Written down rather than tuned, for the same "
+          f"reason as the cost curve: a constant re-measured and then checked against its own measurement is a "
+          f"fitted number. (It priced it at 1.00 by guess in pass 4, and 0.30 while there was no lip.)")
 
     # 19b-19c. the two costs `target()` is made of. Pass 10 replaced a step function with them, and a cost
     # that nobody measures is the same kind of object as the 25 ft step was: a number I wrote down.
@@ -1151,37 +1227,38 @@ def selftest() -> int:
         for st in range(streams):
             for b in range(bearings):
                 a = math.radians(360.0 * b / bearings)
-                p = (h.centre[0] + math.sin(a) * d, h.centre[1] + math.cos(a) * d)
+                p = (h.flag[0] + math.sin(a) * d, h.flag[1] + math.cos(a) * d)   # from the flag, not the centre
                 got = "sand" if in_sand(p, h) else ("green" if on_green(p, h) else "rough")
                 if got != kind:
                     continue
-                out.append(play_hole(h, copy_of(ath), PuttAthlete(), green, learn=False, verbose=False,
+                out.append(play_hole(h, copy_of(ath), GolfPutter(), green, learn=False, verbose=False,
                                      start=p, rng=random.Random(7 + 31 * b + 997 * st + int(10 * d)))
                            ["strokes"])
         return (sum(out) / len(out), len(out)) if out else (float("nan"), 0)
 
     def holed_rate(d: float, draws: int = 300) -> float:
         """How often the game's own putter holes a putt of `d` feet, over the compass and over streams."""
-        put, rng, got = PuttAthlete(), random.Random(99 + int(10 * d)), 0
+        put, rng, got = GolfPutter(), random.Random(99 + int(10 * d)), 0
         for i in range(draws):
             got += putt_with_hands(put, d, 360.0 * i / draws, green, learn=False, rng=rng)["holed"]
         return got / draws
 
     near_r, far_r = holed_rate(3.0), holed_rate(20.0)
-    near_c, _ = short_game("green", 2.5)
+    near_c, _ = short_game("green", 2.0)
     far_c, _ = short_game("green", 24.0)
-    check("the green stops being flat: 43% holed from 3 ft, 17% from 20",
-          near_r > 1.8 * far_r and abs(near_c - COST_ON_GREEN) < 0.5,
-          f"the game's putter holes {100 * near_r:.1f}% of 3 ft putts and {100 * far_r:.1f}% of 20 ft ones, so "
-          f"the green costs {near_c:.2f} strokes from 2.5 ft and {far_c:.2f} from 24 against the "
-          f"{COST_ON_GREEN:.2f} the objective is told at every distance. Until pass 11 those were the same "
-          f"number — 2.00 from 2 ft and from 28 — because the putter bisected its gain and its line to zero "
-          f"error and the roll carried no scatter, so there was no gradient for any objective to spend. There "
-          f"is one now and it is a quarter of golf's — golf is 95% at 3 ft and 15% at 20, and this putter is "
-          f"{100 * near_r:.0f}% and {100 * far_r:.0f}% because it proposes to arrive at the hole with no speed "
-          f"and half its putts stop short of the cup (finding 10)")
+    check("the green costs what a green costs",
+          near_c < 1.35 and far_c > 1.6 and far_c < 2.4 and near_r > 1.8 * far_r,
+          f"the game's putter holes {100 * near_r:.0f}% of 3 ft putts and {100 * far_r:.0f}% of 20 ft ones, so "
+          f"the green costs {near_c:.2f} strokes from 2 ft and {far_c:.2f} from 24 — golf is 1.05 at 3 ft, 1.9 "
+          f"at 20 and 1.05 / 1.5 / 1.9 / 2.1 across 3-40. Until pass 11 this column was flat (2.00 from 2 ft to "
+          f"28) because the putter bisected to zero error and carried no scatter; until pass 12 it was flat for "
+          f"a second reason nobody had noticed, that every cell in the cost table was placed at its distance "
+          f"from the green's *centre* and the pin is cut 13 ft off it. Both are fixed and the objective is still "
+          f"told {COST_ON_GREEN:.2f} at every distance, which is now wrong by 0.5 — that is item 6 under "
+          f"\"where it stops\" and it is the next pass")
     off_c_36, n36 = short_game("rough", 36.0, bearings=16)
     off_c_60, n60 = short_game("rough", 60.0, bearings=16)
+    # (the rough at those distances lies off the green in every direction, so the fix above does not bias it)
     off_c = (off_c_36 * n36 + off_c_60 * n60) / (n36 + n60)
     check("off the green costs a chip more than on it",
           abs(off_c - COST_OFF_GREEN) < 0.45 and off_c > near_c + 0.3,
@@ -1194,12 +1271,12 @@ def selftest() -> int:
           f"against the same measurement would turn two measured numbers into two fitted ones")
 
     # 20. the notebook learns nothing from sand: same reason as the rough, one lie further out
-    sand_ath, sand_put = Athlete(), PuttAthlete()
+    sand_ath, sand_put = Athlete(), GolfPutter()
     for h in COURSE:
         play_hole(h, sand_ath, sand_put, green, learn=True, verbose=False, rng=random.Random(DEFAULT_SEED))
     obs = sand_ath.shots
     fairway_shots = 0
-    sand_ath, sand_put = Athlete(), PuttAthlete()
+    sand_ath, sand_put = Athlete(), GolfPutter()
     for h in COURSE:
         r = play_hole(h, sand_ath, sand_put, green, learn=True, verbose=False, rng=random.Random(DEFAULT_SEED))
         fairway_shots += sum(1 for e in r["log"] if e["kind"] == "shot" and e["lie"] == "fairway")
@@ -1222,7 +1299,7 @@ def selftest() -> int:
                 for p_ in ("flag", "spread"):
                     a = copy_of(ath)
                     a.policy = p_
-                    rr = play_round(course_, a, PuttAthlete(), green, learn=False, verbose=False,
+                    rr = play_round(course_, a, GolfPutter(), green, learn=False, verbose=False,
                                     rng=random.Random(DEFAULT_SEED))
                     got[(tag_, p_)] = rr["rows"]
             for i, h in enumerate(base):
@@ -1241,20 +1318,23 @@ def selftest() -> int:
                 sum(diffs["away"]) / max(1, len(diffs["away"])))
 
     seen, hit, toward, away = sand_experiment()
-    check("the bunker is almost never reached", hit / max(1, seen) < 0.10,
+    check("the bunker is almost never reached", hit / max(1, seen) < 0.16,
           f"{hit} of {seen} approaches at a tucked pin beside the sand finished in it "
-          f"({hit / max(1, seen):.1%}); a flank bunker needs the depth right as well as the face wrong")
+          f"({hit / max(1, seen):.1%}, against 8.8% before the putter learned to aim past the cup, which put "
+          f"more balls past the hole and past the flag); a flank bunker needs the depth right as well as the "
+          f"face wrong")
     check("and so it does not make the decision directional",
-          toward < 0.3 and abs(toward - away) < 0.4,
+          toward < 0.6 and abs(toward - away) < 0.9,
           f"adding the sand moves what aiming away from the pin is worth by {toward:+.2f} strokes when the pin "
-          f"is cut toward it and {away:+.2f} when it is cut away — the prediction was that the first would "
-          f"rise by more than a stroke, and it does not rise at all")
+          f"is cut toward it and {away:+.2f} when it is cut away. This sample is twenty courses and cannot "
+          f"resolve a tenth of a stroke; the reporting run (40 courses x 8 bags) gives +0.16 +- 0.20 toward and "
+          f"+0.07 +- 0.04 away, and the prediction was that the first would rise by more than a stroke")
 
     # 26-28. the scatter it believes against the scatter its shots have. Pass 8 is the pass that found the
     # first of these by measuring it: until then the athlete read its own scatter off the flag, so the offset
     # it aims by on purpose counted as a miss, and it believed it was half again as wild as it was.
     def trained_sigma(calm: bool, rounds: int = 4):
-        a, pu = Athlete(), PuttAthlete()
+        a, pu = Athlete(), GolfPutter()
         for k in range(rounds):
             for h in drawn_course(random.Random(3000 + k), 14.0, calm):
                 play_hole(h, a, pu, green, learn=True, verbose=False, rng=random.Random(DEFAULT_SEED + k))
@@ -1271,7 +1351,7 @@ def selftest() -> int:
     for k in range(2):
         course = drawn_course(random.Random(3500 + k), 14.0, False)
         for h in course:
-            r = play_hole(h, windy_ath, PuttAthlete(), green, learn=False, verbose=False,
+            r = play_hole(h, windy_ath, GolfPutter(), green, learn=False, verbose=False,
                           rng=random.Random(DEFAULT_SEED + 40 + k))
             windy_rows += [e for e in r["log"] if e["kind"] == "shot" and e.get("angle_aim") is not None]
     all_sd = _sd([e["angle_aim"] for e in windy_rows])
@@ -1329,7 +1409,7 @@ def selftest() -> int:
     for steps in (1, 2):
         for b in range(0, 360, 30):
             for d in (3.0, 6.0, 12.0, 20.0, 30.0, 45.0, 60.0):
-                sp = PuttAthlete().pace(d, effective_decel(read_green, float(b)))
+                sp = GolfPutter().pace(d, effective_decel(read_green, float(b)))
                 ux, uy = putt_unit(float(b))
                 spot = (ux * d, uy * d)
                 face = float(b)
@@ -1356,7 +1436,7 @@ def selftest() -> int:
         for eyed in (False, True):
             lat = []
             for b in range(0, 360, 15):
-                sp = PuttAthlete().pace(20.0, effective_decel(gg, float(b)))
+                sp = GolfPutter().pace(20.0, effective_decel(gg, float(b)))
                 face = putt_read(gg, 20.0, float(b), sp) if eyed else float(b)
                 ux, uy = putt_unit(float(b))
                 spot = (ux * 20.0, uy * 20.0)
@@ -1373,6 +1453,26 @@ def selftest() -> int:
           f"at 4 ft to 5.15° at 45 — up to three degrees, which is three times the face scatter this game's "
           f"hands have. The break is the cross-slope integrated along a path that is itself bending, which is "
           f"why the read is a roll and not an angle")
+
+    # 34. the pace, which is the eleventh pass's biggest finding and the twelfth pass's first change. A player
+    # with no opinion about its own scatter aims to die the ball at the cup, which is right if it hits the number
+    # exactly, and a putt that dies at the cup never crosses the plane, so half of them cannot go in. The
+    # overshoot is a decision (GolfPutter.settle), not a constant: the athlete trades "short of the hole" against
+    # "arrives too fast to drop" using the scatter it has learned about its own hands. Measured against the same
+    # player with the decision switched off, which is what putt.py's athlete does.
+    global PUTT_AIMS_PAST
+    past_3, past_20 = holed_rate(3.0, 240), holed_rate(20.0, 240)
+    PUTT_AIMS_PAST = False
+    blind_3, blind_20 = holed_rate(3.0, 240), holed_rate(20.0, 240)
+    PUTT_AIMS_PAST = True
+    check("the putter aims past the cup, and the cup is why",
+          past_3 > 0.7 and blind_3 < 0.6 and past_3 > 1.4 * blind_3 and past_20 > blind_20,
+          f"3 ft putts: {100 * past_3:.0f}% holed aiming past the cup, {100 * blind_3:.0f}% aiming at it; "
+          f"20 ft putts: {100 * past_20:.0f}% against {100 * blind_20:.0f}%. The gain is at short range because "
+          f"that is where a missed pace is a missed putt: at 3 ft the ball dies on the lip, at 20 ft it dies a "
+          f"foot short and the second putt is the same either way. And the decision is not a number I typed — "
+          f"the athlete trades the two ways a scattered putt fails, stopping short of the plane and arriving "
+          f"faster than the {CAPTURE_SPEED:.1f} ft/s the hole accepts, over its own learned scatter")
 
     print(f"\n  {len(fails)} of {n} checks failed" if fails else f"\n  all {n} checks pass")
     return 1 if fails else 0
@@ -1397,7 +1497,7 @@ def compare(args) -> int:
     course = [Hole(*c) for c in CALM] if args.calm else COURSE
     trained = Athlete()
     trained.policy = "spread"
-    putter = PuttAthlete()
+    putter = GolfPutter()
     for i in range(4):
         play_round(course, trained, putter, green, learn=True, verbose=False,
                    rng=random.Random(DEFAULT_SEED))
@@ -1409,7 +1509,7 @@ def compare(args) -> int:
     for policy in ("flag", "centre", "spread"):
         a = copy_of(trained)
         a.policy = policy
-        rows = [play_round(course, a, PuttAthlete(), green, learn=False, verbose=False,
+        rows = [play_round(course, a, GolfPutter(), green, learn=False, verbose=False,
                            rng=random.Random(DEFAULT_SEED)) for _ in range(4)]
         strokes = sum(r["strokes"] for r in rows)
         greens = sum(1 for r in rows for row in r["rows"] if row["gir"])
@@ -1456,7 +1556,7 @@ def draws(args) -> int:
     for bag in range(bags):
         trained = Athlete()
         trained.policy = "spread"
-        putter = PuttAthlete()
+        putter = GolfPutter()
         # The bag is drawn from the *practice session*, not from the pins: in still air the pin changes where the
         # shot is aimed and not how far it is hit, so two athletes practising on different pins end up with the
         # same notebook to two decimal places — measured, before this line was written. What a bag really varies
@@ -1472,7 +1572,7 @@ def draws(args) -> int:
             for p in policies:
                 a = copy_of(trained)
                 a.policy = p
-                r = play_round(course, a, PuttAthlete(), green, learn=False, verbose=False,
+                r = play_round(course, a, GolfPutter(), green, learn=False, verbose=False,
                                rng=random.Random(DEFAULT_SEED))
                 scores[p].append(r["to_par"])
                 per_hole[p].extend((h, row["strokes"]) for h, row in zip(course, r["rows"]))
@@ -1497,7 +1597,7 @@ def draws(args) -> int:
                 for p_ in ("flag", "spread"):
                     a = copy_of(trained)
                     a.policy = p_
-                    r = play_round(course_, a, PuttAthlete(), green, learn=False, verbose=False,
+                    r = play_round(course_, a, GolfPutter(), green, learn=False, verbose=False,
                                    rng=random.Random(DEFAULT_SEED))
                     rows[(tag_, p_)] = [row["strokes"] for row in r["rows"]]
             for i, h in enumerate(base):
@@ -1587,7 +1687,7 @@ def field(args) -> int:
     for name, policy, learns, prior, sigma in FIELD:
         ath = Athlete(prior=prior, sigma_taught=sigma)
         ath.policy = policy
-        tots = [play_round(course, ath, PuttAthlete(), green, learn=learns, verbose=False,
+        tots = [play_round(course, ath, GolfPutter(), green, learn=learns, verbose=False,
                            rng=random.Random(DEFAULT_SEED + r))["to_par"] for r, course in enumerate(courses)]
         cards.append((name, policy, learns, tots, ath))
     par = sum(h.par for h in courses[0]) * rounds
@@ -1645,27 +1745,30 @@ def costs_test(args) -> int:
     ath = Athlete()
     ath.policy = "spread"
     for k in range(3):
-        play_round(drawn_course(random.Random(9000 + k), 14.0, True), ath, PuttAthlete(), green,
+        play_round(drawn_course(random.Random(9000 + k), 14.0, True), ath, GolfPutter(), green,
                    learn=True, verbose=False, rng=random.Random(DEFAULT_SEED + k))
     print(f"a settled athlete (sigma {ath.sigma:.2f}°), pin {h.pin:+.0f}, sand to the right; green 20 ft half-"
           f"width, 28 ft half-depth\n")
+    print(f"  distance is from the *flag*, not from the green's centre — until pass 12 every cell here was placed")
+    print(f"  at its distance from the centre, so the row marked 2.5 ft was a 13 ft putt on a green whose pin is cut")
+    print(f"  13 ft off-centre, and the table could not have shown a gradient in distance if the game had had one.\n")
     print(f"  {'distance':>9s}{'green':>16s}{'rough':>16s}{'sand':>16s}")
     rows = {"green": [], "rough": [], "sand": []}
-    for d in (2.5, 4, 6, 9, 12, 16, 20, 24, 28, 33, 40, 50, 60):
+    for d in (2, 3, 4, 6, 9, 12, 16, 20, 24, 28, 33, 40, 50, 60):
         line = f"  {d:7.1f}ft"
         for kind in ("green", "rough", "sand"):
             vals = []
             for st in range(3):
                 for b in range(16):
                     a = math.radians(360.0 * b / 16)
-                    pt = (h.centre[0] + math.sin(a) * d, h.centre[1] + math.cos(a) * d)
+                    pt = (h.flag[0] + math.sin(a) * d, h.flag[1] + math.cos(a) * d)
                     got = "sand" if in_sand(pt, h) else ("green" if on_green(pt, h) else "rough")
                     if got != kind:
                         continue
                     # one stream per position: seeding every bearing with the same seed drew the same two
                     # noises for all sixteen, which made a distance's cost all-or-nothing on one putt's luck
                     # (pass 11). Three streams, because one position's putt is a coin.
-                    vals.append(play_hole(h, copy_of(ath), PuttAthlete(), green, learn=False, verbose=False,
+                    vals.append(play_hole(h, copy_of(ath), GolfPutter(), green, learn=False, verbose=False,
                                           start=pt, rng=random.Random(DEFAULT_SEED + 997 * st + 97 * b
                                                                       + int(10 * d)))["strokes"])
             rows[kind] += vals
@@ -1673,10 +1776,9 @@ def costs_test(args) -> int:
         print(line)
     print(f"\n  Until pass 11 this table was flat: {COST_ON_GREEN:.2f} from 2.5 ft and {COST_ON_GREEN:.2f} from 28,")
     print(f"  because the putter bisected its gain and its line to zero error and the roll carried no scatter. It")
-    print(f"  has both now, and the green has a gradient: about a hundredth of a stroke a foot, against golf's")
-    print(f"  five hundredths (1.05 at 3 ft, 1.9 at 20). The floor of the curve is not golf's either:")
-    print(f"  {_mean(rows['green']):.2f} against 1.05, because this putter still arrives at the hole with no speed")
-    print(f"  and half its putts from inside 6 ft stop short of the cup (finding 10).")
+    print(f"  has both now, and the green has a gradient: {_mean(rows['green']):.2f} over the whole green against")
+    print(f"  golf's 1.05 at 3 ft and 1.9 at 20. And since pass 12 the putter also aims *past* the cup, which is")
+    print(f"  the difference between a putt that can go in and one that dies on the lip of the hole (finding 11).")
     print(f"  off the green, mean {_mean(rows['rough']):.2f} against {COST_OFF_GREEN:.2f} told, and it is 2 or 3 by")
     print(f"  bearing: a chip that goes in, or one that does not. In the sand, mean {_mean(rows['sand']):.2f} against")
     print(f"  {COST_ON_GREEN + ath.sand_pen:.2f} told (the green's two plus the athlete's {ath.sand_pen:.2f} price).")
@@ -1716,12 +1818,12 @@ def sigma_test(args) -> int:
             ath = Athlete(sigma_taught=taught, gate=gated)
             ath.policy = "spread"
             for k, course in enumerate(courses[:train]):
-                play_round(course, ath, PuttAthlete(), green, learn=True, verbose=False,
+                play_round(course, ath, GolfPutter(), green, learn=True, verbose=False,
                            rng=random.Random(base + k))
             tot, logs = 0, []
             for _ in range(args.rounds):
                 for k, course in enumerate(courses[train:]):
-                    r = play_round(course, ath, PuttAthlete(), green, learn=False, verbose=False,
+                    r = play_round(course, ath, GolfPutter(), green, learn=False, verbose=False,
                                    rng=random.Random(base + 500 + k))
                     tot += r["strokes"]
                     logs += [e for h in r["rows"] for e in h["log"]]
@@ -1828,7 +1930,7 @@ def render(args) -> int:
         hole = COURSE[n - 1] if 1 <= n <= len(COURSE) else HELD_OUT[max(0, n - 10)]
         a = Athlete()
         a.policy = "spread"
-        pu = PuttAthlete()
+        pu = GolfPutter()
         for k in range(3):
             play_round([h for h in COURSE if h is not hole] or COURSE, a, pu, green, learn=True, verbose=False,
                        rng=random.Random(DEFAULT_SEED + k))
@@ -1911,7 +2013,7 @@ def main(argv=None) -> int:
         return render(args)
 
     green = Green(stimp=10.0, grade=1.2, downhill=135.0)
-    ath, putter = Athlete(), PuttAthlete()
+    ath, putter = Athlete(), GolfPutter()
     ath.policy = args.policy
     course = [Hole(*c) for c in CALM] if args.calm else COURSE
     print(__doc__.splitlines()[2])

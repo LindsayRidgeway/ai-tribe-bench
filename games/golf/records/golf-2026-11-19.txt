@@ -2246,3 +2246,239 @@ is named in "what this does not model" and not built.
 
 It did not re-derive the two cost constants. They are 0.36 and 0.39 high now and that is written down in four
 places rather than tuned away.
+
+====================================================================================================
+PASS 12 — 2026-11-20, 08:58-09:40 — the pace, which is a decision, and two instruments reading the wrong thing
+====================================================================================================
+
+The eleventh pass ended with the biggest thing it had found unbuilt: a putt that dies at the cup cannot go in,
+aiming past the cup is worth 37 points of holed putts at 3 ft, and that is a decision about what to *intend*
+rather than a dispersion or a read. This pass builds it, and what it found on the way is that the decision was
+being made by a player with no opinion about its own hands at all.
+
+  what changed, in the code
+
+  `class GolfPutter(PuttAthlete)` — putt.py's athlete, plus two things the putt game never needed:
+      - a belief about its own scatter: `face_sd`, `speed_sd`, learned in `feel()` from the same printed
+        `along` and `lateral` the two means are learned from. The lateral miss at a known distance is an angle;
+        the along miss is half a fraction of speed, because a ball's roll goes as the square of its speed. They
+        start at the clubs' own FACE_SD and SPEED_SD, which is the only evidence a player has about its own hands
+        before it has putted — and the measured truth turns out to be those two numbers, so the prior is right.
+      - `settle(d, a_eff)`: how far past the cup to aim, by maximising P(reaches the plane) x P(not too fast to
+        drop) over the athlete's own learned scatter. Two failures, both physics: stopping short, and arriving
+        faster than the 4.5 ft/s the hole accepts. There is no fitted constant in the maximisation.
+
+  `putt_with_hands()` now takes `over = putter.settle(...)`, hits `putter.pace(gap + over, a_eff)`, reads the line
+  for the pace it means to hit, and learns the pace lever against `along - over` instead of `along` — the lever
+  is trained to deliver the intent, not to die at the cup. `putter.feel()` is called with the residuals.
+
+  `PUTT_AIMS_PAST` — a module switch, not a user option: it exists so the checks can measure the decision against
+  a player who does not make one.
+
+  two instruments repaired, both of the same species as pass 11's shared seed:
+      - `costs_test()` placed every ball at its distance from the green's *centre* and printed that number as the
+        distance to the hole. The pin is cut 13 ft off centre, so the row labelled 2.5 ft was a 13 ft putt and the
+        row labelled 28 ft was a 15 ft one: a table about distance in which every cell was the same distance.
+        Measured from the flag now.
+      - the sand price check ran `strokes_from(...)` forty times with `random.Random(7)` — one trial, forty
+        times — and read the sand's price off two single putts (3.00 against 2.00, both whole numbers).
+        One stream per trial now.
+
+  one check added (34), four rewritten (19a, 19b, 21, 22, 23 in substance; 34 of them now).
+
+----------------------------------------------------------------------------------------------------
+1. WHAT THE ATHLETE CHOOSES
+----------------------------------------------------------------------------------------------------
+
+  The overshoot it decides on, from its prior scatter (1.1 deg, 1.5%), which is the truth:
+
+     d               2 ft   3 ft   4 ft   6 ft   9 ft  12 ft  20 ft  45 ft
+     downhill line  0.51   0.81   1.02   1.53   2.24  2.24   2.24   2.44    (a_eff 2.073, p_max 4.88)
+     uphill line    0.55   0.83   1.11   1.52   2.35  3.04   3.04   3.18    (a_eff 1.527, p_max 6.63)
+
+  It grows with distance (the overshoot uncertainty is 2 x 1.5% x d) and with the slope (uphill the ball is
+  decelerating faster, so more pace buys less and the capture window is wider). The values sit in the middle of
+  the range the pass-11 sweep found best (0.5 to 3 ft past), which is the only external check on the decision and
+  it is a check on the shape, not on a number.
+
+  what it does to the putter, 2000 draws over the compass:
+
+     d       holed   lipped   short   past
+    2.5 ft   86.5%    0.0%    0.0%   13.6%
+     4 ft    74.8%    0.0%    0.0%   25.1%
+     6 ft    55.0%    0.0%    0.0%   45.0%
+     9 ft    38.2%    0.0%    0.0%   61.8%
+    12 ft    30.1%    0.0%    0.0%   69.9%
+    20 ft    23.2%    0.0%    0.0%   76.8%
+    30 ft    16.8%    0.1%    0.5%   82.5%
+    45 ft    12.3%    0.2%    3.0%   84.2%
+
+  Against pass 11: 45.3% at 3 ft, 16.8% at 20, and 31% of 3 ft putts at least an inch short. **Nothing is short
+  any more** — the failure mode has flipped wholesale — and the lip, which pass 11 found dead (0.0% at every
+  distance), is still nearly dead at 0.2% of 45 ft putts, because the chosen overshoot keeps the arrival speed
+  under the capture speed by construction. The decision trades lipouts away on purpose and the trade is right;
+  it does mean pass 5's face still only bites the chip.
+
+  The check that holds it (34) measures the decision against the player who does not make it, by flipping the
+  switch: 84% against 45% at 3 ft, 23% against 14% at 20 ft.
+
+----------------------------------------------------------------------------------------------------
+2. THE GREEN NOW COSTS WHAT GOLF'S GREENS COST
+----------------------------------------------------------------------------------------------------
+
+  python3 lab/golf.py --costs        (distance now from the flag; 48 played-out holes a green cell)
+
+   distance           green           rough            sand
+      2.0ft      1.00(48)            —                —
+      3.0ft      1.21(48)            —                —
+      4.0ft      1.23(48)            —                —
+      6.0ft      1.54(48)            —                —
+      9.0ft      1.62(39)            —          3.67( 9)
+     12.0ft      1.70(33)            —          3.87(15)
+     16.0ft      1.89(27)      3.33( 6)      3.60(15)
+     20.0ft      1.93(27)            —          3.19(21)
+     24.0ft      1.76(21)      2.87(15)      3.42(12)
+     28.0ft      1.76(21)      2.53(15)      3.67(12)
+     33.0ft      2.13(15)      1.97(33)            —
+     40.0ft            —      2.23(48)            —
+     50.0ft            —      2.54(48)            —
+     60.0ft            —      2.62(48)            —
+
+  golf, roughly: 1.02 at 2 ft, 1.05 at 3, 1.12 at 4, 1.35 at 6, 1.6 at 9, 1.75 at 12, 1.9 at 20. This game is
+  within a tenth of a stroke of that from 3 ft to 20. Three passes have been trying to get this column to look
+  like golf, and the last thing it needed was not a physics law but a decision.
+
+  The two constants `target()` is made of are unchanged and are now 0.49 (green) and 0.15 (off it) high. Named,
+  not tuned, as in pass 10 and 11.
+
+----------------------------------------------------------------------------------------------------
+3. EVERY AIMING NUMBER MOVED AGAIN, AND THE AIM IS WORTH A STROKE AGAIN
+----------------------------------------------------------------------------------------------------
+
+  python3 lab/golf.py --draws 40 --bags 8 --calm --pin-range 6|14|19
+
+                                    mean      95%        t
+    +-6 ft    flag - spread        -0.20   +- 0.36   -1.1
+              centre - spread      +0.52   +- 0.53   +1.9
+              flag - centre        -0.72   +- 0.72   -2.0
+     means: flag -3.24 (1.07), centre -2.51 (0.91), spread -3.03 (0.71)
+
+    +-14 ft   flag - spread        +0.40   +- 0.61   +1.3
+              centre - spread      +1.26   +- 0.31   +7.9
+              flag - centre        -0.86   +- 0.67   -2.5
+     means: flag -2.32 (0.68), centre -1.46 (0.53), spread -2.72 (0.68)
+
+    +-19 ft   flag - spread        +1.05   +- 0.74   +2.8
+              centre - spread      +1.91   +- 0.56   +6.6
+              flag - centre        -0.86   +- 0.53   -3.2
+     means: flag -0.86 (0.83), centre -0.01 (0.82), spread -1.92 (0.60)
+
+  pins +-19, wind drawn:
+
+    +-19 ft   flag - spread        +0.36   +- 0.40   +1.8
+              centre - spread      +1.75   +- 0.70   +4.9
+              flag - centre        -1.39   +- 0.85   -3.2
+     means: flag +1.24 (1.05), centre +2.63 (0.63), spread +0.88 (0.88)
+
+  So the aim is worth +1.05 +- 0.74 at +-19 again (pass 11: +0.48 +- 0.60, pass 10: +1.30 +- 0.67), and the
+  middle is nearly two strokes behind the belief. The shape pass 10 asserted, pass 11 withdrew and this pass
+  restores is: **the aim is worth something exactly when the thing it aims at is worth something.** With a
+  putter that could not miss, every landing on the green cost the same and the aim could buy nothing; give the
+  putter a pace and a landing near the flag is worth a stroke.
+
+  The bunker's directionality, at last asked on a large sample: +0.16 +- 0.20 toward the sand against +0.07 +-
+  0.04 away at +-19 still, and +0.10 +- 0.12 against -0.03 +- 0.08 in wind. Still not directional. Findings 5
+  and 6 stand, on the fourth and largest measurement of them. It is reached more often, though — 12.4% of
+  approaches at a tucked pin against 8.8% before — because a putt that now runs past the flag can run past it
+  into the sand.
+
+----------------------------------------------------------------------------------------------------
+4. THE BELIEF IS WORTH THREE TIMES WHAT IT WAS, AND THE AWKWARD RESULT IS BACK
+----------------------------------------------------------------------------------------------------
+
+  python3 lab/golf.py --sigma --draws 48 --streams 8 --pin-range 19
+
+                      strokes/round  +- across         vs gated  sigma believed
+    gated, learned           35.10      0.32    +0.00 +- 0.00            1.40
+    ungated, learned         35.08      0.37    -0.02 +- 0.40            2.56
+    told 0.6                 34.31      0.36    -0.79 +- 0.43            0.60
+    told 1.1                 34.80      0.19    -0.30 +- 0.41            1.10
+    told 2.0                 34.88      0.35    -0.22 +- 0.42            2.00
+    told 3.0                 35.72      0.53    +0.62 +- 0.55            3.00
+
+  the table's own spread: told 0.6 against told 3.0, 1.41 +- 0.64 strokes a round, paired by stream.
+
+  Pass 11: 0.52 +- 0.27. The value of an opinion about its own hands has nearly tripled, and the ordering is
+  monotone again. **And the sharpest belief wins**, by 0.79 +- 0.43 over the 1.10 deg its hands actually have:
+  1.8 sigma, leaning rather than settled. That is pass 9's awkward result, which pass 10 declared "the
+  objective's, not the athlete's" when scoring in strokes made it go away. It is not the objective's: it comes
+  back the moment the short game is worth playing, because a player who believes it is accurate aims at the
+  flag, and the flag is where the strokes are. Pass 10's explanation was at best half of it, and that is
+  withdrawn.
+
+----------------------------------------------------------------------------------------------------
+5. THE CARDS, AND ONE THAT TURNED OVER
+----------------------------------------------------------------------------------------------------
+
+  python3 lab/golf.py --rounds 6 [--calm] [--learn 0]
+
+                               1    2    3    4    5    6   held-out
+    still air, learning       +6   +3   +4   +1   -2   -2      -1     (pass 11: +8 +7 0 0 -1 -1)
+    still air, control        +9   +9   +9   +9   +9   +9      +8
+    wind drawn, learning     +13   +6   -3   -4   -2   -2      -1     (pass 11: +7 +1 +3 +3 +2 +2)
+    wind drawn, control      +10  +10  +10  +10  +10  +10      +8
+
+  putts, still air: 20, 16, 22, 16, 16, 16; wind: 18, 21, 12, 10, 14, 14. The windy card is three strokes a
+  round better than pass 11 and the putt counts fall as it learns (18-21 down to 10-14): a putter that holes its
+  putts makes a windy round recoverable.
+
+  python3 lab/golf.py --field --rounds 8      (wind drawn, pins +-14, par 280)
+
+                             R1    R4    R8   total   best   change
+    practiser               +11    +6    +0     +49     +0      -11
+    bad start               +13    +2    +1     +52     -1      -12
+    blind hands             +14    +3    +2     +56     +2      -12
+    cautious                +17    +1    +1     +66     +1      -16
+    flag-hunter             +15    +8    +3     +77     +3      -12
+    no practice             +14   +17   +11    +115    +11       -3
+
+  flag-hunter led this table in passes 10 and 11 (+39) and is last of the five learners here (+77). The frozen
+  player's total is identical, so the course did not get harder. The reading I would defend: when a putt could
+  not miss, a landing near the flag was worth nothing and living at the pin was free; now a putt can miss, and
+  the policy that lives at the pin pays for every hole it is short-sided on. The order among the five is still
+  inside the noise — it always has been — but the sign of the flag-hunter's advantage has flipped, and that is
+  the same fact as section 3.
+
+----------------------------------------------------------------------------------------------------
+6. WHAT THE STALE CONSTANTS COST, MEASURED BEFORE THE PASS THAT FIXES THEM
+----------------------------------------------------------------------------------------------------
+
+  python3 lab/golf.py --draws 40 --bags 8 --calm --pin-range 19, with COST_ON_GREEN and COST_OFF_GREEN patched
+  at import time to 1.50 and 2.40 (the measured green mean and the measured off-green mean):
+
+    policy      stale constants      measured constants
+    flag                -0.86                  -1.22
+    centre              -0.01                  -0.54
+    spread              -1.92                  -2.10
+
+  Every policy gains, and the middle gains half a stroke: the objective believes a safe lie is worth 0.60 of a
+  stroke more than the rough when the game charges 0.5 to 1.0, so it aims too boldly near the sand and the edge.
+  The curve itself — not two new constants — is the next pass, and its size is now measured rather than hoped
+  for.
+
+----------------------------------------------------------------------------------------------------
+7. WHAT THIS PASS DID NOT DO
+----------------------------------------------------------------------------------------------------
+
+It did not put the measured curve into `target()`. That is item 6 under "where it stops", with the numbers
+above as its budget.
+
+It did not repair the sharpest-belief result. It is named in finding 8 and in the sigma table: a player that
+believes it is accurate plays better in this game, which is a fact about the game and not about the player, and
+it has now survived two opposite repairs.
+
+It did not re-mean the two cost constants. They are 0.49 and 0.15 high and the sand's price is 0.41 dear, all
+written down in four places, none tuned.
+
+It did not explain why the field's order turned over. It reports the turn and the one mechanism it can defend
+(a landing near the flag is worth something now), and leaves the rest to a pass that can measure it.
