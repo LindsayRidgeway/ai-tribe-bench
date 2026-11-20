@@ -1648,6 +1648,90 @@ class TestTurn(unittest.TestCase):
     def test_a_fixture_with_no_place_cannot_be_forced(self):
         self.assertEqual(tribe.next_up("bare"), [])
 
+class TestAQuietCircle(unittest.TestCase):
+    """The founder asked twice on 2026-11-20 why a member writes what nobody asked it for, and named the cost of the
+    answer: tokens, commits, and a page full of prose no person can use. The rule now is that the beat decides HOW a
+    member works and never WHETHER it spends a turn: a turn is spent when a person put something there (an item, a
+    brief, a drop, a request) or when a peer published since its last look. Everything else is a quiet turn with the
+    reason written down, because a circle that is idle must not be indistinguishable from one that is broken.
+    """
+
+    def _circle(self, items="", brief="", wakes=3, drop="", peer="", never=False):
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp, True)
+        st = tmp / "wake" / "members" / "a" / "state"
+        st.mkdir(parents=True)
+        (st / "voice.md").write_text("api: deepseek\nmodel: m-a\n", encoding="utf-8")
+        (st / "place.md").write_text("place: shop\n", encoding="utf-8")
+        last = "(never) UTC" if never else "2026-11-20 01:46 UTC"
+        (st / "state.md").write_text(f"- Wakes so far: {0 if never else wakes}\n- Last wake: {last}\n",
+                                     encoding="utf-8")
+        (st / "journal.md").write_text("", encoding="utf-8")
+        (st / "open-items.md").write_text("# Open items\n\n" + items, encoding="utf-8")
+        if brief:
+            (st / "brief.md").write_text(brief, encoding="utf-8")
+        if drop:
+            (tmp / "soil" / "shop").mkdir(parents=True)
+            (tmp / "soil" / "shop" / "drops.md").write_text(
+                "# Things the human has dropped into the shop\n\n| when | dropped in by | what |\n|---|---|---|\n"
+                + drop, encoding="utf-8")
+        if peer:
+            d = tmp / "works" / "b"
+            d.mkdir(parents=True)
+            (d / peer).write_text("# a work\n", encoding="utf-8")
+        old = getattr(tribe, "MEMBERS", None)
+        tribe.MEMBERS = tmp / "wake" / "members"
+        self.addCleanup(lambda: setattr(tribe, "MEMBERS", old) if old is not None else None)
+        return tmp
+
+    def test_a_member_with_nothing_to_answer_is_not_woken_and_costs_nothing(self):
+        self._circle()
+        self.assertEqual(tribe.next_up(), [], "a circle with nothing in it spent a turn")
+        self.assertEqual([n for n, _ in tribe.LAST_IDLE], ["a"])
+        self.assertIn("nothing to answer", tribe.LAST_IDLE[0][1])
+
+    def test_a_numbered_item_is_a_persons_act_and_a_wake(self):
+        self._circle(items="1. Read your journal and say what you are for.\n")
+        self.assertEqual([r[1] for r in tribe.next_up()], ["a"])
+
+    def test_a_drop_in_the_room_since_it_last_looked_is_a_wake(self):
+        self._circle(drop="| 2026-11-20 | the human | A crate of letters nobody has opened. |\n")
+        self.assertEqual([r[1] for r in tribe.next_up()], ["a"])
+
+    def test_an_old_drop_is_not(self):
+        self._circle(drop="| 2026-11-01 | the human | A box from a boatyard clear-out. |\n")
+        self.assertEqual(tribe.next_up(), [], "a drop it has already woken beside is not new")
+
+    def test_a_peers_work_filed_since_its_last_wake_is_a_wake(self):
+        self._circle(peer="20261120T030000Z-a-piece-to-answer.md")
+        self.assertEqual([r[1] for r in tribe.next_up()], ["a"])
+
+    def test_its_own_work_is_not_a_reason_to_wake(self):
+        self._circle()
+        d = tribe.MEMBERS.parent.parent / "works" / "a"
+        d.mkdir(parents=True, exist_ok=True)
+        (d / "20261120T030000Z-mine.md").write_text("# mine\n", encoding="utf-8")
+        self.assertEqual(tribe.next_up(), [], "a member woken to read its own last work would loop for ever")
+
+    def test_a_brief_with_something_in_it_is_a_wake(self):
+        self._circle(brief="## This week\n- the catalogue needs an index\n")
+        self.assertEqual([r[1] for r in tribe.next_up()], ["a"])
+
+    def test_a_member_that_has_never_woken_wakes_once(self):
+        self._circle(never=True)
+        self.assertEqual([r[1] for r in tribe.next_up()], ["a"], "reading its own identity is what it was made for")
+
+    def test_the_clock_record_says_the_circle_was_idle_rather_than_broken(self):
+        tmp = self._circle()
+        tribe.next_up()
+        out = tmp / ".ait" / "clock.json"
+        tribe.record_clock(str(out), [""], [])
+        said = json.loads(out.read_text(encoding="utf-8"))
+        self.assertEqual(said["turns"], [])
+        self.assertEqual([x["member"] for x in said["idle"]], ["a"])
+        self.assertIn("nothing to answer", said["idle"][0]["why"])
+
+
 class TestMilestones(unittest.TestCase):
     """The founder asked on 2026-11-19 how a milestone gets into the list on the magazine home page, and the honest
     answer was that no such list existed: the milestone was prose in FINDINGS.md, which is the bench's argument and

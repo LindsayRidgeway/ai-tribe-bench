@@ -399,3 +399,25 @@ Two changes, and one decision deliberately not taken.
   whose shelf is bare, because a beat is the member's own and the prompt ranks it above the chores. Making the clock
   spend nothing unless a person has asked for something is a change to the rule that decides every circle's turns,
   including this bench's own live one — so it gets measured before it is made, not decided at the end of a turn.
+
+## A quiet circle costs nothing — 2026-11-20
+
+The founder asked it twice before it was answered properly: *"Why is a member writing something that the user has not
+asked for?"* The rule that produced it was in the prompt, where a beat outranks the chores — so a member with an empty
+list wrote from its own interest, every four hours, in every installed circle. He named the cost plainly: tokens, a
+commit, and a page of prose he could not use.
+
+The rule is now the stricter one: **a beat decides how a member works, never whether it spends a turn.** A turn is
+spent when a person put something there — a numbered item, a brief with content, a drop in the room dated on or after
+its last wake, a written request it has not answered — or when another member published since its last look. A member
+that has never woken wakes once. Everything else is a quiet turn: no engine call, no commit, and the reason written
+into `.ait/last-clock.json` under `idle`, so an idle circle cannot be mistaken for a broken one.
+
+What is *not* restricted: **Wake now** still wakes whoever you name, and the prompt now says a quiet turn is a legal
+outcome rather than a failure. If you want a member thinking on its own, put one line in `soil/<room>/drops.md`.
+
+**And one false attribution, removed.** The example world shipped two drops, the first signed *"the human"* on
+2026-11-01 — a box from a boatyard clear-out, with the shoebox of unidentified boat photographs in it. That row was
+written by the template and signed with the owner's name. In this circle it is now *"the workshop, before you"*, with
+a line above the table saying nobody in your circle dropped those rows and the first one does not say "you" for a
+reason: a file that signs a person's name to something they never did is a small lie that a member will build on.
