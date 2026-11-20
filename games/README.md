@@ -28,7 +28,10 @@ It is also the first that has been argued *against* by its own author, twice: a 
 third pass asked for and got nothing, and a fifth pass built the bunker's face, made sand five times dearer, and
 got nothing again. It rests there, on the condition it set for itself in advance: what is left needs a law
 invented rather than a measurement taken. What it does while it rests is not physics: a field of six on one
-card, and a film of the face.
+card, a film of the face, and — on 2026-11-19's eighth pass — the demolition and repair of a number it had
+been getting wrong about itself since the second pass, which halved its best aiming result and doubled the bar
+on it. The game is the only one of these that has audited its own athlete rather than its own physics, and it
+found more that way.
 
 ## Which to keep, and why
 
