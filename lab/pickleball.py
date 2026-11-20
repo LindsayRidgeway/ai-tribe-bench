@@ -155,11 +155,6 @@ REACH_FOR: dict[str, float] = {}         # name -> ft, for the head-to-head in �
                                          # covers more ground than another, and until it does, an override is the
                                          # honest shape for the question "is reach the lever?".
 
-def reach_of(p: "Player") -> float:
-    """This player's paddle reach, in feet. `PADDLE_REACH` unless an experiment has said otherwise."""
-    return REACH_FOR.get(p.name, PADDLE_REACH)
-
-
 PADDLE_REACH = 6.0                       # ft the paddle covers beyond the feet, by the same construction as
                                          # tennis's 7: arm 2.5 + paddle 1.35 (a 15-17 in paddle) + lunge 2.2. The
                                          # first number I wrote was 3.0 — arm and paddle, lunge forgotten — and at 3 ft
@@ -168,6 +163,36 @@ PADDLE_REACH = 6.0                       # ft the paddle covers beyond the feet,
                                          # to within a foot; the difference between the sports is where the feet are,
                                          # not how long the arm is.
                                          # deep ball out of the air, and further back lets it bounce
+
+# Reach as a skill, not a constant (§5t). The physical construction of `PADDLE_REACH` is arm 2.5 + paddle 1.35 +
+# lunge 2.2, and the lunge is the part a beginner has not learned: the first version of this engine forgot it
+# altogether and gave everybody 3.0 ft, which produced a game in which 69% of rallies ended with nobody able to
+# reach the ball. So the range runs from a beginner who steps but does not lunge to a player who lunges without
+# thinking about it:
+#
+#     reach = REACH_MAX - (REACH_MAX - REACH_BEGINNER) * exp(-(practice + shots) / REACH_TAU)
+#
+# REACH_TAU is not a measured time constant and is not offered as one. It is chosen so that **200 balls lands on
+# exactly 6.0 ft** — the practice every table on the page was measured at — because a model of learning that
+# silently rewrites the numbers it was not asked about is a model nobody can compare against. At 0 balls it is
+# 4.6 ft (no lunge), at 200 it is the engine's own 6.0, at 600 it is 6.44 and it saturates below 6.6.
+REACH_BEGINNER, REACH_MAX = 4.6, 6.6
+REACH_TAU = 200.0 / math.log((REACH_MAX - REACH_BEGINNER) / (REACH_MAX - PADDLE_REACH))
+
+
+def reach_of(p: "Player") -> float:
+    """This player's paddle reach, in feet: a constant for an experiment, a curve for everyone else.
+
+    `REACH_FOR` wins when it is set, because a head-to-head has to be able to hand one seat a number the others do
+    not have. Otherwise the number is the player's own — the lunge they have learned — and the anchor at 200 balls
+    is what keeps every measurement on the page comparable to the ones before it.
+    """
+    if p.name in REACH_FOR:
+        return REACH_FOR[p.name]
+    balls = p.practice + p.shots
+    return REACH_MAX - (REACH_MAX - REACH_BEGINNER) * math.exp(-balls / REACH_TAU)
+
+
 
 # The ball. Mass and size are the equipment standard's own range, mid-point taken: 2.87 in and 0.88 oz are
 # both legal, and 0.88 oz rather than 0.78 oz lowers k by 13% — which is why the mass is printed with every

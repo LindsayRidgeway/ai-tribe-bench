@@ -1814,3 +1814,100 @@ a lesson about standing position can only ever be worth what it does to the dist
   rather than only hands.
 - **Why the lesson costs points** (§5r's second measurement).
 - **The `#/play` wiring** (§5q), unchanged.
+
+## §5t Practice buys feet as well as hands — 2026-11-20, evening
+
+§5s ended with the next unit named: reach as a skill rather than a constant. Tennis has had one since the port —
+`skill("reach")` drives reaction time and movement speed and grows with balls hit — and pickleball handed every
+player the same 6.0 ft and ignored the skill entirely, which is why a stance was worth so little and why a
+beginner moved exactly as far as a veteran.
+
+### The curve, and why its one free constant is where it is
+
+```
+reach = REACH_MAX - (REACH_MAX - REACH_BEGINNER) * exp(-(practice + shots) / REACH_TAU)
+
+REACH_BEGINNER, REACH_MAX = 4.6, 6.6        # ft
+REACH_TAU = 200 / ln((6.6 - 4.6) / (6.6 - 6.0))  =  166.1 balls
+```
+
+4.6 ft is a beginner without a lunge: arm 2.5 + paddle 1.35 + a step, and the 2.2 ft of lunge that makes up the
+rest of the engine's 6.0 is the part that has to be learned. `REACH_MAX` is what a player who lunges without
+thinking about it covers. `REACH_TAU` is **not a measured time constant and is not offered as one**: it is chosen
+so that 200 balls — the practice every table on this page was measured at — lands on exactly 6.0 ft.
+
+| balls | 0 | 50 | 100 | 200 | 400 | 600 | 2000 |
+|---|---|---|---|---|---|---|---|
+| reach, ft | 4.60 | 5.12 | 5.51 | **6.00** | 6.42 | 6.55 | 6.60 |
+
+The anchor is the point. A model of learning that silently rewrites the numbers it was not asked about is a model
+nobody can compare against, and this page has five sections of tables taken at 200 balls. So the curve was fitted
+*to* those tables rather than through them, and every measurement from §5d to §5s still runs the same arithmetic.
+What moves is what should move: a beginner.
+
+And `reach_of` still lets an experiment win, because §5s's head-to-head has to be able to hand one seat a number
+the others do not have:
+
+```
+if p.name in REACH_FOR: return REACH_FOR[p.name]
+balls = p.practice + p.shots
+return REACH_MAX - (REACH_MAX - REACH_BEGINNER) * math.exp(-balls / REACH_TAU)
+```
+
+### What a beginner's game is now
+
+Eight games at zero balls, before and after:
+
+| all four at 0 balls | reach 6.0 for everyone (before) | the curve |
+|---|---|---|
+| dink: mean rally | 2.19 shots | 2.14 |
+| dink: `unreachable` per game | 1.9 | **2.8** |
+| steady: mean rally | 2.12 shots | 1.95 |
+| steady: `unreachable` per game | 3.1 | **6.1** |
+
+At driving pace a beginner now fails to reach twice as many balls, which is what "no lunge" ought to look like.
+The dink numbers barely move, and the reason is worth stating rather than hiding: a zero-ball game is decided by
+the serve and the third shot (388 of 414 rallies at dink ended `out`), so there are not enough balls in a rally for
+reach to have anything to say.
+
+### What it does not do, which was the question I expected it to answer
+
+The hope was that the practice gradient would steepen — that 200 balls would beat 0 by more once feet came with the
+hands. It does not, because **the gradient is already at the ceiling**:
+
+| 24 swapped games, trained at 200 vs untrained at 0 | trained | untrained |
+|---|---|---|
+| dink, reach pinned at 6.0 (hands only) | 264 | 38 |
+| dink, the curve (hands + feet) | 264 | 46 |
+| steady, reach pinned at 6.0 | 264 | 62 |
+| steady, the curve | 264 | 65 |
+
+The trained side scored 264 in every row — eleven a game — so there is no room for the feet to add anything. The
+honest reading is that at *this* gap the hands have already settled it, and the feet are worth what §5s measured
+between players whose hands are equal: about two points a game per foot and a half. A steeper gradient would need
+a smaller gap, and it would then be re-measuring §5s.
+
+### Chaos, and a test that had to learn it
+
+`reach` includes `shots`, as tennis's skill does, so a player's reach creeps up *during* a game — 6.00 at the
+serve, 6.16 after fifty balls. That 2.7% drift is enough to turn one pinned game's fifteen long rallies into
+seven. This engine is chaotic in the ordinary dynamical sense, and the consequence is a discipline the page has
+been asserting all week without stating: **a single game is not a measurement, even a pinned one.** The
+partner-walk test (§5n) used one pinned game and its thresholds; it now measures four games a side, and the claim is
+unchanged and better supported — bodies ending a long rally more than 3 ft off their own kitchen line, 4.8% with
+the walk on and 24.5% with it off, over 208 and 212 body-slots.
+
+**The film, rebaked, and it is a different game.** `records/film-2026-11-19.json` and its page were regenerated
+under the curve, same clock and same level as before, and the game now goes 11–2 in 33 rallies with 160 shots where
+it went 11–1 in 36 with 276. Nothing was retuned: the two films are identical through rally 8 and diverge after it,
+which is what a 2.7% difference in one player's reach does to a rally that lasts twenty shots. That is not noise in
+the record — it is the drift this section just described, visible in the one artefact the page offers as evidence,
+and the reason the stills on this page are dated.
+
+### Owed
+
+- **Price the feet separately.** §5s prices reach between equal hands; this section prices practice between unequal
+  ones. The missing row is a gap small enough that the hands do not saturate — 150 against 250 balls, say — where
+  the two effects can be read apart.
+- **Why the stance lesson costs points** (§5r's second measurement), still owed.
+- **The `#/play` wiring** (§5q), unchanged.

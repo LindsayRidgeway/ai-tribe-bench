@@ -6949,36 +6949,40 @@ class TestPickleball(unittest.TestCase):
         fall from a third of them to under one in twenty. The A/B is inside the test, because a flag that changes
         nothing is a flag pretending to be a model."""
         pk = self.pk
-        def far_share(flag):
+        def far_share(flag, games=4):
+            """Four games a side, not one. A single pinned game is not a measurement in this engine: reach now
+            grows with a player's own shots (§5t), so the same pin drifts by 2.7% between one game and the next
+            and one pinned game went from fifteen long rallies to seven on that drift alone."""
             pk.PARTNER_WALK = flag
+            far = slots = 0
             try:
-                film = {}
-                pk.play_game(["A", "B", "C", "D"], [200] * 4, pk.make_chooser("dink"), wind_seed_ms=1234500,
-                             say=lambda *a, **k: None, film=film)
-                by = {}
-                for m in film["moves"]:
-                    by.setdefault(m["rally"], []).append(m)
-                slots = far = 0
-                for r in film["rallies"]:
-                    if r["shots"] < 6:
-                        continue
-                    for name in ("A", "B", "C", "D"):
-                        mine = [m for m in by.get(r["rally"], []) if m["player"] == name]
-                        if not mine:
+                for g in range(games):
+                    film = {}
+                    pk.play_game(["A", "B", "C", "D"], [200] * 4, pk.make_chooser("dink"),
+                                 wind_seed_ms=1234500 + g, say=lambda *a, **k: None, film=film)
+                    by = {}
+                    for m in film["moves"]:
+                        by.setdefault(m["rally"], []).append(m)
+                    for r in film.get("rallies") or []:
+                        if r.get("shots", 0) < 6:
                             continue
-                        last = max(mine, key=lambda m: m["t1"])
-                        line = pk.KITCHEN_LINE if name in ("A", "B") else pk.NET_X + pk.KITCHEN
-                        slots += 1
-                        if abs(last["to"][0] - line) > 3.0:
-                            far += 1
-                return far / max(1, slots), slots
+                        for name in ("A", "B", "C", "D"):
+                            mine = [m for m in by.get(r["rally"], []) if m["player"] == name]
+                            if not mine:
+                                continue
+                            last = max(mine, key=lambda m: m["t1"])
+                            line = pk.KITCHEN_LINE if name in ("A", "B") else pk.NET_X + pk.KITCHEN
+                            slots += 1
+                            if abs(last["to"][0] - line) > 3.0:
+                                far += 1
             finally:
                 pk.PARTNER_WALK = True
+            return far / max(1, slots), slots
         on, n_on = far_share(True)
         off, n_off = far_share(False)
-        self.assertGreater(n_on, 40, "a dink game has long rallies in it")
-        self.assertLess(on, 0.08, f"{on:.0%} of bodies ended a long rally more than 3ft off their own line")
-        self.assertGreater(off, 0.20, "and without the walk it is a third of them, or the flag is a no-op")
+        self.assertGreater(n_on, 120, "four dink games have plenty of long rallies in them")
+        self.assertLess(on, 0.10, f"{on:.0%} of bodies ended a long rally more than 3ft off their own line")
+        self.assertGreater(off, 0.18, "and without the walk it is a quarter of them, or the flag is a no-op")
 
     def test_a_walk_to_the_stance_is_still_a_walk(self):
         """The partner is not teleported to the line because the rule is a walk: `move_toward` caps the step at the
