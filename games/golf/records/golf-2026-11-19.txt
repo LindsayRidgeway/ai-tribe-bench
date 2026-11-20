@@ -1832,9 +1832,9 @@ is in putt.py and it is not noise:
 
   (a real golfer: 1.05 putts from 3 ft, 1.9 from 20, 2.1 from 40)
 
-The putter bisects its gain and its line to zero error and the roll carries no scatter, so it leaves the ball
-a tenth of a foot from the hole from forty-five feet. It holes out in two from anywhere and the second one is
-a tap-in. **There is no gradient in distance on this green for any objective to find.** Off the green is 2 or
+The putter bisects its gain and its line to zero error and the roll carries no scatter, so from 3 ft to 45 ft
+it leaves the ball between 0 and 0.3 ft past the hole -- never three-putts, almost never one-putts. It holes
+out in two from anywhere and the second one is a tap-in. **There is no gradient in distance on this green for any objective to find.** Off the green is 2 or
 3 by bearing (a chip that goes in, or one that does not), mean 2.66; in the sand, mean 4.27.
 
 ########## the change

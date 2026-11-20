@@ -403,9 +403,10 @@ Putts, still air: 30, 25, 25, 22, 24, 25 for the learner, 18 every round for the
 
    **The green column is flat.** Two strokes from two and a half feet and two strokes from twenty-eight, over
    sixteen bearings each, because `lab/putt.py`'s athlete is deterministic: it bisects its own gain and its own
-   line to zero error and the roll carries no scatter, so it leaves the ball **0.1 ft from the hole from 45 ft
-   and 0.1 ft from 6 ft**. A real golfer takes 1.05 putts from 3 ft, 1.9 from 20 and 2.1 from 40. This model
-   takes 2.00 from all three and the second one is a tap-in.
+   line to zero error and the roll carries no scatter, so from 3 ft to 45 ft it leaves the ball **between 0
+   and 0.3 ft past the hole** — measured, and it never three-putts and almost never one-putts. A real golfer
+   takes 1.05 putts from 3 ft, 1.9 from 20 and 2.1 from 40. This model takes 2.00 from all three and the second
+   one is a tap-in.
 
    So `target()` is now `2.00 · P(green) + 2.60 · P(off it) + (2.00 + SAND_PEN) · P(in the sand)`, with both
    constants measured (checks 19b and 19c hold them), and **the near-flatness of the result is the finding**:
