@@ -8153,5 +8153,70 @@ class TheTemplateMustBeEnough(unittest.TestCase):
         self.assertIn("wake/members/.gitkeep", mt.paths(), "the empty folder has to exist for the first member")
 
 
+class TestDebrisOnTheFloor(unittest.TestCase):
+    """The suite must say when the tree it is about to test is not the tree in the repository."""
+
+    def _repo(self):
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp, True)
+        if subprocess.run(["git", "init", "-q", str(tmp)], capture_output=True).returncode != 0:
+            self.skipTest("no git here, so there is nothing to be untracked from")
+        (tmp / "wake" / "members").mkdir(parents=True)
+        (tmp / "wake" / "members" / ".gitkeep").write_text("")
+        (tmp / "works").mkdir()
+        return tmp
+
+    def test_a_leftover_member_from_somebody_elses_run_is_named_out_loud(self):
+        tmp = self._repo()
+        (tmp / "wake" / "members" / "trap" / "state").mkdir(parents=True)
+        (tmp / "wake" / "members" / "trap" / "state" / "place.md").write_text("workshop\n")
+        (tmp / "works" / "a" / "x.md").parent.mkdir(parents=True)
+        (tmp / "works" / "a" / "x.md").write_text("a work nobody filed\n")
+        found = debris(tmp)
+        self.assertIn("wake/members/trap/state/place.md", found)
+        self.assertIn("works/a/x.md", found)
+
+    def test_an_empty_circle_is_not_debris(self):
+        """The `.gitkeep` that makes the folder exist is the template's, and reporting it would teach the reader to
+        ignore the warning."""
+        self.assertEqual(debris(self._repo()), [])
+
+
+def debris(root: Path = REPO) -> list:
+    """Untracked paths a previous run left in the two folders that make a circle a circle.
+
+    On 2026-11-20 this suite ran 478 tests here and went red with ten failures, and the same commit's tests were
+    green from a fresh clone at 482. The difference was not code: another window had left `wake/members/a`,
+    `wake/members/trap` and friends in the tree, and a test that counts members, worlds or works saw them. A red
+    that comes from somebody's leftover fixture is a red nobody can attribute, which is the fault that cost
+    fifteen hours on 2026-11-19. So: look first, and say so out loud, before any test runs.
+    """
+    try:
+        out = subprocess.run(["git", "-C", str(root), "status", "--porcelain", "--untracked-files=all"],
+                             capture_output=True, text=True, timeout=20)
+    except (OSError, subprocess.SubprocessError):   # no git, or no repository: nothing to warn about
+        return []
+    if out.returncode != 0:
+        return []
+    stray = []
+    for line in out.stdout.splitlines():
+        if not line.startswith("?? "):
+            continue
+        path = line[3:].strip().strip('"')
+        if path.split("/")[0] in ("wake", "works") and "/." not in path and not path.endswith(".gitkeep"):
+            stray.append(path)
+    return stray
+
+
 if __name__ == "__main__":
+    leftovers = debris()
+    if leftovers:
+        print(f"\n!! {len(leftovers)} untracked path(s) under wake/ or works/ are sitting in this tree:", file=sys.stderr)
+        for path in leftovers[:12]:
+            print(f"     {path}", file=sys.stderr)
+        if len(leftovers) > 12:
+            print(f"     … and {len(leftovers) - 12} more", file=sys.stderr)
+        print("   A test that counts members, worlds or works will see these and go red for a reason that is not\n"
+              "   in the code. If a red here surprises you, delete them and run again before believing it.\n",
+              file=sys.stderr)
     unittest.main(verbosity=2)

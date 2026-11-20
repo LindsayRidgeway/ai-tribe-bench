@@ -445,15 +445,23 @@ working parts.
 
 - **n=1.** One person, one member, one document, one evening. The verdict was mechanical: the audit also recorded
   eight dates as UNSOURCED and the `quote` field as decoration (a timestamp cited and never used in the piece).
-- **The clock did not do it.** He pressed Wake now; the 21:17Z scheduled turn never arrived. A scheduled wake that
-  thinks with nobody in the room is not a second milestone — it is the last condition of this one, and it has not
-  happened yet. (The founder called the split a quibble on 2026-11-19, and he was right: a milestone that needs a
-  button pressed to count is one milestone with a missing clause, not two.)
+- **The clock has now done it, once.** He pressed Wake now at 00:07:26Z; the scheduled turn due at 20:17Z never
+  arrived; then the turn due at **00:17Z** ran at **01:46:26Z** with nobody in the room — `engines: ["deepseek"]`,
+  one turn, and George wrote `rules-of-the-likeness-ledger.md` (4,739 characters), answering item 1 of the list he
+  had been given: *"I am answering it as rules rather than as a paragraph, because a paragraph about one's own
+  character is a rubber stamp with better handwriting."* So the clause is met: a scheduled wake thought while
+  everybody was asleep. (The founder called the split between "the loop closes" and "the loop closes unattended" a
+  quibble on 2026-11-19, and he was right: it is one milestone's last clause, not two milestones.)
+- **What that run does not fix.** The same clock dropped the 20:17Z turn entirely and delivered the 00:17Z turn
+  **89 minutes late** — the previous scheduled turn, 16:17Z, arrived at 17:23Z, 66 minutes late. A wake that arrives
+  is not the same claim as a wake that arrives *when it is due*, and the beta item is the second one. The evidence
+  also still rests on one member in one place with one engine keyed.
 - **The reading half exists because he complained.** Had he not, the folder would still be unopenable and the chore
   would still be permanent. A loop that only closes when the founder pushes it is not yet a loop.
 
 **What would falsify it as a generality:** a second person, with nobody from this bench in the room, hands a member
-a job and judges the result worth reading — and a scheduled wake produces one while everybody is asleep.
+a job and judges the result worth reading — and a scheduled wake produces one while everybody is asleep, *on the day
+it was due*. Half of that happened on 2026-11-20 at 01:46:26Z, on one circle, with one member.
 
 ## Limits, stated once and not buried
 

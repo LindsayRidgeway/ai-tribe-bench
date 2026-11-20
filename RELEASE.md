@@ -5,12 +5,17 @@ no round is repeated because a round you spend twice is worth half.
 
 ## 0. Mine, before anyone else
 
-- The test suite is green from a fresh clone. It is not: nineteen tests fail in the shipped copy, and they
-  fail because they assert on sentences in this sheet that have since moved. A stranger who runs the tests
-  sees red and concludes the project is broken or abandoned.
-- The schedule is measured, not hoped for. The hourly heartbeat fires; the four-hour clock has fired once in
-  six due. Until that is known, the sheet must not promise "it wakes on its own" without the manual command
-  in the same paragraph.
+- ~~The test suite is green from a fresh clone.~~ **Measured 2026-11-20, and it is green.** `git clone --depth 1`
+  into an empty directory, then `python3 tests.py` there: **482 tests, OK**, 275 seconds, no red. The only skips
+  announce themselves and say why ("… has no key for it — skipped, not failed"). This bullet used to read
+  "nineteen tests fail in the shipped copy" — true when it was written, stale by the time it was read, which is
+  the exact failure this sheet exists to catch.
+- **The schedule is now measured, and it is not punctual.** Eight consecutive due turns on this repository each
+  produced a run; every one was late, by 43 to 192 minutes, median about two hours. On the founder's circle two of
+  three due turns arrived (66 and 89 minutes late) and one never came. The scheduler belongs to the host, and the
+  host does not promise a minute. So the sentence we may write is "it wakes on its own, within a few hours of the
+  time you set". "At :17" must appear nowhere. (My earlier reading — one firing in six due, with re-registration
+  suspected — came from counting firings only at their due minute. The correction is in `clock.yml`.)
 - I install it myself, on a clean account, with a stopwatch, having told nobody what I already know. Every
   place I had to guess becomes a line in the sheet. The sheet currently promises thirty minutes; that
   promise is a claim until this is done.
@@ -91,29 +96,33 @@ circle between 2026-11-19 17:23Z and 2026-11-20 00:08Z.
 
 | # | what | why it is on the list | size |
 |---|---|---|---|
-| 1 | **A clock that fires when it is due** | It fired once in six due, and the 21:17Z turn never arrived at all. This is *the* product claim: nobody is watching. Everything else is a button | days, and part of it is not mine to fix — see below |
+| 1 | **A clock that says what it does, and does it** | The product claim is "nobody is watching", not "on the minute". Measured 2026-11-20: it fires, always, and always late. What is owed is prose that promises the window, plus a liveness check so a silently dead clock is loud | half a day for the copy and the check; days for a hard guarantee, now optional |
 | 2 | **Install on a clean account, timed** | Round 0 of this file, never done. Every place a stranger would guess is a line in the manual, and the manual currently promises thirty minutes as a claim | half a day, plus what the stopwatch finds |
 | 3 | **A stranger's hour** | `TESTER.md` exists and has been run by testers *of the bench*, not by someone who wants a circle. Their hesitation column is the real spec | waits on other people |
 | 4 | **The update path, proven once** | One press has written a version record; no press has yet **replaced** a file on a real circle. Until it has, an installed circle cannot be kept current, and a fix I land never reaches a user | half a day |
-| 5 | **Tests green from a fresh clone** | This file said "nineteen tests fail in the shipped copy" and that is now false — 466 run here, one red, and the red is another window's `lab/golf.py`. But "green here" is not "green there": a stranger's first command cannot be a red | an hour |
+| 5 | ~~**Tests green from a fresh clone**~~ — **done 2026-11-20** | `git clone --depth 1` into an empty directory, `python3 tests.py` → 482 tests, OK, no red. Kept in place rather than struck out of the numbering, because the calendar below refers to it by number | done |
 | 6 | **Pictures in a conversation** | §14's honest gap. Not a beta blocker — a beta omission, and it should be *described* as one rather than silently absent | a day, two ends |
 | 7 | **A choice of games, and a session you can watch** | Same category as 6: a product a person shows a friend needs more than tennis | days |
 
-**The long pole is number 1, and it is the only one that is not a build.** GitHub's scheduler has fired this
-deposit's clock once in six due; the hourly heartbeat, which is edited less often, fires reliably. The suspicion
-recorded in `clock.yml` on 2026-11-03 is that a schedule is re-registered when the file changes, and that file has
-changed more than any other. If that is the mechanism, the fix is architectural and cheap: put the cron in a workflow
-that nobody edits, and let it call the work — and stop treating "edit the clock" as a way to ship a change. If it is
-not the mechanism, the fallback is an external trigger with a fine-grained token, which costs a dependency and a
-secret and should be the last resort, not the first.
+**The long pole is no longer number 1, and that is a correction rather than a relief.** On 2026-11-19 I named the
+clock the long pole on a count of "one firing in six due", with re-registration suspected. The count was wrong: I was
+only looking at runs that arrived at their due minute. Counted properly, eight consecutive due turns on this
+repository all ran and all were late by 43 to 192 minutes, and the lateness is the host's documented behaviour, not a
+fault in the file. So the clock is not broken; it is imprecise, and it always was. Item 1 shrinks to writing the
+window honestly and adding a liveness check so that a clock which *does* stop is loud instead of silent.
 
-Until number 1 is settled, "it works while you sleep" is a sentence this project can demonstrate and cannot promise,
-and a beta that rests on it would be selling the one thing not yet measured.
+**The long pole is number 2**, and it always was: a real install on an account with nothing on it, timed, done by
+somebody who has not already been told what he knows. That is the only place where a product decides whether it is
+a product. Number 3 waits on number 2 and on a stranger.
 
-**Calendar.** With numbers 1, 2, 4 and 5 done — roughly a week of work from here, on the pace of the last two days —
-Kythe is beta-able *if* the stranger's hour (3) comes back without a structural finding. Numbers 6 and 7 are what
-makes it worth showing a friend, and they can follow a beta rather than gate it. The one date I will not put on this
-is the stranger's, because it is not mine.
+"It works while you sleep" is now a sentence this project can demonstrate *and* promise, provided the promise names
+the window rather than the minute.
+
+**Calendar, corrected 2026-11-20.** 5 is done. 1 is half a day instead of days. 2 and 4 are half a day each, plus
+whatever the stopwatch finds. So the build side is **about two days, not a week** — the founder was right to be
+surprised by a week: it contained a long pole that was a miscount. Numbers 6 and 7 still do not gate a beta; the
+tennis season is a month out on its own clock and touches none of this. What remains that I cannot do is 3, a
+stranger's hour, which begins the day somebody who wants a circle sits down. I will not put a date on it.
 
 ## What is not ready for any audience
 
