@@ -1091,26 +1091,28 @@ def main() -> int:
             # and does not say why reads exactly like a machine with nothing to do. Found on 2026-11-03
             # while setting up the founder's three-member colony — `new` did not write place.md, so all
             # three members were skipped as fixtures and `next` printed one blank line and exited 1.
-            stranded = [d.name for d in member_dirs() if not place_of(d)]
-            if stranded:
-                print(f"   no member has a place, so none of them is in a world: {', '.join(stranded)}.",
-                      file=sys.stderr)
-                print("   a place is one line — `place: workshop` — in wake/members/<name>/state/place.md. "
-                      "`tribe.py new` writes it; a member created before 2026-11-03 has to be given one.",
-                      file=sys.stderr)
-            elif not member_dirs():
-                print("   there are no members at all — `tribe.py new <name>` makes the first one.",
-                      file=sys.stderr)
-            elif LAST_SKIPPED:
-                pass   # the lines above named each member and its engine; a generic guess would bury them
-            elif LAST_IDLE:
+            #
+            # **And an exit status is a message too, to a different reader (2026-11-20).** Every scheduled clock
+            # run on this bench had failed for three days, and the cause was this line: a repository with no
+            # members is a *new* circle, not a broken one, and the clock went red and mailed its owner every four
+            # hours. A quiet circle did the same — the rule that a turn costs nothing was reporting itself as a
+            # fault. Red now means what it says: members exist and not one of them could be woken.
+            if not member_dirs():
+                print("   there are no members yet, so there is nothing to wake — `tribe.py new <name>` makes "
+                      "the first one. An empty circle is not a fault.", file=sys.stderr)
+                return 0
+            if LAST_IDLE and not LAST_SKIPPED:
                 print("   every member had nothing to answer, so the circle was quiet this turn — and cost "
                       "nothing. Give one of them an item, a brief, or a drop; press Wake now to have it think "
                       "anyway.", file=sys.stderr)
+                return 0
+            if LAST_SKIPPED:
+                pass   # the lines above named each member and its engine; a generic guess would bury them
             else:
-                print("   every member was skipped: no member has a voice.md, or none has a key here. "
+                print("   every member was skipped: no member has a voice.md, so none of them can be woken. "
                       "`tribe.py status` shows which.", file=sys.stderr)
-        return 0 if rows else 1
+            return 1
+        return 0
     return status()
 
 

@@ -351,10 +351,12 @@ the founder's circle, whose `clock.yml` has not been edited since creation, two 
 minutes late) and one never came. The host queues `schedule` events and runs them when it has room; nothing written in
 the file makes it punctual. The hypothesis is dead and marked superseded rather than deleted.
 
-What follows from it, in the document a stranger reads first: the claim the product may make is *"it wakes on its own,
-within a few hours of the time you set"*; the claim it may never make is *"at :17"*. Beta item 1 is half a day of copy
-and a liveness check so a dead clock is loud. **Beta item 2 — a real install on a clean account, timed — is the long
-pole, and always was.**
+~~What follows from it: the product may claim *"it wakes on its own, within a few hours of the time you set"* and may
+never claim *"at :17"*; item 1 is half a day of copy and a liveness check.~~ **Withdrawn the same evening, because the
+paragraph above is still counting runs instead of appointments.** Across the 24 due slots of 11-16 to 11-20 there were
+10 runs on this repository and 3 on the founder's circle: the cron delivers two or three a day out of six asked for.
+RUN.md §8 measured this on 2026-11-03 with a control and reached the right conclusion then — asking more often buys
+nothing, and a circle needs a trigger it owns. Item 1 is a day's build, not a paragraph.
 
 ## Three measurements that were being carried as beliefs — 2026-11-20
 

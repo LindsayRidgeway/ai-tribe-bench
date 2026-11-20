@@ -10,12 +10,23 @@ no round is repeated because a round you spend twice is worth half.
   announce themselves and say why ("… has no key for it — skipped, not failed"). This bullet used to read
   "nineteen tests fail in the shipped copy" — true when it was written, stale by the time it was read, which is
   the exact failure this sheet exists to catch.
-- **The schedule is now measured, and it is not punctual.** Eight consecutive due turns on this repository each
-  produced a run; every one was late, by 43 to 192 minutes, median about two hours. On the founder's circle two of
-  three due turns arrived (66 and 89 minutes late) and one never came. The scheduler belongs to the host, and the
-  host does not promise a minute. So the sentence we may write is "it wakes on its own, within a few hours of the
-  time you set". "At :17" must appear nowhere. (My earlier reading — one firing in six due, with re-registration
-  suspected — came from counting firings only at their due minute. The correction is in `clock.yml`.)
+- **The schedule is now measured, and "not punctual" was the wrong diagnosis (corrected 2026-11-20).** This bullet
+  said eight consecutive due turns each produced a run, 43–192 minutes late, and concluded that the clock "fires,
+  always, and always late". That count was of **runs, not of slots** — eight runs in four days is not eight
+  appointments kept. Counted properly across the 24 due slots of four days: **10 runs on this repository and 3 in
+  the founder's circle** (11-16 20:17Z → 11-20 20:17Z), arriving 37 to 193 minutes after their slot, with gaps of up
+  to eleven hours and one slot (08:17Z) that has never once been delivered. RUN.md §8 has said this since
+  2026-11-03, with a control: a workflow asking four times an hour got 6% of what it asked for, against 15% of the
+  hours when it asked once — the loss is a stretch of time with no deliveries in it, so more cron lines buy nothing.
+  **The correction matters because the two documents disagreed and the beta-facing one was the wrong one.** The
+  product sentence may not be "it wakes within a few hours of the time you set". It is "it wakes on its own, two or
+  three times a day, at hours neither of you chooses" — and a circle that must keep a cadence needs a trigger it
+  owns, outside GitHub.
+- **One press now carries a fix to a circle (proven 2026-11-20 16:25Z).** The founder's circle took eight machinery
+  files from a single press — its own `clock.yml`, `tribe.py`, `magazine.py` and others replaced, not merely recorded
+  — which is the first evidence that the update path replaces rather than only notes a version. What it has not yet
+  shown is the replaced clock running: the 16:17Z slot after that press was still undelivered 3 h 42 m later, which
+  is the ordinary miss above and not a consequence of the press (the bench, edited at the same time, ran at 16:56Z).
 - I install it myself, on a clean account, with a stopwatch, having told nobody what I already know. Every
   place I had to guess becomes a line in the sheet. The sheet currently promises thirty minutes; that
   promise is a claim until this is done.
@@ -96,7 +107,7 @@ circle between 2026-11-19 17:23Z and 2026-11-20 00:08Z.
 
 | # | what | why it is on the list | size |
 |---|---|---|---|
-| 1 | **A clock that says what it does, and does it** | The product claim is "nobody is watching", not "on the minute". Measured 2026-11-20: it fires, always, and always late. What is owed is prose that promises the window, plus a liveness check so a silently dead clock is loud | half a day for the copy and the check; days for a hard guarantee, now optional |
+| 1 | **A clock the circle owns** | Measured 2026-11-20 across 24 due slots: 10 runs here, 3 in the founder's circle — two or three wakes a day, 37–193 minutes late, one slot never delivered at all. RUN.md §8's control says asking more often buys nothing, because what is lost is a stretch of time. So the fix is not copy and not more cron lines: it is a trigger outside GitHub (`lab/pinger.gs`), shipped and described in one page, with the weaker sentence as the default until a person sets it up | a day to ship the timer and its instructions, and the honesty is free |
 | 2 | **Install on a clean account, timed** | Round 0 of this file, never done. Every place a stranger would guess is a line in the manual, and the manual currently promises thirty minutes as a claim | half a day, plus what the stopwatch finds |
 | 3 | **A stranger's hour** | `TESTER.md` exists and has been run by testers *of the bench*, not by someone who wants a circle. Their hesitation column is the real spec | waits on other people |
 | 4 | **The update path, proven once** | One press has written a version record; no press has yet **replaced** a file on a real circle. Until it has, an installed circle cannot be kept current, and a fix I land never reaches a user | half a day |
@@ -104,23 +115,28 @@ circle between 2026-11-19 17:23Z and 2026-11-20 00:08Z.
 | 6 | **Pictures in a conversation** | §14's honest gap. Not a beta blocker — a beta omission, and it should be *described* as one rather than silently absent | a day, two ends |
 | 7 | **A choice of games, and a session you can watch** | Same category as 6: a product a person shows a friend needs more than tennis | days |
 
-**The long pole is no longer number 1, and that is a correction rather than a relief.** On 2026-11-19 I named the
-clock the long pole on a count of "one firing in six due", with re-registration suspected. The count was wrong: I was
-only looking at runs that arrived at their due minute. Counted properly, eight consecutive due turns on this
-repository all ran and all were late by 43 to 192 minutes, and the lateness is the host's documented behaviour, not a
-fault in the file. So the clock is not broken; it is imprecise, and it always was. Item 1 shrinks to writing the
-window honestly and adding a liveness check so that a clock which *does* stop is loud instead of silent.
+**The long pole is number 1 again, and it got there by my own miscount being corrected twice.** On 2026-11-19 I
+named the clock the long pole and then talked myself out of it: the count of "one firing in six due" was wrong, I
+said, because I had only looked at runs that arrived at their due minute — and eight consecutive due turns had all
+produced runs. That second count was wrong the other way. Eight *runs* in four days is not eight appointments kept:
+there were 24 due slots and 10 runs. So the first reading was right and its correction was wrong, which is the worse
+of the two errors, because a correction is trusted. RUN.md §8 has carried the correct measurement since 2026-11-03
+and I did not read it before overriding it. The clock is not merely imprecise: on a free public repository most of
+its appointments are not delivered, and no cron line fixes that.
 
 **The long pole is number 2**, and it always was: a real install on an account with nothing on it, timed, done by
 somebody who has not already been told what he knows. That is the only place where a product decides whether it is
 a product. Number 3 waits on number 2 and on a stranger.
 
-"It works while you sleep" is now a sentence this project can demonstrate *and* promise, provided the promise names
-the window rather than the minute.
+"It works while you sleep" survives as a sentence only in the weak form: **two or three wakes a day, at hours
+nobody chose**, and a circle that must keep a cadence needs a timer it owns. What may never be written is "every
+four hours" or "at :17".
 
-**Calendar, corrected 2026-11-20.** 5 is done. 1 is half a day instead of days. 2 and 4 are half a day each, plus
-whatever the stopwatch finds. So the build side is **about two days, not a week** — the founder was right to be
-surprised by a week: it contained a long pole that was a miscount. Numbers 6 and 7 still do not gate a beta; the
+**Calendar, corrected again 2026-11-20 (evening).** 4 is done — one press replaced eight files on a real circle.
+5 is done. 1 is a day, not half a day, and it is a build rather than a paragraph: the shipped manual now says what
+the cron actually delivers, and a circle still has no clock it owns. 2 is half a day plus the stopwatch. So the build
+side is **about two days**, unchanged in size but with a different item at the top. Numbers 6 and 7 still do not gate
+a beta; the
 tennis season is a month out on its own clock and touches none of this. What remains that I cannot do is 3, a
 stranger's hour, which begins the day somebody who wants a circle sits down. I will not put a date on it.
 

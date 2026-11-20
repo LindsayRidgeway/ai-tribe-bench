@@ -1740,6 +1740,71 @@ class TestAQuietCircle(unittest.TestCase):
         self.assertEqual([n for n, _ in tribe.LAST_IDLE], ["a"])
         self.assertIn("nothing to answer", tribe.LAST_IDLE[0][1])
 
+    def test_a_quiet_circle_is_not_a_failure_exit(self):
+        """The clock's exit status is a message to a second reader: GitHub, which mails the owner when it is 1.
+
+        For three days every scheduled run on this bench failed, and this was the cause: `next` exited 1 whenever
+        it found no turn to take, so a quiet circle — the rule that a turn costs nothing — reported itself as a
+        fault every four hours. An empty circle did the same. Red has to mean "members exist and none could be
+        woken", or the owner learns to ignore red, which is how the fifteen-hour failure of 2026-11-19 happened.
+        """
+        self._circle()
+        import contextlib as _c
+        import io as _io
+        old = sys.argv
+        try:
+            sys.argv = ["tribe.py", "next"]
+            with _c.redirect_stdout(_io.StringIO()), _c.redirect_stderr(_io.StringIO()) as err:
+                rc = tribe.main()
+        finally:
+            sys.argv = old
+        self.assertEqual(rc, 0, "a quiet circle is not a failure")
+        self.assertIn("quiet this turn", err.getvalue())
+
+    def test_an_empty_circle_is_not_a_failure_exit_either(self):
+        """Every circle made from the template is empty until its first member is added, and the clock runs first."""
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp, True)
+        (tmp / "wake" / "members").mkdir(parents=True)
+        old = tribe.MEMBERS
+        tribe.MEMBERS = tmp / "wake" / "members"
+        self.addCleanup(lambda: setattr(tribe, "MEMBERS", old))
+        import contextlib as _c
+        import io as _io
+        oldargv = sys.argv
+        try:
+            sys.argv = ["tribe.py", "next"]
+            with _c.redirect_stdout(_io.StringIO()), _c.redirect_stderr(_io.StringIO()) as err:
+                rc = tribe.main()
+        finally:
+            sys.argv = oldargv
+        self.assertEqual(rc, 0, "an empty circle is new, not broken")
+        self.assertIn("An empty circle is not a fault", err.getvalue())
+        self.assertNotIn("place", err.getvalue(), "a member needs no place, and the emptiness is not about one")
+
+    def test_members_that_cannot_be_woken_at_all_is_a_failure(self):
+        """The one empty answer that *is* red: there are members, and not one of them has a voice."""
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp, True)
+        st = tmp / "wake" / "members" / "a" / "state"
+        st.mkdir(parents=True)
+        (st / "state.md").write_text("- Wakes so far: 3\n- Last wake: 2026-11-20 01:46 UTC\n", encoding="utf-8")
+        (st / "open-items.md").write_text("1. a chore\n", encoding="utf-8")
+        old = tribe.MEMBERS
+        tribe.MEMBERS = tmp / "wake" / "members"
+        self.addCleanup(lambda: setattr(tribe, "MEMBERS", old))
+        import contextlib as _c
+        import io as _io
+        oldargv = sys.argv
+        try:
+            sys.argv = ["tribe.py", "next"]
+            with _c.redirect_stdout(_io.StringIO()), _c.redirect_stderr(_io.StringIO()) as err:
+                rc = tribe.main()
+        finally:
+            sys.argv = oldargv
+        self.assertEqual(rc, 1, "a member nobody can wake is a fault, and the owner should hear about it")
+        self.assertIn("no member has a voice.md", err.getvalue())
+
     def test_a_numbered_item_is_a_persons_act_and_a_wake(self):
         self._circle(items="1. Read your journal and say what you are for.\n")
         self.assertEqual([r[1] for r in tribe.next_up()], ["a"])
@@ -8023,6 +8088,23 @@ class TestWorkflows(unittest.TestCase):
             if d.is_dir():
                 self.assertNotIn(d.name, step_two,
                                  f"{d.name!r} is a room in this bench; the sheet must not send a reader to type it")
+
+    def test_the_shipped_manual_does_not_promise_a_frequency_the_cron_cannot_keep(self):
+        """Measured on 2026-11-20, and it corrects two documents at once.
+
+        §5 of the manual said *"at seven and at seven, morning and evening"* while the shipped `clock.yml` asks for a
+        wake every four hours — and the cron delivers neither. Twenty-four due slots over four days produced 10 runs
+        on this repository and 3 on the founder's circle. RUN.md §8 has carried that measurement since 2026-11-03
+        (6% of events when asking four times an hour) and RELEASE.md contradicted it by counting runs instead of
+        slots. A promise in the manual is the one claim a person can measure for themselves in a week.
+        """
+        man = (REPO / "USER-MANUAL.md").read_text(encoding="utf-8")
+        self.assertNotIn("at seven and at seven", man, "the cron has never been a seven o'clock clock")
+        self.assertIn("two or three", man, "the measured rate, not a cadence")
+        self.assertIn("Run workflow", man, "and what always works instead")
+        rel = (REPO / "RELEASE.md").read_text(encoding="utf-8")
+        self.assertNotIn("Eight consecutive due turns on this repository each\n  produced a run", rel)
+        self.assertIn("10 runs on this repository and 3 in", rel)
 
     def test_the_sheet_does_not_keep_a_second_copy_of_the_engine_list(self):
         """The engines are listed once, in ENGINES.md, and the sheet points at it.

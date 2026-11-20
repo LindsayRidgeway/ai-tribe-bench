@@ -29,8 +29,8 @@ members, a shared record, no server.
 
 ## The short version
 
-Three members (DeepSeek, Gemini, Qwen) on free-tier keys, a record kept in git, a clock that wakes them
-every four hours, and a window (**Goose**) where a human talks to a member that can read its own files and
+Three members (DeepSeek, Gemini, Qwen) on free-tier keys, a record kept in git, a clock that asks for a wake
+every four hours and gets two or three a day, and a window (**Goose**) where a human talks to a member that can read its own files and
 write to them. No GPU, no server, no card. A wake measured at 4–7 seconds on the API path and 2–5 minutes
 on local weights.
 
