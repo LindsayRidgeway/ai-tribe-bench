@@ -2115,6 +2115,273 @@ def _hole_json(hole: Hole) -> dict:
                 bunker_w=BUNKER_W if hole.sand else 0.0, lip_h=LIP_H if hole.sand else 0.0)
 
 
+# ---- the season ------------------------------------------------------------------------------------
+# Pass 14. Everything this game knows how to do has been printed to a terminal, and a card read out of a terminal
+# is a card read by one person. What the founder asked for on 2026-11-20 was not another number: it was a player
+# that gets better with practice, in data a visitor can watch. The data exists (`--field`, the card of six) and
+# the band exists (bags); what was missing was a page. This is the page, and it is a file that opens from disk the
+# way the film does, so that putting it inside the commons' Play tab is a job on the other side of the split.
+SEASON_COLOURS = ("#2f6f4e", "#8c2f39", "#2c5f8a", "#8a6a1f", "#6b4b8a", "#7a7a7a")
+
+
+def season(args) -> int:
+    """Six athletes, many rounds, a few bags — each one's belief about itself beside its card, on one page.
+
+    A season is one run of a game whose weather is drawn, so a single season has no error bar. This one is drawn
+    `bags` times over, with a different practice session at the start of each and the same courses and pins, and
+    the band on the page is the spread across those bags. That is the smallest honest bar: the course is common
+    to every athlete within a round, so what the band measures is the athlete, not the weather.
+    """
+    green = Green(stimp=10.0, grade=1.2, downhill=135.0)
+    rounds = max(2, args.rounds)
+    bags = args.bags if args.bags > 1 else 4   # one practice session has no band, and a page with no band is a page
+    #                                            that shows six lines and calls them a difference
+    courses = [drawn_course(random.Random(5000 + k), args.pin_range, args.calm) for k in range(rounds)]
+    par = sum(h.par for h in courses[0])
+
+    def stat(xs: list[float]) -> dict:
+        m = _mean(xs)
+        se = _sd(xs) / math.sqrt(len(xs)) if len(xs) > 1 else 0.0
+        return dict(mean=round(m, 3), lo=round(m - 1.96 * se, 3), hi=round(m + 1.96 * se, 3))
+
+    athletes, raw = [], {}
+    for i, (name, policy, learns, prior, sigma) in enumerate(FIELD):
+        per_bag = []
+        for bag in range(bags):
+            ath = Athlete(prior=prior, sigma_taught=sigma)
+            ath.policy = policy
+            rows = []
+            for r, course in enumerate(courses):
+                res = play_round(course, ath, GolfPutter(), green, learn=learns, verbose=False,
+                                 rng=random.Random(DEFAULT_SEED + 7919 * bag + r))
+                rows.append(dict(to_par=res["to_par"], strokes=res["strokes"],
+                                 putts=sum(row["putts"] for row in res["rows"]),
+                                 gir=sum(1 for row in res["rows"] if row["gir"]),
+                                 sigma=round(ath.sigma, 3), aim_bias=round(ath.aim_bias, 3),
+                                 nerr=round(res["nerr"], 4)))
+            per_bag.append(rows)
+
+        def series(key: str) -> list[dict]:
+            return [stat([b[r][key] for b in per_bag]) for r in range(rounds)]
+
+        athletes.append(dict(
+            name=name, policy=policy, learns=learns, prior=prior, colour=SEASON_COLOURS[i % 6],
+            to_par=series("to_par"), sigma=series("sigma"), nerr=series("nerr"), putts=series("putts"),
+            total=stat([sum(b[r]["strokes"] for r in range(rounds)) for b in per_bag]),
+            bias=stat([b[rounds - 1]["aim_bias"] for b in per_bag])))
+        raw[name] = per_bag
+
+    # The score panel is *paired to the frozen player*: every athlete meets the same course in the same round, so
+    # what a round's weather did to one it did to all, and the difference cancels it. Plot the raw score and the
+    # band is the weather (ten strokes wide on four bags); plot the difference and the band is the athlete. This is
+    # the same construction as the paired table in `--draws`, and the same reason.
+    ref = raw["no practice"]
+    for a in athletes:
+        a["rel"] = [stat([raw[a["name"]][b][r]["to_par"] - ref[b][r]["to_par"] for b in range(bags)])
+                    for r in range(rounds)]
+    athletes.sort(key=lambda a: a["total"]["mean"])
+
+    data = dict(rounds=rounds, bags=bags, par=par, per_round=par, calm=bool(args.calm),
+                pin_range=args.pin_range, athletes=athletes,
+                course=[dict(label=h.label, yards=h.yards, par=h.par, pin=round(h.pin, 1), sand=h.sand)
+                        for h in courses[0]])
+    out_dir = Path(__file__).resolve().parent.parent / "games" / "golf" / "renders"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "season.json").write_text(json.dumps(data, indent=1) + "\n")
+
+    note = f"the band is ± the 95% spread across {bags} practice sessions"
+    legend = "".join(
+        f'<span><span class="sw" style="background:{a["colour"]}"></span> {a["name"]} '
+        f'<span class="who">· {a["policy"]}{"" if a["learns"] else " · frozen"}</span></span>'
+        for a in athletes)
+    rows = ["<tr><th>athlete</th><th>aims</th><th>strokes</th><th>±</th><th>to par</th><th>putts</th>"
+            "<th>believes</th><th>notebook</th><th>round by round</th></tr>"]
+    for a in athletes:
+        t, sig, nb = a["total"], a["sigma"][-1], a["nerr"][-1]
+        rounds_txt = " ".join(f"{c['mean']:+.0f}" for c in a["to_par"])
+        rows.append(
+            f'<tr><td><span class="sw" style="background:{a["colour"]}"></span> {a["name"]}</td>'
+            f'<td>{a["policy"]}{"" if a["learns"] else " (frozen)"}</td>'
+            f'<td>{t["mean"]:.1f}</td><td>±{(t["hi"] - t["lo"]) / 2:.1f}</td>'
+            f'<td>{t["mean"] - rounds * par:+.0f}</td>'
+            f'<td>{sum(c["mean"] for c in a["putts"]):.0f}</td>'
+            f'<td>{sig["mean"]:.2f}°</td><td>{100 * nb["mean"]:.1f}%</td>'
+            f'<td class="rounds">{rounds_txt}</td></tr>')
+    page = (_SEASON_PAGE
+            .replace("__ROUNDS__", str(rounds)).replace("__BAGS__", str(bags))
+            .replace("__COND__", (f"Pins are cut at the green's centre on a still day." if args.calm else
+                                  f"Pins are cut up to ±{args.pin_range:.0f} ft from the green's centre, and the "
+                                  f"wind is drawn too."))
+            .replace("__LEGEND__", legend).replace("__CARD__", "\n".join(rows))
+            .replace("__SCORE__", _season_panel(athletes, "rel", h=300, band_note=note,
+                                                tick=lambda v: f"{v:+.0f}"))
+            .replace("__SIGMA__", _season_panel(athletes, "sigma", band_note=note,
+                                                tick=lambda v: f"{v:.2f}°",
+                                                rules=((1.10, "#22201d", "the hands, 1.10°"),
+                                                       (1.50, "#8a8a8a", "handed 1.50°"))))
+            .replace("__NERR__", _season_panel(athletes, "nerr", band_note=note,
+                                               tick=lambda v: f"{100 * v:.0f}%")))
+    (out_dir / "season.html").write_text(page)
+
+    print(f"  {rounds} rounds of nine (par {par}), {bags} practice sessions, "
+          f"pins ±{args.pin_range:.0f} ft{', still air' if args.calm else ', wind drawn'}")
+    print(f"  {'athlete':14s}{'policy':9s}{'strokes':>9s}{'±':>7s}{'to par':>8s}{'putts':>7s}"
+          f"{'believes':>10s}{'notebook':>10s}")
+    for a in athletes:
+        tot, sig, nb = a["total"], a["sigma"][-1], a["nerr"][-1]
+        print(f"  {a['name']:14s}{a['policy']:9s}{tot['mean']:9.1f}{(tot['hi'] - tot['lo']) / 2:7.1f}"
+              f"{tot['mean'] - rounds * par:+8.1f}{sum(c['mean'] for c in a['putts']):7.0f}"
+              f"{sig['mean']:10.2f}°{100 * nb['mean']:9.1f}%")
+    print(f"\n  the band is the spread across {bags} practice sessions (95% of it), not across the six.")
+    print(f"  wrote {out_dir / 'season.html'}")
+    print(f"  wrote {out_dir / 'season.json'}")
+    return 0
+
+
+def _season_panel(athletes: list[dict], key: str, *, h: int = 240, rules: tuple = (), tick=None,
+                  band_note: str = "", width: int = 900, left: int = 48, right: int = 104, top: int = 16,
+                  bottom: int = 30) -> str:
+    """One panel, baked into SVG at write time: the page has no script in it and opens from disk.
+
+    The film under `renders/the-face.html` is baked for the same reason — a page that needs a browser to run a
+    script before it shows anything is a page that shows nothing to half the people who open the file. The only
+    thing lost by baking is the hover tooltip, and every value it would have shown is printed beside the line.
+    """
+    n = len(athletes[0][key])
+    vals = [c for a in athletes for c in a[key]]
+    lo, hi = min(c["lo"] for c in vals), max(c["hi"] for c in vals)
+    for v, _c, _t in rules:
+        lo, hi = min(lo, v), max(hi, v)
+    pad = (hi - lo) * 0.12 + 1e-6
+    lo, hi = lo - pad, hi + pad
+    X = lambda i: left + (width - left - right) * (i / max(1, n - 1))          # noqa: E731
+    Y = lambda v: top + (h - top - bottom) * (1.0 - (v - lo) / (hi - lo))      # noqa: E731
+    tick = tick or (lambda v: f"{v:.1f}")
+    out = [f'<svg viewBox="0 0 {width} {h}" preserveAspectRatio="xMidYMid meet" '
+           f'style="display:block;width:100%;height:auto;overflow:visible">']
+    for i in range(5):
+        v = lo + (hi - lo) * i / 4.0
+        out.append(f'<line x1="{left}" x2="{width - right}" y1="{Y(v):.1f}" y2="{Y(v):.1f}" '
+                   f'stroke="#e8e4dc" stroke-width="1"/>')
+        out.append(f'<text x="{left - 8}" y="{Y(v) + 4:.1f}" font-size="11.5" fill="#6d6a64" '
+                   f'text-anchor="end">{tick(v)}</text>')
+    for i in range(n):
+        out.append(f'<text x="{X(i):.1f}" y="{h - 9}" font-size="11.5" fill="#6d6a64" '
+                   f'text-anchor="middle">R{i + 1}</text>')
+    for v, colour, text in rules:
+        out.append(f'<line x1="{left}" x2="{width - right}" y1="{Y(v):.1f}" y2="{Y(v):.1f}" stroke="{colour}" '
+                   f'stroke-width="1" stroke-dasharray="5 4" opacity=".85"/>')
+        # no label in the plot: six lines and two rules in one box is enough, and the panel's note names them
+        # with the same colours. (Drawing it at the left edge put it on top of the data; at the right edge it
+        # landed on the athletes' names.)
+    ends = []
+    for a in athletes:
+        band = (f'M{X(0):.1f},{Y(a[key][0]["hi"]):.1f} ' +
+                ' '.join(f'L{X(i):.1f},{Y(a[key][i]["hi"]):.1f}' for i in range(1, n)) + ' ' +
+                ' '.join(f'L{X(i):.1f},{Y(a[key][i]["lo"]):.1f}' for i in range(n - 1, -1, -1)) + ' Z')
+        out.append(f'<path d="{band}" fill="{a["colour"]}" opacity="0.07"/>')
+        line = (f'M{X(0):.1f},{Y(a[key][0]["mean"]):.1f} ' +
+                ' '.join(f'L{X(i):.1f},{Y(a[key][i]["mean"]):.1f}' for i in range(1, n)))
+        dash = '' if a["learns"] else ' stroke-dasharray="6 4"'
+        out.append(f'<path d="{line}" fill="none" stroke="{a["colour"]}" stroke-width="2.2" '
+                   f'stroke-linejoin="round"{dash}/>')
+        for i in range(n):
+            out.append(f'<circle cx="{X(i):.1f}" cy="{Y(a[key][i]["mean"]):.1f}" r="3.4" fill="{a["colour"]}" '
+                       f'stroke="#fff" stroke-width="1.2"><title>{a["name"]} · round {i + 1} · '
+                       f'{tick(a[key][i]["mean"])} ({band_note})</title></circle>')
+        ends.append([Y(a[key][n - 1]["mean"]) + 4.0, a["colour"], a["name"]])
+    # six names at the right edge collide when two lines finish a tenth of a stroke apart, which on this card
+    # they do: nudge each one down until it clears the one above it, in the order the lines finish.
+    ends.sort(key=lambda e: e[0])
+    for i in range(1, len(ends)):
+        ends[i][0] = max(ends[i][0], ends[i - 1][0] + 13.0)
+    if ends:
+        spill = max(0.0, ends[-1][0] - (h - 8))
+        spill = min(spill, ends[0][0] - top - 8)
+    else:
+        spill = 0.0
+    for y, colour, name in ends:
+        out.append(f'<text x="{width - right + 8}" y="{y - spill:.1f}" font-size="11.5" fill="{colour}">'
+                   f'{name}</text>')
+    out.append("</svg>")
+    return "\n".join(out)
+
+
+_SEASON_PAGE = """<!doctype html>
+<meta charset="utf-8">
+<title>golf — a season</title>
+<style>
+ :root { --bg:#fbfaf7; --ink:#22201d; --muted:#6d6a64; --line:#d8d4cc; --panel:#fff; }
+ body { background:var(--bg); color:var(--ink); margin:0 auto; max-width:1000px; padding:34px 22px 70px;
+        font:15px/1.55 -apple-system, "Iowan Old Style", Georgia, serif; }
+ h1 { font-size:25px; margin:0 0 4px; font-weight:600; letter-spacing:-.01em; }
+ h2 { font-size:14px; margin:34px 0 8px; font-weight:600; letter-spacing:.04em; text-transform:uppercase;
+      color:var(--muted); }
+ .lede { font-size:17px; line-height:1.5; margin:0 0 10px; }
+ .note { font-size:13.5px; color:var(--muted); }
+ .card { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:12px 14px 6px; }
+ .legend { display:flex; flex-wrap:wrap; gap:4px 18px; margin:16px 0 2px; font-size:13.5px; }
+ .sw { width:22px; height:3px; border-radius:2px; display:inline-block; vertical-align:middle; }
+ .who { color:#6d6a64; }
+ .key { font-size:13px; color:#6d6a64; margin:0 0 8px; }
+ .dash { display:inline-block; width:26px; border-top:2px dashed; vertical-align:middle; margin:0 6px 0 0; }
+ table { border-collapse:collapse; width:100%; font-size:13.5px; font-variant-numeric:tabular-nums; }
+ th, td { text-align:right; padding:6px 9px; border-bottom:1px solid var(--line); white-space:nowrap; }
+ th:first-child, td:first-child { text-align:left; }
+ th { color:var(--muted); font-weight:600; }
+ .rounds { color:#6d6a64; }
+ footer { margin-top:38px; font-size:13px; color:var(--muted); border-top:1px solid var(--line); padding-top:14px; }
+ code { font-size:12.5px; }
+</style>
+<h1>A season of six</h1>
+<p class="lede">Six scripted athletes play the same __ROUNDS__ courses one after another, and each is allowed to
+learn a different subset of what a golfer has to learn: how far each club goes, how much wind takes off, how far
+it misses by. The card is at the bottom. The three panels are the point.</p>
+<p class="note">Every athlete plays the <em>same</em> course in a round, with the same seed, so the weather and the
+bounce are common and the only differences are what each one does or believes. A season is one run, so a season on
+its own has no error bar; this one was drawn __BAGS__ times over with a different practice session at the start of
+each, and the pale band is the spread across those runs. __COND__</p>
+
+<div class="legend">__LEGEND__</div>
+
+<h2>What practice was worth — strokes against the player who never practises, same round, same weather</h2>
+<div class="card">__SCORE__</div>
+<p class="note">Lower is better. Every athlete in a round met the same course and the same wind, so the difference
+between it and the frozen player cancels the weather and leaves the notebook: a line below zero is a player beating
+the rule, and the width of its band is how much four practice sessions disagree about that. The frozen player is the
+flat line at zero, by construction. The wobble is a round in which the weather beat the notebook — it happens, and
+it is why one round is not a season.</p>
+
+<h2>What it believes about its own hands</h2>
+<p class="key"><span class="dash" style="border-color:#22201d"></span> the hands it actually has, 1.10°
+<span class="dash" style="border-color:#8a8a8a"></span> the 1.50° it is handed before it has hit a ball</p>
+<div class="card">__SIGMA__</div>
+<p class="note">Its estimate of how far its shots scatter, in degrees of face angle, learned from nothing but the
+printed miss. The dark dashed line is the truth — the hands it actually has, 1.10° — and the grey one is the 1.50°
+it is handed before it has hit a ball. A player whose line settles on the dark one knows itself. In this game the
+players that settle <em>below</em> it score better, which is the sore this file keeps prodding (README, finding 8).</p>
+
+<h2>What it believes about its bag</h2>
+<div class="card">__NERR__</div>
+<p class="note">The average error of its notebook against what the club actually does, per round, as a percentage
+of the distance. This is the one a beginner is wrong about by a third of the bag, and a practised player gets under
+two per cent.</p>
+
+<h2>The card</h2>
+<div class="card" style="padding-bottom:14px"><table>__CARD__</table></div>
+
+<footer>
+<p><b>These are six strategies, not six people.</b> A field of my own athletes sharing one notebook's ancestry is a
+field of <em>strategies</em>, and the number on the card is still one program's number. Putting six members' numbers
+on one board is something the members would have to do in their own windows.</p>
+<p>What this page does not model, and where the game stops, are in <code>games/golf/README.md</code> — twelve
+findings, thirty-six checks, and four instruments that turned out to be reading the wrong thing. Every number here
+comes out of <code>python3 lab/golf.py --season</code>, which prints the same table to a terminal;
+<code>season.json</code> beside this file is what a Play tab would read.</p>
+</footer>
+"""
+
+
 def render(args) -> int:
     """Write a scene and the page that plays it, into `games/golf/renders/`."""
     out_dir = Path(__file__).resolve().parent.parent / "games" / "golf" / "renders"
@@ -2215,6 +2482,8 @@ def main(argv=None) -> int:
                     help="the scatter it believes against the scatter its shots have, in wind")
     ap.add_argument("--field", action="store_true",
                     help="six scripted athletes on one card: same course, same weather, different strategies")
+    ap.add_argument("--season", action="store_true",
+                    help="six athletes over many rounds, with each one's belief about itself, as a page")
     ap.add_argument("--render", metavar="SCENE", default=None,
                     help="write a film: 'lip' for the bunker face, or a hole number, e.g. --render 7")
     ap.add_argument("--floor", type=float, default=FLOOR_FT,
@@ -2234,6 +2503,8 @@ def main(argv=None) -> int:
         return draws(args)
     if args.field:
         return field(args)
+    if args.season:
+        return season(args)
     if args.render:
         return render(args)
 

@@ -2737,3 +2737,47 @@ about itself is true, and this game rewards a player who believes it is accurate
 It did not put anything on a screen. The season page and the camera are still the next two passes; what this pass
 has that they did not is a short game with a decision in it, which is the first thing the game can show that a
 visitor can *see* working.
+
+====================================================================================================
+PASS 14 — 2026-11-20, 11:06-11:20 — the season on a page
+====================================================================================================
+
+The founder's objection on 2026-11-20 was not to the arithmetic: it was that a game whose whole output is a
+terminal table has neither of the two things a game has — players who get better with practice, and something to
+look at. The first of those had been sitting in `--field` since pass 6 and the second had never been made. This
+pass is the page, and it is the smallest version of it that is honest.
+
+  `python3 lab/golf.py --season` — six athletes, `--rounds` rounds of nine, `--bags` practice sessions, writing
+      `renders/season.html` and `renders/season.json`.
+
+  three panels, all baked into SVG at write time, no script in the page:
+      1. what practice was worth: each athlete's strokes against par MINUS the frozen player's, same round. The
+         pairing is the point — every athlete meets the same course and the same wind in a round, so the
+         difference cancels the weather and what is left is the notebook. Plot the raw score and the band is ten
+         strokes wide and says nothing (measured, before the change); plot the difference and the band is the
+         athlete.
+      2. what each athlete believes about its own hands, per round, against 1.10° (what its hands are) and 1.50°
+         (what it is handed). This is finding 8 on a screen: `blind hands` is flat at 1.50° because it is told
+         that number and never allowed to learn, and every learner drifts toward the truth.
+      3. what each believes about its bag, per round, as an error in per cent: 40% flat for the frozen player,
+         under 8% for the learners by round eight.
+
+  the band on every panel is the spread across the bags (95%), and the page says so in one sentence. A season is
+      one run; the band is what four runs disagree about, which is the smallest honest bar and the only one this
+      design can produce.
+
+  bag 0 of a season reproduces `--field --rounds 8` to the stroke: +39 / +46 / +66 / +71 / +77 / +111. That is the
+      check that the page is the same experiment and not a second one.
+
+  what it is not, and the page says so in its own footer: six strategies, not six people. A field of one program's
+      athletes sharing one notebook's ancestry is not a field of members, and putting six members' numbers on one
+      board is something the members would have to do in their own windows.
+
+  `renders/season.json` is what a Play tab would read: rounds, par, per-athlete per-round means and bands, the
+      final beliefs, and the course the season was played on.
+
+  the page was checked by rendering it: QuickLook for the layout, and headless Chrome at 1100 x 2400 for the whole
+      scroll. Two defects were found that way and neither would have been caught by a selftest — six labels at the
+      right edge overlapping when two lines finish a tenth of a stroke apart (fixed by nudging them apart in the
+      order the lines finish), and a cumulative-total panel that rose from left to right and therefore read as
+      getting worse as the player got better (replaced by the paired difference).

@@ -19,7 +19,8 @@ had a target decision in the short game — and a fourth instrument found readin
 table again, this time read as a curve when its sample changed with distance. It also found what the green's
 new prices cannot reach: at approach range a landing is priced by its distance to the pin, and a ball struck
 from 150 yd is 450 ft from the pin wherever it lands, so the objective's only gradient out there is still the
-sand — and it thinks the sand is reachable four times as often as the game makes it.** The tool is
+sand — and it thinks the sand is reachable four times as often as the game makes it. Fourteenth: the season on a
+page.** The tool is
 `lab/golf.py`; the runs are `records/golf-2026-11-19.txt`; the checks are `python3 lab/golf.py --selftest`
 (36 of them).
 
@@ -35,6 +36,8 @@ sand — and it thinks the sand is reachable four times as often as the game mak
     python3 lab/golf.py --sigma --streams 20 --pin-range 19   # ...and the bar is the spread across shot
                                            #    streams, not across courses: see finding 8
     python3 lab/golf.py --draws 40 --bags 8 --floor 2.0  # what the floor in `target()` was worth, re-measured
+    python3 lab/golf.py --season           # six athletes over eight rounds, as a page: the card, what each one
+                                           #    believes about itself, and a band from four practice sessions
     python3 lab/golf.py --costs            # what the short game costs from each distance and lie: the numbers
                                            #    `target()` is made of, played out, with the count and standard
                                            #    error of every cell. Flat in distance until pass 11 put hands on
@@ -748,6 +751,26 @@ putts makes a windy round recoverable.*
    it aims at the pin, 4 to 12 ft away; on the six with one it aims 22 to 32 ft away. Pass 11's sentence — "the
    only gradient left is the green's edge" — was right about the consequence and wrong about the cause, and this
    is the pass that could finally ask the objective directly (`target().scores()` exists for that reason).
+
+## The season, on a page
+
+`python3 lab/golf.py --season` writes `renders/season.html` — one file, no script in it, opens from disk — and
+`renders/season.json` beside it. Six athletes, eight rounds, a card, and three panels:
+
+- **what practice was worth**, as strokes against the frozen player in the same round. Every athlete meets the same
+  course and the same wind in a round, so the difference cancels the weather and leaves the notebook: the plot is
+  the paired design the aiming tables use, applied to a card. The frozen player is the flat line at zero by
+  construction.
+- **what each one believes about its own hands**, per round, against the 1.10° it actually has and the 1.50° it
+  starts with. This is the panel the game exists for: a player that has measured itself converges on the truth,
+  and the one that is *told* a scatter keeps it (finding 8's sore, on a screen).
+- **what each one believes about its bag**, per round, as an error in per cent. A beginner is wrong by a third of
+  the bag and a practised player gets under two.
+
+The band on every panel is the spread across four practice sessions, because a season is one run and one run has no
+error bar. It is drawn in the page rather than left to the reader: the width of that band *is* the claim about how
+much of a card is the player and how much is the day. The page says, in its own footer, that these are six
+strategies and not six people, and where the game stops.
 
 ## What this does not model
 

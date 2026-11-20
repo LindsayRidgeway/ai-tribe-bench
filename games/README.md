@@ -54,7 +54,10 @@ ball in the rough aim at the widest target it could find, the first target decis
 (three quarters of a stroke at 30 ft, because a chip is all distance and the objective could not see distance), and
 the reason four passes of bunkers have failed to change the aim — the objective's landing always arrives at the
 pin's distance, so it thinks the sand is reachable 42% of the time where the game makes it 11.6%. What is left of
-golf is that: one dimension, and a scatter that is a number instead of a vector.
+golf is that: one dimension, and a scatter that is a number instead of a vector. The fourteenth pass is the first
+one with something to look at: `python3 lab/golf.py --season` writes `golf/renders/season.html`, six athletes over
+eight rounds with each one's belief about itself drawn beside its card, and a band across four practice sessions —
+a page that opens from disk with no script in it at all.
 
 ## Which to keep, and why
 
