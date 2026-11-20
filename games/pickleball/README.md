@@ -1277,3 +1277,39 @@ of them without it; and the old engine's structural property — every body that
 asserted with the flag off, so "the partner has legs" is a claim the suite can still falsify. The §5m test was
 rewritten rather than deleted for the same reason. `TestPickleball` is 47 tests, 46 green; the red one is still
 `lab/golf.py`'s duplicated constants, which belongs to another window.
+
+## §5o The member's seat, and its first two serves — 2026-11-19, last of the night
+
+The founder, asked for a link, said the game is not his call but that he would want it integrated into Kythe — the
+members as players, practice that shows up as improvement, and the animated figures the tennis film has. Before
+agreeing to any of it, the cheapest thing to check is whether the seat the integration would sit on works at all:
+`member_chooser_pb` has existed since the engine was written and had never been handed a key.
+
+It works, and what it played is the finding. Four seats, four vendors, one rally at a time, every key a local file:
+
+```
+   1.1  Claude    serve     face +16.9 power  32 aim 16 [19mph] -> their own side of the net, 6.8ft short
+   2.1  Claude    serve     face +18.2 power  40 aim 10 [22mph] -> their own side of the net, 1.0ft short
+
+0 prose replies of 2 shots; 21.1s for 2 calls (10.6s a shot)
+```
+
+Both members answered in the required line — no fallback, no prose, the parser took the first token of each. And
+both serves went into their own side of the net, because **the prompt asks for a face angle in degrees and never
+says what a legal serve requires.** A member is being handed the paddle's angle and asked to infer the trajectory,
+which is the one piece of arithmetic the engine already does (`aim_at` solves exactly this). The first serve is 6.8
+ft short at 19 mph and face +17; the second is 1.0 ft short at 22 mph and face +18. Two different members' guesses
+would have been the same kind of guess.
+
+**So the integration's first unit is not the app.** It is a movement language a member can play from — name the
+target and the height, not the paddle's angle — because a game whose first ball is a fault with no explanation is
+not a game a member can learn from, and §5b already taught this engine what happens when a chooser is asked for a
+number it cannot see.
+
+Two numbers that decide the shape of the rest:
+
+- **10.6 s a shot** end to end (2 calls, 21.1 s, including connection setup). The shipped dink film is 439 shots,
+  so a member's game at this pace is **over an hour of model calls**, against tennis's ~100 shots. A soft game that
+  is *worth* watching is expensive precisely because it is long — the §5i finding arriving as a bill.
+- **0 of 2 shots** came back as prose, which is the good half: the contract holds, and what fails is the physics,
+  not the parser.
