@@ -2719,10 +2719,15 @@ async function main(){
   reset();
   plantMember('Lumi', 'deepseek');
   plantMember('Quiet', 'deepseek');
+  plantMember('Newborn', 'deepseek');
+  seed('wake/members/Quiet/output/raw-20261119T170000Z.json', '{"journal": "nothing to do"}');
   // The real shape and the real name: `tribe.py next --record` and wake.py stamp UTC as `raw-20261119T172307Z.json`,
   // which sorts newest-first as text — the page leans on that, so the fixture must not be a prettier name.
   seed('wake/members/Lumi/output/raw-20261119T052307Z.json', '{"chosen_item": "the older one", "journal": "old"}');
   seed('wake/members/Lumi/output/raw-20261119T172307Z.json', '{"chosen_item": "the boat", "journal": "I built it."}');
+  // What a wake actually writes: the member's own file, named by the member. The founder's complaint of
+  // 2026-11-20 was that the page offered him `raw-<stamp>.json` — "a report that means nothing to the user".
+  seed('wake/members/Lumi/output/20261119T172307Z-rules-for-the-shed.md', '# Rules for the shed\n\nOne.\n');
   const woke = await tryRun(ctx, `(async () => {
     S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main'; S.owner = 'Sam';
     await viewMember(document.getElementById('main'), 'Lumi');
@@ -2738,6 +2743,27 @@ async function main(){
     if (newer > older) return 'the oldest is first, so the newest work is at the bottom: ' + box;
     if (!/2026-11-19 17:23 UTC/.test(box)) return 'it does not say when the wake ran: ' + box;
     if (/Nothing yet/.test(box)) return 'it says there is nothing while listing two files';
+    return '';
+  });
+  check('and it leads with what the member wrote, not with the harness transcript of the exchange', () => {
+    if (woke.err) return woke.err;
+    const box = String(woke || '');
+    const writ = box.indexOf('Rules for the shed'), fold = box.indexOf('<details'), raw = box.indexOf('raw-20261119T172307Z.json');
+    if (writ < 0) return 'the work it wrote is not named in plain words: ' + box;
+    if (fold < 0) return 'the transcript is not folded away, so it is being presented as reading matter: ' + box;
+    if (!(writ < fold && fold < raw)) return 'the order is wrong — work, then the fold, then the transcript: ' + box;
+    return '';
+  });
+  const quiet = await tryRun(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
+    await showWakes('Quiet');
+    return document.getElementById('wakes').innerHTML;
+  })()`);
+  check('a member that has written nothing says so instead of offering its transcript as work', () => {
+    if (quiet.err) return quiet.err;
+    const box = String(quiet || '');
+    if (!/written nothing/i.test(box)) return 'it does not admit there is no work: ' + box;
+    if (!/<details/.test(box)) return 'the transcript is not folded away: ' + box;
     return '';
   });
   calls.length = 0;
@@ -2758,7 +2784,7 @@ async function main(){
   });
   const noWakes = await tryRun(ctx, `(async () => {
     S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
-    await showWakes('Quiet');
+    await showWakes('Newborn');
     return document.getElementById('wakes').innerHTML;
   })()`);
   check('a member with nothing there says a free wake leaves nothing — and is not told it is broken', () => {

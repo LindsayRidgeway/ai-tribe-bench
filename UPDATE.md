@@ -376,3 +376,26 @@ Two consecutive wakes on the founder's circle came back with `QUOTE UNUSED`, and
 The audit was right: a timestamp cited and then never used is decoration. The prompt was the fault, because the only
 line in MEASURED FACTS that looks like a fact a piece of work can rely on is the clock. The prompt now says so: *"The
 output of `date` is the time of this wake, not a fact about the world."*
+
+## The founder's cost argument — 2026-11-20
+
+He put it in three parts and the third was the one that mattered: *"the report is appearing in a textbox in the UI, a
+report that means nothing to the user, a visible manifestation of the waste without providing anything the user can
+understand or has any use for."* He was describing this page's own reader for what a wake leaves in `output/`, which
+listed `raw-20261119T172307Z.json` as a row and opened it into a window full of the harness's transcript. That is my
+file, four turns old, and it was the only part of his complaint a person could point at.
+
+Two changes, and one decision deliberately not taken.
+
+- **The reader leads with what was written.** A member's own files are named in plain words with the hour — *Rules for
+  the shed, 2026-11-19 17:23 UTC*. The transcript is still kept, because a wake that went wrong is diagnosed there,
+  and it is folded into one disclosure labelled as the harness's own record. A member that has written nothing says
+  so rather than offering the transcript as its work.
+- **A quiet turn is legal, and the prompt now says so.** It said only that a wake producing commentary has failed,
+  which reads as *write something*. It now says what the alternative is: if no beat, no item, no request and nothing on
+  the shelf claims the wake, `"action": "no_action"` with one line of reason is the honest answer, it is recorded as a
+  refusal, and it costs the person nothing. *"Silence with a reason is honest; filling the wake is not."*
+- **Not taken, and named so it is not quietly forgotten:** the scheduler still wakes a member whose list is empty and
+  whose shelf is bare, because a beat is the member's own and the prompt ranks it above the chores. Making the clock
+  spend nothing unless a person has asked for something is a change to the rule that decides every circle's turns,
+  including this bench's own live one — so it gets measured before it is made, not decided at the end of a turn.

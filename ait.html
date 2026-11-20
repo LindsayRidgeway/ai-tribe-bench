@@ -3025,18 +3025,45 @@ async function showWakes(name){
       + 'a wake without a key is free bookkeeping, so it leaves nothing.</p>';
     return;
   }
-  list.sort((a, b) => String(b.name).localeCompare(String(a.name)));
-  box.innerHTML = list.slice(0, 12).map(f => {
-    const stamp = String(f.name).replace(/^raw-/, '').replace(/\.json$/, '').replace(/\.md$/, '');
-    const when = /^\d{8}T\d{6}Z$/.test(stamp)
-      ? stamp.slice(0, 4) + '-' + stamp.slice(4, 6) + '-' + stamp.slice(6, 8) + ' ' +
-        stamp.slice(9, 11) + ':' + stamp.slice(11, 13) + ' UTC'
-      : '';
-    return `<div class="row" style="justify-content:space-between;padding:6px 0">
-      <button class="plain small" onclick="openWakeFile('${escq(name)}','${escq(f.name)}')">${esc(f.name)}</button>
-      <span class="small muted">${when ? esc(when) : '&nbsp;'}${f.size ? ' · ' + Math.max(1, Math.round(f.size / 1024)) + ' KB' : ''}</span>
+  // Two different things live in this folder and they are not for the same reader. What the wake WROTE is the
+  // member's work, and it gets named in plain words. `raw-<stamp>.json` is the harness's transcript of the exchange —
+  // every field, including the ones the page uses — and the founder said on 2026-11-20 what it is worth to a person:
+  // "a report that means nothing to the user, a visible manifestation of the waste". So it is kept, because a wake
+  // that went wrong is diagnosed there, and it is folded away, because nobody's day is improved by opening it.
+  const byName = (a, b) => String(b.name).localeCompare(String(a.name));
+  const stampOf = (f) => {
+    const m = String(f.name).match(/(\d{8}T\d{6}Z)/);
+    if (!m) return '';
+    const t = m[1];
+    return t.slice(0,4) + '-' + t.slice(4,6) + '-' + t.slice(6,8) + ' ' + t.slice(9,11) + ':' + t.slice(11,13) + ' UTC';
+  };
+  const spoken = (f) => {
+    const base = String(f.name).replace(/^raw-/, '').replace(/^\d{8}T\d{6}Z-/, '').replace(/\.(md|txt|json)$/, '');
+    const words = base.replace(/[-_]+/g, ' ').trim();
+    return words ? words.charAt(0).toUpperCase() + words.slice(1) : String(f.name);
+  };
+  const row = (f, label, opener) => `<div class="row" style="justify-content:space-between;padding:6px 0;gap:10px">
+      <button class="plain small" style="text-align:left;flex:1" onclick="${opener}">${esc(label)}</button>
+      <span class="small muted" style="flex:0 0 auto">${esc(stampOf(f))}${f.size ? ' · ' + Math.max(1, Math.round(f.size / 1024)) + ' KB' : ''}</span>
     </div>`;
-  }).join('') + (list.length > 12 ? `<p class="small muted">${list.length - 12} older files not listed.</p>` : '');
+  const written = list.filter(f => !/^raw-/.test(String(f.name))).sort(byName);
+  const raw = list.filter(f => /^raw-/.test(String(f.name))).sort(byName);
+  const press = (f) => `openWakeFile('${escq(name)}','${escq(f.name)}')`;
+  let html = '';
+  if (written.length){
+    html += written.slice(0, 8).map(f => row(f, spoken(f), press(f))).join('');
+    if (written.length > 8) html += `<p class="small muted">${written.length - 8} older file(s) not listed.</p>`;
+  } else {
+    html += '<p class="small muted">It has written nothing yet. What is here is the exchange, not a work.</p>';
+  }
+  if (raw.length){
+    html += `<details style="margin-top:8px"><summary class="small muted" style="cursor:pointer">The exchange with the `
+      + `engine — ${raw.length} file${raw.length === 1 ? '' : 's'}, the harness's own record</summary>`
+      + raw.slice(0, 8).map(f => row(f, String(f.name).replace(/^raw-/, '').replace(/\.json$/, ''), press(f))).join('')
+      + (raw.length > 8 ? `<p class="small muted">${raw.length - 8} older file(s) not listed.</p>` : '')
+      + '</details>';
+  }
+  box.innerHTML = html;
 }
 
 window.openWakeFile = async (name, file) => {

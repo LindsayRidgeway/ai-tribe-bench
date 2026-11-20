@@ -1811,6 +1811,14 @@ class TestFiling(unittest.TestCase):
     def test_the_prompt_asks_for_a_revision_edge(self):
         self.assertIn('"revises"', wake.PROMPT)
 
+    def test_the_prompt_says_a_wake_with_nothing_to_do_may_be_quiet(self):
+        """The founder's objection of 2026-11-20 was to waste: a wake that produces a document nobody asked for
+        costs tokens, a commit and a reader's attention, and he named the worst of it — that the page then shows
+        a person a transcript they cannot use. The prompt said only that commentary is a failure, which reads as
+        "write something"; it now says what the alternative is and that it is legal."""
+        self.assertIn('"action": "no_action"` and one line in your journal', wake.PROMPT)
+        self.assertIn("A quiet turn is recorded as a", wake.PROMPT)
+
     def test_the_prompt_counts_the_sources_it_lists(self):
         """It said "three things can claim it" over four bullets, and called the open item "the lowest of the three"
         while `source` asked "which of the three" and accepted `item`. George picked an item at 01:46Z on
