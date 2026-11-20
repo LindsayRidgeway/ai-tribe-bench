@@ -148,6 +148,18 @@ STRETCH_PENALTY = 0.55                   # how much of the player's control a fu
                                          # a guess, and the page says so. A/B'd against 0.0 in §5d.
 COMFORT = 0.55                           # fraction of the reach a player can use and still be balanced: inside
                                          # this the contact is not a stretch, beyond it the arm does the work
+REACH_FOR: dict[str, float] = {}         # name -> ft, for the head-to-head in §5s and nothing else. Empty means
+                                         # every player has `PADDLE_REACH`, which is what every number measured
+                                         # before 2026-11-20 was measured with. A per-player reach is a *parameter*
+                                         # here rather than a model: the engine still does not say why one body
+                                         # covers more ground than another, and until it does, an override is the
+                                         # honest shape for the question "is reach the lever?".
+
+def reach_of(p: "Player") -> float:
+    """This player's paddle reach, in feet. `PADDLE_REACH` unless an experiment has said otherwise."""
+    return REACH_FOR.get(p.name, PADDLE_REACH)
+
+
 PADDLE_REACH = 6.0                       # ft the paddle covers beyond the feet, by the same construction as
                                          # tennis's 7: arm 2.5 + paddle 1.35 (a 15-17 in paddle) + lunge 2.2. The
                                          # first number I wrote was 3.0 — arm and paddle, lunge forgotten — and at 3 ft
@@ -661,7 +673,7 @@ def play_rally(match: Match, players: dict[str, Player], pos: "Positions", choos
         # height's business and the player's nerve, not the engine's.
         vol = None
         if may_volley and shot_no > 0 and incoming and incoming.get("path"):
-            vol = volley_contact(p, incoming["path"], at=here, reach=PADDLE_REACH,
+            vol = volley_contact(p, incoming["path"], at=here, reach=reach_of(p),
                                  lo=VOLLEY_LOW, hi=VOLLEY_HIGH)
             if vol is not None and in_kitchen(vol["feet"][0]):
                 vol = None                     # the feet would be in the kitchen: that is a fault, not a volley
@@ -676,7 +688,7 @@ def play_rally(match: Match, players: dict[str, Player], pos: "Positions", choos
         shot_kind = "serve" if shot_no == 0 else ("volley" if vol else "groundstroke")
         contact_pos = (vol["feet"][0], vol["feet"][1]) if vol else here
         # How stretched the contact is: a lunge for a volley, or the reach the receiving model left the feet at.
-        stretch = min(1.0, vol["step"] / PADDLE_REACH) if vol else pos.stretch_of(p)
+        stretch = min(1.0, vol["step"] / reach_of(p)) if vol else pos.stretch_of(p)
         if vol is not None:
             incoming = dict(incoming)
             incoming["volley_height"] = round(vol["height"], 2)   # the height is the attack's invitation
@@ -752,7 +764,7 @@ def play_rally(match: Match, players: dict[str, Player], pos: "Positions", choos
         # ball and then asked whether a foot inside the kitchen is a fault. That is why the stance measured as
         # irrelevant (§5b): between shots the feet were not the player's.
         _frm_r = pos.get(rp)
-        m = interception(rp, land, t["time"], t["bounce"], surface, frm=_frm_r, reach=PADDLE_REACH)
+        m = interception(rp, land, t["time"], t["bounce"], surface, frm=_frm_r, reach=reach_of(rp))
         if not m["ok"]:
             say(f"       -- point: {rp.name} is {m['why']}")
             return {"shots": shot_no, "why": "unreachable", "fault_by": None, "fault_name": receiver,
@@ -773,8 +785,9 @@ def play_rally(match: Match, players: dict[str, Player], pos: "Positions", choos
         # Stretched means the ball is out towards the end of the paddle's reach: 0 with the feet under it, 1 at
         # full extension. This is the fact that was missing on 2026-11-16 — without it a player who arrives late
         # hits as well as a player who arrived early, and defence never breaks (page §5c).
-        pos.stretch[rp.name] = max(0.0, min(1.0, (m["gap"] - COMFORT * PADDLE_REACH)
-                                   / (PADDLE_REACH - COMFORT * PADDLE_REACH)))
+        _reach = reach_of(rp)
+        pos.stretch[rp.name] = max(0.0, min(1.0, (m["gap"] - COMFORT * _reach)
+                                   / (_reach - COMFORT * _reach)))
         # ...and whatever time is left over is spent getting back to the stance. That leftover is the only
         # place the player's own number (`approach`) can act, and therefore the only place a lesson about the
         # kitchen can land: a player who arrives early chooses where to stand, a player who arrives late does not.

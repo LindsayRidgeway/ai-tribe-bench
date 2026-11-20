@@ -1726,3 +1726,91 @@ say about a game where the near-perfect defender is 4.5 ft rather than 6?
 - **The stance book is monotone by design** — it only steps back, and §5k said so. A rule with no way home can only
   lose once the faults it reads stop being about the stance.
 - **The app wiring**, unchanged from §5q.
+
+## §5s Is reach the lever? — 2026-11-20, afternoon
+
+§5r ended with a question and a guess: the defect is that nothing ever reaches the edge, and the lever is the reach
+boundary — `PADDLE_REACH`, `COMFORT`, `movement_speed`, `react` — but the only evidence was §5l's symmetric sweep.
+The guess can be tested, and testing it turned up a mistake in how this page has been describing its own
+experiments.
+
+### The knob
+
+```
+REACH_FOR: dict[str, float] = {}         # name -> ft, for the head-to-head and nothing else
+def reach_of(p: Player) -> float:
+    return REACH_FOR.get(p.name, PADDLE_REACH)
+```
+
+Empty by default, so every number measured before today reproduces; and used in all four places the reach appears —
+the volley contact, the volley's stretch, the interception, and the stretch that contact is measured at. It is a
+*parameter*, not a model: the engine still has no opinion about why one body covers more ground than another, and
+a knob is the honest shape for a question rather than a story about legs.
+
+### The catch, which is about the method and not the game
+
+Before any result, a correction to this page's language. §5n, §5p and §5r all say their games were "seats swapped
+over the same pinned clocks", on the strength of `first_team = g % 2`. That is not what that argument does: it swaps
+which team **serves first**, not which side anyone stands on. The sides are set by the name order at the top of
+`play_game`, and every player is an identical automaton, so permuting the names moves labels and not behaviour.
+
+Four controls, twelve games each, same pins:
+
+```
+north-a,b listed first, first_team 0    team0  92 - team1 129    games 3/9
+north-a,b listed first, first_team 2    team0  92 - team1 129    games 3/9
+south-a,b listed first, first_team 0    team0  92 - team1 129    games 3/9
+south-a,b listed first, first_team 2    team0  92 - team1 129    games 3/9
+```
+
+Identical transcripts, to the point, in all four. With identical players there is nothing to swap: the 92–129 is a
+fixed draw of seeds and clocks, not evidence of a bias and not evidence of fairness. And a "6 ft against 6 ft"
+control in the head-to-head below came out **173–250** for that same reason — the same 24 pins, twice the same draw.
+
+What actually cancels that draw is the *trait* moving between seats while the pins stay fixed: long reach at the
+north seats on clocks 1234500–11, and long reach at the south seats on the same clocks. Anything that belongs to
+the seat and the clock appears in both halves and drops out of the sum. That is the design §5f and §5n already
+used — "north learns" then "south learns" — and it is what "swapped" should have meant all along. **Comparisons
+between two conditions played on the same seats remain sound**, which is why §5p's A/B is not disturbed; it is
+claims of the form "this seat is worth more" that need the two halves.
+
+### The result
+
+Two halves a row, twelve games a half, the same pins, dink and steady hands at 200 balls:
+
+| hands | long reach | short reach | points | games | halves |
+|---|---|---|---|---|---|
+| steady | 6.0 ft | 4.5 ft | **231–182** (+49) | 18/6 | 111–102, 120–80 |
+| steady | 6.0 ft | 3.5 ft | **253–159** (+94) | 20/4 | 126–76, 127–83 |
+| dink | 6.0 ft | 4.5 ft | **223–196** (+27) | 15/9 | 111–102, 112–94 |
+| dink | 6.0 ft | 3.5 ft | **251–158** (+93) | 20/4 | 122–80, 129–78 |
+
+Both halves agree in sign in every row, which is the whole reason for two halves. **Reach is the lever.** A
+defender who covers three and a half feet loses four points a game to one who covers six — same hands, same
+stances, nobody learning anything — and a foot and a half of reach is worth about two points a game at driving pace
+and one at dink.
+
+That closes §5r's open question and it explains two things already on the page: why the reach sweep (§5n) is the
+only parameter that changed the shape of a rally, and why a *better stance* is worth so little by comparison — a
+stance moves a player's feet by a foot and a half at most, and the feet are worth something only in so far as they
+shorten the distance the paddle already covers.
+
+### What it does not settle
+
+**Why a body has six feet of reach is still not in the engine.** Tennis has a `reach` skill — it drives reaction
+time and movement speed, and it grows with practice — while pickleball hands every player the same 6.0 ft and
+ignores the skill entirely. So the member-facing version of this result is not the knob, it is a *model*: reach as
+a function of practice, with a range, a curve and a measurement of what a thousand balls buys in feet. The knob is
+what makes that model testable before it is written, which is the only reason to have built it first.
+
+**And the lesson's cost is still unexplained.** §5r found the stance lesson losing 4–11 points a half and named the
+next measurement — compare stretch and demand between learners and pinned opponents on the same pins — and that is
+still owed. It is now a more interesting question than it was this morning: if reach is what decides a rally, then
+a lesson about standing position can only ever be worth what it does to the distance the paddle covers.
+
+### Owed
+
+- **Reach as a skill**: the range, the curve, and the A/B against the constant, so a member's practice buys feet
+  rather than only hands.
+- **Why the lesson costs points** (§5r's second measurement).
+- **The `#/play` wiring** (§5q), unchanged.

@@ -6323,8 +6323,15 @@ class TestPickleball(unittest.TestCase):
         paddle is asked for, and the primitive itself answers differently for the same ball at 6 ft and at 2."""
         pk = self.pk
         src = (REPO / "lab" / "pickleball.py").read_text(encoding="utf-8")
-        self.assertEqual(src.count("reach=PADDLE_REACH"), 2,
-                         "the volley and the interception both read the one constant, not a copy of it")
+        # Since §5s the two sites read `reach_of(p)`, which is `REACH_FOR.get(name, PADDLE_REACH)` — the override
+        # §5s's head-to-head needs, empty unless an experiment is running. The property this test is about is
+        # unchanged and is now asserted one level up: every reach in the engine comes from one function, and that
+        # function has one default.
+        self.assertEqual(src.count("reach=reach_of("), 2,
+                         "the volley and the interception both read the one number, not a copy of it")
+        self.assertEqual(src.count("reach=PADDLE_REACH"), 0, "and neither of them hard-codes it")
+        self.assertIn("return REACH_FOR.get(p.name, PADDLE_REACH)", src,
+                      "which is the default, so an empty REACH_FOR is the engine before §5s")
         p = self.t.Player(name="A", north=True, practice=200)
         path = [(0.1, 21.0, 10.0, 3.0)]          # six feet away, a tenth of a second to get there
         wide = pk.volley_contact(p, path, at=(15.0, 10.0), reach=6.0)
@@ -6996,6 +7003,56 @@ class TestPickleball(unittest.TestCase):
         src = (REPO / "lab" / "pickleball.py").read_text(encoding="utf-8")
         self.assertIn("stances[n] = float(static.get(n, APPROACH_DEFAULT))", src,
                       "a non-learning side is pinned to the default, which is what made the two rows one row")
+
+    def test_reach_is_a_parameter_and_it_is_the_lever(self):
+        """§5s. §5r left "is reach the lever?" open, and the honest way to ask it is a knob: an override that is
+        empty by default, so every number measured before today reproduces, and a head-to-head that moves the
+        *trait* between seats over the same pins. Two claims, one mechanistic and one about points."""
+        pk = self.pk
+        hitter = pk.Player(name="probe-hitter", north=True, practice=200)
+        probe = pk.Player(name="probe", north=False, practice=200)
+        face = pk.aim_at(hitter, (24.5, 10.0), "groundstroke", "hard", (0.0, 0.0), 30.0, (18.0, 10.0))
+        shot = pk.strike(hitter, None, face=face, power=30.0, aim=10.0, shot="groundstroke", surface="hard",
+                         wind=(0.0, 0.0), pos=(18.0, 10.0), clean=True, aim_dist=6.5)
+        traj = shot["traj"]
+        self.assertIn("bounce", traj, "the probe ball is a ball that lands")
+        land, ft = traj["land"], traj["time"]
+        frm = (land[0] + 1.0, land[1] + 12.0)          # twelve feet across, which is a doubles partner's half
+        long_m = pk.interception(probe, land, ft, traj["bounce"], "hard", frm=frm, reach=6.0)
+        short_m = pk.interception(probe, land, ft, traj["bounce"], "hard", frm=frm, reach=3.5)
+        self.assertLess(long_m["need"], short_m["need"],
+                        "reach buys time: the same ball needs less of it from a longer paddle")
+
+        # the default is every player at PADDLE_REACH, which is what keeps every earlier measurement reproducible
+        self.assertEqual(pk.REACH_FOR, {}, "no experiment is running, so nobody has a private reach")
+        self.assertEqual(pk.reach_of(probe), pk.PADDLE_REACH)
+
+        # the head-to-head: the trait moves between the seats and the same pins are used for both halves, so
+        # whatever belongs to the seat and the clock is in both halves and drops out of the sum
+        names = ["north-a", "north-b", "south-a", "south-b"]
+        def half(long_side, games=4):          # four a half: at 3.5 ft the margin was 131-61 over six, so this
+                                               # is a claim with room in it rather than a coin flip
+            pk.REACH_FOR.clear()
+            for n in (names[:2] if long_side == "north" else names[2:]):
+                pk.REACH_FOR[n] = 6.0
+            for n in (names[2:] if long_side == "north" else names[:2]):
+                pk.REACH_FOR[n] = 3.5
+            L = S = 0
+            for g in range(games):
+                m, _ = pk.play_game(names, [200] * 4, pk.make_chooser("dink"), wind_seed_ms=1234500 + g,
+                                    first_team=g % 2, say=lambda *a, **k: None)
+                li = 0 if long_side == "north" else 1
+                L += m.teams[li].score
+                S += m.teams[1 - li].score
+            pk.REACH_FOR.clear()
+            return L, S
+        try:
+            a, b = half("north"), half("south")
+        finally:
+            pk.REACH_FOR.clear()
+        self.assertGreater(a[0] + b[0], a[1] + b[1],
+                           f"the long reach takes the points ({a[0] + b[0]} to {a[1] + b[1]}); if this ever stops"
+                           f" being true, reach has stopped being the thing that decides a rally")
 
     # three small aliases so the test bodies read like arithmetic, not like module plumbing
     import math as _math
