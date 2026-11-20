@@ -1612,7 +1612,7 @@ next: the same table with the floor at 0.5 ft.
 
 
 ###############################################################################
-PASS 9 — 2026-11-19, 21:20-23:40 — the floor, removed
+PASS 9 — 2026-11-19, 21:20-22:33 — the floor, removed
 ###############################################################################
 
 The eighth pass ended with a number in the file instead of a table: `target()` floors the scatter at 2 ft,
