@@ -8223,6 +8223,34 @@ class TestWorkflows(unittest.TestCase):
                 self.assertNotIn(d.name, step_two,
                                  f"{d.name!r} is a room in this bench; the sheet must not send a reader to type it")
 
+    def test_the_clock_a_person_can_own_ships_and_names_the_workflow_that_ships(self):
+        """Before 2026-11-20 the remedy for GitHub's cron was in RUN.md, which owners never receive.
+
+        RUN.md §8 has said since 2026-11-03 that the schedule is mostly not delivered and that only a trigger
+        outside GitHub fills a lost stretch of time — and neither the script nor the instructions travelled with
+        the repository. So the manual promised a circle that keeps going and offered no way to make it keep going.
+        These are the three things that have to stay true for the shipped copy to be usable by a stranger.
+        """
+        import re as _re
+        built = Path(tempfile.mkdtemp(prefix="tpl-pinger-"))
+        self.addCleanup(shutil.rmtree, built, True)
+        import subprocess
+        r = subprocess.run([sys.executable, str(REPO / "lab" / "make_template.py"), "--out", str(built)],
+                           capture_output=True, text=True, timeout=120)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        gs = built / "lab" / "pinger.gs"
+        self.assertTrue(gs.is_file(), "the clock a person can own does not travel with the repository")
+        src = gs.read_text(encoding="utf-8")
+        named = _re.search(r"const WORKFLOW = '([^']+)'", src)
+        self.assertIsNotNone(named, "the pinger no longer says which workflow it dispatches")
+        self.assertTrue((built / ".github" / "workflows" / named.group(1)).is_file(),
+                        f"the pinger dispatches {named.group(1)}, which this template does not ship")
+        man = (REPO / "USER-MANUAL.md").read_text(encoding="utf-8")
+        self.assertIn("lab/pinger.gs", man, "the script ships; the manual has to say so or nobody finds it")
+        self.assertIn("installTrigger", man, "and the step that makes it run on a timer")
+        self.assertNotIn("TOKEN = 'PASTE", src,
+                         "the token goes in Script Properties, not in a file a person may share")
+
     def test_the_shipped_manual_does_not_promise_a_frequency_the_cron_cannot_keep(self):
         """Measured on 2026-11-20, and it corrects two documents at once.
 
