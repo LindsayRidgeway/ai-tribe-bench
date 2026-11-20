@@ -2781,3 +2781,70 @@ pass is the page, and it is the smallest version of it that is honest.
       right edge overlapping when two lines finish a tenth of a stroke apart (fixed by nudging them apart in the
       order the lines finish), and a cumulative-total panel that rose from left to right and therefore read as
       getting worse as the player got better (replaced by the paired difference).
+
+
+PASS 15 — 2026-11-20, 11:20-11:55 — the camera that was not the camera, and a ball that stopped in the wrong place
+====================================================================================================================
+
+The plan, written down since pass 7, was a tracking camera: `--render 7` filmed a whole hole from one mount behind
+the tee, the ball was a two-pixel dot, and the fix was supposed to be a camera that follows the ball. Two versions
+of that camera were built this pass. Both were photographed. Both were wrong, and the thing that was right was not
+a tracking camera at all.
+
+  what was tried, in order, and what it looked like
+      1. pan with lag: the mount stays, the head turns, the ball is sampled 0.34 s late so it runs ahead of centre,
+         and the lens tightens to 58% over the flight.  ->  a green screen with a yellow arc on it. Every landmark
+         — flag, green, fairway edge — was outside the lens, because a pan that centres the ball cannot also
+         contain the hole. And the tightening made it flatter, not clearer: a long golf shot is a telephoto on
+         television and that is exactly why a tower shot looks flat.
+      2. fit the shot: stand off the line far enough, at the scene's own lens, to hold the ball's start, its rest
+         and the green.  ->  correct, but at 0.55 x the stand-off distance the camera looked down by more than half
+         the lens's field, the horizon left the top of the frame, and the picture was a full green screen again
+         with the arc in it. The height is a constraint and not a taste: 0.16 x the distance keeps a few degrees
+         of depression, the horizon crosses the frame, the sky is above it and the arc below.
+
+  the finding, and it is not about cameras. A golf ball a hundred feet away is 1.6 in across. No framing that also
+      shows the shot can make it more than about a pixel, so "make the ball bigger" was never available and the
+      twelve passes of apologising for a two-pixel dot were apologising for the scale of the world. What the eye
+      actually follows is the shot tracer — the yellow line — which the film has had since its first version. What
+      was broken was the FRAME: it was a guess (a fixed mount, a fixed lens, aimed at the middle of the shot) and
+      it is now solved (the extent of the flight plus the green, on the side of the line, with the horizon kept in
+      shot). The ball is drawn with a floor of 2.2 px and the code now says out loud that the floor is a symbol
+      and the scale bar is the measurement.
+
+  the second defect, and it is the worse one. The path the integrator returns ends at the first touch of the
+      ground; the game's `shot()` counts carry plus roll; the film drew the path. So the caption said "65 yd" and
+      the dot on the screen was twenty-five yards short of that, on the same page, in the same frame.
+      `film_path()` extends the path through the bounce along the straight line `shot()` already computes, with the
+      time constant deceleration takes (s = roll (2u − u²), u = t/T). Found by looking at a still and asking why
+      the dot was not at the end of its own arc. Nobody had read the number and the picture together before,
+      because until this pass the number and the picture were never both about the same hole on one screen.
+
+  the third defect, found by accident. Setting a canvas's width clears it. The page resizes the canvas on a
+      `resize` event and drew nothing afterwards, so a window that is resized goes black and stays black — and the
+      pinned still never runs again at all. It was found because screenshots at a 2500 ms virtual-time budget came
+      back blank and at 1500 ms did not: the layout settled, the canvas cleared itself, and the picture was gone.
+      The page had had this fault since its first version. Fixed by keeping the last frame and drawing it again
+      after a resize.
+
+  what is new on the page
+      - `--render 7` (and any hole): shots are filmed by the solved frame; the hole opens with 3.2 s of standing
+        still with a six per cent dolly, which is the only camera move no ball is responsible for.
+      - `--render round`: the athlete's nine holes in order, each with its own establishing frame, one film. The
+        fading trail is per hole — a trail from the fourth hole drawn across the seventh is a line through a place
+        it was never hit.
+      - `--render best` / `--render worst`: the hole the card says went best and worst, filmed alone.
+      - the film's data model now carries `feet` and `view` per shot instead of one per scene, which is what lets a
+        film change hole.
+
+  what the round film does not contain, said on the page rather than left as a gap: the putts. A putt reports the
+      distance it finished from the hole and not the line it took, so filming one would mean inventing the line.
+      That is the next thing this film needs and it is a putt path in `putt.py`, not a camera.
+
+  the numbers, unchanged: 36 checks pass. The physics, the objective and the cards are untouched by this pass —
+      the only Python that changed is `film_path()` and the three new `--render` modes, so a film cannot disagree
+      with the game about where the ball went, which was the point of the defect it fixed.
+
+  stills photographed to judge it, and thrown away with the pages: four rounds of them at 900 x 620 —
+      frame-per-shot before and after, a pan frame, a fit frame at three stand-off heights, a roll in progress,
+      the face film (unmoved, which is how the regression was ruled out), and the round film's hole change.

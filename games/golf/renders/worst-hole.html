@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>golf — the shot, drawn</title>
+<style>
+  html,body{margin:0;height:100%;background:#0d1512;color:#dfe6e2;
+            font:14px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #wrap{position:fixed;inset:0;display:flex;flex-direction:column}
+  canvas{flex:1;display:block;width:100%;height:100%}
+  #bar{padding:10px 16px 14px;border-top:1px solid #22332c;background:#0b1210}
+  #title{color:#8fd8b4;letter-spacing:.02em}
+  #note{color:#7d8f88;font-size:12.5px;margin-top:2px}
+  #now{margin-top:8px;font-size:13.5px}
+  #now b{color:#ffd479;font-weight:600}
+  #dots{margin-top:6px;color:#38524a;font-size:12px;letter-spacing:.3em}
+  #dots span.on{color:#ffd479}
+</style>
+<div id="wrap"><canvas id="c"></canvas>
+  <div id="bar">
+    <div id="title">…</div>
+    <div id="note"></div>
+    <div id="now"></div>
+    <div id="dots"></div>
+  </div>
+</div>
+<script type="application/json" id="scene">{"title": "the worst hole of the round: 5 on a par 4", "note": "2 putts in it, and the putts are not in this film: a putt is two to twenty feet of grass with no path of its own to draw. The camera follows the ball, and each hole opens with three seconds of standing still.", "fov": 44.0, "feet": {"yards": 450, "par": 4, "label": "8", "pin": 11, "sand": -1, "centre": [0.0, 1350.0], "flag": [11, 1350.0], "green_a": 20.0, "green_b": 28.0, "bunker_w": 14.0, "lip_h": 1.5}, "shots": [{"label": "8 \u00b7 driver at 100%, aim +10 ft", "club": "driver", "gear": 1.0, "start": [0.0, 0.0], "path": [[0.0, 0.0, 0.0, 0.0], [0.02, 0.163, 4.753, 0.918], [0.04, 0.325, 9.483, 1.836], [0.06, 0.486, 14.188, 2.753], [0.08, 0.645, 18.87, 3.67], [0.1, 0.803, 23.529, 4.586], [0.12, 0.959, 28.165, 5.501], [0.14, 1.114, 32.779, 6.416], [0.16, 1.268, 37.37, 7.329], [0.18, 1.42, 41.938, 8.241], [0.2, 1.571, 46.485, 9.152], [0.22, 1.721, 51.01, 10.062], [0.24, 1.869, 55.513, 10.97], [0.26, 2.016, 59.996, 11.876], [0.28, 2.162, 64.457, 12.78], [0.3, 2.307, 68.897, 13.683], [0.32, 2.45, 73.317, 14.583], [0.34, 2.592, 77.716, 15.482], [0.36, 2.733, 82.095, 16.378], [0.38, 2.873, 86.454, 17.272], [0.4, 3.011, 90.793, 18.163], [0.42, 3.148, 95.113, 19.052], [0.44, 3.284, 99.413, 19.938], [0.46, 3.419, 103.695, 20.822], [0.48, 3.553, 107.957, 21.703], [0.5, 3.686, 112.2, 22.581], [0.52, 3.817, 116.425, 23.456], [0.54, 3.948, 120.631, 24.327], [0.56, 4.077, 124.819, 25.196], [0.58, 4.206, 128.989, 26.062], [0.6, 4.333, 133.14, 26.924], [0.62, 4.459, 137.275, 27.783], [0.64, 4.584, 141.391, 28.638], [0.66, 4.708, 145.491, 29.49], [0.68, 4.831, 149.573, 30.338], [0.7, 4.953, 153.638, 31.182], [0.72, 5.074, 157.686, 32.023], [0.74, 5.194, 161.717, 32.86], [0.76, 5.313, 165.732, 33.693], [0.78, 5.43, 169.73, 34.522], [0.8, 5.547, 173.712, 35.346], [0.82, 5.663, 177.678, 36.167], [0.84, 5.778, 181.628, 36.984], [0.86, 5.892, 185.562, 37.796], [0.88, 6.006, 189.481, 38.604], [0.9, 6.118, 193.383, 39.407], [0.92, 6.229, 197.271, 40.207], [0.94, 6.339, 201.143, 41.001], [0.96, 6.449, 205.0, 41.791], [0.98, 6.557, 208.843, 42.577], [1.0, 6.665, 212.67, 43.358], [1.021, 6.777, 216.673, 44.172], [1.041, 6.883, 220.47, 44.943], [1.061, 6.988, 224.253, 45.71], [1.081, 7.092, 228.022, 46.471], [1.101, 7.195, 231.776, 47.227], [1.121, 7.297, 235.516, 47.979], [1.141, 7.399, 239.243, 48.725], [1.161, 7.5, 242.955, 49.466], [1.181, 7.6, 246.654, 50.203], [1.201, 7.699, 250.34, 50.934], [1.221, 7.797, 254.012, 51.659], [1.241, 7.894, 257.67, 52.38], [1.261, 7.991, 261.315, 53.095], [1.281, 8.087, 264.948, 53.805], [1.301, 8.182, 268.567, 54.509], [1.321, 8.276, 272.173, 55.208], [1.341, 8.37, 275.767, 55.901], [1.361, 8.462, 279.347, 56.589], [1.381, 8.555, 282.916, 57.272], [1.401, 8.646, 286.472, 57.948], [1.421, 8.736, 290.015, 58.62], [1.441, 8.826, 293.546, 59.285], [1.461, 8.915, 297.065, 59.945], [1.481, 9.003, 300.572, 60.599], [1.501, 9.091, 304.067, 61.247], [1.521, 9.178, 307.55, 61.889], [1.541, 9.264, 311.022, 62.526], [1.561, 9.35, 314.481, 63.156], [1.581, 9.434, 317.93, 63.781], [1.601, 9.518, 321.366, 64.399], [1.621, 9.602, 324.792, 65.012], [1.641, 9.685, 328.206, 65.619], [1.661, 9.767, 331.608, 66.219], [1.681, 9.848, 335.0, 66.814], [1.701, 9.929, 338.381, 67.402], [1.721, 10.009, 341.751, 67.985], [1.741, 10.088, 345.109, 68.561], [1.761, 10.167, 348.458, 69.13], [1.781, 10.245, 351.795, 69.694], [1.801, 10.322, 355.122, 70.251], [1.821, 10.399, 358.438, 70.803], [1.841, 10.475, 361.744, 71.347], [1.861, 10.551, 365.04, 71.886], [1.881, 10.626, 368.325, 72.418], [1.901, 10.7, 371.6, 72.943], [1.921, 10.774, 374.865, 73.463], [1.941, 10.847, 378.12, 73.976], [1.961, 10.92, 381.365, 74.482], [1.981, 10.992, 384.6, 74.982], [2.001, 11.063, 387.825, 75.475], [2.021, 11.134, 391.04, 75.962], [2.041, 11.204, 394.246, 76.442], [2.061, 11.273, 397.442, 76.916], [2.081, 11.342, 400.629, 77.383], [2.101, 11.411, 403.806, 77.844], [2.121, 11.479, 406.974, 78.297], [2.141, 11.546, 410.133, 78.745], [2.161, 11.613, 413.282, 79.185], [2.181, 11.679, 416.422, 79.619], [2.201, 11.745, 419.553, 80.046], [2.221, 11.81, 422.675, 80.466], [2.241, 11.874, 425.788, 80.88], [2.261, 11.938, 428.892, 81.287], [2.281, 12.002, 431.987, 81.687], [2.301, 12.065, 435.074, 82.08], [2.321, 12.127, 438.151, 82.467], [2.341, 12.189, 441.22, 82.846], [2.361, 12.251, 444.281, 83.219], [2.381, 12.312, 447.333, 83.585], [2.401, 12.372, 450.376, 83.944], [2.421, 12.432, 453.411, 84.296], [2.441, 12.491, 456.437, 84.641], [2.461, 12.55, 459.456, 84.979], [2.481, 12.608, 462.466, 85.31], [2.501, 12.666, 465.468, 85.634], [2.521, 12.724, 468.461, 85.952], [2.541, 12.781, 471.447, 86.262], [2.561, 12.837, 474.425, 86.565], [2.581, 12.893, 477.394, 86.862], [2.601, 12.948, 480.356, 87.151], [2.621, 13.003, 483.31, 87.433], [2.641, 13.058, 486.256, 87.708], [2.661, 13.112, 489.194, 87.976], [2.681, 13.166, 492.125, 88.237], [2.701, 13.219, 495.047, 88.491], [2.721, 13.271, 497.963, 88.738], [2.741, 13.323, 500.87, 88.977], [2.761, 13.375, 503.771, 89.21], [2.781, 13.427, 506.663, 89.435], [2.801, 13.477, 509.549, 89.654], [2.821, 13.528, 512.427, 89.865], [2.841, 13.578, 515.297, 90.068], [2.861, 13.627, 518.161, 90.265], [2.881, 13.676, 521.017, 90.455], [2.901, 13.725, 523.866, 90.637], [2.921, 13.773, 526.708, 90.812], [2.941, 13.821, 529.543, 90.98], [2.961, 13.869, 532.371, 91.141], [2.981, 13.915, 535.191, 91.294], [3.001, 13.962, 538.005, 91.44], [3.021, 14.008, 540.812, 91.579], [3.041, 14.054, 543.612, 91.711], [3.061, 14.099, 546.405, 91.835], [3.081, 14.144, 549.192, 91.953], [3.101, 14.189, 551.971, 92.062], [3.121, 14.233, 554.744, 92.165], [3.141, 14.276, 557.511, 92.26], [3.161, 14.32, 560.271, 92.348], [3.181, 14.363, 563.024, 92.429], [3.201, 14.405, 565.77, 92.502], [3.221, 14.447, 568.51, 92.568], [3.241, 14.489, 571.244, 92.627], [3.261, 14.53, 573.971, 92.678], [3.281, 14.571, 576.692, 92.722], [3.301, 14.612, 579.407, 92.759], [3.321, 14.652, 582.115, 92.788], [3.341, 14.692, 584.817, 92.81], [3.361, 14.731, 587.512, 92.825], [3.381, 14.77, 590.202, 92.832], [3.401, 14.809, 592.885, 92.832], [3.421, 14.847, 595.562, 92.824], [3.441, 14.885, 598.233, 92.81], [3.461, 14.923, 600.898, 92.787], [3.481, 14.96, 603.557, 92.758], [3.501, 14.997, 606.21, 92.721], [3.521, 15.033, 608.857, 92.676], [3.541, 15.069, 611.498, 92.624], [3.561, 15.105, 614.133, 92.565], [3.581, 15.141, 616.763, 92.499], [3.601, 15.176, 619.386, 92.425], [3.621, 15.21, 622.004, 92.343], [3.641, 15.245, 624.615, 92.254], [3.661, 15.279, 627.222, 92.158], [3.681, 15.312, 629.822, 92.055], [3.701, 15.346, 632.417, 91.943], [3.721, 15.379, 635.006, 91.825], [3.741, 15.411, 637.589, 91.699], [3.761, 15.444, 640.167, 91.566], [3.781, 15.476, 642.74, 91.425], [3.801, 15.507, 645.306, 91.277], [3.821, 15.539, 647.868, 91.121], [3.841, 15.57, 650.423, 90.958], [3.861, 15.6, 652.974, 90.788], [3.881, 15.631, 655.519, 90.61], [3.901, 15.661, 658.058, 90.425], [3.921, 15.69, 660.592, 90.232], [3.941, 15.72, 663.121, 90.032], [3.961, 15.749, 665.645, 89.824], [3.981, 15.778, 668.163, 89.609], [4.001, 15.806, 670.676, 89.387], [4.021, 15.834, 673.183, 89.157], [4.041, 15.862, 675.686, 88.92], [4.061, 15.889, 678.183, 88.675], [4.081, 15.916, 680.675, 88.423], [4.101, 15.943, 683.162, 88.164], [4.121, 15.97, 685.644, 87.897], [4.141, 15.996, 688.121, 87.623], [4.161, 16.022, 690.593, 87.341], [4.181, 16.048, 693.059, 87.052], [4.201, 16.073, 695.521, 86.755], [4.221, 16.098, 697.977, 86.451], [4.241, 16.123, 700.429, 86.14], [4.261, 16.147, 702.876, 85.821], [4.281, 16.171, 705.318, 85.495], [4.301, 16.195, 707.754, 85.161], [4.321, 16.219, 710.186, 84.82], [4.341, 16.242, 712.613, 84.472], [4.361, 16.265, 715.036, 84.116], [4.381, 16.287, 717.453, 83.753], [4.401, 16.31, 719.866, 83.382], [4.421, 16.332, 722.273, 83.004], [4.441, 16.354, 724.676, 82.619], [4.461, 16.375, 727.075, 82.226], [4.481, 16.396, 729.468, 81.826], [4.501, 16.417, 731.857, 81.419], [4.521, 16.438, 734.241, 81.004], [4.541, 16.458, 736.621, 80.582], [4.561, 16.478, 738.996, 80.153], [4.581, 16.498, 741.366, 79.716], [4.601, 16.518, 743.732, 79.272], [4.621, 16.537, 746.093, 78.82], [4.641, 16.556, 748.449, 78.362], [4.661, 16.575, 750.801, 77.895], [4.681, 16.593, 753.148, 77.422], [4.701, 16.611, 755.491, 76.941], [4.721, 16.629, 757.829, 76.453], [4.741, 16.647, 760.163, 75.958], [4.761, 16.664, 762.492, 75.455], [4.781, 16.681, 764.817, 74.945], [4.801, 16.698, 767.138, 74.428], [4.821, 16.715, 769.454, 73.903], [4.841, 16.731, 771.765, 73.372], [4.861, 16.747, 774.073, 72.833], [4.881, 16.763, 776.375, 72.286], [4.901, 16.778, 778.674, 71.733], [4.921, 16.793, 780.968, 71.172], [4.94, 16.808, 783.143, 70.632], [4.96, 16.822, 785.429, 70.058], [4.98, 16.837, 787.71, 69.475], [5.0, 16.851, 789.988, 68.886], [5.02, 16.865, 792.26, 68.29], [5.04, 16.879, 794.529, 67.686], [5.06, 16.892, 796.793, 67.075], [5.08, 16.905, 799.053, 66.457], [5.1, 16.918, 801.309, 65.832], [5.12, 16.931, 803.561, 65.199], [5.14, 16.943, 805.808, 64.559], [5.16, 16.955, 808.052, 63.913], [5.18, 16.967, 810.291, 63.259], [5.2, 16.979, 812.526, 62.598], [5.22, 16.99, 814.757, 61.93], [5.24, 17.002, 816.984, 61.254], [5.26, 17.013, 819.206, 60.572], [5.28, 17.023, 821.425, 59.883], [5.3, 17.034, 823.639, 59.186], [5.32, 17.044, 825.85, 58.482], [5.34, 17.054, 828.056, 57.772], [5.36, 17.063, 830.258, 57.054], [5.38, 17.073, 832.456, 56.329], [5.4, 17.082, 834.651, 55.598], [5.42, 17.091, 836.841, 54.859], [5.44, 17.1, 839.027, 54.113], [5.46, 17.108, 841.209, 53.36], [5.48, 17.117, 843.387, 52.6], [5.5, 17.125, 845.562, 51.833], [5.52, 17.132, 847.732, 51.06], [5.54, 17.14, 849.898, 50.279], [5.56, 17.147, 852.061, 49.491], [5.58, 17.154, 854.219, 48.697], [5.6, 17.161, 856.374, 47.895], [5.62, 17.168, 858.525, 47.087], [5.64, 17.174, 860.671, 46.271], [5.66, 17.18, 862.814, 45.449], [5.68, 17.186, 864.953, 44.62], [5.7, 17.192, 867.088, 43.784], [5.72, 17.197, 869.22, 42.941], [5.74, 17.202, 871.347, 42.092], [5.76, 17.207, 873.471, 41.235], [5.78, 17.212, 875.591, 40.372], [5.8, 17.216, 877.707, 39.502], [5.82, 17.221, 879.819, 38.625], [5.84, 17.225, 881.927, 37.741], [5.86, 17.228, 884.032, 36.851], [5.88, 17.232, 886.132, 35.954], [5.9, 17.235, 888.23, 35.05], [5.92, 17.238, 890.323, 34.139], [5.94, 17.241, 892.412, 33.222], [5.96, 17.244, 894.498, 32.298], [5.98, 17.247, 896.58, 31.367], [6.0, 17.249, 898.658, 30.43], [6.02, 17.251, 900.733, 29.485], [6.04, 17.253, 902.804, 28.535], [6.06, 17.254, 904.871, 27.577], [6.08, 17.255, 906.935, 26.614], [6.1, 17.256, 908.994, 25.643], [6.12, 17.257, 911.05, 24.666], [6.14, 17.258, 913.103, 23.682], [6.16, 17.258, 915.152, 22.692], [6.18, 17.259, 917.197, 21.695], [6.2, 17.259, 919.238, 20.692], [6.22, 17.258, 921.276, 19.682], [6.24, 17.258, 923.31, 18.666], [6.26, 17.257, 925.341, 17.643], [6.28, 17.257, 927.368, 16.614], [6.3, 17.255, 929.391, 15.578], [6.32, 17.254, 931.411, 14.536], [6.34, 17.253, 933.427, 13.488], [6.36, 17.251, 935.44, 12.433], [6.38, 17.249, 937.449, 11.371], [6.4, 17.247, 939.454, 10.304], [6.42, 17.244, 941.456, 9.23], [6.44, 17.242, 943.455, 8.149], [6.46, 17.239, 945.449, 7.062], [6.48, 17.236, 947.441, 5.969], [6.5, 17.233, 949.428, 4.87], [6.52, 17.229, 951.412, 3.765], [6.54, 17.226, 953.393, 2.653], [6.56, 17.222, 955.37, 1.535], [6.58, 17.218, 957.344, 0.41], [6.5873, 17.216, 958.06, 0.0], [7.0454, 17.1, 999.25, 0.0], [7.5035, 17.01, 1032.95, 0.0], [7.9616, 16.93, 1059.16, 0.0], [8.4197, 16.88, 1077.88, 0.0], [8.8778, 16.85, 1089.11, 0.0], [9.3359, 16.84, 1092.85, 0.0]], "stop_at": null, "rest": null, "lens": null, "lip": false, "hole": 0, "feet": {"yards": 450, "par": 4, "label": "8", "pin": 11, "sand": -1, "centre": [0.0, 1350.0], "flag": [11, 1350.0], "green_a": 20.0, "green_b": 28.0, "bunker_w": 14.0, "lip_h": 1.5}, "result": "364 yd, 86 yd short, 3 yd right", "view": {"pos": [162.0, -135.0, 297.0], "target": [0.0, 1053.0, 0.0], "label": "hole 8: 450 yd, par 4"}}, {"label": "8 \u00b7 9 iron at 45%, aim +0 ft", "club": "9 iron", "gear": 0.45, "start": [16.92, 1092.88], "path": [[0.0, 16.923, 1092.879, 0.0], [0.02, 16.83, 1094.15, 0.458], [0.04, 16.736, 1095.42, 0.905], [0.06, 16.642, 1096.69, 1.339], [0.08, 16.548, 1097.958, 1.761], [0.1, 16.454, 1099.225, 2.171], [0.12, 16.36, 1100.49, 2.569], [0.14, 16.266, 1101.755, 2.954], [0.16, 16.172, 1103.019, 3.328], [0.18, 16.078, 1104.282, 3.69], [0.2, 15.985, 1105.544, 4.04], [0.22, 15.891, 1106.805, 4.377], [0.24, 15.797, 1108.065, 4.703], [0.26, 15.703, 1109.323, 5.017], [0.28, 15.609, 1110.581, 5.318], [0.3, 15.515, 1111.838, 5.608], [0.32, 15.421, 1113.094, 5.886], [0.34, 15.328, 1114.349, 6.151], [0.36, 15.234, 1115.603, 6.405], [0.38, 15.14, 1116.856, 6.647], [0.4, 15.046, 1118.109, 6.877], [0.42, 14.952, 1119.36, 7.095], [0.44, 14.858, 1120.61, 7.301], [0.46, 14.764, 1121.86, 7.496], [0.48, 14.671, 1123.108, 7.678], [0.5, 14.577, 1124.356, 7.848], [0.52, 14.483, 1125.603, 8.007], [0.54, 14.389, 1126.848, 8.154], [0.56, 14.295, 1128.093, 8.289], [0.58, 14.201, 1129.338, 8.412], [0.6, 14.108, 1130.581, 8.523], [0.62, 14.014, 1131.823, 8.623], [0.64, 13.92, 1133.065, 8.711], [0.66, 13.826, 1134.305, 8.787], [0.68, 13.732, 1135.545, 8.851], [0.7, 13.639, 1136.784, 8.903], [0.72, 13.545, 1138.022, 8.944], [0.74, 13.451, 1139.259, 8.973], [0.76, 13.357, 1140.495, 8.99], [0.78, 13.263, 1141.731, 8.996], [0.8, 13.17, 1142.966, 8.99], [0.82, 13.076, 1144.199, 8.972], [0.84, 12.982, 1145.432, 8.943], [0.86, 12.888, 1146.664, 8.901], [0.88, 12.794, 1147.896, 8.849], [0.9, 12.701, 1149.126, 8.784], [0.92, 12.607, 1150.356, 8.708], [0.94, 12.513, 1151.585, 8.62], [0.96, 12.419, 1152.813, 8.521], [0.98, 12.325, 1154.04, 8.41], [1.0, 12.232, 1155.266, 8.288], [1.021, 12.133, 1156.553, 8.147], [1.041, 12.039, 1157.777, 8.001], [1.061, 11.946, 1159.001, 7.843], [1.081, 11.852, 1160.224, 7.674], [1.101, 11.758, 1161.446, 7.494], [1.121, 11.664, 1162.667, 7.302], [1.141, 11.571, 1163.887, 7.098], [1.161, 11.477, 1165.107, 6.883], [1.181, 11.383, 1166.326, 6.657], [1.201, 11.289, 1167.543, 6.419], [1.221, 11.196, 1168.76, 6.17], [1.241, 11.102, 1169.977, 5.909], [1.261, 11.008, 1171.192, 5.637], [1.281, 10.914, 1172.406, 5.354], [1.301, 10.821, 1173.62, 5.06], [1.321, 10.727, 1174.833, 4.754], [1.341, 10.633, 1176.044, 4.437], [1.361, 10.539, 1177.255, 4.108], [1.381, 10.446, 1178.465, 3.769], [1.401, 10.352, 1179.675, 3.418], [1.421, 10.258, 1180.883, 3.056], [1.441, 10.165, 1182.09, 2.683], [1.461, 10.071, 1183.297, 2.299], [1.481, 9.977, 1184.503, 1.903], [1.501, 9.883, 1185.707, 1.497], [1.521, 9.79, 1186.911, 1.079], [1.541, 9.696, 1188.114, 0.65], [1.561, 9.602, 1189.316, 0.21], [1.5704, 9.558, 1189.881, 0.0], [1.8491, 8.36, 1205.23, 0.0], [2.1277, 7.38, 1217.8, 0.0], [2.4064, 6.62, 1227.57, 0.0], [2.685, 6.08, 1234.54, 0.0], [2.9637, 5.75, 1238.73, 0.0], [3.2423, 5.65, 1240.13, 0.0]], "stop_at": null, "rest": null, "lens": null, "lip": false, "hole": 0, "feet": {"yards": 450, "par": 4, "label": "8", "pin": 11, "sand": -1, "centre": [0.0, 1350.0], "flag": [11, 1350.0], "green_a": 20.0, "green_b": 28.0, "bunker_w": 14.0, "lip_h": 1.5}, "result": "49 yd, 37 yd short, 3 yd left"}, {"label": "8 \u00b7 sand wedge at 45%, aim +8 ft", "club": "sand wedge", "gear": 0.45, "start": [5.64, 1240.13], "path": [[0.0, 5.639, 1240.127, 0.0], [0.02, 5.625, 1241.085, 0.504], [0.04, 5.612, 1242.043, 0.995], [0.06, 5.599, 1243.0, 1.474], [0.08, 5.585, 1243.957, 1.94], [0.1, 5.572, 1244.914, 2.394], [0.12, 5.558, 1245.87, 2.835], [0.14, 5.545, 1246.825, 3.264], [0.16, 5.531, 1247.78, 3.68], [0.18, 5.517, 1248.735, 4.084], [0.2, 5.503, 1249.689, 4.475], [0.22, 5.489, 1250.643, 4.854], [0.24, 5.475, 1251.596, 5.221], [0.26, 5.461, 1252.549, 5.575], [0.28, 5.447, 1253.501, 5.916], [0.3, 5.432, 1254.454, 6.246], [0.32, 5.418, 1255.405, 6.563], [0.34, 5.404, 1256.357, 6.867], [0.36, 5.389, 1257.308, 7.159], [0.38, 5.375, 1258.258, 7.439], [0.4, 5.36, 1259.209, 7.707], [0.42, 5.345, 1260.159, 7.962], [0.44, 5.331, 1261.108, 8.205], [0.46, 5.316, 1262.057, 8.435], [0.48, 5.301, 1263.006, 8.653], [0.5, 5.286, 1263.955, 8.859], [0.52, 5.271, 1264.903, 9.052], [0.54, 5.256, 1265.851, 9.234], [0.56, 5.241, 1266.798, 9.403], [0.58, 5.226, 1267.745, 9.559], [0.6, 5.21, 1268.692, 9.704], [0.62, 5.195, 1269.639, 9.836], [0.64, 5.18, 1270.585, 9.955], [0.66, 5.164, 1271.531, 10.063], [0.68, 5.149, 1272.476, 10.158], [0.7, 5.133, 1273.422, 10.241], [0.72, 5.118, 1274.367, 10.312], [0.74, 5.102, 1275.311, 10.371], [0.76, 5.087, 1276.256, 10.417], [0.78, 5.071, 1277.2, 10.451], [0.8, 5.055, 1278.144, 10.473], [0.82, 5.039, 1279.087, 10.483], [0.84, 5.023, 1280.03, 10.48], [0.86, 5.007, 1280.973, 10.466], [0.88, 4.991, 1281.916, 10.439], [0.9, 4.975, 1282.858, 10.4], [0.92, 4.959, 1283.8, 10.349], [0.94, 4.943, 1284.741, 10.286], [0.96, 4.927, 1285.683, 10.21], [0.98, 4.911, 1286.624, 10.123], [1.0, 4.894, 1287.565, 10.023], [1.021, 4.877, 1288.552, 9.905], [1.041, 4.861, 1289.492, 9.781], [1.061, 4.844, 1290.432, 9.644], [1.081, 4.828, 1291.371, 9.496], [1.101, 4.811, 1292.311, 9.335], [1.121, 4.794, 1293.249, 9.162], [1.141, 4.778, 1294.188, 8.977], [1.161, 4.761, 1295.126, 8.781], [1.181, 4.744, 1296.064, 8.572], [1.201, 4.727, 1297.002, 8.351], [1.221, 4.71, 1297.939, 8.118], [1.241, 4.693, 1298.876, 7.873], [1.261, 4.676, 1299.812, 7.617], [1.281, 4.659, 1300.749, 7.348], [1.301, 4.642, 1301.685, 7.068], [1.321, 4.625, 1302.62, 6.775], [1.341, 4.607, 1303.555, 6.471], [1.361, 4.59, 1304.49, 6.155], [1.381, 4.572, 1305.424, 5.827], [1.401, 4.555, 1306.359, 5.487], [1.421, 4.537, 1307.292, 5.135], [1.441, 4.52, 1308.226, 4.772], [1.461, 4.502, 1309.159, 4.397], [1.481, 4.484, 1310.091, 4.01], [1.501, 4.466, 1311.023, 3.611], [1.521, 4.448, 1311.955, 3.201], [1.541, 4.43, 1312.887, 2.779], [1.561, 4.412, 1313.818, 2.345], [1.581, 4.394, 1314.748, 1.9], [1.601, 4.376, 1315.678, 1.443], [1.621, 4.358, 1316.608, 0.975], [1.641, 4.339, 1317.537, 0.495], [1.661, 4.321, 1318.466, 0.003], [1.6611, 4.321, 1318.472, 0.0], [3.3253, 4.32, 1327.63, 0.0], [4.9895, 4.32, 1335.11, 0.0], [6.6537, 4.32, 1340.94, 0.0], [8.318, 4.32, 1345.1, 0.0], [9.9822, 4.32, 1347.6, 0.0], [11.6464, 4.32, 1348.43, 0.0]], "stop_at": null, "rest": null, "lens": null, "lip": false, "hole": 0, "feet": {"yards": 450, "par": 4, "label": "8", "pin": 11, "sand": -1, "centre": [0.0, 1350.0], "flag": [11, 1350.0], "green_a": 20.0, "green_b": 28.0, "bunker_w": 14.0, "lip_h": 1.5}, "result": "36 yd, 1 yd short, 2 yd left"}], "view": null}</script>
+<script>
+/* One ball, one arc, six seconds. No library: a ball, a wall and a polygon need a projection and a painter's
+   sort, not a scene graph. Feet and seconds throughout, x to the right of the fairway, y down it, z up — the
+   same axes `lab/golf.py` integrates in, so nothing here can disagree with the physics about where the ball is.
+
+   The scene comes from `python3 lab/golf.py --render lip` (or `--render 7` for a hole), which writes this file
+   with the data baked in: a page opened from disk must show something, so the data travels with it. */
+const scene = JSON.parse(document.getElementById("scene").textContent);
+const cv = document.getElementById("c"), ctx = cv.getContext("2d");
+const DPR = Math.min(2, window.devicePixelRatio || 1);
+
+document.getElementById("title").textContent = scene.title || "";
+document.getElementById("note").textContent = scene.note || "";
+
+/* ---- the camera ---------------------------------------------------------------------------------- */
+function basis(pos, target, up = [0, 0, 1]) {
+  const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+  const norm = v => { const l = Math.hypot(...v) || 1; return [v[0] / l, v[1] / l, v[2] / l]; };
+  const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+  const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  const f = norm(sub(target, pos));
+  let r = norm(cross(f, up));
+  if (!isFinite(r[0]) || (r[0] === 0 && r[1] === 0 && r[2] === 0)) r = [1, 0, 0];
+  const u = cross(r, f);
+  return { pos, f, r, u, dot, sub };
+}
+const ease = x => x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x);   // smoothstep, so nothing starts or stops dead
+const mix = (a, b, f) => a + (b - a) * f;
+const viewOf = s => (s && s.view) || scene.view;      // a film that changes hole carries one view per hole
+const feetOf = s => (s && s.feet) || scene.feet;
+function toCam(cam, p) {              // camera space: x right, y up, z depth (in front)
+  const v = cam.sub(p, cam.pos);
+  return [cam.dot(v, cam.r), cam.dot(v, cam.u), cam.dot(v, cam.f)];
+}
+/* The ground is a plane the camera stands on, so any quad large enough to be ground has corners behind the
+   camera. Clip against the near plane instead of shrinking the world — a fairway that stops six feet in front
+   of the lens is not a fairway. */
+function clipNear(poly, near = 0.5) {
+  const out = [];
+  for (let i = 0; i < poly.length; i++) {
+    const a = poly[i], b = poly[(i + 1) % poly.length];
+    const ain = a[2] >= near, bin = b[2] >= near;
+    if (ain) out.push(a);
+    if (ain !== bin) {
+      const f = (near - a[2]) / (b[2] - a[2]);
+      out.push([a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, near]);
+    }
+  }
+  return out;
+}
+const BALL_FT = 1.62 / 12;                 // a golf ball, in feet: the size on screen is the size it is
+let LENS = scene.fov || 42;                // degrees across, set for each frame: a cut may change the lens
+const FOCAL = () => (cv.clientHeight / DPR) / 2 / Math.tan(LENS * Math.PI / 360);
+function project(cam, p) {
+  const v = cam.sub(p, cam.pos);
+  const depth = cam.dot(v, cam.f);
+  if (depth <= 0.05) return null;             // behind the camera: not "far", just not there
+  const focal = FOCAL();
+  return { x: cv.clientWidth / DPR / 2 + cam.dot(v, cam.r) * focal / depth,
+           y: cv.clientHeight / DPR / 2 - cam.dot(v, cam.u) * focal / depth,
+           d: depth };
+}
+/* Where each shot is going, and how far it gets: a shot that dies on the face still has an aim, and the aim
+   is where the camera has to look; but a ball that travelled one foot must not be framed by the twenty-one
+   feet to the flag, or it sits on the edge of the picture. So aim and travel are separate. */
+function aimOf(s) {
+  const p = s.path || [];
+  const last = p.length ? p[p.length - 1] : [0, s.start[0], s.start[1], 0];
+  let dx = last[1] - s.start[0], dy = last[2] - s.start[1];
+  const travel = Math.hypot(dx, dy);
+  if (travel < 2) {                            // a stroke spent against the face is still meant at the flag
+    dx = scene.feet.flag[0] - s.start[0]; dy = scene.feet.flag[1] - s.start[1];
+  }
+  const n = Math.hypot(dx, dy) || 1;
+  return { ux: dx / n, uy: dy / n, travel };
+}
+/* A camera for one shot. Two shots, two lenses, and the choice is the film's job, not the physics':
+
+   - a long shot is followed: behind the ball, high enough to see where it lands;
+   - a short one is seen from the side, because the thing being claimed about a wedge at the face is a height,
+     and a height seen from behind the ball is a dot going up the screen. From the side, eighteen inches of
+     sand and a foot and a half of arc are the same kind of quantity and can be compared by eye. The side is
+     fixed at +y for the whole film, so the shots cut together instead of jumping around the green. */
+function shotCamera(s, shown) {
+  const view = viewOf(s);
+  if (s.lens === "wide" && view) {       // the shot list asked for the establishing camera
+    LENS = scene.fov || 42;
+    return basis(view.pos, view.target);
+  }
+  const { ux, uy, travel } = aimOf(s);
+  const prog = Math.min(1, Math.max(0, (shown || 0) / Math.max(0.001, s.dur || 1)));
+  if (travel >= 40) {
+    /* THE CAMERA FITS THE SHOT. For twelve passes this branch was a guess at a camera position — a fixed mount
+       off the side of the line, a fixed lens, aimed at the middle of the shot — and the picture that produced
+       is the one the record has been apologising for since pass 7: the ball is a two-pixel dot somewhere in the
+       far half of the frame, and the hole is a green smear behind it.
+
+       Two things were tried before this one and both were wrong, and the photographs are the reason I know.
+
+       A telephoto that tightened over the flight and panned with the ball produced a green screen with a yellow
+       arc on it. Every landmark — the flag, the green, the edge of the fairway — was outside the lens, because
+       a pan that centres the ball cannot also contain the hole. Magnifying the ball is the wrong ambition
+       anyway: a golf ball a hundred feet away is 1.6 inches across, and no framing that also shows the shot can
+       make it more than about a pixel. The broadcast answer is not a bigger ball; it is the shot tracer, and
+       this film has had one since its first version — the yellow line.
+
+       So the frame is solved instead of guessed: take the extent of the flight, add the flag if the flag is
+       part of the shot's story, and stand back far enough that the whole thing is inside the lens, on the side
+       of the line. The ball is then small and the shot is legible, which is the trade this picture should be
+       making: the viewer is not being asked to see the ball, he is being asked to see where it went and what it
+       had to miss. The mount drifts toward the landing as the ball flies — eight per cent, not a pan — so the
+       frame is not a still. */
+    const path = s.path || [];
+    const land = path.length ? path[path.length - 1] : [0, s.start[0], s.start[1], 0];
+    let top = 0;
+    for (const q of path) top = Math.max(top, q[3]);
+    /* The box the picture has to hold: the ball's start, its resting place, the arc between them, and — when the
+       pin is a distance the shot can still be judged against — the flag. A pin four shots away is not part of
+       this shot's story and would only shrink the arc to a scribble, so it is left out on purpose. */
+    const feet = feetOf(s), flag = feet.flag || [0, 0];
+    let x0 = Math.min(s.start[0], land[1]), x1 = Math.max(s.start[0], land[1]);
+    let y0 = Math.min(s.start[1], land[2]), y1 = Math.max(s.start[1], land[2]);
+    for (const q of path) { x0 = Math.min(x0, q[1]); x1 = Math.max(x1, q[1]); y0 = Math.min(y0, q[2]); y1 = Math.max(y1, q[2]); }
+    const reach = Math.max(travel, 20);
+    if (Math.hypot(flag[0] - (x0 + x1) / 2, flag[1] - (y0 + y1) / 2) <= 3.2 * reach) {
+      /* The green's whole shape, not just the stick: a frame that stops at the flag cuts the green in half on the
+         side the pin is cut, which reads as a picture that ran out of paper. The bunker is part of the shape. */
+      const sand = feet.sand ? feet.bunker_w : 0;
+      x0 = Math.min(x0, feet.centre[0] - feet.green_a - 6);
+      x1 = Math.max(x1, feet.centre[0] + feet.green_a + 6 + sand);
+      y0 = Math.min(y0, feet.centre[1] - feet.green_b);
+      y1 = Math.max(y1, feet.centre[1] + feet.green_b);
+    }
+    const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+    let R = Math.max(30, 0.5 * Math.hypot(x1 - x0, y1 - y0));
+    const aspect = Math.max(0.6, cv.clientWidth / Math.max(1, cv.clientHeight));
+    const halfH = Math.atan(Math.tan((scene.fov || 44) * Math.PI / 360) * aspect);
+    const D = Math.max(38, 1.08 * R / Math.tan(halfH));
+    /* The height is chosen so the horizon stays in the picture, and that is a real constraint rather than a
+       matter of taste. A camera set at half the standing-off distance looked DOWN on the shot by more than half
+       the lens's field, which put the horizon above the top of the frame: the picture was a full green screen
+       with a yellow line on it, and a viewer had nothing to say how far away anything was. At a sixth of the
+       distance the depression is a few degrees, the horizon crosses the frame, the sky is above it and the arc
+       is below, which is how a golf shot is normally photographed and the only version of this that reads. */
+    const pos = [cx + uy * D, cy - ux * D, Math.max(11, Math.min(260, 0.16 * D))];
+    const drift = 0.06 * ease(prog);
+    const aim = [mix(cx, land[1], drift), mix(cy, land[2], drift), Math.max(1.2, Math.min(top * 0.5, 40.0))];
+    LENS = scene.fov || 44;
+    return basis(pos, aim);
+  }
+  /* A short shot is framed from behind the ball looking at the face, low and close, with a modest lens. The
+     face then reads as what it is — a horizontal band across the frame eighteen inches above the sand — and the
+     question the lip asks, "was the ball above that band when it crossed", is answered by the eye without any
+     arithmetic. From the side the same shot would show the ball travelling toward the wall edge-on, and the
+     band would be a line with no width, which is a worse picture of the same fact. */
+  if (s.face != null) {
+    /* A ball with a face to climb and less than a full swing between it and the green: the cross-section.
+       The camera stands behind the ball, low, looking at the band of sand — from here the question the lip
+       asks is answered by the eye, because "was the ball above that line when it crossed" is a comparison of
+       two things at the same distance. */
+    LENS = 30;
+    const back = 26, high = 8, beside = 9;   // a little to one side, so the arc curves on the screen
+    return basis([s.start[0] - ux * back - uy * beside, s.start[1] - uy * back + ux * beside, high],
+                 [s.start[0] + ux * 7, s.start[1] + uy * 7, 1.0]);
+  }
+  /* A ball with no face to climb — played out sideways, or a putt that ran off the edge: there is no height to
+     read, so the camera goes up, where the bunker is a band on the ground and the ball is a dot leaving it. */
+  LENS = 44;
+  return basis([s.start[0] - ux * 30, s.start[1] - uy * 30, 26],
+               [s.start[0] + ux * 8, s.start[1] + uy * 8, 0.0]);
+}
+
+/* ---- the ground ---------------------------------------------------------------------------------- */
+function ellipsePoly(cx, cy, a, b, n = 96) {
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const t = i / n * Math.PI * 2;
+    out.push([cx + Math.cos(t) * a, cy + Math.sin(t) * b, 0]);
+  }
+  return out;
+}
+function fillPoly(cam, pts, fill, stroke) {
+  const focal = FOCAL();
+  const cs = clipNear(pts.map(p => toCam(cam, p)));
+  if (cs.length < 3) return;
+  const ps = cs.map(([u, v, d]) => ({ x: cv.clientWidth / DPR / 2 + u * focal / d,
+                                      y: cv.clientHeight / DPR / 2 - v * focal / d }));
+  ctx.beginPath();
+  ps.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
+  ctx.closePath();
+  if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+  if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 1; ctx.stroke(); }
+}
+function line3(cam, a, b, colour, width, dash) {
+  const pa = project(cam, a), pb = project(cam, b);
+  if (!pa || !pb) return;
+  ctx.save();
+  ctx.strokeStyle = colour; ctx.lineWidth = width || 1;
+  if (dash) ctx.setLineDash(dash);
+  ctx.beginPath(); ctx.moveTo(pa.x, pa.y); ctx.lineTo(pb.x, pb.y); ctx.stroke();
+  ctx.restore();
+}
+function ground(cam, f) {          // the hole, passed in: a film that changes hole changes the ground under it
+  /* The ground has to reach past the horizon. At ±900 ft it did not: a camera set back far enough to hold a
+     tee shot and a green in one frame stood 800 ft off the line, the far edge of the plane came into view, and
+     the picture was a green wedge floating in the sky with a diagonal edge. A plane that is not big enough to
+     have a horizon is a plate. */
+  const y0 = f.centre[1] - 9000, y1 = f.centre[1] + 9000;
+  fillPoly(cam, [[-9000, y0, 0], [9000, y0, 0], [9000, y1, 0], [-9000, y1, 0]], "#2f5b3d");   // the fairway
+  fillPoly(cam, [[-60, y0, 0], [60, y0, 0], [60, y1, 0], [-60, y1, 0]], "#376845");            // the short grass
+  if (f.sand) {                                                                              // the sand
+    const s = f.sand > 0 ? 1 : -1;
+    fillPoly(cam, [[s * f.green_a, f.centre[1] - f.green_b, 0], [s * (f.green_a + f.bunker_w), f.centre[1] - f.green_b, 0],
+                   [s * (f.green_a + f.bunker_w), f.centre[1] + f.green_b, 0], [s * f.green_a, f.centre[1] + f.green_b, 0]],
+             "#c8b483", "#8d7c54");
+  }
+  fillPoly(cam, ellipsePoly(f.centre[0], f.centre[1], f.green_a, f.green_b), "#4a8f5c", "#8ff0b4");
+  if (f.sand && f.lip_h > 0) {                                                               // the face, as a wall
+    const s = f.sand > 0 ? 1 : -1, x = s * f.green_a;
+    const top = f.centre[1] + f.green_b, bot = f.centre[1] - f.green_b;
+    fillPoly(cam, [[x, bot, 0], [x, bot, f.lip_h], [x, top, f.lip_h], [x, top, 0]], "#a4915f");
+    for (let k = 0; k <= 40; k++) {                                            // hatching: it is a face, not glass
+      const yy = bot + (top - bot) * k / 40;
+      line3(cam, [x, yy, 0], [x, yy, f.lip_h], "rgba(88,74,42,0.22)", 0.6);
+    }
+    line3(cam, [x, bot, f.lip_h], [x, top, f.lip_h], "#ffeecc", 2.0);          // the lip itself, eighteen inches up
+  }
+  const flag = f.flag;                                                                        // the flag
+  line3(cam, [flag[0], flag[1], 0], [flag[0], flag[1], 7.5], "#e8e8e8", 1.6);
+  const p0 = project(cam, [flag[0], flag[1], 7.5]), p1 = project(cam, [flag[0], flag[1] + 2.4, 6.6]);
+  if (p0 && p1) { ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.lineTo(p0.x, p0.y + 12);
+                  ctx.closePath(); ctx.fillStyle = "#ff5f5f"; ctx.fill(); }
+  const cup = project(cam, [flag[0], flag[1], 0]);                                            // the hole
+  if (cup) { ctx.beginPath(); ctx.ellipse(cup.x, cup.y, 3, 1.4, 0, 0, Math.PI * 2);
+             ctx.fillStyle = "#0b1210"; ctx.fill(); }
+}
+
+/* The bar has to be true at one depth and there is only one depth the reader is judging, which is the ball's:
+   so the bar is measured against the ball, and its length is chosen so that it is a bar and not the width of
+   the screen. A twenty-foot bar is wrong on a close-up of a bunker — no good asking the eye to divide by twenty
+   when the whole frame is eight. */
+function scaleBar(cam, p) {
+  const v = cam.sub(p, cam.pos);
+  const depth = Math.max(2, cam.dot(v, cam.f));
+  const perFt = FOCAL() / depth;
+  let ft = 1;
+  for (const k of [50, 20, 10, 5, 2, 1]) if (k * perFt <= 210) { ft = k; break; }
+  const px = ft * perFt;
+  const x = 22, y = cv.clientHeight / DPR - 26;
+  ctx.strokeStyle = "rgba(223,230,226,0.55)"; ctx.lineWidth = 1.4;
+  ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + px, y);
+  ctx.moveTo(x, y - 4); ctx.lineTo(x, y + 4); ctx.moveTo(x + px, y - 4); ctx.lineTo(x + px, y + 4); ctx.stroke();
+  ctx.fillStyle = "rgba(223,230,226,0.75)"; ctx.font = "12px ui-monospace,Menlo,monospace";
+  ctx.fillText(ft + " ft", x + 4, y - 8);
+}
+
+/* ---- the ball, and the trail it leaves ------------------------------------------------------------ */
+function ballAt(path, t) {
+  if (!path || !path.length) return null;
+  if (t <= path[0][0]) return path[0];
+  for (let i = 1; i < path.length; i++) {
+    if (path[i][0] >= t) {
+      const a = path[i - 1], b = path[i], f = (t - a[0]) / Math.max(1e-6, b[0] - a[0]);
+      return [t, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f, a[3] + (b[3] - a[3]) * f];
+    }
+  }
+  return path[path.length - 1];
+}
+function truncate(path, stopAt, start) {         // a shot that hits the face stops there, short of its landing
+  if (!path) return path;
+  if (stopAt == null) return path;
+  const out = [];
+  for (const p of path) {
+    const d = Math.hypot(p[1] - start[0], p[2] - start[1]);
+    if (d >= stopAt) { out.push(p); break; }
+    out.push(p);
+  }
+  return out.length ? out : path.slice(0, 1);
+}
+function drawPath(cam, pts, upto, colour, width) {
+  let prev = null;
+  for (const p of pts) {
+    if (p[0] > upto) break;
+    const q = project(cam, [p[1], p[2], p[3]]);
+    if (q && prev) { ctx.strokeStyle = colour; ctx.lineWidth = width; ctx.beginPath();
+                     ctx.moveTo(prev.x, prev.y); ctx.lineTo(q.x, q.y); ctx.stroke(); }
+    prev = q;
+  }
+}
+function shadow(cam, p) {
+  const q = project(cam, [p[1], p[2], 0]);
+  if (!q) return;
+  const r = Math.max(2.4, Math.min(22, 1.35 * BALL_FT * FOCAL() / Math.max(1, q.d)));
+  ctx.beginPath(); ctx.ellipse(q.x, q.y, r, r * 0.40, 0, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(0,0,0,0.32)"; ctx.fill();
+}
+function drawBall(cam, p) {
+  const q = project(cam, [p[1], p[2], p[3]]);
+  if (!q) return;
+  /* The radius is the ball's real angular size, with a floor. The floor is a *symbol*, not a measurement: at the
+     distance a golf shot is photographed from, a 1.6-inch ball is half a pixel, and a half-pixel ball is not
+     visible at all. Two and a bit pixels is the smallest honest marker, and the scale bar is the thing that says
+     how big the world is — not the dot. */
+  const r = Math.max(2.2, Math.min(26, BALL_FT * FOCAL() / Math.max(1, q.d)));
+  ctx.beginPath(); ctx.arc(q.x, q.y, r, 0, Math.PI * 2); ctx.fillStyle = "#ffffff"; ctx.fill();
+  ctx.beginPath(); ctx.arc(q.x - r * 0.25, q.y - r * 0.25, r * 0.45, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(255,255,255,0.9)"; ctx.fill();
+}
+
+/* ---- the film: one shot at a time, then the next ------------------------------------------------
+   The whole thing is one function of time — `at(t)` says which frame of which shot is on screen at second
+   `t` — so a still can be pinned from the address bar (`the-face.html#t=6.2`), which is how a record gets a
+   picture out of a film. Nothing here is stateful but the clock. */
+const shots = (scene.shots || []).map(s => ({
+  ...s, path: truncate(s.path, s.stop_at, s.start),
+  dur: s.path && s.path.length ? s.path[s.path.length - 1][0] : 1.0,
+}));
+const PRE = 3.2;                           // standing still before a ball moves, in seconds
+const START = [], BEAT = [];               // when each shot begins on the film's clock, and how long it holds first
+let total = 0;
+for (let k = 0; k < shots.length; k++) {
+  const s = shots[k];
+  /* The opening establishing frame belongs to the first shot; a film that crosses holes — the round film does —
+     carries a `view` on the first shot of each hole, so every hole gets its own three seconds of standing still
+     before a ball moves. That is the cheapest thing a film can do for a viewer who has lost track of the hole:
+     stop, show him the hole, then play it. */
+  const beat = (s.view || (k === 0 && scene.view)) ? PRE : 0;
+  START.push(total); BEAT.push(beat);
+  total += beat + s.dur + 1.6;
+}
+function at(t) {
+  if (!shots.length) return { wide: false, i: 0, shown: 0, wt: 0 };
+  let i = 0;
+  for (let k = shots.length - 1; k >= 0; k--) if (t >= START[k]) { i = k; break; }
+  const local = t - START[i];
+  if (local < BEAT[i]) return { wide: true, i, wt: local, shown: 0 };
+  return { wide: false, i, wt: local - BEAT[i], shown: Math.min(Math.max(0, local - BEAT[i]), shots[i].dur) };
+}
+const dots = document.getElementById("dots");
+const el = document.getElementById("now");
+function caption(f) {
+  if (f.wide) {
+    const v = viewOf(shots[f.i]);
+    el.innerHTML = `<b>the hole</b> · ${(v && v.label) || "from behind the ball"}`;
+    dots.textContent = shots.map(() => "•").join(" ");
+    return;
+  }
+  const s = shots[f.i];
+  el.innerHTML = `<b>${f.i + 1}/${shots.length}</b> · ${s.label}` +
+                 (s.result ? ` — <span style="color:#9fb8ad">${s.result}</span>` : "");
+  dots.textContent = shots.map((_, k) => k === f.i ? "●" : "•").join(" ");
+}
+let current = null;                        // the frame on screen, so a resize can put it back
+function draw(f) {
+  current = f;
+  const s = shots[f.i], v = viewOf(s), feet = feetOf(s);
+  LENS = scene.fov || 42;
+  let cam;
+  if (f.wide) {
+    /* The establishing frame breathes: it walks six per cent of the way to its target over the hold, so a frame
+       that stands still for three seconds is not a still. That is a dolly, and it is the only camera move in the
+       film that no ball is responsible for. */
+    const k = 0.06 * ease(f.wt / Math.max(0.001, BEAT[f.i]));
+    cam = basis([mix(v.pos[0], v.target[0], k), mix(v.pos[1], v.target[1], k), mix(v.pos[2], v.target[2], k)],
+                v.target);
+  } else {
+    cam = shotCamera(s, f.shown);
+  }
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.clearRect(0, 0, cv.clientWidth, cv.clientHeight);
+  const sky = ctx.createLinearGradient(0, 0, 0, cv.clientHeight / DPR);
+  sky.addColorStop(0, "#16261f"); sky.addColorStop(1, "#0d1512");
+  ctx.fillStyle = sky; ctx.fillRect(0, 0, cv.clientWidth / DPR, cv.clientHeight / DPR);
+  ground(cam, feet);
+  /* The faded trail is the round so far *on this hole*. A round film changes hole between shots, and a trail
+     from the fourth hole drawn across the seventh is a line through a place it was never hit. */
+  const here = s.hole;
+  for (let k = 0; k < f.i; k++) if (shots[k].hole === here)
+    drawPath(cam, shots[k].path, 1e9, "rgba(255,212,121,0.22)", 1.2);
+  if (!f.wide) drawPath(cam, s.path, f.shown, "#ffd479", 2.0);
+  const b = ballAt(s.path, f.shown);
+  if (b) { shadow(cam, b); drawBall(cam, b); }
+  scaleBar(cam, b ? [b[1], b[2], b[3]] : [feet.centre[0], feet.centre[1], 0]);
+}
+/* A still, if the address asks for one: `#t=6.2` draws exactly that second. Drawn synchronously, not on the
+   next animation frame, because a headless browser asked for a screenshot does not always wait for one. */
+const pinned = (m => m ? parseFloat(m[1]) : null)(/^#t=([0-9.]+)$/.exec(location.hash || ""));
+function frame() {
+  const t = ((performance.now() - t0) / 1000) % total;
+  const f = at(t);
+  draw(f);
+  caption(f);
+  requestAnimationFrame(frame);
+}
+function resize() {
+  /* Setting a canvas's width clears it, so a window that is resized goes black and stays black: the pinned
+     still never runs again and the animation loop is not running at all. Found by taking screenshots with a
+     long virtual-time budget — the frame drew, the layout settled, the canvas cleared itself, and the picture
+     was gone. The page had this fault before this pass and nobody had resized it. */
+  cv.width = Math.floor(cv.clientWidth * DPR); cv.height = Math.floor(cv.clientHeight * DPR);
+  if (current) draw(current);
+}
+let t0 = 0;
+addEventListener("resize", resize);
+resize();
+if (pinned != null) {
+  const f = at(Math.min(pinned, total - 0.05));
+  const still = () => { resize(); draw(f); caption(f); };
+  still();                                   // now, in case the browser never runs another frame
+  requestAnimationFrame(still);              // and again once the layout is settled, in case it does
+  document.getElementById("bar").insertAdjacentHTML("beforeend",
+    `<div style="color:#5f726a;font-size:11.5px">still at ${pinned.toFixed(1)} s of ${total.toFixed(1)}</div>`);
+} else {
+  t0 = performance.now();
+  requestAnimationFrame(frame);
+}
+</script>

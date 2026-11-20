@@ -2088,6 +2088,38 @@ def sigma_test(args) -> int:
     return 0
 
 
+def film_path(entry: dict) -> list | None:
+    """The ball's path as a film should show it: through the bounce and the roll to where the game says it stopped.
+
+    The integrator stops the path at the first touch of the ground, which is right for physics and wrong for a
+    film — the caption says "65 yd" and the dot on the screen is twenty-five yards short of that, because the
+    game counts the roll and the picture did not. Nobody had noticed, because the number and the picture were
+    never read together. Found on 2026-11-20 by looking at a still and asking why the dot was not at the end of
+    its own arc.
+
+    The extension is not an invention: the game already computes the roll as a straight line under constant
+    deceleration from the landing (`shot()`), and this reproduces that line with the time it would take.
+    """
+    path = [list(q) for q in (entry.get("path") or [])]
+    if len(path) < 2 or entry.get("stop_at") is not None:
+        return path or None
+    start = entry.get("start") or (0.0, 0.0)
+    carry = math.hypot(path[-1][1] - start[0], path[-1][2] - start[1])
+    roll = max(0.0, (entry.get("total") or 0.0) * FT_PER_YD - carry)
+    if roll < 0.05:
+        return path
+    (t1, x1, y1, _z1), (t0, x0, y0, _z0) = path[-1], path[-2]
+    v = math.hypot(x1 - x0, y1 - y0) / max(1e-3, t1 - t0)      # horizontal speed at the moment it lands
+    span = 2.0 * roll / max(1.0, v)                            # constant deceleration: the average is half
+    dx, dy = x1 - x0, y1 - y0
+    n = math.hypot(dx, dy) or 1.0
+    for k in range(1, 7):
+        u = k / 6.0
+        s_ft = roll * (2.0 * u - u * u)                        # v t − a t²/2, with u = t/T
+        path.append([round(t1 + span * u, 4), round(x1 + dx / n * s_ft, 2), round(y1 + dy / n * s_ft, 2), 0.0])
+    return path
+
+
 def _shot(scene_ath: Athlete, hole: Hole, start: tuple[float, float], club: Club, gear: float,
           bearing: float, label: str, wind: tuple[float, float] = (0.0, 0.0),
           lens: str | None = None) -> dict:
@@ -2107,6 +2139,24 @@ def _shot(scene_ath: Athlete, hole: Hole, start: tuple[float, float], club: Club
                 hit=res.get("hang", 0.0),
                 face=lip_ft,          # how far to the face, or None
                 lens=lens)            # the shot list's note about which camera it wants, or None for the renderer's
+
+
+def _film_shots(entry_log: list[dict], hole: Hole, index: int) -> list[dict]:
+    """The club shots of one hole, in the shape `replay3d.html` plays. Putts are not here and cannot be: a putt
+    reports a distance it finished from the hole, not a path, so filming one would mean inventing the line it
+    took. That is the honest state of it and the film's note says so rather than leaving a hole in the round."""
+    out = []
+    for e in entry_log:
+        if e["kind"] != "shot":
+            continue
+        out.append(dict(label=f"{hole.label} · {e['club']} at {e['gear']:.0%}, aim {e['offset']:+.0f} ft",
+                        club=e["club"], gear=e["gear"], start=[round(c, 2) for c in e["start"]],
+                        path=film_path(e), stop_at=e.get("stop_at"), rest=None, lens=None,
+                        lip=bool(e.get("hit_lip")), hole=index, feet=_hole_json(hole),
+                        result=f"{e['total']:.0f} yd, {abs(e['along']):.0f} yd "
+                               f"{'short' if e['along'] < 0 else 'past'}, "
+                               f"{abs(e['lateral']):.0f} yd {'right' if e['lateral'] > 0 else 'left'}"))
+    return out
 
 
 def _hole_json(hole: Hole) -> dict:
@@ -2417,6 +2467,41 @@ def render(args) -> int:
                       "six feet back, a little more on it: 2.4 ft high at the face for an 18 in face"),
             ])
         name = "the-face"
+    elif which in ("round", "best", "worst"):
+        # the athlete's own card, played back
+        a = Athlete()
+        a.policy = "spread"
+        pu = GolfPutter()
+        for k in range(3):
+            play_round(COURSE, a, pu, green, learn=True, verbose=False, rng=random.Random(DEFAULT_SEED + k))
+        rng = random.Random(DEFAULT_SEED)
+        rows = [play_hole(h, a, pu, green, learn=False, verbose=False, rng=rng, trace=0.02) for h in COURSE]
+        pairs = list(zip(COURSE, rows))
+        if which == "best":
+            pairs = [min(pairs, key=lambda hr: (hr[1]["strokes"] - hr[0].par, hr[1]["strokes"]))]
+        elif which == "worst":
+            pairs = [max(pairs, key=lambda hr: (hr[1]["strokes"] - hr[0].par, hr[1]["strokes"]))]
+        shots = []
+        for k, (hole, r) in enumerate(pairs):
+            y = hole.yards * FT_PER_YD
+            before = len(shots)
+            shots.extend(_film_shots(r["log"], hole, k))
+            if len(shots) > before:            # the hole's establishing frame rides on its first shot
+                shots[before]["view"] = dict(
+                    pos=[0.12 * y, -0.10 * y, 0.22 * y], target=[hole.centre[0], 0.78 * y, 0.0],
+                    label=f"hole {hole.label}: {hole.yards:.0f} yd, par {hole.par}")
+        strokes = sum(r["strokes"] for _, r in pairs)
+        par = sum(hole.par for hole, _ in pairs)
+        putts = sum(r["putts"] for _, r in pairs)
+        word = {"round": f"the round, hole by hole: {strokes} strokes on a par {par}",
+                "best": f"the best hole of the round: {strokes} on a par {pairs[0][0].par}",
+                "worst": f"the worst hole of the round: {strokes} on a par {pairs[0][0].par}"}[which]
+        scene = dict(title=word,
+                     note=f"{putts} putt{'s' if putts != 1 else ''} in it, and the putts are not in this film: a "
+                          f"putt is two to twenty feet of grass with no path of its own to draw. The camera "
+                          f"follows the ball, and each hole opens with three seconds of standing still.",
+                     fov=44.0, feet=_hole_json(pairs[0][0]), shots=shots, view=None)
+        name = {"round": "round", "best": "best-hole", "worst": "worst-hole"}[which]
     else:
         n = int(which)
         hole = COURSE[n - 1] if 1 <= n <= len(COURSE) else HELD_OUT[max(0, n - 10)]
@@ -2435,7 +2520,7 @@ def render(args) -> int:
                 continue
             shots.append(dict(label=f"{e['club']} at {e['gear']:.0%}, aim {e['offset']:+.0f} ft",
                               club=e["club"], gear=e["gear"], start=[round(c, 2) for c in e["start"]],
-                              path=e.get("path"), stop_at=e.get("stop_at"), rest=None, lens="wide",
+                              path=film_path(e), stop_at=e.get("stop_at"), rest=None, lens=None,
                               lip=bool(e.get("hit_lip")),
                               result=f"{e['total']:.0f} yd, {abs(e['along']):.0f} yd "
                                               f"{'short' if e['along'] < 0 else 'past'}, "
@@ -2485,7 +2570,8 @@ def main(argv=None) -> int:
     ap.add_argument("--season", action="store_true",
                     help="six athletes over many rounds, with each one's belief about itself, as a page")
     ap.add_argument("--render", metavar="SCENE", default=None,
-                    help="write a film: 'lip' for the bunker face, or a hole number, e.g. --render 7")
+                    help="write a film: 'lip' for the bunker face, a hole number (--render 7), or 'round', "
+                         "'best', 'worst' for the athlete's own card played back")
     ap.add_argument("--floor", type=float, default=FLOOR_FT,
                     metavar="FT", help="override the floor `target()` puts under the scatter, to re-measure it")
     ap.add_argument("--selftest", action="store_true")

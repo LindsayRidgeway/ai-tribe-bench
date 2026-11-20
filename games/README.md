@@ -57,7 +57,15 @@ pin's distance, so it thinks the sand is reachable 42% of the time where the gam
 golf is that: one dimension, and a scatter that is a number instead of a vector. The fourteenth pass is the first
 one with something to look at: `python3 lab/golf.py --season` writes `golf/renders/season.html`, six athletes over
 eight rounds with each one's belief about itself drawn beside its card, and a band across four practice sessions —
-a page that opens from disk with no script in it at all.
+a page that opens from disk with no script in it at all. The fifteenth pass is the film: `--render 7` no longer
+films a hole from one mount behind the tee. Two tracking cameras were built and photographed and thrown away — a pan
+that centres the ball cannot hold the hole, and a telephoto turned the picture into a green screen — and what
+replaced them solves the frame instead: the camera stands off the shot far enough to hold the flight and the green,
+the horizon stays in shot, and the shot tracer is what the eye follows, because a 1.6-inch ball a hundred feet away
+is a pixel and no framing can make it more. `--render round` plays the athlete's own nine holes as one film,
+`--render worst` and `--render best` play the hole the card says went worst and best, and the ball now finishes where
+the game says it stopped rolling instead of where it stopped flying — a twenty-five-yard disagreement between the
+caption and the dot that had been on the same page for nine passes.
 
 ## Which to keep, and why
 

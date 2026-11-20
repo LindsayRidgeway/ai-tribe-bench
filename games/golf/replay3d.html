@@ -49,6 +49,10 @@ function basis(pos, target, up = [0, 0, 1]) {
   const u = cross(r, f);
   return { pos, f, r, u, dot, sub };
 }
+const ease = x => x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x);   // smoothstep, so nothing starts or stops dead
+const mix = (a, b, f) => a + (b - a) * f;
+const viewOf = s => (s && s.view) || scene.view;      // a film that changes hole carries one view per hole
+const feetOf = s => (s && s.feet) || scene.feet;
 function toCam(cam, p) {              // camera space: x right, y up, z depth (in front)
   const v = cam.sub(p, cam.pos);
   return [cam.dot(v, cam.r), cam.dot(v, cam.u), cam.dot(v, cam.f)];
@@ -102,25 +106,72 @@ function aimOf(s) {
      and a height seen from behind the ball is a dot going up the screen. From the side, eighteen inches of
      sand and a foot and a half of arc are the same kind of quantity and can be compared by eye. The side is
      fixed at +y for the whole film, so the shots cut together instead of jumping around the green. */
-function shotCamera(s) {
-  if (s.lens === "wide" && scene.view) {       // the shot list asked for the establishing camera
+function shotCamera(s, shown) {
+  const view = viewOf(s);
+  if (s.lens === "wide" && view) {       // the shot list asked for the establishing camera
     LENS = scene.fov || 42;
-    return basis(scene.view.pos, scene.view.target);
+    return basis(view.pos, view.target);
   }
   const { ux, uy, travel } = aimOf(s);
-  let top = 0;
-  for (const q of (s.path || [])) top = Math.max(top, q[3]);
+  const prog = Math.min(1, Math.max(0, (shown || 0) / Math.max(0.001, s.dur || 1)));
   if (travel >= 40) {
-    /* A long shot is seen from the side of its own line and a little behind the middle of it — the way a
-       broadcast camera on a crane sees one — because a flight watched from behind the ball is a dot that does
-       not move. The lens is the scene's. */
-    LENS = scene.fov || 45;
-    const mid = [s.start[0] + ux * travel * 0.5, s.start[1] + uy * travel * 0.5];
-    const dist = Math.min(420, Math.max(45, travel * 0.85));
-    const px = -uy, py = ux;                    // the perpendicular, on the same side every time
-    const sgn = (py < 0 || (py === 0 && px < 0)) ? -1 : 1;
-    return basis([mid[0] + px * dist * sgn, mid[1] + py * dist * sgn, Math.min(160, Math.max(12, travel * 0.32))],
-                 [mid[0], mid[1], 2.0]);
+    /* THE CAMERA FITS THE SHOT. For twelve passes this branch was a guess at a camera position — a fixed mount
+       off the side of the line, a fixed lens, aimed at the middle of the shot — and the picture that produced
+       is the one the record has been apologising for since pass 7: the ball is a two-pixel dot somewhere in the
+       far half of the frame, and the hole is a green smear behind it.
+
+       Two things were tried before this one and both were wrong, and the photographs are the reason I know.
+
+       A telephoto that tightened over the flight and panned with the ball produced a green screen with a yellow
+       arc on it. Every landmark — the flag, the green, the edge of the fairway — was outside the lens, because
+       a pan that centres the ball cannot also contain the hole. Magnifying the ball is the wrong ambition
+       anyway: a golf ball a hundred feet away is 1.6 inches across, and no framing that also shows the shot can
+       make it more than about a pixel. The broadcast answer is not a bigger ball; it is the shot tracer, and
+       this film has had one since its first version — the yellow line.
+
+       So the frame is solved instead of guessed: take the extent of the flight, add the flag if the flag is
+       part of the shot's story, and stand back far enough that the whole thing is inside the lens, on the side
+       of the line. The ball is then small and the shot is legible, which is the trade this picture should be
+       making: the viewer is not being asked to see the ball, he is being asked to see where it went and what it
+       had to miss. The mount drifts toward the landing as the ball flies — eight per cent, not a pan — so the
+       frame is not a still. */
+    const path = s.path || [];
+    const land = path.length ? path[path.length - 1] : [0, s.start[0], s.start[1], 0];
+    let top = 0;
+    for (const q of path) top = Math.max(top, q[3]);
+    /* The box the picture has to hold: the ball's start, its resting place, the arc between them, and — when the
+       pin is a distance the shot can still be judged against — the flag. A pin four shots away is not part of
+       this shot's story and would only shrink the arc to a scribble, so it is left out on purpose. */
+    const feet = feetOf(s), flag = feet.flag || [0, 0];
+    let x0 = Math.min(s.start[0], land[1]), x1 = Math.max(s.start[0], land[1]);
+    let y0 = Math.min(s.start[1], land[2]), y1 = Math.max(s.start[1], land[2]);
+    for (const q of path) { x0 = Math.min(x0, q[1]); x1 = Math.max(x1, q[1]); y0 = Math.min(y0, q[2]); y1 = Math.max(y1, q[2]); }
+    const reach = Math.max(travel, 20);
+    if (Math.hypot(flag[0] - (x0 + x1) / 2, flag[1] - (y0 + y1) / 2) <= 3.2 * reach) {
+      /* The green's whole shape, not just the stick: a frame that stops at the flag cuts the green in half on the
+         side the pin is cut, which reads as a picture that ran out of paper. The bunker is part of the shape. */
+      const sand = feet.sand ? feet.bunker_w : 0;
+      x0 = Math.min(x0, feet.centre[0] - feet.green_a - 6);
+      x1 = Math.max(x1, feet.centre[0] + feet.green_a + 6 + sand);
+      y0 = Math.min(y0, feet.centre[1] - feet.green_b);
+      y1 = Math.max(y1, feet.centre[1] + feet.green_b);
+    }
+    const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+    let R = Math.max(30, 0.5 * Math.hypot(x1 - x0, y1 - y0));
+    const aspect = Math.max(0.6, cv.clientWidth / Math.max(1, cv.clientHeight));
+    const halfH = Math.atan(Math.tan((scene.fov || 44) * Math.PI / 360) * aspect);
+    const D = Math.max(38, 1.08 * R / Math.tan(halfH));
+    /* The height is chosen so the horizon stays in the picture, and that is a real constraint rather than a
+       matter of taste. A camera set at half the standing-off distance looked DOWN on the shot by more than half
+       the lens's field, which put the horizon above the top of the frame: the picture was a full green screen
+       with a yellow line on it, and a viewer had nothing to say how far away anything was. At a sixth of the
+       distance the depression is a few degrees, the horizon crosses the frame, the sky is above it and the arc
+       is below, which is how a golf shot is normally photographed and the only version of this that reads. */
+    const pos = [cx + uy * D, cy - ux * D, Math.max(11, Math.min(260, 0.16 * D))];
+    const drift = 0.06 * ease(prog);
+    const aim = [mix(cx, land[1], drift), mix(cy, land[2], drift), Math.max(1.2, Math.min(top * 0.5, 40.0))];
+    LENS = scene.fov || 44;
+    return basis(pos, aim);
   }
   /* A short shot is framed from behind the ball looking at the face, low and close, with a modest lens. The
      face then reads as what it is — a horizontal band across the frame eighteen inches above the sand — and the
@@ -174,11 +225,14 @@ function line3(cam, a, b, colour, width, dash) {
   ctx.beginPath(); ctx.moveTo(pa.x, pa.y); ctx.lineTo(pb.x, pb.y); ctx.stroke();
   ctx.restore();
 }
-function ground(cam) {
-  const f = scene.feet;
-  const y0 = f.centre[1] - 900, y1 = f.centre[1] + 900;
-  fillPoly(cam, [[-900, y0, 0], [900, y0, 0], [900, y1, 0], [-900, y1, 0]], "#2f5b3d");     // the fairway
-  fillPoly(cam, [[-60, y0, 0], [60, y0, 0], [60, y1, 0], [-60, y1, 0]], "#376845");          // the short grass
+function ground(cam, f) {          // the hole, passed in: a film that changes hole changes the ground under it
+  /* The ground has to reach past the horizon. At ±900 ft it did not: a camera set back far enough to hold a
+     tee shot and a green in one frame stood 800 ft off the line, the far edge of the plane came into view, and
+     the picture was a green wedge floating in the sky with a diagonal edge. A plane that is not big enough to
+     have a horizon is a plate. */
+  const y0 = f.centre[1] - 9000, y1 = f.centre[1] + 9000;
+  fillPoly(cam, [[-9000, y0, 0], [9000, y0, 0], [9000, y1, 0], [-9000, y1, 0]], "#2f5b3d");   // the fairway
+  fillPoly(cam, [[-60, y0, 0], [60, y0, 0], [60, y1, 0], [-60, y1, 0]], "#376845");            // the short grass
   if (f.sand) {                                                                              // the sand
     const s = f.sand > 0 ? 1 : -1;
     fillPoly(cam, [[s * f.green_a, f.centre[1] - f.green_b, 0], [s * (f.green_a + f.bunker_w), f.centre[1] - f.green_b, 0],
@@ -268,6 +322,10 @@ function shadow(cam, p) {
 function drawBall(cam, p) {
   const q = project(cam, [p[1], p[2], p[3]]);
   if (!q) return;
+  /* The radius is the ball's real angular size, with a floor. The floor is a *symbol*, not a measurement: at the
+     distance a golf shot is photographed from, a 1.6-inch ball is half a pixel, and a half-pixel ball is not
+     visible at all. Two and a bit pixels is the smallest honest marker, and the scale bar is the thing that says
+     how big the world is — not the dot. */
   const r = Math.max(2.2, Math.min(26, BALL_FT * FOCAL() / Math.max(1, q.d)));
   ctx.beginPath(); ctx.arc(q.x, q.y, r, 0, Math.PI * 2); ctx.fillStyle = "#ffffff"; ctx.fill();
   ctx.beginPath(); ctx.arc(q.x - r * 0.25, q.y - r * 0.25, r * 0.45, 0, Math.PI * 2);
@@ -282,21 +340,33 @@ const shots = (scene.shots || []).map(s => ({
   ...s, path: truncate(s.path, s.stop_at, s.start),
   dur: s.path && s.path.length ? s.path[s.path.length - 1][0] : 1.0,
 }));
-const PRE = scene.view ? 3.2 : 0;          // the establishing frame, in seconds
-const START = [];                          // when each shot begins, on the film's own clock
-let total = PRE;
-for (const s of shots) { START.push(total); total += s.dur + 1.6; }
+const PRE = 3.2;                           // standing still before a ball moves, in seconds
+const START = [], BEAT = [];               // when each shot begins on the film's clock, and how long it holds first
+let total = 0;
+for (let k = 0; k < shots.length; k++) {
+  const s = shots[k];
+  /* The opening establishing frame belongs to the first shot; a film that crosses holes — the round film does —
+     carries a `view` on the first shot of each hole, so every hole gets its own three seconds of standing still
+     before a ball moves. That is the cheapest thing a film can do for a viewer who has lost track of the hole:
+     stop, show him the hole, then play it. */
+  const beat = (s.view || (k === 0 && scene.view)) ? PRE : 0;
+  START.push(total); BEAT.push(beat);
+  total += beat + s.dur + 1.6;
+}
 function at(t) {
-  if (PRE && t < PRE) return { wide: true, i: 0, shown: 0 };
+  if (!shots.length) return { wide: false, i: 0, shown: 0, wt: 0 };
   let i = 0;
   for (let k = shots.length - 1; k >= 0; k--) if (t >= START[k]) { i = k; break; }
-  return { wide: false, i, shown: Math.min(Math.max(0, t - START[i]), shots[i].dur) };
+  const local = t - START[i];
+  if (local < BEAT[i]) return { wide: true, i, wt: local, shown: 0 };
+  return { wide: false, i, wt: local - BEAT[i], shown: Math.min(Math.max(0, local - BEAT[i]), shots[i].dur) };
 }
 const dots = document.getElementById("dots");
 const el = document.getElementById("now");
 function caption(f) {
   if (f.wide) {
-    el.innerHTML = `<b>the hole</b> · ${(scene.view && scene.view.label) || "from behind the ball"}`;
+    const v = viewOf(shots[f.i]);
+    el.innerHTML = `<b>the hole</b> · ${(v && v.label) || "from behind the ball"}`;
     dots.textContent = shots.map(() => "•").join(" ");
     return;
   }
@@ -305,20 +375,37 @@ function caption(f) {
                  (s.result ? ` — <span style="color:#9fb8ad">${s.result}</span>` : "");
   dots.textContent = shots.map((_, k) => k === f.i ? "●" : "•").join(" ");
 }
+let current = null;                        // the frame on screen, so a resize can put it back
 function draw(f) {
+  current = f;
+  const s = shots[f.i], v = viewOf(s), feet = feetOf(s);
   LENS = scene.fov || 42;
-  const cam = f.wide ? basis(scene.view.pos, scene.view.target) : shotCamera(shots[f.i]);
+  let cam;
+  if (f.wide) {
+    /* The establishing frame breathes: it walks six per cent of the way to its target over the hold, so a frame
+       that stands still for three seconds is not a still. That is a dolly, and it is the only camera move in the
+       film that no ball is responsible for. */
+    const k = 0.06 * ease(f.wt / Math.max(0.001, BEAT[f.i]));
+    cam = basis([mix(v.pos[0], v.target[0], k), mix(v.pos[1], v.target[1], k), mix(v.pos[2], v.target[2], k)],
+                v.target);
+  } else {
+    cam = shotCamera(s, f.shown);
+  }
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   ctx.clearRect(0, 0, cv.clientWidth, cv.clientHeight);
   const sky = ctx.createLinearGradient(0, 0, 0, cv.clientHeight / DPR);
   sky.addColorStop(0, "#16261f"); sky.addColorStop(1, "#0d1512");
   ctx.fillStyle = sky; ctx.fillRect(0, 0, cv.clientWidth / DPR, cv.clientHeight / DPR);
-  ground(cam);
-  for (let k = 0; k < f.i; k++) drawPath(cam, shots[k].path, 1e9, "rgba(255,212,121,0.22)", 1.2);
-  if (!f.wide) drawPath(cam, shots[f.i].path, f.shown, "#ffd479", 2.0);
-  const b = ballAt(shots[f.i].path, f.shown);
+  ground(cam, feet);
+  /* The faded trail is the round so far *on this hole*. A round film changes hole between shots, and a trail
+     from the fourth hole drawn across the seventh is a line through a place it was never hit. */
+  const here = s.hole;
+  for (let k = 0; k < f.i; k++) if (shots[k].hole === here)
+    drawPath(cam, shots[k].path, 1e9, "rgba(255,212,121,0.22)", 1.2);
+  if (!f.wide) drawPath(cam, s.path, f.shown, "#ffd479", 2.0);
+  const b = ballAt(s.path, f.shown);
   if (b) { shadow(cam, b); drawBall(cam, b); }
-  scaleBar(cam, b ? [b[1], b[2], b[3]] : [scene.feet.centre[0], scene.feet.centre[1], 0]);
+  scaleBar(cam, b ? [b[1], b[2], b[3]] : [feet.centre[0], feet.centre[1], 0]);
 }
 /* A still, if the address asks for one: `#t=6.2` draws exactly that second. Drawn synchronously, not on the
    next animation frame, because a headless browser asked for a screenshot does not always wait for one. */
@@ -331,7 +418,12 @@ function frame() {
   requestAnimationFrame(frame);
 }
 function resize() {
+  /* Setting a canvas's width clears it, so a window that is resized goes black and stays black: the pinned
+     still never runs again and the animation loop is not running at all. Found by taking screenshots with a
+     long virtual-time budget — the frame drew, the layout settled, the canvas cleared itself, and the picture
+     was gone. The page had this fault before this pass and nobody had resized it. */
   cv.width = Math.floor(cv.clientWidth * DPR); cv.height = Math.floor(cv.clientHeight * DPR);
+  if (current) draw(current);
 }
 let t0 = 0;
 addEventListener("resize", resize);

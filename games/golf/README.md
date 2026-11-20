@@ -20,7 +20,8 @@ table again, this time read as a curve when its sample changed with distance. It
 new prices cannot reach: at approach range a landing is priced by its distance to the pin, and a ball struck
 from 150 yd is 450 ft from the pin wherever it lands, so the objective's only gradient out there is still the
 sand — and it thinks the sand is reachable four times as often as the game makes it. Fourteenth: the season on a
-page.** The tool is
+page. **Fifteenth: the film's camera — two of them thrown away before the picture read, and a ball that used to stop
+where it stopped flying rather than where the game says it stopped rolling.** The tool is
 `lab/golf.py`; the runs are `records/golf-2026-11-19.txt`; the checks are `python3 lab/golf.py --selftest`
 (36 of them).
 
@@ -45,6 +46,9 @@ page.** The tool is
                                            #    objective reads since pass 13
     python3 lab/golf.py --selftest         # the numbers below, checked
     python3 lab/golf.py --render lip       # the film: three shots at the face, as a page to open in a browser
+    python3 lab/golf.py --render 7         # one hole, filmed: the camera fits the shot and each hole opens still
+    python3 lab/golf.py --render round     # the athlete's own card, all nine holes, as one film
+    python3 lab/golf.py --render worst     # ...or the one hole that went worst (or `best`)
 
 ## The question, and why it is not "putt, from further away"
 
@@ -772,6 +776,28 @@ error bar. It is drawn in the page rather than left to the reader: the width of 
 much of a card is the player and how much is the day. The page says, in its own footer, that these are six
 strategies and not six people, and where the game stops.
 
+## The round, as a film
+
+`python3 lab/golf.py --render round` writes `renders/round.html`: the athlete's own nine holes, played back in
+order, with three seconds of the hole standing still before each one. `--render best` and `--render worst` write
+`renders/best-hole.html` and `renders/worst-hole.html` — one hole each, chosen off the card, which is the thing a
+player actually wants to watch.
+
+The putts are not in it, and the film says so in its own note rather than leaving a gap: a putt is two to twenty
+feet of grass, the game reports where it finished and not the line it took, and filming one would mean inventing
+that line. That is the honest reason, and it is also the next thing this film needs.
+
+Two defects came out of making it, and neither was a physics question.
+
+- **the ball stopped where it stopped flying.** The integrator's path ends at the first touch of the ground, which
+  is right for physics, and the film drew it as it was — so the caption said "65 yd" and the dot on the screen was
+  twenty-five yards short of that, because the game counts the roll and the picture did not. `film_path()` extends
+  the path through the bounce and the roll along the straight line `shot()` already computes, with the time
+  constant deceleration takes. Found by looking at a still and asking why the dot was not at the end of its own arc.
+- **resizing the window blanked the page.** Setting a canvas's width clears it, and the pinned still never runs
+  again, so the film went black and stayed black. Found by taking screenshots with a longer virtual-time budget:
+  the frame drew, the layout settled, the canvas cleared itself. The page had this fault from its first version.
+
 ## What this does not model
 
 - **the landing has one dimension.** `target()` models a shot's *lateral* miss and assumes it arrives at the
@@ -893,9 +919,16 @@ at all, and the first two of them are now built:
    shot, so the side view shows a line with no width — the same fact, much worse told. Both were found by
    looking at rendered stills and neither would ever have been caught by a selftest.
 
-   What is not settled: `--render 7` films a whole hole from behind the tee. It frames the hole and makes the
-   ball a two-pixel dot, so it is a diagram of where the shots went rather than a picture of them, and it wants
-   a camera that tracks the ball before it belongs on a page.
+   **Settled, pass 15, and not the way it was planned.** `--render 7` used to film a whole hole from behind the
+   tee with one camera, and the plan was a camera that tracks the ball. Two versions of that were built and both
+   were photographed and both were thrown away: a pan that keeps the ball centred cannot also keep the hole in
+   frame, and a telephoto that tightens over the flight turned the picture into a green screen with a yellow line
+   on it. Magnifying the ball was the wrong ambition anyway — a golf ball a hundred feet away is 1.6 in across,
+   and no framing that also shows the shot can make it more than about a pixel. So the *frame* is solved
+   instead of guessed: the camera stands off the line far enough to hold the flight and the green, the lens is
+   the scene's, and the shot tracer that has been in the film since its first version is what the eye follows.
+   A hole film now opens with three seconds of standing still, and the round, the best hole and the worst hole
+   are films of their own. See "The round, as a film" below.
 
 4. **The floor, removed — built, pass 9.** It was one number and it was worth less than the file said it would
    be. With the floor at 2 ft the aim inside 100 ft was a constant seven feet inside the pin, whatever the
