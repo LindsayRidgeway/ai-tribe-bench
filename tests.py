@@ -6142,7 +6142,18 @@ class TestTheFilmIsTheSession(unittest.TestCase):
         code, d, _out = self._watch()
         self.assertEqual(code, 0)
         book, film = self._json(d, "practice.json"), self._json(d, "watch.json")
-        self.assertEqual([r["length"] for r in film["rallies"]], [2, 2, 3, 1])   # the film this test plays
+        # The film this test plays, pinned so that a change to the game is a change to this line rather than a
+        # silent one. The fourth point is 2 shots and was 1 until 2026-11-20: a first serve that misses now
+        # costs a serve rather than the point (item 19b), so the point that was a one-shot "double fault" is a
+        # rally. This list is a record of what this seed does today, not a rule.
+        self.assertEqual([r["length"] for r in film["rallies"]], [2, 2, 3, 2])
+        # And the pin does not have to be trusted, because a rally has to be the shots it points at: every
+        # shot belongs to exactly one rally, the rallies cover the film in order, and a length is the count.
+        # That is the invariant that survives the next change to the game.
+        self.assertEqual([i for r in film["rallies"] for i in r["shots"]], list(range(len(film["shots"]))),
+                         "the rallies do not cover the film's shots, in order, exactly once")
+        for r in film["rallies"]:
+            self.assertEqual(r["length"], len(r["shots"]), "a rally's length is not the number of shots it names")
         for name in ("Colette", "Remy"):
             mine = [s for s in film["shots"] if s["player"] == name]
             session = book["members"][name]["sessions"][-1]
