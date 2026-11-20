@@ -4062,8 +4062,12 @@ class TestTheCrossOverStepIsInTheFilm(unittest.TestCase):
     def test_the_crossing_is_sideways_travel_only(self):
         self.assertIn("Math.abs(xb) > 0.35", self.page,
                       "the cross-over is applied to a run down the court as well as across it")
-        self.assertIn("const amt = Math.max(0, 1 - tlc / 0.35);", self.page,
+        self.assertIn("1 - Math.max(0, tlc - 0.10) / 0.25", self.page,
                       "the cross-over does not decay: it is the first step, not the run")
+        # It must also RISE from zero. The first version started at full strength on the contact frame and lifted
+        # the near toe 0.7ft between two frames — a step, not a pop, is the whole point.
+        self.assertIn("Math.min(1, tlc / 0.10)", self.page,
+                      "the cross-over starts at full strength, which puts a 0.7ft lift in a single frame")
 
     def test_the_far_leg_crosses_and_the_near_leg_lifts(self):
         self.assertRegex(self.page, r'CROSS_LAT \* amt \* side', "the far leg does not cross")

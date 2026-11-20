@@ -73,7 +73,19 @@ take-back is not posed — the body arrives at the contact pose and the racquet 
   from the ball on the contact frame (the lerp defect from 11-10, which put no racquet on the ball in
   any frame). **Number:** max delta at frame 0 in ft, before and after.
 
-## Item 2a — the heel does not come up, and the reason is not the constant (OPEN, measured 2026-11-19)
+## Item 2a — nobody is standing on the court (OPEN, measured 2026-11-19; blocks items 4, 5 and 6)
+
+**Found while chasing item 4, and bigger than the heel it started as.** Over the first 24 seconds of
+`seasons/2026-11-19/watch.json`, measured with `?sweep` and the toe probe:
+
+> **920 of 962 player-frames have BOTH toes more than 0.10ft above the court. 51 of 1,924 toe samples are within
+> 0.05ft of the ground. Median toe height 0.24ft, maximum 1.09ft, minimum −0.03ft.**
+
+A stride lifts both feet because the root rises with the gait, and nothing brings either foot down to the surface
+the player is supposedly standing on. This is what "floaty", "on castors" and "the moonwalk" have in common, and it
+is why four items' worth of foot work could be written, measured and reverted without changing what anybody sees.
+
+### The heel
 
 The back foot is supposed to rise onto the ball at the end of a stroke, and the machinery for it has been in the
 page since 2026-11-11: `rig.plantHeel` (0 at contact, 1 by 0.33s) and `rig.plantBack` (which foot is behind) feed a
@@ -152,16 +164,23 @@ side of the right toe, laterally, in the player's own frame. Baseline on `season
 right. The one that does not is shot 24, whose travel is 15.8 ft of which only 3.1 is sideways — correctly excluded
 by the 35% gate, because a run down the court is not a cross-over.
 
-**Still open, and it is the half that matters more:** the near foot leads on only **3 of 7 shots** — worse than the
-5 of 7 the untouched gait managed by luck. A knee bend plus a thigh swing is not enough to beat the phase: which leg
-is mid-swing is decided by `phase`, and `phase` is driven by the ground covered, so it is wherever the player
-happened to be in their stride when the ball was struck. Two experiments that did not work, recorded so they are not
-repeated: `travelled` as the decay clock (it is distance since the film began — the term never fired at all), and a
-0.35 rad thigh swing alone (3 of 7).
+**Still open, and it is blocked on something bigger than itself.** The near foot leads on only **3 of 7 shots**,
+and chasing that number found the reason it cannot be chased yet:
 
-The fix is a phase offset chosen when a run begins, not a bigger swing — and it needs the pose to know how far into
-THIS run the player is, which the film does not currently hand it. That is the next change to item 4, and it is the
-only thing between this item and DONE.
+> **In 920 of 962 player-frames of this film, BOTH toes are more than 0.10ft above the court. Only 51 of 1,924 toe
+> samples are within 0.05ft of the ground. Median toe height 0.24ft, maximum 1.09ft, minimum −0.03ft.**
+
+Nobody is standing on the court. "Which foot leaves the ground first" has no answer when neither is on it, so the
+done-test for this item cannot be measured until item 2a (the grounding) is fixed. That is why every attempt to
+force the near foot to lead — a 0.35 rad thigh swing, a knee bend, a 1.2 rad swing, all of them swept — changed
+the toe heights and changed the metric not at all: both feet are in mid-air in every frame of a stride.
+
+**Dead ends, recorded so they are not repeated:** `travelled` as the decay clock (it is distance since the film
+began, not into this run — the term never fired); a swing that starts at full strength on the contact frame (it
+lifted the near toe 0.70ft between two frames, a visible jolt, now ramped in over 0.10s).
+
+**Order of work, revised:** item 2a is the prerequisite for items 4, 5 and 6, not a detail of item 2. The feet have
+to be on the court before a step, a brake or a turn can be described.
 
 ## Item 5 — brake
 - **Done-test:** root speed at the contact frame is under 0.5 ft/frame for a shot reached at a run,

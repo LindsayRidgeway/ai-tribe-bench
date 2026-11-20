@@ -1412,7 +1412,10 @@ function tick(now) {
       // `tlc` and not `travelled`: travelled is distance since the film began, and the first step of THIS
       // run starts when the opponent strikes. Measured 2026-11-19: with `travelled` the term was exactly
       // zero at every shot (its own gate `amt > 0` never fired) and the sweep reported no change at all.
-      const amt = Math.max(0, 1 - tlc / 0.35);
+      // Rises from zero and falls back: 0 at the contact, 1 at 0.10s, gone by 0.35s. The first version
+      // started AT 1 on the contact frame, which lifted the near toe 0.7ft in a single frame — measured,
+      // not guessed: with a 1.2 rad swing the toe was already at 1.10ft on the first sample.
+      const amt = Math.max(0, Math.min(Math.min(1, tlc / 0.10), 1 - Math.max(0, tlc - 0.10) / 0.25));
       if (amt > 0 && Math.abs(xb) > 0.35) {                        // sideways enough to need a crossing step
         const side = near === "R" ? 1 : -1;
         addLocal(rig.bones["thigh." + far], 0.10 * amt, 0, CROSS_LAT * amt * side);
