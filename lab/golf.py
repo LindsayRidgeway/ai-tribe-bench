@@ -2502,6 +2502,153 @@ comes out of <code>python3 lab/golf.py --season</code>, which prints the same ta
 """
 
 
+# ---- the entry point -------------------------------------------------------------------------------
+# Pass 17. Six pages and a film existed and there was no door: a tester sent `renders/` would find
+# `hole-7.html`, `round.html`, `best-hole.html`, `worst-hole.html`, `the-face.html`, `season.html` and no way to
+# know which to open or in what order. This is the door, and it carries the one rule the founder's objection
+# bought: **a number on a page carries its own error bar, or the page says why it has none.** That is not a panel
+# about honesty — it is a typographic rule, and the way to keep a typographic rule is to make it impossible to
+# break: every figure below is read out of `season.json` with its band attached, and the formatter cannot print a
+# mean without one. The defect list is NOT here; it is one click below, in FOR-BETA.md.
+def _bar(m: dict, fmt: str = "{:.1f}", unit: str = "") -> str:
+    """A mean and its standard error, inseparable. There is no function in this file that formats one without the
+    other, which is the only way a rule like this survives a later pass in a hurry."""
+    se = (m["hi"] - m["lo"]) / 2.0 / 1.96
+    return (f"{fmt.format(m['mean'])}{unit} <span class=\"pm\">±{fmt.format(se)}</span>").replace("-", "−")
+
+
+_START_PAGE = """<!doctype html>
+<meta charset="utf-8"><title>golf — start here</title>
+<style>
+ :root { --bg:#fbfaf7; --ink:#22201d; --muted:#6d6a64; --line:#d8d4cc; --panel:#fff; --good:#2f6f4e; }
+ body { background:var(--bg); color:var(--ink); margin:0 auto; max-width:960px; padding:38px 22px 70px;
+        font:15.5px/1.6 -apple-system, "Iowan Old Style", Georgia, serif; }
+ h1 { font-size:27px; margin:0 0 6px; font-weight:600; letter-spacing:-.01em; }
+ h2 { font-size:13.5px; margin:36px 0 10px; font-weight:600; letter-spacing:.05em; text-transform:uppercase;
+      color:var(--muted); }
+ .lede { font-size:18.5px; line-height:1.55; margin:0 0 12px; }
+ .note { font-size:13.5px; color:var(--muted); }
+ a { color:#2c5f8a; }
+ .doors { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:6px 0 0; }
+ .door { display:block; background:var(--panel); border:1px solid var(--line); border-radius:9px;
+         padding:13px 15px 14px; text-decoration:none; color:inherit; }
+ .door b { display:block; font-size:16px; margin-bottom:3px; color:#2c5f8a; }
+ .door span { font-size:13.5px; color:var(--muted); line-height:1.45; display:block; }
+ table { border-collapse:collapse; width:100%; font-size:13.5px; font-variant-numeric:tabular-nums; }
+ th, td { text-align:right; padding:7px 10px; border-bottom:1px solid var(--line); white-space:nowrap; }
+ th:first-child, td:first-child { text-align:left; }
+ th { color:var(--muted); font-weight:600; }
+ .pm { color:var(--muted); font-size:12px; }
+ .was { color:var(--good); }
+ footer { margin-top:40px; border-top:1px solid var(--line); padding-top:16px; font-size:13.5px; color:var(--muted); }
+ code { font-size:12.5px; background:#f2efe9; padding:1px 5px; border-radius:3px; }
+</style>
+<h1>golf — six players who have to find out what their clubs do</h1>
+<p class="lede">A golf game with no player in it. Six programs play the same nine holes; each one is allowed to learn
+a different part of what a golfer has to learn — how far each club goes, how much the wind takes off, how far its
+own hands miss by — and nothing else is given to any of them. The card at the bottom is the result. The point is the
+thing underneath it: a player that has measured itself plays better than one that has not, and you can watch the
+measuring happen.</p>
+<p class="note">Everything here is one program's own numbers, produced by <code>lab/golf.py</code>. Runs, 2026-11-19
+to 2026-11-20; the game is a simulation and this page is a report on it, not a product.</p>
+
+<h2>The doors, in the order I would open them</h2>
+<div class="doors">
+  <a class="door" href="hole-7.html"><b>One hole, filmed</b><span>A par 3 played by a practised athlete: the ball,
+  the arc, the bounce, and the putt that goes in. 19 seconds. The camera is solved from each shot rather than fixed
+  by hand.</span></a>
+  <a class="door" href="round.html"><b>A whole round, filmed</b><span>The same athlete's nine holes in order, each
+  one opening with three seconds of standing still. Both putts and shots, every hole played out to the cup.</span></a>
+  <a class="door" href="season.html"><b>A season of six</b><span>Six strategies, eight rounds, four practice
+  sessions. What practice was worth, what each one believes about its own hands, and a band on every line.</span></a>
+  <a class="door" href="worst-hole.html"><b>The hole that went worst</b><span>Off the card, not chosen by me: the
+  one hole of the round that cost the athlete a stroke against par.</span></a>
+  <a class="door" href="best-hole.html"><b>The hole that went best</b><span>...and the other end of the same card,
+  which is an eagle on a par 5 and reads as one.</span></a>
+  <a class="door" href="the-face.html"><b>The bunker's face</b><span>Eighteen inches of sand along one edge of the
+  green and nothing along the other three. Three balls, three outcomes, and the reason the game has a lip at
+  all.</span></a>
+  <a class="door" href="FOR-BETA.md"><b>What this does not model</b><span>The list of what is known wrong, dated,
+  with the number that shows it. One click, on purpose — not on the door of the product.</span></a>
+</div>
+
+<h2>The card</h2>
+<div style="background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:12px 6px 4px">
+<table>__CARD__</table></div>
+<p class="note">__COND__ Every figure is a mean <span class="pm">±</span> its standard error across __BAGS__ practice
+sessions, so a difference smaller than two of those is not a difference. Strokes over par: lower is better. The
+paired column is the one to read: every athlete met the same course and the same wind in a round, so the difference
+against the player who never practises cancels the weather and leaves the notebook. Its bar is narrower for that
+reason, and the whole season is drawn that way on the season page.</p>
+
+<h2>How to read this</h2>
+<p class="note"><b>Practice is the only lever, and it is the athlete's own.</b> The one that starts well and never
+practises (<i>no practice</i>) is the control, and it is the only row on this card that does not learn. __VERDICT__</p>
+<p class="note"><b>No input is asked of you.</b> There is no club to choose and no button to press; the game's
+subject is a program's own uncertainty, and a human at the controls would hide it. What you are asked to judge is
+whether the learning is visible and whether the numbers are believable — both questions are written out in
+<code>FOR-BETA.md</code>, with what is known to be wrong beneath them.</p>
+
+<footer>
+<p>These are six <b>strategies</b>, not six people: one program's athletes sharing one notebook's ancestry is a field
+of strategies, and the number on the card is still one program's number. Putting six members' numbers on one board is
+something the members would have to do in their own windows.</p>
+<p>Written by <code>python3 lab/golf.py --start</code> from <code>season.json</code>; the page has no script in it
+and opens from disk. The record of every pass is in <code>../records/golf-2026-11-19.txt</code>, the findings in
+<code>../README.md</code>, and the checks are <code>python3 lab/golf.py --selftest</code>.</p>
+</footer>
+"""
+
+
+def start_page(args) -> int:
+    """Write `renders/start.html`: the door, and the card with its bars, read from the season's own record."""
+    out_dir = Path(__file__).resolve().parent.parent / "games" / "golf" / "renders"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    record = out_dir / "season.json"
+    if not record.exists():
+        print(f"  no season yet: run `python3 lab/golf.py --season` first, then --start")
+        return 1
+    d = json.loads(record.read_text())
+    rows = []
+    for a in d["athletes"]:
+        first, last, rel = a["to_par"][0], a["to_par"][-1], a["rel"][-1]
+        err = a["nerr"][-1]
+        pct = dict(mean=err["mean"] * 100, lo=err["lo"] * 100, hi=err["hi"] * 100)
+        paired = ("<span class=\"pm\">the reference</span>" if not a["learns"]
+                  else _bar(rel, "{:+.1f}"))
+        rows.append("<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>".format(
+            a["name"], a["policy"], _bar(first, "{:+.0f}"), _bar(last, "{:+.0f}"), paired,
+            _bar(a["sigma"][-1], "{:.2f}", "°"), _bar(pct, "{:.1f}", "%")))
+    card = ("<tr><th>athlete</th><th>aims at</th><th>over par, round 1</th><th>over par, round " +
+            str(d["rounds"]) + "</th><th>against the frozen player, last round</th>"
+            "<th>believes its own hands</th><th>notebook error</th></tr>" + "".join(rows))
+    cond = (f"{d['bags']} practice sessions, {d['rounds']} rounds of nine, par {d['par']}, pins ±{d['pin_range']:.0f} ft, "
+            f"{'still air' if d.get('calm') else 'wind drawn every round'}.")
+    # The paragraph under the card makes two claims about the card and both are read off it. A sentence with a
+    # number in it that was typed is a sentence that will be wrong by the third re-run, which is how this file has
+    # spent several passes.
+    frozen = next(a for a in d["athletes"] if not a["learns"])
+    learns = [a for a in d["athletes"] if a["learns"]]
+    behind = [a["to_par"][0]["mean"] - frozen["to_par"][0]["mean"] for a in learns]
+    ahead = [-a["rel"][-1]["mean"] for a in learns]
+    early = [b for b in behind if b < 0]
+    late = [b for b in behind if b >= 0]
+    start = (f"in round 1 {len(early)} of the {len(learns)} are already ahead of it and the rest are "
+             f"{min(late):.0f} to {max(late):.0f} strokes behind" if early else
+             f"in round 1 none of the {len(learns)} learners is ahead of it — they are level with it to "
+             f"{max(behind):.0f} strokes behind")
+    verdict = (f"{start[0].upper()}{start[1:]}; by round {d['rounds']} every one of them is ahead of it, by "
+               f"{min(ahead):.0f} to {max(ahead):.0f} strokes a round. That gap widening is the whole claim of the "
+               f"game and the only one worth testing, and the bars are there so that you can see it is not the "
+               f"weather.")
+    page = (_START_PAGE.replace("__CARD__", card).replace("__COND__", cond).replace("__VERDICT__", verdict)
+            .replace("__BAGS__", str(d["bags"])))
+    out = out_dir / "start.html"
+    out.write_text(page)
+    print(f"  wrote {out}")
+    return 0
+
+
 def render(args) -> int:
     """Write a scene and the page that plays it, into `games/golf/renders/`."""
     out_dir = Path(__file__).resolve().parent.parent / "games" / "golf" / "renders"
@@ -2628,6 +2775,8 @@ def main(argv=None) -> int:
                     help="the scatter it believes against the scatter its shots have, in wind")
     ap.add_argument("--field", action="store_true",
                     help="six scripted athletes on one card: same course, same weather, different strategies")
+    ap.add_argument("--start", action="store_true",
+                    help="write renders/start.html: the door, and the card with its bars, from season.json")
     ap.add_argument("--season", action="store_true",
                     help="six athletes over many rounds, with each one's belief about itself, as a page")
     ap.add_argument("--render", metavar="SCENE", default=None,
@@ -2650,6 +2799,8 @@ def main(argv=None) -> int:
         return draws(args)
     if args.field:
         return field(args)
+    if args.start:
+        return start_page(args)
     if args.season:
         return season(args)
     if args.render:

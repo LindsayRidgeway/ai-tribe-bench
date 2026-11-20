@@ -2906,3 +2906,66 @@ the picture. This pass is that line.
       beside it and the flag above the cup. Four earlier rounds of stills were taken to place the camera and thrown
       away with the geometry: `travel + 6` cut the hole off the top, `travel + 12` was still tight, `travel + 13`
       holds the ball, the hole and air for both.
+
+
+PASS 17 — 2026-11-20, 14:54-15:25 — one door, a manual, and the bars made a rule instead of a promise
+====================================================================================================
+
+Twelve pages and no way in. A tester sent `renders/` would find six films and a season, with no way to know which to
+open, in what order, or whether any of it was meant to be looked at rather than measured. This pass is the door, the
+manual, and the last item of the three passes the founder's objection bought on 2026-11-20.
+
+  `python3 lab/golf.py --start` writes `renders/start.html`: the door. It **reads** `season.json` instead of
+      recomputing anything, so the card on the door is the season's own card, and the page cannot drift from the
+      record it describes. If the season has not been run it says so and stops rather than printing a page with a
+      hole in it.
+
+  the honesty question, answered in the form it was asked. The founder asked on 2026-11-20 whether a defect report
+      belongs on the face of a product, and the precedent question killed the panel: no popular app tells its users
+      where its own maths lies, the near precedents (fund fact sheets, release notes with Known Issues, Wikipedia
+      maintenance banners) split cleanly into "the error bar beside the number" and "the defect list in a labelled
+      annex", and a game that opens by listing its own errors reads as unfinished. So:
+
+      1. **the number carries its bar, in code.** `_bar(m)` is the only function on the door that formats a mean and
+         it cannot format one without a standard error. Every numeric cell on the card has a ±, by construction,
+         and there is nothing to remember when a later pass adds a row. That is the typographic rule; the precedent
+         is the fact sheet.
+      2. **the defect list is one click below.** `FOR-BETA.md`: what a tester is asked to judge, what is known
+         wrong (dated, with the number that shows it), what the bars are, what would be a defect worth reporting,
+         and what is explicitly not a defect. Precedent: Known Issues.
+      3. **the record and the README keep the detail** — 2908 lines of record and the findings, unchanged in their
+         job.
+
+  the sentences under the card are generated from the card. "None of the 5 learners is ahead of it in round 1 —
+      they are level with it to 2 strokes behind; by round 4 every one of them is ahead, by 6 to 11" is computed at
+      write time from `to_par[0]` and `rel[-1]`. The first version of that paragraph said "one of them is behind it"
+      and was wrong in a way I could only see by reading it against the table: **all five** were behind it. A
+      sentence with a number in it that was typed by hand is a sentence that is wrong by the third re-run, which is
+      the same failure as the three instruments and the two cameras, one layer up.
+
+  a layout defect found by looking, again. The two nested anchors ("the hole that went worst … and the best") broke
+      the grid: an `<a>` inside an `<a>` is not a link, it is a cell that pours its text out of the box. Split into
+      two doors. Nothing would have caught that but the screenshot, and the same is true of the "five doors" heading
+      over seven doors, which is now "the doors".
+
+  what the door says it is not, in its own three sentences: no player input (the game's subject is a program's
+      uncertainty and a human at the controls would hide it), no graphics of a commercial kind (a projection and a
+      painter's sort), and six strategies rather than six people.
+
+  the manual, `games/golf/FOR-BETA.md`, sections: what this is and is not; the three questions a tester is asked
+      (is the learning visible, do you believe the numbers, is the picture worth looking at, each with the page to
+      open and what answer would be useless to me); what is known wrong, dated, with numbers — the one-dimensional
+      landing (42% vs 11.6%), direction (1.50 vs 2.17 against 1.83), the windy objector (+14/+10/+15), the putt with
+      no height, the putter with no read error, the green with no contour, no dogleg, no plugged lie, the rough's
+      0.3 that stays, the typed count that will go stale; the bars and what they are; how to run it; and what would
+      be a defect worth telling me about, which includes "a sentence in the record that the code no longer supports"
+      — the failure mode of a project that writes as much down as this one.
+
+  counts: 38 checks (unchanged by this pass — the door is not a number), README 1017 lines, record 2908, and the
+      door's own figures read from a 4-round, 4-bag season: bad start +5.3 ±1.2 in round 4 and −10.8 ±1.9 against the
+      frozen player, practiser −8.5 ±1.7, cautious −9.5 ±3.2, blind hands −6.5 ±2.8, flag-hunter −8.5 ±2.5, and the
+      frozen player at +16 ±1 a round with a notebook still wrong by 43.7%.
+
+  what this pass did not do: the film's putts still have no height (nothing drops into the cup), and the door has no
+      page for the *field* — six athletes over many bags with their beliefs — because that is the season page and
+      the door links it rather than repeating it.

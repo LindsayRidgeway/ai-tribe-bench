@@ -1,0 +1,80 @@
+<!doctype html>
+<meta charset="utf-8"><title>golf — start here</title>
+<style>
+ :root { --bg:#fbfaf7; --ink:#22201d; --muted:#6d6a64; --line:#d8d4cc; --panel:#fff; --good:#2f6f4e; }
+ body { background:var(--bg); color:var(--ink); margin:0 auto; max-width:960px; padding:38px 22px 70px;
+        font:15.5px/1.6 -apple-system, "Iowan Old Style", Georgia, serif; }
+ h1 { font-size:27px; margin:0 0 6px; font-weight:600; letter-spacing:-.01em; }
+ h2 { font-size:13.5px; margin:36px 0 10px; font-weight:600; letter-spacing:.05em; text-transform:uppercase;
+      color:var(--muted); }
+ .lede { font-size:18.5px; line-height:1.55; margin:0 0 12px; }
+ .note { font-size:13.5px; color:var(--muted); }
+ a { color:#2c5f8a; }
+ .doors { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:6px 0 0; }
+ .door { display:block; background:var(--panel); border:1px solid var(--line); border-radius:9px;
+         padding:13px 15px 14px; text-decoration:none; color:inherit; }
+ .door b { display:block; font-size:16px; margin-bottom:3px; color:#2c5f8a; }
+ .door span { font-size:13.5px; color:var(--muted); line-height:1.45; display:block; }
+ table { border-collapse:collapse; width:100%; font-size:13.5px; font-variant-numeric:tabular-nums; }
+ th, td { text-align:right; padding:7px 10px; border-bottom:1px solid var(--line); white-space:nowrap; }
+ th:first-child, td:first-child { text-align:left; }
+ th { color:var(--muted); font-weight:600; }
+ .pm { color:var(--muted); font-size:12px; }
+ .was { color:var(--good); }
+ footer { margin-top:40px; border-top:1px solid var(--line); padding-top:16px; font-size:13.5px; color:var(--muted); }
+ code { font-size:12.5px; background:#f2efe9; padding:1px 5px; border-radius:3px; }
+</style>
+<h1>golf — six players who have to find out what their clubs do</h1>
+<p class="lede">A golf game with no player in it. Six programs play the same nine holes; each one is allowed to learn
+a different part of what a golfer has to learn — how far each club goes, how much the wind takes off, how far its
+own hands miss by — and nothing else is given to any of them. The card at the bottom is the result. The point is the
+thing underneath it: a player that has measured itself plays better than one that has not, and you can watch the
+measuring happen.</p>
+<p class="note">Everything here is one program's own numbers, produced by <code>lab/golf.py</code>. Runs, 2026-11-19
+to 2026-11-20; the game is a simulation and this page is a report on it, not a product.</p>
+
+<h2>The doors, in the order I would open them</h2>
+<div class="doors">
+  <a class="door" href="hole-7.html"><b>One hole, filmed</b><span>A par 3 played by a practised athlete: the ball,
+  the arc, the bounce, and the putt that goes in. 19 seconds. The camera is solved from each shot rather than fixed
+  by hand.</span></a>
+  <a class="door" href="round.html"><b>A whole round, filmed</b><span>The same athlete's nine holes in order, each
+  one opening with three seconds of standing still. Both putts and shots, every hole played out to the cup.</span></a>
+  <a class="door" href="season.html"><b>A season of six</b><span>Six strategies, eight rounds, four practice
+  sessions. What practice was worth, what each one believes about its own hands, and a band on every line.</span></a>
+  <a class="door" href="worst-hole.html"><b>The hole that went worst</b><span>Off the card, not chosen by me: the
+  one hole of the round that cost the athlete a stroke against par.</span></a>
+  <a class="door" href="best-hole.html"><b>The hole that went best</b><span>...and the other end of the same card,
+  which is an eagle on a par 5 and reads as one.</span></a>
+  <a class="door" href="the-face.html"><b>The bunker's face</b><span>Eighteen inches of sand along one edge of the
+  green and nothing along the other three. Three balls, three outcomes, and the reason the game has a lip at
+  all.</span></a>
+  <a class="door" href="FOR-BETA.md"><b>What this does not model</b><span>The list of what is known wrong, dated,
+  with the number that shows it. One click, on purpose — not on the door of the product.</span></a>
+</div>
+
+<h2>The card</h2>
+<div style="background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:12px 6px 4px">
+<table><tr><th>athlete</th><th>aims at</th><th>over par, round 1</th><th>over par, round 4</th><th>against the frozen player, last round</th><th>believes its own hands</th><th>notebook error</th></tr><tr><td>bad start</td><td>spread</td><td>+12 <span class="pm">±+2</span></td><td>+5 <span class="pm">±+1</span></td><td>−10.8 <span class="pm">±+1.9</span></td><td>1.24° <span class="pm">±0.12</span></td><td>13.5% <span class="pm">±0.6</span></td></tr><tr><td>practiser</td><td>spread</td><td>+14 <span class="pm">±+3</span></td><td>+8 <span class="pm">±+1</span></td><td>−8.5 <span class="pm">±+1.7</span></td><td>1.17° <span class="pm">±0.07</span></td><td>14.0% <span class="pm">±1.1</span></td></tr><tr><td>blind hands</td><td>spread</td><td>+12 <span class="pm">±+1</span></td><td>+10 <span class="pm">±+2</span></td><td>−6.5 <span class="pm">±+2.8</span></td><td>1.50° <span class="pm">±0.00</span></td><td>14.6% <span class="pm">±0.9</span></td></tr><tr><td>cautious</td><td>centre</td><td>+14 <span class="pm">±+3</span></td><td>+6 <span class="pm">±+2</span></td><td>−9.5 <span class="pm">±+3.2</span></td><td>1.32° <span class="pm">±0.15</span></td><td>14.3% <span class="pm">±1.2</span></td></tr><tr><td>flag-hunter</td><td>flag</td><td>+13 <span class="pm">±+1</span></td><td>+8 <span class="pm">±+3</span></td><td>−8.5 <span class="pm">±+2.5</span></td><td>1.32° <span class="pm">±0.14</span></td><td>12.0% <span class="pm">±0.5</span></td></tr><tr><td>no practice</td><td>spread</td><td>+11 <span class="pm">±+1</span></td><td>+16 <span class="pm">±+1</span></td><td><span class="pm">the reference</span></td><td>1.50° <span class="pm">±0.00</span></td><td>43.7% <span class="pm">±1.5</span></td></tr></table></div>
+<p class="note">4 practice sessions, 4 rounds of nine, par 35, pins ±14 ft, wind drawn every round. Every figure is a mean <span class="pm">±</span> its standard error across 4 practice
+sessions, so a difference smaller than two of those is not a difference. Strokes over par: lower is better. The
+paired column is the one to read: every athlete met the same course and the same wind in a round, so the difference
+against the player who never practises cancels the weather and leaves the notebook. Its bar is narrower for that
+reason, and the whole season is drawn that way on the season page.</p>
+
+<h2>How to read this</h2>
+<p class="note"><b>Practice is the only lever, and it is the athlete's own.</b> The one that starts well and never
+practises (<i>no practice</i>) is the control, and it is the only row on this card that does not learn. In round 1 none of the 5 learners is ahead of it — they are level with it to 2 strokes behind; by round 4 every one of them is ahead of it, by 6 to 11 strokes a round. That gap widening is the whole claim of the game and the only one worth testing, and the bars are there so that you can see it is not the weather.</p>
+<p class="note"><b>No input is asked of you.</b> There is no club to choose and no button to press; the game's
+subject is a program's own uncertainty, and a human at the controls would hide it. What you are asked to judge is
+whether the learning is visible and whether the numbers are believable — both questions are written out in
+<code>FOR-BETA.md</code>, with what is known to be wrong beneath them.</p>
+
+<footer>
+<p>These are six <b>strategies</b>, not six people: one program's athletes sharing one notebook's ancestry is a field
+of strategies, and the number on the card is still one program's number. Putting six members' numbers on one board is
+something the members would have to do in their own windows.</p>
+<p>Written by <code>python3 lab/golf.py --start</code> from <code>season.json</code>; the page has no script in it
+and opens from disk. The record of every pass is in <code>../records/golf-2026-11-19.txt</code>, the findings in
+<code>../README.md</code>, and the checks are <code>python3 lab/golf.py --selftest</code>.</p>
+</footer>

@@ -70,7 +70,9 @@ caption and the dot that had been on the same page for nine passes. The sixteent
 nothing else, and the cup stops being a three-pixel symbol. Two checks now guard the picture rather than the golf —
 that the film's line ends where the card says the ball stopped (it failed at two inches, and the two inches were a
 bearing taken off the bounce), and that the line is the green's rather than a ruler (0.56 ft of bow on the 1.2%
-green, zero on it flattened).
+green, zero on it flattened). The seventeenth pass is the door: `--start` writes `renders/start.html`, which reads
+`season.json` and cannot print a mean without its standard error, and `FOR-BETA.md` holds what is known wrong, dated,
+one click below the product rather than on its face.
 
 ## Which to keep, and why
 

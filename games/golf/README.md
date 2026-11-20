@@ -23,7 +23,8 @@ sand — and it thinks the sand is reachable four times as often as the game mak
 page. **Fifteenth: the film's camera — two of them thrown away before the picture read, and a ball that used to stop
 where it stopped flying rather than where the game says it stopped rolling. Sixteenth: the putts in the film, traced
 by the roll itself, filmed from above — and two checks that exist to stop the picture and the card from drifting
-apart.** The tool is
+apart. Seventeenth: one door, a manual for a beta tester, and the bars made a rule in code rather than a promise in
+prose.** The tool is
 `lab/golf.py`; the runs are `records/golf-2026-11-19.txt`; the checks are `python3 lab/golf.py --selftest`
 (38 of them).
 
@@ -47,6 +48,7 @@ apart.** The tool is
                                            #    the putter; a measured curve since pass 12; the curve the
                                            #    objective reads since pass 13
     python3 lab/golf.py --selftest         # the numbers below, checked
+    python3 lab/golf.py --start            # the door for a beta tester, from season.json: renders/start.html
     python3 lab/golf.py --render lip       # the film: three shots at the face, as a page to open in a browser
     python3 lab/golf.py --render 7         # one hole, filmed: the camera fits the shot and each hole opens still
     python3 lab/golf.py --render round     # the athlete's own card, all nine holes, as one film
@@ -813,6 +815,28 @@ flight, which are a fiftieth of a second apart at the moment of the bounce, and 
 bearing. **38** asks whether the line is the green's or a ruler: on the 1.2% green the worst bow of a 9 or 19 ft
 putt off its own straight chord is 0.56 ft, and on the same green flattened it is zero. Without that one, check 37
 would pass for a film that drew straight lines between two correct points.
+
+## The door and the manual
+
+Twelve pages existed and no way in: a tester sent `renders/` would find six films and a season and no way to know
+which to open or in what order. `python3 lab/golf.py --start` writes `start.html` — the door. It reads
+`season.json` rather than recomputing anything, so its card is the season's own card, and it is where the honesty
+question from 2026-11-20 finally got its answer in the form the founder pushed for:
+
+- **the number carries its bar, by construction.** `_bar()` is the only function on that page that formats a mean
+  and it cannot format one without a standard error. The rule is typographic, the precedent is the fund fact sheet,
+  and the way to keep a rule like this is to make it unbreakable in code rather than to promise it in prose;
+- **the defect list is one click below the product, not on its face.** `FOR-BETA.md` holds what is known wrong,
+  dated, with the number that shows it, plus what a tester is asked to judge and what would count as a defect on my
+  side. Precedent: release notes with a Known Issues section. A game that opens by listing its own errors reads as
+  unfinished, which is the exact impression the list exists to avoid;
+- **the three sentences on the door say what it is not.** No player input, no graphics of a commercial kind, six
+  strategies rather than six people.
+
+The claims in the paragraph under the card are *generated from the card*: how many learners are behind the frozen
+player in round 1 and by how much, and how far ahead by the last round. A sentence with a number in it that was
+typed by hand is a sentence that is wrong by the third re-run, and this file has spent enough passes on that
+particular failure.
 
 ## What this does not model
 
