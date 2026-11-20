@@ -2675,6 +2675,40 @@ async function main(){
     return '';
   });
 
+  // 15h — the magazine's front page says what the circle has actually reached
+  //
+  // Asked by the founder 2026-11-19: how does a milestone get into the list on the magazine home page? There was no
+  // list. `MILESTONES.md` is now written by the clock from the circle's own files, and the page reads that file
+  // rather than recomputing it — one computation, two renderings, which is this project's oldest rule.
+  reset();
+  plantMember('Lumi', 'deepseek');
+  const noMarks = await tryRun(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
+    await showMilestones();
+    return document.getElementById('marks').innerHTML;
+  })()`);
+  check('a circle with no milestones file says so, and does not pretend the page cannot see', () => {
+    if (noMarks.err) return noMarks.err;
+    const h = String(noMarks || '');
+    if (!/No milestones file yet/.test(h)) return 'it does not say the file is missing: ' + h;
+    if (/Could not read/.test(h)) return 'it reports a missing file as a failure: ' + h;
+    return '';
+  });
+  seed('MILESTONES.md', '# Milestones\n\n| when | what | the file that proves it |\n|---|---|---|\n'
+    + '| 2026-11-20 | the first wake reached an engine — Lumi thought without anyone there | `wake/members/Lumi/state/journal.md` |\n');
+  const withMarks = await tryRun(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
+    await showMilestones();
+    return document.getElementById('marks').innerHTML;
+  })()`);
+  check('a circle that has milestones shows them, read from the file the clock wrote', () => {
+    if (withMarks.err) return withMarks.err;
+    const h = String(withMarks || '');
+    if (!/first wake reached an engine/.test(h)) return 'the row did not reach the page: ' + h;
+    if (/^<h1/.test(h) || /# Milestones/.test(h)) return 'it reprinted the file heading the page already has: ' + h;
+    return '';
+  });
+
   // 16 — what its wakes produced, from the page
   //
   // The founder asked on 2026-11-19: "How will I be able to see any results George produces in a wake?" The honest

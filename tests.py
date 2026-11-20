@@ -1648,6 +1648,82 @@ class TestTurn(unittest.TestCase):
     def test_a_fixture_with_no_place_cannot_be_forced(self):
         self.assertEqual(tribe.next_up("bare"), [])
 
+class TestMilestones(unittest.TestCase):
+    """The founder asked on 2026-11-19 how a milestone gets into the list on the magazine home page, and the honest
+    answer was that no such list existed: the milestone was prose in FINDINGS.md, which is the bench's argument and
+    not a circle's record. This list is computed from the circle's own files, so it cannot go stale and cannot be
+    inflated by somebody typing a claim.
+
+    The failure it must not have: an empty or young circle told that it has done something.
+    """
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name)
+        (self.root / "wake" / "members").mkdir(parents=True)
+        (self.root / "works").mkdir()
+        (self.root / "issues").mkdir()
+        (self.root / "plates").mkdir()
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def _member(self, name, journal):
+        d = self.root / "wake" / "members" / name / "state"
+        d.mkdir(parents=True)
+        (d / "journal.md").write_text(journal, encoding="utf-8")
+        return d
+
+    def test_an_empty_circle_claims_nothing(self):
+        got = magazine.milestones(self.root)
+        self.assertIn("Nothing yet", got)
+        self.assertIn("0 member(s)", got)
+        self.assertNotIn("first wake reached an engine", got)
+
+    def test_a_created_member_is_not_a_wake_that_thought(self):
+        self._member("Lumi", "# Journal\n\n## 2026-11-19 06:39 UTC — created\n\n- I was created by `tribe.py new`.\n")
+        got = magazine.milestones(self.root)
+        self.assertIn("the first member existed — Lumi", got)
+        self.assertNotIn("reached an engine", got)
+
+    def test_a_wake_that_reached_an_engine_is_dated_and_named(self):
+        self._member("Lumi", "# Journal\n\n## 2026-11-19 06:39 UTC — created\n\n- created\n\n"
+                               "## 2026-11-20 00:08 UTC — deepseek-flash (api)\n\n- wrote a piece\n")
+        got = magazine.milestones(self.root)
+        self.assertIn("| 2026-11-20 | the first wake reached an engine — Lumi", got)
+
+    def test_the_first_work_is_named_by_its_own_title_not_its_file_name(self):
+        d = self.root / "works" / "Lumi"
+        d.mkdir()
+        (d / "20261120T000836Z-a-very-long-truncated-file-na.md").write_text(
+            "---\ntitle: Ten portraits\nref: -\n---\n\nbody\n", encoding="utf-8")
+        got = magazine.milestones(self.root)
+        self.assertIn("Lumi's *Ten portraits*", got)
+        # `ref: -` means it answered nothing, and counting it would put every first piece down as an answer.
+        self.assertNotIn("answered another", got)
+
+    def test_a_retired_job_is_the_oldest_line_in_a_done_log(self):
+        state = self._member("Lumi", "# Journal\n\n## 2026-11-19 06:39 UTC — created\n\n- created\n")
+        (state / "done.md").write_text("# Done\n\n- 2026-11-20 — item 2: research ten portraits\n",
+                                      encoding="utf-8")
+        got = magazine.milestones(self.root)
+        self.assertIn("the first job was handed over and retired — Lumi, item 2: research ten portraits", got)
+
+    def test_the_magazine_front_page_takes_the_table_from_the_file_rather_than_recomputing_it(self):
+        """One computation, two renderings. The front page used to have no milestones at all; the wrong fix would be
+        a second copy of the derivation inside `issue_index`."""
+        (self.root / "MILESTONES.md").write_text(
+            "# Milestones\n\n| when | what | the file that proves it |\n|---|---|---|\n"
+            "| 2026-11-20 | the first member existed — Lumi | `wake/members/Lumi/state/journal.md` |\n",
+            encoding="utf-8")
+        rows = magazine.milestone_rows(self.root)
+        self.assertTrue(rows)
+        self.assertIn("What this circle has reached", "\n".join(rows))
+        self.assertIn("the first member existed — Lumi", "\n".join(rows))
+        (self.root / "MILESTONES.md").unlink()
+        self.assertEqual(magazine.milestone_rows(self.root), [],
+                         "a circle with no milestones file must get no section, not an empty one")
+
 class TestFiling(unittest.TestCase):
     """A work can be written and never reach the shelf, and then nothing downstream knows it exists.
 

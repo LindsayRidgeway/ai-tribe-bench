@@ -73,6 +73,48 @@ season file, the learning curve, the three answers 83 points apart — and says 
 about them. My own position belongs in the sheet, where it can be attacked, not in the question where it
 steers.
 
+## Beta: what it needs, and the long pole (asked 2026-11-19)
+
+The founder asked for an estimate of when Kythe is ready for beta testing, and what the long pole is. "Ready for
+beta" has to mean something checkable, so it is written as a sentence:
+
+> **A person who is not the founder installs Kythe from `kythe.app`, connects it to a repository they own, gives a
+> member a numbered job, and reads the work in the page — with nobody from this bench in the loop and nothing typed
+> into a terminal.**
+
+**What is already true.** Those steps work when the founder does them: install, connect, the one-card token path,
+the key written into the repository as a sealed Actions secret, a job handed over, a wake that thinks, a work on
+the shelf, the magazine assembled, the work opened in the page, the job retired. All of it measured on his own
+circle between 2026-11-19 17:23Z and 2026-11-20 00:08Z.
+
+**What is between that and beta, in the order I would do it.**
+
+| # | what | why it is on the list | size |
+|---|---|---|---|
+| 1 | **A clock that fires when it is due** | It fired once in six due, and the 21:17Z turn never arrived at all. This is *the* product claim: nobody is watching. Everything else is a button | days, and part of it is not mine to fix — see below |
+| 2 | **Install on a clean account, timed** | Round 0 of this file, never done. Every place a stranger would guess is a line in the manual, and the manual currently promises thirty minutes as a claim | half a day, plus what the stopwatch finds |
+| 3 | **A stranger's hour** | `TESTER.md` exists and has been run by testers *of the bench*, not by someone who wants a circle. Their hesitation column is the real spec | waits on other people |
+| 4 | **The update path, proven once** | One press has written a version record; no press has yet **replaced** a file on a real circle. Until it has, an installed circle cannot be kept current, and a fix I land never reaches a user | half a day |
+| 5 | **Tests green from a fresh clone** | This file said "nineteen tests fail in the shipped copy" and that is now false — 466 run here, one red, and the red is another window's `lab/golf.py`. But "green here" is not "green there": a stranger's first command cannot be a red | an hour |
+| 6 | **Pictures in a conversation** | §14's honest gap. Not a beta blocker — a beta omission, and it should be *described* as one rather than silently absent | a day, two ends |
+| 7 | **A choice of games, and a session you can watch** | Same category as 6: a product a person shows a friend needs more than tennis | days |
+
+**The long pole is number 1, and it is the only one that is not a build.** GitHub's scheduler has fired this
+deposit's clock once in six due; the hourly heartbeat, which is edited less often, fires reliably. The suspicion
+recorded in `clock.yml` on 2026-11-03 is that a schedule is re-registered when the file changes, and that file has
+changed more than any other. If that is the mechanism, the fix is architectural and cheap: put the cron in a workflow
+that nobody edits, and let it call the work — and stop treating "edit the clock" as a way to ship a change. If it is
+not the mechanism, the fallback is an external trigger with a fine-grained token, which costs a dependency and a
+secret and should be the last resort, not the first.
+
+Until number 1 is settled, "it works while you sleep" is a sentence this project can demonstrate and cannot promise,
+and a beta that rests on it would be selling the one thing not yet measured.
+
+**Calendar.** With numbers 1, 2, 4 and 5 done — roughly a week of work from here, on the pace of the last two days —
+Kythe is beta-able *if* the stranger's hour (3) comes back without a structural finding. Numbers 6 and 7 are what
+makes it worth showing a friend, and they can follow a beta rather than gate it. The one date I will not put on this
+is the stranger's, because it is not mine.
+
 ## What is not ready for any audience
 
 - The tennis season. It is hours old and its own report withholds every verdict.

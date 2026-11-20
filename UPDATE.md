@@ -298,3 +298,39 @@ same work again, for ever, at the bottom of the member's attention.
 `tribe.py`'s schema names `done.md` as an optional human-written file, so a file the product writes is a file the
 schema admits to writing. Three page checks (the list shows each item with a control; closing removes it, keeps the
 heading and the note, and records it with a date; the next job lands in the numbered list, not under the note).
+
+## Milestones, computed rather than typed — 2026-11-19
+
+*"I don't understand how it gets into the list of Milestones on the magazine home page."* He was right not to: there
+was no list. The milestone was prose in `FINDINGS.md`, which is this bench's argument and not a circle's record, and
+the magazine's front page (`issues/README.md`) listed issues and nothing else.
+
+**The list is now derived from the circle's own files**, by `magazine.py --milestones`, which the clock runs on every
+turn:
+
+| first | read from |
+|---|---|
+| the first member existed | the earliest dated heading in any `state/journal.md` |
+| the first wake reached an engine | the earliest journal heading marked `(api)` — a wake that actually called |
+| the first work reached the shelf | the earliest `works/<member>/<UTC stamp>-*.md` |
+| the first piece answered another | the earliest work whose header has a `ref:` that is not `-` or `none` |
+| the first job handed over and retired | the oldest line in any `state/done.md` |
+| the first picture made for a piece | the earliest stamped file in `plates/` |
+
+Three rules, and each is a defect this project has already paid for once:
+
+- **Nothing is typed.** A hand-kept changelog drifts from the record; this cannot, because it *is* the record. A first
+  that has not happened is not printed at all, so a young circle's table is short and true rather than aspirational.
+- **One computation, two renderings.** `MILESTONES.md` is written once; `issues/README.md` takes its table from that
+  file (`milestone_rows()`), and so does the page's Magazine tab. Recomputing it in three places is the same defect as
+  the two tables of who can paint.
+- **A title, not a file name.** The filer truncates at 60 characters — `ten-portraits-of-me-and-the-reason-i-keep-the-li`
+  — so the milestone reads the work's own `title:` line and falls back to the name only when there is none.
+
+On the founder's own circle the list currently reads: *2026-11-19 the first member existed — George; 2026-11-20 the
+first wake reached an engine — George thought without anyone there; 2026-11-20 the first work reached the shelf —
+George's Ten portraits of me, and the reason I keep the list.* The retired-job row appears the moment he presses
+**done** on a chore, which is the point: the list cannot claim what the record does not hold.
+
+**And the quibble he raised is settled his way.** A scheduled wake that thinks with nobody in the room is not a
+second milestone; it is the last condition of the same one, and `FINDINGS.md` claim 9 now says so.

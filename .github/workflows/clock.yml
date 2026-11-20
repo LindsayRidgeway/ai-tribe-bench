@@ -218,6 +218,11 @@ jobs:
           python3 magazine.py --projects --write >> /tmp/clock.log 2>&1 || true
           python3 magazine.py --index --write >> /tmp/clock.log 2>&1 || true
           python3 magazine.py --ledger --write >> /tmp/clock.log 2>&1 || true
+          # What the circle has actually reached, derived from its own files: the first member, the first wake
+          # that reached an engine, the first work, the first answer, the first job a person retired. On the
+          # magazine's front page as well, so a reader meets the record before the prose. Added 2026-11-19, when
+          # the founder asked how a milestone gets into that list — the answer was that no such list existed.
+          python3 magazine.py --milestones --write >> /tmp/clock.log 2>&1 || true
           tail -40 /tmp/clock.log
 
       - name: Commit the clock

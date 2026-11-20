@@ -446,7 +446,9 @@ working parts.
 - **n=1.** One person, one member, one document, one evening. The verdict was mechanical: the audit also recorded
   eight dates as UNSOURCED and the `quote` field as decoration (a timestamp cited and never used in the piece).
 - **The clock did not do it.** He pressed Wake now; the 21:17Z scheduled turn never arrived. A scheduled wake that
-  thinks, with nobody in the room, is the next milestone and it has not happened yet.
+  thinks with nobody in the room is not a second milestone — it is the last condition of this one, and it has not
+  happened yet. (The founder called the split a quibble on 2026-11-19, and he was right: a milestone that needs a
+  button pressed to count is one milestone with a missing clause, not two.)
 - **The reading half exists because he complained.** Had he not, the folder would still be unopenable and the chore
   would still be permanent. A loop that only closes when the founder pushes it is not yet a loop.
 

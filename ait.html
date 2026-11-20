@@ -5451,10 +5451,40 @@ async function viewMagazine(main){
       record of it is a file in your repository rather than this tab. Which issue is open: the highest one a
       work names, or the highest already published. A member starts a new one by writing
       <code>issue: 2</code> into its file's header.</p></div>
+    <h2>What this circle has reached <span class="small muted" style="font-weight:400">— the firsts, computed
+      from the circle's own files: the first member, the first wake that reached an engine, the first work, the
+      first answer, the first job a person retired. A first that has not happened is not on the list</span></h2>
+    <div class="card" id="marks"><p class="muted small">reading…</p></div>
     <h2>Issues</h2>
     <div class="card" id="issuelist"><p class="muted small">reading…</p></div>
     <div id="issue"></div>`;
   await listIssues();
+  showMilestones().catch(() => {});
+}
+
+/* The magazine's front page, above the issues: what the circle has actually reached.
+
+   `MILESTONES.md` is written by `magazine.py --milestones --write` on every clock run, derived from the circle's
+   own files — no line of it is typed by a person, so it cannot drift from the record the way a hand-kept changelog
+   does. The page reads it rather than recomputing it: one computation, two renderings. A circle whose clock has
+   never run has no file, and then this says so in one line instead of showing an empty table. */
+async function showMilestones(){
+  const box = $('marks'); if (!box) return;
+  let text = null;
+  try { text = (await fileText('MILESTONES.md')).text; }
+  catch(e){
+    if (!String(e.message).startsWith('404')){
+      box.innerHTML = '<p class="small muted">Could not read its milestones: ' + esc(e.message) + '</p>';
+      return;
+    }
+  }
+  if (!text || !text.trim()){
+    box.innerHTML = '<p class="small muted">No milestones file yet. The clock writes one on its next run, from '
+      + 'what the circle has actually done — so an empty list here means a circle that has not run, not a page '
+      + 'that cannot see.</p>';
+    return;
+  }
+  box.innerHTML = md(text.replace(/^#\s+Milestones\s*$/m, ''));
 }
 
 async function listIssues(){
