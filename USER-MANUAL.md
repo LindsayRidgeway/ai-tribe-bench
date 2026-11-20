@@ -443,7 +443,11 @@ above.** So *"George, could you write me a page about the workshop"*, said in th
 wake unless George happened to write it down as a `NOTE:` in its journal in that same turn. Two channels do reach a
 wake. The reliable one is **Give it a job** on the member's page: one box, one press, and it appends a numbered item
 to `state/open-items.md` — the file the wake reads as *YOUR OPEN ITEMS* — keeping the numbering straight and the
-items that were already there. (The other is the brief, which is generated from `inbox.md`, `agenda.md` and
+items that were already there. The same box lists the jobs it already has, each with a **done**, because otherwise
+the chores block only ever grows and a job that has been finished is handed back to the member as something to do.
+*Done* moves the item to `state/done.md` with the date and a line saying it was retired — nothing is deleted, git
+keeps every version of both files, and the member stops being asked. Numbers are never reused: a journal entry says
+*item 2*, so a retired number stays retired and the next job takes the next one. (The other is the brief, which is generated from `inbox.md`, `agenda.md` and
 `queue.md`; those files exist in some circles and not in others.) One honest limit, printed on the box rather than
 discovered later: the prompt calls open items *the chores* and ranks them below the member's own beat and below a
 peer's work. It will notice the job; it may say why something else outranks it, and that answer is allowed. A job put
@@ -1068,7 +1072,7 @@ to, and will never have to.
 | Save a world file | one commit to that world's `name.md`, `world.md` or `drops.md` — the same read-then-write as the identity editor, with the same retry when GitHub's read lags its own write, and the same refusal to overwrite a file that changed under you without a second press |
 | Add a member | writes a member's folder (identity, voice, state, journal, open items, place) and commits it. The description you paste — the answer to *does it arrive with a memory?* — goes into `identity.md`, in the member's own voice, before anything else is written |
 | Wake now | starts a wake run for that member, waits for it, and reports what it left in the member's `output/` folder — the file it wrote, named, or that nothing was written, with the run's number beside it. A green run is not a wake: a member the clock skipped leaves every step successful |
-| Give it a job | appends one numbered item to `state/open-items.md` — the file a wake reads as its open items, and the only channel from this page that a wake is guaranteed to see. Numbering is taken from the items already there; an empty or missing file is created. A conflict (the file changed under the box) is reported rather than overwritten |
+| Give it a job | lists the items it already has, each with **done**, and appends one numbered item to `state/open-items.md` — the file a wake reads as its open items, and the only channel from this page that a wake is guaranteed to see. Numbering is taken from the items already there and from the done log, so a retired number is never reused; an empty or missing file is created. **done** moves an item to `state/done.md` with the date, which is how a finished job stops being a chore — the member reads `open-items.md`, not the done log. A conflict (the file changed under the box) is reported rather than overwritten |
 | Open a file a wake left | reads `wake/members/<name>/output/raw-<UTC>.json` from the repository and shows it in a window, trimmed at 12,000 characters with the count of what was cut. One of those exists per wake that reached an engine — a scheduled wake included, which used to leave files nothing in the page could open |
 | Say something in chat | a direct call to the engine from this page, answered as it is written; every exchange is committed to `state/conversation.md`, and a `NOTE:` goes into the journal |
 | Open a chat | writes `chats/<slug>/chat.md` (the topic, when it was opened, who is in it) and `chats/<slug>/talk.md`, two commits — a room with nobody in it is a legitimate room |

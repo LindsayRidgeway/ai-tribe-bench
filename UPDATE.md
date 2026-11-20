@@ -269,3 +269,32 @@ form.
 
 Manual: §6 gained "What reaches a wake, and what does not", with the three places a finished document appears
 (*What its wakes produced*, the magazine, the commit); the Appendix gained the button and what it writes.
+
+## A finished job has to be able to stop — 2026-11-19
+
+He pressed **Give it a job**, gave George *"research ten portraits of me and list them"*, pressed Wake now, and
+George wrote `ten-portraits.md` — 5,813 characters that refuse to invent ten URLs because there is no network on the
+bench, and then use the refusal to say what he is for. Then: *"if I click Give it a job, it still has the old jobs
+and no way to delete them."*
+
+He is right, and the defect is worse than untidy. The wake reads `open-items.md` as **the chores** and the prompt says
+to do them when nothing else claims the wake — so a finished job is not a stale line, it is an invitation to do the
+same work again, for ever, at the bottom of the member's attention.
+
+**What it does now.** The same box lists the items it already has, each with a **done**. Pressing it:
+
+- moves the item out of `open-items.md` into `state/done.md`, as `- <date> — item N: <what it said>`;
+- writes `done.md` **first** and the open list second, because a failure between the two should leave the item still
+  open and its closure recorded, not the reverse;
+- keeps the file's shape: `open-items.md` is prose with numbers in it, so it is read as lines — everything above the
+  first item, the items with their continuation lines, and whatever came after (a heading and its bullets). The old
+  editor appended at the end of the file, which would have filed the next job *inside* a note below the list.
+- **never reuses a number.** The count starts from the higher of the open list and the done log. Found within a minute
+  of building it: after closing item 2, the next job was numbered 2 as well, and a journal entry saying *Item chosen:
+  2* would then point at two different jobs.
+- **does not grow the prompt.** The done log is a separate file the wake never reads — the record keeps what was
+  asked and when it was retired, git keeps every version, and the member is not offered its finished chores back.
+
+`tribe.py`'s schema names `done.md` as an optional human-written file, so a file the product writes is a file the
+schema admits to writing. Three page checks (the list shows each item with a control; closing removes it, keeps the
+heading and the note, and records it with a date; the next job lands in the numbered list, not under the note).

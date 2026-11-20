@@ -2603,6 +2603,65 @@ async function main(){
     return '';
   });
 
+  // 15g — a job it has finished must stop being asked of it
+  //
+  // He pressed Give it a job, George did it, and the item stayed. On 2026-11-19 that dialog listed the jobs and
+  // offered no way to retire one, so the chores block only ever grew — and the wake treats open items as things to do
+  // when nothing else claims it, which means a finished chore comes back as an invite to do it again.
+  reset();
+  plantMember('Lumi', 'deepseek');
+  // The real file, with a heading and a note below the list: an append-at-the-end editor would file the next job
+  // inside the note, and a line-based reader would lose the heading on the way out.
+  seed('wake/members/Lumi/state/open-items.md',
+    '# Open items\n\n1. Read my identity and my journal.\n2. Research ten portraits of me and list them.\n'
+    + '   Ten, and say where each one hangs.\n\n## A note from the person\n\nDo not invent a URL.\n');
+  calls.length = 0;
+  const listed = await tryRun(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
+    await giveJob('Lumi');
+    return document.getElementById('dlg').innerHTML;
+  })()`);
+  check('the jobs it already has are listed with a way to retire each one', () => {
+    if (listed.err) return listed.err;
+    const d = String(listed || '');
+    if (!/Research ten portraits/.test(d)) return 'it does not list the job that is already there: ' + d;
+    if (!/closeJob\('Lumi',2\)/.test(d)) return 'there is no control on the item: ' + d.slice(0, 600);
+    if (!/state\/done\.md/.test(d)) return 'it does not say where a closed job goes: ' + d;
+    return '';
+  });
+  const closed = await tryRun(ctx, `(async () => {
+    await closeJob('Lumi', 2);
+    return document.getElementById('jobmsg').innerHTML;
+  })()`);
+  check('retiring one takes it out of the list, keeps the heading, and records it as done', () => {
+    if (closed.err) return closed.err;
+    const now = (files.get('wake/members/Lumi/state/open-items.md') || {}).text || '';
+    const done = (files.get('wake/members/Lumi/state/done.md') || {}).text || '';
+    if (/Research ten portraits/.test(now)) return 'it is still in the open items: ' + JSON.stringify(now);
+    if (!/^1\. Read my identity/m.test(now)) return 'it lost the item that was not closed: ' + JSON.stringify(now);
+    if (!/## A note from the person/.test(now)) return 'it dropped the note below the list: ' + JSON.stringify(now);
+    if (!/Do not invent a URL/.test(now)) return 'it dropped what the note said: ' + JSON.stringify(now);
+    if (!/item 2: Research ten portraits/.test(done)) return 'nothing went to done.md: ' + JSON.stringify(done);
+    if (!/\d{4}-\d\d-\d\d/.test(done)) return 'the done line has no date: ' + JSON.stringify(done);
+    if (!/item 2 is closed/.test(String(closed || ''))) return 'it does not say what it did: ' + closed;
+    return '';
+  });
+  const added = await tryRun(ctx, `(async () => {
+    await giveJob('Lumi');
+    document.getElementById('job').value = 'Catalogue the plates in the room — finished when each has a source.';
+    await saveJob('Lumi');
+    return 'ok';
+  })()`);
+  check('the next job goes into the numbered list, not under the note', () => {
+    if (added.err) return added.err;
+    const now = (files.get('wake/members/Lumi/state/open-items.md') || {}).text || '';
+    const note = now.indexOf('## A note from the person');
+    const job = now.indexOf('3. Catalogue the plates');
+    if (job < 0) return 'the job did not land: ' + JSON.stringify(now);
+    if (note >= 0 && job > note) return 'it was filed inside the note below the list: ' + JSON.stringify(now);
+    return '';
+  });
+
   // 16 — what its wakes produced, from the page
   //
   // The founder asked on 2026-11-19: "How will I be able to see any results George produces in a wake?" The honest
