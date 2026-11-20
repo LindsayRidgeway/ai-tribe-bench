@@ -24,7 +24,35 @@ jobs:
       - name: Schema — every member validates
         run: python3 tribe.py validate
       - name: Tests
-        run: python3 tests.py -v
+        # `tee` so the failure step below can name what failed without running the suite twice.
+        run: |
+          set -o pipefail
+          python3 tests.py -v 2>&1 | tee /tmp/tests.log
+
+      # A red that names nobody is a red nobody owns. Measured 2026-11-19: the suite went red at 09:47Z on one
+      # test (a second copy of a physics constant), and stayed red for fifteen hours because every window that
+      # looked at it assumed another window owned it — while the founder's inbox filled with "tests: All jobs have
+      # failed". The summary is not decoration: it is the one place a failing run says which tests, and whose
+      # commit was last in, so the next person to look knows whether to fix it or to wait for its author.
+      - name: Who owns this red
+        if: failure()
+        run: |
+          {
+            echo "### What failed"
+            echo ""
+            if grep -E '^(FAIL|ERROR):' /tmp/tests.log > /tmp/fails.txt 2>/dev/null; then
+              sed 's/^/- /' /tmp/fails.txt
+            else
+              echo "- the suite did not reach its own report — read the step above"
+            fi
+            echo ""
+            echo "### The last commit in this run"
+            echo ""
+            git log -1 --format='- `%h` **%an**, %ad — %s' --date=format:'%Y-%m-%d %H:%M UTC'
+            echo ""
+            echo "_A red whose test was added or changed by that commit is that window's work in flight. A red"
+            echo "whose test predates it is a regression and belongs to whoever pushed._"
+          } >> "$GITHUB_STEP_SUMMARY"
       # `python3 tests.py` runs this too, but skips it when node is absent — and a check that quietly does not
       # run is the failure mode this file was written against. Here it is a step of its own, so a runner without
       # node goes red instead of green.

@@ -44,15 +44,16 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from tennis import flight  # noqa: E402  the one integrator, not a second copy of the loop
+from tennis import flight, G, MPH, RHO  # noqa: E402  the one integrator, not a second copy of the loop
 from putt import (  # noqa: E402  the short game is already a game
     STIMPMETER_SPEED, Athlete as PuttAthlete, Green, Hole as PuttHole, attempt as putt_attempt,
 )
 
-G = 32.17                 # ft/s²
-MPH = 1.46667             # mph to ft/s
+# G, MPH and RHO are tennis's, imported rather than restated. They lived here for a day as three fresh literals
+# (2026-11-19), which is how a physics constant ends up in two places with one of them drifting later: the test
+# that caught it was already there (`test_there_is_no_python_in_the_game_folder_and_no_physics_outside_the_lab`)
+# and it was the first thing that turned this repository's CI red, where it sat for fifteen hours unowned.
 FT_PER_YD = 3.0
-RHO = 0.002377            # slugs/ft³, sea level
 
 # A golf ball: 45.93 g and 1.68 in in diameter. In feet and slugs, which is the units the integrator uses.
 BALL_MASS = 0.003147      # slugs
