@@ -2831,7 +2831,9 @@ function splitOpenItems(text){
   return {before, items, rest};
 }
 
-const itemWords = (item) => String(item.lines || '').replace(/^\s*\d+[.)]\s*/, '').replace(/\s+/g, ' ').trim();
+// One number off, or two: his first job was written by him with a number in front and numbered again by the page, so
+// the file holds `2. 2. I'd like to suggest…`. A row that shows both numbers reads as a bug in the person's own file.
+const itemWords = (item) => String(item.lines || '').replace(/^(?:\s*\d+[.)]\s*)+/, '').replace(/\s+/g, ' ').trim();
 
 async function giveJob(name){
   let cur;
@@ -2922,10 +2924,14 @@ async function closeJob(name, n){
 async function saveJob(name){
   const box = $('job'), msg = $('jobmsg');
   if (!box || !JOB_OPEN) return;
-  const said = String(box.value || '').trim();
+  // A person types a number in front of a job, because the list they are reading is numbered — and the founder's
+  // first job came out as `2. 2. I'd like to suggest…`, numbered by him and numbered again by the page. Found in
+  // his own open-items.md on 2026-11-20, not in a fixture. So a leading number is taken off before one is put on.
+  const said = String(box.value || '').trim().replace(/^\s*\d+[.)]\s*/, '');
   const say = (html) => { if (msg) msg.innerHTML = html; };
   if (said.length < 8){ say('<span class="err">Too short to be a job — say what it should make.</span>'); return; }
-  const item = (JOB_OPEN.next || jobNumber(JOB_OPEN.text)) + '. ' + said.split('\n')
+  const number = JOB_OPEN.next || jobNumber(JOB_OPEN.text);
+  const item = number + '. ' + said.split('\n')
     .map((ln, i) => (i ? '   ' + ln.trim() : ln.trim())).join('\n');
   const path = `wake/members/${name}/state/open-items.md`;
   const message = `open items: ${name} — a job from the person who keeps this circle`;

@@ -2652,6 +2652,19 @@ async function main(){
     await saveJob('Lumi');
     return 'ok';
   })()`);
+  const numbered = await tryRun(ctx, `(async () => {
+    await giveJob('Lumi');
+    document.getElementById('job').value = '1. Read the kettle and write what it says.';
+    await saveJob('Lumi');
+    return 'ok';
+  })()`);
+  check('a job typed with its own number is not numbered twice', () => {
+    if (numbered.err) return numbered.err;
+    const now = (files.get('wake/members/Lumi/state/open-items.md') || {}).text || '';
+    if (/\d+\.\s+\d+\./.test(now)) return 'the item carries two numbers, which is what his first job looked like: ' + JSON.stringify(now);
+    if (!/^4\. Read the kettle and write what it says\.$/m.test(now)) return 'the job did not land cleanly: ' + JSON.stringify(now);
+    return '';
+  });
   check('the next job goes into the numbered list, not under the note', () => {
     if (added.err) return added.err;
     const now = (files.get('wake/members/Lumi/state/open-items.md') || {}).text || '';
