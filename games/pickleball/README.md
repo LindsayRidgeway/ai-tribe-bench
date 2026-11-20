@@ -1313,3 +1313,184 @@ Two numbers that decide the shape of the rest:
   is *worth* watching is expensive precisely because it is long — the §5i finding arriving as a bill.
 - **0 of 2 shots** came back as prose, which is the good half: the contract holds, and what fails is the physics,
   not the parser.
+
+## §5p The ball played was not the ball probed — 2026-11-20, after midnight
+
+§5o ended with a decision: the Kythe integration's first unit is not the app, it is a movement language a member
+can play from, because a face angle in degrees is the solver's answer handed back as if it were the question.
+Building that was supposed to be a day's worth of prompt writing. It turned up an engine defect instead, one that
+had been sitting in the arithmetic since §5j and that every number measured since then was measured through.
+
+### The leak
+
+`strike` turns the aim — a point on the sideline, in feet — into a lateral angle:
+
+```
+azimuth = math.atan2(aim - p0[1], 32.0 if aim_dist is None else max(6.0, aim_dist))
+```
+
+An angle needs the distance the ball is being aimed *down*, and that distance was a hard 32 ft until §5j, which
+is roughly a drive and nothing like a dink. §5j added `aim_dist` and fixed the solver, and the page said so and
+stopped there. It did not fix the **return**. Every chooser probes its own arithmetic — it flies a candidate shot,
+looks at where it lands, and accepts or rejects it — and every one of those probes passed
+`aim_dist=math.hypot(tx - here[0], ty - here[1])`, the true distance, and then returned
+
+```
+    return face, power, ty          # ...and the distance the probe used stays in the function
+```
+
+so `play_rally` called `strike` with no distance at all and the ball was played on the 32-ft angle. **The ball
+played was not the ball probed.** A chooser that picked a point 11 ft away had its ball flown as if the target were
+32 ft off to the side: a dink aimed at the kitchen line from the kitchen line went where a drive goes.
+
+The fix is four lines of plumbing and one sentence of contract: a chooser may return a fourth number, the distance
+its aim is measured down, and `play_rally` passes it to `strike`. Three numbers still means the engine before this
+turn, so a record made yesterday replays as itself.
+
+### What the leak was worth, in one sitting
+
+Twelve pinned dink games (clock 1234500 upward, practice 200 all round, seats swapped by game parity), the same
+chooser twice — once with its fourth number dropped at the return, once honoured:
+
+| 12 dink games | 32 ft (the leak) | the probed distance |
+|---|---|---|
+| rallies | 400 | 415 |
+| mean rally | 9.61 shots | **6.78** |
+| longest rally | 82 | 45 |
+| shots in all | 3,842 | 2,814 |
+| volleys | 14 | **4** |
+| volleys per serve | 3.5% | **1.0%** |
+| `momentum` faults | 9 | 3 |
+| `out` faults per rally | 0.973 | 0.993 |
+
+The left column is §5n's published row, to three decimals — mean 9.61, longest 82, 3.5%, 0.973 — which is the
+useful half of this: the leak was systematic, not noise, and it is reproducible on demand. **Every dink number in
+§5i through §5n is a leaky-engine number**, and the ones a conclusion rests on are re-measured below.
+
+What honouring the probe costs is a shot per rally and the whole tail. That is not damage, it is the game becoming
+the game: a chooser whose probed target is finally the target it plays stops hitting balls that carry deep, so the
+balls die in the kitchen, fewer of them sit up at volley height, and the rallies shorten. §5m's headline — one
+volley in 875 shots of dink hands — is *more* true after the fix, not less: 4 volleys in 415 serves. The soft game
+was never broken by the leak; the leak was hiding how soft it is. §5g's momentum rule, which §5m indicted as nearly
+dead code, is now asked even fewer questions, and the reason is not that the rule is wrong.
+
+### The reach sweep, re-run because §5l's claim rests on it
+
+Ten games a row per cell, the same pins, `PADDLE_REACH` set per row:
+
+| reach | hands | rallies/game | mean rally | `unreachable` per game | volleys / serves |
+|---|---|---|---|---|---|
+| 6.0 ft | dink | 34.1 | 7.01 | 0.0 | 2 / 341 |
+| 6.0 ft | steady | 37.3 | 4.40 | 5.9 | 184 / 373 |
+| 4.5 ft | dink | 34.8 | 4.92 | 0.5 | 17 / 348 |
+| 4.5 ft | steady | 28.2 | 3.72 | 7.2 | 112 / 282 |
+| 3.0 ft | dink | 39.2 | 3.94 | 2.8 | 16 / 392 |
+| 3.0 ft | steady | 30.2 | 3.00 | 9.1 | 72 / 302 |
+
+§5n's table read 4.8 → 8.1 → 11.9 unreachable for steady hands; it now reads 5.9 → 7.2 → 9.1. Shorter reach still
+means strictly more balls nobody can reach, and the dink rows still find almost none — so §5l's conclusion, that
+knowing where a ball is going is worth little when the body cannot get there, was not an artifact of the leak. What
+the fix did was flatten the slope a little, which is consistent: some of the old `unreachable` count was a body
+running to where a leaky shot was going to land rather than where it was aimed.
+
+### The movement language
+
+A member now says the two things a player says — how hard, and where — and the engine solves the paddle's angle
+with the same `aim_at` its own choosers use:
+
+```
+PACE <miles an hour> AT <x>,<y>
+
+    "PACE 24 AT 26,6"        ->  dink, 24mph, aimed to land 4ft past their kitchen line on the west half
+```
+
+`parse_move` reads that line; `solve_move` turns it into `(face, power, aim, distance)`, forgiving exactly three
+things and nothing else — a target on your own side of the net (pulled to the far side of the tape, because it is
+not a shot), a lateral point off the court (clamped), and a pace the engine will not swing (`MIN_POWER = 10`, below
+which the strike clamps to 6 mph anyway). Everything else is played as named.
+
+The old `FACE/POWER/AIM` line is still parsed second, so a record made before today replays as itself, and a member
+that writes prose is not dropped from the game: it gets the ball a coach would give it — a legal diagonal serve if
+it is serving, a dink into the middle if it is not — and the fallback is printed with the reply that caused it. The
+old fallback drove at the centre of the court from wherever the player stood, which for a server is a second fault
+on top of the first.
+
+The prompt was rewritten around the two things §5o showed it lacked: **a court map on the engine's own axes**, and
+a **measured distance table** — because the one arithmetic a member gets wrong is how far a ball goes.
+
+```
+The court is 44ft by 20ft and everything below is in feet on the same two axes. x runs 0 (north
+baseline) to 44 (south baseline); the net is at x=22 and the kitchen (non-volley zone) is the seven
+feet either side of it, x=15 to x=29. y runs 0 to 20 across and the centreline is y=10.
+...
+HOW FAR A BALL GOES — measured on this engine, no wind, and the number that decides everything:
+  - from the kitchen line (7ft from the net): 12mph lands 4ft past the net; 15mph lands on their
+    kitchen line; 20mph lands 12ft past it, out of the kitchen
+  - from mid-court (11ft from the net): 20mph lands 11ft past the net; 30mph lands 18ft past;
+    35mph reaches their baseline
+  - serving from behind your baseline (23ft from the net): 24mph is about the slowest that reaches
+    their kitchen line, and 28mph lands 14ft past the net
+...
+PACE is how hard you swing and AT is the point on the court you want the ball to land on. The engine
+works out the paddle's angle from those two, so do not name an angle: a member that spells out a
+face in degrees has given the solver's answer instead of the question, and the first two attempts at
+this prompt served into their own side of the net.
+```
+
+And the history line the member reads back is now in the member's own vocabulary — `serve PACE 19 AT 16 ->
+landed (18,6): their own side of the net, 6.8ft short` — because a member told its old face angle cannot learn
+anything from it, and a member told where the ball actually landed can.
+
+### The member's second run
+
+Three rallies, four seats, four vendors, real keys:
+
+| | shot | pace | landed | verdict |
+|---|---|---|---|---|
+| 1.0 | Claude serve | 27 mph | (32.3, 13.3) | legal diagonal, **3.3 ft past their kitchen line** |
+| 1.1 | Gemini return | 26 mph | (8.7, 5.9) | in play, 8.7 ft inside the north baseline |
+| 1.2 | Claude volley | 22 mph | (36.0, 9.0) | in play, and the §5g rule asks its question |
+| 1.3 | Tarik | 18 mph | — | **into the net at y=2.75**, out by the post |
+| 2.0 | Claude serve | 27 mph | (32.4, 14.1) | legal diagonal again |
+| 2.1 | Gemini return | 30 mph | (−2.3, 3.7) | **2.3 ft long** |
+| 3.0 | Claude serve | 17 mph | (16.8, 9.8) | **5.2 ft short, on its own side** |
+
+```
+0 prose replies of 7 shots; 66.2s for 7 calls (9.5s a shot)
+```
+
+**The first serve is now a serve.** Claude named a pace and a point and got a ball that crossed the tape
+diagonally and landed three and a third feet past their kitchen line; the second did it again, three and four tenths
+past. §5o's two serves were 6.8 ft and 1.0 ft short *on their own side of the net*; this is the same seat, the same
+keys, one prompt later.
+
+**The kitchen's momentum rule got asked and answered no.** Claude volleyed a return from 8.6 ft off the net, was
+carried 0.6 ft by its own shot, and stopped at 8.0 ft — a foot clear of the seven-foot line, so the ball was
+already dead and the point was not. That is §5g working in a game a member played, which the dink chooser almost
+never does (4 volleys in 415 serves) and steady hands do constantly (184 in 373).
+
+**And the failure mode moved rather than vanished.** Tarik netted an 18 mph ball into the tape three feet out from
+the post. Gemini put a 30 mph return 2.3 ft past the baseline. Claude's third serve named a point the pace could not
+carry: at 17 mph from behind the baseline the ball died five and a fifth feet short of the net, on its own side. The engine
+does not lie for a member — it plays the pace you named and finds the angle for the point you named, and when those
+two cannot both be true the ball says so and the history line tells you where it went. A member that names an
+impossible shot gets an honest impossible shot, which is the difference between a bad shot and an opaque one.
+
+**It is not cheaper.** 9.5 s a shot against §5o's 10.6 s: the prompt grew by a court map and a distance table, the
+answer shrank from three invented numbers to two chosen ones. The bill is the prompt, not the arithmetic. A
+439-shot game is still over an hour of model calls, so the format the app needs is three points at driving pace,
+not a game to eleven.
+
+### What is owed
+
+- **The season lesson has not been re-run.** Its rows in §5f and §5n were measured through the leak, like every
+  other dink number. The re-runs above cover the two claims that drive conclusions — the dink game's shape and the
+  reach sweep — but 24 swapped games × 4 rows is owed before §5f's "the lesson is worth seventeen points" is
+  quoted again.
+- **One rally of member play is not a measurement.** Three rallies, seven shots, and one netted ball is a story
+  about a seat working, not a rate. The number that would say whether the movement language is *better* is
+  serves-legal-per-serve over a few dozen serves, and that is an hour of model calls: worth buying once, in the
+  format the app will actually run.
+- **§5c's perfect-defence problem is untouched by any of this.** `out` per rally is 0.993 now — *higher* than the
+  leaky 0.973 — and 412 of 415 rallies ended in somebody's error. Nothing in this turn beats a player; it makes the
+  ball go where the player said it would, which is a different thing and the one that was owed first.

@@ -4128,10 +4128,16 @@ class TestTheSplitStepIsInTheFilm(unittest.TestCase):
         self.assertLessEqual(peak, 0.20, f"the dip peaks at {peak}s, which is later than the done-test allows")
 
     def test_only_the_receiver_gets_it(self):
-        self.assertIn("if (!isHitter) rig.root.position.y -= splitDip(tlc);", self.page,
+        """The dip is now a knee bend rather than a hole in the floor. It was a root-height subtraction until
+        2026-11-19, which put the whole figure under the court whenever the toe was already near it — and the
+        grounding clamp then hauled it back up, so the two terms fought. As a bend it is a pose, and it applies
+        after `legs()`, which rebuilds every thigh and shin from its rest quaternion on every frame."""
+        self.assertIn("const dip = isHitter ? 0 : splitDip(tlc);", self.page,
                       "the split step is not conditioned on being the receiver")
         self.assertIn("function splitDip(tlc)", self.page,
                       "the dip is not a function of one number, so it can accumulate or drift")
+        self.assertIn('addLocal(rig.bones["shin." + leg], 0.80 * k, 0, 0);', self.page,
+                      "the dip is not a bend in the knees, so it is still a hole in the floor")
 
     def test_the_instrument_that_measured_it_is_in_the_page(self):
         """A number in a comment is a claim. `?sweep` is how the claim was produced, and it is kept because items
@@ -4140,6 +4146,70 @@ class TestTheSplitStepIsInTheFilm(unittest.TestCase):
         self.assertIn("window.__sweep", self.page)
         self.assertIn("debug sweep", self.page)
         self.assertIn("debug segs", self.page, "the sweep does not say where the contacts are, so it cannot be read")
+
+
+class TestNobodyIsStandingAboveTheCourt(unittest.TestCase):
+    """Item 2a of the tennis backlog, and the reason four items of foot work were written, measured and reverted
+    without changing what anybody sees: the players were not standing on the court.
+
+    Measured 2026-11-20 with `?sweep=0:18:0.02&ground=0|1` on `seasons/2026-11-19/watch.json`, 901 frames, toe
+    heights read in world feet (the court is y=0):
+
+    | | both toes > 0.10ft | toe samples within 0.05ft | median toe | max |
+    |---|---|---|---|---|
+    | before | 823 of 901 | 43 of 1,802 | 0.254ft | 1.080ft |
+    | after | 60 of 901 | 958 of 1,802 | 0.020ft | 0.898ft |
+
+    The 60 that remain are a stride with both feet off the ground — a run, not a float. What is held here is the
+    shape that produced those numbers: the clamp reads the LOWER toe, it can drop the body but only 0.75ft, and it
+    leaves the hitter their own height through their own contact (a grounded body costs the arm reach, measured at
+    up to 0.27ft on the worst shot, and the frame being on the ball at contact is the film's central promise)."""
+
+    def setUp(self):
+        self.page = (REPO / "games" / "tennis" / "replay3d.html").read_text(encoding="utf-8")
+        self.backlog = (REPO / "games" / "tennis" / "BACKLOG.md").read_text(encoding="utf-8")
+
+    def _num(self, name):
+        m = re.search(rf"const {name} = ([0-9.]+);", self.page)
+        self.assertIsNotNone(m, f"{name} is not a constant any more, so its value cannot be checked")
+        return float(m.group(1))
+
+    def test_the_feet_are_the_authority_and_the_body_follows_them(self):
+        self.assertIn('const L = toePoint(rig, "footL"), R = toePoint(rig, "footR");', self.page,
+                      "the clamp is not reading the toes, so it is a number about nothing")
+        self.assertIn("const low = Math.min(L ? L.y : 0, R ? R.y : 0);", self.page,
+                      "the clamp does not follow the LOWER foot, so a lifted foot would haul the body up with it")
+
+    def test_the_body_may_be_dropped_but_only_so_far(self):
+        self.assertTrue(0.2 <= self._num("GROUND_MAX") <= 1.0,
+                        "GROUND_MAX is outside the range where it is a bound rather than a special case")
+        self.assertIn("Math.max(-0.20, Math.min(GROUND_MAX, low))", self.page,
+                      "the drop is unbounded, so a broken pose can haul the figure into the court")
+        self.assertIn("one-sided by intent", self.page,
+                      "the page no longer says why a lift is bounded and a drop is not")
+
+    def test_the_hitter_keeps_their_height_through_their_own_contact(self):
+        self.assertIn("const w = isHitter ? Math.min(1, Math.max(0, (Math.abs(tlc) - 0.15) / 0.15)) : 1;", self.page,
+                      "the hitter is no longer exempt near contact, or the exemption is unbounded")
+        self.assertIn("0.30s either side", self.page,
+                      "the ramp's end is not written down, so the next reader has to derive it from the arithmetic")
+
+    def test_the_toe_is_read_above_the_court_and_not_above_the_root(self):
+        """The trap that cost an hour: `rel()` measures the toe from the ROOT, so it is invariant to the clamp.
+        Reading that column on both sides of `?ground=` said "grounding changes nothing" on a build where the median
+        toe went from 0.254ft to 0.020ft. The row now carries the world height as well."""
+        self.assertIn("[L ? +L.y.toFixed(3) : null, Rf ? +Rf.y.toFixed(3) : null]", self.page,
+                      "the sweep does not report the toe's height above the court")
+        self.assertIn("invariant to the clamp", self.page,
+                      "the trap is not written down where the next person will read the code")
+
+    def test_the_switch_that_produced_the_numbers_is_in_the_page(self):
+        self.assertIn('const GROUND = q.has("ground") ? q.get("ground") !== "0" : true;', self.page,
+                      "there is no way to measure with the clamp off, so its cost cannot be stated")
+
+    def test_the_before_and_after_are_written_down_with_their_counts(self):
+        for piece in ("823 of 901", "60 of 901", "0.254", "0.020", "958 of 1,802"):
+            self.assertIn(piece, self.backlog, f"{piece} is not in the backlog entry for item 2a")
 
 
 class TestTheFirstStepIsNotFree(unittest.TestCase):
@@ -6152,10 +6222,11 @@ class TestPickleball(unittest.TestCase):
         choose = pk.dink_chooser("steady")(players, ("N", 2.0), "hard")
         p = players["A"]
         incoming = {"speed_in": 14.0, "depth": 5.0, "path": [], "v": (1.0, 0.0, 1.0)}
-        face, power, aim = choose(p, players["C"], incoming, 3, [], "groundstroke", False, (15.0, 9.0))
+        face, power, aim, dist = choose(p, players["C"], incoming, 3, [], "groundstroke", False, (15.0, 9.0))
         self.assertIn(power, pk.DINK_POWERS)
+        self.assertTrue(10.0 < dist < 14.0, f"the chooser says how far its aim is measured down ({dist:.1f}ft)")
         shot = pk.strike(p, None, face=face, power=power, aim=aim, shot="groundstroke", surface="hard",
-                         wind=(0.0, 0.0), pos=(15.0, 9.0), clean=True)
+                         wind=(0.0, 0.0), pos=(15.0, 9.0), clean=True, aim_dist=dist)
         land = shot["traj"]["land"]
         self.assertGreater(land[0], pk.NET_X, "it crossed the net")
         self.assertLessEqual(land[0], pk.NET_X + pk.KITCHEN, "and it came down in the kitchen")
@@ -6375,6 +6446,58 @@ class TestPickleball(unittest.TestCase):
         # not this game's to fix and it is listed here so the count is honest rather than zero by exemption
         self.assertEqual(offenders, {"putt.py": [32.17]},
                          "a second copy of a physics constant is how this breaks: " + str(offenders))
+
+    # ---- the member's seat --------------------------------------------------------------------------
+    def test_a_member_names_a_pace_and_a_point_not_an_angle(self):
+        """§5o: the first two member serves went into their own side of the net because the prompt asked for a
+        face angle in degrees — the solver's answer instead of the question. `PACE 24 AT 26,6` is the movement a
+        player actually forms, and the engine turns it into the paddle with the same solver its choosers use.
+        Checked both ways: the parser takes the line and refuses prose, and the shot it produces lands where the
+        member said."""
+        pk = self.pk
+        self.assertEqual(pk.parse_move("PACE 24 AT 26,6")["target"], (26.0, 6.0))
+        self.assertEqual(pk.parse_move("pace 30 mph at 36.5, 14")["pace"], 30.0)
+        self.assertIsNone(pk.parse_move("I would like to dink it softly to the left."))
+        p = self.t.Player(name="A", north=True, practice=400)
+        face, power, aim, dist = pk.solve_move(p, (15.0, 10.0), {"pace": 12.0, "target": (26.0, 6.0)},
+                                               "groundstroke", "hard", (0.0, 0.0))
+        self.assertAlmostEqual(power, 20.0, places=3, msg="power is the member's pace in six tenths")
+        self.assertAlmostEqual(dist, math.hypot(11.0, 4.0), places=3)
+        shot = pk.strike(p, None, face=face, power=power, aim=aim, shot="groundstroke", surface="hard",
+                         wind=(0.0, 0.0), pos=(15.0, 10.0), clean=True, aim_dist=dist)
+        land = shot["traj"]["land"]
+        self.assertAlmostEqual(land[0], 26.0, delta=1.5, msg=f"it landed at x={land[0]:.1f}, not 26")
+        self.assertAlmostEqual(land[1], 6.0, delta=1.5, msg=f"it landed at y={land[1]:.1f}, not 6")
+
+    def test_the_ball_the_chooser_played_is_the_ball_it_probed(self):
+        """A chooser aims at a point, so it knows the distance its aim is measured down — and until this line it
+        dropped that number at the return, so `strike` fell back to the hard 32 ft azimuth of §5j and played a
+        different ball from the one it had just checked. The four-tuple is the fix: same face, same power, same
+        aim line, and the distance it was solved at."""
+        pk = self.pk
+        p = self.t.Player(name="A", north=True, practice=400)
+        here, ty = (15.0, 10.0), 4.0
+        face = pk.aim_at(p, (26.0, ty), "groundstroke", "hard", (0.0, 0.0), 20.0, here)
+        probed = pk.strike(p, None, face=face, power=20.0, aim=ty, shot="groundstroke", surface="hard",
+                           wind=(0.0, 0.0), pos=here, clean=True, aim_dist=math.hypot(11.0, 6.0))
+        played_old = pk.strike(p, None, face=face, power=20.0, aim=ty, shot="groundstroke", surface="hard",
+                               wind=(0.0, 0.0), pos=here, clean=True)
+        self.assertAlmostEqual(probed["traj"]["land"][1], ty, delta=1.6, msg="probed at the right distance")
+        self.assertGreater(abs(played_old["traj"]["land"][1] - ty), 2.0,
+                           "and at 32 ft the same swing lands somewhere else — which is the bug")
+
+    def test_a_member_that_writes_prose_still_plays_a_legal_serve(self):
+        """The fallback is the shot a coach would give it. The old one drove at the centre of the court from
+        wherever the member stood, which for a server is a second fault on top of the first; a server now gets a
+        serve aimed into the diagonal service area, checked by the engine's own rule."""
+        pk = self.pk
+        p = self.t.Player(name="A", north=True, practice=400)
+        face, power, aim, dist = pk.solve_move(p, (-1.0, 5.0), {"pace": 30.0, "target": (pk.NET_X + 14.0, 15.0)},
+                                               "serve", "hard", (0.0, 0.0))
+        shot = pk.strike(p, None, face=face, power=power, aim=aim, shot="serve", surface="hard",
+                         wind=(0.0, 0.0), pos=(-1.0, 5.0), clean=True, aim_dist=dist)
+        land = shot["traj"]["land"]
+        self.assertTrue(pk.in_service_area(land, True, 5.0), f"the safe serve landed at {land} and is not legal")
 
     # ---- the second body ----------------------------------------------------------------------------
     def test_the_partner_walks_to_their_stance_and_nobody_is_left_watching(self):

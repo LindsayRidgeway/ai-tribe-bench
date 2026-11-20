@@ -44,6 +44,7 @@ import argparse
 import json
 import math
 import random
+import re
 import sys
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -140,6 +141,8 @@ WALK_SHARE = 0.6                         # of movement_speed: repositioning betw
                                          # player who walks to their stance at 12mph is carried 3.8ft by the
                                          # split step and the game has no volley in it — which is the same class
                                          # of defect as the old 1.5 ft carry, with the sign reversed.
+MIN_POWER = 10.0                          # per cent; below this the strike clamps anyway (6 mph), and a
+                                         # member asking for 4 mph is asking for a ball that cannot cross the net
 STRETCH_PENALTY = 0.55                   # how much of the player's control a full-extension contact costs. Not
                                          # measured against anything yet: it is the one number in this file that is
                                          # a guess, and the page says so. A/B'd against 0.0 in §5d.
@@ -677,10 +680,18 @@ def play_rally(match: Match, players: dict[str, Player], pos: "Positions", choos
         if vol is not None:
             incoming = dict(incoming)
             incoming["volley_height"] = round(vol["height"], 2)   # the height is the attack's invitation
-        face, power, aim = choose(p, players.get(_opponent_name(match, players, p.name)), incoming,
-                                  shot_no, [], shot_kind, may_volley, contact_pos)
+        # The chooser may return a fourth number: the distance its aim is measured *down*. That is not a
+        # convenience. `strike` turns the aim into a lateral angle with `atan2(aim - y, distance)`, and the
+        # distance it used was a hard 32 ft (page §5j) — so a chooser that picked a point 11 ft away had its
+        # ball played on a drive's angle. Every chooser here probes with the right distance and then used to
+        # drop it on the floor at the return, which means **the ball played was not the ball probed**. It is
+        # returned now, and the four-tuple is backwards compatible: three values still means the old default.
+        choice = choose(p, players.get(_opponent_name(match, players, p.name)), incoming,
+                        shot_no, [], shot_kind, may_volley, contact_pos)
+        face, power, aim = choice[0], choice[1], choice[2]
+        aim_dist = choice[3] if len(choice) > 3 else None
         shot = strike(p, incoming, face=face, power=power, aim=aim, shot=shot_kind, surface=surface,
-                      wind=wind_vec, pos=contact_pos, stretch=stretch)
+                      wind=wind_vec, pos=contact_pos, stretch=stretch, aim_dist=aim_dist)
         pos.at[p.name] = contact_pos
         ok, why = verdict(shot)
         if film is not None:
@@ -699,8 +710,13 @@ def play_rally(match: Match, players: dict[str, Player], pos: "Positions", choos
                 "net": [round(c, 2) for c in shot["traj"]["net"]] if shot["traj"].get("net") else None,
                 "why": why})
         shot_no += 1
+        # The member reads its own history, so the history is written in the words it plays with: what it asked
+        # for (PACE, AT) and where the ball actually went. The face angle is still in the transcript above,
+        # because that is the engine's number and a record is allowed to keep it.
+        _land = shot["traj"].get("land")
+        _where = "into the net" if _land is None else f"landed ({_land[0]:.0f},{_land[1]:.0f})"
         history.setdefault(p.name, []).append(
-            f"{shot_kind} face {shot['face']:+.1f} power {power:.0f} -> {why}")
+            f"{shot_kind} PACE {shot['speed']:.0f} AT {aim:.0f} -> {_where}: {why}")
         say(f"  {rally_no:2d}.{shot_no:<2d} {p.name:9s} {shot_kind if shot_kind != 'groundstroke' else 'shot':9s} "
             f"face {shot['face']:+5.1f} power {power:3.0f} aim {aim:2.0f} [{shot['speed']:.0f}mph] -> {why}")
 
@@ -982,7 +998,7 @@ def scripted_chooser(level: str = "steady"):
             # aim jitter stands in for intent; the hands' own error is applied by `strike`
             # the harness aims exactly; the hands' own error is applied by `strike`, which is where it
             # belongs. A jitter here would be a second, invisible error on top of the first.
-            return face, power, target[1]
+            return face, power, target[1], math.hypot(target[0] - here[0], target[1] - here[1])
         return choose
     return factory
 
@@ -1097,7 +1113,7 @@ def dink_chooser(level: str = "steady", say=print):
                     # avoid was aiming at the paint, and that is fixed by the target, not by the margin.
                     land = probe["traj"].get("land")
                     if land is not None and in_kitchen(land[0]) and (land[0] - NET_X) * fwd > 0.5:
-                        return face, power, ty
+                        return face, power, ty, dist
             return choose(p, other, incoming, shot_no, lengths, shot_kind, may_volley, here)
 
         return pick
@@ -1525,7 +1541,7 @@ def placement_chooser(level: str = "steady", say=print, anticipate: bool = False
                     # avoid was aiming at the paint, and that is fixed by the target, not by the margin.
                     land = probe["traj"].get("land")
                     if land is not None and in_kitchen(land[0]) and (land[0] - NET_X) * fwd > 0.5:
-                        return face, power, ty
+                        return face, power, ty, dist
             # the drive: past the bodies, 9 ft inside their baseline, on the open side
             tx = NET_X + 12.0 if p.north else LENGTH - (NET_X + 12.0)
             ty, gap = open_target(court, players, side, tx)
@@ -1541,7 +1557,7 @@ def placement_chooser(level: str = "steady", say=print, anticipate: bool = False
             _dist = math.hypot(tx - here[0], ty - here[1])
             power = 42.0
             face = aim_at(p, (tx, ty), "groundstroke", surface, wind, power, here)
-            return face, power, ty
+            return face, power, ty, _dist
 
         return pick
     return factory
@@ -1564,6 +1580,47 @@ def make_chooser(level: str):
     return scripted_chooser(level)
 
 
+MOVE_RE = re.compile(r"PACE\s+([0-9]+(?:\.[0-9]+)?)\s*(?:MPH)?\s+(?:AT|TO)\s*\(?\s*"
+                     r"([0-9]+(?:\.[0-9]+)?)\s*[, ]\s*([0-9]+(?:\.[0-9]+)?)", re.IGNORECASE)
+
+
+def parse_move(reply: str) -> dict | None:
+    """`PACE 24 AT 26,6` — a movement a member can actually form.
+
+    The first version of this prompt asked for FACE, POWER and AIM: the paddle's angle, the paddle's speed and a
+    point on a sideline. Two members were handed it on 2026-11-19 and both served into their own side of the net
+    (page §5o), because "face +17 degrees" is not a thing a player chooses — it is the answer to a question the
+    engine can already solve. So the member now says the two things a player says: **how hard, and where**. The
+    engine turns that into the paddle's angle with the same solver its own choosers use (`aim_at`).
+
+    Returns {"pace": mph, "target": (x, y)} or None. The legacy FACE/POWER/AIM line is still parsed by
+    `parse_command` and still plays, so a record made before today replays as itself.
+    """
+    m = MOVE_RE.search(reply or "")
+    if not m:
+        return None
+    return {"pace": float(m.group(1)), "target": (float(m.group(2)), float(m.group(3)))}
+
+
+def solve_move(p: Player, here, move: dict, shot: str, surface: str, wind) -> tuple[float, float, float, float]:
+    """(face, power, aim, distance) for a movement a member named — and the sentence it should read back.
+
+    Three things have to be forgiven, and each of them is a way a member's reasonable sentence becomes an
+    unreasonable shot: a point on its own side of the net (not a shot at all), a lateral point off the court, and
+    a pace the engine will not swing (the strike clamps at 6 mph). Anything else is played exactly as named.
+    """
+    power = max(MIN_POWER, min(100.0, move["pace"] / 0.6))
+    tx, ty = move["target"]
+    ty = max(0.5, min(WIDTH - 0.5, ty))
+    tx = max(0.5, min(LENGTH - 0.5, tx))
+    fwd = 1.0 if p.north else -1.0
+    if (tx - NET_X) * fwd <= 0.5:                 # a point on your own side: pulled to the far side of the tape
+        tx = NET_X + fwd * 1.0
+    dist = math.hypot(tx - here[0], ty - here[1])
+    face = aim_at(p, (tx, ty), shot, surface, wind, power, here)
+    return face, power, ty, dist
+
+
 def member_chooser_pb(engines: dict, surface, wind_in, history, fell_back):
     """The shot a member chooses, asked of its own engine. Mirrors the tennis `member_chooser` contract:
     one prompt, one line, and a named fallback when a being writes prose instead of a movement."""
@@ -1572,15 +1629,26 @@ def member_chooser_pb(engines: dict, surface, wind_in, history, fell_back):
         prompt = rally_prompt_pb(p, other.name if other else "your opponent", history.get(p.name, []),
                                  incoming, surface, wind_in, shot_no, shot_kind, may_volley, here)
         from tennis import ask, BASES  # noqa: E402  the vendor table, one hop, not a copy
+        wind = wind_vector(*wind_in)
         reply = ask(BASES[vendor], key, model, prompt, 0.7)
-        cmd = parse_command(reply)
-        if cmd is None:
-            fell_back.append(reply)
-            print(f"  !! {p.name} wrote no usable line ({reply.strip()[:60]!r}); the ball is played straight.")
-            face = aim_at(p, (24.0, CENTRELINE), "groundstroke", surface, wind_vector(*wind_in),
-                          45.0, here)
-            cmd = (face, 45.0, CENTRELINE)
-        return cmd
+        move = parse_move(reply)
+        if move is not None:
+            return solve_move(p, here, move, shot_kind, surface, wind)
+        legacy = parse_command(reply)
+        if legacy is not None:
+            return legacy                      # a record made before the movement language still plays
+        fell_back.append(reply)
+        # A member that wrote prose still plays, and it plays the shot a coach would give it: a legal serve if
+        # it is serving, a ball into the open court if it is not. The old fallback drove at the centre of the
+        # court from whatever it was standing on, which for a server is a second fault on top of the first.
+        fwd = 1.0 if p.north else -1.0
+        if shot_kind == "serve":
+            across = WIDTH * 0.75 if here[1] < CENTRELINE else WIDTH * 0.25
+            move = {"pace": 30.0, "target": (NET_X + fwd * 14.0, across)}
+        else:
+            move = {"pace": 24.0, "target": (NET_X + fwd * 7.0, CENTRELINE)}
+        print(f"  !! {p.name} wrote no usable line ({reply.strip()[:60]!r}); it plays the safe ball")
+        return solve_move(p, here, move, shot_kind, surface, wind)
     return choose
 
 
@@ -1588,12 +1656,19 @@ def rally_prompt_pb(p: Player, other: str, history: list[str], incoming: dict | 
                     wind_in, shot_no: int, shot_kind: str, may_volley: bool, here) -> str:
     """What a member is told before it swings. The kitchen and the double bounce are stated because they are
     the two things that make this game different from the one it may have played before."""
+    own_base = 0.0 if p.north else LENGTH
+    their_base = LENGTH if p.north else 0.0
     lines = [
         f"It is your shot in a doubles pickleball game. You are {p.name}, at the "
-        f"{'north' if p.north else 'south'} end, standing {abs(here[0] - NET_X):.1f}ft from the net.",
-        f"The court is 44ft by 20ft. The kitchen (non-volley zone) is 7ft either side of the net at x=22: "
-        f"you may not volley a ball while standing inside it, and your own momentum carrying you in after a "
-        f"volley is also a fault.",
+        f"{'north' if p.north else 'south'} end, standing {abs(here[0] - NET_X):.1f}ft from the net, "
+        f"at ({here[0]:.0f},{here[1]:.0f}).",
+        f"The court is 44ft by 20ft and everything below is in feet on the same two axes. x runs 0 (north "
+        f"baseline) to 44 (south baseline); the net is at x=22 and the kitchen (non-volley zone) is the seven "
+        f"feet either side of it, x=15 to x=29. y runs 0 to 20 across and the centreline is y=10. Your baseline "
+        f"is x={own_base:.0f}; theirs is x={their_base:.0f}. The point you name is the point the ball lands on.",
+        f"You may not volley a ball while standing in the kitchen, and being carried into it by the momentum "
+        f"of your own volley is also a fault. A serve must land beyond their kitchen line and on the far side "
+        f"of the centreline from where you struck it, and you get one attempt.",
         ("Both sides have bounced the ball, so you may volley." if may_volley else
          "The ball has not bounced on both sides yet, so a volley is a fault: let it bounce."),
         f"Surface {surface}, wind {wind_in[0]} {wind_in[1]:.0f}mph. This is shot {shot_no + 1} of the rally, "
@@ -1606,16 +1681,24 @@ def rally_prompt_pb(p: Player, other: str, history: list[str], incoming: dict | 
         lines.append("Your last shots: " + " | ".join(history[-2:]))
     lines += [
         "",
-        "Answer in one line, exactly this shape:",
-        "FACE <degrees> POWER <30-100> AIM <feet from the west sideline>",
-        "FACE opens the paddle and launches the ball higher; it closes it and drives it down. POWER is six "
-        "tenths of a mile an hour: 20 is a 12mph dink, 30 is 18mph and from the kitchen line that lands nine "
-        "feet past the kitchen, 55 is a 33mph serve, 100 is 60. AIM 4 and 16 are near the sidelines, 10 is the "
-        "middle. "
-        "A serve must land past the kitchen line, diagonally, and you get one attempt.",
+        "HOW FAR A BALL GOES — measured on this engine, no wind, and the number that decides everything:",
+        "  - from the kitchen line (7ft from the net): 12mph lands 4ft past the net; 15mph lands on their "
+        "kitchen line; 20mph lands 12ft past it, out of the kitchen",
+        "  - from mid-court (11ft from the net): 20mph lands 11ft past the net; 30mph lands 18ft past; 35mph "
+        "reaches their baseline",
+        "  - serving from behind your baseline (23ft from the net): 24mph is about the slowest that reaches "
+        "their kitchen line, and 28mph lands 14ft past the net",
         "",
-        "Your hands are not exact and a fast ball gives you less time, so what you get is not quite what you "
-        "chose. Read your own history and decide what to change.",
+        "Answer in one line, exactly this shape:",
+        "PACE <miles an hour> AT <x>,<y>",
+        "PACE is how hard you swing and AT is the point on the court you want the ball to land on. The engine "
+        "works out the paddle's angle from those two, so do not name an angle: a member that spells out a face "
+        "in degrees has given the solver's answer instead of the question, and the first two attempts at this "
+        "prompt served into their own side of the net.",
+        "",
+        "Your hands are not exact and a fast ball gives you less time, so the ball will not land exactly where "
+        "you aimed. Read your own history — it says where your last shot actually landed — and decide what to "
+        "change.",
     ]
     return "\n".join(lines)
 
