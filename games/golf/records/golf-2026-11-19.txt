@@ -1507,3 +1507,105 @@ ball. Left in the code, not shipped as a page.
 
 ########## --selftest (unchanged: the renderer adds no numbers to the game)
   all 25 checks pass
+
+
+=============================== PASS 8 — 2026-11-19 19:25-20:10 — the number it believes ===========
+
+The sixth pass ended with a question it could not answer with the game it had: in wind every learner's
+sigma doubles, so a scatter-aware player aims by a number the wind inflated — is that the gate, or is it
+the player? Answering it needed two quantities the game had never measured against each other: what the
+athlete BELIEVES its scatter is, and what its scatter IS. The second one only exists relative to the line
+a shot was aimed at.
+
+Measuring them found that the athlete had been measuring its own hands against the flag. It aims somewhere
+else on purpose — that is what `target()` is for — so the deliberate aim counted as a miss, and the range
+in the denominator was the distance to the flag rather than the distance the ball actually flew, which
+understates every short shot's miss. Together: the hands are 1.10°, and the athlete believed 1.5-1.8°.
+
+That is a measurement defect, not a physics one, and it has been in the file since the second pass, under
+every number about aiming. It is fixed: the miss is now taken from the line the shot was meant to be on, at
+the distance it flew. The athlete learns 0.94° for hands that are given 1.10°. Three checks now hold that
+(26-28), and none of the first 25 would have caught it, because every one of them asked about the game and
+not about the athlete's picture of itself.
+
+########## --selftest (28 checks now; 26-28 are the new ones)
+  [ok] the scatter it learns is the scatter its hands have: it believes 0.94° and the hands are 1.10° — this
+       check exists because for six passes the athlete read its misses off the flag and believed 1.5° for the
+       same hands
+  [ok] the gate shows it the still air while the wind scatters the ball: in wind its shots scatter 1.95° and
+       the shots the gate lets through scatter 0.38°; it believes 1.34° — too bold by a factor of 1.5, which
+       is the opposite of what the sixth pass suspected
+  [ok] and inside 76 ft the belief never reaches the target at all: from 40 ft a scatter of 0.6° and of 3.0°
+       both aim at +4 ft; from 200 ft they aim at +4 and -1
+  all 28 checks pass
+
+########## --sigma --draws 24 --rounds 3
+8 courses to learn on, 8 to play, pins ±14 ft, wind drawn, 3 times through the test set
+
+                      strokes  per round  vs gated  sigma believed
+  gated, learned          882      36.75        +0            1.31
+  ungated, learned        882      36.75        +0            2.47
+  told 0.6°               879      36.62        -3            0.60
+  told 1.1°               879      36.62        -3            1.10
+  told 2.0°               894      37.25       +12            2.00
+  told 3.0°               879      36.62        -3            3.00
+
+  and what the shots actually did, on the same courses, with learning off:
+    gated, learned     every shot  2.32° (n=495)   still-air shots  1.21° (n=120)   believes 1.31°
+    ungated, learned   every shot  2.28° (n=504)   still-air shots  1.06° (n=114)   believes 2.47°
+    told 2.0°          every shot  2.31° (n=501)   still-air shots  1.17° (n=114)   believes 2.00°
+
+Three things, and the third is the one that matters:
+
+  1. The gate shows the athlete the shots the wind did not touch: 1.2° of the 2.3° its shots scatter. So in
+     wind it is not cautious for an imaginary reason — it is BOLD by a factor of 1.8, aiming at a pin it
+     cannot hold. The sixth pass had the sign of this backwards, and its evidence was the same
+     mismeasurement that pass 8 fixed: what it saw doubling was the flag-frame artefact, not the wind.
+  2. Remove the gate and the athlete teaches itself 2.47° against a true 2.28°. The gate exists because in
+     pass 2 a fixed wind table taught it a four-degree slice; with drawn winds there is no such slice to
+     learn, and the gate is not needed for the thing it was built for.
+  3. **None of it reaches the card.** Six arms from 0.6° to 3.0°, twenty-four rounds each, and every one of
+     them is within three strokes of every other (the +12 on one arm is one hole). `target()` floors the
+     scatter at 2 ft, and 2 ft is where sigma stops: inside 76 ft the belief is not used at all, and beyond
+     it the aim moves a couple of feet, which is not worth a stroke.
+
+########## --draws 40 --bags 8 --calm --pin-range 6 / 14 / 19
+
+Three passes of aiming numbers have been measured on one athlete. Re-running the same protocol with a fifth
+practice round flipped the sign of the pinned-pin result (+0.68 one way, −0.60 the other) with the hands and
+the belief almost identical. The paired design cancels the course, not the notebook, and the notebook is
+what the aim is drawn on. `--bags N` trains N athletes on different practice sessions and puts the spread
+ACROSS BAGS in the error bar. It is a wider bar and it is the one the claim needs.
+
+  still air, 40 drawn courses a bag, 8 bags      flag − centre      flag − spread     centre − spread
+  pins ±6 ft                                    -0.01 ± 0.66       -0.20 ± 0.53       -0.19 ± 0.19
+  pins ±14 ft                                   +0.43 ± 0.86       +0.34 ± 0.95       -0.09 ± 0.17
+  pins ±19 ft                                   +1.43 ± 0.72       +1.48 ± 0.67       +0.05 ± 0.17
+
+So the decision is worth something exactly where the flag is cut near the green's edge, and nothing at ±6
+or ±14. At ±19 the pin costs 1.48 strokes a round against the same athlete aiming where the putt is
+likeliest. Before pass 8 the same table read +2.82 ± 0.71 at ±19 and −0.20 ± 0.33 at ±14, on one bag, with
+the athlete believing 1.8° for hands of 1.1; the finding survives its own repair at about half the size and
+with twice the bar.
+
+The hole split at ±19 says it is about tuck and not about sand: no sand, |pin| ≥ 8 ft, +0.43 ± 0.08 (t 11.2);
+pin toward the sand +0.15 ± 0.16; pin away from the sand +0.23 ± 0.18. And the bunkers-filled-in treatment
+still moves that decision by nothing: +0.02 ± 0.06 toward, +0.01 ± 0.02 away, −0.00 ± 0.03 friendly. Pass 4
+and pass 5's null survives the repair of everything underneath it.
+
+########## what the floor is, and why it is the real story
+
+`target()` computes s = max(2.0 ft, sigma × range). With an honest sigma that floor binds inside 76 ft, which
+is where every approach in this game happens. So the "target decision" is not a learned skill at all: it is
+the rule "aim 2 ft of scatter's worth inside the pin", applied with a number the athlete was given by me and
+not by its own misses. The ±19 finding above is the consequence of that rule — a floored player aims 9 ft
+inside a pin cut 13 ft out, and that is what beats aiming at the flag.
+
+I have not removed the floor in this pass. Removing it would make the scatter bind everywhere and would
+change the aiming table again, and doing both in one turn is how a person talks himself into a number. It is
+named here, it is the first item in the README's "what this does not model", and it is the thing to test
+next: the same table with the floor at 0.5 ft.
+
+########## --draws 60 --calm --pin-range 14 (one bag, the old protocol, for the record)
+  flag -2.18, centre -1.98, spread -2.33;  flag−spread +0.15 ± 0.33 (t +0.9), centre−spread +0.35 ± 0.25
+  (t +2.7) — with one bag at ±14 the pin and the spread policy are the same shot, and both beat the middle.

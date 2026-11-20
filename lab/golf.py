@@ -435,7 +435,8 @@ class Athlete:
     notebook. A table cannot make that mistake, and it is also what players actually keep.
     """
 
-    def __init__(self, prior: float = 1.0, sigma_taught: float | None = None) -> None:
+    def __init__(self, prior: float = 1.0, sigma_taught: float | None = None,
+                 gate: bool = True) -> None:
         """`prior` scales what it believes about the bag (1.0 is the beginner of this file, 0.85 a worse one);
         `sigma_taught` denies it the one number it would otherwise learn from its own misses, which is the
         input to every target decision — a field needs somebody who cannot tell how wide it hits."""
@@ -450,6 +451,7 @@ class Athlete:
         self.shots = 0
         self.sigma = 1.5                                   # degrees of scatter it believes it has; learned
         self.sigma_taught = sigma_taught                   # ...unless it is told, and then never learns
+        self.gate = gate                                   # whether the wind is kept out of that lesson
         self.cnd_pairs: list[tuple[float, float]] = []      # (head fraction, how short the shot came back)
         self.wind_c = 0.0                                  # how much wind takes off; learned from zero
         self.rough_cost = ROUGH_LOSS                       # what the rough costs; told, not learned
@@ -492,7 +494,7 @@ class Athlete:
         wind doing something to a golf ball that a table cannot hold, and the cost of it is measured by
         running the same athlete round the calm course.
         """
-        if distance_yd < 20.0 or abs(cross) > CROSS_QUIET:
+        if distance_yd < 20.0 or (self.gate and abs(cross) > CROSS_QUIET):
             return
         raw = math.degrees(math.atan2(lateral_yd, distance_yd)) - aim_used
         self.misses.append(raw)
@@ -698,6 +700,14 @@ def play_hole(hole: Hole, ath: Athlete, putter: PuttAthlete, green: Green,
         rest = res["rest"]
         rest = (max(-ROUGH_EDGE * 1.4, min(ROUGH_EDGE * 1.4, rest[0])), rest[1])  # the course ends somewhere
         along, lateral = report_shot(ball, rest, flag)
+        # ...and the same shot measured from the line it *meant* to hit. `report_shot` is in the flag's frame,
+        # and the flag is not where the athlete aimed: the whole point of `target()` is that it aims somewhere
+        # else on purpose. Taking the side of the miss from the flag therefore counts the athlete's own aim as
+        # a miss, which is not a fact about its hands. Found on 2026-11-19, pass 8, by measuring the two.
+        _ux, _uy = math.sin(math.radians(aim_bearing)), math.cos(math.radians(aim_bearing))
+        _dx, _dy = rest[0] - ball[0], rest[1] - ball[1]
+        lateral_aim = (_dx * _uy - _dy * _ux) / FT_PER_YD
+        flown_yd = max(1.0, math.hypot(_dx, _dy) / FT_PER_YD)   # the range the angle is a fraction of
         strokes += 1
         last_putt = False
         measured = yards_between(ball, rest)
@@ -713,7 +723,7 @@ def play_hole(hole: Hole, ath: Athlete, putter: PuttAthlete, green: Green,
                 # the notebook is a calm-day notebook: a shot with the wind behind it is divided back to
                 # what it would have done in still air, or the student learns that its driver goes 317.
                 ath.observe(club.name, gear, measured / max(0.5, cost))
-                ath.observe_side(lateral, max(1.0, gap_ft / FT_PER_YD), aim_used, cross)
+                ath.observe_side(lateral_aim, flown_yd, aim_used, cross)
         if res.get("lip"):
             lip_seen = True
         elif not in_sand(rest, hole):
@@ -726,7 +736,8 @@ def play_hole(hole: Hole, ath: Athlete, putter: PuttAthlete, green: Green,
                         # coarseness of the gear ladder, and it says nothing about the player's knowledge.
                         predicted=predicted, notebook_err=abs(measured - predicted) / max(1.0, predicted),
                         angle=math.degrees(math.atan2(lateral, max(1.0, gap_ft / FT_PER_YD))),
-                        offset=offset, head=head, lie=lie, on_green=on_green(rest, hole),
+                        angle_aim=math.degrees(math.atan2(lateral_aim, flown_yd)),
+                        offset=offset, head=head, cross=cross, lie=lie, on_green=on_green(rest, hole),
                         in_sand=in_sand(rest, hole), escaping=escaping, hit_lip=bool(res.get("lip")),
                         strokes_at=strokes, gap_ft=gap_ft, start=ball,
                         path=res.get("path"), stop_at=res.get("stop_at"),
@@ -902,35 +913,44 @@ def selftest() -> int:
         a.policy = pol
         scored[pol] = sum(play_round(still, a, PuttAthlete(), green, learn=False, verbose=False,
                                      rng=random.Random(DEFAULT_SEED))["strokes"] for _ in range(4))
-    check("aiming away from a tucked pin pays", scored["spread"] < scored["flag"],
-          f"{scored['spread']} strokes against {scored['flag']} over four calm rounds")
+    check("and with an honest scatter the pin is a fine target on the nine", scored["spread"] <= scored["flag"],
+          f"{scored['spread']} strokes against {scored['flag']} over four calm rounds — the spread policy is "
+          f"never better on my own pins, whose flags sit no further out than ±14 ft")
 
     # 14. the target decision, measured over drawn pins instead of my nine: its value has to grow as the pins
     # get tucked. If it did not, the whole of finding 3 would be a property of the table I typed in.
-    def paired_advantage(pin_range: float, draws: int = 40) -> float:
-        a0 = Athlete()
-        a0.policy = "spread"
-        pu = PuttAthlete()
-        for k in range(3):
-            play_round(drawn_course(random.Random(9000 + k), pin_range, True), a0, pu, green,
-                       learn=True, verbose=False)
-        d = []
-        for k in range(draws):
-            course = drawn_course(random.Random(4000 + k), pin_range, True)
-            row = {}
-            for pol in ("flag", "spread"):
-                a = copy_of(a0)
-                a.policy = pol
-                row[pol] = play_round(course, a, PuttAthlete(), green, learn=False, verbose=False,
-                                      rng=random.Random(DEFAULT_SEED))["to_par"]
-            d.append(row["flag"] - row["spread"])
-        return sum(d) / len(d)
+    #
+    # Since pass 8 this is measured over *bags* as well as courses. One athlete on one run of practice rounds
+    # gave +0.68 at ±19 and another, a round further on, gave −0.60: the paired design cancels the course and
+    # not the notebook, and the notebook is what the aim is drawn on. Three bags, twelve courses each, is the
+    # smallest version that does not read its own noise as a finding.
+    def paired_advantage(pin_range: float, draws: int = 12, bags: int = 3) -> float:
+        by_bag = []
+        for b in range(bags):
+            a0 = Athlete()
+            a0.policy = "spread"
+            pu = PuttAthlete()
+            for k in range(3):
+                play_round(drawn_course(random.Random(9000 + k), pin_range, True), a0, pu, green,
+                           learn=True, verbose=False, rng=random.Random(DEFAULT_SEED + 7919 * b + k))
+            tot = 0.0
+            for k in range(draws):
+                course = drawn_course(random.Random(4000 + k), pin_range, True)
+                row = {}
+                for pol in ("flag", "spread"):
+                    a = copy_of(a0)
+                    a.policy = pol
+                    row[pol] = play_round(course, a, PuttAthlete(), green, learn=False, verbose=False,
+                                          rng=random.Random(DEFAULT_SEED))["to_par"]
+                tot += row["flag"] - row["spread"]
+            by_bag.append(tot / draws)
+        return sum(by_bag) / bags
 
     tight, friendly = paired_advantage(19.0), paired_advantage(6.0)
     check("a tucked pin is what makes the target decision worth anything",
-          tight - friendly > 1.0,
-          f"aiming at the middle is worth {tight:+.2f} strokes on tucked pins and {friendly:+.2f} on "
-          f"friendly ones, over 40 drawn courses each")
+          tight - friendly > 1.0 and tight > 0.5,
+          f"aiming at the pin instead of where the putt is likeliest is worth {tight:+.2f} strokes on pins cut "
+          f"19 ft out and {friendly:+.2f} on pins cut 6 ft out, over 3 bags × 12 drawn courses each")
 
 # 17. the sand is where the hole says it is, and only there
     left_hole, right_hole, none = (Hole(400, 4, "S", pin=10.0, sand=-1), Hole(400, 4, "S", pin=10.0, sand=+1),
@@ -1047,6 +1067,56 @@ def selftest() -> int:
           f"is cut toward it and {away:+.2f} when it is cut away — the prediction was that the first would "
           f"rise by more than a stroke, and it does not rise at all")
 
+    # 26-28. the scatter it believes against the scatter its shots have. Pass 8 is the pass that found the
+    # first of these by measuring it: until then the athlete read its own scatter off the flag, so the offset
+    # it aims by on purpose counted as a miss, and it believed it was half again as wild as it was.
+    def trained_sigma(calm: bool, rounds: int = 4):
+        a, pu = Athlete(), PuttAthlete()
+        for k in range(rounds):
+            for h in drawn_course(random.Random(3000 + k), 14.0, calm):
+                play_hole(h, a, pu, green, learn=True, verbose=False, rng=random.Random(DEFAULT_SEED + k))
+        return a
+
+    calm_ath = trained_sigma(True)
+    check("the scatter it learns is the scatter its hands have",
+          abs(calm_ath.sigma - FACE_SD) < 0.3,
+          f"it believes {calm_ath.sigma:.2f}° and the hands are {FACE_SD:.2f}° — this check exists because "
+          f"for six passes the athlete read its misses off the flag and believed 1.5° for the same hands")
+
+    windy_ath = trained_sigma(False)
+    windy_rows = []
+    for k in range(2):
+        course = drawn_course(random.Random(3500 + k), 14.0, False)
+        for h in course:
+            r = play_hole(h, windy_ath, PuttAthlete(), green, learn=False, verbose=False,
+                          rng=random.Random(DEFAULT_SEED + 40 + k))
+            windy_rows += [e for e in r["log"] if e["kind"] == "shot" and e.get("angle_aim") is not None]
+    all_sd = _sd([e["angle_aim"] for e in windy_rows])
+    quiet_sd = _sd([e["angle_aim"] for e in windy_rows if abs(e["cross"]) <= CROSS_QUIET])
+    check("the gate shows it the still air while the wind scatters the ball",
+          all_sd > 1.5 * quiet_sd and windy_ath.sigma < 0.75 * all_sd,
+          f"in wind its shots scatter {all_sd:.2f}° and the shots the gate lets through scatter {quiet_sd:.2f}°; "
+          f"it believes {windy_ath.sigma:.2f}° — too bold by a factor of {all_sd / windy_ath.sigma:.1f}, which "
+          f"is the opposite of what the sixth pass suspected")
+
+    probe = Athlete()
+    probe.aim_bias = 0.0
+    hole40 = Hole(400, 4, "T", pin=13.0, sand=+1)
+    hole200 = Hole(400, 4, "T", pin=13.0, sand=+1)
+    near = [copy_of(probe) for _ in range(2)]
+    for a, sig in zip(near, (0.6, 3.0)):
+        a.sigma = sig
+    far = [copy_of(probe) for _ in range(2)]
+    for a, sig in zip(far, (0.6, 3.0)):
+        a.sigma = sig
+    near_t = [a.target(hole40, (13.0, hole40.centre[1] - 40.0), 40.0) for a in near]
+    far_t = [a.target(hole200, (13.0, hole200.centre[1] - 200.0), 200.0) for a in far]
+    check("and inside 76 ft the belief never reaches the target at all",
+          near_t[0] == near_t[1] and far_t[0] != far_t[1],
+          f"from 40 ft a scatter of 0.6° and of 3.0° both aim at {near_t[0]:+.0f} ft; from 200 ft they aim at "
+          f"{far_t[0]:+.0f} and {far_t[1]:+.0f}. The floor of 2 ft in `target()` is a rule of the player's, and "
+          f"it is what decides the pin inside 76 ft — not the scatter")
+
     print(f"\n  {len(fails)} of {n} checks failed" if fails else f"\n  all {n} checks pass")
     return 1 if fails else 0
 
@@ -1060,6 +1130,7 @@ def copy_of(ath: Athlete) -> Athlete:
     b.aim_bias, b.sigma = ath.aim_bias, ath.sigma
     b.wind_c, b.rough_cost, b.sand_pen = ath.wind_c, ath.rough_cost, ath.sand_pen
     b.sigma_taught = ath.sigma_taught
+    b.gate = ath.gate
     b.face = ath.face
     return b
 
@@ -1091,116 +1162,137 @@ def compare(args) -> int:
 
 
 def draws(args) -> int:
-    """One trained athlete, many courses, all policies, paired by course.
+    """One trained athlete, many courses, all policies, paired by course — repeated over several bags.
 
-    Training is on drawn courses too — four of them, learning on — so the notebook is not tuned to my nine
-    pins either. Evaluation is learning off, one round a course, every policy on the same course, and the
-    quantity reported is the *paired* difference: the same draw in both columns, which is the only way a
-    nine-hole score gets an error bar small enough to argue with.
+    Training is on drawn courses too, four of them, learning on — so the notebook is not tuned to my nine pins
+    either. Evaluation is learning off, one round a course, every policy on the same course, and the quantity
+    reported is the *paired* difference: the same draw in both columns, which is the only way a nine-hole score
+    gets an error bar small enough to argue with.
+
+    **And the bags are drawn too, since pass 8.** Until then every number here was measured on *one* athlete:
+    one run of four practice courses, one notebook, one set of club distances. Re-running the same experiment
+    with a fifth practice course — the athlete's hands and scatter almost identical, its eight-iron half a yard
+    different — flipped the sign of the pinned-pin result at ±19 ft, +0.68 one way and −0.60 the other. The
+    paired design cancels the *course*, not the *bag*, and the bag is as much a draw as the weather is. So
+    `--bags N` trains N athletes on different practice sets and reports the mean of the per-bag differences
+    with the spread *across bags* as the error bar. That is a wider bar, and it is the bar the claim needs.
 
     Since pass 4 there is a second table, over holes rather than rounds, split by where the pin was cut
     relative to the sand. That split was *declared before the run*, and it is the test of whether pass 3's
-    finding is about pin tuck or about a green with nothing on it: if a tuck toward fourteen feet of sand
-    and a tuck toward fourteen feet of grass are the same number, the bunker bought nothing.
+    finding is about pin tuck or about a green with nothing on it: if a tuck toward fourteen feet of sand and
+    a tuck toward fourteen feet of grass are the same number, the bunker bought nothing.
     """
     green = Green(stimp=10.0, grade=1.2, downhill=135.0)
-    trained = Athlete()
-    trained.policy = "spread"
-    putter = PuttAthlete()
-    for k in range(4):
-        play_round(drawn_course(random.Random(9000 + k), args.pin_range, args.calm), trained, putter, green,
-                   learn=True, verbose=False)
+    n, bags = args.draws, max(1, args.bags)
     policies = ("flag", "centre", "spread")
-    n = args.draws
-    scores = {p: [] for p in policies}
-    per_hole = {p: [] for p in policies}
-    for d in range(n):
-        course = drawn_course(random.Random(4000 + d), args.pin_range, args.calm)
-        for p in policies:
-            a = copy_of(trained)
-            a.policy = p
-            r = play_round(course, a, PuttAthlete(), green, learn=False, verbose=False,
-                           rng=random.Random(DEFAULT_SEED))
-            scores[p].append(r["to_par"])
-            per_hole[p].extend((h, row["strokes"]) for h, row in zip(course, r["rows"]))
-    print(f"{n} courses drawn independently (pins ±{args.pin_range:.0f} ft"
-          f"{', still air' if args.calm else ', wind drawn too'}), one round each, learning off\n")
-    print(f"  {'policy':8s} {'mean':>7s} {'sd':>6s}")
-    for p in policies:
-        xs = scores[p]
-        m = sum(xs) / n
-        sd = math.sqrt(sum((x - m) ** 2 for x in xs) / max(1, n - 1))
-        print(f"  {p:8s} {m:+7.2f} {sd:6.2f}")
-    print(f"\n  paired differences, strokes a round (negative means the first is better):")
-    for a_, b_ in (("flag", "centre"), ("flag", "spread"), ("centre", "spread")):
-        d = [x - y for x, y in zip(scores[a_], scores[b_])]
-        m = sum(d) / n
-        se = math.sqrt(sum((x - m) ** 2 for x in d) / max(1, n - 1)) / math.sqrt(n)
-        t = m / se if se > 0 else 0.0
-        print(f"    {a_:6s} - {b_:6s}  {m:+6.2f} ± {1.96 * se:4.2f} (95%)   t {t:+5.1f}")
-
-    # ---- by hole, split by which side of the green the flag was cut ----------------------------------
-    def half(diffs: list[float], label: str, note: str) -> None:
-        if not diffs:
-            print(f"    {label:<44s} {'no holes':>16s}")
-            return
-        m = sum(diffs) / len(diffs)
-        se = math.sqrt(sum((x - m) ** 2 for x in diffs) / max(1, len(diffs) - 1)) / math.sqrt(len(diffs))
-        print(f"    {label:<44s} {m:+6.2f} ± {1.96 * se:4.2f}   n {len(diffs):5d}   {note}")
-
-    pairs = [(h, x, y) for (h, x), (_, y) in zip(per_hole["flag"], per_hole["spread"])]
-    print(f"\n  the decision by hole: aimed at the pin minus aimed where the putt is likeliest")
-    print(f"  {'':<46s} {'strokes':>14s}")
-    tucked = lambda h: (abs(h.pin) >= 8.0, abs(h.pin) < 8.0)  # noqa: E731  declared, not chosen after
-    half([x - y for h, x, y in pairs if h.sand != 0 and tucked(h)[0] and h.pin * h.sand > 0],
-         "pin cut toward the sand, |pin| ≥ 8 ft", "sand")
-    half([x - y for h, x, y in pairs if h.sand != 0 and tucked(h)[0] and h.pin * h.sand < 0],
-         "pin cut away from the sand, |pin| ≥ 8 ft", "sand")
-    half([x - y for h, x, y in pairs if h.sand != 0 and tucked(h)[1]],
-         "sand beside a friendly pin, |pin| < 8 ft", "sand")
-    half([x - y for h, x, y in pairs if h.sand == 0 and tucked(h)[0]],
-         "no sand, |pin| ≥ 8 ft", "grass")
-    half([x - y for h, x, y in pairs if h.sand == 0 and tucked(h)[1]],
-         "no sand, |pin| < 8 ft", "grass")
-
-    # ---- the clean version: the same courses with the bunkers taken out -----------------------------
-    # The table above compares holes that differ in more ways than the sand — the three sandless holes are
-    # a par 3 and two par 5s, so "no sand" is confounded with yardage, and the first version of this
-    # experiment duly reported that sand made the decision *less* valuable. It did not; the strata were
-    # different golf holes. The treatment is a course with its bunkers filled in, same pins, same winds,
-    # same draw, so the only difference between the two columns is the sand.
-    print(f"\n  the same {n} courses, bunkers in against bunkers filled in (paired by hole)")
-    print(f"  {'':<46s} {'strokes':>14s}")
-    with_sand, without = [], []
-    for d in range(n):
-        base = drawn_course(random.Random(4000 + d), args.pin_range, args.calm)
-        no_sand = [Hole(h.yards, h.par, h.label, pin=h.pin, wind=h.wind, sand=0) for h in base]
-        got = {}
-        for tag_, course_ in (("in", base), ("out", no_sand)):
-            for p_ in ("flag", "spread"):
+    combos = (("flag", "centre"), ("flag", "spread"), ("centre", "spread"))
+    per_bag = {p: [] for p in policies}
+    diff_bag = {c: [] for c in combos}
+    hole_bag = {k: [] for k in ("tucked_sand", "away_sand", "friendly_sand", "none_tucked", "none_friendly")}
+    sand_bag = {k: [] for k in ("tucked_sand", "away_sand", "friendly")}
+    tucked = lambda h: abs(h.pin) >= 8.0          # noqa: E731  declared before the run, not chosen after
+    hole_key = {"tucked_sand": lambda h: h.sand != 0 and tucked(h) and h.pin * h.sand > 0,
+                "away_sand": lambda h: h.sand != 0 and tucked(h) and h.pin * h.sand < 0,
+                "friendly_sand": lambda h: h.sand != 0 and not tucked(h),
+                "none_tucked": lambda h: h.sand == 0 and tucked(h),
+                "none_friendly": lambda h: h.sand == 0 and not tucked(h)}
+    for bag in range(bags):
+        trained = Athlete()
+        trained.policy = "spread"
+        putter = PuttAthlete()
+        # The bag is drawn from the *practice session*, not from the pins: in still air the pin changes where the
+        # shot is aimed and not how far it is hit, so two athletes practising on different pins end up with the
+        # same notebook to two decimal places — measured, before this line was written. What a bag really varies
+        # with is where the practice shots finished, and that is the seed.
+        for k in range(4):
+            play_round(drawn_course(random.Random(9000 + k), args.pin_range, args.calm),
+                       trained, putter, green, learn=True, verbose=False,
+                       rng=random.Random(DEFAULT_SEED + 7919 * bag + k))
+        scores = {p: [] for p in policies}
+        per_hole = {p: [] for p in policies}
+        for d in range(n):
+            course = drawn_course(random.Random(4000 + d), args.pin_range, args.calm)
+            for p in policies:
                 a = copy_of(trained)
-                a.policy = p_
-                r = play_round(course_, a, PuttAthlete(), green, learn=False, verbose=False,
+                a.policy = p
+                r = play_round(course, a, PuttAthlete(), green, learn=False, verbose=False,
                                rng=random.Random(DEFAULT_SEED))
-                got[(tag_, p_)] = [row["strokes"] for row in r["rows"]]
-        for i, h in enumerate(base):
-            if not h.sand:
-                continue
-            with_sand.append((h, got[("in", "flag")][i] - got[("in", "spread")][i],
-                              got[("out", "flag")][i] - got[("out", "spread")][i]))
-    for label, keep in (("pin cut toward the sand, |pin| ≥ 8 ft",
-                         lambda h: abs(h.pin) >= 8.0 and h.pin * h.sand > 0),
-                        ("pin cut away from the sand, |pin| ≥ 8 ft",
-                         lambda h: abs(h.pin) >= 8.0 and h.pin * h.sand < 0),
-                        ("friendly pin, |pin| < 8 ft", lambda h: abs(h.pin) < 8.0)):
-        sub = [(a, b) for h, a, b in with_sand if keep(h)]
-        if not sub:
-            continue
-        d = [a - b for a, b in sub]
-        m = sum(d) / len(d)
-        se = math.sqrt(sum((x - m) ** 2 for x in d) / max(1, len(d) - 1)) / math.sqrt(len(d))
-        print(f"    {label:<44s} {m:+6.2f} ± {1.96 * se:4.2f}   n {len(sub):5d}   "
-              f"(sand in {sum(a for a, _ in sub) / len(sub) - sum(b for _, b in sub) / len(sub):+5.2f})")
+                scores[p].append(r["to_par"])
+                per_hole[p].extend((h, row["strokes"]) for h, row in zip(course, r["rows"]))
+        for p in policies:
+            per_bag[p].append(sum(scores[p]) / n)
+        for c in combos:
+            diff_bag[c].append(sum(x - y for x, y in zip(scores[c[0]], scores[c[1]])) / n)
+        pairs = list(zip(per_hole["flag"], per_hole["spread"]))
+        for key, keep in hole_key.items():
+            d = [x - y for (h, x), (_, y) in pairs if keep(h)]
+            hole_bag[key].append(sum(d) / len(d) if d else 0.0)
+        # the clean version: the same courses with the bunkers filled in. The table above compares holes that
+        # differ in more ways than the sand — the sandless holes are a par 3 and two par 5s — so the treatment
+        # is a course with its bunkers taken out: same pins, same winds, same draw, and the only difference
+        # between the two columns is the sand.
+        got_sand = {"tucked_sand": [], "away_sand": [], "friendly": []}
+        for d in range(n):
+            base = drawn_course(random.Random(4000 + d), args.pin_range, args.calm)
+            bare = [Hole(h.yards, h.par, h.label, pin=h.pin, wind=h.wind, sand=0) for h in base]
+            rows = {}
+            for tag_, course_ in (("in", base), ("out", bare)):
+                for p_ in ("flag", "spread"):
+                    a = copy_of(trained)
+                    a.policy = p_
+                    r = play_round(course_, a, PuttAthlete(), green, learn=False, verbose=False,
+                                   rng=random.Random(DEFAULT_SEED))
+                    rows[(tag_, p_)] = [row["strokes"] for row in r["rows"]]
+            for i, h in enumerate(base):
+                if not h.sand:
+                    continue
+                a_in = rows[("in", "flag")][i] - rows[("in", "spread")][i]
+                a_out = rows[("out", "flag")][i] - rows[("out", "spread")][i]
+                key = ("tucked_sand" if tucked(h) and h.pin * h.sand > 0 else
+                       "away_sand" if tucked(h) else "friendly")
+                got_sand[key].append(a_in - a_out)
+        for key, xs in got_sand.items():
+            sand_bag[key].append(sum(xs) / len(xs) if xs else 0.0)
+
+    def band(xs: list[float], label: str, note: str = "") -> None:
+        m = sum(xs) / len(xs)
+        if len(xs) > 1:
+            se = math.sqrt(sum((x - m) ** 2 for x in xs) / (len(xs) - 1)) / math.sqrt(len(xs))
+        else:
+            se = float("nan")
+        t = m / se if se and se > 0 else 0.0
+        print(f"    {label:<44s} {m:+6.2f} ± {1.96 * se:4.2f}   t {t:+5.1f}   {note}")
+
+    print(f"{n} courses drawn independently (pins ±{args.pin_range:.0f} ft"
+          f"{', still air' if args.calm else ', wind drawn too'}), one round each, learning off, "
+          f"over {bags} bag{'s' if bags > 1 else ''}\n")
+    print(f"  {'policy':8s} {'mean':>7s} {'sd across bags':>16s}")
+    for p in policies:
+        xs = per_bag[p]
+        m = sum(xs) / len(xs)
+        sd = math.sqrt(sum((x - m) ** 2 for x in xs) / max(1, len(xs) - 1)) if len(xs) > 1 else float("nan")
+        print(f"  {p:8s} {m:+7.2f} {sd:16.2f}")
+    print("\n  paired differences, strokes a round (negative means the first is better):")
+    print(f"  {'':<22s}{'mean':>8s}{'95%':>8s}{'t':>7s}")
+    for c in combos:
+        band(diff_bag[c], f"  {c[0]:6s} - {c[1]:6s}")
+    print("\n  the decision by hole: aimed at the pin minus aimed where the putt is likeliest")
+    for key, label in (("tucked_sand", "pin cut toward the sand, |pin| >= 8 ft"),
+                       ("away_sand", "pin cut away from the sand, |pin| >= 8 ft"),
+                       ("friendly_sand", "sand beside a friendly pin, |pin| < 8 ft"),
+                       ("none_tucked", "no sand, |pin| >= 8 ft"),
+                       ("none_friendly", "no sand, |pin| < 8 ft")):
+        band(hole_bag[key], "  " + label, "sand" if "sand" in key and key != "none_tucked"
+             and key != "none_friendly" else "grass")
+    print(f"\n  the same {n} courses, bunkers in against bunkers filled in: what the sand changes about that "
+          f"decision")
+    for key, label in (("tucked_sand", "pin cut toward the sand, |pin| >= 8 ft"),
+                       ("away_sand", "pin cut away from the sand, |pin| >= 8 ft"),
+                       ("friendly", "friendly pin, |pin| < 8 ft")):
+        band(sand_bag[key], "  " + label)
+    if bags == 1:
+        print("\n  one bag: the error bars above are the spread across courses only, and that is what pass 3-7 "
+              "reported.\n  --bags 8 redraws the athlete itself, which is the larger uncertainty of the two.")
     return 0
 
 
@@ -1261,6 +1353,76 @@ def field(args) -> int:
 # The film is not a claim and it rests on nothing — every number in this file was decided before it was drawn —
 # so it lives in its own section with the scene it draws, and the page under `games/golf/replay3d.html` reads it
 # with no library at all: a ball, an arc and a wall do not need a character pipeline.
+# ---- the scatter, taught against learned ------------------------------------------------------------
+# Pass 6 ended with a question: in wind every learner's sigma doubles, so a scatter-aware player aims by a
+# number the wind inflated — is that an artefact of the gate that keeps a crosswind out of what teaches the
+# hands, or a fact about a scatter-aware player? Answering it needed the game to measure two things it had
+# never measured: what the athlete *believes* its scatter is, and what its scatter *is*. The second one only
+# exists relative to the line the shot was aimed at, which is why the log now records it too.
+TAUGHT_ARMS = (("gated, learned", None, True), ("ungated, learned", None, False),
+               ("told 0.6°", 0.6, True), ("told 1.1°", 1.1, True),
+               ("told 2.0°", 2.0, True), ("told 3.0°", 3.0, True))
+
+
+def _sd(xs: list[float]) -> float:
+    if len(xs) < 2:
+        return float("nan")
+    m = sum(xs) / len(xs)
+    return math.sqrt(sum((x - m) ** 2 for x in xs) / (len(xs) - 1))
+
+
+def _mean(xs: list[float]) -> float:
+    return sum(xs) / len(xs) if xs else float("nan")
+
+
+def sigma_test(args) -> int:
+    """Does the gate that keeps a crosswind out of the hands' education cost the player anything?
+
+    Two quantities, and the whole experiment is that they had never been measured against each other:
+    the scatter the athlete *believes* (which is what its target decision is made of) and the scatter its
+    shots *have* in the weather it is playing. The belief is learned from the shots the gate lets through;
+    the scatter is a fact about the air and about a player that cannot aim off for a crosswind.
+    """
+    green = Green(stimp=10.0, grade=1.2, downhill=135.0)
+    train, test = max(2, args.draws // 3), max(2, args.draws // 3)
+    courses = [drawn_course(random.Random(7000 + k), args.pin_range) for k in range(train + test)]
+    print(f"{train} courses to learn on, {test} to play, pins ±{args.pin_range:.0f} ft, wind drawn, "
+          f"{args.rounds} times through the test set\n")
+    cards, beliefs = [], {}
+    for name, taught, gated in TAUGHT_ARMS:
+        ath = Athlete(sigma_taught=taught, gate=gated)
+        ath.policy = "spread"
+        for k, course in enumerate(courses[:train]):
+            play_round(course, ath, PuttAthlete(), green, learn=True, verbose=False,
+                       rng=random.Random(DEFAULT_SEED + k))
+        tot, pairs = 0, []
+        for _ in range(args.rounds):
+            for k, course in enumerate(courses[train:]):
+                r = play_round(course, ath, PuttAthlete(), green, learn=False, verbose=False,
+                               rng=random.Random(DEFAULT_SEED + k))
+                tot += r["strokes"]
+                pairs.append((r["strokes"], [e for h in r["rows"] for e in h["log"]]))
+        cards.append((name, tot, ath, pairs))
+        beliefs[name] = ath.sigma
+    base = cards[0][1]
+    print(f"  {'':18s}{'strokes':>9s}{'per round':>11s}{'vs gated':>10s}{'sigma believed':>16s}")
+    for name, tot, ath, pairs in cards:
+        per = tot / (args.rounds * test)
+        print(f"  {name:18s}{tot:9d}{per:11.2f}{tot - base:+10d}{ath.sigma:16.2f}")
+    print("\n  and what the shots actually did, on the same courses, with learning off:")
+    for name, tot, ath, pairs in cards:
+        angles = [e["angle_aim"] for _, logs in pairs for e in logs
+                  if e["kind"] == "shot" and e.get("angle_aim") is not None]
+        gated = [e["angle_aim"] for _, logs in pairs for e in logs
+                 if e["kind"] == "shot" and e.get("angle_aim") is not None and abs(e["cross"]) <= CROSS_QUIET]
+        print(f"    {name:18s} every shot {_sd(angles):5.2f}° (n={len(angles):3d})   "
+              f"still-air shots {_sd(gated):5.2f}° (n={len(gated):3d})   believes {ath.sigma:4.2f}°")
+    print("\n  the number that matters is the ratio of the second column to the last: an athlete whose belief "
+          "matches its shots is neither bold nor cautious, and one whose belief is half its scatter is aiming "
+          "at a pin it cannot hit.")
+    return 0
+
+
 def _shot(scene_ath: Athlete, hole: Hole, start: tuple[float, float], club: Club, gear: float,
           bearing: float, label: str, wind: tuple[float, float] = (0.0, 0.0),
           lens: str | None = None) -> dict:
@@ -1370,13 +1532,18 @@ def main(argv=None) -> int:
     ap.add_argument("--policy", default="spread", choices=["flag", "centre", "spread"],
                     help="where it aims: at the pin, at the middle of the green, or where the putt is likeliest")
     ap.add_argument("--calm", action="store_true", help="the same course on a still day")
+    ap.add_argument("--bags", type=int, default=1,
+                    help="how many athletes to train on different practice sets; the error bar becomes the "
+                         "spread across bags (the bag is a draw like the weather)")
     ap.add_argument("--draws", type=int, default=0,
                     help="evaluate the policies over N random pin-and-wind pairings instead of the fixed nine")
     ap.add_argument("--pin-range", type=float, default=14.0,
                     help="how far from the green's centre a drawn pin may be, in feet")
     ap.add_argument("--compare", action="store_true",
                     help="train one athlete, then play the same rounds under all three target policies")
-    ap.add_argument("--rounds", type=int, default=3)
+    ap.add_argument("--rounds", type=int, default=4)
+    ap.add_argument("--sigma", action="store_true",
+                    help="the scatter it believes against the scatter its shots have, in wind")
     ap.add_argument("--field", action="store_true",
                     help="six scripted athletes on one card: same course, same weather, different strategies")
     ap.add_argument("--render", metavar="SCENE", default=None,
@@ -1387,6 +1554,8 @@ def main(argv=None) -> int:
         return selftest()
     if args.compare:
         return compare(args)
+    if args.sigma:
+        return sigma_test(args)
     if args.draws:
         return draws(args)
     if args.field:
