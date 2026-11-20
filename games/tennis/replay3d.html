@@ -599,8 +599,7 @@ function legs(rig, phase, moving, face, turn, load, idle, walk) {
   set("shin.R", K * swing(phase + Math.PI) * stride + still * (0.20 + 0.12 * idleS) + 0.10 * load + (bk === "R" ? 0.30 * heel : 0), 0, 0);
   // The heel itself is the FOOT bone: rotating the shin swings the ankle sideways, which is why bending the back
   // knee alone moved the ankle 0.05ft and looked like nothing. The sign of a foot rotation is not in any comment
-  // here, so it is a constant with a probe behind it (`/tmp/foot.mjs`) rather than a guess buried in a line.
-  const HEEL = 0;
+  // here, so it is a constant with a probe behind it (`?heel=`, `?toe`) rather than a guess buried in a line.
   set("foot.L", -0.25 * (moving ? 1 : 0) + (bk === "L" ? HEEL * 0.45 * heel : 0), 0, 0);
   set("foot.R", -0.25 * (moving ? 1 : 0) + (bk === "R" ? HEEL * 0.45 * heel : 0), 0, 0);
   set("spine", -0.05 - 0.09 * live - 0.10 * load - still * 0.02, turn * 0.35 + still * 0.03 * idleS, 0.06);
@@ -1094,6 +1093,35 @@ function beside(north, px) {
 }
 let T = 0, playing = true, T0 = performance.now(), firstFrame = true, lastCam = null, signAlways = false;
 const q = new URLSearchParams(location.search);
+
+/* THE HEEL, as a number that can be measured rather than a convention nobody wrote down. The foot bone's
+   rotation axis is whatever the exporter wrote, so the sign is a fact about the file: `?heel=` sweeps it, and
+   `?toe` reports the point that actually leaves the ground (the foot bone's origin is the ANKLE, 0.45ft short of
+   the toe). 2026-11-19: it stood at 0, which means the back foot's heel never came up at all and the whole
+   `plantHeel` machinery drove nothing.
+
+   MEASURED, and it is not a sign error. 2026-11-19, first serve of seasons/2026-11-19, t = 2.05 (0.35s after
+   contact, so `plantHeel` = 1.00), Dmitri's BACK foot, ankle at 0.568ft:
+
+       ?heel=0    toe 0.349     ?heel=1   toe 0.203     ?heel=-1   toe 0.529
+
+   So the local X axis is NOT plantarflexion: it moves the toe 0.146ft per radian where a rotation square to a
+   0.45ft bone would move it 0.38. And the toe never reaches the ground at any of the three — because the thing
+   that lifts a heel is the ANKLE rising, and the ankle is set by the root and the knee. Which means the constant
+   is not the fix: `?heel` stays at 0 and the plant becomes part of the movement work (BACKLOG item 2a), where the
+   ankle can be raised and the foot aimed at the ground it is standing on. The probe is kept because the next
+   attempt needs it and nobody should measure this twice. */
+let HEEL = 0;
+if (q.has("heel")) HEEL = parseFloat(q.get("heel")) || 0;
+
+/* Where the ground is touched: 0.45ft along the foot bone from the ankle, in world feet. A still can show a foot
+   flat on the ground and a still cannot say whether it is, so this is the instrument the plant is solved against. */
+function toeOf(rig, name) {
+  const b = (rig.bones || {})[name]; if (!b) return NaN;
+  b.updateWorldMatrix(true, false);
+  return b.getWorldPosition(new THREE.Vector3())
+    .addScaledVector(new THREE.Vector3(0, 1, 0).transformDirection(b.matrixWorld), 0.45).y;
+}
 
 function shotAt(t) {
   for (const s of SEG) if (t >= s.start && t < s.start + s.dur + s.hold) return s;
@@ -1671,6 +1699,17 @@ function tick(now) {
   el("facecard").className = (who && !deepInBreak) ? "on" : "";
   if (onCut) el("cut").textContent =
     `between points · ${WINPOS[sh.rally] ? WINPOS[sh.rally].name : sh.player}`;
+
+  // `?toe` prints the point that leaves the ground, once a frame, with the `plantHeel` that is supposed to lift it.
+  // The bottom of a foot is a place, not a bone: the foot bone's origin is the ankle.
+  if (q.has("toe")) for (const pl of D.players) {
+    const r = rigs[pl.body]; if (!r) continue;
+    console.log("debug toe", pl.name, "L", toeOf(r, "footL").toFixed(3), "R", toeOf(r, "footR").toFixed(3),
+      "heel", (r.plantHeel || 0).toFixed(2), "back", r.plantBack || "-", "T", T.toFixed(3),
+      "s0", (seg ? seg.start : 0).toFixed(2), "toss", (seg ? (seg.tossDur || 0) : 0).toFixed(2),
+      "ankL", (r.bones["footL"] ? r.bones["footL"].getWorldPosition(new THREE.Vector3()).y : NaN).toFixed(3),
+      "ankR", (r.bones["footR"] ? r.bones["footR"].getWorldPosition(new THREE.Vector3()).y : NaN).toFixed(3));
+  }
 
   renderer.render(scene, camera);
   requestAnimationFrame(tick);

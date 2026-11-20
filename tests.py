@@ -5401,6 +5401,24 @@ class TestTheCastCanBeDrawn(unittest.TestCase):
             self.assertIn(f"`{n.lower()}.jpg`", sheet,
                           f"{n} has no drawing and is not asked for by name in bodies/faces/README.md")
 
+    def test_the_foot_has_an_instrument_before_it_has_another_constant(self):
+          """The back foot's heel-up has been rewritten four times and each time the coefficient was a guess, because
+          nothing in the page could say where the toe was. 2026-11-19 it was measured properly and the guess turned
+          out to be the wrong KIND of answer: the foot bone's local X moves the toe 0.146ft per radian (a rotation
+          square to the bone would move it 0.38), and the toe never reaches the ground at any setting, because what
+          lifts a heel is the ankle rising and the ankle belongs to the root and the knee.
+
+          So the constant stays 0 and the probe stays in. This asserts the probe, not the number: a future pass that
+          starts by guessing again is the failure this test is for."""
+          page = (self.games / "replay3d.html").read_text(encoding="utf-8")
+          self.assertIn("function toeOf(", page, "there is no way to read where the foot touches the ground")
+          self.assertIn("debug toe", page, "the toe is measured and never reported")
+          self.assertIn('q.has("heel")', page, "the heel constant cannot be swept, so it can only be guessed at")
+          self.assertIn("0.146ft per radian", page,
+                        "the measurement is not written down, so the next pass will re-derive it from nothing")
+          self.assertIn("let HEEL = 0;", page,
+                        "the heel is nonzero again without a measurement behind it")
+
     def test_the_cast_is_three_and_three(self):
         """`CAST.md` is prose and prose does not fail. This reads the six names out of the seasons' setup files and
         checks the two things the founder asked for that a test can see: six players, and both groups present."""

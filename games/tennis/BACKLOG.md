@@ -73,6 +73,40 @@ take-back is not posed — the body arrives at the contact pose and the racquet 
   from the ball on the contact frame (the lerp defect from 11-10, which put no racquet on the ball in
   any frame). **Number:** max delta at frame 0 in ft, before and after.
 
+## Item 2a — the heel does not come up, and the reason is not the constant (OPEN, measured 2026-11-19)
+
+The back foot is supposed to rise onto the ball at the end of a stroke, and the machinery for it has been in the
+page since 2026-11-11: `rig.plantHeel` (0 at contact, 1 by 0.33s) and `rig.plantBack` (which foot is behind) feed a
+single term on the foot bone. It has been rewritten four times, and each time the coefficient was a guess, because
+nothing in the page could say where the TOE was — the foot bone's origin is the ankle, and a still cannot tell a
+flat foot from a hovering one.
+
+That is now an instrument: `toeOf()` reads the point 0.45ft along the foot bone in world feet, `?toe` prints it once
+a frame with the plant that drives it, and `?heel=` sweeps the constant without editing the file.
+
+**Measured on the first real session of `seasons/2026-11-19`, at t=2.05 (0.35s after contact, so `plantHeel` =
+1.00), Dmitri's back foot, ankle at 0.568ft above the ground:**
+
+```
+?heel=0    toe 0.349      ?heel=1    toe 0.203      ?heel=-1   toe 0.529
+```
+
+Three facts fall out, and together they say the constant is the wrong KIND of answer:
+
+1. The foot bone's local X is not plantarflexion. It moves the toe **0.146ft per radian**; a rotation square to a
+   0.45ft bone would move it 0.38. So a radian of this axis is mostly twist, and looks it.
+2. **The toe never reaches the ground at any setting.** At `heel=0` it is 0.35ft up, which means the whole foot is
+   levitating — an artefact of the ankle rising (`serveLoad`, root rise) with nothing bringing the toe back down.
+3. What lifts a heel is the ANKLE rising relative to the toe, and the ankle belongs to the root and the knee.
+
+So: the constant stays 0, the probe stays in, and the plant moves into the movement work (items 3–6), where the
+ankle can be raised and the foot aimed at the ground it is standing on instead of rotated about an axis nobody
+chose.
+
+- **Done-test:** for a stroke with `plantHeel` = 1, the toe of the back foot is within 0.05ft of the ground it is
+  standing on and the ankle is at least 0.25ft above its toe. **Number:** toe and ankle heights per shot, reported
+  by `?toe` — the same instrument that produced the table above, which is why it exists.
+
 ## Item 3 — split step
 - **Done-test:** every shot in a 20-shot sample is preceded by a downward root-velocity blip of
   0.10–0.20 ft within 0.2 s of the opponent's contact. **Number:** the median delay from opponent
