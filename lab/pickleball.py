@@ -708,6 +708,7 @@ def play_rally(match: Match, players: dict[str, Player], pos: "Positions", choos
                 "path": shot["traj"].get("path") or [],
                 "land": [round(c, 2) for c in shot["traj"]["land"]] if shot["traj"].get("land") else None,
                 "net": [round(c, 2) for c in shot["traj"]["net"]] if shot["traj"].get("net") else None,
+                "stretch": round(stretch, 3),
                 "why": why})
         shot_no += 1
         # The member reads its own history, so the history is written in the words it plays with: what it asked
@@ -756,6 +757,13 @@ def play_rally(match: Match, players: dict[str, Player], pos: "Positions", choos
             say(f"       -- point: {rp.name} is {m['why']}")
             return {"shots": shot_no, "why": "unreachable", "fault_by": None, "fault_name": receiver,
                     "why_not": m["why"], "winner": hitter_team}
+        # How hard this ball was to reach, written on the record of the shot that *caused* the trouble: the
+        # distance the receiver had to cover and the seconds of slack left when they got there. `stretch` above is
+        # the contact a player actually made; these two are the demand that contact was made against, and without
+        # both the film can only say that a ball went out, never that anybody was troubled by it (page §5r).
+        if film is not None and film.get("shots"):
+            film["shots"][-1]["demand"] = round(m["gap"], 2)
+            film["shots"][-1]["spare"] = round(m["have"] - m["need"], 3)
         # the run is the engine's own arithmetic — `interception` — drawn as the line from where the feet were to
         # where they got, over the time the ball was in the air
         _move(film, rally_no, receiver, _frm_r, m["got"], t_now, t_now + m["at"])

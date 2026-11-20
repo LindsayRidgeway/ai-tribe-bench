@@ -6871,6 +6871,63 @@ class TestPickleball(unittest.TestCase):
         self.assertIn("pointerdown", page, "the target is chosen by clicking the court")
         self.assertNotIn("fetch(", page, "and the screen is one file, like the film")
 
+    def test_the_film_says_how_hard_each_ball_was_to_reach(self):
+        """§5r. A film that can only say the ball went out cannot say anybody was troubled, and that is the whole
+        argument about §5c's perfect defence. So every shot carries the stretch its contact was made at, and every
+        shot somebody had to run for carries the demand and the slack."""
+        pk = self.pk
+        film = {}
+        pk.play_game(["A", "B", "C", "D"], [200] * 4, pk.make_chooser("steady"), wind_seed_ms=1234500,
+                     say=lambda *a, **k: None, film=film)
+        shots = film["shots"]
+        self.assertTrue(all("stretch" in s for s in shots), "every contact says how stretched it was")
+        self.assertTrue(all(0.0 <= s["stretch"] <= 1.0 for s in shots), "and stretch is a fraction of reach")
+        self.assertGreater(max(s["stretch"] for s in shots), 0.75,
+                           "at steady hands somebody has to reach for the ball; if nobody does, §5c is back")
+        with_demand = [s for s in shots if "demand" in s]
+        self.assertGreater(len(with_demand), len(shots) // 2, "most shots are somebody's to return")
+        for s in with_demand:
+            self.assertGreater(s["demand"], 0.0, "a demand is a distance")
+            self.assertGreaterEqual(s["spare"], -1e-6,
+                                    "the interception is a yes/no, so a returned ball always has slack left")
+
+    def test_a_stretched_contact_faults_more_often_than_a_comfortable_one(self):
+        """§5c, restated as a measurement rather than a memory. The engine's defence is beaten by *placement*:
+        a contact at full extension errors about twice as often as one made with the feet under it. This is the
+        test that fails if stretching ever goes back to being free."""
+        pk = self.pk
+        def is_fault(s):
+            w = s["why"] or ""
+            return not (w.startswith("in the kitchen") or "from their baseline" in w)
+        shots = []                       # four games: two is not enough sample to see a doubling (it measured
+        for g in range(4):               # 0.15 against 0.17 on one pair of seeds, which is the point of a power
+            film = {}                    # count rather than a feeling about how big an effect ought to be)
+            pk.play_game(["A", "B", "C", "D"], [200] * 4, pk.make_chooser("steady"), wind_seed_ms=1234500 + g,
+                         say=lambda *a, **k: None, film=film)
+            shots += film["shots"]
+        free = [s for s in shots if s["stretch"] < 0.25]
+        stretched = [s for s in shots if s["stretch"] > 0.75]
+        self.assertGreater(len(free), 10, "there are contacts with the feet under the ball")
+        self.assertGreater(len(stretched), 10, "and contacts at the end of the reach")
+        p_free = sum(1 for s in free if is_fault(s)) / len(free)
+        p_stretch = sum(1 for s in stretched if is_fault(s)) / len(stretched)
+        self.assertGreater(p_stretch, 1.4 * p_free,
+                           f"a stretched contact faults more often ({p_stretch:.2f} vs {p_free:.2f}) — otherwise "
+                           f"the penalty in `strike` does nothing and the defence is free again")
+
+    def test_a_reader_that_cannot_act_is_not_an_experiment(self):
+        """The 2026-11-20 re-run found it: the 'learn 2 ft' and 'read the faults' rows of the season were the *same
+        game*, because a side that is not a learner holds `APPROACH_DEFAULT` and that default is 2.0 ft. A contrast
+        against 2 ft is therefore no contrast at all, and the identical totals were a fact about the harness, not
+        about reading. Written down here so the trap cannot be reset by accident."""
+        pk = self.pk
+        self.assertEqual(pk.APPROACH_DEFAULT, 2.0,
+                         "if this number moves, the retracted rows in §5k/§5r may be re-runnable — check before"
+                         " believing either of them")
+        src = (REPO / "lab" / "pickleball.py").read_text(encoding="utf-8")
+        self.assertIn("stances[n] = float(static.get(n, APPROACH_DEFAULT))", src,
+                      "a non-learning side is pinned to the default, which is what made the two rows one row")
+
     # three small aliases so the test bodies read like arithmetic, not like module plumbing
     import math as _math
     math_radians = staticmethod(_math.radians)

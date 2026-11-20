@@ -1269,6 +1269,10 @@ is the one §5f said wins, and it wins by seventeen points rather than §5f's tw
 is unchanged and its size is inside the noise §5k already flagged** — thirty-odd points, ±7 was generous, and this
 is the same experiment with a different body count.
 
+> **Retracted on 2026-11-20 — see §5r.** This table was measured through §5p's aim-distance leak. Re-run on the
+> arithmetic the choosers actually use, the learning team *loses* 188–223 and 9 of 24, and the last two rows are
+> one game played twice rather than two conditions. Do not quote the seventeen points.
+
 ### Kept on main
 
 `PARTNER_WALK` defaults true, and the two tests around it are the finding and the A/B in one: in long rallies the
@@ -1502,10 +1506,8 @@ not a game to eleven.
 
 ### What is owed
 
-- **The season lesson has not been re-run.** Its rows in §5f and §5n were measured through the leak, like every
-  other dink number. The re-runs above cover the two claims that drive conclusions — the dink game's shape and the
-  reach sweep — but 24 swapped games × 4 rows is owed before §5f's "the lesson is worth seventeen points" is
-  quoted again.
+- **The season lesson has been re-run — see §5r.** It was measured through the leak, and on true arithmetic the
+  lesson loses; §5f's and §5n's rows are retracted at their own sites.
 - **One rally of member play is not a measurement.** Three rallies, seven shots, and one netted ball is a story
   about a seat working, not a rate. The number that would say whether the movement language is *better* is
   serves-legal-per-serve over a few dozen serves, and that is an hour of model calls: worth buying once, in the
@@ -1619,3 +1621,108 @@ table in the prompt exists because of it), and never default to a game to eleven
   member list, films into `records/` and `replays/`. The screen above is the target and the mock is its spec.
 - **The season lesson re-run** is still owed from §5p — 24 swapped games × 4 rows, on the fixed aim.
 - **§5c's perfect defence.** Out-faults per rally 0.993; nothing in this turn or the last beats a player.
+
+## §5r The lesson, re-run, and what a defence is actually worth — 2026-11-20, midday
+
+§5p left one debt: §5f's and §5n's season rows were measured through the aim-distance leak, and a published
+conclusion rested on them. This is the re-run, and it does not survive. It also turned up the more embarrassing
+finding, which is that two of the four rows were never an experiment.
+
+### The re-run
+
+The same harness, the same 24 swapped games per row and the same pins (clock 1234500 upward, practice 200 all
+round); the only change is that the choosers now play the ball they probe.
+
+| 24 swapped games | through the leak (§5n) | on true aim |
+|---|---|---|
+| control (nobody learning) | 193–193, 12/24 | 203–203, **12/24** |
+| learner vs static 4 ft | 196–179, 14/24 | **188–223, 9/24** |
+| learner vs static 2 ft | 177–217, 7/24 | 205–225, 12/24 |
+| learner vs the fault reader | 177–217, 7/24 | 205–225, 12/24 |
+
+The control is still exactly symmetric, 203–203 across 24 swapped games, which is the check that the rerun is
+sane and the engine still has no seat bias in it. Everything else moved, and the row the page has been quoting for
+two days moved the wrong way: **the learning team now loses, 188–223 and 9 of 24.**
+
+Both halves agree in sign, which is the whole reason the design has two halves: with the north side learning it
+scored 73 against control's 77 and won 1 of 12 against 2 of 12; with the south side learning it scored 115 against
+control's 126 and won 8 of 12 against 10 of 12. Four points and eleven points, same direction. That is not noise
+in the sense §5k meant; it is a small, consistent penalty.
+
+**So the lesson is retracted, not revised.** §5f's "the lesson is worth twenty-seven points", §5n's "seventeen",
+the sentence that the direction is unchanged and the size is inside the noise — all of it was the leak's
+arithmetic, and none of it should be quoted again. What can be said on true aim is the weaker and more honest
+thing: a stance lesson learned from kitchen and momentum faults, on a book that only ever steps back, does not pay
+for itself. Why it costs four to eleven points is the next measurement and it is not done: the candidate is that
+the book walks players to one foot behind their kitchen line, and on true aim that is where the ball now goes —
+which would make the lesson's target and the choosers' target the same square foot.
+
+### The row that was never an experiment
+
+`learner vs static 2 ft` and `learner vs the fault reader` are identical in both runs — same points, same games won,
+same stances held, in the leaky table and in this one. That is not a coincidence and it is not a coincidence twice:
+
+- `APPROACH_DEFAULT = 2.0`, the stance a side holds when it has no lesson;
+- `play_season` pins every non-learning side to `static.get(n, APPROACH_DEFAULT)`, so "hold them at 2 ft" and
+  "let them hold nothing" are the same instruction;
+- the fault reader was installed on the *opponents* of the learning side, and opponents that are not learners
+  cannot act on what they read, so the reader was an observer with no hands.
+
+So the two rows are one game played twice, and the conclusion §5k drew — that reading your own faults buys
+nothing over standing still — had no experiment behind it at all. It is retired here rather than deleted, and a
+test now guards the trap: `test_a_reader_that_cannot_act_is_not_an_experiment` fails if the default moves without
+somebody noticing what it means.
+
+### What a defence is worth, measured
+
+The re-run needed a way to see trouble in a film, and the film did not have one: it could say a ball went out, and
+never that anybody was stretched reaching it. Every shot now carries three more numbers — `stretch` (0 = feet under
+the ball, 1 = the end of the reach), `demand` (feet the next player had to cover) and `spare` (seconds of slack
+left when they got there). Eight games a level, practice 200 all round:
+
+| hands | contacts | faults | P(fault) at stretch < 0.25 | P(fault) at stretch > 0.75 |
+|---|---|---|---|---|
+| dink | 2,046 | 288 | 10.1% | **23.3%** |
+| steady | 1,273 | 210 | 6.7% | **17.5%** |
+| place | 1,644 | 343 | 10.3% | **23.0%** |
+
+**A stretched contact faults two and a half times as often as a comfortable one**, at every level, and the ratio
+is remarkably stable — 2.3, 2.6, 2.2. §5c's fix (the stretch penalty in `strike`, 2026-11-16) is doing exactly what
+it was built to do, and it is now a test rather than a memory:
+`test_a_stretched_contact_faults_more_often_than_a_comfortable_one`.
+
+The other half is the surprise, and it changes the name of the defect. **Time is not the constraint.** In the dink
+game not one returned ball was met with less than a tenth of a second of slack, and in the driving game 16% were —
+yet slack does not predict the next shot's error (steady: 19.2% of pairs after a rushed ball faulted against 15.1%
+after a comfortable one; place: 3.8% against 21.2%, on 26 pairs, which is backwards and too thin to mean anything).
+The reason is structural: `interception` is a yes/no about arrival, so a ball that is returned was, by definition,
+reached in time. What a hard ball costs is not the run, it is the **extension at the contact** — and the extension
+is already in `stretch`.
+
+That reframes §5c honestly. The defect was never "nothing ever beats a player". It is:
+
+> **Nothing ever reaches the edge.** The ball is almost always reachable; the cost of a good shot is paid as a
+> stretched contact, and a stretched contact surfaces as the hitter's own miss rather than as a ball nobody could
+> get to. In the driving game 97% of all faults are made at full extension; in the dink game 44%; and 60–68% of
+> faults miss by less than a foot.
+
+Three things follow, and they explain two earlier results that looked unrelated:
+
+- **adding a body (§5n) could not change the fault mix.** Reach was never the binding constraint at dink pace; the
+  second body changed where players stood and how long rallies ran, not whether a ball could be got to.
+- **the volley is a height question, not a speed question** (§5m, §5i). A ball has to be high enough to attack, and
+  the dink game's balls never are, so the momentum rule stays nearly unasked in the game the engine plays best.
+- **the lever is the reach boundary** — `PADDLE_REACH`, `COMFORT`, `movement_speed`, `react` — and §5l's sweep is
+  the evidence that the lever works: at 3 ft reach there are 11.9 unreachable balls a game at steady hands.
+
+That is the next unit, and it is a parameter question before it is a physics question: what does the reach sweep
+say about a game where the near-perfect defender is 4.5 ft rather than 6?
+
+### Owed
+
+- **Why the lesson now costs points.** Compare `stretch`, `demand` and `unreachable` between the learners and the
+  pinned opponents on the same pins. If the book walks players onto the ball's own landing point, the lesson is
+  teaching a stance that its own choosers punish.
+- **The stance book is monotone by design** — it only steps back, and §5k said so. A rule with no way home can only
+  lose once the faults it reads stop being about the stance.
+- **The app wiring**, unchanged from §5q.
