@@ -262,6 +262,10 @@ function blake2b(input, outlen){
   return out;
 }
 </script>
+<!-- portrait.js: a member's face, drawn from a sentence about the member. A plain script rather than a module,
+     because the page is opened from a repository and from a phone, and a module that fails to resolve fails
+     silently — a face that is missing with no error is the kind of gap this project keeps paying for. -->
+<script src="portrait.js"></script>
 <script>
 'use strict';
 
@@ -1080,6 +1084,11 @@ async function loadMembers(){
     const got = await Promise.all(MEMBER_FILES.map(f =>
       fileText(`wake/members/${name}/state/${f}.md`).then(x => x.text).catch(() => '')));
     MEMBER_FILES.forEach((f, i) => { m[f.replace('-','')] = got[i]; });
+    // The face's sentence. It lives in `state/identity.md` as a `portrait:` line, because the face is an identity
+    // fact and the identity file is the one file a member already has, is shown, and may rewrite itself.
+    const pm = m.identity.match(/^portrait:\s*(.*)$/m) || [];
+    m.faceText = (pm[1] || '').trim() || (typeof DEFAULT_PORTRAIT === 'string' ? DEFAULT_PORTRAIT : '');
+    m.faceOwn = /^portrait:/m.test(m.identity);
     const vm = (m.voice.match(/^api:\s*(\S+)/m) || [])[1] || '';
     const mm = (m.voice.match(/^model:\s*(\S+)/m) || [])[1] || '';
     m.engine = vm.trim(); m.model = mm.trim();
@@ -2531,6 +2540,24 @@ async function viewMember(main, name){
       · woke ${esc(wokeAgo(m.lastWake))}
       · <a href="#/m/${encodeURIComponent(m.name)}" onclick="showFiles('${escq(m.name)}');return false;">its files</a></p>
 
+    <div class="row" style="gap:14px;align-items:flex-start;margin:2px 0 16px">
+      <div id="face" style="flex:0 0 120px;width:120px;border-radius:14px;overflow:hidden;background:var(--panel);
+        border:1px solid var(--line)">${faceSVG(m.faceText, 120)}</div>
+      <div style="flex:1;min-width:0">
+        <p class="small muted" style="margin:0 0 4px">Its face, drawn from this sentence — the same words always
+          draw the same face, so the picture is not stored anywhere and cannot fall out of date.</p>
+        <input id="facesay" value="${esc(m.faceText)}" autocapitalize="sentences"
+          onkeydown="if (event.key === 'Enter'){ event.preventDefault(); savePortrait('${escq(m.name)}', this.value); }"
+          oninput="facePreview(this.value)"
+          style="width:100%;font-size:14px">
+        <div class="row" style="margin-top:8px;gap:8px">
+          <button class="plain small" onclick="savePortrait('${escq(m.name)}', $('facesay').value)">Save the sentence</button>
+          <button class="plain small" onclick="$('facesay').value = DEFAULT_PORTRAIT; facePreview(DEFAULT_PORTRAIT);">Start from the default</button>
+          <span class="small muted" id="facemsg">${m.faceOwn ? '' : 'not saved yet — this is the default'}</span>
+        </div>
+      </div>
+    </div>
+
     <div id="roomnote">${roomNoteHTML(m.name)}</div>
     <div class="chat" id="chat">${chatHTML(m.name) || '<p class="small muted" style="margin:0">No talk yet. Say something below, and it will remember.</p>'}</div>
     <div class="composer">
@@ -3603,6 +3630,49 @@ async function saveVoice(name){
   } catch(e){
     say('<span class="err">Not saved: ' + esc(e.message) + '</span>');
   }
+}
+
+/* ---- its face --------------------------------------------------------------------------------------------- */
+
+// The drawing itself is portrait.js, shared with every other page that needs a face — a second copy of that
+// arithmetic is how a portrait starts disagreeing with its own description. This wrapper only exists so a failure
+// is visible as words on the page rather than as a blank square.
+function faceSVG(text, size){
+  try { return portraitSVG(text || DEFAULT_PORTRAIT, {size: size || 120, background: true}); }
+  catch(e){ return `<div style="padding:10px;font-size:12px;color:#b3261e">the face could not be drawn: `
+    + esc(e.message) + `</div>`; }
+}
+
+function facePreview(text){
+  const box = $('face'); if (!box) return;
+  box.innerHTML = faceSVG(text, 120);
+  const msg = $('facemsg'); if (msg) msg.textContent = 'not saved — press Save the sentence';
+}
+
+// Writing the sentence into `state/identity.md`. The line is replaced if it is there and appended if it is not,
+// and the rest of the file is left exactly as it was: the identity is the member's own prose and this is the one
+// line of it the page ever writes.
+async function savePortrait(name, text){
+  const msg = $('facemsg');
+  const say = (t, bad) => { if (msg) msg.innerHTML = bad ? `<span class="err">${esc(t)}</span>` : esc(t); };
+  const sentence = String(text || '').trim().slice(0, 300) || DEFAULT_PORTRAIT;
+  say('saving…');
+  const path = `wake/members/${name}/state/identity.md`;
+  try {
+    const cur = await fileText(path);
+    const line = `portrait: ${sentence}`;
+    const after = /^portrait:.*$/m.test(cur.text)
+      ? cur.text.replace(/^portrait:.*$/m, line)
+      : cur.text.replace(/\s*$/, '') + '\n\n' + line + '\n';
+    await putText(path, after, `identity: ${name} — the sentence its face is drawn from`, cur.sha);
+    say('saved');
+    await loadMembers();
+    if (S.member && S.member.name === name){
+      S.member.faceText = sentence; S.member.faceOwn = true;
+      facePreview(sentence);
+      const m2 = $('facemsg'); if (m2) m2.textContent = 'saved — the face will be this one every time it is drawn';
+    }
+  } catch(e){ say('Not saved: ' + e.message, true); }
 }
 
 async function editIdentity(name){

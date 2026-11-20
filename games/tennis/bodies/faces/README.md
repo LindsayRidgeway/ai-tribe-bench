@@ -1,3 +1,10 @@
+> **CLOSED 2026-11-20 — nothing is wanted here.** The founder closed the request for these four drawings and
+> answered with a better mechanism: *"Kythe overall should have an image of each member, generated from a bit of
+> text visible, with default text, and editable, in the member's UI."* That is `portrait.js` at the repository root —
+> a deterministic drawing from a sentence in `state/identity.md`, per circle, per member, with nothing to store.
+> This page stays as the record of what was asked and why it was the wrong thing to ask for: a drawing exists only
+> for the circles somebody was willing to draw for, and it is one face for every circle.
+
 # The faces — what goes in this folder, and why
 
 Six people play on this court. Each of them is a body built from parameters (`../colette.glb` and so on), and a

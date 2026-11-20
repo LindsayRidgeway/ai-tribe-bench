@@ -155,9 +155,12 @@ next season opens on a new directory, which is how this design resets without wi
   builds one member from parameters in **1.5 seconds**. The four missing ones are built, at the heights and kit
   colours in `seasons/2026-spring/setup.json`: Colette 1.66m plum, Ada 1.74m slate, Remy 1.81m teal, Bo 1.92m
   cream. A film of Ada and Bo is `records/cast-2026-11-19.json`.
-- **Four faces — open.** `bodies/faces/` holds `dmitri.jpg` and `gwen.jpg`, both drawn by the founder. The other
-  four cannot be generated here. The break card now draws a monogram in their place, so the season is watchable
-  without them; the drawings are a request, not a blocker.
+- **Four faces — CLOSED 2026-11-20, and not with drawings.** The founder closed the request in chat: every circle
+  should have its own faces, generated from editable text in each member's UI, rather than one set of drawings
+  reused by everybody. `portrait.js` at the repository root now does exactly that — a deterministic SVG drawn from a
+  sentence in the member's `state/identity.md` (`portrait: …`), so there is no picture to store and nothing to fall
+  out of date. The tennis break card still shows a monogram: pointing it at the same generator is the next piece of
+  work, and it needs nothing from anybody.
 - **A clock — done as a command, not yet as a schedule.** `python3 lab/tennis.py --schedule --season <S>` plays
   the next session the plan says is due and closes the season when the plan is done; `2026-tour` was played to
   completion with it. What is still missing is something to run that command while nobody is looking — a cron

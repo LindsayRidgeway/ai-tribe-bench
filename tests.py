@@ -4367,6 +4367,75 @@ class TestNobodyIsStandingAboveTheCourt(unittest.TestCase):
             self.assertIn(piece, self.backlog, f"{piece} is not in the backlog entry for item 2a")
 
 
+class TestEveryMemberHasAFaceItCanRegenerate(unittest.TestCase):
+    """Founder, 2026-11-20, after closing the request for four drawings:
+
+        *"I don't think you want every circle's tennis games to use the same faces. Rather, I would think that Kythe
+        overall should have an image of each member, generated from a bit of text visible, with default text, and
+        editable, in the member's UI. When the user is created, and whenever the text is modified, I would think a
+        new image of the member should be generated."*
+
+    He is right, and about more than the four faces: a picture that has to be drawn by somebody is a picture that
+    exists for exactly the circles somebody was willing to draw for. What is held here is the shape of the answer —
+    the face is a FUNCTION of a sentence, so there is nothing to regenerate, nothing to store, and nothing that can
+    fall out of date; the sentence is in `identity.md`, which a member already has; and the drawing needs no
+    network, so it works in a circle with no image service. `lab/portrait-check.mjs` is the arithmetic's own check
+    and this class runs it rather than restating it."""
+
+    def setUp(self):
+        self.page = (REPO / "ait.html").read_text(encoding="utf-8")
+        self.gen = (REPO / "portrait.js").read_text(encoding="utf-8")
+
+    def test_the_face_is_a_function_of_a_sentence_and_not_a_picture_on_disk(self):
+        self.assertIn("function portraitSVG(text, opts)", self.gen)
+        self.assertIn("hash32", self.gen, "the drawing is not deterministic, so it is a different person each reload")
+        for net in ("fetch(", "XMLHttpRequest", "<image", "toDataURL"):
+            self.assertNotIn(net, self.gen,
+                             f"the generator reaches for {net} — a face that needs a network is missing in exactly "
+                             f"the circles that have no image service")
+
+    def test_the_members_page_shows_the_face_and_lets_the_sentence_be_edited(self):
+        self.assertIn('<script src="portrait.js"></script>', self.page)
+        self.assertIn('id="face"', self.page, "the member's page has no place for its face")
+        self.assertIn('id="facesay"', self.page, "the sentence is not visible and not editable")
+        self.assertIn("oninput=\"facePreview(this.value)\"", self.page,
+                      "editing the sentence does not redraw the face, which is the whole feature")
+        self.assertIn("function faceSVG(text, size)", self.page)
+
+    def test_saving_the_sentence_writes_exactly_one_line_into_the_identity(self):
+        self.assertIn("async function savePortrait(name, text)", self.page)
+        self.assertIn("/^portrait:.*$/m.test(cur.text)", self.page,
+                      "the page does not notice an existing `portrait:` line, so it would add a second")
+        self.assertIn("await putText(path, after,", self.page,
+                      "the line is not written back to identity.md, so the face would not survive a reload")
+
+    def test_a_new_member_is_created_with_the_default_sentence(self):
+        import importlib
+        tribe = importlib.import_module("tribe")
+        text = tribe.identity_text("ada", "the third seat", " of a circle", "a person", "", "lean")
+        self.assertIn(f"portrait: {tribe.PORTRAIT_DEFAULT}", text,
+                      "a member created today has no `portrait:` line, so its face would be the fallback forever")
+        self.assertGreaterEqual(len(tribe.PORTRAIT_DEFAULT), 20)
+
+    def test_the_default_sentence_is_the_same_sentence_in_both_languages(self):
+        import importlib
+        tribe = importlib.import_module("tribe")
+        m = re.search(r"const DEFAULT_PORTRAIT = '([^']*)';", self.gen)
+        self.assertIsNotNone(m, "portrait.js has no DEFAULT_PORTRAIT any more")
+        self.assertEqual(m.group(1), tribe.PORTRAIT_DEFAULT,
+                         "two copies of the default sentence have drifted apart, so the face a new member is drawn "
+                         "with is not the face its identity describes")
+
+    def test_the_generator_passes_its_own_checks(self):
+        node = shutil.which("node")
+        if not node:
+            self.skipTest("node is not installed here, so the drawing's own checks did not run")
+        r = subprocess.run([node, str(REPO / "lab" / "portrait-check.mjs")],
+                           capture_output=True, text=True, timeout=120)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertIn("all portrait checks passed", r.stdout)
+
+
 class TestTheFirstStepIsNotFree(unittest.TestCase):
     """Item 14 of the tennis backlog, fifth move: the run, as a run.
 

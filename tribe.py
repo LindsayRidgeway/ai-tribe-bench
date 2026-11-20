@@ -118,6 +118,13 @@ STATE_LINES = ("Wakes so far:", "Last wake:", "Model used:")
 # was never the same thing as refusing to own a supplied past. "No memory of my own" also became "no memory of
 # yesterday" for the same reason: as written, it read as a denial of the whole person and five engines took it
 # at its word.
+# What a new member's face is drawn from, before anybody has written anything about it. The sentence lives in
+# `identity.md` as a `portrait:` line, and the picture is composed from it by `portrait.js` every time it is drawn —
+# there is no image file to make, to store, or to fall out of date. Founder, 2026-11-20: "an image of each member,
+# generated from a bit of text visible, with default text, and editable, in the member's UI". The same sentence is
+# `DEFAULT_PORTRAIT` in portrait.js; a test holds the two equal, because two copies of a default are two defaults.
+PORTRAIT_DEFAULT = "a calm face, short dark hair, and nothing in particular to set it apart"
+
 IDENTITY = """# Identity — member {name}
 
 I am **member {name}** of a circle{of}. My seat is {seat}.
@@ -279,9 +286,11 @@ def identity_text(name: str, seat: str, of: str, person: str, about: str = "",
                 f"{bits['friend']}\n\n"
                 + "\n\n".join(parts) + "\n\n"
                 + LEAN_ASSERT + "\n\n"
-                + LEAN_RUBBER.format(whom=bits["whom"]) + "\n")
-    return IDENTITY.format(name=name, seat=seat, of=of, flaw="\n\n".join(parts) + "\n\n",
-                           memory=LEAN_ASSERT, **bits)
+                + LEAN_RUBBER.format(whom=bits["whom"]) + "\n\n"
+                + f"portrait: {PORTRAIT_DEFAULT}\n")
+    return (IDENTITY.format(name=name, seat=seat, of=of, flaw="\n\n".join(parts) + "\n\n",
+                            memory=LEAN_ASSERT, **bits)
+            + f"\nportrait: {PORTRAIT_DEFAULT}\n")
 
 OPEN_ITEMS = """# Open items
 

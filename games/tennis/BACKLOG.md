@@ -1206,6 +1206,15 @@ ceiling, no violations. The gate holds on the clock's own session, not just on t
 *Done-test:* the scheduler refuses to add an eighth session to a closed season, and the clock opens a new one
 rather than reviving it.
 
+## Item 28 — the film's characters wear the generated faces (OPEN, and nothing on V1 waits for it)
+
+The break card draws a monogram where a face should be. `portrait.js` at the repository root can draw one from a
+sentence, and a tennis character is exactly the case it was built for: four characters who exist nowhere but in a
+game, each with a setup.json entry that could carry one line of text. The work is to give the four characters a
+sentence each in `setup.json` and point `replay3d.html`'s break card at `portraitSVG()`, keeping the monogram as the
+fallback for a record that has no sentence. Two files, one afternoon — but it is not on the V1 path, because a
+monogram has never stopped anybody watching a film.
+
 ## Item 27 — the films accumulate in git, and the record already knows how to rebuild them (OPEN, not on the V1 path)
 
 Found while measuring the clock's first session. `watch.json` is committed so the page can fetch it, and each
