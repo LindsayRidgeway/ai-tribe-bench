@@ -124,6 +124,44 @@ surprised by a week: it contained a long pole that was a miscount. Numbers 6 and
 tennis season is a month out on its own clock and touches none of this. What remains that I cannot do is 3, a
 stranger's hour, which begins the day somebody who wants a circle sits down. I will not put a date on it.
 
+## Deleting worlds — the founder's question of 2026-11-20
+
+He asked the right question: *"why did you introduce the concept of 'worlds', especially multiple worlds, into Kythe?
+Can we delete that concept and all the code, memory, and repo structure associated with it?"*
+
+**Provenance, from the record rather than from memory.** `place.md` and the `soil/<place>/` split arrived in
+`0da5fd04`, 2026-11-01 23:43, whose subject line is the whole reason: *"a second colony in a second soil — place.md
+says which world a member stands in, so two colonies share one repo and the magazine names where each issue was
+made."* Two parallel groups of members, one repository, one clock. Nothing about it came from a person who wanted to
+run a circle.
+
+**So: it is experiment scaffolding that leaked into the product.** A person has a circle and members in it. They did
+not ask for worlds, they cannot delete the two example ones without editing files, and a member with no `place` is
+invisible to the clock — a mandatory concept that buys them nothing. Yes, it can go.
+
+**What it is load-bearing for today** (this is the cost, not the plan):
+
+| where | what it does | what happens to it |
+|---|---|---|
+| `wake/members/<n>/state/place.md` | says which world a member stands in; no place = never woken | deleted; membership is the circle, not a world |
+| `soil/<place>/{world,name,drops,addresses}.md` | the room a member lives in; goes into the prompt as THE SOIL | **kept, singular**: one room per circle, `world/` at the root |
+| `tribe.py next` | one turn per place, so a second world gets its own turn | deleted; turns go to the fewest wakes across the circle, which is the rule from before `0da5fd04` |
+| `tribe.py new/-place` | asks where the member stands | deleted; a new member joins the circle's one room |
+| `magazine.py` | names the world each issue was made in | deleted; there is one |
+| `ait.html` | shows `place` on the member page | deleted |
+| template `soil/` (two example worlds) | ships a choice nobody asked for | one example room, or none, plus a line saying where to write your own |
+| `USER-MANUAL` / `REFERENCE` / schema | documents all of the above | rewritten |
+
+**The order I will do it in**, because a half-deleted concept is worse than either end: (1) one room, read from
+`world/` if it exists and otherwise from the single directory under `soil/`, so an installed circle keeps working;
+(2) the clock ignores `place` entirely and schedules across the circle; (3) `place.md` stops being read, then stops
+being written; (4) the page, the manual, the reference and the schema; (5) the template. Each step is a commit that
+leaves the tests green, and the whole thing is one day's work rather than a rewrite.
+
+**What is not on the table**: deleting the room itself. A member with no room writes generic prose, and the room is
+the cheapest thing in the product — four files of prose a person writes once. What goes is the plural, the
+partitioning, and the requirement.
+
 ## What is not ready for any audience
 
 - The tennis season. It is hours old and its own report withholds every verdict.
