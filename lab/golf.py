@@ -403,6 +403,12 @@ WIND_REF_SPEED = 150.0            # ft/s
 # face angle out of: about 5 mph across. Above it the shot still counts; it just does not teach the hands.
 CROSS_QUIET = 0.035
 
+# The smallest scatter `target()` will believe, in feet at the flag. It is a floor on the *model* — a normal
+# tail wider than a golf ball — and not a floor on skill, which is why it must be small. At 2.0 ft (passes 2-8)
+# it was larger than a 1° scatter from anywhere inside 76 ft, so the target decision ignored the belief
+# altogether and six taught sigmas from 0.6° to 3.0° played the same card. Measured, pass 9.
+FLOOR_FT = 0.5
+
 
 # What a beginner believes about a bag, against what it does. Not random: the shape of the error is the shape
 # of the mistake everybody makes — too much faith in the short irons, no idea what the wedges do, and a
@@ -554,8 +560,14 @@ class Athlete:
             return hole.pin
         if self.policy == "centre":
             return 0.0
-        s = max(2.0, math.radians(self.sigma) * dist_ft)
-        best = None
+        # Pass 9. This floor was 2.0 ft from the second pass to the eighth, and it was the whole of the
+        # answer to the eighth pass's deflation: an honest sigma (0.9-1.1°, hands 1.10°) is below a 2 ft
+        # spread at every approach range in the game, so the floor decided the target and the belief never
+        # reached it. It is not a bound on how well anyone can aim — it was a bound on a *model*, standing
+        # in for the fact that a normal tail is fatter than a golf ball's. What it is now is small enough
+        # to bind only inside 30 ft, where a green is a putting surface and a 0.5 ft floor is honest.
+        s = max(FLOOR_FT, math.radians(self.sigma) * dist_ft)
+        scored: list[tuple[float, float]] = []
         for k in range(-45, 46):
             t = float(k)
             p_on = _phi((GREEN_A - t) / s) - _phi((-GREEN_A - t) / s)
@@ -566,9 +578,14 @@ class Athlete:
             elif hole.sand < 0:
                 p_sand = _phi((-GREEN_A - t) / s) - _phi((-GREEN_A - BUNKER_W - t) / s)
             value = p_on + 0.3 * max(0.0, p_near) - self.sand_pen * p_sand
-            if best is None or value > best[0]:
-                best = (value, t)
-        return best[1]
+            scored.append((value, t))
+        # Pass 9, the second half. With the floor at 2 ft the objective had one peak wherever it was
+        # evaluated; with the floor gone, a scatter of a foot makes it *flat* over a band — every target
+        # from which the ball is certain to finish on the green and inside 25 ft of the pin scores exactly
+        # the same — and the loop was returning whichever end of that band it reached first, which is a
+        # fact about the range(-45, 46) and not about a golf shot. Ties are broken at the flag now.
+        top = max(v for v, _ in scored)
+        return min((t for v, t in scored if v >= top - 1e-9), key=lambda t: abs(t - hole.pin))
 
 
 def _phi(z: float) -> float:
@@ -1112,11 +1129,29 @@ def selftest() -> int:
         a.sigma = sig
     near_t = [a.target(hole40, (13.0, hole40.centre[1] - 40.0), 40.0) for a in near]
     far_t = [a.target(hole200, (13.0, hole200.centre[1] - 200.0), 200.0) for a in far]
-    check("and inside 76 ft the belief never reaches the target at all",
-          near_t[0] == near_t[1] and far_t[0] != far_t[1],
-          f"from 40 ft a scatter of 0.6° and of 3.0° both aim at {near_t[0]:+.0f} ft; from 200 ft they aim at "
-          f"{far_t[0]:+.0f} and {far_t[1]:+.0f}. The floor of 2 ft in `target()` is a rule of the player's, and "
-          f"it is what decides the pin inside 76 ft — not the scatter")
+    check("the belief reaches the target at every range, not only past 76 ft",
+          near_t[0] - near_t[1] >= 3.0 and far_t[0] - far_t[1] >= 3.0,
+          f"from 40 ft a scatter of 0.6° aims at {near_t[0]:+.0f} ft and one of 3.0° at {near_t[1]:+.0f}; from "
+          f"200 ft at {far_t[0]:+.0f} and {far_t[1]:+.0f}. Until pass 9 the floor in `target()` was 2 ft, which "
+          f"is wider than a 1° scatter inside 76 ft, and both of those short answers were the same number")
+
+    # 29. Taking the floor out made the objective *flat* over a band — every target from which the ball is
+    # certain to be on the green and inside 25 ft of the pin scores the same — and the scan was answering
+    # with whichever end of the band it reached first. That is a fact about range(-45, 46). Ties are now
+    # broken at the flag, and an interior pin is the case where every policy has to agree.
+    band = []
+    for pin in (-6.0, 0.0, 6.0):
+        h = Hole(400, 4, "T", pin=pin, sand=+1)
+        for sig in (0.5, 3.0):
+            a = copy_of(probe)
+            a.sigma = sig
+            band.append(a.target(h, (13.0, h.centre[1] - 40.0), 40.0))
+    check("a flat objective is broken at the flag, not at the end of the scan",
+          band == [-6.0, -6.0, 0.0, 0.0, 6.0, 6.0],
+          f"pins −6/0/+6 from 40 ft, a 0.5° and a 3.0° belief: {', '.join(f'{x:+.0f}' for x in band)}. The "
+          f"floor never bound on this hole — it answers the same with 2 ft or 0.5 — so this is the tie-break "
+          f"alone: before it, a pin at 0 from 40 ft was answered −15 ft, the left end of a band the objective "
+          f"scores as flat, because that is where `for k in range(-45, 46)` starts counting")
 
     print(f"\n  {len(fails)} of {n} checks failed" if fails else f"\n  all {n} checks pass")
     return 1 if fails else 0
@@ -1377,50 +1412,77 @@ def _mean(xs: list[float]) -> float:
 
 
 def sigma_test(args) -> int:
-    """Does the gate that keeps a crosswind out of the hands' education cost the player anything?
+    """Does a *belief about its own hands* reach the player's card, now that the floor is out of the way?
 
-    Two quantities, and the whole experiment is that they had never been measured against each other:
-    the scatter the athlete *believes* (which is what its target decision is made of) and the scatter its
-    shots *have* in the weather it is playing. The belief is learned from the shots the gate lets through;
-    the scatter is a fact about the air and about a player that cannot aim off for a crosswind.
+    Two quantities, and the whole of the first experiment was that they had never been measured against each
+    other: the scatter the athlete *believes* (which is what its target decision is made of) and the scatter
+    its shots *have*. The eighth pass measured both and found that the belief never reached the card — the
+    target decision floors the scatter at 2 ft, and 2 ft is wider than a 1° scatter inside 76 ft, so six
+    values from 0.6° to 3.0° played the same card to within fifteen strokes in nine hundred.
+
+    The floor is 0.5 ft now. **And the bar in the first version of this report was wrong**, which is the
+    other half of the pass: it paired the arms by course and divided by the spread of course-mean
+    differences, but the shot streams diverge at the first decision the arms disagree about, so the noise
+    that pairing was supposed to cancel survives — and running the same six arms on four independent streams
+    moved every one of them by half a stroke, which is most of the effect being claimed. `--streams` repeats
+    the whole experiment on independent shot streams and reports the across-stream spread as the bar. The
+    paired-by-course bar is gone: it was a bar on the draw, not on the noise.
     """
     green = Green(stimp=10.0, grade=1.2, downhill=135.0)
     train, test = max(2, args.draws // 3), max(2, args.draws // 3)
     courses = [drawn_course(random.Random(7000 + k), args.pin_range) for k in range(train + test)]
     print(f"{train} courses to learn on, {test} to play, pins ±{args.pin_range:.0f} ft, wind drawn, "
-          f"{args.rounds} times through the test set\n")
-    cards, beliefs = [], {}
-    for name, taught, gated in TAUGHT_ARMS:
-        ath = Athlete(sigma_taught=taught, gate=gated)
-        ath.policy = "spread"
-        for k, course in enumerate(courses[:train]):
-            play_round(course, ath, PuttAthlete(), green, learn=True, verbose=False,
-                       rng=random.Random(DEFAULT_SEED + k))
-        tot, pairs = 0, []
-        for _ in range(args.rounds):
-            for k, course in enumerate(courses[train:]):
-                r = play_round(course, ath, PuttAthlete(), green, learn=False, verbose=False,
-                               rng=random.Random(DEFAULT_SEED + k))
-                tot += r["strokes"]
-                pairs.append((r["strokes"], [e for h in r["rows"] for e in h["log"]]))
-        cards.append((name, tot, ath, pairs))
-        beliefs[name] = ath.sigma
-    base = cards[0][1]
-    print(f"  {'':18s}{'strokes':>9s}{'per round':>11s}{'vs gated':>10s}{'sigma believed':>16s}")
-    for name, tot, ath, pairs in cards:
-        per = tot / (args.rounds * test)
-        print(f"  {name:18s}{tot:9d}{per:11.2f}{tot - base:+10d}{ath.sigma:16.2f}")
-    print("\n  and what the shots actually did, on the same courses, with learning off:")
-    for name, tot, ath, pairs in cards:
-        angles = [e["angle_aim"] for _, logs in pairs for e in logs
-                  if e["kind"] == "shot" and e.get("angle_aim") is not None]
-        gated = [e["angle_aim"] for _, logs in pairs for e in logs
-                 if e["kind"] == "shot" and e.get("angle_aim") is not None and abs(e["cross"]) <= CROSS_QUIET]
+          f"{args.rounds} times through the test set, {args.streams} independent streams\n")
+    per_arm: dict[str, list[float]] = {}
+    beliefs, last_logs = {}, {}
+    for stream in range(args.streams):
+        base = DEFAULT_SEED + 1000 * stream
+        for name, taught, gated in TAUGHT_ARMS:
+            ath = Athlete(sigma_taught=taught, gate=gated)
+            ath.policy = "spread"
+            for k, course in enumerate(courses[:train]):
+                play_round(course, ath, PuttAthlete(), green, learn=True, verbose=False,
+                           rng=random.Random(base + k))
+            tot, logs = 0, []
+            for _ in range(args.rounds):
+                for k, course in enumerate(courses[train:]):
+                    r = play_round(course, ath, PuttAthlete(), green, learn=False, verbose=False,
+                                   rng=random.Random(base + 500 + k))
+                    tot += r["strokes"]
+                    logs += [e for h in r["rows"] for e in h["log"]]
+            per_arm.setdefault(name, []).append(tot / (args.rounds * test))
+            beliefs[name], last_logs[name] = ath.sigma, logs
+    print(f"  {'':18s}{'strokes/round':>15s}{'± across':>10s}{'vs gated':>17s}{'sigma believed':>16s}")
+    ref = per_arm[TAUGHT_ARMS[0][0]]
+    rows = []
+    for name, _, _ in TAUGHT_ARMS:
+        v = per_arm[name]
+        m = _mean(v)
+        se = _sd(v) / math.sqrt(len(v)) if len(v) > 1 else float("nan")
+        d = _mean([x - y for x, y in zip(v, ref)])
+        se_d = _sd([x - y for x, y in zip(v, ref)]) / math.sqrt(len(v)) if len(v) > 1 else float("nan")
+        rows.append((name, m, se, d, se_d))
+        print(f"  {name:18s}{m:15.2f}{1.96 * se:10.2f}   {d:+6.2f} ± {1.96 * se_d:4.2f}{beliefs[name]:16.2f}")
+    lo = min(rows, key=lambda r: r[1])
+    hi = max(rows, key=lambda r: r[1])
+    dd = [x - y for x, y in zip(per_arm[hi[0]], per_arm[lo[0]])]
+    se_dd = _sd(dd) / math.sqrt(len(dd)) if len(dd) > 1 else float("nan")
+    print(f"\n  the table's own spread: {lo[0]} {lo[1]:.2f} against {hi[0]} {hi[1]:.2f}, "
+          f"{hi[1] - lo[1]:.2f} ± {1.96 * se_dd:.2f} strokes a round, paired by stream")
+    print(f"  the bar is the across-stream spread of the mean over {args.streams} streams "
+          f"({test} courses × {args.rounds} rounds each); a difference smaller than twice it is not a "
+          f"difference. And the streams are the honest unit here, not the courses: the arms share a course "
+          f"and stop sharing a shot stream the moment they aim at different feet.")
+    print("\n  and what the shots actually did, on the last stream, with learning off:")
+    for name, _, _ in TAUGHT_ARMS:
+        logs = last_logs[name]
+        angles = [e["angle_aim"] for e in logs if e["kind"] == "shot" and e.get("angle_aim") is not None]
+        quiet = [e["angle_aim"] for e in logs if e["kind"] == "shot" and e.get("angle_aim") is not None
+                 and abs(e["cross"]) <= CROSS_QUIET]
         print(f"    {name:18s} every shot {_sd(angles):5.2f}° (n={len(angles):3d})   "
-              f"still-air shots {_sd(gated):5.2f}° (n={len(gated):3d})   believes {ath.sigma:4.2f}°")
-    print("\n  the number that matters is the ratio of the second column to the last: an athlete whose belief "
-          "matches its shots is neither bold nor cautious, and one whose belief is half its scatter is aiming "
-          "at a pin it cannot hit.")
+              f"still-air shots {_sd(quiet):5.2f}° (n={len(quiet):3d})   believes {beliefs[name]:4.2f}°")
+    print("\n  a belief matching the shots is neither bold nor cautious; a belief half the scatter aims at a "
+          "pin it cannot hit. With the floor in, none of this reached a card at all.")
     return 0
 
 
@@ -1543,14 +1605,19 @@ def main(argv=None) -> int:
     ap.add_argument("--compare", action="store_true",
                     help="train one athlete, then play the same rounds under all three target policies")
     ap.add_argument("--rounds", type=int, default=4)
+    ap.add_argument("--streams", type=int, default=4,
+                    help="independent shot streams for --sigma; the bar is their spread")
     ap.add_argument("--sigma", action="store_true",
                     help="the scatter it believes against the scatter its shots have, in wind")
     ap.add_argument("--field", action="store_true",
                     help="six scripted athletes on one card: same course, same weather, different strategies")
     ap.add_argument("--render", metavar="SCENE", default=None,
                     help="write a film: 'lip' for the bunker face, or a hole number, e.g. --render 7")
+    ap.add_argument("--floor", type=float, default=FLOOR_FT,
+                    metavar="FT", help="override the floor `target()` puts under the scatter, to re-measure it")
     ap.add_argument("--selftest", action="store_true")
     args = ap.parse_args(argv)
+    globals()["FLOOR_FT"] = args.floor
     if args.selftest:
         return selftest()
     if args.compare:

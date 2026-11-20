@@ -1609,3 +1609,179 @@ next: the same table with the floor at 0.5 ft.
 ########## --draws 60 --calm --pin-range 14 (one bag, the old protocol, for the record)
   flag -2.18, centre -1.98, spread -2.33;  flag−spread +0.15 ± 0.33 (t +0.9), centre−spread +0.35 ± 0.25
   (t +2.7) — with one bag at ±14 the pin and the spread policy are the same shot, and both beat the middle.
+
+
+###############################################################################
+PASS 9 — 2026-11-19, 21:20-23:40 — the floor, removed
+###############################################################################
+
+The eighth pass ended with a number in the file instead of a table: `target()` floors the scatter at 2 ft,
+an honest sigma is 0.9-1.1 deg, so inside 76 ft the floor decided the aim and the athlete's opinion of its
+own hands was a number the game asked for and did not use. That pass deliberately did not remove it, on the
+grounds that repairing the sigma measurement and testing what the sigma was for in the same turn would leave
+two causes for one effect. This pass does the one thing: the floor.
+
+Two code changes, and the second was forced by the first rather than planned.
+
+1. `FLOOR_FT = 0.5` (was a literal 2.0 in `target()`), with `--floor FT` to put any value back, so that what
+   the floor was worth can be re-measured by anybody.
+2. Ties are broken at the flag. With the floor gone the objective is FLAT over a band: a scatter of a foot
+   makes every target from which the ball is certain to be on the green and inside 25 ft of the pin score
+   exactly the same, and the argmax was being decided by `for k in range(-45, 46)` -- the left end of the
+   band. Measured before the fix: a pin at 0 ft, 40 ft out, answered -15. That is a fact about the loop, not
+   about a golf shot, and it is not something the floor's removal could leave standing.
+
+Checks: 28 -> 29. Check 28 was rewritten (it asserted the floor's binding), and check 29 is new:
+
+  [ok] the belief reaches the target at every range, not only past 76 ft: from 40 ft a scatter of 0.6° aims
+       at +13 ft and one of 3.0° at +7; from 200 ft at +7 and -1.
+  [ok] a flat objective is broken at the flag, not at the end of the scan: pins −6/0/+6 from 40 ft, a 0.5°
+       and a 3.0° belief: -6, -6, +0, +0, +6, +6.
+
+  all 29 checks pass
+
+########## where the floor bound, exactly
+
+Aim minus the pin, in feet, on a hole with the pin 19 ft out and sand on that side. Rows are the belief and
+the floor; columns are the range the shot is played from.
+
+               20ft    30ft    40ft    60ft    76ft   100ft   150ft   200ft   300ft   450ft
+  floor 2.0 s 0.6      -12     -12     -12     -12     -12     -12     -12     -12     -13     -14
+  floor 2.0 s 1.1      -12     -12     -12     -12     -12     -12     -13     -13     -15     -18
+  floor 2.0 s 2.0      -12     -12     -12     -12     -13     -13     -14     -16     -19     -22
+  floor 2.0 s 3.0      -12     -12     -12     -13     -13     -14     -17     -19     -22     -24
+
+  floor 0.5 s 0.6       -3      -3      -3      -3      -4      -6      -9     -12     -13     -14
+  floor 0.5 s 1.1       -3      -3      -4      -7      -8     -11     -13     -13     -15     -18
+  floor 0.5 s 2.0       -4      -6      -8     -12     -13     -13     -14     -16     -19     -22
+  floor 0.5 s 3.0       -6      -9     -12     -13     -13     -14     -17     -19     -22     -24
+
+Read the first block: with the floor in, inside 100 ft the aim was ONE number, twelve feet inside a pin that
+was a foot from the edge, for every belief from 0.6 to 3.0. Read the second: the belief is in the aim now,
+inside 40 ft as well as outside 200, and the two blocks are identical from 200 ft out -- which they always
+were, because 2 ft is a floor a 1 deg scatter clears at 115 ft and a 0.6 deg one at 191. This is the correction to last pass's
+sentence: the belief was never missing from the approach the aiming table is about. It was missing from the
+pitch.
+
+########## what the floor was worth, with everything else held still
+
+One athlete trained once, cloned per policy, learning off; both floors on the same 40 drawn courses at ±19;
+two rounds each. The notebook is the same object in all six cells, so the difference cannot be a practice
+session.
+
+  still air:        flag  36.675 -> 36.675 (+0.000)   centre 35.875 -> 35.875 (+0.000)   spread 35.375 -> 35.100 (-0.275)
+  wind:             flag  37.737 -> 37.737 (+0.000)   centre 38.812 -> 38.812 (+0.000)   spread 37.862 -> 37.675 (-0.188)
+
+flag and centre move by zero, which is the sanity check that matters: they never call the thing that changed.
+The belief-using policy gains 0.28 strokes a round in still air and 0.19 in wind.
+
+########## the sigma arms, which last pass reported as fifteen strokes of noise
+
+python3 lab/golf.py --sigma --draws 48 --streams 20 --pin-range 19
+16 courses to learn on, 16 to play, pins ±19 ft, wind drawn, 4 times through the test set, 20 independent streams
+
+                      strokes/round  ± across         vs gated  sigma believed
+  gated, learned              36.03      0.20    +0.00 ± 0.00            1.33
+  ungated, learned            36.04      0.16    +0.01 ± 0.22            2.52
+  told 0.6°                   35.81      0.23    -0.22 ± 0.16            0.60
+  told 1.1°                   36.09      0.21    +0.06 ± 0.23            1.10
+  told 2.0°                   36.13      0.23    +0.10 ± 0.28            2.00
+  told 3.0°                   36.33      0.20    +0.30 ± 0.26            3.00
+
+  the table's own spread: told 0.6° 35.81 against told 3.0° 36.33, 0.52 ± 0.29 strokes a round, paired by stream
+
+A five-fold range of self-knowledge is now worth 0.52 ± 0.29 strokes a round, and it is monotone: the wilder
+the athlete thinks it is, the worse it plays. It is not worth much, and the honest size of that number is the
+finding: two passes of this file treated the athlete's belief as the subject, and on a card it is half a
+stroke.
+
+The awkward half: the best belief is 0.6 deg, SHARPER than the 1.10 deg hands, by 0.28 ± 0.24 -- it leans,
+the bar does not settle it. It leans because of the objective: target() pays P(on the green) + 0.3 *
+P(inside 25 ft of the pin), and a step at 25 ft cannot tell a 3 ft putt from a 24 ft one. A player who takes
+the bunker seriously spends real putt distance on bunker safety it does not need (the bunker is reached on
+2.5% of the approaches aimed at it), and the flag-aimer is paid for it. That is now the first item under
+"what this does not model": the floor is gone and the objective's resolution is the limit.
+
+########## the bar in last pass's sigma table was wrong, and this is the correction
+
+Pass 8 paired the six arms by course and divided by the spread of course-mean differences. That bar is too
+narrow. Two arms share a course but stop sharing a shot STREAM at the first decision they disagree about, so
+the shot noise the pairing was supposed to cancel does not cancel. Measured: the same six arms on four
+independent streams moved every arm by half a stroke, which is most of the effect pass 8 was claiming.
+
+  stream                  gated, learned    ungated, learned           told 0.6°           told 1.1°           told 2.0°           told 3.0°
+  base 0                           36.50               36.19               35.75               35.19               36.38               36.00
+  base 1000                        35.31               35.38               34.88               35.00               35.81               35.50
+  base 2000                        35.25               36.12               35.00               35.69               36.38               36.12
+  base 3000                        35.19               35.56               35.50               35.88               35.50               36.06
+
+  across-stream sd, per arm: 0.63 / 0.41 / 0.41 / 0.41 / 0.43 / 0.29 strokes a round
+
+`--streams N` now repeats the whole experiment on independent streams and reports their spread. The
+paired-by-course bar is gone.
+
+########## the aiming table, re-run with the floor out
+
+python3 lab/golf.py --draws 40 --bags 8 --calm --pin-range 6
+  flag−spread +0.20 ± 0.36 (t +1.1)   centre−spread +0.20 ± 0.55 (t +0.7)   flag−centre −0.01 ± 0.66
+
+python3 lab/golf.py --draws 40 --bags 8 --calm --pin-range 14
+  flag−spread +0.80 ± 0.55 (t +2.9)   centre−spread +0.37 ± 0.34 (t +2.1)   flag−centre +0.44 ± 0.86
+  hole split: no sand |pin|>=8 +0.32 ± 0.10 (t 6.6); toward the sand +0.12 ± 0.10; away +0.07 ± 0.10
+
+python3 lab/golf.py --draws 40 --bags 8 --calm --pin-range 19
+  flag       +0.88 (sd 1.80)   centre -0.51 (1.15)   spread -0.76 (1.43)
+  flag−spread +1.64 ± 0.54 (t +5.9)   centre−spread +0.25 ± 0.22 (t +2.3)   flag−centre +1.39 ± 0.68 (t +4.0)
+  hole split: no sand |pin|>=8 +0.44 ± 0.08 (t 10.2); toward the sand +0.17 ± 0.17; away +0.26 ± 0.13
+  bunkers in minus bunkers filled in: +0.01 ± 0.07 toward, -0.00 ± 0.05 away, -0.01 ± 0.03 friendly
+
+python3 lab/golf.py --draws 40 --bags 8 --pin-range 19   (wind drawn)
+  flag       +3.03 (sd 0.87)   centre +3.56 (0.63)   spread +2.20 (0.59)
+  flag−spread +0.82 ± 0.26 (t +6.2)   centre−spread +1.36 ± 0.19 (t +13.7)   flag−centre -0.53 ± 0.28 (t -3.8)
+  hole split: no sand |pin|>=8 +0.15 ± 0.05; toward the sand +0.28 ± 0.12; away +0.06 ± 0.06
+  bunkers in minus bunkers filled in: +0.20 ± 0.06 toward (t 6.3), +0.00 ± 0.08 away, -0.05 ± 0.05 friendly
+
+The same two runs with the floor back at 2 ft, to separate the floor from the protocol:
+
+python3 lab/golf.py --draws 40 --bags 8 --calm --pin-range 19 --floor 2.0
+  flag−spread +1.60 ± 0.55   centre−spread +0.11 ± 0.11
+python3 lab/golf.py --draws 40 --bags 8 --pin-range 19 --floor 2.0
+  flag−spread +0.75 ± 0.31   centre−spread +0.84 ± 0.26
+  bunkers in minus bunkers filled in: +0.18 ± 0.06 toward, +0.00 ± 0.07 away
+
+So: the floor is worth a tenth of a stroke a round in the calm table and half a stroke in the windy one; the
+small drop is exactly the 0.19-0.28 measured with everything else held still. And the bunker's asymmetry in
+wind is NOT the floor's -- it is there at 2 ft too -- so the cause is the weather, not this pass, and why a
+symmetric hazard needs a wind in the air to become a direction I have not measured.
+
+########## CORRECTION to pass 8, finding 4
+
+"With the wind on, the same decision goes slightly backwards ... -0.32 ± 0.31" is withdrawn. It was sixty
+drawn courses played on ONE athlete -- the protocol pass 8 itself replaced everywhere else in the file. On
+eight bags with drawn wind it is +0.82 ± 0.26 at the floor's new value and +0.75 ± 0.31 at the old one: wind
+does not make the pin correction worse, it makes the belief-using policy better. The explanation that
+followed it in the README (a crosswind's uncorrectable error is comparable to the pin's offset, so the
+correction is lost inside it) predicted the opposite sign and is withdrawn too, not repaired. The reversal
+that IS real: at ±19 the middle beats the pin by 1.4 strokes in still air and the pin beats the middle by 0.5
+in wind, while the policy that uses the belief beats both in both weathers. I do not know why wind reverses
+the ordering of the two crude policies.
+
+########## the six-round table had not been re-run since the second pass
+
+python3 lab/golf.py --rounds 6 --calm       to par: [7, 5, 2, -3, -2, 1]   held-out -1
+python3 lab/golf.py --rounds 6              to par: [11, 6, 1, 3, 1, 2]   held-out -1
+python3 lab/golf.py --rounds 6 --calm --learn 0   to par: [9, 9, 9, 9, 9, 9]   held-out +8
+python3 lab/golf.py --rounds 6 --learn 0          to par: [16, 16, 16, 16, 16, 16]   held-out +8
+
+against the +16, +13, +10, +3, +5, +8 and the +13-all-the-way control this file printed in its second pass.
+The README's headline table is these numbers now. The learner no longer pays a four-stroke instalment at the
+start; what it still does is take 21 putts in the first round against the frozen player's 14, and I have not
+measured why.
+
+########## what this pass did not do
+
+It did not touch the objective. `+0.3 * P(within 25 ft)` is a step, the game owns a putting model that could
+replace it with expected strokes from where the ball finishes, and changing it in the same pass that removes
+the floor would leave two causes for the next number -- which is the mistake this pass exists to avoid
+repeating. It is named as the first item in "what this does not model" and it is the next pass, if there is
+one.

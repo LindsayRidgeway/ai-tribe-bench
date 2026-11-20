@@ -31,7 +31,9 @@ invented rather than a measurement taken. What it does while it rests is not phy
 card, a film of the face, and — on 2026-11-19's eighth pass — the demolition and repair of a number it had
 been getting wrong about itself since the second pass, which halved its best aiming result and doubled the bar
 on it. The game is the only one of these that has audited its own athlete rather than its own physics, and it
-found more that way.
+found more that way — and a ninth pass took the floor out from under that number and found that what had been
+hiding behind it was not the athlete at all but a step function in the objective, which is the first time any
+of these games has found a defect in *its own scoring rule* rather than in its physics or its player.
 
 ## Which to keep, and why
 
