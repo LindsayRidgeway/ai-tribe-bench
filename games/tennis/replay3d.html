@@ -1128,12 +1128,25 @@ if (q.has("heel")) HEEL = parseFloat(q.get("heel")) || 0;
 
 /* Where the ground is touched: 0.45ft along the foot bone from the ankle, in world feet. A still can show a foot
    flat on the ground and a still cannot say whether it is, so this is the instrument the plant is solved against. */
-function toeOf(rig, name) {
-  const b = (rig.bones || {})[name]; if (!b) return NaN;
+function toePoint(rig, name) {
+  const b = (rig.bones || {})[name]; if (!b) return null;
   b.updateWorldMatrix(true, false);
   return b.getWorldPosition(new THREE.Vector3())
-    .addScaledVector(new THREE.Vector3(0, 1, 0).transformDirection(b.matrixWorld), 0.45).y;
+    .addScaledVector(new THREE.Vector3(0, 1, 0).transformDirection(b.matrixWorld), 0.45);
 }
+function toeOf(rig, name) {
+  const p = toePoint(rig, name);
+  return p ? p.y : NaN;
+}
+/* A rotation added ON TOP of whatever the gait posed this frame. `legs()` rebuilds every thigh from its rest
+   quaternion each frame, so a delta composed here cannot accumulate — it is gone the moment the next frame poses
+   the leg again, which is the property that makes a per-frame correction safe. */
+function addLocal(bone, x, y, z) {
+  if (!bone) return;
+  bone.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(x, y, z)));
+}
+const CROSS_LAT = q.has("crosslat") ? parseFloat(q.get("crosslat")) : 0.80;
+const CROSS_NEAR = q.has("crossnear") ? parseFloat(q.get("crossnear")) : 0.30;
 
 function shotAt(t) {
   for (const s of SEG) if (t >= s.start && t < s.start + s.dur + s.hold) return s;
@@ -1382,6 +1395,35 @@ function tick(now) {
     // segment boundary the term is exactly zero.
     if (!isHitter) rig.root.position.y -= splitDip(tlc);
     legs(rig, phase, moving, new THREE.Vector3(at ? 1 : -1, 0, 0), turn, load, idlePhase, walking);
+    // THE CROSS-OVER STEP. A player who has to cover more than a step sideways does not shuffle: the foot nearest
+    // the direction of travel leads and the far leg swings ACROSS in front of it. Until 2026-11-19 the gait was
+    // symmetric in the lateral axis, so the answer to "do the feet cross?" was measured as 0 of 7 shots — a
+    // shuffle, which is what a body on castors would do.
+    //
+    // It lives here rather than in `legs()` because it is a fact about the RUN, not about the gait: the gait says
+    // where the legs are given the ground covered, and this says that the first step of a wide recovery is a
+    // crossing one. It decays over the first stride (0.42 of the figure's own height, the same number the gait
+    // uses), so by the second step it is gone — which is what a cross-over is: the first step, not the run.
+    if (moving && dir && !walking) {
+      const yb = rig.root.rotation.y;
+      const xb = dir[0] * Math.cos(yb) - dir[1] * Math.sin(yb);   // travel sideways, in the body's own frame
+      const near = xb < 0 ? "R" : "L";                            // body right is -x_b, checked against a stance
+      const far = near === "R" ? "L" : "R";
+      // `tlc` and not `travelled`: travelled is distance since the film began, and the first step of THIS
+      // run starts when the opponent strikes. Measured 2026-11-19: with `travelled` the term was exactly
+      // zero at every shot (its own gate `amt > 0` never fired) and the sweep reported no change at all.
+      const amt = Math.max(0, 1 - tlc / 0.35);
+      if (amt > 0 && Math.abs(xb) > 0.35) {                        // sideways enough to need a crossing step
+        const side = near === "R" ? 1 : -1;
+        addLocal(rig.bones["thigh." + far], 0.10 * amt, 0, CROSS_LAT * amt * side);
+        // The near foot leaves the ground FIRST, which is the other half of a cross-over step. A thigh swing
+        // alone did not do it (measured 2026-11-19: 3 of 7 shots, worse than the 5 of 7 the gait managed by
+        // luck), because which leg is mid-swing is decided by the phase and the phase is driven by distance.
+        // A bent knee lifts a foot in any rig; the thigh swing then carries it.
+        addLocal(rig.bones["thigh." + near], 0.20 * amt, 0, 0);
+        addLocal(rig.bones["shin." + near], CROSS_NEAR * amt, 0, 0);
+      }
+    }
 
     if (q.has("debug")) {
       // The racquet's own box is measured *because* it is not parented to anything: it is placed every frame and
@@ -1812,16 +1854,30 @@ if (q.has("sweep")) window.__sweep = () => {
   const [a, b, d] = (q.get("sweep") || "0:1:0.05").split(":").map(Number);
   const was = playing; playing = false;
   console.log("debug segs", JSON.stringify(SEG.map(s => [s.sh.n, +s.start.toFixed(2), +s.dur.toFixed(3),
-    +(s.tossDur || 0).toFixed(3), s.sh.player])));
+    +(s.tossDur || 0).toFixed(3), s.sh.player,
+    s.sh.run ? [+s.sh.run.dist.toFixed(2), s.sh.run.from[0], s.sh.run.from[1],
+                s.sh.run.to[0], s.sh.run.to[1]] : null])));
   const rows = [];
   for (let t = a; t <= b + 1e-9; t += d) {
     T = Math.max(0, t);
     tick(T0 + 16);
     rows.push([+T.toFixed(3), shotAt(T).sh.n, +(T - shotAt(T).start - (shotAt(T).tossDur || 0)).toFixed(3),
       ...D.players.map(pl => {
-      const r = rigs[pl.body];
-      return r ? [+r.root.position.y.toFixed(3), shotAt(T).sh.player === pl.name ? 1 : 0] : [null, null];
-    })]);
+        const r = rigs[pl.body];
+        if (!r) return [null, null, null, null];
+        const L = toePoint(r, "footL"), Rf = toePoint(r, "footR");
+        // In the BODY's frame, not the court's. A cross-over is a fact about the legs relative to each other, and
+        // a player who is turning towards the ball rotates the world positions of both feet — which reads as a
+        // crossing to anything that measures in court coordinates. Measured 2026-11-19: the first version of this
+        // said "7 of 7 shots cross their feet" on a build where nothing crossed at all.
+        const yaw = r.root.rotation.y, cy = Math.cos(yaw), sy = Math.sin(yaw);
+        const rel = v => v ? [
+          +((v.x - r.root.position.x) * cy - (v.z - r.root.position.z) * sy).toFixed(2),
+          +(v.y - r.root.position.y).toFixed(2),
+          +((v.x - r.root.position.x) * sy + (v.z - r.root.position.z) * cy).toFixed(2)] : null;
+        return [+r.root.position.y.toFixed(3), shotAt(T).sh.player === pl.name ? 1 : 0, +yaw.toFixed(3),
+                rel(L), rel(Rf)];
+      })]);
   }
   for (const row of rows) console.log("debug sweep", JSON.stringify(row));
   playing = was;

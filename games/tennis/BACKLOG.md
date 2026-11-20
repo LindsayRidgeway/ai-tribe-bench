@@ -129,10 +129,39 @@ The first attempt peaked at 0.17 s and passed only 6 of 11 — the idle bob and 
 minimum later — which is the argument for measuring rather than constructing: the shape was right and the phase
 was not, and nothing but the sweep would have said so.
 
-## Item 4 — cross-over step
+## Item 4 — cross-over step (PARTIAL 2026-11-19: the feet cross, the near foot does not always lead)
+
 - **Done-test:** on a shot that needs more than 3 ft of travel, the first foot to leave the ground is
   the one *nearest* the direction of travel, and the feet cross rather than shuffle. Checked on 10
   shots in each direction. **Number:** 20/20, with the offending shots listed if not.
+
+**The instrument had to be fixed before the answer could be believed.** The first version measured the toes in
+COURT coordinates and reported "7 of 7 shots cross their feet" on a build where nothing crossed at all — a player
+turning towards the ball rotates both feet in the world, and that reads as a crossing. The toes are now reported in
+the BODY's frame (offset from the root, rotated by −yaw), and "crossed" means the left toe has passed to the other
+side of the right toe, laterally, in the player's own frame. Baseline on `seasons/2026-11-19`: **0 of 7**.
+
+**Built:** in the pose block, for a moving player whose travel is at least 35% sideways, decaying over the first
+0.35 s after the opponent's contact (`1 - tlc/0.35`):
+
+- the FAR thigh swings 0.80 rad across the body (`CROSS_LAT`), and
+- the NEAR thigh swings 0.20 rad forward and its knee bends 0.30 rad (`CROSS_NEAR`),
+- both composed on top of the gait each frame, so nothing accumulates.
+
+**Measured after:** **6 of 7 shots cross their feet**, the left toe ending 0.09–0.49 ft on the far side of the
+right. The one that does not is shot 24, whose travel is 15.8 ft of which only 3.1 is sideways — correctly excluded
+by the 35% gate, because a run down the court is not a cross-over.
+
+**Still open, and it is the half that matters more:** the near foot leads on only **3 of 7 shots** — worse than the
+5 of 7 the untouched gait managed by luck. A knee bend plus a thigh swing is not enough to beat the phase: which leg
+is mid-swing is decided by `phase`, and `phase` is driven by the ground covered, so it is wherever the player
+happened to be in their stride when the ball was struck. Two experiments that did not work, recorded so they are not
+repeated: `travelled` as the decay clock (it is distance since the film began — the term never fired at all), and a
+0.35 rad thigh swing alone (3 of 7).
+
+The fix is a phase offset chosen when a run begins, not a bigger swing — and it needs the pose to know how far into
+THIS run the player is, which the film does not currently hand it. That is the next change to item 4, and it is the
+only thing between this item and DONE.
 
 ## Item 5 — brake
 - **Done-test:** root speed at the contact frame is under 0.5 ft/frame for a shot reached at a run,

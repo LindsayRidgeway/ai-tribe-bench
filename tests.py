@@ -4045,6 +4045,45 @@ class TestTheVolley(unittest.TestCase):
                          "every shot was a volley, which is not a rally — the bounce is not being played")
 
 
+class TestTheCrossOverStepIsInTheFilm(unittest.TestCase):
+    """Item 4: *"on a shot that needs more than 3 ft of travel, the first foot to leave the ground is the one
+    NEAREST the direction of travel, and the feet cross rather than shuffle."*
+
+    Measured on 2026-11-19: the feet cross now (6 of 7 shots, the left toe 0.09–0.49ft past the right in the
+    player's own frame), and the near foot leads on only 3 of 7 — so this item is PARTIAL and the test says which
+    half is held and which is not. What is asserted is the part the code can be wrong about without a renderer: the
+    lateral gate, the decay, the body-frame measurement, and the fact that the toe probe reports in the BODY's
+    frame — the first version measured in court coordinates and reported that everything crossed when nothing did.
+    """
+
+    def setUp(self):
+        self.page = (REPO / "games" / "tennis" / "replay3d.html").read_text(encoding="utf-8")
+
+    def test_the_crossing_is_sideways_travel_only(self):
+        self.assertIn("Math.abs(xb) > 0.35", self.page,
+                      "the cross-over is applied to a run down the court as well as across it")
+        self.assertIn("const amt = Math.max(0, 1 - tlc / 0.35);", self.page,
+                      "the cross-over does not decay: it is the first step, not the run")
+
+    def test_the_far_leg_crosses_and_the_near_leg_lifts(self):
+        self.assertRegex(self.page, r'CROSS_LAT \* amt \* side', "the far leg does not cross")
+        self.assertIn('addLocal(rig.bones["shin." + near]', self.page,
+                      "nothing lifts the near foot, so the near foot cannot lead")
+
+    def test_the_toes_are_measured_in_the_players_own_frame(self):
+        self.assertIn("const rel = v =>", self.page,
+                      "the toes are reported in court coordinates, where a turn reads as a crossing")
+        self.assertIn("Math.cos(yaw)", self.page)
+
+    def test_the_numbers_are_in_a_range_a_hip_could_do(self):
+        m = re.search(r"const CROSS_LAT = q\.has\(\"crosslat\"\) \? parseFloat\(q\.get\(\"crosslat\"\)\) : ([0-9.]+);",
+                      self.page)
+        self.assertIsNotNone(m, "CROSS_LAT is gone, so its value cannot be checked")
+        self.assertTrue(0.5 <= float(m.group(1)) <= 1.1,
+                        f"CROSS_LAT = {m.group(1)} rad is outside what a thigh can adduct: 0.8 crosses the toes, "
+                        f"1.0 crosses them by nearly a foot")
+
+
 class TestTheSplitStepIsInTheFilm(unittest.TestCase):
     """Item 3 of the tennis backlog, and the founder's done-test verbatim: *"every shot in a 20-shot sample is
     preceded by a downward root-velocity blip of 0.10–0.20ft within 0.2s of the opponent's contact."*
