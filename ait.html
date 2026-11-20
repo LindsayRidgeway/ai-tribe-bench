@@ -5431,7 +5431,9 @@ async function readSeason(season){
   const film = files.includes('watch.json')
     ? `<p><a href="games/tennis/replay3d.html?record=seasons/${encodeURIComponent(season)}/watch.json"
           target="_blank" rel="noopener">watch the film of its last session</a>
-       <span class="small muted">— the same two players, at the skill the record had when it was played.</span></p>`
+       <span class="small muted">— the same two players, at the skill the record had when it was played.
+       The court is a game's cast, not this commons: who is playing, and why a player is on it, is
+       <a href="games/tennis/CAST.md">CAST.md</a>.</span></p>`
     : `<p class="small muted">No film yet: no session in this season has been played as a film, so there is
        nothing here to watch and nothing stale to show. Play one and the link appears.</p>`;
   try {

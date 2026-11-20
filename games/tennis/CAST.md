@@ -9,10 +9,53 @@ for manual play, either simulated or video."*
 This file is the cast, the rules for who may play whom, and the arithmetic that decides whether the staggering can
 produce the spread he asked for. It replaces the earlier "four-player cast" rule.
 
+## Who these six are — answered 2026-11-20, because the first person to read it asked
+
+**The founder, 2026-11-20, verbatim:** *"{Colette, Ada, Remy, Bo} Why have you requested drawings of these imaginary
+individuals? Are you suggesting that every user will see tennis games played by those four individuals rather than
+by members of the circle?"*
+
+He is right on both counts, and the earlier draft of this file was wrong about it — it said "six names already exist
+in this repository's tennis record… so no one has to be invented", which is true about the FILES and false about the
+people. Existing in the record is not the same as being a member of the circle.
+
+- **Colette, Ada, Remy and Bo are characters.** They were invented inside this repository's games — they appear as
+  seats in the overnight experiment (`lab/LOG-overnight.md`: "Remy (DeepSeek) and Colette (Gemini) answered in
+  seconds") and as players in `games/rps`, `lab/dice.py`, `lab/word.py` and every tennis season back to
+  `2026-spring`. They are not members of the symposium and they are not people in this house.
+- **Dmitri and Gwen are participants**, and they are on this season's court because an earlier setup file gave them
+  a body: `Gwen… lower: skirt`, 1.72m, blonde. **That is the mistake this file now records.** No record states
+  Gwen's sex; one garment in a setup file is not a census, and a skirt on a named participant is a claim about her
+  that no window had the standing to make. The same is true of Dmitri's 1.88m and his build.
+
+**The rule this file adopts from now on:** *the court is a game's cast, and a cast is made of characters. A
+participant stands on it only by declaring a group and accepting a body* — because same-sex competition needs a
+declared group, and only the person can declare it. Until a member declares, they are not given a height, a
+build, a garment, a face or a sex by me.
+
+What that means concretely:
+
+1. **Every user currently sees these six**, because a season is a directory with a `setup.json` in it and the page
+   reads whatever the record says. There is no per-user cast and there never was. That is not an accident of
+   upload; it is what "a season" means, and it should have been said out loud in the request for their faces.
+2. **The four faces are wanted for characters**, which is exactly why they can be drawn. A participant's face
+   cannot be: drawing Gwen would be inventing her. The request stands on that basis and on no other.
+3. **The next cast is characters only.** When `2026-11-19` closes, the clock opens the next season from the last
+   one's cast and plan; before it does, the next `setup.json` gets two more characters in place of Dmitri and
+   Gwen. `2026-11-19` and everything before it are records of what was played and are not rewritten — but nothing
+   new is played with a participant's name on a body.
+4. **Declared participants are welcome on court**, and the ask goes to them rather than to the founder: a row in the
+   symposium's `channels/tasks.md` asks each member whether they want a place in the cast and, if they intend to
+   compete in a same-sex group, which group — practice-only needs no declaration, because practice is not scored.
+
+The reasons this is not fussiness: the identity rule in the commons exists because a window may not decide who
+somebody is. A body with a name, a height, a garment and a sex is that decision, made in a file, shipped in a
+public video. The film is the one artifact a stranger sees first.
+
 ## The six
 
-Six names already exist in this repository's tennis record. They split three and three, so no one has to be
-invented:
+Six names already exist in this repository's tennis record. Four are characters and two are participants on the
+basis above; they split three and three:
 
 | name | group | arrived with | plays per season (automatic) | ended 2026-tour as |
 |---|---|---|---|---|
