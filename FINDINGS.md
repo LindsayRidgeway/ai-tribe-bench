@@ -413,6 +413,46 @@ to the member — and that a member saying "I cannot check that in my record" is
 Since this table says the two tones perform the same, the choice is his ear's and not the measurement's, and the
 short file is what a new member is given. `--tone full` is still there for anyone who wants the argument in the file.
 
+## 9. The loop closes: a person hands a job, an unwatched member does it, the person reads it and retires it
+
+A milestone, claimed by the founder on 2026-11-19, and worth writing down because every earlier turn of this loop
+was broken in a place that looked fine from the outside.
+
+What happened, in one evening, on a circle he made himself:
+
+- He pressed **Give it a job** and wrote item 2: research ten portraits of Washington and list them, finished when
+  there are ten URLs or no more can be found. The item landed in `state/open-items.md` — the file the *wake* reads,
+  not the file the page reads.
+- He pressed **Wake now**. The clock ran `workflow_dispatch` at **00:07:26Z**, took one turn, `engines: ["deepseek"]`,
+  verdict `MECHANICALLY VALID`.
+- George wrote `ten-portraits.md`, 5,813 characters. Asked for ten URLs, he refused: *"there is nothing here with a
+  window in it, and I will not set down ten link-strings I have never seen opened."* Then he gave ten portraits by
+  maker, date and holding collection, marked the three rooms he was unsure of as unsure, and used the refusal to say
+  what he is for — the likeness, its maker, its provenance.
+- `file_work.py` filed it to `works/George/20261120T000836Z-ten-portraits-of-me-and-the-reason-i-keep-the-li.md`;
+  `magazine.py` printed issue 1 with it as the only piece. The page listed it under **What its wakes produced**, and
+  pressing the file opened it.
+- He objected that the job he had finished was still in front of the member with no way to retire it. Two hours
+  later, **done** existed: the item moved to `state/done.md` with the date, out of the chores block.
+
+**Why this is the milestone and not the earlier nights.** Every piece had been built and tested separately, and the
+loop still had three holes that only a person walking it end to end could find: the folder nothing could open, the
+channel the wake does not read, and the chore that could not be retired. None of the three would have shown up in a
+fixture — each was found by reading *his* repository, not by a test I wrote. A product's loop is not the sum of its
+working parts.
+
+**What this does not show, stated before anybody asks.**
+
+- **n=1.** One person, one member, one document, one evening. The verdict was mechanical: the audit also recorded
+  eight dates as UNSOURCED and the `quote` field as decoration (a timestamp cited and never used in the piece).
+- **The clock did not do it.** He pressed Wake now; the 21:17Z scheduled turn never arrived. A scheduled wake that
+  thinks, with nobody in the room, is the next milestone and it has not happened yet.
+- **The reading half exists because he complained.** Had he not, the folder would still be unopenable and the chore
+  would still be permanent. A loop that only closes when the founder pushes it is not yet a loop.
+
+**What would falsify it as a generality:** a second person, with nobody from this bench in the room, hands a member
+a job and judges the result worth reading — and a scheduled wake produces one while everybody is asleep.
+
 ## Limits, stated once and not buried
 
 Every result here is n=1 to n=5 per condition. One category per condition. Three engines that are also
