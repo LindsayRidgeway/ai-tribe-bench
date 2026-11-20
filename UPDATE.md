@@ -327,10 +327,52 @@ Three rules, and each is a defect this project has already paid for once:
 - **A title, not a file name.** The filer truncates at 60 characters — `ten-portraits-of-me-and-the-reason-i-keep-the-li`
   — so the milestone reads the work's own `title:` line and falls back to the name only when there is none.
 
-On the founder's own circle the list currently reads: *2026-11-19 the first member existed — George; 2026-11-20 the
+On the founder's own circle that list would read: *2026-11-19 the first member existed — George; 2026-11-20 the
 first wake reached an engine — George thought without anyone there; 2026-11-20 the first work reached the shelf —
-George's Ten portraits of me, and the reason I keep the list.* The retired-job row appears the moment he presses
-**done** on a chore, which is the point: the list cannot claim what the record does not hold.
+George's Ten portraits of me, and the reason I keep the list.* It does not read that yet, and the reason is not his
+press: `MILESTONES.md` is still absent from his repository **because the template never carried the machinery that
+writes it.** The bench had `magazine.py --milestones`; the template an installed circle updates *from* did not. Fixed
+on 2026-11-20 (`c73e100` in `ai-tribe-template`). A press on Update now delivers it, and the next clock run writes
+the file. The retired-job row appears the moment he presses **done** on a chore, which is the point: the list cannot
+claim what the record does not hold.
 
 **And the quibble he raised is settled his way.** A scheduled wake that thinks with nobody in the room is not a
 second milestone; it is the last condition of the same one, and `FINDINGS.md` claim 9 now says so.
+
+## The clock was never broken — 2026-11-20
+
+`RELEASE.md` had named "a clock that fires when it is due" the long pole, on a count of one firing in six due, and
+`clock.yml` had carried a suspicion since 2026-11-03 that GitHub re-registers a schedule when its file changes. Both
+were wrong, and wrong in the same way: the count only looked at runs that arrived at their due minute.
+
+Counted properly — every due slot from 11-17 00:17Z through 11-19 20:17Z — **eight consecutive slots each produced
+exactly one run, and every run was late**: 43, 57, 65, 95, 154, 165, 187 and 192 minutes, median about two hours. On
+the founder's circle, whose `clock.yml` has not been edited since creation, two of three due turns arrived (66 and 89
+minutes late) and one never came. The host queues `schedule` events and runs them when it has room; nothing written in
+the file makes it punctual. The hypothesis is dead and marked superseded rather than deleted.
+
+What follows from it, in the document a stranger reads first: the claim the product may make is *"it wakes on its own,
+within a few hours of the time you set"*; the claim it may never make is *"at :17"*. Beta item 1 is half a day of copy
+and a liveness check so a dead clock is loud. **Beta item 2 — a real install on a clean account, timed — is the long
+pole, and always was.**
+
+## Three measurements that were being carried as beliefs — 2026-11-20
+
+- **The suite is green from a fresh clone.** `git clone --depth 1` into an empty directory, `python3 tests.py` → 482
+  tests, OK, 275 seconds. `RELEASE.md` had been saying "nineteen tests fail in the shipped copy" long after it stopped
+  being true; the sentence is now quoted in the file with the measurement beside it, because a status line believed
+  because it was written down is the failure that sheet exists to catch.
+- **A dirty tree can redden the suite.** The same commit ran 478 tests in this working copy and went red ten times,
+  and the cause was untracked leftovers from another window's experiments in front of a suite that counts members.
+  `tests.py` now reads `git status` before it runs and says out loud what is lying on the floor.
+- **The template is where a fix has to land, not the bench.** A circle updates from `ai-tribe-template`; four days of
+  bench work had never been published, so the founder's press could not have delivered this week's features at all.
+  `make_template.py --check` was already reporting one of the gaps — `lab/tennis_script.py`, which `lab/tennis.py`
+  imports for the film — and now ships too.
+
+## A member was told to quote the clock — 2026-11-20
+
+Two consecutive wakes on the founder's circle came back with `QUOTE UNUSED`, and both had quoted the output of `date`.
+The audit was right: a timestamp cited and then never used is decoration. The prompt was the fault, because the only
+line in MEASURED FACTS that looks like a fact a piece of work can rely on is the clock. The prompt now says so: *"The
+output of `date` is the time of this wake, not a fact about the world."*

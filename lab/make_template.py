@@ -54,6 +54,7 @@ play/behaviour.md
 play/log.py
 lab/members.py
 lab/tennis.py
+lab/tennis_script.py
 lab/rps.py
 lab/paint.py
 lab/update_tribe.py
