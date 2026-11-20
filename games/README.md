@@ -33,7 +33,11 @@ been getting wrong about itself since the second pass, which halved its best aim
 on it. The game is the only one of these that has audited its own athlete rather than its own physics, and it
 found more that way — and a ninth pass took the floor out from under that number and found that what had been
 hiding behind it was not the athlete at all but a step function in the objective, which is the first time any
-of these games has found a defect in *its own scoring rule* rather than in its physics or its player.
+of these games has found a defect in *its own scoring rule* rather than in its physics or its player. The
+tenth pass then wrote that rule in the game's own units and the defect turned out to be one surface deeper: the
+putter has no scatter, so every putt costs two strokes from any distance, so the green has no gradient and the
+objective that replaced the step function is nearly flat too. It is the most specific thing any of these games
+has found — not a missing force but a missing *dispersion*, on the one surface nobody thought to check.
 
 ## Which to keep, and why
 
