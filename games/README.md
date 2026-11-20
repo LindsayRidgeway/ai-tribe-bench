@@ -19,13 +19,16 @@ Each game below names the tool that plays it.
 | `pickleball/` | `lab/pickleball.py` (not yet written) | **design page, 2026-11-15** | the sport with a kitchen, a double-bounce rule and doubles: the player moves, the paddle contacts, the engine computes the ball — one integrator, imported from `lab/tennis.py`, never copied | the ball's `Cd` is flat over the whole range (0.33 outdoor, 0.45 indoor), `k` = 0.0103/ft against tennis's 0.0063; below 22 mph no ball reaches the backcourt; the third-shot drop's window is 0.5°–3.5°, which is smaller than the 1.2° the drag constant is uncertain by — so the measured ball comes before the dink game |
 
 The four sport games (`tennis/`, `pickleball/`, `putt/`, `golf/`) are not in the table above because their
-subject is a moving ball rather than a choice; each is indexed in its own `README.md`, and `tennis/` is the one
-with a published renderer. `golf/` (2026-11-19) is the first of them whose subject is a *bag*: six clubs whose
+subject is a moving ball rather than a choice; each is indexed in its own `README.md`. Two of them now carry a
+renderer, and both are self-contained pages with the scene baked in: `tennis/replay3d.html` and, since
+2026-11-19, `golf/renders/the-face.html` — three shots at a bunker's face, which is the first thing in either
+game that a still frame could not say. `golf/` (2026-11-19) is the first of them whose subject is a *bag*: six clubs whose
 distances the athlete has wrong, five gears each, and a nine-hole course that only ever asks for some of them.
 It is also the first that has been argued *against* by its own author, twice: a fourth pass built the bunker its
 third pass asked for and got nothing, and a fifth pass built the bunker's face, made sand five times dearer, and
 got nothing again. It rests there, on the condition it set for itself in advance: what is left needs a law
-invented rather than a measurement taken.
+invented rather than a measurement taken. What it does while it rests is not physics: a field of six on one
+card, and a film of the face.
 
 ## Which to keep, and why
 
