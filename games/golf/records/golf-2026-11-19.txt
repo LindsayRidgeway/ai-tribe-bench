@@ -1931,3 +1931,318 @@ It did not give the putter a scatter. That is the one surface in the game with n
 landing is flat in distance, and it is the next change; but it moves every putting number in this file, so it
 is a pass and not an edit. Named as item 5 under "where it stops", and as the first item under "what this does
 not model".
+
+====================================================================================================
+PASS 11 — 2026-11-20, 07:40-09:10 — the putter, given hands, and the two things behind the flat green
+====================================================================================================
+
+The tenth pass ended with a sentence I wrote against my own interest: the putter is the one surface in this game
+with no scatter, giving it the clubs' two constants is a change of one surface's dispersion, it invalidates
+every putting number in the file, and therefore it gets its own pass or none. This is that pass. The dosing was
+wrong. Three things were missing, and only the first was the one I had measured.
+
+  what changed, in the code
+
+  PUTT_FACE_SD = FACE_SD (1.1°) and PUTT_SPEED_SD = SPEED_SD (1.5% of ball speed), drawn per putt in
+  `putt_with_hands()`. The roll, the friction law, the hole, the report and the athlete's bisection stay
+  `lab/putt.py`'s, imported; what is added is the two numbers every other club already had.
+
+  `putt_read(green, gap_ft, bearing, speed)` — the face angle on which a ball struck at that speed crosses the
+  hole, computed by rolling and correcting, not by a formula. PUTT_READ_STEPS = 2.
+
+  `putt_with_hands()` now reads on the speed it *means* to hit and applies the hand noise to the strike
+  afterwards, which is what a golfer does: the read is a decision made about an intended stroke.
+
+  three checks rewritten, two added (31 -> 33):
+    19b, "the green stops being flat" — was "the green costs the same from 2 ft as from 24", which was true and
+        is now false; it measures the holed rate at 3 ft against 20 ft and both costs against COST_ON_GREEN.
+    19c, off the green — the tolerance widened from 0.35 to 0.45 and the prose rewritten; the number is 2.21
+        against 2.60 told, and the gap is now named rather than described as "the objective flattens it".
+    22, "a wide belief aims at the room, not at the flag" — was "with an honest scatter the pin is a fine target
+        on the nine", a card comparison over one stream of forty-eight holes. It is now a deterministic
+        measurement of where the aim goes, because the card version cannot rule on a null at that sample size
+        and the null itself was the wrong shape.
+    23, "the target decision is worth a quarter of a stroke, not one and a half" — the old check asserted
+        tight - friendly > 1.0, which was pass 10's shape. It now asserts the ceiling.
+    32, the read: one correction leaves 0.37 ft, two leave 0.03, a hole is 0.177 ft in radius.
+    33, the read is the slope's, not a fudge: on grade 0.0 it moves a 20 ft putt by 0.00 ft, on grade 1.2 from
+        1.44 ft off the line to 0.03.
+
+  and one defect in the *instrument*, found while re-measuring: `costs_test()` and `short_game()` seeded every
+  bearing with the same seed, so all sixteen bearings drew the same face and speed noise and a distance's cost
+  was all-or-nothing on one putt's luck. (The first run of the new table read 1.00 strokes from 2.5 ft on that
+  bug, which is what a single lucky draw looks like.) One stream per position now, three streams a cell.
+
+----------------------------------------------------------------------------------------------------
+1. WHAT THE HANDS ALONE FOUND, WHICH WAS NOT THE DISPERSION
+----------------------------------------------------------------------------------------------------
+
+With the two constants in and nothing else, the athlete still aims at the hole. The green this game plays is
+grade 1.2 falling at bearing 135, so a straight putt is carried sideways by an amount that is nearly constant
+in angle and grows in feet:
+
+    20 ft putt, aimed at the hole, finishing distance from the line:  1.44 ft at bearing 0, 2.25 at 45,
+                                                                     3.79 at 90, -1.68 at 180
+
+  1.44 ft at 20 ft is 4.1°, and 1.1° of face is worth 0.38 ft out there: the systematic miss was four times the
+  noise it was supposed to be measured against, and no measurement of the hands could be trusted until the line
+  was right.
+
+  holed rates with the hands on and no read (3000 draws a distance, over the compass):
+
+       d      2.5 ft   4 ft    6 ft    9 ft   12 ft   20 ft   30 ft
+     holed     36.3%   6.7%    2.3%    0.3%    0.3%    0.0%    0.0%
+     mean miss 0.22    0.35    0.51    0.75    1.00    1.69    2.49   ft
+
+  the same stroke on a dead-flat green (grade 0.0), which is the control that says whose fault it is:
+
+       d      2.5 ft   4 ft    6 ft    9 ft   12 ft   20 ft   30 ft
+     holed    100%    98%     88%    69.3%  56.7%   31.3%   25.0%
+
+  close to golf. So the slope was eating the putts, and the game had no read of it. Two other measurements from
+  that afternoon are worth keeping because both were dead ends: sweeping the pace gain from 1.00 to 1.30 moved
+  the mean holed rate only from 6.6% to 34.6% (the putter is aimed to die at the hole, so more pace is not a
+  line fix), and aiming to finish 1.5 ft past lifted 2.5 ft to 96.3% but left 9 ft at 4.3% — the pace is a
+  finding of its own and it is item 3 below.
+
+  A probe in this pass reported the break as an angle rising from 19.37 deg at 6 ft to 62.80 at 45 on bearing 0
+  (27.94 to 68.61 on bearing 45), and concluded that no single aim correction could cancel it. The number was
+  the angle the ball's *path* subtended at the finish, not the correction needed, and it is withdrawn. The
+  correction needed does vary with distance, but by 3 deg, not by 40:
+
+     bearing  4 ft   6 ft   10 ft   20 ft   30 ft   45 ft
+        0    -3.55  -3.70  -3.70   -3.65   -3.65   -3.70
+       45    -6.00  -5.85  -5.75   -5.95   -6.25   -6.25
+       90    -4.70  -4.80  -4.85   -4.80   -4.85   -5.15
+      180    +2.20  +3.20  +4.00   +4.65   +4.85   +5.15
+
+  (the correction a search finds, in degrees off the line to the hole; negative is left)
+
+----------------------------------------------------------------------------------------------------
+2. THE READ, AND WHY IT IS THE GAME'S OWN ROLL
+----------------------------------------------------------------------------------------------------
+
+The first-order estimate — lateral drift = cross-slope acceleration x distance / along-deceleration — is off by
+a factor of two at every bearing: it says 7.50 deg where the search says 3.65. Friction acts on the total
+velocity, not on the along component, so the drift is damped as it builds and there is no closed form worth
+trusting. A factor of two invented to fix it would be a fitted number, so the read is the game's roll asked a
+question: aim, roll, measure the lateral miss at the hole plane, correct, repeat.
+
+  corrections   worst lateral residual, over 13 bearings x 8 distances (3 to 60 ft)
+       1          0.368 ft
+       2          0.029 ft
+       3          0.003 ft
+
+  two steps, then, and the count is a measurement rather than a choice (check 32). The read costs two extra
+  rolls a putt; the roll is 1.85 ms, so a putt is 5.5 ms instead of 1.9.
+
+  It is a read of the slope and not a fudge — check 33: on grade 0.0 it moves a 20 ft putt by 0.00 ft; on grade
+  1.2 it moves it from 1.44 ft off the line to 0.03 ft, over 24 bearings. There was no free aim bias in it to
+  absorb anything else.
+
+----------------------------------------------------------------------------------------------------
+3. THE COST CURVE, WHICH IS WHAT THE TENTH PASS WANTED AND DID NOT GET
+----------------------------------------------------------------------------------------------------
+
+  python3 lab/golf.py --costs        (48 played-out holes a cell: three streams over sixteen bearings)
+
+   distance           green           rough            sand
+      2.5ft      1.60(48)            —                —
+      4.0ft      1.73(48)            —                —
+      6.0ft      1.54(48)            —                —
+      9.0ft      1.50(48)            —                —
+     12.0ft      1.65(48)            —                —
+     16.0ft      1.56(48)            —                —
+     20.0ft      1.81(48)            —                —
+     24.0ft      1.67(18)      2.38(21)      3.56( 9)
+     28.0ft      2.17( 6)      2.18(33)      4.11( 9)
+     33.0ft            —      2.12(33)      3.53(15)
+     40.0ft            —      2.27(48)            —
+     50.0ft            —      2.15(48)            —
+     60.0ft            —      2.23(48)            —
+
+  Compare pass 10, on a putter that never missed: 2.00 / 2.00 / 1.88 / 1.94 / 2.00 on the green. The column is
+  a curve now — 1.60 at 2.5 ft to 1.81 at 20 and 2.17 at 28, about a hundredth of a stroke a foot against
+  golf's five hundredths (1.05 at 3 ft, 1.9 at 20) — and its floor is 1.64 against golf's 1.05.
+
+  The two constants `target()` is made of are pass 10's measurements and are left alone. They now overstate the
+  green by 0.36 and the rough by 0.39. Re-measuring them and checking them against the same measurement would
+  turn two measured numbers into two fitted ones, which is the rule this file has kept since the fourth pass.
+
+  A second measurement of the same thing, for the checks: the game's own putter holes 47.3% of 3 ft putts and
+  12.0% of 20 ft ones (300 draws each), so the greens' costs differ by a factor of four in putts even though
+  they differ by 0.2 in strokes.
+
+----------------------------------------------------------------------------------------------------
+4. THE THIRD THING: THE PUTTER AIMS TO DIE AT THE CUP
+----------------------------------------------------------------------------------------------------
+
+With the read in, the line is nearly perfect at short range — 1.1 deg of face at 3 ft is 0.06 ft, and the hole
+is 0.177 ft in radius — so the misses at short range are not the line at all:
+
+  3000 draws over the compass, the athlete as the game's putter has it:
+
+       d      holed   at least 0.05 ft short   past the hole   lipped out
+     2.5 ft   46.1%           26.6%                1.7%          0.0%
+     3.0 ft   45.3%           31.3%                1.9%          0.0%
+     4.0 ft   43.0%           35.8%                2.6%          0.0%
+     6.0 ft   39.6%           40.7%                5.7%          0.0%
+     12 ft    25.7%           46.1%               20.2%          0.0%
+     20 ft    16.8%           50.9%               26.6%          0.0%
+     30 ft    11.4%           51.7%               32.7%          0.0%
+     45 ft     7.7%           52.5%               37.2%          0.0%
+
+  Half of every putt from twenty feet in stops short of the plane, and a putt that stops short of the plane
+  cannot go in. `putt.py`'s athlete halves the bracket on the sign of the along error, which drives the *mean*
+  error to zero — the pace that dies at the cup — and a scattered stroke whose mean lands on the cup is a
+  stroke that lands short half the time. And the lip never comes into play: 0.0% lip out at every distance,
+  because this putter never arrives fast enough to lip. Pass 5 made the lip a skill and pass 11 has found the
+  one surface where the lip is dead.
+
+  What the pace is worth, with the read and the hands both in (1500 draws a cell):
+
+   aiming to finish        3 ft    6 ft   12 ft   20 ft   30 ft   45 ft
+     die at the cup         43.0%  38.1%  27.8%   16.3%   11.5%    7.7%
+     0.5 ft past            75.7%  66.2%  46.1%   25.2%   15.1%    9.3%
+     1.0 ft past            80.2%  60.2%  43.3%   29.0%   17.3%   10.9%
+     1.5 ft past            87.0%  56.4%  39.7%   28.2%   19.6%   12.8%
+     2.0 ft past            90.9%  54.7%  34.3%   25.5%   17.9%   11.8%
+     3.0 ft past            95.5%  60.5%  30.7%   21.1%   17.4%   13.3%
+     real golf, roughly       95%    50%    30%     15%      7%      4%
+
+  The pace is worth 37 points of holed putts at 3 ft and 13 at 20 — more than the dispersion, more than the
+  read, and more than the whole target decision. It is not built, and the reason is not laziness: it is not a
+  dispersion and it is not a read, it is a decision about what to intend, which is the same class of object as
+  the floor (pass 9) and the step function (pass 10). It gets a pass with a measurement, not an edit.
+
+  The last row is the uncomfortable one. With a pace that finishes a foot past, this game holes MORE putts than
+  golf does at every distance from 6 ft out — 60/43/29/17 against 50/30/15/7 — because its line error is one
+  constant 1.1 deg at every distance while a real golfer's grows, since a real golfer misreads greens. The read
+  here is exact to a third of an inch. So the next lie the model would tell itself, the moment the pace is
+  fixed, is that it reads greens perfectly; a read error is the one thing left that I would have to invent, and
+  it is named and not built.
+
+----------------------------------------------------------------------------------------------------
+5. EVERY AIMING NUMBER IN THE FILE MOVED, AND TWO OF THEM BY MORE THAN THE BAR
+----------------------------------------------------------------------------------------------------
+
+  python3 lab/golf.py --draws 40 --bags 8 --calm --pin-range 6|14|19
+
+  still air, 40 drawn courses x 8 bags, strokes a round (negative = first is better)
+
+                                    mean      95%        t
+    +-6 ft    flag - centre        -0.21   +- 0.70   -0.6
+              flag - spread        +0.25   +- 0.58   +0.9
+              centre - spread      +0.46   +- 0.58   +1.5
+     means: flag -3.98 (sd 1.33), centre -3.78 (1.12), spread -4.24 (0.89)
+
+    +-14 ft   flag - centre        -1.06   +- 0.55   -3.8
+              flag - spread        -0.05   +- 0.80   -0.1
+              centre - spread      +1.01   +- 0.56   +3.5
+     means: flag -3.46 (1.23), centre -2.39 (1.45), spread -3.41 (1.06)
+
+    +-19 ft   flag - centre        -0.53   +- 0.60   -1.7
+              flag - spread        +0.48   +- 0.60   +1.6
+              centre - spread      +1.01   +- 0.41   +4.8
+     means: flag -2.70 (1.23), centre -2.17 (1.28), spread -3.18 (0.87)
+
+  pin +19 ft, wind drawn:
+
+    +-19 ft   flag - centre        -1.00   +- 0.26   -7.6
+              flag - spread        +0.49   +- 0.27   +3.6
+              centre - spread      +1.49   +- 0.25  +11.8
+     means: flag -0.02 (0.52), centre +0.97 (0.51), spread -0.52 (0.51)
+
+  Against pass 10: pin - cheap was +0.75 +- 0.62 at +-14 and +1.30 +- 0.67 at +-19; it is -0.05 +- 0.80 and
+  +0.48 +- 0.60. The difference between the two passes' estimates is 0.82 +- 0.63, a little over one sigma, so
+  the honest reading is smaller, not gone. Middle - cheap went from +0.24 +- 0.18 to +1.01 +- 0.41 at +-19:
+  the middle got a full stroke worse, and the mechanism is the cost gradient — a middle aim leaves putts
+  twenty-five feet long, and twenty-five feet now costs 0.2 more than three.
+
+  THE REVERSAL THIS FILE COULD NOT EXPLAIN IS THE PUTTER'S. Findings 4 and 6 have carried a sign flip since the
+  sixth pass: at +-19 the middle beat the pin by 1.4 strokes in still air and lost to it by half in wind, and
+  the file said it had no mechanism. With the hands on, the pin beats the middle in both weathers (-0.53 +-
+  0.60 still, -1.00 +- 0.26 windy). A one-line control attributes it: the same forty courses, eight bags, +-19,
+  still air, with PUTT_FACE_SD and PUTT_SPEED_SD set back to zero —
+
+    flag - centre  +1.32 +- 0.76   (the pass-10 reversal, to the stroke)
+    flag - spread  +1.49 +- 0.50
+    centre - spread +0.17 +- 0.35
+
+  So it was neither the weather nor the pin. On a green where every putt costs two strokes, a middle aim is
+  free and a long putt is free, and the sand is the only thing in the world with a price; with a dispersion,
+  the middle aim starts paying for the putts it leaves. Three passes of a "reversal I cannot explain" were a
+  property of the short game.
+
+----------------------------------------------------------------------------------------------------
+6. THE BELIEF, WHICH IS NOW THE SMALLEST OF THE THREE
+----------------------------------------------------------------------------------------------------
+
+  python3 lab/golf.py --sigma --draws 48 --streams 8 --pin-range 19
+
+                      strokes/round  +- across         vs gated  sigma believed
+    gated, learned           33.66      0.48    +0.00 +- 0.00            1.27
+    ungated, learned         33.67      0.24    +0.02 +- 0.56            2.62
+    told 0.6                 33.42      0.36    -0.23 +- 0.27            0.60
+    told 1.1                 33.44      0.28    -0.22 +- 0.35            1.10
+    told 2.0                 33.30      0.21    -0.35 +- 0.60            2.00
+    told 3.0                 33.83      0.16    +0.17 +- 0.59            3.00
+
+  the table's own spread: told 2.0 against told 3.0, 0.52 +- 0.27 strokes a round, paired by stream.
+
+  Pass 10 read this table as monotone; it is not. The order is 2.0, 0.6, 1.1, gated, ungated, 3.0 and only the
+  ends are more than one bar apart. What survives is the size: half a stroke over a five-fold range of
+  self-knowledge. Two passes of this file called that the whole subject; it is now smaller than the pace
+  (finding 4 above, 37 points at 3 ft) and smaller than the cost gradient.
+
+----------------------------------------------------------------------------------------------------
+7. THE CARD, RE-RUN
+----------------------------------------------------------------------------------------------------
+
+  python3 lab/golf.py --rounds 6 [--calm] [--learn 0]
+
+                               1    2    3    4    5    6   held-out
+    still air, learning       +8   +7    0    0   -1   -1      -1
+    still air, control        +9   +9   +9   +9   +9   +9      +8
+    wind drawn, learning      +7   +1   +3   +3   +2   +2      -1
+    wind drawn, control      +10  +10  +10  +10  +10  +10      +8
+
+  notebook error, still air: 13.2% -> 1.2% (1.1 by the sixth); wind: 18.9% -> 11.4%. Putts, still air:
+  20, 18, 17, 18, 18, 18 (control 14 every round). The putter's new hands show in the odd four-putt rather
+  than in the count: round 1, hole 2 is 11 ft -> 7.8 ft past -> 8.3 -> 3.1 -> in, where every one of those
+  used to be one putt and a tap-in.
+
+  python3 lab/golf.py --field --rounds 8      (wind drawn, pins +-14, par 280)
+
+                             R1    R4    R8   total   best   change
+    flag-hunter             +12    +2    -3     +39     -3      -15
+    bad start                +7    +2    +3     +44     +2       -4
+    practiser               +10    +9    +0     +45     +0      -10
+    blind hands             +11    +6    +0     +47     +0      -11
+    cautious                +11    +3    +2     +59     +2       -9
+    no practice             +14   +16   +11    +115    +11       -3
+
+  The order among the five learners is still inside the noise and `cautious` is still last, which is now a
+  consequence rather than a coincidence: a policy that knows where the bunker is and not where the pin is aims
+  at the middle, and the middle leaves long putts, and long putts cost something now.
+
+----------------------------------------------------------------------------------------------------
+8. WHAT THIS PASS DID NOT DO
+----------------------------------------------------------------------------------------------------
+
+It did not fix the pace. It measured it, priced it, and named it as the first item under "where it stops". The
+pace is an intent, not a dispersion, and the two lessons of passes 9 and 10 are that an intent slipped in
+unmeasured is a number I wrote down.
+
+It did not put the measured cost curve into `target()`. The objective is still told 2.00 on the green at every
+distance, and with a wide belief it therefore aims at the room — 20 ft from the flag on my own nine, 41 ft on
+the worst hole. That is now check 22, which asserts the defect so the next pass sees it move. It is the second
+item under "where it stops" and it is the first edit in this file that would let the objective *want* to be
+near the hole.
+
+It did not give the putter a read error. With the pace fixed this game would already be better than golf from
+6 ft out, and the difference would be a golfer's imperfect eyes. That number would have to be invented, so it
+is named in "what this does not model" and not built.
+
+It did not re-derive the two cost constants. They are 0.36 and 0.39 high now and that is written down in four
+places rather than tuned away.

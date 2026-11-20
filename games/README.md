@@ -37,7 +37,12 @@ of these games has found a defect in *its own scoring rule* rather than in its p
 tenth pass then wrote that rule in the game's own units and the defect turned out to be one surface deeper: the
 putter has no scatter, so every putt costs two strokes from any distance, so the green has no gradient and the
 objective that replaced the step function is nearly flat too. It is the most specific thing any of these games
-has found — not a missing force but a missing *dispersion*, on the one surface nobody thought to check.
+has found — not a missing force but a missing *dispersion*, on the one surface nobody thought to check. And the
+eleventh pass put the dispersion in and found that the count was wrong: giving the putter hands exposed an
+athlete that had never been given *eyes* (it aimed at the hole on a green falling 1.2%, and missed by a foot and
+a half from twenty feet) and, behind that, a putter that aims to die at the cup and therefore cannot hole half
+its three-footers. Three missing things, one of them built, one built, one measured and named — and the short
+game is now the biggest single thing wrong with any game in this directory.
 
 ## Which to keep, and why
 

@@ -46,7 +46,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from tennis import flight, G, MPH, RHO  # noqa: E402  the one integrator, not a second copy of the loop
 from putt import (  # noqa: E402  the short game is already a game
-    STIMPMETER_SPEED, Athlete as PuttAthlete, Green, Hole as PuttHole, attempt as putt_attempt,
+    STIMPMETER_SPEED, Athlete as PuttAthlete, Green,
+    effective_decel, phrase as putt_phrase, report as putt_report, roll as putt_roll, unit as putt_unit,
 )
 
 # G, MPH and RHO are tennis's, imported rather than restated. They lived here for a day as three fresh literals
@@ -122,6 +123,46 @@ STIMP_ROUGH = 5.5
 FACE_SD = 1.1             # degrees
 SPEED_SD = 0.015          # fraction of ball speed
 DEFAULT_SEED = 20261119
+
+# The putter gets the same hands. Until pass 11 it did not: every club in the game had these two numbers and the
+# one surface that is used more than any other had neither, because `lab/putt.py`'s athlete bisects its gain and
+# its line to zero error and its roll carries no scatter. The cost of a landing was therefore flat in distance
+# (2.00 strokes from 2.5 ft and from 28 ft, measured in pass 10) and no objective could prefer a 3 ft putt to a
+# 20 ft one, because in this game there was no difference between them to prefer. The two numbers below are not
+# new: they are the clubs' own, applied to the surface that never got them, and what they should do is make a
+# green have a gradient. `--costs` says whether they did.
+PUTT_FACE_SD = FACE_SD     # degrees
+PUTT_SPEED_SD = SPEED_SD   # fraction of ball speed
+PUTT_READ_STEPS = 2        # corrections in the read; see putt_read()
+
+# And the putter gets eyes, which is the other half of the same omission. `putt.py` tells its athlete the green's
+# speed and which way and how hard the slope falls — a player can see all of that — and then makes it aim at the
+# hole as if the green were flat. On this green (grade 1.2, downhill 135) that leaves a straight 20 ft putt
+# 1.44 ft wide of the hole, which is four times the 0.38 ft that 1.1° of face is worth at that range: the
+# missing thing was not only the dispersion, it was the read, and the dispersion had been hidden behind it.
+
+
+def putt_read(green: Green, gap_ft: float, bearing: float, speed: float) -> float:
+    """The face angle on which a ball struck at this speed crosses the hole: what a player computes from a green
+    it can see, and the game's own roll doing the arithmetic rather than a formula with a fudge factor in it.
+
+    Two corrections. The naive first-order estimate of the break (lateral drift = cross-slope acceleration x
+    distance / along-deceleration) is out by a factor of two, because friction acts on the total velocity and
+    damps the drift as it builds; a factor of two invented to fix that would be a fitted number. Correcting
+    twice converges: the worst lateral residual over bearings 0-330 and distances 3-60 ft is 0.37 ft after one
+    correction and 0.03 ft after two, so the read is exact to a third of an inch and every putt that misses from
+    here has been missed by a hand, not by an eye.
+    """
+    ux, uy = putt_unit(bearing)
+    spot = (ux * gap_ft, uy * gap_ft)
+    face = bearing
+    for _ in range(PUTT_READ_STEPS):
+        res = putt_roll((0.0, 0.0), face, speed, green, spot)
+        _along, lateral, _miss = putt_report(res["finish"], (0.0, 0.0), spot)
+        if abs(lateral) < 1e-9:
+            break
+        face -= math.degrees(math.atan2(lateral, gap_ft))
+    return face
 
 
 @dataclass(frozen=True)
@@ -634,6 +675,40 @@ def report_shot(start: tuple[float, float], rest: tuple[float, float],
     return (dx * ux + dy * uy) / FT_PER_YD, (dx * rx + dy * ry) / FT_PER_YD
 
 
+def putt_with_hands(putter: PuttAthlete, gap_ft: float, bearing: float, green: Green,
+                    learn: bool, rng: random.Random) -> dict:
+    """`putt.attempt`, with the hands this game gives every other club.
+
+    The roll, the friction law, the hole and the report are `lab/putt.py`'s — imported, not restated — and so is
+    the athlete's two unknowns and its bisection. What is added here is the two numbers every club in golf.py
+    already has: `PUTT_FACE_SD` and `PUTT_SPEED_SD`, drawn per putt. The athlete does not know it is being
+    drawn, which is the point: a player whose putts scatter cannot tell a bad stroke from a bad hand, so its
+    bisection now settles on the middle of its own noise instead of on zero.
+
+    Before pass 11 this game called `putt_attempt` directly, and the putter was therefore exact: 0 to 0.3 ft
+    past the hole from 3 ft to 45 ft, two strokes from anywhere, and no gradient in distance on the green for
+    any objective to spend. That was not a decision about putting; it was a missing dispersion.
+
+    The read is drawn on the speed the player *means* to hit, not on the speed it accidentally hits: a golfer
+    reads the green for the putt it intends, and the hand error arrives afterwards.
+    """
+    ux, uy = putt_unit(bearing)
+    spot = (ux * gap_ft, uy * gap_ft)
+    a_eff = effective_decel(green, bearing)
+    intended = putter.pace(gap_ft, a_eff)
+    face = putt_read(green, gap_ft, bearing, intended) + putter.bias + rng.gauss(0.0, PUTT_FACE_SD)
+    speed = intended * (1.0 + rng.gauss(0.0, PUTT_SPEED_SD))
+    res = putt_roll((0.0, 0.0), face, speed, green, spot)
+    along, lateral, _miss = putt_report(res["finish"], (0.0, 0.0), spot)
+    if learn:
+        which = putter.turn
+        err = along / gap_ft if which == "gain" else lateral
+        putter.observe(which, putter.gain if which == "gain" else putter.bias, err)
+    return dict(along=along, lateral=lateral, holed=res["hole"], lipout=res["lipout"], t=res["t"],
+                face=face, speed=speed,
+                text=putt_phrase(along, lateral, res["hole"], res["lipout"]))
+
+
 def play_hole(hole: Hole, ath: Athlete, putter: PuttAthlete, green: Green,
               learn: bool = True, verbose: bool = True, wind: tuple[float, float] | None = None,
               tag: str = "", rng: random.Random | None = None,
@@ -668,7 +743,7 @@ def play_hole(hole: Hole, ath: Athlete, putter: PuttAthlete, green: Green,
         if (lie == "green" or gap_ft <= PUTT_ZONE or (last_putt and lie not in ("sand", "trees"))) \
                 and putts < 4:
             bearing = bearing_to(ball, flag)
-            r = putt_attempt(putter, PuttHole(gap_ft, bearing), green, learn=learn)
+            r = putt_with_hands(putter, gap_ft, bearing, green, learn=learn, rng=rng)
             putts += 1
             strokes += 1
             last_putt = True
@@ -944,15 +1019,28 @@ def selftest() -> int:
     put3 = PuttAthlete()
     for _ in range(4):
         play_round(still, trained, put3, green, learn=True, verbose=False)
-    scored = {}
-    for pol in ("flag", "spread"):
-        a = copy_of(trained)
-        a.policy = pol
-        scored[pol] = sum(play_round(still, a, PuttAthlete(), green, learn=False, verbose=False,
-                                     rng=random.Random(DEFAULT_SEED))["strokes"] for _ in range(4))
-    check("and with an honest scatter the pin is a fine target on the nine", scored["spread"] <= scored["flag"],
-          f"{scored['spread']} strokes against {scored['flag']} over four calm rounds — the spread policy is "
-          f"never better on my own pins, whose flags sit no further out than ±14 ft")
+    # on my own nine a wide belief does not aim near the flag: it aims at the room. The reason is measurable
+    # and it is the objective's, not the arithmetic's — the green is priced at one number (COST_ON_GREEN, from
+    # 2 ft to 28 ft), so a target 30 ft from the hole is worth exactly what a target 3 ft from it is worth, and
+    # the only gradient left is the green's edge. The cheapest target is therefore the middle of the safe area,
+    # and the further from the flag that area is, the further the aim goes. Pass 11's putter pays 0.007 strokes
+    # a foot for this indifference (finding 10); the objective is not told.
+    wide = Athlete()
+    wide.policy = "spread"
+    wide.sigma = 3.0
+    aim_far = []
+    for h in COURSE:
+        tee = (h.flag[0], h.flag[1] - 400.0 * FT_PER_YD)
+        aim_far.append(abs(wide.target(h, tee, 400.0 * FT_PER_YD) - h.pin))
+    sand_side = [x for h, x in zip(COURSE, aim_far) if h.sand != 0]
+    check("a wide belief aims at the room, not at the flag",
+          _mean(aim_far) > 15.0 and min(sand_side) > 10.0,
+          f"on my own nine, with a 3.0° belief, the cheapest target is {_mean(aim_far):.0f} ft from the flag "
+          f"on average ({', '.join(f'{h.label}:{x:.0f}' for h, x in zip(COURSE, aim_far))}) and "
+          f"{min(sand_side):.0f}–{max(sand_side):.0f} ft on the six holes with sand beside them. Not the "
+          f"tie-break: these values are not tied. Every green target is priced at {COST_ON_GREEN:.2f} whatever "
+          f"the distance, so the only gradient in the objective is the edge of the grass, and the cheapest "
+          f"target is the room")
 
     # 14. the target decision, measured over drawn pins instead of my nine: its value has to grow as the pins
     # get tucked. If it did not, the whole of finding 3 would be a property of the table I typed in.
@@ -984,10 +1072,14 @@ def selftest() -> int:
         return sum(by_bag) / bags
 
     tight, friendly = paired_advantage(19.0), paired_advantage(6.0)
-    check("a tucked pin is what makes the target decision worth anything",
-          tight - friendly > 1.0 and tight > 0.5,
+    check("the target decision is worth a quarter of a stroke, not one and a half",
+          abs(tight) < 0.9 and abs(friendly) < 1.2,
           f"aiming at the pin instead of where the putt is likeliest is worth {tight:+.2f} strokes on pins cut "
-          f"19 ft out and {friendly:+.2f} on pins cut 6 ft out, over 3 bags × 12 drawn courses each")
+          f"19 ft out and {friendly:+.2f} on pins cut 6 ft out, over 3 bags × 12 drawn courses each — and this "
+          f"check used to assert the opposite shape, tight − friendly > 1.0, because pass 10 measured +0.75 at "
+          f"±14 and +1.30 at ±19 in a game whose putter never missed. The 40-course 8-bag run of pass 11 puts "
+          f"the same difference at +0.48 ± 0.60 and −0.05 ± 0.80: the aim is now the smaller half of the short "
+          f"game, and the upper bound is the claim that is left")
 
 # 17. the sand is where the hole says it is, and only there
     left_hole, right_hole, none = (Hole(400, 4, "S", pin=10.0, sand=-1), Hole(400, 4, "S", pin=10.0, sand=+1),
@@ -1049,38 +1141,57 @@ def selftest() -> int:
 
     # 19b-19c. the two costs `target()` is made of. Pass 10 replaced a step function with them, and a cost
     # that nobody measures is the same kind of object as the 25 ft step was: a number I wrote down.
-    def short_game(kind: str, d: float, bearings: int = 8) -> tuple[float, int]:
+    def short_game(kind: str, d: float, bearings: int = 16, streams: int = 3) -> tuple[float, int]:
         """Strokes to hole out from `d` feet, over the bearings on which a ball at that distance lies in
-        `kind`. Played through the game, not through a second copy of its rules."""
+        `kind`. Played through the game, not through a second copy of its rules, and one random stream per
+        position: the first version of this seeded every bearing with the same seed, which drew the same two
+        noises for all of them and made a distance all-or-nothing on one putt's luck (pass 11)."""
         h = Hole(400, 4, "C", pin=13.0, sand=+1)
         out = []
-        for b in range(bearings):
-            a = math.radians(360.0 * b / bearings)
-            p = (h.centre[0] + math.sin(a) * d, h.centre[1] + math.cos(a) * d)
-            got = "sand" if in_sand(p, h) else ("green" if on_green(p, h) else "rough")
-            if got != kind:
-                continue
-            out.append(play_hole(h, copy_of(ath), PuttAthlete(), green, learn=False, verbose=False,
-                                 start=p, rng=random.Random(7))["strokes"])
+        for st in range(streams):
+            for b in range(bearings):
+                a = math.radians(360.0 * b / bearings)
+                p = (h.centre[0] + math.sin(a) * d, h.centre[1] + math.cos(a) * d)
+                got = "sand" if in_sand(p, h) else ("green" if on_green(p, h) else "rough")
+                if got != kind:
+                    continue
+                out.append(play_hole(h, copy_of(ath), PuttAthlete(), green, learn=False, verbose=False,
+                                     start=p, rng=random.Random(7 + 31 * b + 997 * st + int(10 * d)))
+                           ["strokes"])
         return (sum(out) / len(out), len(out)) if out else (float("nan"), 0)
 
+    def holed_rate(d: float, draws: int = 300) -> float:
+        """How often the game's own putter holes a putt of `d` feet, over the compass and over streams."""
+        put, rng, got = PuttAthlete(), random.Random(99 + int(10 * d)), 0
+        for i in range(draws):
+            got += putt_with_hands(put, d, 360.0 * i / draws, green, learn=False, rng=rng)["holed"]
+        return got / draws
+
+    near_r, far_r = holed_rate(3.0), holed_rate(20.0)
     near_c, _ = short_game("green", 2.5)
     far_c, _ = short_game("green", 24.0)
-    check("the green costs the same from 2 ft as from 24",
-          abs(near_c - far_c) < 0.4 and abs(near_c - COST_ON_GREEN) < 0.4,
-          f"{near_c:.2f} strokes from 2.5 ft and {far_c:.2f} from 24 ft, against the {COST_ON_GREEN:.2f} the "
-          f"objective is told. They are the same number because the putter is deterministic — it bisects its "
-          f"gain and its line to zero error and the roll has no scatter — so there is no gradient in distance "
-          f"on this green for any objective to spend, and the 25 ft step this replaced was standing in for one")
+    check("the green stops being flat: 43% holed from 3 ft, 17% from 20",
+          near_r > 1.8 * far_r and abs(near_c - COST_ON_GREEN) < 0.5,
+          f"the game's putter holes {100 * near_r:.1f}% of 3 ft putts and {100 * far_r:.1f}% of 20 ft ones, so "
+          f"the green costs {near_c:.2f} strokes from 2.5 ft and {far_c:.2f} from 24 against the "
+          f"{COST_ON_GREEN:.2f} the objective is told at every distance. Until pass 11 those were the same "
+          f"number — 2.00 from 2 ft and from 28 — because the putter bisected its gain and its line to zero "
+          f"error and the roll carried no scatter, so there was no gradient for any objective to spend. There "
+          f"is one now and it is a quarter of golf's — golf is 95% at 3 ft and 15% at 20, and this putter is "
+          f"{100 * near_r:.0f}% and {100 * far_r:.0f}% because it proposes to arrive at the hole with no speed "
+          f"and half its putts stop short of the cup (finding 10)")
     off_c_36, n36 = short_game("rough", 36.0, bearings=16)
     off_c_60, n60 = short_game("rough", 60.0, bearings=16)
     off_c = (off_c_36 * n36 + off_c_60 * n60) / (n36 + n60)
     check("off the green costs a chip more than on it",
-          abs(off_c - COST_OFF_GREEN) < 0.35 and off_c > near_c + 0.3,
+          abs(off_c - COST_OFF_GREEN) < 0.45 and off_c > near_c + 0.3,
           f"{off_c:.2f} strokes off the green ({n36 + n60} bearings at 36 and 60 ft) against {near_c:.2f} on "
-          f"it and {COST_OFF_GREEN:.2f} told. It is not one number in the world — it is 2 or 3 depending on "
-          f"whether the chip goes in and which way the slope runs ({off_c_36:.2f} at 36 ft, {off_c_60:.2f} at "
-          f"60) — and the objective flattens it, which is the next thing standing between this model and golf")
+          f"it and {COST_OFF_GREEN:.2f} told. Off the green is still the flattest of the two numbers: it is 2 "
+          f"or 3 in the world depending on whether the chip goes in, and with the putter's hands on the fringe "
+          f"it measures {off_c_36:.2f} at 36 ft and {off_c_60:.2f} at 60, so the 2.60 the objective is told "
+          f"overstates it by a stroke's sixth and the green's 2.00 overstates the green by more than that. "
+          f"Both constants are pass 10's measurements and are left alone: re-measuring them and checking them "
+          f"against the same measurement would turn two measured numbers into two fitted ones")
 
     # 20. the notebook learns nothing from sand: same reason as the rough, one lie further out
     sand_ath, sand_put = Athlete(), PuttAthlete()
@@ -1206,6 +1317,62 @@ def selftest() -> int:
           f"floor never bound on this hole — it answers the same with 2 ft or 0.5 — so this is the tie-break "
           f"alone: before it, a pin at 0 from 40 ft was answered −15 ft, the left end of a band the objective "
           f"scores as flat, because that is where `for k in range(-45, 46)` starts counting")
+
+    # 32. the read. Pass 11 gave the putter eyes, which is the half of the missing short game that was not
+    # a dispersion: the athlete is told the green's speed and which way and how hard it falls, and then aimed
+    # at the hole as if the green were flat, which on this green is 1.4 ft wide of the hole from 20 ft — many
+    # times what 1.1° of face is worth out there. So no measurement of the face's scatter could be trusted
+    # until the line was right. The read is two corrections of the game's own roll; both steps are asserted,
+    # because the count is a measurement too (one correction is not enough and the probe says by how much).
+    read_green = Green(stimp=10.0, grade=1.2, downhill=135.0)
+    worst = {1: 0.0, 2: 0.0}
+    for steps in (1, 2):
+        for b in range(0, 360, 30):
+            for d in (3.0, 6.0, 12.0, 20.0, 30.0, 45.0, 60.0):
+                sp = PuttAthlete().pace(d, effective_decel(read_green, float(b)))
+                ux, uy = putt_unit(float(b))
+                spot = (ux * d, uy * d)
+                face = float(b)
+                for _ in range(steps):
+                    res = putt_roll((0.0, 0.0), face, sp, read_green, spot)
+                    _al, lat, _m = putt_report(res["finish"], (0.0, 0.0), spot)
+                    face -= math.degrees(math.atan2(lat, d))
+                res = putt_roll((0.0, 0.0), face, sp, read_green, spot)
+                _al, lat, _m = putt_report(res["finish"], (0.0, 0.0), spot)
+                worst[steps] = max(worst[steps], abs(lat))
+    check("the read puts the line on the hole, and two corrections are what that takes",
+          worst[2] < 0.05 and worst[1] > 0.2,
+          f"after one correction the worst lateral residual over 12 bearings × 7 distances is "
+          f"{worst[1]:.2f} ft and after two it is {worst[2]:.3f} ft, against a hole {2.125 / 12.0:.2f} ft in "
+          f"radius. The naive first-order break — cross-slope acceleration × distance / along-deceleration — "
+          f"is out by a factor of two, and a factor of two invented to fix it would be a fitted number, so the "
+          f"read is the game's own roll asked twice instead")
+
+    # 33. and the read is a read of the *slope*, not a free aim bias: on a flat green it changes nothing, and
+    # on the sloped one it recovers the flat green's line. That pair is what makes it eyes rather than a fudge.
+    flat_green = Green(stimp=10.0, grade=0.0, downhill=135.0)
+    rows = {}
+    for name, gg in (("flat", flat_green), ("slope", read_green)):
+        for eyed in (False, True):
+            lat = []
+            for b in range(0, 360, 15):
+                sp = PuttAthlete().pace(20.0, effective_decel(gg, float(b)))
+                face = putt_read(gg, 20.0, float(b), sp) if eyed else float(b)
+                ux, uy = putt_unit(float(b))
+                spot = (ux * 20.0, uy * 20.0)
+                res = putt_roll((0.0, 0.0), face, sp, gg, spot)
+                _al, l, _m = putt_report(res["finish"], (0.0, 0.0), spot)
+                lat.append(abs(l))
+            rows[(name, eyed)] = sum(lat) / len(lat)
+    check("the read is the slope's, not a fudge: it changes nothing on a flat green",
+          rows[("flat", True)] < 0.02 and rows[("slope", False)] > 1.0 and rows[("slope", True)] < 0.05,
+          f"a 20 ft putt, mean distance from the line at the finish: on grade 1.2, aimed at the hole, "
+          f"{rows[('slope', False)]:.2f} ft; aimed on the read, {rows[('slope', True)]:.2f} ft; on grade 0.0 "
+          f"the read changes it by {rows[('flat', True)] - rows[('flat', False)]:.2f} ft. And the correction "
+          f"is not one number per green: it runs -3.65° at bearing 0 to +5.15° at 180 and, uphill, from 2.20° "
+          f"at 4 ft to 5.15° at 45 — up to three degrees, which is three times the face scatter this game's "
+          f"hands have. The break is the cross-slope integrated along a path that is itself bending, which is "
+          f"why the read is a roll and not an angle")
 
     print(f"\n  {len(fails)} of {n} checks failed" if fails else f"\n  all {n} checks pass")
     return 1 if fails else 0
@@ -1488,23 +1655,34 @@ def costs_test(args) -> int:
         line = f"  {d:7.1f}ft"
         for kind in ("green", "rough", "sand"):
             vals = []
-            for b in range(16):
-                a = math.radians(360.0 * b / 16)
-                pt = (h.centre[0] + math.sin(a) * d, h.centre[1] + math.cos(a) * d)
-                got = "sand" if in_sand(pt, h) else ("green" if on_green(pt, h) else "rough")
-                if got != kind:
-                    continue
-                vals.append(play_hole(h, copy_of(ath), PuttAthlete(), green, learn=False, verbose=False,
-                                      start=pt, rng=random.Random(DEFAULT_SEED))["strokes"])
+            for st in range(3):
+                for b in range(16):
+                    a = math.radians(360.0 * b / 16)
+                    pt = (h.centre[0] + math.sin(a) * d, h.centre[1] + math.cos(a) * d)
+                    got = "sand" if in_sand(pt, h) else ("green" if on_green(pt, h) else "rough")
+                    if got != kind:
+                        continue
+                    # one stream per position: seeding every bearing with the same seed drew the same two
+                    # noises for all sixteen, which made a distance's cost all-or-nothing on one putt's luck
+                    # (pass 11). Three streams, because one position's putt is a coin.
+                    vals.append(play_hole(h, copy_of(ath), PuttAthlete(), green, learn=False, verbose=False,
+                                          start=pt, rng=random.Random(DEFAULT_SEED + 997 * st + 97 * b
+                                                                      + int(10 * d)))["strokes"])
             rows[kind] += vals
             line += f"{_mean(vals):10.2f}({len(vals):2d})" if vals else f"{'—':>13s}    "
         print(line)
-    print(f"\n  on the green, every distance from 2.5 ft to 28 ft costs {COST_ON_GREEN:.2f}: the putter is")
-    print(f"  deterministic — it bisects its gain and its line to zero error and the roll carries no scatter —")
-    print(f"  so it holes out in two from anywhere and the green has no gradient in distance at all.")
+    print(f"\n  Until pass 11 this table was flat: {COST_ON_GREEN:.2f} from 2.5 ft and {COST_ON_GREEN:.2f} from 28,")
+    print(f"  because the putter bisected its gain and its line to zero error and the roll carried no scatter. It")
+    print(f"  has both now, and the green has a gradient: about a hundredth of a stroke a foot, against golf's")
+    print(f"  five hundredths (1.05 at 3 ft, 1.9 at 20). The floor of the curve is not golf's either:")
+    print(f"  {_mean(rows['green']):.2f} against 1.05, because this putter still arrives at the hole with no speed")
+    print(f"  and half its putts from inside 6 ft stop short of the cup (finding 10).")
     print(f"  off the green, mean {_mean(rows['rough']):.2f} against {COST_OFF_GREEN:.2f} told, and it is 2 or 3 by")
     print(f"  bearing: a chip that goes in, or one that does not. In the sand, mean {_mean(rows['sand']):.2f} against")
     print(f"  {COST_ON_GREEN + ath.sand_pen:.2f} told (the green's two plus the athlete's {ath.sand_pen:.2f} price).")
+    print(f"  The two constants are pass 10's and are left alone: they were measured on a putter that never")
+    print(f"  missed, they are now {COST_ON_GREEN - _mean(rows['green']):.2f} and")
+    print(f"  {COST_OFF_GREEN - _mean(rows['rough']):.2f} high, and re-measuring them here would make them fitted.")
     return 0
 
 
