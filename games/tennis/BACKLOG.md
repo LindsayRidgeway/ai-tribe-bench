@@ -112,14 +112,35 @@ The 60 that remain are strides with both feet off the ground, which is what a st
 missing under items 3, 4, 5 and 6** — each of them was a foot doing something in a body that was not standing on
 anything.
 
-### The pose still jumps when a run begins (OPEN, measured 2026-11-20)
+### Item 2b — a body placed instead of walked (FIXED 2026-11-20; the toe jolt below is what is left of it)
 
-Remy's toes rise **0.28ft in one frame (0.02s)** at t=1.90 of the first point — 14ft/s of vertical foot speed in a
-player who is standing still. It is in the pose, not in the clamp: with `&ground=0` the toe still goes 0.332 → 0.610
-between those two samples. The likely cause is the gait switching from standing to walking in one frame with nothing
-blending between them, and it is the same class of defect the founder's "movement realism is make-or-break" is
-about: a body that changes stance instantaneously reads as a puppet. **Item 2b; it blocks nothing and nothing on the
-V1 list is waiting for it.**
+**The plan was not in time order, and `whereAt` stops at the first move that has not begun.** A segment pushes its
+RUN before its STANCE and the stance happens BEFORE the run it walks into, so every segment with both was out of
+order, and the walk broke on the run instead of applying the stance. Measured on the clock's own film with
+`?sweep=0:125:0.02`, one line either side of the fix:
+
+| `seasons/2026-11-19/watch.json`, 6,203 frames | biggest one-frame move | frames over 25ft/s |
+|---|---|---|
+| before `PLAN[name].sort(...)` | **18.91ft** (Colette, T=94.12) | 24 |
+| after | **0.42ft** (Colette, T=10.16) | 0 |
+
+18.91ft in 0.02s is 945ft/s. Two shapes came out of the same defect: at every serve the returner stood at her
+standing position through the whole stance and then appeared at the run's `from` — **6.0ft in one frame** — and when
+the run ended the unsorted list handed the walk the stance's `to` instead of the settle's route, which is the
+18.91ft. The 0.42ft that remains is 21ft/s, a sprint. `TestThePlanIsInTimeOrder` holds the sort, the order of the
+pushes that makes it necessary, and the numbers.
+
+### The toe still jolts when a run begins (OPEN, measured 2026-11-20)
+
+The placement is fixed and this is not: a toe rises **0.697ft in one frame** as a stride starts (Gwen, T=92.04, the
+frame the run begins), and each player has ~230 frames in the film where a toe moves more than 0.10ft in 0.02s. Remy's
+version of the same numbers was 0.28ft at t=1.90 of the first point, on an older film.
+
+It is in the POSE, not in the clamp: with `&ground=0` the toe still goes 0.332 → 0.610 between the same two samples
+on the older film. The likely cause is the gait switching from standing to walking in one frame with nothing blending
+between them, and it is the same class of defect the founder's "movement realism is make-or-break" is about: a body
+that changes stance instantaneously reads as a puppet. **It blocks nothing, and nothing on the V1 list is waiting for
+it** — but it is the last thing between item 2b and done, and it is a blend rather than an investigation.
 
 ### The original finding
 
@@ -232,7 +253,30 @@ lifted the near toe 0.70ft between two frames, a visible jolt, now ramped in ove
 to be on the court before a step, a brake or a turn can be described.
 
 **2026-11-20 — the prerequisite is built.** The body now stands on the court (item 2a: median toe 0.254ft → 0.020ft),
-so the near-foot question finally has an answer to measure. The answer itself has not been re-measured yet.
+so the near-foot question finally has an answer to measure.
+
+**Re-measured 2026-11-20, and the question as written cannot be answered.** With the feet on the ground, the toes of
+the two feet cross the 0.12ft "off the ground" line **within one or two frames of each other at the start of every
+run** — 0.00 against 0.00, 0.02 against 0.02 — because the first thing that happens when a ball is struck at them is
+the SPLIT STEP, which lifts both feet. There is no "first foot to leave the ground" at the moment the done-test asks
+about; there is a hop, and then a stride. Measured on the five shots in `seasons/2026-11-19` that need more than 3ft
+of travel to reach (the run is the RECEIVER's — `run.player` in the record is the other player, and reading it as the
+hitter's is a mistake that took a pass to find):
+
+| | near foot | swing foot | |
+|---|---|---|---|
+| shot 0 | R | R | near |
+| shot 10 | L | R | far |
+| shot 13 | L | R | far |
+| shot 21 | R | R | near |
+| shot 26 | R | R | near |
+
+**3 of 5, which on five samples is a coin.** What the numbers do say is that the gait's phase is not seeded from the
+direction of travel: the same foot swings first whether the run goes left or right, because the phase is ground
+covered and the ground covered starts at zero. **The done-test should be restated as this:** *on a run of more than
+3ft, after the split step has landed, the limb that swings first is the one on the side the body is going, on 8 of
+10 in each direction* — and the fix it implies is one line in the gait (offset the phase half a cycle when the
+travel is towards the body's +lateral side), not another foot revision. Written as **item 4b**.
 
 ## Item 5 — brake
 - **Done-test:** root speed at the contact frame is under 0.5 ft/frame for a shot reached at a run,

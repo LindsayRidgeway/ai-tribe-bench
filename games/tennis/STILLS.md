@@ -129,9 +129,16 @@ both sides — on a build where the median toe went from 0.254ft to 0.020ft. The
 `rootY + rel[1]`, and the sweep row now carries it directly as `[toeL, toeR]` in world feet, because the court *is*
 `y = 0`.
 
-**3. A sweep row's player entries are `[rootY, isHitter, yaw, relL, relR, rq, [toeL, toeR]]`** — seven fields per
-player, not five. A script written against the older shape reads `rel[3]` as the toe and silently gets the left foot's
+**3. A sweep row's player entries are `[rootY, isHitter, yaw, relL, relR, rq, [toeL, toeR], [rootX, rootZ]]`** —
+**eight** fields per player, not five and not seven. A script written against the older shape reads `rel[3]` as the toe and silently gets the left foot's
 3-vector instead of its height, or reads `rel[5]` and gets `undefined`.
+
+**4. A sweep row is not a plan, and until 2026-11-20 there was no way to ask where a body came from.** `debug plan`
+prints every move the page knows about, per player, as `[t0, t1, from, to]`, once, before the rows. It is the line
+that found item 2b: a segment pushes its RUN before its STANCE, the stance happens first, and `whereAt` stops the
+walk at the first move that has not begun — so the stance never happened and the body was PLACED. Two sweeps, one
+number each: **24 frames of the film moved a body more than 25ft/s before the sort, 0 after; the worst single frame
+went from 18.91ft to 0.42ft.** A row tells you where a body is; the plan tells you which move put it there.
 
 The measurement this produced, `?sweep=0:18:0.02&ground=0|1` over `seasons/2026-11-19/watch.json` (901 frames):
 

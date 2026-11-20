@@ -985,6 +985,23 @@ const WINPOS = {};
     }
     t += dur + hold;
   }
+
+  /* THE PLAN HAS TO BE IN TIME ORDER, AND IT WAS NOT (2026-11-20). `whereAt` walks the list and STOPS at the first
+     move that has not begun yet, so a move placed after a later one is a move that never happens. A segment pushes
+     its RUN before its STANCE and its stance happens BEFORE the run it walks into, so every segment with both was
+     out of order. Measured on the clock's own film (`seasons/2026-11-19`), one frame either side of the fix:
+
+     | | biggest one-frame move | frames over 25ft/s |
+     |---|---|---|
+     | before | 18.91ft (Colette, T=94.12) | 24 |
+     | after  | 0.42ft (Colette, T=10.16) | 0 |
+
+     18.91ft in one 0.02s frame is 945ft/s. The 0.42ft that is left is 21ft/s, which is a sprint.
+
+     Before the fix Colette's stance was never applied at all: the body stood at [76,13.5] through the whole stance
+     and then appeared at the run's `from` of [82,13.5] in one frame, and when the run finished the same unsorted
+     list handed the scan the stance's `to` instead of the settle's route, which is the 18.91ft. */
+  for (const name of Object.keys(PLAN)) PLAN[name].sort((a, b) => a.t0 - b.t0);
 }
 
 /* Where a player is at time T. The record says where each run began and ended and how long it took; there is
@@ -1942,6 +1959,10 @@ if (q.has("sweep")) window.__sweep = () => {
     +(s.tossDur || 0).toFixed(3), s.sh.player,
     s.sh.run ? [+s.sh.run.dist.toFixed(2), s.sh.run.from[0], s.sh.run.from[1],
                 s.sh.run.to[0], s.sh.run.to[1]] : null])));
+  // And the plan itself, because "why is this body here" is answered by the move whose window T is inside, and
+  // the one thing a row cannot say is WHICH move put it there. Printed once, before the rows.
+  console.log("debug plan", JSON.stringify(Object.keys(PLAN).map(n => [n, (PLAN[n] || []).map(m =>
+    [+m.t0.toFixed(2), +m.t1.toFixed(2), m.from, m.to])])));
   const rows = [];
   for (let t = a; t <= b + 1e-9; t += d) {
     T = Math.max(0, t);
@@ -1972,7 +1993,12 @@ if (q.has("sweep")) window.__sweep = () => {
         // the median toe went from 0.254ft to 0.020ft.
         return [+r.root.position.y.toFixed(3), shotAt(T).sh.player === pl.name ? 1 : 0, +yaw.toFixed(3),
                 rel(L), rel(Rf), rq,
-                [L ? +L.y.toFixed(3) : null, Rf ? +Rf.y.toFixed(3) : null]];
+                [L ? +L.y.toFixed(3) : null, Rf ? +Rf.y.toFixed(3) : null],
+                // Where the root is on the court, in feet, so that a run and a brake are numbers rather than a
+                // description. Items 5 and 6 are questions about how fast the body is still moving when it
+                // strikes and which way it is facing when it is done, and both are differences of this pair
+                // between two rows. Appended, not inserted: every index before it keeps its meaning.
+                [+r.root.position.x.toFixed(2), +r.root.position.z.toFixed(2)]];
       })]);
   }
   for (const row of rows) console.log("debug sweep", JSON.stringify(row));

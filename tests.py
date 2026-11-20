@@ -4432,6 +4432,67 @@ class TestNobodyIsStandingAboveTheCourt(unittest.TestCase):
             self.assertIn(piece, self.backlog, f"{piece} is not in the backlog entry for item 2a")
 
 
+class TestThePlanIsInTimeOrder(unittest.TestCase):
+    """Item 2b of the tennis backlog, and a one-line fix worth more than everything around it.
+
+    `whereAt` reads the plan by walking it and STOPPING at the first move that has not begun yet. That is a correct
+    reading of a list in time order and a wrong one of a list that is not, and the list was not: a segment pushes its
+    RUN before its STANCE, and the stance happens BEFORE the run it walks into. Every segment with both was therefore
+    out of order, and the consequence was not subtle.
+
+    Measured 2026-11-20 with `?sweep=0:125:0.02` on the clock's own film (`seasons/2026-11-19`), one frame either
+    side of the sort:
+
+    | | biggest one-frame move | frames over 25ft/s |
+    |---|---|---|
+    | before | 18.91ft (Colette, T=94.12) | 24 |
+    | after | 0.42ft (Colette, T=10.16) | 0 |
+
+    18.91ft in 0.02s is 945ft/s: a body placed across the court rather than walked there. The same defect put Colette
+    at her standing position through the whole stance (the scan broke on the run that had not begun, so the stance
+    was never applied) and then at the run's `from` in one frame — 6.0ft, on every serve in the film. The 0.42ft
+    that remains is 21ft/s, which is a sprint, and the very first row of a sweep is the body being placed at its
+    starting end, which is not a walk and is not claimed to be."""
+
+    def setUp(self):
+        self.page = (REPO / "games" / "tennis" / "replay3d.html").read_text(encoding="utf-8")
+        self.backlog = (REPO / "games" / "tennis" / "BACKLOG.md").read_text(encoding="utf-8")
+        self.stills = (REPO / "games" / "tennis" / "STILLS.md").read_text(encoding="utf-8")
+
+    def test_the_plan_is_sorted_before_anybody_walks_it(self):
+        """The sort is the fix, and it has to happen after every push (the last push is the settle's, at the bottom
+        of the loop) and before the first `whereAt`."""
+        sort = self.page.find("PLAN[name].sort((a, b) => a.t0 - b.t0)")
+        self.assertGreater(sort, 0, "the plan is not sorted, and whereAt stops at the first move that has not begun")
+        self.assertIn("for (const name of Object.keys(PLAN))", self.page[sort - 120:sort])
+        self.assertGreater(sort, self.page.find("rr.settle.players"),
+                           "the sort runs before the last push into the plan, so a settle can still be out of order")
+        self.assertLess(sort, self.page.find("function whereAt(name, T)"))
+
+    def test_the_run_is_still_pushed_before_the_stance_it_walks_into(self):
+        """WHY the list is out of order, held as a fact about the file rather than a story about it: the run push is
+        above the stance push. If that ever reverses, the sort becomes unnecessary and this test should be deleted
+        deliberately instead of the sort being deleted by accident."""
+        run = self.page.find("PLAN[sh.run.player] = PLAN[sh.run.player] || []).push(")
+        stance = self.page.find("for (const st of (Array.isArray(sh.stance) ? sh.stance")
+        self.assertGreater(run, 0)
+        self.assertGreater(stance, run, "the pushes have been reordered; the sort may now be redundant")
+
+    def test_the_walk_still_stops_at_the_first_move_that_has_not_begun(self):
+        """The other half of the argument. A walk that scans the whole list would not need a sorted list, and a test
+        that only checked the sort would pass on a page where the walk had been changed to something else."""
+        body = self.page[self.page.find("function whereAt(name, T)"):]
+        body = body[:body.find("/* Which end is this player at")]
+        self.assertIn("else if (T > m.t0) {", body)
+        self.assertIn("    } else break;", body, "whereAt no longer stops at the first move that has not begun")
+
+    def test_the_before_and_after_are_written_down_with_their_numbers(self):
+        for piece in ("18.91", "24", "0.42", "945ft/s"):
+            self.assertIn(piece, self.backlog, f"{piece} is not in the backlog entry for item 2b")
+        self.assertIn("[rootX, rootZ]", self.stills, "the sweep's new pair is not written down where a sweep is read")
+        self.assertIn("debug plan", self.stills, "the sweep prints the plan and STILLS does not say so")
+
+
 class TestEveryMemberHasAFaceItCanRegenerate(unittest.TestCase):
     """Founder, 2026-11-20, after closing the request for four drawings:
 
