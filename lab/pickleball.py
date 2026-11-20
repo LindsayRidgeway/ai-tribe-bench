@@ -131,6 +131,10 @@ A_STOP = 32.0                            # ft/s2. How hard a player brakes once 
                                          # guess but a fiction: a flat 1.5 ft carry applied to every volley taken
                                          # within 2 ft of the line, whatever the player was doing (page §5f: it
                                          # made a stance, rather than a movement, the offence).
+PARTNER_WALK = True                      # does the player who is neither hitting nor receiving move? Before
+                                         # 2026-11-19 they did not — §5m's film made that visible as fourteen inert
+                                         # body-slots in twelve long rallies. §5n measures what legs for the partner
+                                         # are worth; the constant exists so the A/B is one line and not a revert.
 WALK_SHARE = 0.6                         # of movement_speed: repositioning between shots is a jog, not a
                                          # sprint. Without it every volley is thrown into the kitchen, because a
                                          # player who walks to their stance at 12mph is carried 3.8ft by the
@@ -795,6 +799,25 @@ def play_rally(match: Match, players: dict[str, Player], pos: "Positions", choos
             _a2 = pos.get(p)
             _w2 = math.hypot(_a2[0] - _b2[0], _a2[1] - _b2[1])
             _move(film, rally_no, p.name, _b2, _a2, t_now, t_now + _w2 / (movement_speed(p) * WALK_SHARE))
+        # THE SECOND BODY (2026-11-19, page §5n). §5m's film found that fourteen of forty-eight body-slots in long
+        # rallies were spectators: the partner of the hitter, and the partner of the receiver, were given no walk
+        # at all, so a doubles point could be played by two people with two others standing where the last rally
+        # left them — sometimes four feet behind a baseline, watching. The rule for them is the hitter's rule,
+        # unchanged and unstretched: a player who is not the one hitting or receiving is walking to their stance,
+        # on this shot's own flight time. It is the same sentence three times rather than a third behaviour.
+        if PARTNER_WALK:
+            for _name, _who in players.items():
+                if _name == p.name or _name == receiver:
+                    continue                      # the hitter is walking above; the receiver has just run
+                _lx = KITCHEN_LINE if _who.north else NET_X + KITCHEN
+                _wx = _lx - pos.approach_of(_who) if _who.north else _lx + pos.approach_of(_who)
+                _b3 = pos.get(_who)
+                if abs(_b3[0] - _wx) <= 0.25:
+                    continue
+                pos.move_toward(_who, (_wx, _b3[1]), t["time"])
+                _a3 = pos.get(_who)
+                _w3 = math.hypot(_a3[0] - _b3[0], _a3[1] - _b3[1])
+                _move(film, rally_no, _name, _b3, _a3, t_now, t_now + _w3 / (movement_speed(_who) * WALK_SHARE))
         incoming = dict(t["bounce"])
         incoming["path"] = t.get("path")           # the flight, for the next player's volley decision
         incoming["struck_at"] = t_now              # so a volley can date itself against the ball, not the bounce

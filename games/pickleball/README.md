@@ -1172,3 +1172,108 @@ and the only instant move is at t=0; a body that does not hit the ball in a rall
 fourteen inert body-slots asserted so the day doubles gets a second body the suite says so; and the page carries its
 own film, calls `fetch(` nowhere and needs no library. `TestPickleball` is 45 tests, 44 green — the forty-fifth is
 the physics-constant check and it belongs to `lab/golf.py`, which is another window's file.
+
+## §5n The second body — 2026-11-19, the turn after
+
+§5m's film found that fourteen of forty-eight body-slots in long rallies were spectators, and said it was not fixed
+there because giving the partner feet changes where every ball is received. This is the turn that gives them feet,
+and the change is smaller than the finding: the rule that was already stated for the hitter and the receiver —
+*a player who is not busy is walking to their stance, on this shot's own flight time* — is stated for the other two
+players as well. Same sentence, four bodies, no new model.
+
+```
+        if PARTNER_WALK:
+            for name, who in players.items():
+                if name == p.name or name == receiver:      # the hitter is walking above; the receiver has run
+                    continue
+                want = line_x - pos.approach_of(who) ...     # their own stance, their own approach number
+                pos.move_toward(who, (want, ...), t["time"])
+```
+
+`PARTNER_WALK` exists so the engine that had none is one flag away, and so the A/B is a flag rather than a revert.
+
+### What legs for the partner are worth
+
+Twelve games each way, dink hands at 200 balls, the same pins (1234500 upward), the seats swapped:
+
+| | partner stands (V1) | partner walks |
+|---|---|---|
+| mean rally | 8.47 shots | **9.61** |
+| longest rally | 50 | **82** |
+| rallies in 12 games | 379 | 400 |
+| volleys per serve | 1.8% | **3.5%** |
+| `momentum` faults | 5 | **9** |
+| `out` faults per rally | 0.973 | 0.973 |
+| `unreachable` faults | 1 | 0 |
+
+And the thing §5m actually indicted, measured directly — where a body is standing when a long rally ends, against
+its own kitchen line:
+
+| | bodies more than 3 ft off their own line | mean distance |
+|---|---|---|
+| partner stands | 36 of 108 (33%) | 4.18 ft |
+| partner walks | **4 of 136 (2.9%)** | **2.12 ft** |
+
+The four that are still away are hitters who were stretched at the last ball and had no time to recover — which is
+the rule working, not failing. **Nobody watches any more.**
+
+### What it did not change, which is the interesting half
+
+**Every rally still ends in somebody's error.** `out` per rally is 0.973 with the partner standing and 0.973 with
+the partner walking — identical to three decimal places. The legs bought a shot per rally and a much longer tail
+(the longest rally in twelve games went from 50 to 82), and moved not one point of the fault mix. §5c's
+perfect-defence problem is untouched by adding a body: a second player who can be reached is not the same as a
+defence that can be beaten.
+
+**And it sharpens §5m's volley finding rather than confirming it.** §5m counted one volley in 875 shots of dink
+hands and read that as "the sport the engine plays never asks the kitchen's volley rule a question". The reach sweep
+below says the volley is not absent from the engine, it is absent from *that game*: with steady hands driving at
+42 power there are 233 volleys in 350 serves.
+
+| reach | hands | rallies/game | mean rally | `unreachable` per game | volleys / serves |
+|---|---|---|---|---|---|
+| 6.0 ft | dink | 33.2 | 9.45 | 0.0 | 13 / 332 |
+| 6.0 ft | steady | 35.0 | 4.53 | 4.8 | **233 / 350** |
+| 4.5 ft | dink | 31.4 | 7.05 | 0.0 | 18 / 314 |
+| 4.5 ft | steady | 31.0 | 3.38 | 8.1 | 120 / 310 |
+| 3.0 ft | dink | 40.2 | 5.82 | 1.7 | 31 / 402 |
+| 3.0 ft | steady | 26.6 | 3.14 | 11.9 | 74 / 266 |
+
+The volley is a *driving* shot in this engine: 67% of serves are volleyed when both players are driving, 4% when
+both are dinking. That is the right shape for the sport — the volley belongs to the exchange that comes forward —
+but it means the kitchen's momentum rule is exercised by the game the *choosers* do not play, and a lesson that
+teaches the soft game (§5i) takes the sport away from the one rule that polices the net.
+
+### The reach sweep survives the extra body
+
+§5l's table was taken with one body per team, and the numbers that could have moved are the two the sweep is built
+on. Re-measured over ten games a row: rallies per game 35.0 → 31.0 → 26.6 and `unreachable` per game 4.8 → 8.1 →
+11.9 across the same reach 6.0 → 4.5 → 3.0. §5l's row was 33.2 → 28.6 → 26.6 and (over twelve games) 44 → 92 → 109.
+**Same shape, same size, same conclusion** — a tighter reach hardens the game by making rallies end on balls nobody
+can reach — with one addition the extra body bought: at dink hands `unreachable` falls to *zero* at 6.0 ft and 4.5
+ft, because two bodies cover a great deal more court than one.
+
+### The stance lesson survives it too
+
+The season lesson (§5f) was re-run over 24 swapped games with the partner walking:
+
+| row | points | games |
+|---|---|---|
+| control (nobody learning, seats swapped) | 193–193 | 12/24 |
+| learner vs static 4 ft | **196–179** | **14/24** |
+| learner vs static 2 ft | 177–217 | 7/24 |
+| learner vs the fault reader | 177–217 | 7/24 |
+
+The control is exactly symmetric, which is the check that the engine has no seat bias in it; the only row that wins
+is the one §5f said wins, and it wins by seventeen points rather than §5f's twenty-seven. **The lesson's direction
+is unchanged and its size is inside the noise §5k already flagged** — thirty-odd points, ±7 was generous, and this
+is the same experiment with a different body count.
+
+### Kept on main
+
+`PARTNER_WALK` defaults true, and the two tests around it are the finding and the A/B in one: in long rallies the
+share of bodies ending more than 3 ft from their own kitchen line is under one in twenty with the walk and a third
+of them without it; and the old engine's structural property — every body that moves is a body that hit — is still
+asserted with the flag off, so "the partner has legs" is a claim the suite can still falsify. The §5m test was
+rewritten rather than deleted for the same reason. `TestPickleball` is 47 tests, 46 green; the red one is still
+`lab/golf.py`'s duplicated constants, which belongs to another window.

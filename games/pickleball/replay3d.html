@@ -311,7 +311,7 @@ document.getElementById("note").textContent =
   scene && !scene.empty
     ? `${scene.note || ""} · clock ${scene.clock_ms} · ball ${scene.ball.make}, Cd ${scene.ball.cd}` +
       ` · ${shots.length} shots, ${moves.length} body moves · space pauses, ← → change rally, #r=12&t=1.4 pins a frame` +
-      ` · one body per team moves: the partner is given no walk in this version (page §5m)`
+      ` · both partners move: a body that is neither hitting nor receiving walks to its stance (§5n)`
     : "no film baked: this is the empty court. Bake one with " +
       "python3 lab/pickleball.py --demo --film records/film.json --page replays/film.html";
 
