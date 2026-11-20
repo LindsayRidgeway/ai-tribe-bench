@@ -1811,6 +1811,19 @@ class TestFiling(unittest.TestCase):
     def test_the_prompt_asks_for_a_revision_edge(self):
         self.assertIn('"revises"', wake.PROMPT)
 
+    def test_the_prompt_counts_the_sources_it_lists(self):
+        """It said "three things can claim it" over four bullets, and called the open item "the lowest of the three"
+        while `source` asked "which of the three" and accepted `item`. George picked an item at 01:46Z on
+        2026-11-20 and wrote `"source": "item"` — a legal answer to a question the prompt had just implied was not
+        one of the choices. The count is now derived from the bullets rather than trusted."""
+        block = wake.PROMPT.split("Decide what this wake is for.", 1)[1].split("A wake that produces only", 1)[0]
+        said = {"three": 3, "four": 4, "five": 5}
+        word = re.search(r"\b(three|four|five)\b things can claim it", block, re.I)
+        self.assertIsNotNone(word, "the prompt no longer says how many things can claim a wake")
+        bullets = len(re.findall(r"^- \*\*", block, re.M))
+        self.assertEqual(said[word.group(1).lower()], bullets,
+                         f"the prompt says {word.group(1)} and lists {bullets}")
+
     def test_the_prompt_says_the_clock_is_not_a_fact_it_may_quote(self):
         """George's first two wakes both came back with QUOTE UNUSED, and in both the quoted line was the output
         of `date`. He had done what he was told — quoted a line from the block — but the block offers nothing a
