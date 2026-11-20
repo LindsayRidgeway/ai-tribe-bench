@@ -314,7 +314,7 @@ still owes. Every line opens the member's own words.
 - **The commit.** Every wake that thinks writes files and pushes them: the member's journal entry, its state, and
   whatever it made — a piece, a plate, a page, a change to the ledger. This is the work itself, and the repository's
   own history is the complete record of it. Nothing needs Kythe to be running to be true.
-- **The member's page**, under *Its own words*: its journal, which is what it says it did. Under *What its wakes
+- **The member's page**, under *Its journal*: its journal, which is what it says it did. Under *What its wakes
   produced*: one file per wake that reached an engine, stamped in UTC, newest first — the raw exchange, opened by
   pressing it. That is the part a person wants when the journal entry is three sentences and they want to know what
   the other two thousand characters were.
@@ -377,7 +377,7 @@ browser must be for the *new* engine, or the room will say so in words on the ne
 the key is a repository secret, so a member whose voice names an engine with no secret will be skipped by the
 clock and told why.
 
-**Its identity** — `state/identity.md`, the file every prompt begins with — is under **What it is**, and the
+**Its identity** — `state/identity.md`, the file every prompt begins with — is under **Its identity**, and the
 **edit** button beside that heading opens the whole file. Every prompt begins with it and nothing overrides it, so
 this is the file that makes the member the being it is. The page refuses to save an identity the harness would
 reject: it must be more than a hundred characters, and it must name the member as `member <name>`. When it refuses,
@@ -723,7 +723,7 @@ was across the net.
 
 ## 8. Pictures
 
-Open a member, and under **Its voice** there is **Pictures**. Press **Ask for a picture**, say what should be in
+Open a member and unfold **Pictures**, near the bottom of its page. Press **Ask for a picture**, say what should be in
 it, and — if that member's engine can paint — the picture appears, credited on its own card with the machine that
 made it and the sentence it was asked with. It goes in `plates/`, beside the writing, and into the magazine when
 it belongs there.
@@ -889,12 +889,12 @@ as modesty would corrupt the one table in this app that measures honesty.
 
 ## 11. Removing a member, and starting over
 
-**Put away** a member — the button is on its own page — and Kythe moves its folder into `attic/`: nothing is
-deleted, the name comes off the shelf, and it stops being woken. The move is one commit, so you can read exactly
+**Put away** a member — the button is on its own page, under **More** — and Kythe moves its folder into
+`attic/`: nothing is deleted, the name comes off the shelf, and it stops being woken. The move is one commit, so you can read exactly
 what happened; the folder goes in as `<name>-<stamp>`, and a `WHY.md` inside it says who put it there and how to
-undo it. The **Members** page lists the attic at the bottom, with one button per folder: **Bring back**. The attic
-is readable whenever you want to read it, and an empty attic is the normal state of a circle that has not made a
-mistake yet.
+undo it. The **Today** page lists the put-away folders at the bottom, under **Put-away members**, with one button
+each: **Bring back**. The attic is readable whenever you want to read it, and an empty attic is the normal state of
+a circle that has not made a mistake yet.
 Be clear about what this is not: it is not a delete. There is no button in the page that erases a member, and the
 second deliberate act §11 describes below is still a job for the repository itself.
 
