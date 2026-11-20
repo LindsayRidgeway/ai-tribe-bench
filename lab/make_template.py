@@ -70,10 +70,13 @@ MANIFEST.md
 
 # Whole directories that are content rather than code: the worlds a member can be placed in, as
 # examples the owner can copy or delete.
-# One room, not two. Until 2026-11-20 this shipped the whole `soil/` tree, which meant every new circle arrived with a
-# choice it had not asked for: the workshop and the night bus, both written by me. `Worlds` is gone from the product
-# (RELEASE.md, "Deleting worlds"), so a new circle gets one example room to rewrite or delete.
-DIRS = ["soil/workshop"]
+# No room at all. This shipped two example rooms (`soil/workshop`, `soil/night-bus`) and then one, and the founder
+# asked the question that ends the argument on 2026-11-20: *"Why do you think this makes sense for every circle or
+# every circle member?"* It does not. A room is four files of prose that a person writes when they have a setting in
+# mind; shipping mine to every stranger put my fiction, my chandlery and my kettle, at the bottom of their circle's
+# first wake, and signed a drop in it "the human". A circle with no room is not empty of material: it has the member's
+# identity, its items, its brief. If generic prose is the worry, the prompt answers it; a template cannot.
+DIRS: list[str] = []
 
 # What an *update* may replace, as opposed to what a new tribe starts with. Almost the same set, and the
 # difference is the whole of the risk: `members.json` is a list derived from the shelf and a template copy of it is

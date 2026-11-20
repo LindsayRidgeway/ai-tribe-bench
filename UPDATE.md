@@ -447,3 +447,20 @@ folders when a circle has more than one, and two rooms no longer buy two turns. 
 
 **And the template ships one room**, not two, with the first drop's attribution corrected: the row used to say `the
 human`, and the human in question had never dropped anything.
+
+### No room is shipped at all — 2026-11-20
+
+*"Why do you think this makes sense for every circle or every circle member? If you're trying to suppress generic
+output, can't you just instruct the code not to generate generic output?"*
+
+No, and yes. The workshop was mine — a chandlery, a kettle, a stationery cupboard — and it sat at the bottom of every
+stranger's first wake because I had written a world for my own experiments and shipped the folder that held it.
+Repairing the prose would have been the wrong repair: a room is a setting, and a setting belongs to the person who has
+one.
+
+- **The template now ships no room.** A new circle begins with its member's identity, its items and your words. A room
+  is still read if a circle has one — four files, a paragraph each, written by whoever wants one.
+- **The prompt does the work the room was pretending to do.** It now says a member is never required to be
+  atmospheric: given no room, no brief, no item and nothing on the shelf, it says so in its journal and either
+  declines or writes about what it was actually handed. Generic prose was never a missing folder; it was a missing
+  instruction, and an instruction costs nothing to ship and imposes nothing.

@@ -8382,6 +8382,17 @@ class TheTemplateMustBeEnough(unittest.TestCase):
             self.assertNotIn("/output/", p, "a template must not ship somebody's written work")
         self.assertIn("wake/members/.gitkeep", mt.paths(), "the empty folder has to exist for the first member")
 
+    def test_the_template_ships_no_room_because_a_stranger_has_their_own(self):
+        """The founder, 2026-11-20, on the workshop prose: *"Why do you think this makes sense for every circle or every
+        circle member?"* It does not, and the answer was not to write better prose. A room is a file a person writes
+        when they have a setting in mind; shipping mine put a chandlery and a kettle at the bottom of every stranger's
+        first wake — and one of the example drops was signed "the human", a name the template had no right to use.
+        If generic output is the worry, the prompt answers it; a template cannot."""
+        sys.path.insert(0, str(REPO / "lab"))
+        import make_template as mt
+        shipped = [p for p in mt.paths() if p.startswith("soil/")]
+        self.assertEqual(shipped, [], f"the template ships somebody else's room: {shipped}")
+
 
 class TestDebrisOnTheFloor(unittest.TestCase):
     """The suite must say when the tree it is about to test is not the tree in the repository."""
