@@ -1184,6 +1184,42 @@ class TestSoil(unittest.TestCase):
         self.assertEqual(len(got), 2)
         self.assertTrue(any(p == "night-bus" for p, _ in got))
 
+    def test_a_long_room_is_read_from_the_front_and_a_long_table_from_the_end(self):
+        """The book and the machine disagreed about which end of a long file survives 2,500 characters.
+
+        `USER-MANUAL.md` has told a person since 2026-11-02 to *"put the setting first and the lore after it"* —
+        and the wake read the **last** 2,500 characters of `world.md`, so following the book cut off the part it
+        said mattered. Drops are the other way round by nature: the new rows are at the bottom.
+        """
+        src = (REPO / "wake" / "wake.py").read_text(encoding="utf-8")
+        self.assertIn('whole[-2500:] if name == "drops.md" else whole[:2500]', src)
+
+    def test_a_circle_with_one_room_and_no_place_files_still_has_a_name(self):
+        """Deleting worlds (2026-11-20) took the title's only source with it.
+
+        The title came from each member's `place.md`, worlds were deleted, and `tribe.py new` stops writing that
+        line when there is nothing true to write — so every circle made after that date printed a title nobody had
+        written. Measured, not feared: `here` was empty, and the fallback was this bench's own fiction, which
+        would have appeared at the top of a stranger's first issue.
+        """
+        tmp = Path(tempfile.mkdtemp(prefix="one-room-"))
+        self.addCleanup(shutil.rmtree, tmp, True)
+        (tmp / "soil" / "the-shed").mkdir(parents=True)
+        (tmp / "soil" / "the-shed" / "name.md").write_text("The Shed, Tuesdays\n")
+        (tmp / "works" / "a").mkdir(parents=True)
+        (tmp / "wake" / "members" / "a" / "state").mkdir(parents=True)
+        (tmp / "works" / "a" / "one.md").write_text("---\ntitle: T\nform: piece\nissue: 1\n---\n\nbody\n")
+        text = magazine.build("1", magazine.load_all(tmp), tmp)
+        self.assertIn("# The Shed, Tuesdays — issue 1", text)
+        self.assertNotIn("The Workshop", text)
+
+    def test_a_circle_with_no_room_at_all_is_named_after_its_repository(self):
+        root = Path(tempfile.mkdtemp(prefix="name-")) / "marisol-circle"
+        root.mkdir(parents=True)
+        self.addCleanup(shutil.rmtree, root.parent, True)
+        self.assertEqual(magazine.circle_name(root), "Marisol Circle",
+                         "a name the person chose, rather than this bench's")
+
 
 class TestSchema(unittest.TestCase):
     """A member created wrong used to fail silently at its first wake."""
@@ -1288,6 +1324,19 @@ class TestSchema(unittest.TestCase):
         rows = tribe.next_up()
         self.assertEqual([r[1] for r in rows], ["Ada"], "a member with no place is still woken — one turn per circle")
         self.assertIn(rows[0][0], ("", None), "and the record does not invent a world for it")
+
+    def test_the_page_wakes_a_member_with_no_place_too(self):
+        """The other half of the same defect, and the one a person would meet first.
+
+        `next_up(force=…)` is what the page's **Wake now** button runs. It filtered on `place_of(d)`, so on a
+        circle made from the template after 2026-11-20 — which ships no room and writes no `place.md` — the
+        button pressed, the job went green, and no member woke. Nothing was printed to say why.
+        """
+        tribe.new("Ada", "the test", "gemini", "gemini-3.8-flash", "", "")
+        (tribe.MEMBERS / "Ada" / "state" / "place.md").unlink(missing_ok=True)
+        rows = tribe.next_up(force="Ada")
+        self.assertEqual([r[1] for r in rows], ["Ada"], "a person pressing the button is a person asking")
+        self.assertEqual(rows[0][2], "woken by name")
 
 
 class TestTheDefaultIdentity(unittest.TestCase):
@@ -1638,8 +1687,16 @@ class TestTurn(unittest.TestCase):
     def test_a_paid_debt_is_not_a_debt(self):
         self.assertEqual(tribe.debt("c", "workshop"), 0)
 
-    def test_a_fixture_with_no_place_cannot_be_forced(self):
-        self.assertEqual(tribe.next_up("bare"), [])
+    def test_a_member_with_no_place_is_no_longer_treated_as_a_fixture(self):
+        """This test used to prove the opposite, and the opposite was the defect.
+
+        Forcing is the one lever a person has over a running circle — it is what the page's **Wake now**
+        button runs. It was gated on `place`, so on a circle with no room (every circle made from the template
+        after 2026-11-20) the button went green and woke nobody, and nothing said why. `bare` is the fixture
+        with a `voice.md` and no `place.md`: a member now, and woken by name like any other. What is still
+        refused is a folder with no `voice.md` at all, because a folder is not a member.
+        """
+        self.assertEqual([r[1] for r in tribe.next_up("bare")], ["bare"])
 
 class TestAQuietCircle(unittest.TestCase):
     """The founder asked twice on 2026-11-20 why a member writes what nobody asked it for, and named the cost of the
@@ -7740,24 +7797,21 @@ class TestWorkflows(unittest.TestCase):
         self.assertIn("mechanically valid", engines.lower(),
                       "the claim that Claude now works must rest on the wake that proved it")
 
-    def test_the_sheet_names_the_place_field_when_the_copy_ships_more_than_one_world(self):
-        """Found 2026-11-06 by walking the sheet in a fresh clone, which is the only way this was going to be found.
+    def test_the_sheet_tells_the_reader_to_leave_the_place_field_empty(self):
+        """This test used to require the opposite, and the opposite stopped being true on 2026-11-20.
 
-        The shipped copy has two worlds, `soil/night-bus` and `soil/workshop`, so `tribe.py new` cannot infer a
-        place, so a member created through the form stands in none — created, never woken, with the only notice in
-        a workflow warning under the run log. Step 2 told the reader nothing about the field. A sheet that leaves
-        the first member unwakeable is worse than one that leaves a field blank: the failure arrives days later,
-        when nothing happens.
+        It was written on 2026-11-06, when the shipped copy had two worlds, `tribe.py new` could not infer a place,
+        and a member with none was never woken — so the sheet had to name the worlds the reader was to type. Deleting
+        worlds inverted the requirement: a member is woken because it is a member, so a sheet that names worlds is
+        now sending the reader to invent one, and a field nobody must fill is a field the sheet has to say so about.
         """
-        worlds = [d.name for d in sorted((REPO / "soil").iterdir()) if d.is_dir()]
-        if len(worlds) < 2:
-            return
         build = (REPO / "BUILD.md").read_text(encoding="utf-8")
         step_two = build[build.index("**2. Add two or more members.**"):build.index("**3. Give your repository")]
-        self.assertIn("place", step_two.lower(),
-                      "the form has a place field and the shipped copy has several worlds, so the sheet must say so")
-        for world in worlds:
-            self.assertIn(world, step_two, f"the sheet must name the shipped world {world!r} the reader is to type")
+        self.assertIn("place", step_two.lower(), "the field still exists in the form, so the sheet still mentions it")
+        for d in sorted((REPO / "soil").iterdir()):
+            if d.is_dir():
+                self.assertNotIn(d.name, step_two,
+                                 f"{d.name!r} is a room in this bench; the sheet must not send a reader to type it")
 
     def test_the_sheet_does_not_keep_a_second_copy_of_the_engine_list(self):
         """The engines are listed once, in ENGINES.md, and the sheet points at it.
