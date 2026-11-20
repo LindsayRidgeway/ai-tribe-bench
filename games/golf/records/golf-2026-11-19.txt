@@ -1786,3 +1786,148 @@ replace it with expected strokes from where the ball finishes, and changing it i
 the floor would leave two causes for the next number -- which is the mistake this pass exists to avoid
 repeating. It is named as the first item in "what this does not model" and it is the next pass, if there is
 one.
+
+
+###############################################################################
+PASS 10 — 2026-11-20, 01:02-03:10 — the objective, and the putter that has no scatter
+###############################################################################
+
+Pass 9 ended with the objective named as the limit: `target()` scored a landing as
+P(on the green) + 0.3 * P(inside 25 ft of the pin) - SAND_PEN * P(in the sand), which is not strokes and
+cannot tell a 3 ft putt from a 24 ft one. This pass scores it in strokes, using only numbers the game
+measures. The pass exists because of what those measurements said.
+
+########## the measurement that reframed it
+
+`python3 lab/golf.py --costs` -- a settled athlete, a pin 13 ft out with sand to its right, sixteen bearings
+per distance, strokes to hole out played through the game:
+
+   distance           green           rough            sand
+      2.5ft      2.00(16)            —                —
+      4.0ft      2.00(16)            —                —
+      6.0ft      2.00(16)            —                —
+      9.0ft      1.81(16)            —                —
+     12.0ft      1.88(16)            —                —
+     16.0ft      2.00(16)            —                —
+     20.0ft      1.94(16)            —                —
+     24.0ft      1.83( 6)      2.86( 7)      4.00( 3)
+     28.0ft      2.00( 2)      2.64(11)      4.00( 3)
+     33.0ft            —          2.55(11)      4.60( 5)
+     40.0ft            —          2.62(16)            —
+     50.0ft            —          2.62(16)            —
+     60.0ft            —          2.75(16)            —
+
+The green column is FLAT: two strokes from two and a half feet and two strokes from twenty-eight. The reason
+is in putt.py and it is not noise:
+
+  one putter, learning off, from each distance: holed, or left how far past?
+      2.0 ft       in           in           in           in
+      3.0 ft     +0.0         +0.0         +0.0         +0.0
+      5.0 ft     +0.0         +0.0         +0.0         +0.0
+      8.0 ft     +0.0         +0.1         +0.1         +0.0
+     12.0 ft     +0.1         +0.1         +0.1         +0.1
+     20.0 ft     +0.1         +0.2         +0.2         +0.1
+     30.0 ft     +0.1         +0.2         +0.2         +0.1
+     45.0 ft     +0.2         +0.3         +0.3         +0.2
+
+  (a real golfer: 1.05 putts from 3 ft, 1.9 from 20, 2.1 from 40)
+
+The putter bisects its gain and its line to zero error and the roll carries no scatter, so it leaves the ball
+a tenth of a foot from the hole from forty-five feet. It holes out in two from anywhere and the second one is
+a tap-in. **There is no gradient in distance on this green for any objective to find.** Off the green is 2 or
+3 by bearing (a chip that goes in, or one that does not), mean 2.66; in the sand, mean 4.27.
+
+########## the change
+
+    COST_ON_GREEN = 2.00            # strokes to hole out from anywhere on the green, 2 ft to 28 ft, flat
+    COST_OFF_GREEN = 2.60           # the same from the fringe or the rough: a chip, then the same two
+
+    value = (COST_ON_GREEN * p_on + COST_OFF_GREEN * (1 - p_on - p_sand)
+             + (COST_ON_GREEN + self.sand_pen) * p_sand)      # minimised; ties broken at the flag
+
+The sand is the green's two plus the athlete's own measured price (1.70), which keeps that number doing work
+rather than replacing it with a second constant. Checks 29 -> 31: 19b holds the flat green (2.00 measured
+against 2.00 told), 19c holds the off-green cost (2.66 measured against 2.60 told, and 2 or 3 by bearing,
+which is stated rather than smoothed).
+
+One thing the composition gets wrong and is left wrong: sand is scored 3.70 and measures 4.27, because
+SAND_PEN was measured at 21 ft where a sand ball is close to the hole. Half a stroke, in the athlete's favour,
+in the one term that decides anything. Tuning it would make a measured number a fitted one.
+
+  all 31 checks pass
+
+########## the aiming table, before and after
+
+python3 lab/golf.py --draws 40 --bags 8 --calm --pin-range 6/14/19
+  ±6    flag-spread +0.31 ± 0.46 (t +1.3)   centre-spread +0.40 ± 0.75   flag-centre -0.09 ± 0.68
+  ±14   flag-spread +0.75 ± 0.62 (t +2.4)   centre-spread +0.38 ± 0.37   flag-centre +0.37 ± 0.93
+  ±19   flag-spread +1.30 ± 0.67 (t +3.8)   centre-spread +0.24 ± 0.18   flag-centre +1.05 ± 0.84
+        split: no sand |pin|>=8 +0.39 ± 0.09 (t 8.7); toward sand +0.12 ± 0.20; away +0.22 ± 0.12
+
+python3 lab/golf.py --draws 40 --bags 8 --pin-range 19   (wind drawn)
+  flag-spread +0.73 ± 0.18 (t +8.1)   centre-spread +1.21 ± 0.23 (t +10.3)   flag-centre -0.48 ± 0.28
+  split: no sand |pin|>=8 +0.05 ± 0.09; toward sand +0.22 ± 0.09; away +0.08 ± 0.07
+  bunkers in minus bunkers filled in: +0.11 ± 0.08 toward (t 2.7), -0.01 ± 0.07 away, +0.02 ± 0.03 friendly
+
+Against pass 9's step objective:
+
+  | 40 courses x 8 bags, calm, ±19          | step (pass 9)   | strokes (pass 10) |
+  | flag - spread                           | +1.64 ± 0.54    | +1.30 ± 0.67      |
+  | centre - spread                         | +0.25 ± 0.22    | +0.24 ± 0.18      |
+  | no sand, |pin| >= 8 ft                  | +0.44 ± 0.08    | +0.39 ± 0.09      |
+  | windy: flag - spread                    | +0.82 ± 0.26    | +0.73 ± 0.18      |
+  | windy: sand's effect, pin toward it     | +0.20 ± 0.06    | +0.11 ± 0.08      |
+  | windy: no sand, |pin| >= 8 ft           | +0.15 ± 0.05    | +0.05 ± 0.09      |
+
+Two different models of what a golfer is trying to do agree to a sixth of a stroke, because the only gradient
+in the model is the lie. Where they disagree, the old objective was flattering itself: in wind the tuck's value
+was half proximity and it halves, and the bunker's directional effect halves with it. Still air keeps its tuck
+(+0.39 ± 0.09) for a reason that is now stateable: a pin a foot from the edge costs rough strokes, which is a
+lie effect.
+
+########## the sigma arms, which the objective also changes
+
+python3 lab/golf.py --sigma --draws 48 --streams 8 --pin-range 19
+                      strokes/round  ± across         vs gated  sigma believed
+  gated, learned              36.06      0.38    +0.00 ± 0.00            1.28
+  ungated, learned            36.31      0.29    +0.25 ± 0.62            2.59
+  told 0.6°                   35.85      0.27    -0.21 ± 0.29            0.60
+  told 1.1°                   35.84      0.23    -0.22 ± 0.23            1.10
+  told 2.0°                   36.36      0.29    +0.30 ± 0.39            2.00
+  told 3.0°                   36.74      0.27    +0.68 ± 0.49            3.00
+
+  the table's own spread: told 1.1° 35.84 against told 3.0° 36.74, 0.90 ± 0.39 strokes a round, paired by stream
+
+Pass 9 measured 0.52 ± 0.29 over twenty streams with the step objective, and the awkward part of it was that
+the best belief was 0.6 deg -- sharper than the 1.10 deg hands. Scoring targets in strokes removes that: 0.6
+and 1.1 finish within a hundredth of a stroke of each other and the two wild beliefs lose. The anomaly was the
+step's, not the athlete's, and the spread more than doubles (0.52 -> 0.90).
+
+########## the floor, re-measured under the new objective
+
+Same notebook, same 40 drawn courses, both floors, ±19, one athlete cloned per policy, two rounds:
+  still air:  flag 0.000  centre 0.000  spread -0.425 strokes a round
+  wind:       flag 0.000  centre 0.000  spread -0.225 strokes a round
+(pass 9 measured 0.275 and 0.188 with the step; the new objective makes the belief worth slightly more, and
+it is the only place in this pass that does.)
+
+########## the tables that are not about aiming
+
+python3 lab/golf.py --rounds 6 --calm       to par: [7, 4, 2, -3, -2, 1]   held-out -1
+python3 lab/golf.py --rounds 6              to par: [13, 3, 4, 6, 1, 0]   held-out +2
+python3 lab/golf.py --rounds 6 --calm --learn 0   to par: [9, 9, 9, 9, 9, 9]   held-out +8
+python3 lab/golf.py --rounds 6 --learn 0          to par: [16, 16, 16, 16, 16, 16]   held-out +8
+
+python3 lab/golf.py --field --rounds 8, wind drawn, pins ±14, par 280:
+  flag-hunter   +42 (best +1)   practiser +45   blind hands +45   bad start +48   cautious +54
+  no practice  +125 (best +10)
+`cautious` -- the middle of the green -- is now last of the five learners by nine strokes; the table this file
+carried before this pass had it first at +32. A policy that knows where the bunker is and not where the
+pin is now pays for it, because the cost objective prices the middle as a longer way round than the pin.
+
+########## what this pass did not do
+
+It did not give the putter a scatter. That is the one surface in the game with none, it is why the cost of a
+landing is flat in distance, and it is the next change; but it moves every putting number in this file, so it
+is a pass and not an edit. Named as item 5 under "where it stops", and as the first item under "what this does
+not model".

@@ -95,6 +95,17 @@ SAND_PEN = 1.70                  # the athlete's price for a ball in the sand, i
 #                                  lip there is nothing to hit. Worth remembering that this one number moved
 #                                  the ±14 ft answer by 0.9 strokes a round while it was wrong.
 
+# What the short game costs, in strokes, measured by playing it out (pass 10; `--costs` re-measures).
+#
+# These two numbers replaced a step function. Until pass 10 `target()` scored a landing as
+# `P(on the green) + 0.3 * P(inside 25 ft of the pin)`, which is not strokes and cannot tell a 3 ft putt from
+# a 24 ft one -- and the pass that went looking for the honest version found something worse: **the game's
+# putter is deterministic**, so it holes out in two strokes from two feet and from twenty-eight, and there is
+# no gradient in distance on the green for any objective to find. What is left is two costs and a lie:
+# on the green 2.00, off it 2.60 (a chip and a putt), and the sand at the athlete's own price on top.
+COST_ON_GREEN = 2.00             # strokes to hole out from anywhere on the green, 2 ft to 28 ft, flat
+COST_OFF_GREEN = 2.60            # the same from the fringe or the rough: a chip, then the same two
+
 # What the turf keeps of the ball's horizontal speed at the first bounce, and how fast a rolling ball
 # stops. The second is putt's own law, so a stimp reading means the same thing in both games; the first
 # is a single prior chosen so a driver runs out about 20 yd and a 7-iron about 10.
@@ -542,19 +553,27 @@ class Athlete:
 
             flag     aim at the pin, wherever it is cut.
             centre   aim at the middle of the green, which is what a caddie says.
-            spread   aim where the chance of a putt is best, using the scatter it has measured:
-                     P(on the green) + 0.3 · P(on the green and inside 25 ft), less SAND_PEN ·
-                     P(in the sand). The weights are the athlete's.
+            spread   aim where the ball is *cheapest to hole out from*, given the scatter it has measured:
+                     COST_ON_GREEN · P(on the green) + COST_OFF_GREEN · P(off it)
+                     + (COST_ON_GREEN + SAND_PEN) · P(in the sand).
 
         Nothing here is learning. It is what the learned numbers are *for* — a player who knows how much it
         misses by can spend that knowledge on a target, and a player who does not can only hope.
 
-        The sand term is what pass 4 is about. It is not a refinement of the other two: on a green with no
-        bunker, "the middle" is a good answer that any caddie would give, and `centre` is a fair opponent.
-        Put fourteen feet of sand on one flank and the same fourteen feet of miss costs a stroke on that
-        side and nothing on the other, so the best target is no longer the middle of the green and no
-        longer the pin: it is somewhere the player would have to compute. `centre` does not know this and
-        `flag` does not know it either, which is the point — one policy can see the bunker and two cannot.
+        **Pass 10 replaced this objective, and the name `spread` is a leftover.** Until then it scored
+        P(on the green) + 0.3 · P(inside 25 ft of the pin): not strokes, and unable to tell a 3 ft putt from
+        a 24 ft one. The honest version is strokes, and it is what showed that the game's *putter* has no
+        gradient at all (COST_ON_GREEN is 2.00 from two feet and from twenty-eight, because the putt athlete
+        bisects its gain and its line to zero error and the roll carries no scatter). So on this green there
+        is nothing to aim at but the lie: being off the green costs 0.6 of a stroke and the sand costs the
+        athlete's own price, and everything else the objective used to reward was a gradient I had written
+        into it. The pin enters only through the ties — when two targets cost the same, this aims at the
+        flag, which is what a player does and is stated as a rule because it is one.
+
+        The sand term is what pass 4 is about, and pass 10 made it nearly all of the objective. On a green
+        with no bunker, "the middle" and "the pin" cost the same and the tie-break decides; put fourteen feet
+        of sand on one flank and the same fourteen feet of miss costs a stroke on that side and nothing on
+        the other. `centre` does not know this and `flag` does not know it either, which is the point.
         """
         if self.policy == "flag":
             return hole.pin
@@ -571,21 +590,21 @@ class Athlete:
         for k in range(-45, 46):
             t = float(k)
             p_on = _phi((GREEN_A - t) / s) - _phi((-GREEN_A - t) / s)
-            p_near = _phi((hole.pin + 25.0 - t) / s) - _phi((hole.pin - 25.0 - t) / s)
             p_sand = 0.0
             if hole.sand > 0:
                 p_sand = _phi((GREEN_A + BUNKER_W - t) / s) - _phi((GREEN_A - t) / s)
             elif hole.sand < 0:
                 p_sand = _phi((-GREEN_A - t) / s) - _phi((-GREEN_A - BUNKER_W - t) / s)
-            value = p_on + 0.3 * max(0.0, p_near) - self.sand_pen * p_sand
+            value = (COST_ON_GREEN * p_on + COST_OFF_GREEN * max(0.0, 1.0 - p_on - p_sand)
+                     + (COST_ON_GREEN + self.sand_pen) * p_sand)
             scored.append((value, t))
         # Pass 9, the second half. With the floor at 2 ft the objective had one peak wherever it was
-        # evaluated; with the floor gone, a scatter of a foot makes it *flat* over a band — every target
-        # from which the ball is certain to finish on the green and inside 25 ft of the pin scores exactly
-        # the same — and the loop was returning whichever end of that band it reached first, which is a
-        # fact about the range(-45, 46) and not about a golf shot. Ties are broken at the flag now.
-        top = max(v for v, _ in scored)
-        return min((t for v, t in scored if v >= top - 1e-9), key=lambda t: abs(t - hole.pin))
+        # evaluated; with the floor gone, a scatter of a foot makes it *flat* over a band, and the loop was
+        # returning whichever end of that band it reached first — a fact about range(-45, 46) and not about
+        # a golf shot. Ties are broken at the flag now, and since pass 10 that rule carries most of the
+        # decision on a green with no hazard near the pin: no hazard, no gradient, and the flag wins the tie.
+        best = min(v for v, _ in scored)
+        return min((t for v, t in scored if v <= best + 1e-9), key=lambda t: abs(t - hole.pin))
 
 
 def _phi(z: float) -> float:
@@ -1028,6 +1047,41 @@ def selftest() -> int:
           f"({from_sand - from_green:+.2f}): the athlete prices it at {ath.sand_pen:.2f}. It priced it at "
           f"1.00 by guess in pass 4, and 0.30 while there was no lip, when sand really was cheap")
 
+    # 19b-19c. the two costs `target()` is made of. Pass 10 replaced a step function with them, and a cost
+    # that nobody measures is the same kind of object as the 25 ft step was: a number I wrote down.
+    def short_game(kind: str, d: float, bearings: int = 8) -> tuple[float, int]:
+        """Strokes to hole out from `d` feet, over the bearings on which a ball at that distance lies in
+        `kind`. Played through the game, not through a second copy of its rules."""
+        h = Hole(400, 4, "C", pin=13.0, sand=+1)
+        out = []
+        for b in range(bearings):
+            a = math.radians(360.0 * b / bearings)
+            p = (h.centre[0] + math.sin(a) * d, h.centre[1] + math.cos(a) * d)
+            got = "sand" if in_sand(p, h) else ("green" if on_green(p, h) else "rough")
+            if got != kind:
+                continue
+            out.append(play_hole(h, copy_of(ath), PuttAthlete(), green, learn=False, verbose=False,
+                                 start=p, rng=random.Random(7))["strokes"])
+        return (sum(out) / len(out), len(out)) if out else (float("nan"), 0)
+
+    near_c, _ = short_game("green", 2.5)
+    far_c, _ = short_game("green", 24.0)
+    check("the green costs the same from 2 ft as from 24",
+          abs(near_c - far_c) < 0.4 and abs(near_c - COST_ON_GREEN) < 0.4,
+          f"{near_c:.2f} strokes from 2.5 ft and {far_c:.2f} from 24 ft, against the {COST_ON_GREEN:.2f} the "
+          f"objective is told. They are the same number because the putter is deterministic — it bisects its "
+          f"gain and its line to zero error and the roll has no scatter — so there is no gradient in distance "
+          f"on this green for any objective to spend, and the 25 ft step this replaced was standing in for one")
+    off_c_36, n36 = short_game("rough", 36.0, bearings=16)
+    off_c_60, n60 = short_game("rough", 60.0, bearings=16)
+    off_c = (off_c_36 * n36 + off_c_60 * n60) / (n36 + n60)
+    check("off the green costs a chip more than on it",
+          abs(off_c - COST_OFF_GREEN) < 0.35 and off_c > near_c + 0.3,
+          f"{off_c:.2f} strokes off the green ({n36 + n60} bearings at 36 and 60 ft) against {near_c:.2f} on "
+          f"it and {COST_OFF_GREEN:.2f} told. It is not one number in the world — it is 2 or 3 depending on "
+          f"whether the chip goes in and which way the slope runs ({off_c_36:.2f} at 36 ft, {off_c_60:.2f} at "
+          f"60) — and the objective flattens it, which is the next thing standing between this model and golf")
+
     # 20. the notebook learns nothing from sand: same reason as the rough, one lie further out
     sand_ath, sand_put = Athlete(), PuttAthlete()
     for h in COURSE:
@@ -1411,6 +1465,49 @@ def _mean(xs: list[float]) -> float:
     return sum(xs) / len(xs) if xs else float("nan")
 
 
+def costs_test(args) -> int:
+    """What the short game costs, played out rather than assumed — the two numbers `target()` is made of.
+
+    Until pass 10 `target()` did not use strokes at all: it scored
+    `P(on the green) + 0.3 * P(inside 25 ft of the pin) - SAND_PEN * P(in the sand)`. Scoring a landing by what
+    it costs needs the cost, and the cost is a fact about this game's putter and its clubs, so it is measured
+    the same way everything else here is: put a ball somewhere and play it out.
+    """
+    green = Green(stimp=10.0, grade=1.2, downhill=135.0)
+    h = Hole(400, 4, "C", pin=13.0, sand=+1)
+    ath = Athlete()
+    ath.policy = "spread"
+    for k in range(3):
+        play_round(drawn_course(random.Random(9000 + k), 14.0, True), ath, PuttAthlete(), green,
+                   learn=True, verbose=False, rng=random.Random(DEFAULT_SEED + k))
+    print(f"a settled athlete (sigma {ath.sigma:.2f}°), pin {h.pin:+.0f}, sand to the right; green 20 ft half-"
+          f"width, 28 ft half-depth\n")
+    print(f"  {'distance':>9s}{'green':>16s}{'rough':>16s}{'sand':>16s}")
+    rows = {"green": [], "rough": [], "sand": []}
+    for d in (2.5, 4, 6, 9, 12, 16, 20, 24, 28, 33, 40, 50, 60):
+        line = f"  {d:7.1f}ft"
+        for kind in ("green", "rough", "sand"):
+            vals = []
+            for b in range(16):
+                a = math.radians(360.0 * b / 16)
+                pt = (h.centre[0] + math.sin(a) * d, h.centre[1] + math.cos(a) * d)
+                got = "sand" if in_sand(pt, h) else ("green" if on_green(pt, h) else "rough")
+                if got != kind:
+                    continue
+                vals.append(play_hole(h, copy_of(ath), PuttAthlete(), green, learn=False, verbose=False,
+                                      start=pt, rng=random.Random(DEFAULT_SEED))["strokes"])
+            rows[kind] += vals
+            line += f"{_mean(vals):10.2f}({len(vals):2d})" if vals else f"{'—':>13s}    "
+        print(line)
+    print(f"\n  on the green, every distance from 2.5 ft to 28 ft costs {COST_ON_GREEN:.2f}: the putter is")
+    print(f"  deterministic — it bisects its gain and its line to zero error and the roll carries no scatter —")
+    print(f"  so it holes out in two from anywhere and the green has no gradient in distance at all.")
+    print(f"  off the green, mean {_mean(rows['rough']):.2f} against {COST_OFF_GREEN:.2f} told, and it is 2 or 3 by")
+    print(f"  bearing: a chip that goes in, or one that does not. In the sand, mean {_mean(rows['sand']):.2f} against")
+    print(f"  {COST_ON_GREEN + ath.sand_pen:.2f} told (the green's two plus the athlete's {ath.sand_pen:.2f} price).")
+    return 0
+
+
 def sigma_test(args) -> int:
     """Does a *belief about its own hands* reach the player's card, now that the floor is out of the way?
 
@@ -1607,6 +1704,8 @@ def main(argv=None) -> int:
     ap.add_argument("--rounds", type=int, default=4)
     ap.add_argument("--streams", type=int, default=4,
                     help="independent shot streams for --sigma; the bar is their spread")
+    ap.add_argument("--costs", action="store_true",
+                    help="what the short game costs from each distance and lie: the numbers `target()` is made of")
     ap.add_argument("--sigma", action="store_true",
                     help="the scatter it believes against the scatter its shots have, in wind")
     ap.add_argument("--field", action="store_true",
@@ -1622,6 +1721,8 @@ def main(argv=None) -> int:
         return selftest()
     if args.compare:
         return compare(args)
+    if args.costs:
+        return costs_test(args)
     if args.sigma:
         return sigma_test(args)
     if args.draws:

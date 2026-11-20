@@ -6,8 +6,10 @@ bunker beside the green, put there to test the third pass and mostly to refute i
 face, and the end of the game.** Sixth pass: a field of six on one card. Seventh: the picture. **Eighth: the
 number the athlete believes about itself — found wrong, repaired, and every aiming number in this file re-run
 over eight bags instead of one. Ninth: the floor under that number, removed; the belief reaches the aim at
-last, and is worth about half a stroke.** The tool is `lab/golf.py`; the runs are
-`records/golf-2026-11-19.txt`; the checks are `python3 lab/golf.py --selftest` (29 of them).
+last, and is worth about half a stroke. Tenth: the objective put into strokes — and the discovery that the
+game's putter has no scatter at all, so the green has no gradient and the step this file had been scoring
+targets with was decoration.** The tool is `lab/golf.py`; the runs are
+`records/golf-2026-11-19.txt`; the checks are `python3 lab/golf.py --selftest` (31 of them).
 
     python3 lab/golf.py                    # six rounds of nine, then six holes never played
     python3 lab/golf.py --calm             # the same pins on a still day
@@ -21,6 +23,8 @@ last, and is worth about half a stroke.** The tool is `lab/golf.py`; the runs ar
     python3 lab/golf.py --sigma --streams 20 --pin-range 19   # ...and the bar is the spread across shot
                                            #    streams, not across courses: see finding 8
     python3 lab/golf.py --draws 40 --bags 8 --floor 2.0  # what the floor in `target()` was worth, re-measured
+    python3 lab/golf.py --costs            # what the short game costs from each distance and lie: the numbers
+                                           #    `target()` is made of, played out
     python3 lab/golf.py --selftest         # the numbers below, checked
     python3 lab/golf.py --render lip       # the film: three shots at the face, as a page to open in a browser
 
@@ -135,18 +139,19 @@ Strike dispersion is a prior too: 1.1° of clubface error and 1.5% of ball speed
 
 ## What six rounds printed — still air, and wind
 
-Same pins, same seed, one athlete learning and one frozen. **Re-run in pass 9**: this table had been standing
-since the second pass, and the two repairs since — the sigma frame in pass 8 and the floor in pass 9 — move it
-by nine strokes, because the athlete is now aiming at the flag instead of at a number a floor had chosen.
+Same pins, same seed, one athlete learning and one frozen. **Re-run in pass 10**: this table had been standing
+since the second pass, and the three repairs since — the sigma frame in pass 8, the floor in pass 9 and the
+objective in pass 10 — move it by nine strokes, because the athlete is now aiming at the flag instead of at a
+number a floor had chosen, and scoring the aim in strokes instead of in proximity.
 
 | still air | 1 | 2 | 3 | 4 | 5 | 6 | held-out | notebook error |
 |---|---|---|---|---|---|---|---|---|
-| **learning** | +7 | +5 | +2 | −3 | −2 | +1 | −1 | 8.0 → 2.3, 7.6 by the sixth |
+| **learning** | +7 | +4 | +2 | −3 | −2 | +1 | −1 | 8.0 → 2.3, 7.6 by the sixth |
 | **control** | +9 | +9 | +9 | +9 | +9 | +9 | +8 | 35.5% flat |
 
 | windy | 1 | 2 | 3 | 4 | 5 | 6 | held-out | notebook error |
 |---|---|---|---|---|---|---|---|---|
-| **learning** | +11 | +6 | +1 | +3 | +1 | +2 | −1 | 21.4 → 9.4, 10.7 by the sixth |
+| **learning** | +13 | +3 | +4 | +6 | +1 | 0 | +2 | 21.4 → 9.4, 10.7 by the sixth |
 | **control** | +16 | +16 | +16 | +16 | +16 | +16 | +8 | 43.4% flat |
 
 What the second pass printed from the same command was +16, +13, +10, +3, +5, +8 against a control of +13 all
@@ -157,7 +162,7 @@ notebook said| against |what the shot did|, over every shot in the round.*
 
 Putts, still air: 30, 25, 25, 22, 24, 25 for the learner, 18 every round for the control.
 
-### Eight findings
+### Nine findings
 
 1. **A wrong notebook costs about eight strokes a round — and pass 9 changed the shape of the bill.** The
    learner starts level at worst with a player who never practises (+7 against +9 in still air, +11 against +16
@@ -182,28 +187,30 @@ Putts, still air: 30, 25, 25, 22, 24, 25 for the learner, 18 every round for the
 
    | still air, 40 drawn courses × 8 bags | pin ±6 ft | pin ±14 ft | pin ±19 ft |
    |---|---|---|---|
-   | aiming at the pin, minus aiming where the putt is likeliest | +0.20 ± 0.36 | +0.80 ± 0.55 | **+1.64 ± 0.54** |
-   | aiming at the middle, minus aiming where the putt is likeliest | +0.20 ± 0.55 | +0.37 ± 0.34 | +0.25 ± 0.22 |
+   | aiming at the pin, minus aiming where the ball is cheapest to hole out from | +0.31 ± 0.46 | +0.75 ± 0.62 | **+1.30 ± 0.67** |
+   | aiming at the middle, minus the same | +0.40 ± 0.75 | +0.38 ± 0.37 | +0.24 ± 0.18 |
 
    On a nine with the flags near the middle all three are the same shot, inside the noise: the decision is
    not a decision there, and the honest reading of the ±6 column is that it costs nothing to be wrong. At
-   fourteen feet of pin offset the pin-hunter is eight tenths of a stroke behind and the caddie's middle is a
-   third of a stroke behind. On a tucked-pin day the decision is worth a stroke and a half a round. **This
+   fourteen feet of pin offset the pin-hunter is three quarters of a stroke behind and the caddie's middle is
+   four tenths behind. On a tucked-pin day the decision is worth about a stroke and a third a round. **This
    table read −0.42 / +0.78 / +2.50 when it was measured on one athlete whose sigma was wrong; the repair in
    pass 8 halved the tucked-pin figure and doubled its bar; the floor coming out in pass 9 put a quarter of a
-   stroke back on it** (+1.48 ± 0.67 → +1.64 ± 0.54, and the caddie's middle goes from nothing to +0.25 ± 0.22)
-   — which is the belief arriving in the aim, and finding 8 is that number. The hole split at ±19 says the
-   tuck is the thing: with no sand at all, aiming at a pin cut 8 ft or further out costs **+0.44 ± 0.08**
-   (t 10).
+   stroke back on it; and pass 10 replaced the objective it is measured with and moved it by a sixth of a
+   stroke** (+1.64 ± 0.54 → +1.30 ± 0.67) — which is finding 9, and the short version is that two quite
+   different models of what a golfer is trying to do agree on this game to within the bar. The hole split at
+   ±19 says the tuck is the thing: with no sand at all, aiming at a pin cut 8 ft or further out costs
+   **+0.39 ± 0.09** (t 8.7).
 
 4. **With the wind on the same decision is worth more, not less — and the pass-8 number that said otherwise was
-   one bag, so it is withdrawn.** Drawn pins at ±19 with drawn wind, eight bags, floor out: aiming at the pin
-   costs **+0.82 ± 0.26** against aiming where the putt is likeliest, and aiming at the middle costs **+1.36 ±
-   0.19** — the belief-using policy is further ahead in weather than it is in still air (+0.82 against +1.64 is
-   *not* that reading: the pin loses less in wind, the middle loses much more). Run the same eight bags with
-   the floor back at 2 ft and the numbers are +0.75 ± 0.31 and +0.84 ± 0.26, so the sign is not the floor's
-   doing: **the −0.32 ± 0.31 this file carried for a day came from playing sixty courses on a single athlete,
-   which is the protocol the eighth pass itself replaced.** What the eighth pass was right about is that the
+   one bag, so it is withdrawn.** Drawn pins at ±19 with drawn wind, eight bags, floor out, cost objective:
+   aiming at the pin costs **+0.73 ± 0.18** against the cheap place to leave the ball, and aiming at the middle
+   costs **+1.21 ± 0.23** — the belief-using policy is further ahead in weather than it is in still air (+0.73
+   against +1.30 is *not* that reading: the pin loses less in wind, the middle loses much more). The floor is
+   not what moves it either — with the notebook held fixed, the two floors differ by 0.23 of a stroke in wind
+   and nothing at all for `flag` and `centre` (finding 9) — so **the −0.32 ± 0.31 this file carried for a day
+   came from playing sixty courses on a single athlete, which is the protocol the eighth pass itself
+   replaced.** What the eighth pass was right about is that the
    old twenty-stroke reversal against the fixed nine (128 against 156) was an artifact of pins and winds I had
    chosen; on drawn courses it does not reappear in either direction.
 
@@ -346,31 +353,35 @@ Putts, still air: 30, 25, 25, 22, 24, 25 for the learner, 18 every round for the
    it is not a rule, it is the objective's resolution, and it is the next thing (below).
 
    **What the belief is worth now.** Same notebook, same 40 drawn courses, both floors, ±19 ft: taking the
-   floor out is worth **0.28 strokes a round** to the policy that uses the belief, in still air, and 0.19 with
+   floor out is worth **0.43 strokes a round** to the policy that uses the belief, in still air, and 0.23 with
    wind drawn. (One athlete cloned per policy, learning off, two rounds of forty courses, so that what differs
-   between the two floors is the floor and not a practice session.) `flag` and `centre` move by 0.000, which is the right sanity check — they never call `target()`.
-   And the six sigma arms, which were the same player a pass ago:
+   between the two floors is the floor and not a practice session.) `flag` and `centre` move by 0.000, which is
+   the right sanity check — they never call `target()`. Under the step objective this file measured 0.28 and
+   0.19; pass 10 scored the same experiment in strokes and it got bigger, which is the one place the new
+   objective flatters the belief rather than flattening it. And the six sigma arms, which were the same player
+   a pass ago:
 
-   | 20 streams, pins ±19 ft, wind drawn, 16 courses to learn on, 4 rounds each | strokes/round | believes |
+   | 8 streams, pins ±19 ft, wind drawn, 16 courses to learn on, 4 rounds each | strokes/round | believes |
    |---|---|---|
-   | told 0.6° | 35.81 ± 0.23 | 0.60° |
-   | gated, learned | 36.03 ± 0.20 | 1.33° |
-   | told 1.1° (the hands) | 36.09 ± 0.21 | 1.10° |
-   | told 2.0° | 36.13 ± 0.23 | 2.00° |
-   | told 3.0° | 36.33 ± 0.20 | 3.00° |
+   | told 1.1° (the hands) | 35.84 ± 0.23 | 1.10° |
+   | told 0.6° | 35.85 ± 0.27 | 0.60° |
+   | gated, learned | 36.06 ± 0.38 | 1.28° |
+   | ungated, learned | 36.31 ± 0.29 | 2.59° |
+   | told 2.0° | 36.36 ± 0.29 | 2.00° |
+   | told 3.0° | 36.74 ± 0.27 | 3.00° |
 
-   The table's own spread, paired by stream, is **0.52 ± 0.29 strokes a round** across a five-fold range of
+   The table's own spread, paired by stream, is **0.90 ± 0.39 strokes a round** across a five-fold range of
    self-knowledge, and it is monotone: the wilder the athlete thinks it is, the worse it plays. Being right
    about its hands is worth about a third of a stroke against believing it is three times as wild as it is —
    which is the honest size of a number this file spent two passes calling the whole subject.
 
-   **The awkward part, which is the useful part.** The best belief is 0.6°, sharper than the 1.10° hands, by
-   0.28 ± 0.24 — it leans that way and the bar does not settle it. It leans for a reason that has nothing to
-   do with hands: `target()` scores a green hit plus **0.3 · P(inside 25 ft of the pin)**, and a step at 25 ft
-   cannot tell a 3 ft putt from a 24 ft one. So a player who takes the bunker seriously spends real putt
-   distance on bunker safety it does not need — the bunker is reached on 2.5% of the approaches aimed at it —
-   and a player who aims at the flag is rewarded for it. **The floor is gone and the objective's resolution is
-   what is left, and it is coarser than the belief it is being asked to spend.**
+   **The awkward part of this finding, which pass 10 resolved.** Under the floor and the step objective the
+   best belief was 0.6°, *sharper* than the 1.10° hands, and this file could not say whether that was real.
+   Scoring targets in strokes removed it: 0.6° and 1.1° now finish within a hundredth of a stroke of each
+   other and the two wild beliefs lose. The anomaly was the objective's, not the athlete's — the step paid
+   0.3 for putting the ball inside 25 ft of the pin, and a step cannot tell a 3 ft putt from a 24 ft one, so it
+   rewarded aim at the flag over aim at the safe part of the green. Finding 9 is the pass that found that, and
+   the reason it took a pass: the honest objective turned out to be nearly flat in distance too.
 
    **And the bar itself was wrong.** The sigma report used to pair arms by course and divide by the spread of
    course-mean differences. That bar is too narrow, because two arms share a course but stop sharing a shot
@@ -378,15 +389,73 @@ Putts, still air: 30, 25, 25, 22, 24, 25 for the learner, 18 every round for the
    moved every one of them by half a stroke, which was most of the effect being claimed. `--streams N` repeats
    the whole experiment on independent streams and reports their spread; the paired-by-course bar is gone.
 
+9. **The objective is in strokes now, and the pass that put it there found that the game's putter has no
+   scatter at all.** Until this pass `target()` scored a landing as `P(on the green) + 0.3 · P(inside 25 ft of
+   the pin) − SAND_PEN · P(in the sand)`. Those are not strokes. The honest score is the expected strokes to
+   hole out from where the ball finishes, and every number in it is a fact about *this* game, so it is
+   measured by playing it out (`python3 lab/golf.py --costs`):
+
+   | strokes to hole out | 2.5 ft | 6 ft | 12 ft | 20 ft | 28 ft | 40 ft | 60 ft |
+   |---|---|---|---|---|---|---|---|
+   | on the green | 2.00 | 2.00 | 1.88 | 1.94 | 2.00 | — | — |
+   | off the green | — | — | — | — | 2.64 | 2.62 | 2.75 |
+   | in the sand | — | — | — | — | 4.00 | — | — |
+
+   **The green column is flat.** Two strokes from two and a half feet and two strokes from twenty-eight, over
+   sixteen bearings each, because `lab/putt.py`'s athlete is deterministic: it bisects its own gain and its own
+   line to zero error and the roll carries no scatter, so it leaves the ball **0.1 ft from the hole from 45 ft
+   and 0.1 ft from 6 ft**. A real golfer takes 1.05 putts from 3 ft, 1.9 from 20 and 2.1 from 40. This model
+   takes 2.00 from all three and the second one is a tap-in.
+
+   So `target()` is now `2.00 · P(green) + 2.60 · P(off it) + (2.00 + SAND_PEN) · P(in the sand)`, with both
+   constants measured (checks 19b and 19c hold them), and **the near-flatness of the result is the finding**:
+   on a green that costs the same everywhere, the only thing a target can buy is not being off it (0.6 of a
+   stroke) and not being in the sand (the athlete's own 1.7). Everything the old objective did with distance —
+   the 25 ft step, the whole reason the athlete's belief about its hands seemed to matter — was a gradient I
+   had written into the objective and that the game underneath does not have.
+
+   **What it changed, in numbers.** Very little, which is the point:
+
+   | still air, 8 bags, 40 drawn courses | step objective (pass 9) | strokes (pass 10) |
+   |---|---|---|
+   | ±19 ft: pin − cheap | +1.64 ± 0.54 | **+1.30 ± 0.67** |
+   | ±19 ft: middle − cheap | +0.25 ± 0.22 | +0.24 ± 0.18 |
+   | ±19 ft: no sand, \|pin\| ≥ 8 | +0.44 ± 0.08 | **+0.39 ± 0.09** |
+   | ±19 ft, wind: pin − cheap | +0.82 ± 0.26 | +0.73 ± 0.18 |
+   | ±19 ft, wind: builder's sand effect, pin toward it | +0.20 ± 0.06 | **+0.11 ± 0.08** |
+   | ±19 ft, wind: no sand, \|pin\| ≥ 8 | +0.15 ± 0.05 | **+0.05 ± 0.09** |
+
+   Two models of what a golfer is trying to do — one that pays for proximity and one that pays for strokes —
+   agree on this game to within a sixth of a stroke on the headline and a tenth on the splits, **because the
+   only gradient in the model is the lie.** The one place they disagree is where the old objective was
+   flattering itself: in wind, the tuck's value was half proximity and it collapses from +0.15 to +0.05, and
+   the bunker's directional effect halves. Still air keeps its tuck (+0.39 ± 0.09), because a pin a foot from
+   the edge really does cost rough strokes, which is a lie effect and not a distance one.
+
+   **And the objective's arithmetic is not exact.** The sand is scored as the green plus the athlete's price
+   (2.00 + 1.70 = 3.70) and measures 4.27: the price was measured at 21 ft, where a sand ball is close to the
+   hole, and it is a bigger number further out. Half a stroke, in the athlete's favour, in the one term that
+   decides anything. It is named here rather than tuned, because tuning it would make the athlete's belief a
+   fitted number rather than a measured one.
+
+   **The next thing is not the objective and it is small.** The putter is the one surface in this game with no
+   face scatter and no speed scatter: every club has `FACE_SD` and `SPEED_SD`, and the putter has neither,
+   which is why a green can have no gradient. Give it the same two constants — the code is already there, one
+   surface further in — re-measure `--costs`, and the question the whole file has been asking finally has a
+   gradient to be answered on: is a belief about your hands worth anything when the thing it is spent on can
+   land in three places instead of two? That is a change of *one surface's* dispersion, and it invalidates
+   every putting number here, so it gets its own pass or none.
+
 ## What this does not model
 
-- **the putt term in the target decision is a step at 25 ft.** `target()` scores a target as `P(on the green)
-  + 0.3 · P(inside 25 ft of the pin)`, so every landing from 0 to 24 ft from the flag is worth the same to it.
-  The floor that used to stand in front of this is gone (finding 8), and what is left is an objective coarser
-  than the belief it is spending: a player who aims at the flag is paid for putt distance it does not measure,
-  which is why a belief sharper than the truth plays best. The game already owns a putting model — `lab/putt.py`,
-  the same one that scores every putt here — and the honest objective is expected strokes from where the ball
-  finishes, not a step. That is the next measurement, and it is a change of objective, not of physics
+- **the putter has no scatter, so the green has no gradient.** Every club in this game has a 1.1° face error
+  and 1.5% of ball speed; `lab/putt.py`'s putter has neither, and it bisects its own gain and line to zero, so
+  it leaves the ball a tenth of a foot from the hole from forty-five feet and holes out in two from anywhere.
+  That is why the cost of a landing is flat in distance (finding 9) and why the target decision is about lies
+  and not about proximity. A real green has a gradient — 1.05 putts from 3 ft against 2.1 from 40 — and this
+  one does not, and no objective can put back a gradient the physics does not have. Giving the putter the
+  scatter the clubs already have is one surface's dispersion, and it invalidates every putting number in this
+  file, so it is a pass of its own rather than an edit
 - **no plugged lie, no stance with the feet below the ball, no spin killed at contact, no flyer from the
   rough** — the face is geometry, those are laws, and they are the half of a bunker that is still missing;
   water, dogleg, tree line, green contour and green slope are absent for the same reason
@@ -422,22 +491,21 @@ at all, and the first two of them are now built:
    "green"), it reproduced the one thing the game was built to show, and it produced a question nobody had
    asked.
 
-   | still air, ±14 ft, 8 rounds (par 280) | R1 | R4 | R8 | total | change |
-   |---|---|---|---|---|---|
-   | cautious (middle of the green) | +7 | +2 | +1 | **+32** | −6 |
-   | practiser | +7 | +1 | +3 | +34 | −4 |
-   | bad start (worse prior on the bag) | +9 | +3 | +1 | +35 | −8 |
-   | flag-hunter | +7 | +7 | +0 | +37 | −7 |
-   | blind hands (told a scatter it does not have) | +9 | +1 | +4 | +41 | −5 |
-   | no practice (frozen) | +11 | +13 | +16 | **+102** | +5 |
+   | wind drawn, ±14 ft, 8 rounds (par 280) | R1 | R4 | R8 | total | best | change |
+   |---|---|---|---|---|---|---|
+   | flag-hunter | +12 | +5 | +1 | **+42** | +1 | −11 |
+   | practiser | +11 | +5 | +3 | +45 | +3 | −8 |
+   | blind hands (told a scatter it does not have) | +12 | +5 | −2 | +45 | −2 | −14 |
+   | bad start (worse prior on the bag) | +12 | +6 | +3 | +48 | +3 | −9 |
+   | cautious (middle of the green) | +13 | +5 | +3 | +54 | +3 | −10 |
+   | no practice (frozen) | +13 | +20 | +11 | **+125** | +10 | −2 |
 
-   Every learner gains four to eight strokes over eight rounds; the frozen player loses five and finishes
-   sixty-eight strokes behind. **The order among the five learners is inside the noise** and should not be
-   read: on eight rounds of a nine-hole course, four of them are the same golfer. What the card shows is the
-   distance between learning and not learning, which is the whole claim, and it shows it as a curve rather
-   than a table. (Re-run in pass 8 with the honest sigma; "blind hands" was taught 1.5°, which the repair
-   shows is the wrong number — the hands are 1.1° — so that arm is no longer a control but a player who has
-   been told it is wilder than it is, and it finishes last of the five.)
+   Re-run in pass 10, on the cost objective. Every learner gains eight to fourteen strokes over eight rounds;
+   the frozen player gains two and finishes seventy strokes behind. **The order among the five learners is
+   inside the noise** and should not be read: on eight rounds of a nine-hole course, four of them are the same
+   golfer — and the one that is not is `cautious`, which is last by nine strokes and aims at the middle with a
+   policy that knows where the bunker is but not where the pin is. What the card shows is the distance between
+   learning and not learning, which is the whole claim, and it shows it as a curve rather than a table.
 
 2. **The question the field found — answered in pass 8, and the answer had the sign the wrong way round.** The
    field saw every learner's scatter estimate double in wind (1.5° calm, 2.0–3.5° windy) and asked whether
@@ -494,7 +562,13 @@ at all, and the first two of them are now built:
    in "what this does not model", and it is the reason the belief that plays best is not the belief that is
    true.
 
-5. **A dogleg.** The driver's distance has never been a decision, because the corridor is straight and 40 yd
+5. **The putter's dispersion — named, pass 10, not built.** The one surface in this game with no scatter, and
+   the reason finding 9's cost curve is flat. Give it `FACE_SD` and `SPEED_SD` like every club, re-measure
+   `--costs`, and every number in this file that is about putting or aiming moves; that is why it is a pass
+   and not an edit. It is also the smallest change that would make the whole file's question askable: a belief
+   about your hands can only be worth something if the thing it is spent on has somewhere to miss.
+
+6. **A dogleg.** The driver's distance has never been a decision, because the corridor is straight and 40 yd
    wide. A corner with trees inside turns "hit it as far as you can" into a question with a number on it — and
    it is still geometry.
 
