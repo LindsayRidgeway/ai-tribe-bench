@@ -73,7 +73,56 @@ take-back is not posed — the body arrives at the contact pose and the racquet 
   from the ball on the contact frame (the lerp defect from 11-10, which put no racquet on the ball in
   any frame). **Number:** max delta at frame 0 in ft, before and after.
 
-## Item 2a — nobody is standing on the court (OPEN, measured 2026-11-19; blocks items 4, 5 and 6)
+## Item 2a — nobody is standing on the court (BUILT 2026-11-20; item 4's remainder still blocked on it)
+
+### What was built
+
+The clamp is in `replay3d.html`: after the legs and the split step have posed the body, the LOWER toe is read with
+`toePoint()` and the whole figure is dropped until it touches `y = 0`, the court. It can only drop — a toe below the
+floor is a fault to see, not to hide — and it drops no more than `GROUND_MAX` = 0.75ft, so a pose that has gone
+wrong cannot haul the figure into the court.
+
+```
+const low = Math.min(L ? L.y : 0, R ? R.y : 0);
+const w = isHitter ? Math.min(1, Math.max(0, (Math.abs(tlc) - 0.15) / 0.15)) : 1;
+rig.root.position.y -= w * Math.max(-0.20, Math.min(GROUND_MAX, low));
+```
+
+**The hitter is exempt within a quarter-second of their own contact**, ramping to full weight by 0.30s. That
+exemption is bought, not assumed: grounding drops the shoulder with the body, and the racquet's head was measured at
+`rq` — distance from the racquet head to the ball at the contact frame — with the clamp off and on. Unmodified
+contacts were `[0.14, 0.76, 0.19, 0.64, 1.36]`ft; grounded everywhere `[0.26, 0.86, 0.31, 0.73, 1.63]`; grounded
+with the hitter exempt `[0.14, 0.76, 0.19, 0.64, 1.45]`. Four of five contacts came back to their unmodified
+distance; the fifth costs 0.09ft. The frame being ON the ball at contact is the film's central promise, so the body
+gives way there and the feet do not.
+
+The split step had to become a knee bend at the same time: applied as `rig.root.position.y -=` it put the whole
+figure under the court whenever a toe was already near it, and the clamp then hauled it back up, so the two terms
+fought each other on every shot.
+
+**Measured 2026-11-20, `?sweep=0:18:0.02&ground=0|1` on `seasons/2026-11-19/watch.json`, 901 frames, toe heights
+read above the court:**
+
+| | both toes above 0.10ft | toe samples within 0.05ft | median toe | max |
+|---|---|---|---|---|
+| before (`&ground=0`) | 823 of 901 | 43 of 1,802 | 0.254ft | 1.080ft |
+| after | 60 of 901 | 958 of 1,802 | 0.020ft | 0.898ft |
+
+The 60 that remain are strides with both feet off the ground, which is what a stride is. **This is the fix that was
+missing under items 3, 4, 5 and 6** — each of them was a foot doing something in a body that was not standing on
+anything.
+
+### The pose still jumps when a run begins (OPEN, measured 2026-11-20)
+
+Remy's toes rise **0.28ft in one frame (0.02s)** at t=1.90 of the first point — 14ft/s of vertical foot speed in a
+player who is standing still. It is in the pose, not in the clamp: with `&ground=0` the toe still goes 0.332 → 0.610
+between those two samples. The likely cause is the gait switching from standing to walking in one frame with nothing
+blending between them, and it is the same class of defect the founder's "movement realism is make-or-break" is
+about: a body that changes stance instantaneously reads as a puppet. **Item 2b; it blocks nothing and nothing on the
+V1 list is waiting for it.**
+
+### The original finding
+
 
 **Found while chasing item 4, and bigger than the heel it started as.** Over the first 24 seconds of
 `seasons/2026-11-19/watch.json`, measured with `?sweep` and the toe probe:
@@ -181,6 +230,9 @@ lifted the near toe 0.70ft between two frames, a visible jolt, now ramped in ove
 
 **Order of work, revised:** item 2a is the prerequisite for items 4, 5 and 6, not a detail of item 2. The feet have
 to be on the court before a step, a brake or a turn can be described.
+
+**2026-11-20 — the prerequisite is built.** The body now stands on the court (item 2a: median toe 0.254ft → 0.020ft),
+so the near-foot question finally has an answer to measure. The answer itself has not been re-measured yet.
 
 ## Item 5 — brake
 - **Done-test:** root speed at the contact frame is under 0.5 ft/frame for a shot reached at a run,

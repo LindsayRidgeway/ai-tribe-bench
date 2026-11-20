@@ -112,3 +112,30 @@ eleven shots and quietly look like the whole match.
 
 The first measurement of the split step with this instrument: 0.000–0.021 ft of dip over eleven shots. After the
 change: 20 of 20 shots inside the founder's 0.10–0.20 ft band, 0.11–0.19 s after contact.
+
+### Three traps, all paid for on 2026-11-20
+
+**1. Without `--screenshot=`, a headless sweep may never run at all.** `window.__sweep` is started from two nested
+`requestAnimationFrame` callbacks. `--headless=new` with no screenshot produces no compositor frames often enough for
+those callbacks to fire, so the sweep printed `debug setup` and `debug bones` and then nothing — the page loads and the
+bodies load, and the run comes back empty, which reads exactly like a broken sweep. Adding `--screenshot=/tmp/x.png`
+(any path) makes the compositor run the stages, and the sweep prints. `--run-all-compositor-stages-before-draw` alone
+did not. The check that tells the two apart: `?debug&t=5&toe` prints `debug toe` lines per frame only if rAF is
+running at all.
+
+**2. `rel()` measures the toe from the ROOT, so it is invariant to anything that moves the root.** Reporting that
+column across `&ground=0` and `&ground=1` said "the clamp changes nothing" — the same numbers to three decimals on
+both sides — on a build where the median toe went from 0.254ft to 0.020ft. The height above the COURT is
+`rootY + rel[1]`, and the sweep row now carries it directly as `[toeL, toeR]` in world feet, because the court *is*
+`y = 0`.
+
+**3. A sweep row's player entries are `[rootY, isHitter, yaw, relL, relR, rq, [toeL, toeR]]`** — seven fields per
+player, not five. A script written against the older shape reads `rel[3]` as the toe and silently gets the left foot's
+3-vector instead of its height, or reads `rel[5]` and gets `undefined`.
+
+The measurement this produced, `?sweep=0:18:0.02&ground=0|1` over `seasons/2026-11-19/watch.json` (901 frames):
+
+| | both toes > 0.10ft | samples within 0.05ft | median toe | max |
+|---|---|---|---|---|
+| `&ground=0` | 823 of 901 | 43 of 1,802 | 0.254ft | 1.080ft |
+| `&ground=1` | 60 of 901 | 958 of 1,802 | 0.020ft | 0.898ft |

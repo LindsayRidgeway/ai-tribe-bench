@@ -1147,6 +1147,11 @@ function addLocal(bone, x, y, z) {
 }
 const CROSS_LAT = q.has("crosslat") ? parseFloat(q.get("crosslat")) : 0.80;
 const CROSS_NEAR = q.has("crossnear") ? parseFloat(q.get("crossnear")) : 0.30;
+/* Grounding: the body is placed so its lower toe is on the court. `?ground=0` turns it off, so the before-and-after
+   can be measured with the same instrument rather than argued about. GROUND_MAX is how far the body may be dragged
+   down in one frame; a figure that needs more than that has a pose wrong somewhere else. */
+const GROUND = q.has("ground") ? q.get("ground") !== "0" : true;
+const GROUND_MAX = 0.75;
 
 function shotAt(t) {
   for (const s of SEG) if (t >= s.start && t < s.start + s.dur + s.hold) return s;
@@ -1393,8 +1398,20 @@ function tick(now) {
     // SPLIT_DIP at SPLIT_PEAK seconds after the opponent's contact, back to standing 0.30s later. It is additive
     // and it cannot drift, because it is a function of `tlc` alone: no state, nothing to integrate, and at every
     // segment boundary the term is exactly zero.
-    if (!isHitter) rig.root.position.y -= splitDip(tlc);
     legs(rig, phase, moving, new THREE.Vector3(at ? 1 : -1, 0, 0), turn, load, idlePhase, walking);
+    // THE SPLIT STEP, as a bend rather than a teleport. With the body grounded (below), the hips can only go down
+    // by bending the knees — so the dip is applied where a dip comes from. Until 2026-11-19 this was a subtraction
+    // from the root's height, which is the same class of defect as everything else in item 2a: the body moves and
+    // the feet come with it, instead of the feet staying where they are and the body sinking over them.
+    // It has to come AFTER `legs()`, because `legs()` rebuilds every thigh and shin from its rest quaternion.
+    const dip = isHitter ? 0 : splitDip(tlc);
+    if (dip > 0) {
+      const k = dip / SPLIT_DIP;                    // 0..1 through the hop
+      for (const leg of ("L R").split(" ")) {
+        addLocal(rig.bones["thigh." + leg], -0.22 * k, 0, 0);
+        addLocal(rig.bones["shin." + leg], 0.80 * k, 0, 0);
+      }
+    }
     // THE CROSS-OVER STEP. A player who has to cover more than a step sideways does not shuffle: the foot nearest
     // the direction of travel leads and the far leg swings ACROSS in front of it. Until 2026-11-19 the gait was
     // symmetric in the lateral axis, so the answer to "do the feet cross?" was measured as 0 of 7 shots — a
@@ -1426,6 +1443,29 @@ function tick(now) {
         addLocal(rig.bones["thigh." + near], 0.20 * amt, 0, 0);
         addLocal(rig.bones["shin." + near], CROSS_NEAR * amt, 0, 0);
       }
+    }
+    // WHOSE FOOT IS ON THE GROUND. The whole body is moved down until the lower toe touches the court, because
+    // until 2026-11-19 nothing did: measured over 24 seconds of a real session, 920 of 962 player-frames had BOTH
+    // toes more than 0.10ft in the air, median 0.24ft, maximum 1.09ft. That is the defect under "floaty" and
+    // "on castors", and it is why a step, a brake and a turn could not be measured — none of the three has a
+    // meaning when the feet are not touching anything.
+    //
+    // It moves the BODY, not the feet, and the difference matters: every other correction in this block moves the
+    // root and drags the feet with it, which is how the crop of foot work before this one kept being invisible.
+    // Here the feet are the authority and the body follows them.
+    //
+    // The clamp is one-sided by intent: never lift the body (a toe below the floor is a fault to see, not to hide),
+    // and never drop it more than GROUND_MAX, so a pose that has gone wrong cannot haul the figure into the court.
+    if (GROUND) {
+      const L = toePoint(rig, "footL"), R = toePoint(rig, "footR");
+      const low = Math.min(L ? L.y : 0, R ? R.y : 0);
+      // The HITTER is exempt within a quarter-second of their own contact. Grounding costs the arm reach — measured
+      // 2026-11-19: the racquet's closest approach to the ball went from 0.14ft to 0.26ft on the first serve and by
+      // up to 0.27ft on the worst shot — because the shoulder drops with the body. A stroke is the one moment the
+      // film promises the frame is on the ball, so there the body keeps the height the stroke was built at; the
+      // weight returns to 1 by 0.30s either side and the receiver is always grounded.
+      const w = isHitter ? Math.min(1, Math.max(0, (Math.abs(tlc) - 0.15) / 0.15)) : 1;
+      rig.root.position.y -= w * Math.max(-0.20, Math.min(GROUND_MAX, low));
     }
 
     if (q.has("debug")) {
@@ -1878,8 +1918,19 @@ if (q.has("sweep")) window.__sweep = () => {
           +((v.x - r.root.position.x) * cy - (v.z - r.root.position.z) * sy).toFixed(2),
           +(v.y - r.root.position.y).toFixed(2),
           +((v.x - r.root.position.x) * sy + (v.z - r.root.position.z) * cy).toFixed(2)] : null;
+        // How far the racquet's head is from the ball, at this instant. The film's central promise is that the
+        // racquet is ON the ball at a contact; grounding moves the shoulder, so the promise has to be re-measured
+        // after it rather than assumed.
+        const rh = r.racquet ? r.racquet.position.clone()
+          .addScaledVector(new THREE.Vector3(0, 1, 0).applyQuaternion(r.racquet.quaternion), 1.74) : null;
+        const rq = rh ? +rh.distanceTo(ballPos).toFixed(3) : null;
+        // The toe's height ABOVE THE COURT, which is the only number the grounding question is about — and not the
+        // same number as the y in `rel`, which is measured from the root and so is invariant to the clamp. Reading
+        // the body-frame figure on both sides of the switch reported "grounding changes nothing" on a build where
+        // the median toe went from 0.254ft to 0.020ft.
         return [+r.root.position.y.toFixed(3), shotAt(T).sh.player === pl.name ? 1 : 0, +yaw.toFixed(3),
-                rel(L), rel(Rf)];
+                rel(L), rel(Rf), rq,
+                [L ? +L.y.toFixed(3) : null, Rf ? +Rf.y.toFixed(3) : null]];
       })]);
   }
   for (const row of rows) console.log("debug sweep", JSON.stringify(row));
