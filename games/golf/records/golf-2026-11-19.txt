@@ -2848,3 +2848,61 @@ a tracking camera at all.
   stills photographed to judge it, and thrown away with the pages: four rounds of them at 900 x 620 —
       frame-per-shot before and after, a pan frame, a fit frame at three stand-off heights, a roll in progress,
       the face film (unmoved, which is how the regression was ruled out), and the round film's hole change.
+
+
+PASS 16 — 2026-11-20, 14:37-15:10 — the putts in the film, and two checks that keep the picture honest
+====================================================================================================
+
+Pass 15 ended with a sentence in the film's own note: the putts are not in it, because a putt reports the distance
+it finished from the hole and nothing about the line it took. That was the honest thing to write and it was also a
+confession, because the last stroke of every hole — the one a visitor most wants to see go in — was missing from
+the picture. This pass is that line.
+
+  `putt.roll(..., trace=0.02)` — the roll returns the line it took, sampled, off by default. Nothing that scores a
+      putt needs it and a few hundred points per putt are not free; it exists because a putt is the one stroke in
+      this game whose whole content is a *line*.
+
+  `play_hole` logs each putt as `kind="putt"` — not as a shot. Every statistic in the file counts
+      `kind == "shot"`, and a 20 ft putt is not an approach, so the field's numbers are untouched by this pass
+      (checked: `--field --rounds 8` still reads +39 / +46 / +66 / +71 / +77 / +111). What the log gains is the
+      route, already rotated into the hole's own frame, and the text that says whether it went in.
+
+  the putt camera. A putt has no height to read and no face to climb, so the two rules pass 15 wrote for short
+      shots do not apply to it: from the side it is a line seen end-on, from behind the ball it barely moves. It is
+      photographed from above — high over the middle of the line, tilted back by about a seventh of the height so
+      it is not a plan view — and the frame is (travel + 13)/2 / tan(fov/2) above the green. The green overflows
+      the frame, which is correct: on a putt the green is not the subject, the line is.
+
+  the cup stops being a symbol. It was drawn at a fixed three-pixel radius, which is right from a hundred feet —
+      the real thing is a fifth of a pixel out there — and wrong from twenty, where the cup is the whole subject.
+      It takes its size from the projection now, with a floor of 1.6 px and a rim, because a dark disc on grass at
+      eight pixels is a hole and at three is a speck.
+
+  check 37 — the picture cannot disagree with the game about where the ball stopped. For every club shot in a
+      traced round, `film_path()`'s last point against `total`, and for every putt, the traced end against the
+      distance the report gives. It fails at 0.05 ft.
+
+      It FAILED first, at two inches, and the two inches were a real defect that pass 15's stills could not show:
+      `film_path()` was taking the direction of the roll from the last two points of the flight. Those two points
+      are a fiftieth of a second apart, at the bounce, and a bearing taken off them is not a bearing — the ball
+      lands at 0.02 s intervals and the velocity has already been turned by the bounce. The fix is not a tolerance:
+      the log carries `rest` now, and `film_path()` extends to it instead of inventing the direction. Check 37 is
+      the only reason this was ever noticed, and it is the first check in this file that is about the film.
+
+  check 38 — the line is the green's and not a ruler. Without it, check 37 passes for a film that draws straight
+      lines between two correct points. On the 1.2% green the worst bow of a 9 or 19 ft putt off its own straight
+      chord is 0.56 ft; on the same green with the grade at zero it is 0.00 in. Two numbers, one assertion, and the
+      second number is the control.
+
+  the count: 38 checks, and the season page's footer says thirty-eight because the number is typed into it rather
+      than counted — the same defect class as a comment that lies, left in for now and named here.
+
+  what this pass did not do, and it is now the largest thing the film is missing: a putt has no **height**. The
+      hole is a painted ellipse and the ball arrives at it and stops; nothing drops. A ball falling 4 inches into a
+      cup is four lines of animation and it is the single most satisfying frame in golf. It wants the cup modelled
+      as a volume rather than a disc, which is a small change to the renderer and an obvious one to make next.
+
+  stills: `renders/putt-from-above.png` is a 19 ft putt on the first hole of the round film, mid-line, with the sand
+      beside it and the flag above the cup. Four earlier rounds of stills were taken to place the camera and thrown
+      away with the geometry: `travel + 6` cut the hole off the top, `travel + 12` was still tight, `travel + 13`
+      holds the ball, the hole and air for both.

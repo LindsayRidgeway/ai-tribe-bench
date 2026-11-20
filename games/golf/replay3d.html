@@ -173,6 +173,19 @@ function shotCamera(s, shown) {
     LENS = scene.fov || 44;
     return basis(pos, aim);
   }
+  if (s.kind === "putt") {
+    /* A PUTT FROM ABOVE. It is the only stroke whose whole content is a line on a surface: there is no height to
+       read, no face to climb, and no flight — just the ball, the hole, and the break the green puts on the line.
+       Photographed from the side it is a straight line seen end-on; from behind the ball it barely moves. So the
+       camera goes up: high above the middle of the line and very slightly back, so the whole stroke is in the
+       frame and the curve it takes is the widest thing in it. The green overflows the frame, which is right —
+       the green is not the subject, the line is. */
+    const feet = feetOf(s);
+    const mid = [s.start[0] + ux * travel * 0.5, s.start[1] + uy * travel * 0.5];
+    LENS = scene.fov || 44;
+    const H = (travel + 13) * 0.5 / Math.tan(LENS * Math.PI / 360);   // the ball at one end, the hole at the other, and air for both
+    return basis([mid[0], mid[1] - 0.22 * H, Math.max(9, H)], [mid[0], mid[1], 0.0]);
+  }
   /* A short shot is framed from behind the ball looking at the face, low and close, with a modest lens. The
      face then reads as what it is — a horizontal band across the frame eighteen inches above the sand — and the
      question the lip asks, "was the ball above that band when it crossed", is answered by the eye without any
@@ -255,9 +268,18 @@ function ground(cam, f) {          // the hole, passed in: a film that changes h
   const p0 = project(cam, [flag[0], flag[1], 7.5]), p1 = project(cam, [flag[0], flag[1] + 2.4, 6.6]);
   if (p0 && p1) { ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.lineTo(p0.x, p0.y + 12);
                   ctx.closePath(); ctx.fillStyle = "#ff5f5f"; ctx.fill(); }
-  const cup = project(cam, [flag[0], flag[1], 0]);                                            // the hole
-  if (cup) { ctx.beginPath(); ctx.ellipse(cup.x, cup.y, 3, 1.4, 0, 0, Math.PI * 2);
-             ctx.fillStyle = "#0b1210"; ctx.fill(); }
+  /* The cup is 4.25 in across and was drawn at a fixed three pixels, which is a symbol — fine from a hundred feet,
+     where the real thing is a fifth of a pixel, and wrong from twenty, where the cup is the whole subject of the
+     shot. It takes its size from the projection now, with a floor so that a long shot still shows one, and a rim,
+     because a dark disc on grass at eight pixels is a hole and at three is a speck. */
+  const cup = project(cam, [flag[0], flag[1], 0]);
+  if (cup) {
+    const r = Math.max(1.6, Math.min(14, 0.177 * FOCAL() / Math.max(1, cup.d)));
+    ctx.beginPath(); ctx.ellipse(cup.x, cup.y, r, r * (0.30 + 0.55 * Math.min(1, 26 / Math.max(4, cup.d))),
+                                 0, 0, Math.PI * 2);
+    ctx.fillStyle = "#0b1210"; ctx.fill();
+    ctx.strokeStyle = "rgba(240,240,230,0.55)"; ctx.lineWidth = 0.8; ctx.stroke();
+  }
 }
 
 /* The bar has to be true at one depth and there is only one depth the reader is judging, which is the ball's:

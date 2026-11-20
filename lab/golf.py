@@ -814,7 +814,7 @@ def report_shot(start: tuple[float, float], rest: tuple[float, float],
 
 
 def putt_with_hands(putter: PuttAthlete, gap_ft: float, bearing: float, green: Green,
-                    learn: bool, rng: random.Random) -> dict:
+                    learn: bool, rng: random.Random, trace: float | None = None) -> dict:
     """`putt.attempt`, with the hands this game gives every other club.
 
     The roll, the friction law, the hole and the report are `lab/putt.py`'s — imported, not restated — and so is
@@ -839,7 +839,7 @@ def putt_with_hands(putter: PuttAthlete, gap_ft: float, bearing: float, green: G
     intended = putter.pace(gap_ft + over, a_eff)
     face = putt_read(green, gap_ft, bearing, intended) + putter.bias + rng.gauss(0.0, PUTT_FACE_SD)
     speed = intended * (1.0 + rng.gauss(0.0, PUTT_SPEED_SD))
-    res = putt_roll((0.0, 0.0), face, speed, green, spot)
+    res = putt_roll((0.0, 0.0), face, speed, green, spot, trace=trace)
     along, lateral, _miss = putt_report(res["finish"], (0.0, 0.0), spot)
     if learn:
         which = putter.turn
@@ -849,7 +849,7 @@ def putt_with_hands(putter: PuttAthlete, gap_ft: float, bearing: float, green: G
         putter.observe(which, putter.gain if which == "gain" else putter.bias, err)
         putter.feel(along - over, lateral, gap_ft)
     return dict(along=along, lateral=lateral, holed=res["hole"], lipout=res["lipout"], t=res["t"],
-                face=face, speed=speed, over=over,
+                path=res.get("path"), face=face, speed=speed, over=over,
                 text=putt_phrase(along, lateral, res["hole"], res["lipout"]))
 
 
@@ -887,10 +887,19 @@ def play_hole(hole: Hole, ath: Athlete, putter: PuttAthlete, green: Green,
         if (lie == "green" or gap_ft <= PUTT_ZONE or (last_putt and lie not in ("sand", "trees"))) \
                 and putts < 4:
             bearing = bearing_to(ball, flag)
-            r = putt_with_hands(putter, gap_ft, bearing, green, learn=learn, rng=rng)
+            was = ball
+            r = putt_with_hands(putter, gap_ft, bearing, green, learn=learn, rng=rng, trace=trace)
             putts += 1
             strokes += 1
             last_putt = True
+            # A putt is logged as a putt and not as a shot: every statistic in this file counts `kind == "shot"`,
+            # and a 20 ft putt is not an approach. What the log gains is the line, in the hole's own frame, which
+            # is the one thing a putt has that a number cannot carry (pass 16).
+            route = None
+            if r.get("path"):
+                route = [[q[0], round(was[0] + q[1], 4), round(was[1] + q[2], 4), 0.0] for q in r["path"]]
+            log.append(dict(kind="putt", club="putter", start=list(was), path=route, gap_ft=gap_ft,
+                            along=r["along"], lateral=r["lateral"], holed=r["holed"], text=r["text"]))
             if r["holed"]:
                 holed = True
                 if verbose:
@@ -995,7 +1004,7 @@ def play_hole(hole: Hole, ath: Athlete, putter: PuttAthlete, green: Green,
                         angle_aim=math.degrees(math.atan2(lateral_aim, flown_yd)),
                         offset=offset, head=head, cross=cross, lie=lie, on_green=on_green(rest, hole),
                         in_sand=in_sand(rest, hole), escaping=escaping, hit_lip=bool(res.get("lip")),
-                        strokes_at=strokes, gap_ft=gap_ft, start=ball,
+                        strokes_at=strokes, gap_ft=gap_ft, start=ball, rest=list(rest),
                         path=res.get("path"), stop_at=res.get("stop_at"),
                         aim=aim, bearing=aim_bearing))
         if verbose:
@@ -1644,6 +1653,54 @@ def selftest() -> int:
           f"its inscribed {GREEN_A:.0f} ft: read from a flag cut 13 ft off-centre, the 20 ft row keeps 27 of "
           f"its 48 positions and every one it loses is on the same side of the green")
 
+    # 37. the picture cannot disagree with the game about where the ball stopped. Two representations of the same
+    #     stroke — the card's number and the line the film draws — and until pass 16 they disagreed by twenty-five
+    #     yards on a club shot, because the path stopped at the first bounce and the number counted the roll.
+    a37, pu37 = copy_of(trained), GolfPutter()
+    worst_yd, worst_putt_in = 0.0, 0.0
+    for h in COURSE[:4]:
+        row = play_hole(h, a37, pu37, green, learn=False, verbose=False,
+                        rng=random.Random(DEFAULT_SEED), trace=0.02)
+        for e in row["log"]:
+            if e["kind"] == "shot":
+                fp = film_path(e)
+                if not fp or e.get("stop_at") is not None or e.get("hit_lip"):
+                    continue
+                got = math.hypot(fp[-1][1] - e["start"][0], fp[-1][2] - e["start"][1])
+                worst_yd = max(worst_yd, abs(got - e["total"] * FT_PER_YD) / FT_PER_YD)
+            elif e["kind"] == "putt" and e.get("path"):
+                got = math.hypot(e["path"][-1][1] - h.flag[0], e["path"][-1][2] - h.flag[1])
+                worst_putt_in = max(worst_putt_in, abs(got - math.hypot(e["along"], e["lateral"])) * 12.0)
+    check("the film's line ends where the card says the ball stopped, for clubs and for putts",
+          worst_yd < 0.05 and worst_putt_in < 1.0,
+          f"worst disagreement {worst_yd * 12:.2f} in over a round of club shots and {worst_putt_in:.2f} in over "
+          f"its putts, which is the rounding of the path itself. It was two inches until `film_path()` started "
+          f"taking the resting place out of the log instead of re-deriving the roll's bearing from the last two "
+          f"samples of the flight: those are a fiftieth of a second apart, at the bounce, and a bearing taken off "
+          f"them is not a bearing")
+
+    # 38. and the line the putt is drawn along is the green's, not a straight line between two points: on the
+    #     sloped green it bends, on a flat one it does not. Without this the film could be drawing a ruler and the
+    #     check above would still pass, because a ruler also ends where the ball stopped.
+    def sag_ft(g: Green, d_ft: float, bearing: float) -> float:
+        r = putt_roll((0.0, 0.0), bearing, GolfPutter().pace(d_ft, effective_decel(g, bearing)), g,
+                      (math.sin(math.radians(bearing)) * d_ft, math.cos(math.radians(bearing)) * d_ft),
+                      trace=0.02)
+        path = r.get("path") or []
+        if len(path) < 3:
+            return 0.0
+        ax, ay = path[0][1], path[0][2]
+        bx, by = path[-1][1], path[-1][2]
+        chord = math.hypot(bx - ax, by - ay) or 1.0
+        return max(abs((bx - ax) * (ay - p[2]) - (ax - p[1]) * (by - ay)) / chord for p in path)
+    sloped = max(sag_ft(green, d, b) for d in (9.0, 19.0) for b in (0.0, 90.0, 180.0, 270.0))
+    flat = max(sag_ft(Green(stimp=green.stimp, grade=0.0), d, b) for d in (9.0, 19.0) for b in (0.0, 90.0))
+    check("the putt the film draws is the green's line and not a ruler",
+          sloped > 0.25 and flat < 0.02,
+          f"on the {green.grade:.1f}% green the worst bow of a 9 or 19 ft putt off its own straight chord is "
+          f"{sloped:.2f} ft; on the same green flattened it is {flat * 12:.2f} in. The bow is what a visitor is "
+          f"being shown, so it had better be the roll's")
+
     print(f"\n  {len(fails)} of {n} checks failed" if fails else f"\n  all {n} checks pass")
     return 1 if fails else 0
 
@@ -2103,15 +2160,24 @@ def film_path(entry: dict) -> list | None:
     path = [list(q) for q in (entry.get("path") or [])]
     if len(path) < 2 or entry.get("stop_at") is not None:
         return path or None
-    start = entry.get("start") or (0.0, 0.0)
-    carry = math.hypot(path[-1][1] - start[0], path[-1][2] - start[1])
-    roll = max(0.0, (entry.get("total") or 0.0) * FT_PER_YD - carry)
+    t1, x1, y1, _z1 = path[-1]
+    t0, x0, y0, _z0 = path[-2]
+    # Where the ball stopped, from the game if it is in the log and from the arithmetic only if it is not. The
+    # direction of the roll comes from `rest` and not from the last two samples of the flight: those two points
+    # are 0.02 s apart at the moment of the bounce, and taking a bearing off them put the ball two inches from
+    # where the game said it was — small, and check 37's whole job is to refuse small.
+    if entry.get("rest"):
+        dx, dy = entry["rest"][0] - x1, entry["rest"][1] - y1
+        roll = math.hypot(dx, dy)
+    else:
+        dx, dy = x1 - x0, y1 - y0
+        roll = max(0.0, (entry.get("total") or 0.0) * FT_PER_YD
+                   - math.hypot(x1 - (entry.get("start") or (0.0, 0.0))[0],
+                                y1 - (entry.get("start") or (0.0, 0.0))[1]))
     if roll < 0.05:
         return path
-    (t1, x1, y1, _z1), (t0, x0, y0, _z0) = path[-1], path[-2]
     v = math.hypot(x1 - x0, y1 - y0) / max(1e-3, t1 - t0)      # horizontal speed at the moment it lands
     span = 2.0 * roll / max(1.0, v)                            # constant deceleration: the average is half
-    dx, dy = x1 - x0, y1 - y0
     n = math.hypot(dx, dy) or 1.0
     for k in range(1, 7):
         u = k / 6.0
@@ -2141,22 +2207,25 @@ def _shot(scene_ath: Athlete, hole: Hole, start: tuple[float, float], club: Club
                 lens=lens)            # the shot list's note about which camera it wants, or None for the renderer's
 
 
-def _film_shots(entry_log: list[dict], hole: Hole, index: int) -> list[dict]:
-    """The club shots of one hole, in the shape `replay3d.html` plays. Putts are not here and cannot be: a putt
-    reports a distance it finished from the hole, not a path, so filming one would mean inventing the line it
-    took. That is the honest state of it and the film's note says so rather than leaving a hole in the round."""
-    out = []
-    for e in entry_log:
-        if e["kind"] != "shot":
-            continue
-        out.append(dict(label=f"{hole.label} · {e['club']} at {e['gear']:.0%}, aim {e['offset']:+.0f} ft",
-                        club=e["club"], gear=e["gear"], start=[round(c, 2) for c in e["start"]],
-                        path=film_path(e), stop_at=e.get("stop_at"), rest=None, lens=None,
-                        lip=bool(e.get("hit_lip")), hole=index, feet=_hole_json(hole),
-                        result=f"{e['total']:.0f} yd, {abs(e['along']):.0f} yd "
-                               f"{'short' if e['along'] < 0 else 'past'}, "
-                               f"{abs(e['lateral']):.0f} yd {'right' if e['lateral'] > 0 else 'left'}"))
-    return out
+def _film_entry(e: dict, hole: Hole, index: int) -> dict:
+    """One stroke of a hole, in the shape `replay3d.html` plays.
+
+    Until pass 16 this took the club shots only, and the film said in its own note that the putts were not in it:
+    a putt reported the distance it finished from the hole and nothing about the line it took, so filming one
+    would have meant drawing a line nobody computed. `putt.roll` traces its own roll now, so the last stroke of
+    every hole — the one a visitor most wants to see go in — is in the film, curved where the green made it curve.
+    """
+    if e["kind"] == "putt":
+        return dict(label=f"{hole.label} · putt, {e['gap_ft']:.0f} ft", kind="putt", club="putter",
+                    gear=None, start=[round(c, 2) for c in e["start"]], path=e.get("path"), stop_at=None,
+                    rest=None, lens=None, lip=False, hole=index, feet=_hole_json(hole), result=e["text"])
+    return dict(label=f"{hole.label} · {e['club']} at {e['gear']:.0%}, aim {e['offset']:+.0f} ft", kind="shot",
+                club=e["club"], gear=e["gear"], start=[round(c, 2) for c in e["start"]],
+                path=film_path(e), stop_at=e.get("stop_at"), rest=None, lens=None,
+                lip=bool(e.get("hit_lip")), hole=index, feet=_hole_json(hole),
+                result=f"{e['total']:.0f} yd, {abs(e['along']):.0f} yd "
+                       f"{'short' if e['along'] < 0 else 'past'}, "
+                       f"{abs(e['lateral']):.0f} yd {'right' if e['lateral'] > 0 else 'left'}")
 
 
 def _hole_json(hole: Hole) -> dict:
@@ -2425,7 +2494,8 @@ two per cent.</p>
 field of <em>strategies</em>, and the number on the card is still one program's number. Putting six members' numbers
 on one board is something the members would have to do in their own windows.</p>
 <p>What this page does not model, and where the game stops, are in <code>games/golf/README.md</code> — twelve
-findings, thirty-six checks, and four instruments that turned out to be reading the wrong thing. Every number here
+findings, thirty-eight checks, and four instruments that turned out to be reading the wrong thing. Every number
+here
 comes out of <code>python3 lab/golf.py --season</code>, which prints the same table to a terminal;
 <code>season.json</code> beside this file is what a Play tab would read.</p>
 </footer>
@@ -2485,7 +2555,7 @@ def render(args) -> int:
         for k, (hole, r) in enumerate(pairs):
             y = hole.yards * FT_PER_YD
             before = len(shots)
-            shots.extend(_film_shots(r["log"], hole, k))
+            shots.extend([_film_entry(e, hole, k) for e in r["log"] if e["kind"] in ("shot", "putt")])
             if len(shots) > before:            # the hole's establishing frame rides on its first shot
                 shots[before]["view"] = dict(
                     pos=[0.12 * y, -0.10 * y, 0.22 * y], target=[hole.centre[0], 0.78 * y, 0.0],
@@ -2497,9 +2567,10 @@ def render(args) -> int:
                 "best": f"the best hole of the round: {strokes} on a par {pairs[0][0].par}",
                 "worst": f"the worst hole of the round: {strokes} on a par {pairs[0][0].par}"}[which]
         scene = dict(title=word,
-                     note=f"{putts} putt{'s' if putts != 1 else ''} in it, and the putts are not in this film: a "
-                          f"putt is two to twenty feet of grass with no path of its own to draw. The camera "
-                          f"follows the ball, and each hole opens with three seconds of standing still.",
+                     note=f"{putts} putt{'s' if putts != 1 else ''} in it, filmed from above: a putt's whole "
+                          f"content is the line the green bends it onto, which is a thing to look down at. Each "
+                          f"hole opens with three seconds of standing still, and the frame is solved from the "
+                          f"shot rather than fixed by hand.",
                      fov=44.0, feet=_hole_json(pairs[0][0]), shots=shots, view=None)
         name = {"round": "round", "best": "best-hole", "worst": "worst-hole"}[which]
     else:
@@ -2514,17 +2585,7 @@ def render(args) -> int:
         y = hole.yards * FT_PER_YD
         r = play_hole(hole, a, pu, green, learn=False, verbose=False, rng=random.Random(DEFAULT_SEED),
                       trace=0.02)
-        shots = []
-        for e in r["log"]:
-            if e["kind"] != "shot":
-                continue
-            shots.append(dict(label=f"{e['club']} at {e['gear']:.0%}, aim {e['offset']:+.0f} ft",
-                              club=e["club"], gear=e["gear"], start=[round(c, 2) for c in e["start"]],
-                              path=film_path(e), stop_at=e.get("stop_at"), rest=None, lens=None,
-                              lip=bool(e.get("hit_lip")),
-                              result=f"{e['total']:.0f} yd, {abs(e['along']):.0f} yd "
-                                              f"{'short' if e['along'] < 0 else 'past'}, "
-                                              f"{abs(e['lateral']):.0f} yd {'right' if e['lateral'] > 0 else 'left'}"))
+        shots = [_film_entry(e, hole, 0) for e in r["log"] if e["kind"] in ("shot", "putt")]
         scene = dict(title=f"hole {hole.label}: {hole.yards:.0f} yd, par {hole.par}",
                      note=f"the athlete plays it in {r['strokes']} strokes, {r['putts']} of them putts. "
                           f"Bunker on the {'right' if hole.sand > 0 else ('left' if hole.sand < 0 else 'none')}.",

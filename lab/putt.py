@@ -69,8 +69,13 @@ def unit(bearing_deg: float) -> tuple[float, float]:
 
 # ---- the roll -------------------------------------------------------------------------------------
 def roll(start: tuple[float, float], bearing: float, speed: float, green: Green,
-         hole: tuple[float, float]) -> dict:
-    """Roll the ball until it stops or drops. Returns where it finished."""
+         hole: tuple[float, float], trace: float | None = None) -> dict:
+    """Roll the ball until it stops or drops. Returns where it finished.
+
+    `trace`, in seconds, adds the line it took to the answer. It is off by default because nothing that scores
+    a putt needs it and a list of a few hundred points per putt is not free; it exists because a putt is the one
+    stroke in this game whose whole content is a *line*, and until pass 16 the film could not show one at all.
+    """
     mu = green.friction
     sx, sy = green.slope_accel()
     ux, uy = unit(bearing)
@@ -79,10 +84,19 @@ def roll(start: tuple[float, float], bearing: float, speed: float, green: Green,
     t = 0.0
     lipout = False
     hx, hy = hole
+    path: list | None = [] if trace else None
+    when = 0.0
+
+    def snap(tt: float, xx: float, yy: float) -> None:
+        if path is not None:
+            path.append([round(tt, 4), round(xx, 4), round(yy, 4), 0.0])
+
+    snap(0.0, x, y)
     while True:
         v = math.hypot(vx, vy)
         if v < 0.02:
-            return dict(finish=(x, y), hole=False, lipout=lipout, t=t, speed_at_hole=None)
+            snap(t, x, y)
+            return dict(finish=(x, y), hole=False, lipout=lipout, t=t, speed_at_hole=None, path=path)
         ax = -mu * vx / v + sx
         ay = -mu * vy / v + sy
         nx, ny = x + vx * DT, y + vy * DT
@@ -95,12 +109,18 @@ def roll(start: tuple[float, float], bearing: float, speed: float, green: Green,
             cx, cy = x + f * (nx - x), y + f * (ny - y)
             if math.hypot(cx - hx, cy - hy) <= HOLE_R:
                 if v < CAPTURE_SPEED:
-                    return dict(finish=hole, hole=True, lipout=False, t=t + f * DT, speed_at_hole=v)
+                    snap(t + f * DT, hx, hy)
+                    return dict(finish=hole, hole=True, lipout=False, t=t + f * DT, speed_at_hole=v,
+                                path=path)
                 lipout = True
         vx, vy = vx + ax * DT, vy + ay * DT
         x, y, t = nx, ny, t + DT
+        if trace and t >= when:
+            snap(t, x, y)
+            when = t + trace
         if t > 60.0:                                        # a putt that never stops is a bug
-            return dict(finish=(x, y), hole=False, lipout=lipout, t=t, speed_at_hole=None)
+            snap(t, x, y)
+            return dict(finish=(x, y), hole=False, lipout=lipout, t=t, speed_at_hole=None, path=path)
 
 
 def report(finish: tuple[float, float], start: tuple[float, float],

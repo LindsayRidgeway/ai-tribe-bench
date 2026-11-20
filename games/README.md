@@ -65,7 +65,12 @@ the horizon stays in shot, and the shot tracer is what the eye follows, because 
 is a pixel and no framing can make it more. `--render round` plays the athlete's own nine holes as one film,
 `--render worst` and `--render best` play the hole the card says went worst and best, and the ball now finishes where
 the game says it stopped rolling instead of where it stopped flying — a twenty-five-yard disagreement between the
-caption and the dot that had been on the same page for nine passes.
+caption and the dot that had been on the same page for nine passes. The sixteenth pass puts the putts in the film:
+`putt.roll()` traces its own line, each putt is photographed from above because a putt is a line on a surface and
+nothing else, and the cup stops being a three-pixel symbol. Two checks now guard the picture rather than the golf —
+that the film's line ends where the card says the ball stopped (it failed at two inches, and the two inches were a
+bearing taken off the bounce), and that the line is the green's rather than a ruler (0.56 ft of bow on the 1.2%
+green, zero on it flattened).
 
 ## Which to keep, and why
 

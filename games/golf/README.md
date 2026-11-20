@@ -21,9 +21,11 @@ new prices cannot reach: at approach range a landing is priced by its distance t
 from 150 yd is 450 ft from the pin wherever it lands, so the objective's only gradient out there is still the
 sand — and it thinks the sand is reachable four times as often as the game makes it. Fourteenth: the season on a
 page. **Fifteenth: the film's camera — two of them thrown away before the picture read, and a ball that used to stop
-where it stopped flying rather than where the game says it stopped rolling.** The tool is
+where it stopped flying rather than where the game says it stopped rolling. Sixteenth: the putts in the film, traced
+by the roll itself, filmed from above — and two checks that exist to stop the picture and the card from drifting
+apart.** The tool is
 `lab/golf.py`; the runs are `records/golf-2026-11-19.txt`; the checks are `python3 lab/golf.py --selftest`
-(36 of them).
+(38 of them).
 
     python3 lab/golf.py                    # six rounds of nine, then six holes never played
     python3 lab/golf.py --calm             # the same pins on a still day
@@ -49,6 +51,7 @@ where it stopped flying rather than where the game says it stopped rolling.** Th
     python3 lab/golf.py --render 7         # one hole, filmed: the camera fits the shot and each hole opens still
     python3 lab/golf.py --render round     # the athlete's own card, all nine holes, as one film
     python3 lab/golf.py --render worst     # ...or the one hole that went worst (or `best`)
+                                           #    the putts are in all of them, filmed from above
 
 ## The question, and why it is not "putt, from further away"
 
@@ -783,9 +786,13 @@ order, with three seconds of the hole standing still before each one. `--render 
 `renders/best-hole.html` and `renders/worst-hole.html` — one hole each, chosen off the card, which is the thing a
 player actually wants to watch.
 
-The putts are not in it, and the film says so in its own note rather than leaving a gap: a putt is two to twenty
-feet of grass, the game reports where it finished and not the line it took, and filming one would mean inventing
-that line. That is the honest reason, and it is also the next thing this film needs.
+**The putts are in it as of pass 16**, and they are the best-looking thing in it. `putt.roll()` traces its own
+roll when asked — a putt reports the distance it finished from the hole and, until this pass, nothing about the
+line it took, so the film had been saying in its own note that the putts were not in it rather than drawing a line
+nobody computed. Each putt is photographed from above, because a putt is the one stroke whose whole content is a
+line on a surface: there is no height to read and no face to climb, so the camera goes high over the middle of the
+line and the break is the widest thing in the frame. The cup stopped being a three-pixel symbol and takes its size
+from the projection, because from twenty feet the cup is the subject of the shot.
 
 Two defects came out of making it, and neither was a physics question.
 
@@ -797,6 +804,15 @@ Two defects came out of making it, and neither was a physics question.
 - **resizing the window blanked the page.** Setting a canvas's width clears it, and the pinned still never runs
   again, so the film went black and stayed black. Found by taking screenshots with a longer virtual-time budget:
   the frame drew, the layout settled, the canvas cleared itself. The page had this fault from its first version.
+
+Two checks now stand under the picture, and they are the first checks in this file that are about the film rather
+than the golf. **37** puts the card's number beside the line the film draws, for clubs and for putts, and demands
+they agree — the twenty-five-yard disagreement above would have failed it. Its first form failed at two inches, and
+the two inches were real: `film_path()` was taking the direction of the roll from the last two samples of the
+flight, which are a fiftieth of a second apart at the moment of the bounce, and a bearing taken off those is not a
+bearing. **38** asks whether the line is the green's or a ruler: on the 1.2% green the worst bow of a 9 or 19 ft
+putt off its own straight chord is 0.56 ft, and on the same green flattened it is zero. Without that one, check 37
+would pass for a film that drew straight lines between two correct points.
 
 ## What this does not model
 
