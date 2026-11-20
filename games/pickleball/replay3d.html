@@ -225,7 +225,6 @@ function ballAt(r, t) {
 /* ---- drawing the moving things ------------------------------------------------------------------- */
 const BALL_FT = (scene && scene.ball ? scene.ball.diameter_in : 2.87) / 12 / 2;
 const TEAM = [["#ff9f5a", "#ffd0a8"], ["#5ad2ff", "#bfeaff"]];
-const PLAYER_HT = 5.4;
 function drawShadow(cam, p) {
   const q = project(cam, [p[0], p[1], 0]);
   if (!q) return;
@@ -241,31 +240,225 @@ function drawBall(cam, p) {
   ctx.fillStyle = "#e9f6ff"; ctx.fill();
   ctx.strokeStyle = "rgba(0,0,0,0.35)"; ctx.lineWidth = 0.8; ctx.stroke();
 }
-function drawBody(cam, pl, at, label) {
-  const feet = project(cam, [at[0], at[1], 0]);
-  const head = project(cam, [at[0], at[1], PLAYER_HT]);
-  if (!feet || !head) return;
-  const c = TEAM[pl.team][0], pale = TEAM[pl.team][1];
-  const w = Math.max(1.4, Math.min(4.5, 0.22 * FOCAL() / Math.max(1, feet.d)));
-  ctx.beginPath(); ctx.ellipse(feet.x, feet.y, w * 1.7, w * 0.6, 0, 0, Math.PI * 2);
+/* ---- the figures ---------------------------------------------------------------------------------
+
+   A body is not a line with a circle on it. Each one is drawn from eleven joints in the same feet-and-z the
+   ball is integrated in, so the projection does the work and the figure cannot drift away from the court it is
+   standing on. Two of those joints are animated by the film's own numbers and nothing else:
+
+     - the legs walk because the engine wrote a move: distance travelled over this move's own duration sets the
+       stride phase, so a body that walked 6 ft takes three steps and a body that was placed takes none;
+     - the arm swings because the engine struck a shot: the shot's own t0 is contact, the half second before it is
+       the backswing and the half second after is the follow-through, and the blade is tilted by that shot's face.
+
+   That is the whole claim. The figure is a reading of `moves` and `shots`, exactly as the ball is a reading of
+   `path` — if a player looks wrong, the engine moved them wrong, and the fix is upstream.                     */
+const BODY = { ankle: 0.30, knee: 1.55, hip: 2.85, shoulder: 4.42, neck: 4.72, head: 5.02 };
+const STRIDE = 3.4;              /* feet per complete gait cycle — two steps, which is about a pickleball shuffle */
+const SKIN = "#e3b489", SKIN_D = "#b98d68";
+
+/* How this body is moving at time t: the move it is inside, read as a velocity. Same walk as `bodyAt`, asked for
+   the derivative instead of the position, so the two cannot disagree about where a foot is. */
+function bodyMotion(name, r, t) {
+  let best = null;
+  for (const m of r.moves) {
+    if (m.player !== name) continue;
+    if (m.t0 <= t + 1e-6 && (!best || m.t0 >= best.t0)) best = m;
+  }
+  if (!best || best.t1 <= best.t0 + 1e-6) return { speed: 0, dx: 0, dy: 0, travelled: 0 };
+  const dt = best.t1 - best.t0;
+  const vx = (best.to[0] - best.from[0]) / dt, vy = (best.to[1] - best.from[1]) / dt;
+  const speed = Math.hypot(vx, vy);
+  if (speed < 0.05) return { speed: 0, dx: 0, dy: 0, travelled: 0 };
+  const travelled = Math.max(0, Math.min(dt, t - best.t0)) * speed;
+  return { speed, dx: vx / speed, dy: vy / speed, travelled };
+}
+
+/* The shot this body is in the middle of, if any: 0.55 s of backswing, contact at p = 0.55, 0.45 s of follow
+   through. A shot that has already been met by the next player's paddle still finishes its swing — a body does
+   not stop moving because the ball left. */
+function swingAt(r, name, t) {
+  let pick = null;
+  for (const s of r.shots) {
+    if (s.player !== name) continue;
+    const p = (t - (s.t0 - 0.55)) / 1.0;
+    if (p >= 0 && p <= 1) pick = { p, shot: s };
+  }
+  return pick;
+}
+const lerp3 = (a, b, f) => [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f];
+const smooth = u => u * u * (3 - 2 * u);
+const unit = v => { const l = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0] / l, v[1] / l, v[2] / l]; };
+
+function drawBody(cam, pl, r, t, at, label, slot) {
+  const group = pl.team;
+  const c = TEAM[group][0], pale = TEAM[group][1];
+  const foot0 = project(cam, [at[0], at[1], 0]);
+  if (!foot0) return;
+  const d = foot0.d, sc = ft => Math.max(0.9, Math.min(9, ft * FOCAL() / Math.max(1, d)));
+  const lw = ft => Math.max(1.3, Math.min(5.5, sc(ft)));
+  const fwd = pl.north ? 1 : -1;                       /* the way this body faces: at the net */
+  const m = bodyMotion(pl.name, r, t);
+  const amp = Math.min(1, m.speed / 3.0);              /* a walk and a sprint take the same step, a little longer */
+  const phase = 2 * Math.PI * m.travelled / STRIDE;
+  const bob = 0.05 * Math.abs(Math.sin(phase)) * amp;
+
+  /* the swing, and which side of the body it is on: the side the shot is aimed at, which is the side the engine
+     turned the paddle to (`aim`), so a backhand looks like a backhand for the same reason it is one */
+  const sw = swingAt(r, pl.name, t);
+  const sideSign = sw ? (sw.shot.aim >= at[1] ? 1 : -1) : 1;
+
+  const hipC = [at[0] + m.dx * 0.06 * amp, at[1] + m.dy * 0.06 * amp, BODY.hip + bob];
+  const shoC = [hipC[0] + fwd * 0.20 + m.dx * 0.20 * amp, hipC[1] + m.dy * 0.20 * amp, BODY.shoulder + bob];
+
+  /* legs: cosine along the travel direction is the stride, sine above the ground is the lift, and the far leg is
+     the same phase offset by half a cycle — one equation, two legs, no keyframes */
+  const legs = [0, 1].map(i => {
+    const ph = phase + i * Math.PI;
+    const f = Math.cos(ph) * 0.85 * amp, lift = Math.max(0, Math.sin(ph)) * 0.42 * amp;
+    const across = (i ? 1 : -1) * 0.46;
+    const foot = [at[0] + m.dx * f, at[1] + m.dy * f + across, BODY.ankle * 0.06 + lift];
+    const hip = [hipC[0], hipC[1] + across * 0.55, hipC[2]];
+    const knee = lerp3(hip, foot, 0.5);
+    knee[0] += fwd * 0.26 + m.dx * 0.10 * amp;         /* knees lead; a body does not walk with straight legs */
+    return { hip, knee, foot, far: cam.dot(cam.sub(foot, cam.pos), cam.f) > cam.dot(cam.sub(lerp3(hipC, shoC, 0.5), cam.pos), cam.f) };
+  });
+
+  /* the arms: the paddle arm is the swinging one; the other hangs, and comes up to the paddle when the body is
+     standing in the ready position — which is what a pickleball player does between shots */
+  const restElbow = [shoC[0] - fwd * 0.10, shoC[1] + sideSign * 0.55, shoC[2] - 0.75];
+  let wrist, bladeAng = 0.0;
+  if (sw) {
+    const p = sw.p;
+    const W_BACK = [at[0] - fwd * 0.55, at[1] + sideSign * 1.10, 2.45];
+    const W_HIT = [at[0] + fwd * 1.25, at[1] + sideSign * 0.30, 3.30];
+    const W_END = [at[0] + fwd * 0.55, at[1] - sideSign * 0.85, 4.25];
+    wrist = p <= 0.55 ? lerp3(W_BACK, W_HIT, smooth(p / 0.55))
+                      : lerp3(W_HIT, W_END, smooth((p - 0.55) / 0.45));
+    /* the blade rolls through the swing — laid back before contact, square at it, over the top after. Without
+       this a swing by the near side is almost invisible from this camera, because it goes away from the lens:
+       the translation is foreshortened and the rotation is not. */
+    bladeAng = (sw.shot.face || 0) * Math.PI / 180 + (p <= 0.55 ? -0.55 + 1.10 * (p / 0.55)
+                                                               : 0.55 - 0.75 * ((p - 0.55) / 0.45));
+  } else {
+    wrist = [at[0] + fwd * 0.80, at[1] + sideSign * 0.28, 2.95];        /* ready position: paddle up, in front */
+    bladeAng = 0.12;
+  }
+  const elbow = lerp3(shoC, wrist, 0.5);
+  elbow[1] += sideSign * 0.18; elbow[2] -= 0.12;
+  const other = [shoC[0] + fwd * 0.45, shoC[1] - sideSign * 0.40, shoC[2] - 1.15];
+
+  /* limbs as thick strokes between projected joints. The camera does the foreshortening; the width is the one
+     thing that has to be scaled by depth, because a limb is a physical thickness and a pixel is not. */
+  const line = (a, b, w, col, cap = "round") => {
+    const q0 = project(cam, a), q1 = project(cam, b);
+    if (!q0 || !q1) return;
+    ctx.strokeStyle = col; ctx.lineWidth = w; ctx.lineCap = cap;
+    ctx.beginPath(); ctx.moveTo(q0.x, q0.y); ctx.lineTo(q1.x, q1.y); ctx.stroke();
+  };
+  const legCol = i => (legs[i].far ? SKIN_D : SKIN);
+
+  /* shadow, then the far leg, then everything else, then the near leg — a painter's sort inside the body, which
+     is the same sort the court uses and the reason a figure standing behind the net still reads as behind it */
+  ctx.beginPath(); ctx.ellipse(foot0.x, foot0.y, lw(0.55), lw(0.22), 0, 0, Math.PI * 2);
   ctx.fillStyle = "rgba(0,0,0,0.32)"; ctx.fill();
-  ctx.strokeStyle = c; ctx.lineWidth = w; ctx.lineCap = "round";
-  ctx.beginPath(); ctx.moveTo(feet.x, feet.y); ctx.lineTo(head.x, head.y); ctx.stroke();
-  const rh = Math.max(2.2, Math.min(9, 0.30 * FOCAL() / Math.max(1, feet.d)));
-  ctx.beginPath(); ctx.arc(head.x, head.y - rh * 0.7, rh, 0, Math.PI * 2);
-  ctx.fillStyle = pale; ctx.fill();
-  /* the paddle, on the paddle side: 15 in of it, at the end of an arm — the reach the engine gives this body
-     without drawing it */
-  const side = pl.north ? 1 : -1;
-  const p0 = project(cam, [at[0], at[1], 3.6]), p1 = project(cam, [at[0] + side * 0.15, at[1] + 1.15, 3.4]);
-  if (p0 && p1) { ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y);
-                  ctx.strokeStyle = pale; ctx.lineWidth = Math.max(1.2, w * 0.8); ctx.stroke(); }
+
+  const far = legs[0].far ? 0 : 1, near = 1 - far;
+  line(legs[far].hip, legs[far].knee, lw(0.17), legCol(far));
+  line(legs[far].knee, legs[far].foot, lw(0.15), legCol(far));
+  foot(legs[far].foot, lw, legCol(far), cam);
+
+  /* the shirt: a quadrilateral from hip to shoulder, filled, in the team's colour — this is the thing that makes
+     a figure a body rather than a stick */
+  const hl = project(cam, [hipC[0], hipC[1] + 0.32, hipC[2]]), hr = project(cam, [hipC[0], hipC[1] - 0.32, hipC[2]]);
+  const sl = project(cam, [shoC[0], shoC[1] + 0.40, shoC[2]]), sr = project(cam, [shoC[0], shoC[1] - 0.40, shoC[2]]);
+  const neck = project(cam, [shoC[0], shoC[1], BODY.neck + bob]);
+  if (hl && hr && sl && sr && neck) {
+    ctx.beginPath();
+    ctx.moveTo(hl.x, hl.y); ctx.lineTo(sl.x, sl.y); ctx.lineTo(neck.x, neck.y);
+    ctx.lineTo(sr.x, sr.y); ctx.lineTo(hr.x, hr.y); ctx.closePath();
+    ctx.fillStyle = c; ctx.globalAlpha = 0.92; ctx.fill(); ctx.globalAlpha = 1;
+  }
+  line([shoC[0], shoC[1], BODY.neck + bob], [shoC[0] + fwd * 0.04, shoC[1], BODY.head - 0.22], lw(0.10), SKIN);
+
+  line(legs[near].hip, legs[near].knee, lw(0.18), legCol(near));
+  line(legs[near].knee, legs[near].foot, lw(0.16), legCol(near));
+  foot(legs[near].foot, lw, legCol(near), cam);
+
+  /* arms: shoulder → elbow → wrist, with the shoulder on the paddle side for the paddle arm */
+  const shoPad = [shoC[0], shoC[1] + sideSign * 0.36, shoC[2] - 0.05];
+  const shoOth = [shoC[0], shoC[1] - sideSign * 0.36, shoC[2] - 0.05];
+  line(shoOth, other, lw(0.13), SKIN);
+  line(shoPad, elbow, lw(0.14), SKIN);
+  line(elbow, wrist, lw(0.12), SKIN);
+
+  /* the head: skin, a cap in the team's colour, and no face — at eleven pixels a face is noise, and a figure
+     that is eleven pixels tall should read by silhouette and by colour, which is what a camera sees from here */
+  const hq = project(cam, [shoC[0] + fwd * 0.05, shoC[1], BODY.head + bob]);
+  if (hq) {
+    const r0 = lw(0.34);
+    ctx.beginPath(); ctx.arc(hq.x, hq.y, r0, 0, Math.PI * 2); ctx.fillStyle = SKIN; ctx.fill();
+    ctx.beginPath(); ctx.arc(hq.x, hq.y, r0, Math.PI * 1.06, Math.PI * 1.94); ctx.strokeStyle = c;
+    ctx.lineWidth = Math.max(1.2, r0 * 0.55); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(hq.x - r0 * 0.95, hq.y - r0 * 0.28); ctx.lineTo(hq.x + r0 * 0.95, hq.y - r0 * 0.28);
+    ctx.lineWidth = Math.max(1.2, r0 * 0.5); ctx.strokeStyle = pale; ctx.stroke();
+  }
+
+  /* the paddle: 0.42 ft of handle and a 0.63 ft blade, tilted by this shot's face — the one number in the figure
+     that is the engine's answer rather than the camera's guess */
+  /* 0.38 ft of handle and a blade 1.05 ft long and 0.66 ft wide — a paddle's own proportions, drawn as a shape
+     with a rotation rather than as a thicker line, because a blade at this distance is a shape or it is a stick */
+  const dir = unit([fwd * (0.18 + Math.sin(bladeAng) * 0.85), sideSign * 0.16, 0.30 + Math.cos(bladeAng) * 0.95]);
+  const base = [wrist[0] + dir[0] * 0.38, wrist[1] + dir[1] * 0.38, wrist[2] + dir[2] * 0.38];
+  const tip = [wrist[0] + dir[0] * 1.43, wrist[1] + dir[1] * 1.43, wrist[2] + dir[2] * 1.43];
+  if (sw && sw.p < 0.9) {
+    ctx.globalAlpha = 0.42; ctx.strokeStyle = pale; ctx.lineWidth = Math.max(1, lw(0.06));
+    let prevQ = null;
+    for (let k = 0; k <= 6; k++) {
+      const q = Math.min(sw.p, 0.55) * (k / 6);
+      const wp = lerp3([at[0] - fwd * 0.55, at[1] + sideSign * 1.10, 2.45],
+                       [at[0] + fwd * 1.25, at[1] + sideSign * 0.30, 3.30], smooth(q / 0.55));
+      const tipP = [wp[0] + dir[0] * 1.43, wp[1] + dir[1] * 1.43, wp[2] + dir[2] * 1.43];
+      const pq = project(cam, tipP);
+      if (pq && prevQ) { ctx.beginPath(); ctx.moveTo(prevQ.x, prevQ.y); ctx.lineTo(pq.x, pq.y); ctx.stroke(); }
+      prevQ = pq;
+    }
+    ctx.globalAlpha = 1;
+  }
+  line(wrist, base, lw(0.10), "#22303d");
+  const q0 = project(cam, base), q1 = project(cam, tip);
+  if (q0 && q1) {
+    const mx = (q0.x + q1.x) / 2, my = (q0.y + q1.y) / 2;
+    const half = Math.hypot(q1.x - q0.x, q1.y - q0.y) / 2;
+    const ang = Math.atan2(q1.y - q0.y, q1.x - q0.x);
+    ctx.beginPath(); ctx.ellipse(mx, my, half, Math.max(1.1, lw(0.33)), ang, 0, Math.PI * 2);
+    ctx.fillStyle = "#1b2733"; ctx.fill();
+    ctx.beginPath(); ctx.ellipse(mx, my, half, Math.max(1.1, lw(0.33)), ang, 0, Math.PI * 2);
+    ctx.strokeStyle = pale; ctx.lineWidth = Math.max(0.8, lw(0.05)); ctx.stroke();
+  }
+
   if (label) {
-    ctx.fillStyle = c; ctx.font = `${Math.max(9, Math.min(14, 90 / Math.max(8, feet.d)))}px ui-monospace,Menlo,monospace`;
-    ctx.textAlign = "center";
-    ctx.fillText(pl.name, feet.x, feet.y + Math.max(10, Math.min(20, 220 / Math.max(6, feet.d))));
+    const fs = Math.max(9, Math.min(14, 90 / Math.max(8, d)));
+    /* four bodies can stand within a few feet of each other and the camera is low, so each name takes its own
+       line under the feet: a label that lands on another label is worse than a label further away */
+    const ly = foot0.y + Math.max(10, Math.min(20, 220 / Math.max(6, d))) + (slot || 0) * 15;
+    ctx.font = `${fs}px ui-monospace,Menlo,monospace`; ctx.textAlign = "center";
+    const tw = ctx.measureText(pl.name).width;
+    ctx.fillStyle = "rgba(8,16,26,0.72)";
+    ctx.fillRect(foot0.x - tw / 2 - 3, ly - fs + 1, tw + 6, fs + 3);
+    ctx.fillStyle = c; ctx.fillText(pl.name, foot0.x, ly);
   }
 }
+
+/* a foot is a small ellipse along the direction of travel; when the foot is in the air it is a foot in the air */
+function foot(at, lw, col, cam) {
+  const q = project(cam, at);
+  if (!q) return;
+  ctx.beginPath();
+  ctx.ellipse(q.x, q.y, lw(0.30), lw(0.13), 0, 0, Math.PI * 2);
+  ctx.fillStyle = col; ctx.fill();
+}
+
 function drawTrail(cam, r, uptoShot, upto, fade) {
   for (let k = 0; k <= uptoShot; k++) {
     const s = r.shots[k], path = s.path || [];
@@ -402,10 +595,11 @@ function draw() {
      which is all a court this size needs. */
   const items = [];
   const netD = cam.dot(cam.sub([C.net_x, C.width / 2, 1.4], cam.pos), cam.f);
-  for (const pl of scene.players) {
+  for (let i = 0; i < scene.players.length; i++) {
+    const pl = scene.players[i];
     const at = bodyAt(pl.name, r, t);
     const d = cam.dot(cam.sub([at[0], at[1], 0], cam.pos), cam.f);
-    items.push({ d, fn: () => drawBody(cam, pl, at, true) });
+    items.push({ d, fn: () => drawBody(cam, pl, r, t, at, true, i) });
   }
   if (b) {
     const d = cam.dot(cam.sub(b, cam.pos), cam.f);

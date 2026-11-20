@@ -1513,3 +1513,109 @@ not a game to eleven.
 - **§5c's perfect-defence problem is untouched by any of this.** `out` per rally is 0.993 now — *higher* than the
   leaky 0.973 — and 412 of 415 rallies ended in somebody's error. Nothing in this turn beats a player; it makes the
   ball go where the player said it would, which is a different thing and the one that was owed first.
+
+## §5q The figures, and the screen — 2026-11-20, morning
+
+Two questions, asked together: have you worked on avatars instead of stick figures, and have you considered what
+pickleball's screen in Kythe will be. The first is now built and the second is now drawn rather than described,
+because the honest answer to "have you considered" is a file. Both were cheap in a way that is worth writing down:
+the figure cost one function and read numbers the film already carried, and the screen turned out to be the same
+decision as §5p's movement language, made about a form instead of a prompt.
+
+### The figures
+
+A body used to be one stroke from the feet to a head circle, plus an arm line for the paddle. It is now eleven
+joints in the same feet-and-z the ball is integrated in, so the projection does the work and a figure cannot drift
+off the court it is standing on:
+
+```
+const BODY = { ankle: 0.30, knee: 1.55, hip: 2.85, shoulder: 4.42, neck: 4.72, head: 5.02 };
+```
+
+**Two animations, and neither one is invented here.** The legs walk because the engine wrote a move — `bodyMotion`
+reads the move the body is inside as a velocity (`Δ/to duration`), the stride phase is distance walked over a 3.4 ft
+cycle, cosine is the stride and sine is the lift, and the second leg is the same phase plus π. A body that the
+engine walked 6 ft takes steps; a body the engine placed takes none. That is §5n's partner walk arriving as
+animation for free: the walk was already in `moves`, and nothing had read it.
+
+The arm swings because the engine struck a shot. `swingAt` finds the shot this body hit and hangs a one-second
+window on it — 0.55 s of backswing, contact at the shot's own `t0`, 0.45 s of follow-through — so a slow camera
+cannot desynchronise the swing from the ball. The blade's tilt is that shot's `face` plus a roll through the swing
+(laid back before contact, square at it, over the top after), which is the one place the figure is drawing an
+engine answer rather than a camera guess.
+
+Everything else is drawing decisions worth naming because they are what separates a body from a stick:
+
+- **the torso is a quadrilateral** from hip to shoulder, filled in the team's colour, and the painter's sort runs
+  *inside* the body too — far leg, then shirt, then near leg — which is the same sort the court uses;
+- **the paddle has a paddle's proportions** — 0.38 ft of handle and a blade 1.05 ft long and 0.66 ft wide — and it
+  is drawn as a rotated ellipse rather than as a thicker line, because at forty pixels a blade is a shape or it is
+  a stick;
+- **names stagger by slot**, because four bodies can stand within a few feet of each other on a court this size and
+  a label that lands on another label is worse than a label further from its feet.
+
+![the figures, rally 7 at contact](replays/still-2026-11-20-figures.png)
+
+**What the figure is not.** At the near baseline a body is about forty pixels tall and at the far one about
+eighteen, and at eighteen a joint model collapses into "a coloured body with legs" — that is a ceiling of the
+medium, not a bug with a fix. The camera also sits behind the north baseline, so half of every swing goes away from
+the lens and is foreshortened to nothing; the blade roll and the paddle trace are there precisely because they are
+the two parts of a swing that survive that angle. A side-on camera would show the swing better and the doubles
+shape worse, and doubles is the game. And a figure has no face: at eleven to forty pixels a face is noise, and a
+body should read by silhouette and colour, which is what a camera sees from here.
+
+So "avatars" in the sense of a per-member look is one step further and it has two honest prices. A sprite sheet per
+member is cheap — six poses, four members, a few kilobytes — and it buys a face and a fixed silhouette at the cost
+of a figure that no longer stands on the court's own geometry. The tennis three.js rig is the other price: 1775
+lines, a `vendor/` tree, and a `fetch`, which means the film stops opening from disk. My call is unchanged from
+§5o: articulated 2D now; if the founder wants faces, a portrait in the scoreboard and on the head is the cheapest
+honest step, and the mesh is a different decision about what the page is allowed to depend on.
+
+### The screen
+
+The tennis `#/play` view asks a person for **face in degrees, power in per cent, aim in feet from the west
+sideline** — a form of three number inputs. That is precisely what §5o indicted, and the reason two member serves
+went into their own net. So the pickleball screen is not allowed to be that form, and the design follows from one
+sentence: **the court is the control.**
+
+`games/pickleball/ui-mock.html` is that screen, drawn rather than described — 190 lines, one file, opens from disk,
+no engine behind it and it says so on its face:
+
+![the play screen](replays/still-2026-11-20-ui.png)
+
+- **Click the far court to name a point. Choose a pace from four buttons** — dink 15, drive 24, push 32, hard 42 —
+  and the panel prints the movement a member would have answered with: `PACE 24 AT 26,6`. A human's point and a
+  member's point go through the same parser, which is the point: the language is not a member-only dialect.
+- **First to three, and the serve marked**, because 9.5 s a shot makes eleven an hour of model calls and a point is
+  already a rally. The number that chooses the format is the one §5o measured, not a preference.
+- **The last point in the member's own words** — `serve PACE 19 AT 16 → landed (18,6): their own side of the net,
+  6.8ft short` — because a member that is told its own face angle cannot learn anything from it, and that line is
+  the whole feedback loop the practice gradient needs.
+- **The court plan view is for choosing; the film is for watching.** In the app the plan view sits above the rally
+  film, and a point plays the film the engine already wrote — the same page that opens by double-clicking, embedded,
+  not a second renderer.
+- **The model is optional.** Two people can play each other with no keys at all: both seats click, the engine plays
+  both hands, and nothing is asked of a vendor. A member's seat is the same screen with the panel filling itself in,
+  and the reason the reading is worth 9.5 s is that it is the member's own judgement and not a coach's.
+
+What it does not have, and what each one needs before it is real:
+
+- **a dispatch.** Tennis dispatches `season.yml` with `{person, shot, players, rallies, surface, season}` and the
+  page reads back a `watch.json`. Pickleball needs the same shape — a recipe that plays N rallies with a chooser
+  built from the seats and writes a film — and the film schema already matches tennis's, which is why this is a
+  wiring job rather than a design job.
+- **keys in the app.** `#/keys` exists; `member_chooser_pb` reads `TRIBE_API_KEY_<vendor>` via the tennis vendor
+  table. Nothing new is needed, and nothing should be stored twice.
+- **the ledger.** Practice is already what makes a member better (`practice_of` and the season file); the screen
+  shows a member's practice next to its record so the gradient is visible rather than asserted.
+
+And three things the screen must never do, each with the measurement behind it: never show a face angle (§5o, two
+serves into the net), never ask for a power percentage (a member cannot know that 30 is 18 mph, and the distance
+table in the prompt exists because of it), and never default to a game to eleven (9.5 s a shot).
+
+### Queued
+
+- **Wire `#/play`**: a sport row, a `pickleball` recipe in the same argument shape as `season.yml`, seats from the
+  member list, films into `records/` and `replays/`. The screen above is the target and the mock is its spec.
+- **The season lesson re-run** is still owed from §5p — 24 swapped games × 4 rows, on the fixed aim.
+- **§5c's perfect defence.** Out-faults per rally 0.993; nothing in this turn or the last beats a player.

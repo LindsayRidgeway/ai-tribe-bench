@@ -6843,6 +6843,34 @@ class TestPickleball(unittest.TestCase):
             self.assertNotIn("__FILM__", baked, "the placeholder is gone once there is a film to put in it")
             self.assertIn('"sport":"pickleball"', baked, "and the film is in the page, not beside it")
 
+    def test_the_figures_are_jointed_and_both_of_their_animations_are_the_engine_s(self):
+        """§5q. A body is joints and two animations, and neither animation is invented here: the legs walk because
+        the engine wrote a move (distance over that move's own duration), and the arm swings because the engine
+        struck a shot (the shot's own clock, and the blade tilted by that shot's face). If a figure looks wrong the
+        number behind it is wrong, which is the same contract the ball has with `path`."""
+        page = (REPO / "games" / "pickleball" / "replay3d.html").read_text(encoding="utf-8")
+        body = page.split("const BODY = {")[1].split("};")[0]
+        for joint in ("ankle", "knee", "hip", "shoulder", "neck", "head"):
+            self.assertIn(joint, body, f"the figure has a {joint}")
+        self.assertIn("(best.to[0] - best.from[0]) / dt", page, "the stride is the move's own velocity")
+        self.assertIn("m.travelled / STRIDE", page, "and its phase is distance walked")
+        self.assertIn("(t - (s.t0 - 0.55)) / 1.0", page, "the swing is hung on the shot's own strike time")
+        self.assertIn("sw.shot.face", page, "the blade is tilted by the shot's face, not by a constant")
+        self.assertNotIn("PLAYER_HT", page,
+                         "and no body is one stroke from the feet to a circle any more — that was the stick figure")
+
+    def test_the_screen_asks_where_and_how_hard_and_never_for_an_angle(self):
+        """§5q, and §5o's lesson applied to a form rather than to a prompt: the control is the court. The tennis
+        play view asks for a face angle in degrees; a pickleball screen that did the same would be handing a person
+        the solver's answer, which is exactly the thing that put two member serves in their own net."""
+        page = (REPO / "games" / "pickleball" / "ui-mock.html").read_text(encoding="utf-8")
+        self.assertNotIn('type="number"', page, "nothing in the screen is a number you have to know")
+        self.assertNotIn("FACE", page, "and it never names the paddle's angle")
+        self.assertNotIn("POWER", page, "or a power percentage")
+        self.assertIn("PACE", page, "it asks for a pace, in miles an hour, the same word the member answers with")
+        self.assertIn("pointerdown", page, "the target is chosen by clicking the court")
+        self.assertNotIn("fetch(", page, "and the screen is one file, like the film")
+
     # three small aliases so the test bodies read like arithmetic, not like module plumbing
     import math as _math
     math_radians = staticmethod(_math.radians)
