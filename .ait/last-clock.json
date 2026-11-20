@@ -1,11 +1,12 @@
 {
  "schema": "ait-clock/1",
- "when": "2026-11-20T07:12:19Z",
+ "when": "2026-11-20T16:56:33Z",
  "engines": [
   "deepseek",
   "gemini",
   "qwen"
  ],
  "turns": [],
- "skipped": []
+ "skipped": [],
+ "idle": []
 }
