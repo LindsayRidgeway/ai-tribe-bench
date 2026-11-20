@@ -585,9 +585,27 @@ class Positions:
         return self.vel.setdefault(p.name, (0.0, 0.0))
 
 
+def _move(film: dict | None, rally_no: int, player: str, frm, to, t0: float, t1: float) -> None:
+    """A body's ground, in one line of film: where it was, where it stopped, and when.
+
+    Every movement the engine makes is recorded, so a renderer that interpolates between two of these is drawing
+    the walk the engine decided on rather than inventing one. The numbers are the engine's own: the engine still
+    has no continuous body between shots — it has a position it sets — so the picture is linear because the model
+    is, and the page says so where a reader would ask."""
+    if film is None:
+        return
+    # A body that did not move is not a move. The rally's opening tableau is the one exception and it is stamped
+    # at t=0, because the page needs to know where everybody is standing before the first ball.
+    if t0 > 0.0 and math.hypot(to[0] - frm[0], to[1] - frm[1]) < 0.05:
+        return                                 # a millimetre of drift is not a step, and a film of it is noise
+    film.setdefault("moves", []).append({
+        "rally": rally_no, "player": player, "t0": round(t0, 3), "t1": round(max(t0, t1), 3),
+        "from": [round(frm[0], 2), round(frm[1], 2)], "to": [round(to[0], 2), round(to[1], 2)]})
+
+
 def play_rally(match: Match, players: dict[str, Player], pos: "Positions", choose, surface: str,
                wind_vec, wind_in, say=print, rally_no: int = 1,
-               history: dict | None = None) -> dict:
+               history: dict | None = None, film: dict | None = None) -> dict:
     """One rally, from the serve to the first fault.
 
     Returns {shots, why, fault_by, winner}: `fault_by` is the team index that broke a rule (None if the point
@@ -604,14 +622,26 @@ def play_rally(match: Match, players: dict[str, Player], pos: "Positions", choos
     hitter = match.server()
     incoming = None
     history = history if history is not None else {}
+    # THE RALLY'S OWN CLOCK. Until this line the engine had no time at all: every shot was a fresh measurement
+    # against bodies that happened to be standing somewhere, so a film had no axis to put the ball and the feet on
+    # together. `t_now` is seconds since the serve left the paddle, stamped on every shot and every walk below.
+    t_now = 0.0
+    if film is not None:
+        # where everyone stands as the rally begins. A receiver who ended the last rally in the forecourt starts
+        # this one there — the truth, and not a reset to the baseline that would make every rally a fresh tableau.
+        for _pl in players.values():
+            _x, _y = pos.get(_pl)
+            _move(film, rally_no, _pl.name, (_x, _y), (_x, _y), 0.0, 0.0)
     while True:
         p = players[hitter]
         hitter_team = match.team_of(hitter)
         may_volley = bounced[True] and bounced[False]
         here = pos.get(p)
         if shot_no == 0:                                  # the server stands on their service side, behind
+            _was = pos.get(p)
             here = (-1.0 if p.north else LENGTH + 1.0, match.server_y())   # the baseline; the engine knows
             pos.at[p.name] = here                                          # which side from the score
+            _move(film, rally_no, p.name, _was, here, 0.0, 0.0)
         # THE BALL IN THE AIR, asked properly. `volley_contact` is tennis's own primitive — the same one the
         # tennis records are built from — and it answers the only question a volley asks: is the ball within the
         # paddle's reach at a hittable height *before it bounces*, and where are the feet when it is?
@@ -628,6 +658,14 @@ def play_rally(match: Match, players: dict[str, Player], pos: "Positions", choos
                                  lo=VOLLEY_LOW, hi=VOLLEY_HIGH)
             if vol is not None and in_kitchen(vol["feet"][0]):
                 vol = None                     # the feet would be in the kitchen: that is a fault, not a volley
+        if vol is not None and incoming.get("struck_at") is not None:
+            # A volley is a contact *before the bounce*, and the interception computed at the end of the last shot
+            # was computed for a ball that was going to land. The volley's own slice is the contact, so the clock
+            # is set from the ball's flight — otherwise the film would show the paddle meeting a ball that has
+            # already bounced behind it.
+            t_now = incoming["struck_at"] + vol["t"]
+            if film is not None and film.get("shots"):
+                film["shots"][-1]["hit"] = round(t_now, 3)
         shot_kind = "serve" if shot_no == 0 else ("volley" if vol else "groundstroke")
         contact_pos = (vol["feet"][0], vol["feet"][1]) if vol else here
         # How stretched the contact is: a lunge for a volley, or the reach the receiving model left the feet at.
@@ -641,6 +679,21 @@ def play_rally(match: Match, players: dict[str, Player], pos: "Positions", choos
                       wind=wind_vec, pos=contact_pos, stretch=stretch)
         pos.at[p.name] = contact_pos
         ok, why = verdict(shot)
+        if film is not None:
+            # What a renderer needs and nothing else: who hit it, how, from where, the ball's own traced flight,
+            # when it was struck, and what the rules said about it. The path is the integrator's trace at 0.02 s,
+            # so a picture drawn from this cannot disagree with the score — there is no second trajectory.
+            film.setdefault("shots", []).append({
+                "rally": rally_no, "shot": shot_no, "player": p.name, "north": p.north,
+                "kind": shot_kind, "face": round(shot["face"], 1), "power": round(power, 1),
+                "aim": round(aim, 1), "speed": round(shot["speed"], 1),
+                "at": [round(contact_pos[0], 2), round(contact_pos[1], 2)],
+                "contact": [round(c, 2) for c in shot["contact"]],
+                "t0": round(t_now, 3), "hit": None,
+                "path": shot["traj"].get("path") or [],
+                "land": [round(c, 2) for c in shot["traj"]["land"]] if shot["traj"].get("land") else None,
+                "net": [round(c, 2) for c in shot["traj"]["net"]] if shot["traj"].get("net") else None,
+                "why": why})
         shot_no += 1
         history.setdefault(p.name, []).append(
             f"{shot_kind} face {shot['face']:+.1f} power {power:.0f} -> {why}")
@@ -677,11 +730,17 @@ def play_rally(match: Match, players: dict[str, Player], pos: "Positions", choos
         # Before this line the engine assigned `pos.at[rp] = land`, i.e. it teleported the receiver onto the
         # ball and then asked whether a foot inside the kitchen is a fault. That is why the stance measured as
         # irrelevant (§5b): between shots the feet were not the player's.
-        m = interception(rp, land, t["time"], t["bounce"], surface, frm=pos.get(rp), reach=PADDLE_REACH)
+        _frm_r = pos.get(rp)
+        m = interception(rp, land, t["time"], t["bounce"], surface, frm=_frm_r, reach=PADDLE_REACH)
         if not m["ok"]:
             say(f"       -- point: {rp.name} is {m['why']}")
             return {"shots": shot_no, "why": "unreachable", "fault_by": None, "fault_name": receiver,
                     "why_not": m["why"], "winner": hitter_team}
+        # the run is the engine's own arithmetic — `interception` — drawn as the line from where the feet were to
+        # where they got, over the time the ball was in the air
+        _move(film, rally_no, receiver, _frm_r, m["got"], t_now, t_now + m["at"])
+        if film is not None and film.get("shots"):
+            film["shots"][-1]["hit"] = round(t_now + m["at"], 3)     # the ball stops being a ball here
         pos.at[rp.name] = m["got"]
         # Stretched means the ball is out towards the end of the paddle's reach: 0 with the feet under it, 1 at
         # full extension. This is the fact that was missing on 2026-11-16 — without it a player who arrives late
@@ -696,13 +755,19 @@ def play_rally(match: Match, players: dict[str, Player], pos: "Positions", choos
             line_x = KITCHEN_LINE if rp.north else NET_X + KITCHEN
             gap = pos.approach_of(rp)
             want_x = line_x - gap if rp.north else line_x + gap
-            pos.move_toward(rp, (want_x, pos.get(rp)[1]), spare)
+            _before = pos.get(rp)
+            pos.move_toward(rp, (want_x, _before[1]), spare)
+            _after_r = pos.get(rp)
+            _walk = math.hypot(_after_r[0] - _before[0], _after_r[1] - _before[1])
+            _move(film, rally_no, receiver, _before, _after_r, t_now + m["at"],
+                  t_now + m["at"] + _walk / (movement_speed(rp) * WALK_SHARE))
         # the volley's momentum, from the body's own velocity rather than from where it is standing. The body
         # comes to rest at `stop`, and that is where it stands for the next shot — a carry of two feet is two
         # feet of ground it has to win back before it can volley again. The fault is the stop being inside the
         # kitchen: the rulebook's "carried in by the momentum of the shot", with the momentum computed.
         if shot_kind == "volley":
             stop, v = volley_carry(p, here, vol, pos.velocity_of(p))
+            _move(film, rally_no, p.name, contact_pos, stop, t_now, t_now + 0.30)   # the step after the ball has gone
             pos.at[p.name] = stop
             pos.vel[p.name] = (0.0, 0.0)           # the player is standing still when they stop
             if stop != (contact_pos[0], contact_pos[1]):
@@ -725,11 +790,17 @@ def play_rally(match: Match, players: dict[str, Player], pos: "Positions", choos
         line_x = KITCHEN_LINE if p.north else NET_X + KITCHEN
         want_x = line_x - pos.approach_of(p) if p.north else line_x + pos.approach_of(p)
         if shot_kind != "volley" and abs(pos.get(p)[0] - want_x) > 0.25:
-            pos.move_toward(p, (want_x, pos.get(p)[1]), t["time"])
+            _b2 = pos.get(p)
+            pos.move_toward(p, (want_x, _b2[1]), t["time"])
+            _a2 = pos.get(p)
+            _w2 = math.hypot(_a2[0] - _b2[0], _a2[1] - _b2[1])
+            _move(film, rally_no, p.name, _b2, _a2, t_now, t_now + _w2 / (movement_speed(p) * WALK_SHARE))
         incoming = dict(t["bounce"])
         incoming["path"] = t.get("path")           # the flight, for the next player's volley decision
+        incoming["struck_at"] = t_now              # so a volley can date itself against the ball, not the bounce
         incoming["speed_in"] = t["bounce"]["speed_out"] / MPH
         incoming["depth"] = abs(land[0] - NET_X)
+        t_now = t_now + m["at"]                    # the next shot begins when this ball is met, not when it lands
         hitter = receiver
         if shot_no >= RALLY_CAP:
             say(f"       -- rally of {shot_no}; the record's ceiling, not the game's.")
@@ -755,7 +826,8 @@ def _receiver_for(match: Match, players: dict[str, Player], pos: "Positions",
 # ---- one game --------------------------------------------------------------------------------------
 def play_game(names: list[str], practice: list[int], choose_factory, surface: str = "hard",
               wind_seed_ms: int | None = None, first_team: int = 0, say=print,
-              stances: dict[str, float] | None = None) -> tuple[Match, dict]:
+              stances: dict[str, float] | None = None,
+              film: dict | None = None) -> tuple[Match, dict]:
     """A doubles game to 11, win by 2. Every rule that decides the score is in `Match`; this function only
     feeds it rallies and prints what happened."""
     match = new_match(names)
@@ -789,6 +861,12 @@ def play_game(names: list[str], practice: list[int], choose_factory, surface: st
     # ball. The position of every player is one object the engine already keeps, so it is handed over here as an
     # attribute rather than threaded through every chooser's arguments. A chooser that ignores it is unaffected.
     choose.sight = pos
+    if film is not None:
+        # the film is a dict written by the caller and appended to by every rally, so a game can be recorded
+        # without the engine knowing what a renderer is: shots, moves, and one line per rally saying what it cost.
+        film.setdefault("shots", [])
+        film.setdefault("moves", [])
+        film.setdefault("rallies", [])
     history: dict[str, list[str]] = {n: [] for n in names}
     results = {n: [] for n in names}
     lengths = []
@@ -797,7 +875,7 @@ def play_game(names: list[str], practice: list[int], choose_factory, surface: st
     while not match.over():
         rally_no += 1
         r = play_rally(match, players, pos, choose, surface, wind_vec, wind_in, say=say,
-                       rally_no=rally_no, history=history)
+                       rally_no=rally_no, history=history, film=film)
         length = r["shots"]
         rallies.append(r)
         lengths.append(length)
@@ -819,6 +897,15 @@ def play_game(names: list[str], practice: list[int], choose_factory, surface: st
         else:
             outcome = match.point_to(serving_team)                 # the receiver faulted: a point
         say(f"       -- {outcome}")
+        if film is not None:
+            # one line per rally, written after the score has moved: a film whose captions disagreed with its own
+            # scoreboard would be a second record of the game, and there is only ever one
+            film["rallies"].append({"rally": rally_no, "shots": r["shots"], "why": r["why"],
+                                    "winner": r["winner"], "fault_by": r["fault_by"],
+                                    "fault_name": r.get("fault_name"), "serving": serving_team,
+                                    "why_not": r.get("why_not"), "fault_at": r.get("fault_at"),
+                                    "at_contact": r.get("at_contact"), "outcome": outcome,
+                                    "score": [match.teams[0].score, match.teams[1].score]})
         say(f"    {match.teams[0].names[0]}/{match.teams[0].names[1]} {match.teams[0].score} - "
             f"{match.teams[1].score} {match.teams[1].names[0]}/{match.teams[1].names[1]}   "
             f"{'serving: ' + match.server() if not match.over() else 'game'}")
@@ -835,9 +922,12 @@ def play_game(names: list[str], practice: list[int], choose_factory, surface: st
         f"({rally_no} rallies, mean {sum(lengths) / len(lengths):.1f} shots)")
     # `rallies` is the game's own history — every rally's {shots, why, fault_by, fault_name, winner} — so a
     # chooser can read what it did rather than be told. §5 of the page records the fault I measured with it.
-    return match, {"results": results, "lengths": lengths, "wind": wind_in, "clock": ms,
-                   "surface": surface, "why": r["why"] if lengths else "none",
-                   "rallies": rallies}
+    out = {"results": results, "lengths": lengths, "wind": wind_in, "clock": ms,
+           "surface": surface, "why": r["why"] if lengths else "none",
+           "rallies": rallies}
+    if film is not None:
+        out["film"] = film
+    return match, out
 
 
 # ---- the seats: a scripted player, a member, or a person --------------------------------------------
@@ -1594,6 +1684,55 @@ def stroke_map(mph: float, elevation: float) -> float | None:
     return x if NET_X < x <= LENGTH else None
 
 
+# ---- the film: what a renderer is allowed to know ---------------------------------------------------
+# The renderer's whole claim is that it cannot disagree with the score, and that claim is only true if it is given
+# nothing but the engine's own numbers. So a film carries three things and no more: the ball's traced path (the
+# integrator's own 0.02 s samples), every position the engine wrote to a body (with the moment it wrote it), and
+# the one line per rally that says what the rally cost. There is no second trajectory and no second run model.
+PAGE = Path(__file__).resolve().parent.parent / "games" / "pickleball" / "replay3d.html"
+CAMERA = {"pos": [-26.0, CENTRELINE, 18.0], "target": [25.0, CENTRELINE, 2.0], "fov": 38}
+
+
+def film_scene(film: dict, names: list[str], score=None, clock: int | None = None,
+               surface: str = "hard", note: str = "") -> dict:
+    """The film, wrapped in the little that is a fact about the court rather than about the rally."""
+    return {
+        "generated": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "sport": "pickleball", "surface": surface, "clock_ms": clock,
+        "ball": {"make": BALL["make"], "diameter_in": BALL["diameter_in"], "cd": BALL["cd"]},
+        "teams": [[names[0], names[1]], [names[2], names[3]]],
+        "score": list(score or [0, 0]),
+        "court": {"length": LENGTH, "width": WIDTH, "net_x": NET_X, "kitchen": KITCHEN,
+                  "kitchen_n": KITCHEN_LINE, "kitchen_s": NET_X + KITCHEN,
+                  "centreline": CENTRELINE, "net_centre": NET_CENTRE, "net_posts": NET_POSTS},
+        "players": [{"name": n, "north": i < 2, "team": 0 if i < 2 else 1,
+                     "home": [-1.0 if i < 2 else LENGTH + 1.0, CENTRELINE]}
+                    for i, n in enumerate(names)],
+        "camera": CAMERA,
+        "rallies": film.get("rallies") or [],
+        "shots": film.get("shots") or [],
+        "moves": film.get("moves") or [],
+        "note": note,
+    }
+
+
+def write_film(scene: dict, out_json: str | Path, out_page: str | Path | None = None) -> tuple[Path, Path | None]:
+    """Two files, one dataset: the JSON a reader can check, and the page that draws it with the data baked in."""
+    pj = Path(out_json)
+    pj.parent.mkdir(parents=True, exist_ok=True)
+    pj.write_text(json.dumps(scene, separators=(",", ":")))
+    if out_page is None:
+        return pj, None
+    template = PAGE.read_text()
+    if "__FILM__" not in template:
+        raise SystemExit(f"!! {PAGE} has no __FILM__ placeholder: it is an already-baked page, not the template")
+    baked = json.dumps(scene, separators=(",", ":")).replace("</", "<\\/")
+    pp = Path(out_page)
+    pp.parent.mkdir(parents=True, exist_ok=True)
+    pp.write_text(template.replace("__FILM__", baked))
+    return pj, pp
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="pickleball: the player moves, the engine computes the ball")
     ap.add_argument("--rules", action="store_true", help="fire every rule in the file and print the result")
@@ -1623,6 +1762,10 @@ def main(argv=None) -> int:
     ap.add_argument("--season", default=None, help="read and write games/pickleball/seasons/<season>")
     ap.add_argument("--season-dir", default=None)
     ap.add_argument("--report", default=None, help="print a season's report")
+    ap.add_argument("--film", default=None,
+                    help="record the first game and write the film to this JSON path")
+    ap.add_argument("--page", default=None,
+                    help="with --film, also bake the film into a standalone page at this path")
     ap.add_argument("--vendor", default=None)
     ap.add_argument("--model", default=None)
     args = ap.parse_args(argv)
@@ -1657,10 +1800,20 @@ def main(argv=None) -> int:
             print(f"\n  the lesson's book is {stance_paths(season, args.season_dir)[1]} "
                   f"({len(lesson.log)} decisions recorded in it)")
             return 0
+        film = {} if args.film else None
         for g in range(max(1, args.game)):
             print(f"\n-- game {g + 1}")
-            play_game(names, practice, make_chooser(args.level), surface=args.surface,
-                      first_team=g % 2, wind_seed_ms=args.clock)
+            match_g, res_g = play_game(names, practice, make_chooser(args.level), surface=args.surface,
+                                       first_team=g % 2, wind_seed_ms=args.clock,
+                                       film=film if g == 0 else None)
+            if g == 0 and film is not None:
+                scene = film_scene(film, names, score=(match_g.teams[0].score, match_g.teams[1].score),
+                                   clock=res_g["clock"], surface=args.surface,
+                                   note=f"pickleball doubles, {args.level} hands at {practice} balls each, "
+                                        f"{len(film['rallies'])} rallies")
+                pj, pp = write_film(scene, args.film, args.page)
+                print(f"  film: {len(film['shots'])} shots, {len(film['moves'])} body moves -> {pj}"
+                      + (f" and {pp}" if pp else ""))
         if args.level == "read":
             print("\n  a scripted game with a lesson: the rules are exercised and the stance is learned. "
                   "No season was written.")

@@ -6203,6 +6203,128 @@ class TestPickleball(unittest.TestCase):
         self.assertEqual(offenders, {"putt.py": [32.17]},
                          "a second copy of a physics constant is how this breaks: " + str(offenders))
 
+    # ---- the film ------------------------------------------------------------------------------------
+    def test_recording_a_game_does_not_change_it(self):
+        """The renderer's licence. A film is written by appending to a dictionary the caller owns, so the engine
+        cannot notice it is being watched: same clock, same hands, same score, same number of shots, with and
+        without. A record that perturbs the game is a camera that moves the ball."""
+        pk = self.pk
+        names = ["A", "B", "C", "D"]
+        quiet = lambda *a, **k: None
+        m0, r0 = pk.play_game(names, [200] * 4, pk.make_chooser("steady"), wind_seed_ms=1234500, say=quiet)
+        film = {}
+        m1, r1 = pk.play_game(names, [200] * 4, pk.make_chooser("steady"), wind_seed_ms=1234500, say=quiet,
+                              film=film)
+        self.assertEqual((m0.teams[0].score, m0.teams[1].score), (m1.teams[0].score, m1.teams[1].score))
+        self.assertEqual(r0["lengths"], r1["lengths"], "shot for shot, or the film is of another game")
+        self.assertEqual(len(film["shots"]), sum(r1["lengths"]), "one record per shot, no more and no fewer")
+        self.assertEqual(len(film["rallies"]), len(r1["rallies"]))
+
+    def test_the_film_clock_starts_at_zero_and_runs_on_the_balls_own_time(self):
+        """Every shot is stamped with the second it was struck, and every shot after the first begins at the moment
+        the previous ball was met — not when it landed, which is a different question and a different second. A
+        monotone clock is what lets the ball and the feet share an axis at all; before this turn the engine had no
+        time in it whatsoever."""
+        pk = self.pk
+        film = {}
+        pk.play_game(["A", "B", "C", "D"], [200] * 4, pk.make_chooser("steady"), wind_seed_ms=1234500,
+                     say=lambda *a, **k: None, film=film)
+        self.assertTrue(film["shots"])
+        by_rally = {}
+        for s in film["shots"]:
+            by_rally.setdefault(s["rally"], []).append(s)
+            self.assertGreaterEqual(s["t0"], 0.0)
+            self.assertTrue(s["path"], "a shot with no traced flight is a shot the renderer would have to invent")
+            if s["hit"] is not None:
+                self.assertGreater(s["hit"], s["t0"], "the ball is met after it is struck")
+        for rally, shots in by_rally.items():
+            self.assertEqual(shots[0]["t0"], 0.0, f"rally {rally} starts at its own zero")
+            for a, b in zip(shots, shots[1:]):
+                if a["hit"] is not None:
+                    self.assertAlmostEqual(b["t0"], a["hit"], places=3,
+                                           msg=f"rally {rally}: shot {b['shot']} starts when the last ball "
+                                               f"was met, not when it landed")
+
+    def test_no_body_crosses_the_court_between_two_frames_of_the_film(self):
+        """The film's feet are the engine's feet, and the engine's feet walk. So: a move that takes time covers no
+        more ground than the player's legs cover in that time, and a move that takes none is a *placement* — the
+        serve, or the rally's opening tableau — and nothing else. This is the test that would have caught the
+        original engine teleporting a receiver onto the landing point, which is what made the stance measure as
+        irrelevant in §5b."""
+        pk = self.pk
+        film = {}
+        pk.play_game(["A", "B", "C", "D"], [200] * 4, pk.make_chooser("dink"), wind_seed_ms=1234500,
+                     say=lambda *a, **k: None, film=film)
+        fastest = max(pk.movement_speed(self.t.Player(name=n, north=i < 2, practice=200))
+                      for i, n in enumerate(["A", "B", "C", "D"]))
+        for m in film["moves"]:
+            dx = m["to"][0] - m["from"][0]
+            dy = m["to"][1] - m["from"][1]
+            d = math.hypot(dx, dy)
+            dt = m["t1"] - m["t0"]
+            if dt <= 1e-9:
+                self.assertEqual(m["t0"], 0.0,
+                                 f"{m['player']} moved {d:.1f}ft in no time at t={m['t0']} — only the serve "
+                                 f"placement and the rally's tableau are instant")
+                continue
+            self.assertLessEqual(d, fastest * dt * 1.02 + 1e-6,
+                                 f"{m['player']} covered {d:.1f}ft in {dt:.2f}s: that is "
+                                 f"{d / dt:.1f}ft/s, faster than any player in this game")
+
+    def test_a_body_that_does_not_hit_the_ball_does_not_move(self):
+        """The renderer's first finding, and the reason to build it. V1 gives the partner a *defined absence*: no
+        walk, no stance, no recovery. The film makes that visible — every body that moves in a rally is a body that
+        hit a ball in it — and the count is the finding: across twelve rallies of six shots or more, fourteen of the
+        forty-eight body-slots are spectators who stand where the last rally left them. Doubles that plays as
+        two-on-two with people watching is not doubles. Asserted so the day this changes the suite says so rather
+        than the picture quietly improving."""
+        pk = self.pk
+        film = {}
+        pk.play_game(["A", "B", "C", "D"], [200] * 4, pk.make_chooser("dink"), wind_seed_ms=1234500,
+                     say=lambda *a, **k: None, film=film)
+        per_rally = {}
+        for s in film["shots"]:
+            per_rally.setdefault(s["rally"], set()).add(s["player"])
+        movers = {}
+        for m in film["moves"]:
+            if m["from"] == m["to"]:
+                continue
+            self.assertIn(m["player"], per_rally.get(m["rally"], set()),
+                          f"{m['player']} moved in rally {m['rally']} without hitting a ball in it")
+            movers.setdefault(m["rally"], set()).add(m["player"])
+        lengths = {r["rally"]: r["shots"] for r in film["rallies"]}
+        long_rallies = [r for r, n in lengths.items() if n >= 6]
+        self.assertGreaterEqual(len(long_rallies), 8, "a dink game has long rallies in it")
+        inert = sum(4 - len(movers.get(r, ())) for r in long_rallies)
+        self.assertGreaterEqual(inert, len(long_rallies),
+                                f"{inert} inert body-slots in {len(long_rallies)} long rallies: at least one body "
+                                f"per long rally never touches the ball")
+
+    def test_the_page_carries_its_own_film_and_fetches_nothing(self):
+        """A replay that needs a server is a replay that stops working when the server does, which is why the page
+        is baked with its own data rather than fetching it (the tennis renderer fetches, and needs `games/tennis/
+        vendor/` and a local web server to do it). Two claims: the template contains a placeholder and no network
+        call, and the baked page contains the film and no placeholder."""
+        pk = self.pk
+        page = (REPO / "games" / "pickleball" / "replay3d.html").read_text(encoding="utf-8")
+        self.assertIn("__FILM__", page, "the template is a template")
+        self.assertNotIn("fetch(", page, "a page opened from disk cannot fetch: file:// is not a server")
+        self.assertNotIn("import ", page.split("<script type=\"application/json\"")[0],
+                         "and it needs no library to draw a court")
+        film = {}
+        m, res = pk.play_game(["A", "B", "C", "D"], [200] * 4, pk.make_chooser("steady"), wind_seed_ms=1234500,
+                              say=lambda *a, **k: None, film=film)
+        scene = pk.film_scene(film, ["A", "B", "C", "D"], score=(m.teams[0].score, m.teams[1].score),
+                              clock=res["clock"], surface="hard")
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            pj, pp = pk.write_film(scene, f"{td}/f.json", f"{td}/f.html")
+            back = json.loads(pj.read_text())
+            self.assertEqual(back["shots"][0]["t0"], scene["shots"][0]["t0"], "the JSON is the scene")
+            baked = pp.read_text(encoding="utf-8")
+            self.assertNotIn("__FILM__", baked, "the placeholder is gone once there is a film to put in it")
+            self.assertIn('"sport":"pickleball"', baked, "and the film is in the page, not beside it")
+
     # three small aliases so the test bodies read like arithmetic, not like module plumbing
     import math as _math
     math_radians = staticmethod(_math.radians)

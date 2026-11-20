@@ -1072,3 +1072,103 @@ before a renderer is built on top of it.
 
 **Kept on main:** one test — the reach is read at both paddle sites and the primitive answers differently at six
 feet and at two. `TestPickleball` is 40 tests.
+
+## §5m The renderer, and the two things the picture found — 2026-11-19
+
+The last step from *measured* to *watchable*: four hundred lines of canvas, one ball, two bodies a side.
+
+```
+python3 lab/pickleball.py --demo --level dink --practice 200,200,200,200 --clock 1234500 \
+    --film games/pickleball/records/film-2026-11-19.json \
+    --page games/pickleball/replays/film-2026-11-19.html
+```
+
+Open the page from disk. It fetches nothing and imports nothing (the tennis renderer fetches its record and needs
+`games/tennis/vendor/three.module.js`; the golf one bakes its scene in, and that is the shape taken here). Space
+pauses, ← → change rally, `#r=13&t=4.1` pins a still, so a record can have a picture in it.
+
+### What a film is allowed to contain
+
+Three things and nothing else:
+
+| | what it is | who wrote it |
+|---|---|---|
+| `shots[]` | every shot's traced flight, the integrator's own samples at 0.02 s | `flight()`, via `strike()` |
+| `moves[]` | every position the engine wrote to a body, stamped with the rally and the second | `Positions` and `play_rally` |
+| `rallies[]` | one line per rally: shots, fault, faulting team, the score *after* the point | `play_game` |
+
+There is no second trajectory and no second run model. If the picture is wrong, the ball was wrong. The renderer is
+not allowed an opinion about where the ball is, which is the only way a picture can be evidence about a scoreline.
+
+### The clock the engine did not have
+
+Until this turn `play_rally` had no time in it at all. Every shot was a fresh measurement against bodies that
+happened to be standing somewhere; nothing carried a second. A film needs one axis for the ball and the feet, so
+there is now `t_now`, seconds since the serve left the paddle:
+
+- a shot is struck at `t_now` and the next one begins when the ball is **met**, `t_now + m["at"]` — not when it
+  lands, which is a different second and, for a ball taken on the rise, a second later;
+- a volley overrides that, and it has to: `interception()` was asked what a ball that is going to *land* does, and a
+  volley is a contact **before** the bounce. Without the override the film showed a paddle meeting a ball that had
+  already bounced behind it. The volley stamps its own time on the previous shot's record (`hit`) and rewinds the
+  clock to it;
+- every walk the engine performs is recorded with the time it takes, computed from the ground it covers at the
+  player's own jog speed — so the page interpolates between two positions the engine actually chose rather than
+  inventing a path between them.
+
+The shipped film, one game of dink hands at 200 balls: **25 rallies, 224 shots, 249 body moves, 10,091 traced path
+points**, 11–2, mean 8.96 shots a rally, longest 35.
+
+### Finding one: doubles is being played by two people
+
+V1 gives the partner a *defined absence* — no walk, no stance, no recovery. The film makes it visible in the first
+minute, and the count is worth writing down: across the twelve rallies of six shots or more, **fourteen of the
+forty-eight body-slots are spectators** (3 rallies with two inert bodies, 8 with one, 1 with none; mean 2.83 movers
+per long rally). Worse than inert, they are *stranded*: a partner's last action may have been a serve in a previous
+rally, so the film shows one player at the net and their partner four feet behind a baseline, watching, for the
+whole point.
+
+This is the same defect §5b found in the receiving model — a body that is not the player's — surviving in the half
+of doubles nobody had looked at. It is not fixed here: giving the partner feet changes where every ball is
+received, which changes the score, and a renderer's first duty is to be a witness rather than a co-author. Recorded,
+with the number, for the turn that does it.
+
+### Finding two: 875 shots, one volley
+
+Counted over three dink games at 200 balls: **97 serves, 777 groundstrokes, 1 volley**. And of 97 rallies,
+**95 ended in somebody's error** — an `out` fault — with one serve fault and one momentum fault. Nobody was beaten
+by a ball.
+
+The mechanism is not mysterious and it is not a bug: a volley needs both teams to have let the ball bounce
+(`may_volley`), the ball inside six feet of a hittable height, and the feet outside the kitchen. Players stand *on*
+the kitchen line because that is where the engine's lesson taught them to stand; a dink that lands five feet past
+the net is ten feet away from those feet. So the shot that the sport is famous for — the volley, and the rule that
+polices it, the momentum carry of §5g — is nearly dead code in the game the engine plays best. The rule is correct
+and exercised by tests; the *sport* the engine currently plays never asks it a question.
+
+Which puts the §5g work in a different light than §5g did. The momentum rule is not wrong and the model is better
+than the flat 1.5 ft step it replaced — but at this standard it fires once in 97 rallies, because the only shots
+near the kitchen line are dinks and dinks bounce. A volley appears when someone drives from mid-court and the
+opponent takes it out of the air; nothing in the current choosers ever chooses that.
+
+### What the page had to get right, and got wrong first
+
+- **A canvas with no size.** The first screenshot was a blank sky: the canvas is 300×150 by default, and drawing a
+  court in CSS pixels onto an unsized backing store puts the whole game off the edge of the frame. One `resize()`,
+  and the device ratio lives in the transform and nowhere else.
+- **The caption spoilt the film.** The end-of-rally sentence was printed from the first frame, because it was read
+  off the last shot. Now it is printed when the ball has actually stopped being a ball (`t >= r.end`).
+- **Moves that did not move.** Every interception wrote a walk, including the ones where the player had arrived
+  already: 543 records for a beginner game, most of them zero-length. A body that did not move is not a move, and a
+  film of it is noise; the rally's opening tableau is the one instant stamp kept.
+- **The instant step.** The serve places the server on their service side — five feet across, in no time. That is
+  the engine's one legitimate teleport and the test says so by name rather than by tolerance.
+
+### Kept on main
+
+Five tests. Recording a game does not change it — same clock, same score, shot for shot; the clock starts at each
+rally's zero and each shot begins when the last ball was met; no body crosses the court faster than a body can run,
+and the only instant move is at t=0; a body that does not hit the ball in a rally does not move in it, with the
+fourteen inert body-slots asserted so the day doubles gets a second body the suite says so; and the page carries its
+own film, calls `fetch(` nowhere and needs no library. `TestPickleball` is 45 tests, 44 green — the forty-fifth is
+the physics-constant check and it belongs to `lab/golf.py`, which is another window's file.
