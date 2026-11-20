@@ -3969,6 +3969,51 @@ class TestTheVolley(unittest.TestCase):
                          "every shot was a volley, which is not a rally — the bounce is not being played")
 
 
+class TestTheSplitStepIsInTheFilm(unittest.TestCase):
+    """Item 3 of the tennis backlog, and the founder's done-test verbatim: *"every shot in a 20-shot sample is
+    preceded by a downward root-velocity blip of 0.10–0.20ft within 0.2s of the opponent's contact."*
+
+    Measured on 2026-11-19 before the change: dips of 0.000–0.021ft over eleven shots — the receiver was a body
+    sliding into place, with nothing in the picture saying "I am about to be hit at". After it, over all twenty
+    shots of `seasons/2026-11-19/watch.json`, read out of the page by `?sweep`: **20 of 20 in the band**, dips
+    **0.112–0.167ft**, delays **0.11–0.19s**.
+
+    The suite cannot draw WebGL, so what is held here is the shape that produced those numbers: the constants sit
+    inside the band the done-test names, the term is a function of time-since-the-opponent's-contact alone (no state
+    to drift), and it is applied to the RECEIVER and not to the hitter — a player who has just struck a ball is
+    falling back into balance, not loading a hop."""
+
+    def setUp(self):
+        self.page = (REPO / "games" / "tennis" / "replay3d.html").read_text(encoding="utf-8")
+
+    def _num(self, name):
+        m = re.search(rf"const {name} = ([0-9.]+);", self.page)
+        self.assertIsNotNone(m, f"{name} is not a constant any more, so its value cannot be checked")
+        return float(m.group(1))
+
+    def test_the_dip_is_inside_the_band_the_done_test_names(self):
+        self.assertTrue(0.10 <= self._num("SPLIT_DIP") <= 0.20,
+                        "the dip is outside 0.10-0.20ft, which is the band the founder's done-test names")
+
+    def test_the_body_bottoms_out_within_two_tenths_of_the_opponents_contact(self):
+        peak = self._num("SPLIT_LAG") + self._num("SPLIT_DUR") / 2
+        self.assertLessEqual(peak, 0.20, f"the dip peaks at {peak}s, which is later than the done-test allows")
+
+    def test_only_the_receiver_gets_it(self):
+        self.assertIn("if (!isHitter) rig.root.position.y -= splitDip(tlc);", self.page,
+                      "the split step is not conditioned on being the receiver")
+        self.assertIn("function splitDip(tlc)", self.page,
+                      "the dip is not a function of one number, so it can accumulate or drift")
+
+    def test_the_instrument_that_measured_it_is_in_the_page(self):
+        """A number in a comment is a claim. `?sweep` is how the claim was produced, and it is kept because items
+        4, 5 and 6 need exactly the same thing: frames in order, at fixed steps of record time, rather than the
+        half-dozen frames a headless browser happens to give in fifteen seconds."""
+        self.assertIn("window.__sweep", self.page)
+        self.assertIn("debug sweep", self.page)
+        self.assertIn("debug segs", self.page, "the sweep does not say where the contacts are, so it cannot be read")
+
+
 class TestTheFirstStepIsNotFree(unittest.TestCase):
     """Item 14 of the tennis backlog, fifth move: the run, as a run.
 
@@ -6203,6 +6248,63 @@ class TestPickleball(unittest.TestCase):
         self.assertEqual(offenders, {"putt.py": [32.17]},
                          "a second copy of a physics constant is how this breaks: " + str(offenders))
 
+    # ---- the second body ----------------------------------------------------------------------------
+    def test_the_partner_walks_to_their_stance_and_nobody_is_left_watching(self):
+        """§5m's film found fourteen inert body-slots in twelve long rallies: the player who was neither hitting
+        nor receiving never moved, and could watch a whole point from four feet behind a baseline. §5n gives them
+        the hitter's own rule — walk to your stance on this shot's flight time — under `PARTNER_WALK`, and the
+        measurement is the assertion: in long rallies, bodies that end more than 3 ft from their own kitchen line
+        fall from a third of them to under one in twenty. The A/B is inside the test, because a flag that changes
+        nothing is a flag pretending to be a model."""
+        pk = self.pk
+        def far_share(flag):
+            pk.PARTNER_WALK = flag
+            try:
+                film = {}
+                pk.play_game(["A", "B", "C", "D"], [200] * 4, pk.make_chooser("dink"), wind_seed_ms=1234500,
+                             say=lambda *a, **k: None, film=film)
+                by = {}
+                for m in film["moves"]:
+                    by.setdefault(m["rally"], []).append(m)
+                slots = far = 0
+                for r in film["rallies"]:
+                    if r["shots"] < 6:
+                        continue
+                    for name in ("A", "B", "C", "D"):
+                        mine = [m for m in by.get(r["rally"], []) if m["player"] == name]
+                        if not mine:
+                            continue
+                        last = max(mine, key=lambda m: m["t1"])
+                        line = pk.KITCHEN_LINE if name in ("A", "B") else pk.NET_X + pk.KITCHEN
+                        slots += 1
+                        if abs(last["to"][0] - line) > 3.0:
+                            far += 1
+                return far / max(1, slots), slots
+            finally:
+                pk.PARTNER_WALK = True
+        on, n_on = far_share(True)
+        off, n_off = far_share(False)
+        self.assertGreater(n_on, 40, "a dink game has long rallies in it")
+        self.assertLess(on, 0.08, f"{on:.0%} of bodies ended a long rally more than 3ft off their own line")
+        self.assertGreater(off, 0.20, "and without the walk it is a third of them, or the flag is a no-op")
+
+    def test_a_walk_to_the_stance_is_still_a_walk(self):
+        """The partner is not teleported to the line because the rule is a walk: `move_toward` caps the step at the
+        legs' own speed on the shot's flight time, and the film keeps that budget. Measured directly — for every
+        move in a film, the ground covered is what the legs cover in the time the move takes."""
+        pk = self.pk
+        film = {}
+        pk.play_game(["A", "B", "C", "D"], [200] * 4, pk.make_chooser("dink"), wind_seed_ms=1234502,
+                     say=lambda *a, **k: None, film=film)
+        players = {n: self.t.Player(name=n, north=i < 2, practice=200)
+                   for i, n in enumerate(["A", "B", "C", "D"])}
+        for m in film["moves"]:
+            dt = m["t1"] - m["t0"]
+            if dt <= 1e-9:
+                continue
+            grown = math.hypot(m["to"][0] - m["from"][0], m["to"][1] - m["from"][1])
+            self.assertLessEqual(grown, pk.movement_speed(players[m["player"]]) * dt * 1.02 + 1e-6)
+
     # ---- the film ------------------------------------------------------------------------------------
     def test_recording_a_game_does_not_change_it(self):
         """The renderer's licence. A film is written by appending to a dictionary the caller owns, so the engine
@@ -6271,34 +6373,44 @@ class TestPickleball(unittest.TestCase):
                                  f"{m['player']} covered {d:.1f}ft in {dt:.2f}s: that is "
                                  f"{d / dt:.1f}ft/s, faster than any player in this game")
 
-    def test_a_body_that_does_not_hit_the_ball_does_not_move(self):
-        """The renderer's first finding, and the reason to build it. V1 gives the partner a *defined absence*: no
-        walk, no stance, no recovery. The film makes that visible — every body that moves in a rally is a body that
-        hit a ball in it — and the count is the finding: across twelve rallies of six shots or more, fourteen of the
-        forty-eight body-slots are spectators who stand where the last rally left them. Doubles that plays as
-        two-on-two with people watching is not doubles. Asserted so the day this changes the suite says so rather
-        than the picture quietly improving."""
+    def test_the_partner_has_legs_now_and_can_be_told_not_to(self):
+        """§5m's finding, turned into the definition of the constant that changed it. With `PARTNER_WALK` off — the
+        engine as it stood until 2026-11-19 — every body that moves in a rally is a body that hit a ball in it, and
+        fourteen of forty-eight body-slots in long rallies are spectators. With it on, bodies move without touching
+        the ball, because their rule is the hitter's: a player who is neither hitting nor receiving walks to their
+        stance. The old number is kept as the A/B rather than deleted, because "the partner has legs" is only a
+        claim if the engine that had none is still one flag away."""
         pk = self.pk
-        film = {}
-        pk.play_game(["A", "B", "C", "D"], [200] * 4, pk.make_chooser("dink"), wind_seed_ms=1234500,
-                     say=lambda *a, **k: None, film=film)
-        per_rally = {}
-        for s in film["shots"]:
-            per_rally.setdefault(s["rally"], set()).add(s["player"])
-        movers = {}
-        for m in film["moves"]:
-            if m["from"] == m["to"]:
-                continue
-            self.assertIn(m["player"], per_rally.get(m["rally"], set()),
-                          f"{m['player']} moved in rally {m['rally']} without hitting a ball in it")
-            movers.setdefault(m["rally"], set()).add(m["player"])
-        lengths = {r["rally"]: r["shots"] for r in film["rallies"]}
-        long_rallies = [r for r, n in lengths.items() if n >= 6]
-        self.assertGreaterEqual(len(long_rallies), 8, "a dink game has long rallies in it")
-        inert = sum(4 - len(movers.get(r, ())) for r in long_rallies)
-        self.assertGreaterEqual(inert, len(long_rallies),
-                                f"{inert} inert body-slots in {len(long_rallies)} long rallies: at least one body "
-                                f"per long rally never touches the ball")
+        def measure(flag):
+            pk.PARTNER_WALK = flag
+            try:
+                film = {}
+                pk.play_game(["A", "B", "C", "D"], [200] * 4, pk.make_chooser("dink"), wind_seed_ms=1234500,
+                             say=lambda *a, **k: None, film=film)
+                per_rally = {}
+                for sh in film["shots"]:
+                    per_rally.setdefault(sh["rally"], set()).add(sh["player"])
+                movers = {}
+                for m in film["moves"]:
+                    if m["from"] == m["to"]:
+                        continue
+                    movers.setdefault(m["rally"], set()).add(m["player"])
+                silent = sum(len(v - per_rally.get(r, set())) for r, v in movers.items())
+                lengths = {r["rally"]: r["shots"] for r in film["rallies"]}
+                long_rallies = [r for r, n in lengths.items() if n >= 6]
+                inert = sum(4 - len(movers.get(r, ())) for r in long_rallies)
+                return silent, inert, len(long_rallies)
+            finally:
+                pk.PARTNER_WALK = True
+        silent_off, inert_off, n_long = measure(False)
+        silent_on, inert_on, _ = measure(True)
+        self.assertEqual(silent_off, 0, "before §5n a mover was always a hitter: that is what a defined absence is")
+        self.assertGreaterEqual(inert_off, n_long, "and the spectators showed up as inert slots in long rallies")
+        self.assertGreater(silent_on, 0, "with the walk on, a body moves without touching the ball")
+        # The *count* of inert slots is not comparable game to game — the walk changes which opponent is nearest,
+        # so the two runs are two different games and the inert total is noise (19 against 14 on one pin, the
+        # other way round on another). The measure that survives that is distance from the stance, and it is the
+        # other test's job. Kept here only as the structural half.
 
     def test_the_page_carries_its_own_film_and_fetches_nothing(self):
         """A replay that needs a server is a replay that stops working when the server does, which is why the page

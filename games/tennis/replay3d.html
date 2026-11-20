@@ -1094,6 +1094,18 @@ function beside(north, px) {
 let T = 0, playing = true, T0 = performance.now(), firstFrame = true, lastCam = null, signAlways = false;
 const q = new URLSearchParams(location.search);
 
+/* A split step, as four numbers: how deep the body dips, when it bottoms out, and how long the whole thing lasts.
+   The founder's done-test for it is "a downward root-velocity blip of 0.10–0.20ft within 0.2s of the opponent's
+   contact", so the depth is inside that band and the peak is inside that delay by construction — and `?sweep`
+   measures it back out of the page rather than trusting these three numbers to be what got drawn. */
+const SPLIT_DIP = 0.15;      // ft the whole body drops
+const SPLIT_LAG = 0.00;      // s after the opponent's contact before it starts
+const SPLIT_DUR = 0.28;      // s from start to standing again; the peak is at half of it, 0.14s after contact
+function splitDip(tlc) {
+  const u = (tlc - SPLIT_LAG) / SPLIT_DUR;
+  return (u > 0 && u < 1) ? SPLIT_DIP * Math.sin(Math.PI * u) : 0;
+}
+
 /* THE HEEL, as a number that can be measured rather than a convention nobody wrote down. The foot bone's
    rotation axis is whatever the exporter wrote, so the sign is a fact about the file: `?heel=` sweeps it, and
    `?toe` reports the point that actually leaves the ground (the foot bone's origin is the ANKLE, 0.45ft short of
@@ -1359,6 +1371,16 @@ function tick(now) {
       rig.root.position.y += 0.020 * (1 - Math.cos(idlePhase * 2)) * idleAmt;
       rig.root.position.y -= 0.05 * load * idleAmt;          // and the knees load as the ball arrives
     }
+    // THE SPLIT STEP. The receiver comes down onto both feet as the opponent strikes and pushes off again: a dip of
+    // the whole body, timed off the OTHER player's contact, not off their own run. Until 2026-11-19 there was no
+    // dip at all — measured over eleven shots of seasons/2026-11-19, the largest was 0.021ft and most were 0.000,
+    // which is what "the receiver is a body sliding into place" looks like as a number.
+    //
+    // The shape is a bell rather than a bounce, because a split step is a hop LANDING at the strike: down by
+    // SPLIT_DIP at SPLIT_PEAK seconds after the opponent's contact, back to standing 0.30s later. It is additive
+    // and it cannot drift, because it is a function of `tlc` alone: no state, nothing to integrate, and at every
+    // segment boundary the term is exactly zero.
+    if (!isHitter) rig.root.position.y -= splitDip(tlc);
     legs(rig, phase, moving, new THREE.Vector3(at ? 1 : -1, 0, 0), turn, load, idlePhase, walking);
 
     if (q.has("debug")) {
@@ -1781,6 +1803,31 @@ if (q.has("debug")) window.__audit = () => SEG.map(s => ({
   pos: whereAt(s.sh.player, s.start), contact: s.sh.contact, met: s.sh.run ? !!s.sh.run.met : null,
 }));
 
+/* `?sweep=t0:t1:dt` steps the film in fixed steps of RECORD time and prints one JSON line per step: the root
+   height of each player and whether they are the hitter of the shot being played. It exists because the headless
+   browser draws about one frame a second of wall clock, so a per-frame log samples the film at random — the split
+   step's question ("is there a dip of 0.10–0.20ft within 0.2s of the opponent's contact?") needs the frames in
+   order, not the ones the compositor happened to give. Frames, not wall clock: `tick` is called directly. */
+if (q.has("sweep")) window.__sweep = () => {
+  const [a, b, d] = (q.get("sweep") || "0:1:0.05").split(":").map(Number);
+  const was = playing; playing = false;
+  console.log("debug segs", JSON.stringify(SEG.map(s => [s.sh.n, +s.start.toFixed(2), +s.dur.toFixed(3),
+    +(s.tossDur || 0).toFixed(3), s.sh.player])));
+  const rows = [];
+  for (let t = a; t <= b + 1e-9; t += d) {
+    T = Math.max(0, t);
+    tick(T0 + 16);
+    rows.push([+T.toFixed(3), shotAt(T).sh.n, +(T - shotAt(T).start - (shotAt(T).tossDur || 0)).toFixed(3),
+      ...D.players.map(pl => {
+      const r = rigs[pl.body];
+      return r ? [+r.root.position.y.toFixed(3), shotAt(T).sh.player === pl.name ? 1 : 0] : [null, null];
+    })]);
+  }
+  for (const row of rows) console.log("debug sweep", JSON.stringify(row));
+  playing = was;
+  return rows.length;
+};
+
 addEventListener("resize", () => {
   camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
@@ -1803,7 +1850,10 @@ if (q.has("shot")) {
   if (seg) { T = seg.start + seg.dur * parseFloat(q.get("at") || "0.8"); playing = false; }
 }
 
-loadBodies().then(() => requestAnimationFrame(tick)).catch(e => {
+loadBodies().then(() => {
+  if (q.has("sweep")) { requestAnimationFrame(() => requestAnimationFrame(() => window.__sweep())); return; }
+  requestAnimationFrame(tick);
+}).catch(e => {
   fail(`<div><div class="k">the bodies did not load</div><p>${e.message}</p>` +
        `<p>Open this page from a local server, not from the filesystem:<br>` +
        `<code>cd ~/ai_tribe && python3 -m http.server 8000</code><br>` +

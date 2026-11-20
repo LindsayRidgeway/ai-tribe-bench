@@ -107,10 +107,27 @@ chose.
   standing on and the ankle is at least 0.25ft above its toe. **Number:** toe and ankle heights per shot, reported
   by `?toe` — the same instrument that produced the table above, which is why it exists.
 
-## Item 3 — split step
+## Item 3 — split step (DONE 2026-11-19)
+
 - **Done-test:** every shot in a 20-shot sample is preceded by a downward root-velocity blip of
   0.10–0.20 ft within 0.2 s of the opponent's contact. **Number:** the median delay from opponent
   contact to the blip, and the fraction of shots that have one (target 20/20).
+
+**Measured before, on `seasons/2026-11-19/watch.json`:** over the eleven shots the first sweep could resolve, the
+largest dip was **0.021 ft** and six were **0.000** — the receiver was a body sliding into place, with nothing in the
+picture saying "I am about to be hit at".
+
+**Built:** `splitDip(tlc)` — a bell of `SPLIT_DIP` = 0.15 ft starting on the opponent's contact (`SPLIT_LAG` = 0.00)
+and over by `SPLIT_DUR` = 0.28 s, peaking 0.14 s after it. Applied to `!isHitter` only, because a player who has
+just struck a ball is falling back into balance rather than loading a hop. It is a function of one number and holds
+no state, so it cannot accumulate or drift, and it is exactly zero at every segment boundary.
+
+**Measured after, over all twenty shots in the film, read out of the page by `?sweep`:** **20 of 20** in the band,
+dips **0.112–0.167 ft**, delays **0.11–0.19 s**.
+
+The first attempt peaked at 0.17 s and passed only 6 of 11 — the idle bob and the knee load were pushing the
+minimum later — which is the argument for measuring rather than constructing: the shape was right and the phase
+was not, and nothing but the sweep would have said so.
 
 ## Item 4 — cross-over step
 - **Done-test:** on a shot that needs more than 3 ft of travel, the first foot to leave the ground is

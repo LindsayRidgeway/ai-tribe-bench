@@ -88,3 +88,27 @@ for s in shots:
     if s.get("run"):                            # the ball in play: this is where the next hitter's feet came to
         feet[s["run"]["player"]] = s["run"]["to"]
 ```
+
+## The instrument the movement items need: `?sweep`
+
+A headless browser draws about one frame a second of wall clock, so a per-frame log samples the film at random —
+which is fine for "where is the toe" and useless for "is there a dip within 0.2s of the contact". Items 3–6 are all
+questions about ORDER, so the frames have to be produced in order:
+
+    "…/replay3d.html?record=seasons/<S>/watch.json&debug&sweep=0:130:0.04"
+
+`?sweep=t0:t1:dt` steps the film in fixed steps of RECORD time, calls `tick()` directly instead of waiting for the
+compositor, and prints two kinds of line to the console (captured with `--enable-logging=stderr --v=0`):
+
+- `debug segs` — one JSON array: every segment's `[shot n, start, dur, toss, hitter]`. **The contact is
+  `start + toss`**, which is not `start`: a serve's segment begins at the throw.
+- `debug sweep` — one JSON row per step: `[T, shot n, tlc, [rootY, isHitter], [rootY, isHitter]]`.
+
+Two traps, both paid for on 2026-11-19. **`tlc` is attributed to the segment that owns the time**, and a segment
+owns its hold as well as its shot, so the samples during the NEXT shot's toss come back labelled with the previous
+shot. The fix is to analyse in absolute time off `start + toss` rather than trusting `tlc` for the baseline. And
+**the sweep's range is not the film's length**: a session's film can run 125 s, and a sweep to 60 s will resolve
+eleven shots and quietly look like the whole match.
+
+The first measurement of the split step with this instrument: 0.000–0.021 ft of dip over eleven shots. After the
+change: 20 of 20 shots inside the founder's 0.10–0.20 ft band, 0.11–0.19 s after contact.
