@@ -1393,6 +1393,25 @@ knowing where a ball is going is worth little when the body cannot get there, wa
 the fix did was flatten the slope a little, which is consistent: some of the old `unreachable` count was a body
 running to where a leaky shot was going to land rather than where it was aimed.
 
+### The serve, which the regenerated film makes look worse than it is
+
+Rally 13 of the new film is one shot long: north-b serves at 29 mph and puts it into the tape 1.1 ft under the
+top, and six of the film's thirty-six serves do the same. The serve is the longest ball in this game, so the
+32 ft default was *closest to right there*, and it is the shot where honouring the true distance turns the
+azimuth furthest. That is a reason to measure rather than a finding, so: six pinned games each way.
+
+| 6 dink games | 32 ft (the leak) | the probed distance |
+|---|---|---|
+| serves | 193 | 207 |
+| serves into the net | 23 (12%) | **19 (9%)** |
+| one-shot rallies | 34 (18%) | **26 (13%)** |
+| speeds of the netted serves | 29–36 mph | 28–34 mph |
+
+The serve got **safer**, not riskier, and one-shot rallies fell by a third. Serving hard is a coin-flip in this
+engine either way — every netted serve is a 28–36 mph ball — and that is a fact about the serve model, not about
+the aim, so it is queued rather than fixed here. Read the film's rally 13 as one game out of thirty-six, which is
+what it is.
+
 ### The movement language
 
 A member now says the two things a player says — how hard, and where — and the engine solves the paddle's angle
