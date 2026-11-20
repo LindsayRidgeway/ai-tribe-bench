@@ -71,5 +71,19 @@ check('two different faces use different ids', ids(svg) !== ids(svg2), `${ids(sv
 // 10. It is a picture with a shape and a label, so a screen reader says something rather than "image".
 check('the drawing has a viewBox and a label', /viewBox="0 0 240 300"/.test(svg) && /aria-label="[^"]+"/.test(svg));
 
+// 11. The words that describe a face rather than a colour have to move it, or a cast described in prose is drawn
+// from the length of the sentence. Each of these was a phrase in a character's description on 2026-11-20.
+const broad = parseLook('a broad jaw and an open grin');
+const narrow = parseLook('a narrow face and a closed mouth');
+check('"broad" widens the face', broad.width > 0.7, `width was ${broad.width.toFixed(2)}`);
+check('"narrow" thins it', narrow.width < 0.3, `width was ${narrow.width.toFixed(2)}`);
+check('"open grin" lifts the mouth', broad.smile > 0.4, `smile was ${broad.smile.toFixed(2)}`);
+check('"intent and unsmiling" lowers it', parseLook('intent and unsmiling').smile < 0,
+  `smile was ${parseLook('intent and unsmiling').smile.toFixed(2)}`);
+check('a hyphenated colour is still that colour', parseLook('mid-brown hair').hair === '#5b3d28',
+  parseLook('mid-brown hair').hair);
+check('unnamed hair is never a bun or a braid',
+  ['short', 'cropped'].includes(parseLook('a person').style), parseLook('a person').style);
+
 console.log(bad ? `\n${bad} check(s) failed` : '\nall portrait checks passed');
 process.exit(bad ? 1 : 0);

@@ -37,7 +37,7 @@
     blonde: '#d9b45e', golden: '#d7a949', sandy: '#b99461', tow: '#e0c88c',
     brown: '#5b3d28', brunette: '#4a3020', chestnut: '#6d4326', auburn: '#8d3a20',
     red: '#a83c22', ginger: '#b0521f', copper: '#a5562a',
-    black: '#1f1b19', jet: '#141110',
+    black: '#1f1b19', jet: '#141110', dark: '#241d19',
     grey: '#9a9a9e', gray: '#9a9a9e', silver: '#c3c3c9', white: '#e6e6e6'
   };
   const HAIR_ALONE = { blonde: 1, ginger: 1, auburn: 1, brunette: 1, tow: 1, sandy: 1, copper: 1 };
@@ -77,7 +77,10 @@
   }
 
   function words(text) {
-    return String(text || '').toLowerCase().replace(/[^a-z\s'-]+/g, ' ').split(/\s+/).filter(Boolean);
+    // Hyphens and apostrophes are word breaks here. "mid-brown" is one word to a reader of the sentence and two to
+    // this file, and the first version read it as neither: "mid-brown hair" came out GREY, because the token was
+    // "mid-brown" and no colour in the list is spelled that way.
+    return String(text || '').toLowerCase().replace(/[-']+/g, ' ').replace(/[^a-z\s]+/g, ' ').split(/\s+/).filter(Boolean);
   }
 
   /* The words that name a thing, read in context: "brown hair" is hair, "brown skin" is skin, "brown eyes" is
@@ -92,10 +95,13 @@
     const extras = {};
     for (let i = 0; i < ws.length; i++) {
       const w = ws[i], next = ws[i + 1] || '';
+      // "dark brown hair": the colour after "dark" is the colour. Reading "dark" as the answer would make every
+      // dark-haired sentence the same shade.
+      const skipDark = w === 'dark' && !!HAIR[next];
       // "a black beard" names the hair colour as surely as "black hair" does — the first version gave a bald man a
       // red beard from a sentence that said black, because the beard is drawn in the hair colour and the noun was
       // not one it looked beside.
-      if (HAIR[w] && ((next === 'hair' || next === 'haired' || next === 'locks' || next === 'mane'
+      if (!skipDark && HAIR[w] && ((next === 'hair' || next === 'haired' || next === 'locks' || next === 'mane'
                        || next === 'beard' || next === 'moustache' || next === 'mustache') || HAIR_ALONE[w])) {
         if (!hair) hair = HAIR[w];
       }
@@ -117,7 +123,22 @@
       }
     }
 
-    const styles = ['short', 'cropped', 'long', 'bun', 'ponytail', 'curls', 'braid'];
+    /* Shape and temper, for the words that describe a face rather than a colour. Everything here is a phrase the
+     * sentence may or may not contain; anything not said comes from the hash as before. It matters because a cast is
+     * described in prose — "a broad jaw" and "an open grin" are how you would tell two of these people apart — and a
+     * portrait that ignored the description would be drawn from the sentence's length rather than its sense. */
+    const said = (re) => re.test(t);
+    // Unnamed, the hair is short or cropped and nothing else. A bun, a braid and a ponytail are choices somebody
+    // made about themselves; a face given one by a hash is the same fault as a face given a sex by a hash.
+    const styles = ['short', 'cropped'];
+    const shape = {
+      broad: said(/\b(broad|wide|heavy|square|round)\b/),
+      narrow: said(/\b(narrow|thin|fine|slight|delicate)\b/),
+      longFace: said(/\b(long[- ]face|long-faced|gaunt|lean)\b/),
+      roundFace: said(/\b(round face|full face|chubby)\b/),
+      smile: said(/\b(smil|grin|laugh|cheerful|warm)\b/),
+      stern: said(/\b(unsmil|stern|severe|serious|intent|grave|solemn)\b/)
+    };
     return {
       text: t,
       hash: h,
@@ -131,13 +152,13 @@
       beard: !!extras.beard,
       moustache: !!extras.moustache,
       earrings: !!extras.earrings,
-      width: pick(h, 8),            // 0 narrow .. 1 broad
-      length: pick(h, 9),           // 0 short head .. 1 long head
+      width: shape.broad ? 0.78 + pick(h, 8) * 0.22 : shape.narrow ? pick(h, 8) * 0.24 : pick(h, 8),
+      length: shape.longFace ? 0.74 + pick(h, 9) * 0.26 : shape.roundFace ? pick(h, 9) * 0.26 : pick(h, 9),
       eyeGap: 0.82 + pick(h, 10) * 0.36,
       eyeSize: 0.86 + pick(h, 11) * 0.34,
       brow: -0.16 + pick(h, 12) * 0.34,
       nose: 0.7 + pick(h, 13) * 0.7,
-      smile: -0.5 + pick(h, 14) * 1.5,
+      smile: shape.smile ? 0.55 + pick(h, 14) * 0.45 : shape.stern ? -0.55 + pick(h, 14) * 0.3 : -0.5 + pick(h, 14) * 1.5,
       kit: `hsl(${Math.round(pick(h, 15) * 360)}, 30%, 36%)`
     };
   }

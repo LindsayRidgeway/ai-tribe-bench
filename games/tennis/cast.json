@@ -1,0 +1,24 @@
+{
+  "schema": "ait-tennis-cast/1",
+  "written": "2026-11-20T22:10:00Z",
+  "written_by": "Desi, after the founder closed the request for drawn faces (2026-11-20) and answered it with generated ones",
+  "note": "Who may be drawn, and from what. A player listed here is a CHARACTER — a game's invention, not a member of the commons — and its face is composed from the sentence below by portrait.js, every time the card is drawn. A player not listed here keeps the monogram: a participant is not given a face by me, only a member can accept one. The sentences follow CAST.md and the hair in seasons/2026-spring/setup.json, so the face and the body are the same person.",
+  "players": {
+    "Colette": {
+      "character": true,
+      "face": "dark brown hair in a low bun, a calm half-smile, a pale complexion, narrow and composed"
+    },
+    "Ada": {
+      "character": true,
+      "face": "mid-brown hair in a high ponytail, intent and unsmiling, an olive complexion, a long face"
+    },
+    "Remy": {
+      "character": true,
+      "face": "very dark hair cropped close, clean-shaven, a considering look, a long lean face"
+    },
+    "Bo": {
+      "character": true,
+      "face": "black hair cropped short, black beard, a broad jaw, an open grin, a tan complexion"
+    }
+  }
+}

@@ -899,6 +899,31 @@ better.
 against 39.4% for the old rule), and the contact-height median between 2.9 and 4.5ft (3.15 measured).
 `TestTheBallIsMetInTheBand`, three tests, 410 in the suite.
 
+## Item 19b — a second serve, and a false sentence removed from every record (DONE 2026-11-20)
+
+**The defect was in the wording before it was in the game.** There was one serve per point: a first serve that missed
+ended the point, and the record called it a **double fault**. A double fault is two misses. So every session since
+2026-11-12 has been carrying a sentence about a thing that did not happen — and the film was spending most of its
+points on a ball that was never meant to be played. Measured on the clock's own session (`seasons/2026-11-19`,
+Gwen vs Colette): **13 of 20 rallies were one shot long, mean rally 1.65, 5 of 18 balls in play for Colette.**
+
+**Built:** a first fault costs a serve, not a point. The server serves again from where they are — the same corner,
+which is the same intention, 26% slower (`SECOND_SERVE_PACE` 0.74) and aimed four feet nearer the middle of the box
+(`SECOND_SERVE_INSET` 9.0). Only a second miss is a double fault, and the record now says `fault: first serve` or
+`fault: second serve` on the shot itself. Same seed, same two beginners: **mean rally 2.95, first serve in 40%,
+second serve in 50%, 6 double faults in 12 points**, and a rally is one shot long only when it really was two misses
+(a test holds that invariant).
+
+**Slowing the second serve down makes it worse, and that is measured rather than argued** — the table is in
+`lab/tennis_script.py` next to the numbers: 0.86/+2ft gave 53% in, 0.74/+4ft gives 55%, 0.62/+9ft gives 30%. Most
+missed serves are balls hit on the frame (half the pace, eight degrees out), and no amount of care in the aiming
+removes a shanked ball; what the last setting broke was the *aimed* serve, which needs more loft than the search
+finds.
+
+**Still open, and it is the rest of the gap:** a second serve here lands in 50% against about 85% in the real game,
+because the engine has no kick serve — no way for a server to trade spin for height. That is item 19's remainder and
+it is what would make a beginner's service game look like tennis rather than like a coin toss.
+
 ## Item 19 — the serve is thrown up before it is struck (DONE 2026-11-19, less the trophy position)
 
 The founder's own words on the serve: "the serve is still an arc, not a tennis serve — no toss and no overhead". The

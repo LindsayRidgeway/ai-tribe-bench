@@ -4501,6 +4501,138 @@ class TestEveryMemberHasAFaceItCanRegenerate(unittest.TestCase):
         self.assertIn("all portrait checks passed", r.stdout)
 
 
+class TestASecondServeIsASecondServe(unittest.TestCase):
+    """Backlog item 19's remainder, and a false sentence that had been in every record since 2026-11-12.
+
+    There was one serve per point. A first serve that missed ended the point, and the record called it a
+    **double fault** — a thing that requires two misses. Measured on the clock's own session of 2026-11-20
+    (`seasons/2026-11-19/watch.json`, Gwen vs Colette): **13 of 20 rallies were one shot long**, mean rally 1.65,
+    and the film spent most of its points on a ball that was never meant to be played.
+
+    A first fault now costs a serve, not a point: the server serves again, 26% slower, aimed four feet nearer the
+    middle of the box, and only a second miss is a double fault. Same seed, same two beginners: mean rally **2.95**,
+    and no rally is a single shot unless it really was two misses.
+
+    The rate is not what a tennis player would call good and it is recorded rather than tuned — a second serve lands
+    in 50% here against about 85% in the real game, and slowing it further makes it worse (measured, see
+    `SECOND_SERVE_PACE`), because most of the misses are balls hit on the frame and no amount of aiming removes a
+    shanked ball. Item 19's kick serve is what would close the rest of the gap."""
+
+    def setUp(self):
+        import importlib
+        sys.path.insert(0, str(REPO / "lab"))
+        self.S = importlib.import_module("tennis_script")
+        self.T = importlib.import_module("tennis")
+        self.film = self.S.play((40, 55), ("A", "C"), 12, 1795200000000, "hard", self.S.SWAP_EVERY)
+
+    def _serves(self, rally):
+        return [s for s in self.film["shots"] if s["rally"] == rally and s.get("kind") == "serve"]
+
+    def test_a_point_is_only_a_double_fault_when_two_serves_missed(self):
+        double = [r for r in self.film["rallies"] if str(r["point"]["reason"]).startswith("double fault")]
+        self.assertTrue(double, "no double fault in twelve points at this skill — the rule is untested by the film")
+        for r in double:
+            serves = self._serves(r["rally"])
+            self.assertEqual(len(serves), 2,
+                             f"rally {r['rally']} is called a double fault on {len(serves)} serve(s)")
+            self.assertTrue(all(not s["in"] for s in serves),
+                            f"rally {r['rally']} is called a double fault with a serve that landed in")
+
+    def test_a_first_fault_is_a_fault_and_the_point_goes_on(self):
+        firsts = [s for s in self.film["shots"] if s.get("fault") == "first serve"]
+        self.assertTrue(firsts, "no first serve missed in twelve points, so nothing here was tested")
+        for s in firsts:
+            r = next(x for x in self.film["rallies"] if x["rally"] == s["rally"])
+            self.assertFalse(str(r["point"]["reason"]).startswith("double fault — " + s["why"]),
+                             "a first fault ended the point")
+        # and the second serve is in the same rally, struck by the same player
+        for s in firsts:
+            serves = self._serves(s["rally"])
+            self.assertEqual(len(serves), 2, f"rally {s['rally']} faulted and never served again")
+            self.assertEqual(serves[0]["player"], serves[1]["player"], "the second serve was struck by the receiver")
+
+    def test_a_single_shot_rally_is_always_a_double_fault(self):
+        """The defect stated as an invariant: before this, a rally was one shot long whenever the serve missed, and
+        that was 13 points in 20. A rally has a length of one only if the server missed twice."""
+        for r in self.film["rallies"]:
+            if r["length"] == 1:
+                self.assertTrue(str(r["point"]["reason"]).startswith("double fault"),
+                                f"rally {r['rally']} was one shot long and was not a double fault: "
+                                f"{r['point']['reason']}")
+
+    def test_the_second_serve_is_the_same_intention_with_less_pace(self):
+        pairs = []
+        for r in self.film["rallies"]:
+            serves = self._serves(r["rally"])
+            if len(serves) == 2:
+                pairs.append(serves)
+        self.assertTrue(pairs, "no rally served twice")
+        for first, second in pairs:
+            same_side = (first["target"][1] > self.T.WIDTH / 2) == (second["target"][1] > self.T.WIDTH / 2)
+            self.assertTrue(same_side, "the second serve changed corner, so it is a change of plan and not a "
+                                       "second serve")
+        # Less pace, measured only where both balls were hit cleanly. `power` in the record is the ball's speed out
+        # of `strike`, and a ball hit on the frame has HALF its pace taken off it (0.5-0.75x) — so a set of pairs
+        # containing one shank says the second serve was faster than the first, which is an artefact of the shank
+        # and not of the intent. Caught here on 2026-11-20 by the first version of this test, which did not filter.
+        clean = [p for p in pairs if p[0].get("sweet") and p[1].get("sweet")]
+        self.assertTrue(clean, "no pair of serves was struck cleanly, so the pace comparison has nothing to measure")
+        for first, second in clean:
+            self.assertLess(second["power"], first["power"],
+                            f"a second serve was struck at {second['power']:.0f}mph against the first serve's "
+                            f"{first['power']:.0f}mph with both balls hit cleanly")
+
+    def test_the_two_numbers_that_set_it_are_stated_and_sane(self):
+        self.assertTrue(0.60 <= self.S.SECOND_SERVE_PACE <= 0.90, self.S.SECOND_SERVE_PACE)
+        self.assertTrue(6.0 <= self.S.SECOND_SERVE_INSET <= 14.0, self.S.SECOND_SERVE_INSET)
+        src = (REPO / "lab" / "tennis_script.py").read_text(encoding="utf-8")
+        self.assertIn("second serve in 30%", src,
+                      "the measurement that says slowing it down is the wrong move is not next to the number")
+
+
+class TestTheFilmsCastHasFacesAndTheMembersDoNot(unittest.TestCase):
+    """Item 28, and the line the founder drew on 2026-11-20: *"I don't think you want every circle's tennis games to
+    use the same faces."*
+
+    The four characters in `cast.json` are drawn from a sentence each by `portrait.js`, so the film's break card no
+    longer shows a monogram. **Dmitri and Gwen are not in that file**, and that is the test that matters: they are
+    participants, and a participant does not get a height, a garment or a face from me. The two of them keep whatever
+    picture the record already had, or a monogram."""
+
+    def setUp(self):
+        self.cast = json.loads((REPO / "games" / "tennis" / "cast.json").read_text(encoding="utf-8"))
+        self.page = (REPO / "games" / "tennis" / "replay3d.html").read_text(encoding="utf-8")
+
+    def test_the_four_characters_are_drawn_and_the_two_members_are_not(self):
+        names = set(self.cast["players"])
+        self.assertEqual(names, {"Colette", "Ada", "Remy", "Bo"},
+                         f"the cast file has changed: {sorted(names)}")
+        for member in ("Dmitri", "Gwen"):
+            self.assertNotIn(member, names,
+                             f"{member} is a participant and is in the cast file, so the film would draw a face for "
+                             f"a member of the commons — the thing CAST.md now forbids")
+
+    def test_every_sentence_says_enough_to_be_drawn_from(self):
+        for name, v in self.cast["players"].items():
+            self.assertTrue(v.get("character"), f"{name} is in the cast file without being called a character")
+            self.assertGreater(len(v.get("face", "")), 24, f"{name}'s face sentence is too short to draw anything "
+                                                           f"but a default")
+
+    def test_the_film_reaches_for_the_generator_and_keeps_the_monogram(self):
+        self.assertIn('<script src="../../portrait.js"></script>', self.page)
+        self.assertIn('const CASTS = QS.get("cast") || "cast.json";', self.page)
+        self.assertIn("portraitSVG(gen, {size: 248, background: true})", self.page)
+        self.assertIn('id="facegen"', self.page)
+        self.assertIn('mono.textContent = pl.name.slice(0, 1).toUpperCase();', self.page,
+                      "the monogram was removed, so a record with no sentence and no drawing has a blank card")
+
+    def test_the_generated_face_is_not_wiped_by_the_cards_own_class(self):
+        """The trap that ate the monogram on 2026-11-19 and would have eaten this: the card's className is rebuilt
+        every frame from `on`, so anything added to its class list elsewhere is gone one frame later."""
+        self.assertIn('faceIsGen ? " gen" : ""', self.page,
+                      "the generated face's class is set somewhere the per-frame rebuild will wipe it")
+
+
 class TestTheFirstStepIsNotFree(unittest.TestCase):
     """Item 14 of the tennis backlog, fifth move: the run, as a run.
 
@@ -6395,8 +6527,10 @@ class TestPickleball(unittest.TestCase):
         self.assertEqual(src.count("reach=reach_of("), 2,
                          "the volley and the interception both read the one number, not a copy of it")
         self.assertEqual(src.count("reach=PADDLE_REACH"), 0, "and neither of them hard-codes it")
-        self.assertIn("return REACH_FOR.get(p.name, PADDLE_REACH)", src,
-                      "which is the default, so an empty REACH_FOR is the engine before §5s")
+        self.assertIn("if p.name in REACH_FOR:", src, "an experiment's number wins when one is set")
+        self.assertIn("REACH_MAX - (REACH_MAX - REACH_BEGINNER) * math.exp(-balls / REACH_TAU)", src,
+                      "and otherwise the reach is the lunge the player has learned (§5t), anchored so that 200 "
+                      "balls is exactly this constant")
         p = self.t.Player(name="A", north=True, practice=200)
         path = [(0.1, 21.0, 10.0, 3.0)]          # six feet away, a tenth of a second to get there
         wide = pk.volley_contact(p, path, at=(15.0, 10.0), reach=6.0)
@@ -7040,10 +7174,10 @@ class TestPickleball(unittest.TestCase):
         def is_fault(s):
             w = s["why"] or ""
             return not (w.startswith("in the kitchen") or "from their baseline" in w)
-        shots = []                       # four games: two is not enough sample to see a doubling (it measured
-        for g in range(4):               # 0.15 against 0.17 on one pair of seeds, which is the point of a power
-            film = {}                    # count rather than a feeling about how big an effect ought to be)
-            pk.play_game(["A", "B", "C", "D"], [200] * 4, pk.make_chooser("steady"), wind_seed_ms=1234500 + g,
+        shots = []                       # dink hands, four games: a steady-hands contact is at full stretch 90% of
+        for g in range(4):               # the time, so the contrast lives in the soft game, where it is about 3x
+            film = {}                    # and the comfortable bucket has six hundred contacts in it
+            pk.play_game(["A", "B", "C", "D"], [200] * 4, pk.make_chooser("dink"), wind_seed_ms=1234500 + g,
                          say=lambda *a, **k: None, film=film)
             shots += film["shots"]
         free = [s for s in shots if s["stretch"] < 0.25]

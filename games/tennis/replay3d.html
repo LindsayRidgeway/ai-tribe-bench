@@ -54,6 +54,12 @@
      not been drawn yet. So a missing face falls back to a monogram: the same paper card, the same name and
      rating, a letter where the drawing would be. Nothing is invented and nothing looks broken. */
   #facecard img.none{display:none}
+  /* A generated face sits in the same paper card as a drawing, so it is treated the same way: one colour, full
+     width. Colour here would make the two kinds of picture look like two products. */
+  #facecard #facegen{display:none}
+  #facecard.gen #facegen{display:block}
+  #facecard #facegen svg{width:100%;display:block;filter:grayscale(1) contrast(1.06)}
+  #facecard.gen .mono{display:none}
   #facecard .mono{display:none;height:250px;line-height:250px;text-align:center;font-size:96px;
     font-weight:600;color:#c8c1b2;letter-spacing:.06em;background:#efeade}
   #facecard.noface .mono{display:block}
@@ -96,13 +102,18 @@
   <div class="mono" id="winline">—</div>
 </div>
 <div id="cut">between points</div>
-<div id="facecard"><img id="faceimg" alt=""><div class="mono" id="facemono">—</div>
+<div id="facecard"><img id="faceimg" alt=""><div id="facegen"></div><div class="mono" id="facemono">—</div>
   <div class="nm" id="facename">—</div></div>
 <div id="sign"><div class="box"><div class="k" id="signk">point</div><div class="who" id="signwho">—</div>
   <div class="why" id="signwhy"></div><div class="ctx" id="signctx"></div></div></div>
 <div id="err"></div>
 
 <script type="application/json" id="script">__SCRIPT__</script>
+
+<!-- portrait.js: a character's face, drawn from one sentence. Classic script, before the module, because the module
+     is where the card is drawn and a module that fails to resolve fails silently. The founder, 2026-11-20: faces are
+     generated from editable text rather than drawn for one circle and reused by all of them. -->
+<script src="../../portrait.js"></script>
 
 <script type="importmap">
 { "imports": { "three": "./vendor/three.module.js", "three/addons/": "./vendor/addons/" } }
@@ -139,6 +150,19 @@ if (SETUP) {
     if (QS.has("debug")) console.log("debug setup", SETUP, JSON.stringify(LOOK));
   } catch (e) { console.warn("no setup beside the record:", SETUP); }
 }
+/* Who may be drawn, and from what sentence. `cast.json` is not part of a season's record — a record says what was
+   played, and this says which of the players is a character with a face rather than a member of the commons. Four
+   of the six are characters (CAST.md), and the two who are not keep the monogram: a participant is not given a face
+   by me. A missing file is not an error — the card falls back to a drawing on disk and then to a monogram. */
+const CASTS = QS.get("cast") || "cast.json";
+let faceIsGen = false;
+const FACES = {};
+try {
+  const K = await (await fetch(CASTS)).json();
+  for (const [name, v] of Object.entries(K.players || {})) if (v && v.face) FACES[name] = v.face;
+  if (QS.has("debug")) console.log("debug cast", CASTS, JSON.stringify(FACES));
+} catch (e) { console.warn("no cast beside the page:", CASTS); }
+
 const C = D.court, LEN = C.length, WID = C.width, NX = C.net_x;
 /* The doubles alley. It is painted and never judged: every ball in this film is judged against the 27ft singles
    court, and the two extra sidelines 4.5ft outside it are the ones a doubles match would use. The founder,
@@ -1789,21 +1813,39 @@ function tick(now) {
     if (pl) {
       const img = el("faceimg");
       const src = `bodies/faces/${pl.body}.jpg`;
-      if (img.getAttribute("src") !== src) {
-        img.setAttribute("src", src);
+      // A character with a sentence gets a generated face, and the <img> is not asked for at all — asking for a file
+      // that does not exist is how the card used to spend a request learning it had nothing. A player with no
+      // sentence keeps the old order: a drawing if one exists, a monogram if not.
+      const gen = FACES[pl.name];
+      // The card's own className is rebuilt every frame from `on`, so the fact that this face is GENERATED is kept
+      // in `faceIsGen` and put back on the class list below rather than added here — the same trap the monogram fell
+      // into on 2026-11-19, in the same six lines.
+      faceIsGen = !!(gen && typeof portraitSVG === "function");
+      if (faceIsGen) {
+        const box = el("facegen");
+        const key = `${pl.name}|${gen}`;
+        if (box.getAttribute("data-for") !== key) {
+          box.innerHTML = portraitSVG(gen, {size: 248, background: true});
+          box.setAttribute("data-for", key);
+        }
+        img.className = "none";
+      } else {
+        if (img.getAttribute("src") !== src) {
+          img.setAttribute("src", src);
         // The card is a still of a person, so it may only claim a person the record can show. A body with no
         // drawing gets a monogram and the same name; the alternative on 2026-11-19 was a broken-image glyph.
         // The flag lives on the IMAGE and not on the card, because the card's className is rebuilt every frame
         // from `on` — which is how the first version of this lost its own monogram while drawing the right name.
-        const mono = el("facemono");
-        mono.textContent = pl.name.slice(0, 1).toUpperCase();
-        img.onerror = () => { img.className = "none"; mono.style.display = "block"; };
-        img.onload = () => { img.className = ""; mono.style.display = "none"; };
+          const mono = el("facemono");
+          mono.textContent = pl.name.slice(0, 1).toUpperCase();
+          img.onerror = () => { img.className = "none"; mono.style.display = "block"; };
+          img.onload = () => { img.className = ""; mono.style.display = "none"; };
+        }
       }
       el("facename").innerHTML = `${pl.name} <span>${pl.rating.toFixed(1)}</span>`;
     }
   }
-  el("facecard").className = (who && !deepInBreak) ? "on" : "";
+  el("facecard").className = ((who && !deepInBreak) ? "on" : "") + (faceIsGen ? " gen" : "");
   if (onCut) el("cut").textContent =
     `between points · ${WINPOS[sh.rally] ? WINPOS[sh.rally].name : sh.player}`;
 
