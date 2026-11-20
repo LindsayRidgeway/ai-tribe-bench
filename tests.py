@@ -1811,6 +1811,15 @@ class TestFiling(unittest.TestCase):
     def test_the_prompt_asks_for_a_revision_edge(self):
         self.assertIn('"revises"', wake.PROMPT)
 
+    def test_the_prompt_says_the_clock_is_not_a_fact_it_may_quote(self):
+        """George's first two wakes both came back with QUOTE UNUSED, and in both the quoted line was the output
+        of `date`. He had done what he was told — quoted a line from the block — but the block offers nothing a
+        piece of work can rely on about the world, so the clock was the line that looked like a fact. The fix
+        belongs in the prompt, not in the audit: the audit was right that a timestamp is decoration."""
+        block = wake.PROMPT.split("=== MEASURED FACTS ===", 1)[1].split("=== WHAT YOUR OWN CHECKS FOUND", 1)[0]
+        self.assertIn("time of this wake, not a fact about the world", block)
+        self.assertIn('"quote" to "none"', wake.PROMPT)
+
 
     def test_a_reply_that_names_the_file_gets_that_work(self):
         text = ("chosen_item: works/a/20261102T050043Z-to-b-the-waterline-and-the-painter.md. "
