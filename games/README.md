@@ -47,7 +47,14 @@ the putter now decides how far past the cup to aim from what it has learned abou
 starts costing what golf's greens cost (1.00 at 2 ft, 1.93 at 20). It also found that two of the game's own
 instruments had been reading the wrong thing — a cost table whose "distance" was distance from the green's
 centre, and a price check that ran forty trials on one seed — which is the third time this game has caught a
-defect in the measuring rather than in the physics.
+defect in the measuring rather than in the physics. The thirteenth pass put that curve into the objective, and it
+found four things at once: a fourth instrument reading the wrong thing (the same cost table, now read as a curve
+when the number of positions it samples was falling with distance), a bug in its own first version that made every
+ball in the rough aim at the widest target it could find, the first target decision the short game has ever had
+(three quarters of a stroke at 30 ft, because a chip is all distance and the objective could not see distance), and
+the reason four passes of bunkers have failed to change the aim — the objective's landing always arrives at the
+pin's distance, so it thinks the sand is reachable 42% of the time where the game makes it 11.6%. What is left of
+golf is that: one dimension, and a scatter that is a number instead of a vector.
 
 ## Which to keep, and why
 
