@@ -1414,7 +1414,11 @@ async function renderBody(){
 
   // One row of tabs, and the page you are on is the tab that is lit. A member page belongs to Today, a room to
   // Chats: a tab that goes dark on the page it opened reads as a page outside the product.
-  const tab = view === 'members' || view.startsWith('m') ? 'today'
+  // `magazine` is tested before the `m`-prefix, because it starts with one: for a day the Magazine page lit **Today**
+  // and left its own tab dark, which reads as "this page is not part of the product". Found on 2026-11-21 by the check
+  // that presses every tab, which is the same check that found the dead Keys tab.
+  const tab = view === 'magazine' ? 'magazine'
+            : view === 'members' || view.startsWith('m') ? 'today'
             : view === 'c' ? 'table'
             : (view || 'today');
   nav(tab);
@@ -5395,6 +5399,136 @@ async function playPoint(){
     if (box && box.scrollIntoView) box.scrollIntoView({behavior:'smooth', block:'start'});
   } catch(e){ fail(e.message); }
   finally { const b = $('playpoint'); if (b) b.disabled = false; }
+}
+
+/* ---- the Keys page ------------------------------------------------------------------------------
+   Restored 2026-11-21, and the reason is the worst kind: the tab was in the nav and the function behind it did not
+   exist. `route()` has sent `#/keys` to `viewKeys(main)` since the seven-tab redesign of 2026-11-20, and the redesign
+   deleted the old keys view without rewriting that line — so pressing **Keys** threw a ReferenceError before a single
+   byte of the page changed, which to a person is a dead button. Found by the founder on a Pixel, who had no way to
+   paste a key at all: nothing else in the page writes `S.keys`, so chat and games were unreachable on a fresh circle
+   except through the install screen. `lab/page-check.mjs` had never visited this tab, which is why 130 checks and a
+   green suite shipped it. Both halves are fixed differently: the page has the view, and the checker presses every tab.
+
+   Two places, one key. This browser's copy is what chat and the games spend; the repository's copy is an Actions
+   secret the clock reads, and it is the only one a scheduled wake can use. The button that writes it seals the key
+   with the repository's own public key, so the value never leaves the browser in readable form. */
+async function viewKeys(main){
+  const engines = engineKeys();
+  const usedBy = {};
+  for (const m of (S.members || [])) if (m.engine) (usedBy[m.engine] = usedBy[m.engine] || []).push(m.name);
+  // The engines a member is actually on come first; the rest fold away. Ten cards with the same four buttons is a
+  // wall on a phone, and eight of those ten will never be pressed by this person.
+  const mine = engines.filter(e => usedBy[e]);
+  const rest = engines.filter(e => !usedBy[e]);
+  main.innerHTML = `<h1>Keys</h1>
+    <p class="sub">One key per engine, pasted once. It stays in this browser; a copy sealed into your repository is
+    what lets a member wake while you are away.</p>
+    <p class="small muted" id="keys-repo">Reading which keys the repository already holds…</p>
+    <div class="notice" style="margin-bottom:4px">
+      <b>Two places, and both matter.</b> <b>This browser</b> keeps the key where chat, the games and the pictures can
+      reach it. <b>Your repository</b> keeps it as an Actions secret named <code>TRIBE_API_KEY_&lt;ENGINE&gt;</code>,
+      which is the only copy a scheduled wake can read. The button under each engine puts the second one there from
+      the first, sealed with the repository's own key — GitHub can store an Actions secret and nothing else can.
+    </div>
+    <div id="keys-mine"></div>
+    ${rest.length ? `<details><summary>Every other engine</summary><div id="keys-rest"></div></details>` : ''}`;
+  const card = (e) => keysCard(e, usedBy[e] || []);
+  $('keys-mine').innerHTML = (mine.length ? mine : []).map(card).join('')
+    || '<p class="small muted">None of your members has an engine yet, so every engine is under the fold below.</p>';
+  if (rest.length) $('keys-rest').innerHTML = rest.map(card).join('');
+  // Which secrets the repository holds. Names only — GitHub never returns a value — and null when the token cannot
+  // see them (a non-admin token, or a repository this browser is only reading), in which case the page says it does
+  // not know rather than guessing "none".
+  repoSecrets().then(names => {
+    const all = $('keys-repo');
+    if (all) all.textContent = names === null
+      ? 'This browser’s token cannot see the repository’s secrets, so whether a wake has a key is not something this page can say.'
+      : (names.size ? 'The repository holds a key for: ' + [...names].map(n => n.replace('TRIBE_API_KEY_', '').toLowerCase()).join(', ') + '.'
+                    : 'The repository holds no engine key yet, so a scheduled wake has nothing to think with.');
+    for (const e of engines){
+      const el = $('repo-' + e); if (!el) continue;
+      const has = names === null ? null : names.has(secretName(e));
+      el.innerHTML = has === null ? 'repository: not visible to this token'
+        : has ? `<span style="color:var(--ok)">in the repository as <code>${esc(secretName(e))}</code></span>`
+              : 'not in the repository yet, so a scheduled wake cannot use this engine';
+    }
+  }).catch(() => {});
+}
+
+function keysCard(engine, members){
+  const spec = ENGINES[engine] || {};
+  const label = esc(spec.label || engine);
+  const k = keyFor(engine);
+  const where = members.length ? `used by ${esc(members.join(', '))}` : 'no member is on this engine';
+  return `<div class="card">
+    <div class="row" style="justify-content:space-between; align-items:baseline">
+      <b>${label}</b>
+      <span class="small muted">${where}</span>
+    </div>
+    <div class="grid two" style="margin-top:8px">
+      <div><label>Key</label>
+        <input id="k-${escq(engine)}" type="password" autocomplete="off" spellcheck="false"
+               placeholder="${k.key ? 'ending ' + esc(k.key.slice(-4)) + ' — paste another to replace' : 'paste it here'}"></div>
+      <div><label>Model</label><input id="m-${escq(engine)}" value="${esc(modelFor(engine))}" spellcheck="false"></div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button class="plain small" onclick="saveKey('${escq(engine)}')">Save</button>
+      <button class="plain small" onclick="testKey('${escq(engine)}')">Test</button>
+      <button class="plain small" onclick="keepKeyInRepository('${escq(engine)}', 'msg-${escq(engine)}')">Also keep it in the repository, so wakes can use it</button>
+    </div>
+    <p class="small muted" style="margin:8px 0 0" id="state-${escq(engine)}">${keyStateText(engine)}</p>
+    <p class="small muted" style="margin:2px 0 0" id="repo-${escq(engine)}">repository: reading…</p>
+    <p class="small" style="margin:6px 0 0" id="msg-${escq(engine)}"></p>
+  </div>`;
+}
+
+function keyStateText(engine){
+  const k = keyFor(engine);
+  if (!k.key) return 'not in this browser';
+  return 'in this browser, ending ' + esc(k.key.slice(-4)) + (k.tested ? ' — tested ' + esc(k.tested) : '');
+}
+
+function saveKey(engine){
+  const input = $('k-' + engine), model = $('m-' + engine);
+  const typed = ((input && input.value) || '').trim();
+  const name = ((model && model.value) || '').trim();
+  const msg = $('msg-' + engine);
+  if (!typed && !name){ if (msg) msg.innerHTML = 'Nothing to save: paste a key, or write the model name this engine should use.'; return; }
+  const k = Object.assign({}, S.keys[engine] || {});
+  if (typed) k.key = typed;
+  if (name) k.model = name;
+  S.keys[engine] = k;
+  save();
+  if (input) input.value = '';
+  const state = $('state-' + engine);
+  if (state) state.textContent = keyStateText(engine);
+  if (msg) msg.innerHTML = `<span style="color:var(--ok)">Saved in this browser.</span> Chat and the games can use it `
+    + `now; press the repository button for wakes.`
+    + (k.key && k.key.length < 20 ? ` <span class="muted">That is short for a key — if it is a sample, replace it.</span>` : '');
+}
+
+// A real call with the smallest ask there is: a key that is wrong fails here for a fraction of a cent, rather than in
+// the middle of a conversation. The same translation every other failure goes through, so a refused key is a sentence
+// about the key and not a number.
+async function testKey(engine){
+  const msg = $('msg-' + engine);
+  const say = (html) => { if (msg) msg.innerHTML = html; };
+  if (!keyFor(engine).key){ say('There is no key here to test yet — paste one and press Save.'); return; }
+  say('asking ' + esc((ENGINES[engine] || {}).label || engine) + ' one question…');
+  let got = '';
+  try {
+    await chatStream('You are a connection test. Answer with the single word: ready.',
+                     [{role:'user', content:'Say ready.'}], engine, (t) => { got += t; });
+    const k = Object.assign({}, S.keys[engine] || {});
+    k.tested = nowStamp().slice(0, 16);
+    S.keys[engine] = k; save();
+    const state = $('state-' + engine); if (state) state.textContent = keyStateText(engine);
+    say(`<span style="color:var(--ok)">It answered.</span>` + (got ? ' ' + esc(firstPara(got, 60)) : ''));
+  } catch(e){
+    const ex = explainEngineError(e, engine);
+    say('<span class="err">' + esc(ex.short) + '</span> ' + esc(ex.fix));
+  }
 }
 
 async function viewPlay(main){

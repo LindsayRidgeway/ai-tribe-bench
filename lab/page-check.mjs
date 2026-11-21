@@ -235,11 +235,33 @@ function el(id){
   return e;
 }
 
+/* The five nav buttons, because pressing a tab is the one interaction nothing else here performs.
+
+   Until 2026-11-21 `querySelectorAll` returned [] for every selector, so the page's own line at load — bind each tab
+   to `setView(dataset.go)` — bound nothing, and no check could press a tab. That is how the **Keys** tab shipped
+   dead: `viewKeys` was never written after the 2026-11-20 redesign, the router called a function that did not exist,
+   and 130 checks passed because not one of them was a press. The founder found it on a Pixel.
+
+   Attributes are stored rather than dropped for the same reason: `nav()` marks the open page with `aria-current`,
+   and a tab that renders a page without lighting itself is the smaller version of the same bug. */
+const NAV_LABELS = {today: 'Today', table: 'Chats', play: 'Play', magazine: 'Magazine', keys: 'Keys'};
+const NAV = Object.keys(NAV_LABELS).map((go) => {
+  const b = el('nav-' + go);
+  b.dataset.go = go;
+  b.textContent = NAV_LABELS[go];
+  const attrs = {};
+  b.setAttribute = (k, v) => { attrs[k] = String(v); };
+  b.getAttribute = (k) => (k in attrs ? attrs[k] : null);
+  b.hasAttribute = (k) => k in attrs;
+  b.click = () => { if (typeof b.onclick === 'function') b.onclick(); };
+  return b;
+});
+
 const elements = new Map();
 const document = {
   getElementById(id){ if (!elements.has(id)) elements.set(id, el(id)); return elements.get(id); },
   querySelector(){ return null; },
-  querySelectorAll(){ return []; },
+  querySelectorAll(sel){ return /^#nav\b/.test(String(sel)) ? NAV : []; },
   createElement(tag){ return el(tag); },
   addEventListener(){},
   body: el('body'),
@@ -348,8 +370,14 @@ function reset(){
   for (const id of ['mmsg', 'chaptsmsg', 'main']) if (elements.has(id)) elements.delete(id);
 }
 
+// A view function that throws inside a click is a rejected promise nobody awaits, and Node would swallow it: the
+// tab check has to be able to say "pressing it threw" rather than "it rendered nothing".
+process.on('unhandledRejection', e => console.log('UNHANDLED', e && e.stack ? e.stack.split('\n').slice(0,3).join(' | ') : e));
+
 async function main(){
   const ctx = loadPage();
+  // The page's own renderer, kept because the checks below replace it and never put it back (see the tab block).
+  const pageRender = run(ctx, 'render');
 
   /* 1 — filing a conversation keeps the talk itself, in a chapter, before the window is emptied. */
   reset();
@@ -2840,6 +2868,85 @@ async function main(){
     return '';
   });
   actions.secretPublicKey = null;
+
+  // ---- every tab in the nav has to open a page --------------------------------------------------------------
+  // Added 2026-11-21, after the founder pressed **Keys** on a Pixel and nothing happened. The tab had been in the nav
+  // since the redesign of 2026-11-20 and `viewKeys` was never written: the router called a function that did not
+  // exist, the ReferenceError killed the render before the page changed, and 130 checks passed anyway because not one
+  // of them pressed a tab. A dead tab is invisible to every check that reads a page the code chose to render.
+  reset();
+  seed('.github/workflows/clock.yml', CLOCK);
+  seed('wake/members/a/state/state.md', 'Wakes so far: 1\nLast wake: 2026-11-20 01:46 UTC\nModel used: deepseek-flash\n');
+  seed('wake/members/a/state/identity.md', '# a\n');
+  seed('wake/members/a/state/voice.md', 'api: deepseek\nmodel: deepseek-flash\n');
+  seed('wake/members/a/state/journal.md', '# Journal — a\n');
+  // `render` is one global function on the page, and a large share of the checks above replace it with a no-op so a
+  // repaint cannot race what they are asserting. Those assignments land on the page's own global and stay there, so
+  // by this point the instance under test has no renderer of its own and a pressed tab would paint nothing. The
+  // original was captured immediately after the page loaded, and it goes back here, before anything is pressed.
+  // (The leak is the harness's, not the page's: a browser gives a document one render and never swaps it.)
+  sandbox.__pageRender = pageRender;
+  await run(ctx, 'render = globalThis.__pageRender;');
+
+  const tabs = await run(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main'; S.owner = 'Sam';
+    S.keys = {deepseek: {key: 'sk-test-key-wxyz'}};
+    // The nav buttons are shared by every page this file has loaded — a fresh page has its own scope but the same
+    // fake document — so a button's handler belongs to whichever instance bound it last. Here they are handed back
+    // to the instance under test, exactly as the page binds them at load, so a press lands on the code being checked.
+    // Found on 2026-11-21, when this block read a Keys page built by a different instance and reported a key from an
+    // earlier check as if the page had written it.
+    for (const b of document.querySelectorAll('#nav button')) b.onclick = () => setView(b.dataset.go);
+    // Anything a previous check left in these children has to go, or a fresh render cannot be told from what was
+    // already sitting there — which is how a dead tab passed a check that read the screen.
+    for (const id of ['keys-mine', 'keys-rest', 'keys-repo']) document.getElementById(id).innerHTML = '';
+    const out = {};
+    for (const b of document.querySelectorAll('#nav button')){
+      out[b.dataset.go] = {label: b.textContent.trim()};
+      try {
+        document.getElementById('main').innerHTML = '';   // so the page has to have written what is read below
+        b.click();
+        await new Promise(r => setTimeout(r, 30));
+        const main = document.getElementById('main');
+        // Read the heading out of the markup: this fake element has no querySelector, and a check that needs one is
+        // a check that silently passes on an empty string.
+        const raw = String(main.innerHTML || '');
+        const opened = raw.indexOf('<h1');
+        const closed = opened < 0 ? -1 : raw.indexOf('</h1>', opened);
+        const h1 = closed < 0 ? '' : raw.slice(raw.indexOf('>', opened) + 1, closed);
+        out[b.dataset.go].heading = h1.replace(/<[^>]+>/g, '').trim();
+        out[b.dataset.go].html = raw;
+        out[b.dataset.go].lit = b.getAttribute('aria-current');
+        // The cards are written into child elements, not into main, so they are read from where the page put them.
+        out[b.dataset.go].cards = String(document.getElementById('keys-mine').innerHTML || '')
+                                + String(document.getElementById('keys-rest').innerHTML || '');
+      } catch(e){ out[b.dataset.go].err = String(e && e.message || e); }
+    }
+    return out;
+  })()`);
+
+  for (const [view, got] of Object.entries(tabs)){
+    check(`the ${got.label} tab opens a page, and lights itself`, () => {
+      if (got.err) return `pressing it threw: ${got.err}`;
+      if (!got.heading) return `it rendered no heading (main is ${String(got.html || '').length} characters)`;
+      if (got.lit !== 'true') return `the tab did not mark itself as the page you are on (aria-current=${got.lit})`;
+      return '';
+    });
+  }
+  check('the Keys page renders a card per engine, with the paste box and the repository button', () => {
+    const cards = String((tabs.keys || {}).cards || '');
+    const html = String((tabs.keys || {}).html || '') + cards;
+    for (const bit of ['id="k-deepseek"', 'TRIBE_API_KEY_', 'Also keep it in the repository',
+                       'ending wxyz', 'in this browser, ending wxyz'])
+      if (!html.includes(bit)) return `the Keys page is missing ${JSON.stringify(bit)}`;
+    // The card for the engine that does have a key must not claim it has none — that is the mistake worth catching,
+    // and the nine engines without one are supposed to say exactly that, so the card is read, not the whole page.
+    const at = cards.indexOf('id="k-deepseek"');
+    const card = at < 0 ? '' : cards.slice(at, cards.indexOf('<div class="card">', at) + 1 || undefined);
+    if (!card) return 'the deepseek card was not written anywhere';
+    if (/not in this browser/.test(card)) return 'a key this browser holds was reported as absent';
+    return '';
+  });
 
   for (const r of results){
     if (r.ok) console.log('PASS  ' + r.name);
