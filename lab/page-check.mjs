@@ -359,7 +359,17 @@ function check(name, fn){
   catch(e){ results.push({name, ok: false, why: 'threw: ' + (e && e.message)}); }
 }
 
+/* The page instance under test, and its own `render`, captured at load. `render` is one global function and a large
+   share of the checks below replace it with a no-op so a repaint cannot race what they are asserting — an
+   assignment inside `vm.runInContext` lands on the page's global and stays there. Left alone, every later check
+   that needs a repaint gets the stub: an empty `main` reads as "the page rendered nothing" when the truth is that
+   the harness quietly took the renderer away. So every reset puts the page's own back, and a check that wants a
+   stub installs it inside its own block, after the reset it was given. */
+let CTX = null;
+let PAGE_RENDER = null;
+
 function reset(){
+  if (CTX && PAGE_RENDER) run(CTX, 'render = globalThis.__pageRender;');
   files.clear(); failWrites.clear(); clashWrites.clear(); calls.length = 0; dispatches.length = 0; store.clear();
   tpl.sha = null; tpl.files.clear(); tpl.refs.clear();
   actions.runs.length = 0; actions.onPoll = null; actions.secrets = []; actions.secretsDenied = false;
@@ -376,8 +386,10 @@ process.on('unhandledRejection', e => console.log('UNHANDLED', e && e.stack ? e.
 
 async function main(){
   const ctx = loadPage();
-  // The page's own renderer, kept because the checks below replace it and never put it back (see the tab block).
-  const pageRender = run(ctx, 'render');
+  // One instance for the whole file, and its renderer kept where every reset can put it back (see reset()).
+  CTX = ctx;
+  PAGE_RENDER = run(ctx, 'render');
+  sandbox.__pageRender = PAGE_RENDER;
 
   /* 1 — filing a conversation keeps the talk itself, in a chapter, before the window is emptied. */
   reset();
@@ -2880,14 +2892,6 @@ async function main(){
   seed('wake/members/a/state/identity.md', '# a\n');
   seed('wake/members/a/state/voice.md', 'api: deepseek\nmodel: deepseek-flash\n');
   seed('wake/members/a/state/journal.md', '# Journal — a\n');
-  // `render` is one global function on the page, and a large share of the checks above replace it with a no-op so a
-  // repaint cannot race what they are asserting. Those assignments land on the page's own global and stay there, so
-  // by this point the instance under test has no renderer of its own and a pressed tab would paint nothing. The
-  // original was captured immediately after the page loaded, and it goes back here, before anything is pressed.
-  // (The leak is the harness's, not the page's: a browser gives a document one render and never swaps it.)
-  sandbox.__pageRender = pageRender;
-  await run(ctx, 'render = globalThis.__pageRender;');
-
   const tabs = await run(ctx, `(async () => {
     S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main'; S.owner = 'Sam';
     S.keys = {deepseek: {key: 'sk-test-key-wxyz'}};
