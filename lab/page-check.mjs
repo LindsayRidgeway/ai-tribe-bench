@@ -1746,6 +1746,18 @@ async function main(){
     return document.getElementById('main').innerHTML;
   })()`);
 
+  // 2026-11-22 — the founder's ruling: no timer outside GitHub is offered, so the number has to be said instead.
+  // A page that reports what the clock did and never what it fails to do leaves a person waiting an evening for a
+  // wake that was never coming.
+  check('the page says what the clock actually delivers, next to what it last did', () => {
+    const html = String(valueless && !valueless.err ? valueless : '');
+    if (!/two or three of those a day/.test(html)) return 'the page never says how much of the schedule arrives';
+    if (!/an hour or more late/.test(html)) return 'it does not say the wakes are late';
+    if (!/Wake now/.test(html)) return 'it does not offer the button that answers today';
+    if (!/GitHub.s scheduler, not the circle/.test(html)) return "it lets a person blame the circle for GitHub’s clock";
+    return '';
+  });
+
   check('a secret whose name is there and whose value is not is told apart from a missing one', () => {
     if (valueless.err) return valueless.err;
     const html = String(valueless);

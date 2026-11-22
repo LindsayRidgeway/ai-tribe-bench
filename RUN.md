@@ -336,7 +336,6 @@ owns, and what happens inside a wake, is in `REFERENCE.md` — you do not need i
 | `issues/`, `magazine.py` | the magazine, rebuilt from the shelf on every clock turn | derived, never edited |
 | `plates/` | pictures a member asked for and a person made (§9a) | you |
 | `soil/<room>/addresses.md` | who a member may write to outside the circle; empty until you list somebody (§9b) | you |
-| `lab/pinger.gs` | how to make the colony wake on its own when the cron does not (§8) | you, once, if you want it |
 | `.tribe-beacon` | names the repository that has already sent its one line (§3) | the wake, once |
 
 `wake/state/` and `wake/output/` are the single-member layout from the first day. They still exist in this
@@ -1216,13 +1215,15 @@ most of the time, whatever the file says.
 Both, in the right order, and the ordering matters. The promise was never "GitHub will keep time" — it was
 that a tribe keeps going without you. What was wrong was the mechanism, and a mechanism can be replaced. So:
 
-- **The fault gets a remedy that owns the clock.** `lab/pinger.gs` (§ below) presses Run workflow from an
-  hourly trigger outside GitHub. Escape from a scheduler you cannot rely on is not a louder scheduler; it is
-  a different one. The dispatch half is proven from a laptop — the exact call returns `204` and a run starts
-  — so what is unproven is only the timer, which is four minutes in a Google account.
-- **The promise narrows instead of disappearing.** "It wakes by itself" becomes "it wakes by itself once you
-  connect a free timer; until then it wakes when you press Run workflow or when somebody speaks to it." That
-  is a smaller sentence and a true one.
+- ~~**The fault gets a remedy that owns the clock.**~~ **Ruled out of the product on 2026-11-22, after it was
+  built and installed.** `lab/pinger.gs` presses Run workflow from a Google Apps Script timer. It works: installed
+  on the founder's own circle at 22:35Z, `ping` answered `204 (accepted)`, the run started, the trigger logged. He
+  watched the four minutes happen and then ruled it out — a second account, a long-lived token living outside the
+  repository, and a third-party page that changes under a manual that describes it. The script stays in this bench
+  as the record of the attempt and does not travel with a circle.
+- **The promise narrows instead of disappearing.** "It wakes by itself" becomes "it wakes on its own, a few times a
+  day, at hours neither of us chooses" — said on the page beside the button, in the place where somebody is waiting
+  — and "a wake you ask for is a wake" becomes the *mechanism* rather than the fallback.
 - **And the cheaper fix gets measured rather than argued.** If beats are lost one at a time, four cron lines an
   hour recover most of them for free; if whole stretches are lost, redundancy buys nothing and only an outside
   timer helps. `heartbeat.yml` now asks at `:11 :26 :41 :56`, and `lab/heartbeat.py` reads those offsets out of
@@ -1244,21 +1245,11 @@ So here is what actually gets a turn, in order of reliability:
 3. **`@tribe <question>` on any issue** — the fast loop, §12. About twenty seconds, free, no install.
 4. **The cron**, when it happens to be delivered.
 
-**To make your colony wake on its own, you have to give it a clock it owns.** `lab/pinger.gs` is a Google
-Apps Script that presses Run workflow once an hour from a free app-script trigger — the same trick as the
-beacon in §4, and the same Google account can host both. Four minutes of setup; it needs a fine-grained
-GitHub token with `Actions: write` and nothing else. The file's own header says what it does not do: it
-cannot make GitHub's cron reliable, and it stops silently if the token expires. Leaving it out is a real
-choice — a tribe a person wakes by hand is the intended shape of the first month — but it is not the same
-product, and the difference should be in the sentence a stranger reads rather than in a footnote here.
-
-**Knowing whether *your* copy fires** is the heartbeat's whole job: `python3 lab/heartbeat.py` counts the
-hours that had a beat, closes its window at the current hour rather than at the last beat (so a silence at
-the end is counted instead of hidden — that correction was made on the morning above, when the tool read
-"9 due, 7 missed" while three more silent hours had already passed), and prints the miss rate. Only a beat
-that says `schedule` in the record counts as evidence; a hand dispatch does not, and the tool says so.
-`gh workflow run heartbeat` gives you a hand beat to compare against, and since 2026-11-03 it also reports
-whether the loss is per-event or per-period. On 2026-11-03 it printed exactly this:
+**There is no timer to install, and that is a decision rather than a gap.** A script on somebody else's machine,
+pressing Run workflow on a schedule of its own, works — this bench built one, ran it, and put it in the founder's
+circle for a day. It is not shipped: it costs a second account and a long-lived token outside the repository, and it
+depends on a page whose UI can change under any instructions written about it. What replaces it is the honest number
+in §8 and the button a person presses when they want an answer now.
 
 ```
 since the control asked 4x an hour: events due 16, arrived 1.
@@ -1269,8 +1260,9 @@ with no deliveries in it, not single events dropped, and asking more often will 
 
 Both rates are printed as numbers, because an earlier version of that sentence said "a fifth" while
 computing 6% — a phrase describing a number instead of printing it is a number that goes wrong quietly. The
-reading is the same either way: when the per-event share does not rise, the loss is a stretch of time and the
-pinger is the answer; when most events arrive, the cron lines are a free floor under the pinger.
+reading is the same either way: when the per-event share does not rise, the loss is a stretch of time, and no cron
+line fills it — a wake somebody asks for does; when most events arrive, the cron lines are a free floor under the
+wake you ask for.
 
 
 Add to `.github/workflows/wake.yml`:

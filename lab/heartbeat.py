@@ -152,26 +152,26 @@ def main(log: Path | None = None, now: datetime | None = None) -> int:
                 print(f"a wake arrived for {share:.0f}% of the {events_due} events asked for since the control "
                       f"went to {per_hour} an hour, and there is no earlier hourly stretch in this window to "
                       "compare it with. A remedy is still named rather than waiting: a lost stretch of time is "
-                      "filled by a timer this colony owns (RUN.md §8, lab/pinger.gs), not by a louder cron.")
+                      "answered by a wake somebody asks for — Run workflow, or `@tribe` on an issue (RUN.md §8).")
             elif share <= before * 1.5:
                 print(f"a wake arrived for {share:.0f}% of the {events_due} events asked for, against "
                       f"{before:.0f}% of the {base_hours} hours asked for when the control asked once an hour. "
                       f"{per_hour} asks did not buy {per_hour} times the wakes: the loss is a stretch of time "
                       "with no deliveries in it, not single events dropped, and asking more often will not fix "
-                      "it. An hourly timer outside GitHub (RUN.md §8, lab/pinger.gs) is the fix.")
+                      "it. What fills a lost stretch is a wake a person asks for by hand, not more cron lines (RUN.md §8).")
             elif share > 75:
                 print(f"most events arriving ({share:.0f}%) although hours went missing when the control "
                       "asked once: the loss is per-event, so redundant cron lines are a floor — and still a "
-                      "floor, not a guarantee. lab/pinger.gs is what makes it certain.")
+                      "floor, not a guarantee. What makes it certain is a wake somebody asks for: Run workflow, or `@tribe`.")
             else:
                 print(f"between a half again as many and three quarters of the events arrive ({share:.0f}%): "
-                      "partial loss, so neither redundant crons nor a single external timer is enough on its "
-                      "own. Keep both.")
+                      "partial loss, so neither redundant cron lines nor a single ask is enough on its own. "
+                      "Keep the cron as a floor, and ask for a wake when you want one.")
     if fired < due:
         print("\nsome hours passed with no beat. On this ground a scheduled wake is a hope, not a "
               "guarantee. The remedy is a timer this colony owns rather than a louder cron: RUN.md §8 "
-              "ranks Run workflow, a hand wake, @tribe and then the cron, and lab/pinger.gs is the free "
-              "hourly pulse outside GitHub.")
+              "ranks Run workflow, a hand wake, @tribe and then the cron. A wake a person asks for is the "
+              "only one that is punctual.")
     elif due < 6:
         print(f"\nno hour was missed — but {due} hour(s) is not an answer yet. The clock missed six in a row "
               "on this ground; come back when the heartbeat has eight or more behind it.")

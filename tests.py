@@ -2811,8 +2811,9 @@ class TestHeartbeat(unittest.TestCase):
             heartbeat.main(log, now=datetime(2026, 11, 3, 18, 50, tzinfo=timezone.utc))
         out = buf.getvalue()
         self.assertIn("events due", out)
-        self.assertIn("lab/pinger.gs", out,
-                      "a repair that has no instrument is a hope; the tool must name the remedy it implies")
+        self.assertIn("run workflow", out.lower(),
+                      "a repair that has no instrument is a hope; the tool must name the remedy it implies — which "
+                      "since 2026-11-22 is the button a person presses, not a timer they install")
 
     def test_the_two_rates_are_printed_rather_than_a_hardcoded_fraction(self):
         """The first version of the per-event summary said "a fifth of the events arriving" while the
@@ -8299,33 +8300,35 @@ class TestWorkflows(unittest.TestCase):
                 self.assertNotIn(d.name, step_two,
                                  f"{d.name!r} is a room in this bench; the sheet must not send a reader to type it")
 
-    def test_the_clock_a_person_can_own_ships_and_names_the_workflow_that_ships(self):
-        """Before 2026-11-20 the remedy for GitHub's cron was in RUN.md, which owners never receive.
+    def test_no_timer_outside_github_is_shipped_and_the_manual_says_why(self):
+        """The founder's ruling of 2026-11-22, and the reasons are his, in his order.
 
-        RUN.md §8 has said since 2026-11-03 that the schedule is mostly not delivered and that only a trigger
-        outside GitHub fills a lost stretch of time — and neither the script nor the instructions travelled with
-        the repository. So the manual promised a circle that keeps going and offered no way to make it keep going.
-        These are the three things that have to stay true for the shipped copy to be usable by a stranger.
+        A timer outside GitHub works: `lab/pinger.gs` was installed on his own circle on 2026-11-22, `ping` answered
+        204, and the run it started went green. He watched the install happen and then ruled it out of the product —
+        a second account, a long-lived token living somewhere that is not the repository, and a page whose UI can
+        change under a manual that describes it. So the script stays here as an experiment and does not travel; and
+        the honesty it was going to buy is bought in words instead, in §5 and beside the button. Three things have
+        to stay true, and each of them was false at some point in the last week.
         """
-        import re as _re
+        import subprocess
         built = Path(tempfile.mkdtemp(prefix="tpl-pinger-"))
         self.addCleanup(shutil.rmtree, built, True)
-        import subprocess
         r = subprocess.run([sys.executable, str(REPO / "lab" / "make_template.py"), "--out", str(built)],
                            capture_output=True, text=True, timeout=120)
         self.assertEqual(r.returncode, 0, r.stderr)
-        gs = built / "lab" / "pinger.gs"
-        self.assertTrue(gs.is_file(), "the clock a person can own does not travel with the repository")
-        src = gs.read_text(encoding="utf-8")
-        named = _re.search(r"const WORKFLOW = '([^']+)'", src)
-        self.assertIsNotNone(named, "the pinger no longer says which workflow it dispatches")
-        self.assertTrue((built / ".github" / "workflows" / named.group(1)).is_file(),
-                        f"the pinger dispatches {named.group(1)}, which this template does not ship")
+        self.assertFalse((built / "lab" / "pinger.gs").exists(),
+                         "a timer outside GitHub is shipped again; it was ruled out on 2026-11-22")
         man = (REPO / "USER-MANUAL.md").read_text(encoding="utf-8")
-        self.assertIn("lab/pinger.gs", man, "the script ships; the manual has to say so or nobody finds it")
-        self.assertIn("installTrigger", man, "and the step that makes it run on a timer")
-        self.assertNotIn("TOKEN = 'PASTE", src,
-                         "the token goes in Script Properties, not in a file a person may share")
+        self.assertNotIn("installTrigger", man, "the manual teaches a setup that is not offered")
+        self.assertIn("no timer you can install to fix that", man,
+                      "and it has to say so, or a reader goes looking for the workaround the measurement implies")
+        self.assertIn("when you want an answer today, ask for a wake", man,
+                      "what replaces a timer is the button that works now")
+        page = (REPO / "ait.html").read_text(encoding="utf-8")
+        self.assertIn("two or three of those a day", page,
+                      "the page has to say what the clock delivers, where a person waits for it")
+        self.assertIn("GitHub's scheduler, not the circle", page,
+                      "and it must not let the circle be blamed for GitHub's clock")
 
     def test_the_shipped_manual_does_not_promise_a_frequency_the_cron_cannot_keep(self):
         """Measured on 2026-11-20, and it corrects two documents at once.

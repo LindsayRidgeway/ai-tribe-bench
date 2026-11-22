@@ -2507,6 +2507,7 @@ async function viewToday(main){
   main.innerHTML = `
     <h1>Today</h1>
     ${clocked ? `<p class="sub">${clocked}</p>` : ''}
+    ${clocked ? CLOCK_REALITY : ''}
     ${UPDATE_NOTE ? `<p class="sub">${esc(UPDATE_NOTE)}</p>` : ''}
     ${armed}
     ${blindNote}
@@ -3169,6 +3170,17 @@ async function clockRecord(){
    and nothing at all for the clock going right, which is backwards for a product whose whole promise is that it works
    while the person is asleep: the absence of a fault is not evidence that anything happened. The record says it —
    when, which keys the run actually held, who woke, and who it could not reach. */
+/* What the clock actually delivers, said where a person reads what it did. The copy asks for a wake every four
+   hours and gets two or three a day, 37 to 193 minutes late, measured over the 24 due slots of 11-16 to 11-20 on two
+   repositories — one slot in four days was never delivered at all. That is GitHub's scheduler and not the circle, and
+   the only honest thing to do with a number like that is print it beside the button, so nobody waits an evening for a
+   wake that is not coming. The founder's ruling of 2026-11-22: a timer outside GitHub is not offered, not even as an
+   advanced option — Apps Script is a second account, a token in somebody else's hands, and a UI that changes under a
+   manual; the number is stated instead. */
+const CLOCK_REALITY = `<p class="small muted" style="margin:2px 0 0">The clock asks every four hours; GitHub
+    usually delivers two or three of those a day, an hour or more late. That is GitHub's scheduler, not the circle —
+    when you want an answer today, press <em>Wake now</em>.</p>`;
+
 function clockSentence(rec){
   if (!rec || !rec.when) return '';
   const when = String(rec.when).slice(0, 16).replace('T', ' ');

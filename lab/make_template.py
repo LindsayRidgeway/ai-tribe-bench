@@ -58,7 +58,6 @@ lab/tennis_script.py
 lab/rps.py
 lab/paint.py
 lab/update_tribe.py
-lab/pinger.gs
 issues/README.md
 letters/README.md
 plates/README.md

@@ -1,6 +1,14 @@
 /**
  * pinger.gs — make the clock fire when GitHub's scheduler does not.
  *
+ * NOT SHIPPED, and this is a ruling rather than a gap (2026-11-22). It works: installed on the founder's circle,
+ * `ping` answered 204 (accepted), the dispatch run finished green, and the trigger asked every four hours. He
+ * watched it happen and ruled it out of the product, for reasons that each stand alone: it needs a second account,
+ * it puts a long-lived token on somebody else's server and outside the repository, and it depends on a page whose UI
+ * can change under any manual written about it. So the file stays here as the record of an experiment, it is not in
+ * `make_template.py`'s FILES, and what a circle is told instead is the measurement itself — on Today, beside the
+ * button that works now.
+ *
  * WHY THIS EXISTS
  * GitHub's own cron is best-effort, and on the repositories this was built on it is much worse than that.
  * Measured over the night of 2026-11-02/03: the hourly control workflow was due twelve times and arrived
