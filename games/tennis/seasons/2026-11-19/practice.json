@@ -21,7 +21,7 @@
    "sessions": []
   },
   "Colette": {
-   "balls": 18,
+   "balls": 50,
    "carried": 20,
    "seeded": {
     "balls": 20,
@@ -43,6 +43,24 @@
      "shots": 18,
      "surface": "grass",
      "when": "2026-11-20T12:53:47Z",
+     "with": [
+      "Gwen"
+     ]
+    },
+    {
+     "by": "the schedule",
+     "clock": 1795351001590,
+     "competition": true,
+     "control": 0.507,
+     "in_play": 19,
+     "longest": 8,
+     "mean_rally": 3.35,
+     "mode": "rally",
+     "of": 32,
+     "reach": 0.615,
+     "shots": 32,
+     "surface": "hard",
+     "when": "2026-11-22T12:36:46Z",
      "with": [
       "Gwen"
      ]
@@ -97,7 +115,7 @@
    ]
   },
   "Gwen": {
-   "balls": 15,
+   "balls": 50,
    "carried": 20,
    "seeded": {
     "balls": 20,
@@ -119,6 +137,24 @@
      "shots": 15,
      "surface": "grass",
      "when": "2026-11-20T12:53:47Z",
+     "with": [
+      "Colette"
+     ]
+    },
+    {
+     "by": "the schedule",
+     "clock": 1795351001590,
+     "competition": true,
+     "control": 0.507,
+     "in_play": 17,
+     "longest": 8,
+     "mean_rally": 3.35,
+     "mode": "rally",
+     "of": 35,
+     "reach": 0.615,
+     "shots": 35,
+     "surface": "hard",
+     "when": "2026-11-22T12:36:46Z",
      "with": [
       "Colette"
      ]
