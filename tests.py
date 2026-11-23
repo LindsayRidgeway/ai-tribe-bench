@@ -1171,20 +1171,33 @@ class TestVision(unittest.TestCase):
         cls.vision = load(REPO / "lab" / "vision.py", "vision_mod")
 
     def test_the_table_records_only_what_was_measured_and_says_when(self):
-        """A row is a measurement or it is honest about being nothing. `sees` is True, False, or None — never a
-        vendor's reputation, which is the thing this file exists to stop being used as evidence."""
-        import json
-        table = json.loads(self.vision.TABLE)
+        """The table lives in `wake/vision.json` and ships, because three readers need it: this instrument, the
+        page, and the wake. A row is a measurement or it is honest about being nothing."""
+        table = self.vision.read_table()
         self.assertTrue(table, "an empty table is honest but useless; it means nobody has looked")
         for model, row in table.items():
             self.assertIn(row["sees"], (True, False, None), f"{model} has a verdict that is not a verdict")
-            self.assertEqual(row["model"], model, f"{model}'s row names a different model")
+            self.assertTrue(row["engine"], f"{model} does not say which engine it belongs to")
             self.assertTrue(row["said"], f"{model} records no words, and the words are the evidence")
             if row["sees"] is None:
                 self.assertIsNone(row["measured"], f"{model} is unmeasured and dated at once")
             else:
                 self.assertRegex(str(row["measured"]), r"^\d{4}-\d{2}-\d{2}$",
                                  f"{model} is recorded without the day it was measured")
+
+    def test_a_measurement_can_be_written_back_without_losing_what_the_file_says(self):
+        """`--record` writes a row; the file's own explanation has to survive it, or the next reader inherits a
+        bare table and no account of what it is."""
+        import json, shutil, tempfile
+        box = Path(tempfile.mkdtemp(prefix="vision-")) / "vision.json"
+        shutil.copy(self.vision.TABLE_PATH, box)
+        before = json.loads(box.read_text(encoding="utf-8"))
+        self.vision.record("made-up-model", {"engine": "test", "sees": True, "measured": "2026-11-23",
+                                             "said": "it described a red square"}, path=box)
+        after = json.loads(box.read_text(encoding="utf-8"))
+        self.assertIn("made-up-model", after["models"])
+        self.assertEqual(after["_why"], before["_why"], "the file is now a table with no account of itself")
+        self.assertEqual(len(after["models"]), len(before["models"]) + 1)
 
     def test_a_fluent_answer_is_not_evidence_of_sight(self):
         """The dangerous case is not the model that refuses — it is the one that describes a photograph it was
@@ -1244,6 +1257,108 @@ class TestVision(unittest.TestCase):
         self.assertIn("cannot be shown a picture", page, "the page has no sentence for a blind model")
         self.assertIn("function gatePicture", page, "there is no single gate between a chosen picture and a send")
         self.assertIn("pictures: ", page, "the Keys page does not print which model can be shown a picture")
+
+class TestWakesWithPictures(unittest.TestCase):
+    """A picture a person leaves for a member to look at while nobody is in the room.
+
+    The wake end of RELEASE.md item 6. No network: what is checked is the part that fails silently — a table
+    that says a model can see when nobody measured it, a picture shown twice, and a card that records an
+    intention rather than a thing that happened.
+    """
+
+    def setUp(self):
+        self.dir = Path(tempfile.mkdtemp(prefix="inbox-"))
+        self.state = self.dir / "state"
+        (self.state / "inbox").mkdir(parents=True)
+
+    def _pic(self, name: str, data: bytes = b"\x89PNG fake bytes") -> Path:
+        f = self.state / "inbox" / name
+        f.write_bytes(data)
+        return f
+
+    def test_a_model_is_only_said_to_see_what_was_measured(self):
+        self.assertTrue(wake.sees_picture("deepseek-flash"))
+        self.assertFalse(wake.sees_picture("deepseek-v4-pro"),
+                         "the model that answered 'no image' was treated as a seer")
+        self.assertFalse(wake.sees_picture("gpt-6-luna"),
+                         "an unmeasured model was treated as seeing, which is the lie the table exists to stop")
+        self.assertFalse(wake.sees_picture(""), "an empty model id was treated as seeing")
+        self.assertFalse(wake.sees_picture("deepseek-flash", table={}),
+                         "a table that could not be read was read as a seer")
+
+    def test_the_shipped_table_is_the_one_the_page_and_the_wake_read(self):
+        table = wake.vision_table()
+        self.assertIn("deepseek-flash", table)
+        for model, row in table.items():
+            self.assertIn(row.get("sees"), (True, False), f"{model} has a verdict that is not a verdict")
+            self.assertTrue(row.get("measured"), f"{model} is recorded without the day it was measured")
+            self.assertTrue(row.get("said"), f"{model} records no words, and the words are the evidence")
+
+    def test_the_oldest_picture_that_has_not_been_looked_at_is_the_one_shown(self):
+        first = self._pic("a.png", b"first")
+        second = self._pic("b.jpg", b"second")
+        os.utime(first, (1_700_000_000, 1_700_000_000))
+        os.utime(second, (1_700_000_100, 1_700_000_100))
+        self.assertEqual(wake.waiting_picture(self.state).name, "a.png",
+                         "a wake is one call, so one picture, oldest first")
+        # A card saying it was shown makes it spent.
+        (self.state / "looked-at.md").write_text(
+            f"## 2026-11-23 09:00 UTC — a.png\n\n- sha1: {wake.sha1_of(first)[:12]} (5 bytes)\n"
+            f"- shown: deepseek-flash, a model measured as seeing a picture (OK)\n- came of it: OK\n",
+            encoding="utf-8")
+        self.assertEqual(wake.waiting_picture(self.state).name, "b.jpg")
+        os.utime(second, (1_700_000_200, 1_700_000_200))
+        (self.state / "looked-at.md").write_text(
+            (self.state / "looked-at.md").read_text(encoding="utf-8")
+            + f"\n## 2026-11-23 10:00 UTC — b.jpg\n\n- sha1: {wake.sha1_of(second)[:12]} (6 bytes)\n",
+            encoding="utf-8")
+        self.assertIsNone(wake.waiting_picture(self.state), "a spent picture was offered again")
+
+    def test_a_picture_a_blind_model_could_not_be_shown_is_still_waiting(self):
+        """The defect this exists for was found by running the thing, not by reading it: the first end-to-end
+        wake recorded the picture in `looked-at.md` with "not shown", and the card looked exactly like one for a
+        picture that had been looked at — so the photograph would be consumed by a model that never saw it, and
+        switching to a model that can see would find an empty inbox."""
+        pic = self._pic("waiting.png", b"waiting")
+        (self.state / "looked-at.md").write_text(
+            f"## 2026-11-23 09:00 UTC — waiting.png\n\n- sha1: {wake.sha1_of(pic)[:12]} (7 bytes)\n"
+            f"- not shown: deepseek-v4-pro is not measured as seeing a picture — it answered text only (OK)\n"
+            f"- came of it: OK\n", encoding="utf-8")
+        self.assertEqual(wake.waiting_picture(self.state), pic,
+                         "a picture no model has been shown was marked spent")
+
+    def test_a_picture_that_is_not_a_picture_or_is_too_large_is_left_alone(self):
+        self._pic("notes.txt", b"this is not a picture")
+        big = self._pic("huge.png", b"x")
+        with open(big, "wb") as f:
+            f.write(b"x" * (wake.MAX_PICTURE_BYTES + 1))
+        self.assertIsNone(wake.waiting_picture(self.state),
+                          "a text file or a 4MB photograph was offered as something to look at")
+
+    def test_the_card_says_whether_it_was_shown_and_never_claims_more_than_happened(self):
+        pic = self._pic("peaches.png", b"peaches")
+        shown = wake.picture_card(pic, "deepseek-flash", shown=True, outcome="OK; wrote k.md")
+        self.assertIn("peaches.png", shown)
+        self.assertIn(wake.sha1_of(pic)[:12], shown)
+        self.assertIn("shown: deepseek-flash", shown)
+        self.assertIn("came of it: OK; wrote k.md", shown)
+        blind = wake.picture_card(pic, "deepseek-v4-pro", shown=False, outcome="OK",
+                                  why="it answered text only when a known picture was put in front of it")
+        self.assertIn("not shown: deepseek-v4-pro", blind)
+        self.assertIn("answered text only", blind)
+        self.assertNotIn("- shown:", blind)
+
+    def test_the_wake_tells_a_blind_member_the_truth_and_does_not_attach_the_bytes(self):
+        """The prompt block is the only thing standing between a blind model and a described photograph, so it
+        is read here rather than trusted: the words must say it was not given, and the harness must not add an
+        attachment when the table says the model cannot see."""
+        src = (REPO / "wake" / "wake.py").read_text(encoding="utf-8")
+        self.assertIn("=== A PICTURE YOU CANNOT BE SHOWN ===", src)
+        self.assertIn("so you were not\ngiven it", src, "the block no longer says the picture was withheld")
+        self.assertIn("if picture and sees_picture(model_id):", src,
+                      "the attachment is not gated on the measured table")
+        self.assertIn("waiting_picture(STATE)", src,
+                      "nothing looks in the inbox, so a picture left for a wake is never seen")
 
 class TestSoil(unittest.TestCase):
     """2026-11-02, the founder's test: the same colony in a different soil should build different tunnels.

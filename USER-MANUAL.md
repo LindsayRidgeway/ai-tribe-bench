@@ -830,6 +830,29 @@ with nothing anywhere to contradict it — and a person reading that has no way 
 The Keys page prints which of each engine's models can see, under the box where you choose the model, so the
 decision is made where it is read.
 
+### Leaving a picture for a wake
+
+A conversation needs you in it. This does not: put a picture in `wake/members/<name>/state/inbox/` — by uploading
+it on GitHub, or with the **leave it for its next wake** box ticked when you show one in a conversation — and the
+next time that member wakes it is shown the picture. One per wake, in the order you left them, so a member that
+wakes twice a day looks at two pictures in a day and never at the same one twice.
+
+What it comes back with is a wake, not a caption: it looks, it decides what to do, and it writes. What goes on the
+record is `state/looked-at.md`, written by the harness and not by the member — the file, its sha1, which model was
+shown it, and what came of that wake. The member's own words are in its journal and in whatever it wrote, where
+they belong.
+
+Three limits, all of them on the folder's own `README.md` where you will meet them:
+
+- **`.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, and no more than 4 MB.** A repository carries every byte of a file
+  for ever, so a larger picture is skipped with a line in the wake's output rather than committed.
+- **The model has to be able to see it** (§8 above). If it cannot, the member is told there is a picture it cannot
+  be shown, it is not given one, and the card says so. You will see that in the card before you see it in a reply.
+- **Once.** A picture that has actually been looked at is on the card by its sha1 and is not shown again. Delete
+  its section from the card, or change the picture even slightly (a re-save changes the bytes), to have it looked
+  at again. A picture the model *could not* be shown is not used up: it stays waiting for a model that can see,
+  which is the difference between "the member looked at it" and "a wake happened nearby".
+
 **In the record, a picture is a note, not a file of bytes.** The conversation says a picture was here, what it was
 called, how large it was, and where the kept copy went (`wake/members/<name>/state/pictures/`). If the repository
 refuses that write, the note says *not kept* and the conversation goes on, because the member has still seen it.
@@ -1129,13 +1152,13 @@ of them was on the missing list, and none of them is missing.
 
 **Still missing, and these are the honest ones.**
 
-1. **Pictures a member is shown on purpose.** Half of this is built and half is not, and the split matters.
-   **Built:** the capability, measured rather than assumed (`lab/vision.py`, §8), and one of the two ends — a
-   conversation, where you press *Picture* and the member sees your photograph. **Not built:** the other end. A
-   member can be shown a picture in a talk with you; nothing the clock runs will ever hand one to it, so a circle
-   whose person is asleep never shows its members anything. That is the honest gap, and it is the smaller half:
-   `wake/wake.py --image <path>` already attaches one and both engine paths send it, so what is missing is a way
-   to say *which* picture a wake should be given, and the card that records what it looked at.
+1. ~~**Pictures in a conversation, both directions.**~~ **Built 2026-11-23.** A person can show a member a
+   photograph, and a member can be shown one while nobody is in the room (§8). The capability underneath is
+   measured rather than assumed: `wake/vision.json` holds every model that has been put in front of a picture whose
+   contents were known, what it said, and the day it said it — and a model that is not in there is treated as blind,
+   by the page and by the wake alike. What is not built, and is the smaller gap: **nobody has measured most of the
+   engines.** Only one vendor and three local models have been pointed at a picture, so the button refuses Gemini,
+   OpenAI, Anthropic and the rest until somebody with a key runs one command.
 2. **A choice of games** (§7), and a session you can watch while it happens. There is one game on the page and a
    report at the end, not a running table.
 3. ~~**A clock you own.**~~ **Ruled out, not built, and the reason is in §5.** A timer outside GitHub does work —

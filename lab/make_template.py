@@ -47,6 +47,7 @@ outbox.py
 talk.sh
 members.json
 wake/wake.py
+wake/vision.json
 wake/members/.gitkeep
 play/play.py
 play/behaviour.py
