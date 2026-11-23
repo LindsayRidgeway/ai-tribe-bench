@@ -57,6 +57,7 @@ lab/tennis.py
 lab/tennis_script.py
 lab/rps.py
 lab/paint.py
+lab/vision.py
 lab/update_tribe.py
 issues/README.md
 letters/README.md

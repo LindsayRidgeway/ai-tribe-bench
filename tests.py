@@ -1158,6 +1158,93 @@ class TestPaint(unittest.TestCase):
                          "nothing may be filed for a work that asked for nothing")
 
 
+class TestVision(unittest.TestCase):
+    """Which model can actually be shown a picture, and the instrument that decides it.
+
+    No network here. What is checked is the part that fails silently: a table that claims sight it never measured,
+    a reading that calls a fluent description evidence, and a probe whose contents are not what the file says they
+    are — because a measurement taken against the wrong picture is a measurement of nothing.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.vision = load(REPO / "lab" / "vision.py", "vision_mod")
+
+    def test_the_table_records_only_what_was_measured_and_says_when(self):
+        """A row is a measurement or it is honest about being nothing. `sees` is True, False, or None — never a
+        vendor's reputation, which is the thing this file exists to stop being used as evidence."""
+        import json
+        table = json.loads(self.vision.TABLE)
+        self.assertTrue(table, "an empty table is honest but useless; it means nobody has looked")
+        for model, row in table.items():
+            self.assertIn(row["sees"], (True, False, None), f"{model} has a verdict that is not a verdict")
+            self.assertEqual(row["model"], model, f"{model}'s row names a different model")
+            self.assertTrue(row["said"], f"{model} records no words, and the words are the evidence")
+            if row["sees"] is None:
+                self.assertIsNone(row["measured"], f"{model} is unmeasured and dated at once")
+            else:
+                self.assertRegex(str(row["measured"]), r"^\d{4}-\d{2}-\d{2}$",
+                                 f"{model} is recorded without the day it was measured")
+
+    def test_a_fluent_answer_is_not_evidence_of_sight(self):
+        """The dangerous case is not the model that refuses — it is the one that describes a photograph it was
+        never given. An answer that matches nothing in the probe is recorded as unknown, not as sight."""
+        v = self.vision.verdict
+        self.assertTrue(v("A red square in the upper left and a blue ring in the lower right.")["sees"])
+        self.assertFalse(v("no image")["sees"])
+        self.assertFalse(v("", "HTTP 400: this model does not accept image content")["sees"])
+        self.assertIsNone(v("It is a photograph of a cat asleep on a sofa.")["sees"],
+                          "a description that matches nothing was counted as sight")
+        self.assertIsNone(v("")["sees"], "silence was counted as sight")
+
+    def test_the_probe_is_the_same_picture_every_time_and_is_what_the_file_says_it_is(self):
+        """A stimulus that cannot be reproduced makes every verdict a memory. The pixels are read back and the
+        three facts the prompt asks about are checked against them: red, upper left; blue, lower right; white
+        ground."""
+        import tempfile, zlib, struct
+        a = Path(tempfile.mkdtemp(prefix="probe-")) / "a.png"
+        b = Path(tempfile.mkdtemp(prefix="probe-")) / "b.png"
+        self.vision.make_probe(a)
+        self.vision.make_probe(b)
+        self.assertEqual(a.read_bytes(), b.read_bytes(), "the probe is not the same picture twice")
+
+        raw = a.read_bytes()
+        self.assertTrue(raw.startswith(b"\x89PNG\r\n\x1a\n"), "the probe is not a PNG")
+        at, width, height, chunks = 8, 0, 0, []
+        while at < len(raw):
+            (n,) = struct.unpack(">I", raw[at:at + 4])
+            tag = raw[at + 4:at + 8]
+            data = raw[at + 8:at + 8 + n]
+            if tag == b"IHDR":
+                width, height = struct.unpack(">II", data[:8])
+            if tag == b"IDAT":
+                chunks.append(data)
+            at += 12 + n
+        pixels = zlib.decompress(b"".join(chunks))
+        stride = width * 3 + 1
+        rows = [pixels[i * stride + 1:(i + 1) * stride] for i in range(height)]
+        px = lambda x, y: tuple(rows[y][x * 3:x * 3 + 3])
+        self.assertGreater(px(2, 2), (200, 200, 200), "the corner is not the white ground")
+        red = px(int(width * 0.2), int(height * 0.2))
+        self.assertGreater(red[0], 150, "there is no red where the truth says the square is")
+        self.assertLess(red[1], 90, "the square is not red")
+        blue = px(int(width * 0.72 + height * 0.19 - 1), int(height * 0.70))
+        self.assertGreater(blue[2], 150, "there is no blue where the truth says the ring is")
+        self.assertIn("red square", self.vision.PROBE_TRUTH)
+        self.assertIn("blue ring", self.vision.PROBE_TRUTH)
+
+    def test_the_shipped_page_carries_the_measurement_and_a_gate(self):
+        """The page is what a person meets, and a gate that lives only in a lab script is a gate on the bench.
+        Two things must be there: the measured disagreement between the two DeepSeek models, and a refusal that
+        fires before a picture is sent rather than a sentence after a member has described one."""
+        page = (REPO / "ait.html").read_text(encoding="utf-8")
+        self.assertIn("'deepseek-v4-pro': false", page,
+                      "the page no longer knows that DeepSeek's other model is blind")
+        self.assertIn("'deepseek-flash': true", page, "the page no longer knows which model can see")
+        self.assertIn("cannot be shown a picture", page, "the page has no sentence for a blind model")
+        self.assertIn("function gatePicture", page, "there is no single gate between a chosen picture and a send")
+        self.assertIn("pictures: ", page, "the Keys page does not print which model can be shown a picture")
+
 class TestSoil(unittest.TestCase):
     """2026-11-02, the founder's test: the same colony in a different soil should build different tunnels.
     Which soil a member stands in is a property of its own files, so two colonies can share a repo."""
