@@ -3015,3 +3015,75 @@ passes older than the thing it was built for.
   the numbers are untouched: 38 checks pass, the physics is not in this pass, and the field's card cannot move. This
       is a pass about the last four seconds of a hole being worth watching, and the honest summary is that one of its
       two mechanisms (the fall) works and the other (the wall) is below the resolution of its own camera.
+
+PASS 19 — 2026-11-22, 19:03-20:35 — the premise was two numbers, and the curve was wired to the wrong distance
+====================================================================================================
+
+The thirteenth pass left a sentence in the file and five passes have built on it: the objective's landing has no
+depth, and that is why it thinks a ball struck at a pin one foot from the sand finds the sand 42% of the time where
+the game finds it 11.6% — four times too frightened, which is why four passes of bunkers have not changed an aim.
+This pass was sent to build the second dimension on top of that sentence. It measured the sentence first.
+
+  the premise does not survive, and it took two probes to see why. Take one compared the objective aiming *at the
+      pin* with the game aiming *where the athlete aims*: two different targets, so not a disagreement at all. Take
+      two held the target fixed. At the pin aim the objective says 40.5% and the game's own 200 tee shots land in
+      the sand 47.5% of the time; at the athlete's own aim, 0.6% against 2.5%. The arithmetic is the *optimist's*,
+      not the pessimist's. The 11.6% in the original sentence came from check 21, which counts every shot in a
+      round — drives, layups, chips — on holes whose pin happens to be cut near sand. So the two numbers were a
+      target mismatch and a denominator mismatch, and neither is a defect.
+
+  the probe's game side read 0 tee shots for both policies, which is a probe defect worth writing down because it
+      is the third time: `strokes_at` is incremented *before* the shot is logged, so a tee shot carries 1 and never
+      0, and the filter `strokes_at != 0` matched nothing. A measurement that returns zero is a measurement of the
+      filter until proven otherwise.
+
+  and then the line. `scores()` priced each landing cell by `d_pin = math.hypot(dist_ft, mid - hole.pin)`, where
+      `dist_ft` is the distance the shot is being *hit from*. On a 150 yd approach every cell on the green was 450-odd
+      feet from the pin, and `green_cost` is flat past 20 ft. The measured curve — 1.03 at 2 ft rising to 1.90 at 20,
+      the instrument pass 13 built and check 35 verifies the wiring of — was read by shots inside seven yards and by
+      nothing else. Every club shot in six passes priced every spot on the green at 1.90. The bug had been *written
+      down as a property* in the README ("what the curve cannot reach") and in finding 12, which is how a defect
+      survives: in prose that explains it.
+
+  fixed to `abs(mid - hole.pin)`, and the game got worse. With the curve readable the objective reaches for the pin;
+      over 1,080 holes paired by course and seed against the shipped version that is 0.041 of a stroke a hole *worse*,
+      because the objective cannot see the green's edge. The green is an ellipse 20 by 28 ft and a pin cut 13 ft
+      off-centre has 21 ft of depth to spare behind it, not 28 — which is the whole difficulty of a tucked pin and
+      the one thing a landing with no depth cannot know.
+
+  so the landing got its depth, and it is learned the way the width is. `sig_dist` and `bias_dist` are learned from
+      the same shots as `sigma` and `aim_bias`, on the other axis: how far past or short of its own notebook number
+      the ball finished, as a fraction of it, and the mean of that. Guarded to entries the athlete has hit four times,
+      for the reason `observe_conditions` guards the wind — the first shot at a cell reports the notebook's error, not
+      the hands'. Ungated it reads 14% of the shot; a player who trusts its bag that little prices every target off
+      the green and the aim stops being a decision — the field's best athlete lost seventeen strokes to it. Gated it
+      reads 2.3% and the hands on settled entries read 2.1% (check 40). `scores()` now asks what a landing is worth at
+      the point it lands: the ellipse, the sand's band, the putt it leaves, the club's shortfall.
+
+  what it bought, in the currency the founder set. 1,080 holes, paired by course and seed against the shipped
+      objective: +0.007 ± 0.037 of a stroke a hole. That is nothing, and it is the finding. The depth's own share,
+      fix-and-depth against fix-alone, is −0.033 ± 0.022 — three tenths of a stroke a round, and the interval excludes
+      zero. On the season page (four rounds x four practice sessions) the two athletes that practise hardest gain 4.0
+      and 4.5 strokes and the one that never practises loses 3.5, inside its own ±6.3 band. The sand's direction, which
+      four passes of hazards could not move, read +0.57 / −0.37 on twenty courses — and −0.27 / +0.00 on the same
+      twenty courses in the pass's other configuration. That is the instrument's noise, and check 22 now says so
+      instead of claiming either.
+
+  the objective is now wrong in a place the record can point at: from 150 yd it believes 95% of its shots hold the
+      green and the game holds 53%. It is not the geometry. It is that half the game's misses are balls that never had
+      the club — the gear ladder is coarse, the athlete's prior is linear in effort and the flight is not (a 60%
+      five-iron believes 117 yd and delivers 102, and `choose()` is built to prefer exactly those partial gears), and
+      a normal wide enough to carry that is fatalistic. A mixture kernel is the next thing to try and this pass did
+      not build it: a pass that has just measured its own premise as false should not invent its replacement.
+
+  two checks were restated rather than deleted. The belief-reaches-the-target check asked that a 3° belief aim three
+      feet away from a 0.6° one at 40 ft; with the curve read, the pin is the cheapest place on the green inside a
+      club's length for every belief, so it reads the *price* at that range and the aim at 200 ft instead. And check
+      22, which asserted for fourteen passes that the sand is *not* directional, now asserts that its direction is
+      smaller than this instrument can see — in either direction, because the pass read it both ways.
+
+  the numbers: 40 checks pass (38 → 40: the depth it learns against the depth its hands have; the objective's
+      landing is still too kind, asserted rather than hidden; and the restatements above). The selftest goes from 48 s
+      to 70 s and the field from 9 s to 15 s — the price of asking each landing what it is
+      worth at the point it lands instead of once per shot. All twelve pages regenerated: season 28.5 / 31.0 / 32.0 /
+      36.0 / 40.8 / 58.8 to par over four rounds, the five films, the door.

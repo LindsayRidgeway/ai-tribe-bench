@@ -48,18 +48,32 @@ Three questions, in the order I would ask them of myself.
 Dated, with the number that shows it. Nothing in this list is a surprise to me; several of them have been the whole
 subject of a pass.
 
-**The objective has one dimension where the game has two.** `target()` models a shot's *lateral* miss and assumes
-the ball arrives at the pin's distance. Consequences, both measured on 2026-11-20:
+**The objective is too kind about holding a green.** As of pass 19 the landing has two dimensions — lateral
+position against the green's ellipse, and depth as a spread learned from the athlete's own misses (dated
+2026-11-22). What it still cannot say is that a ball sometimes does not *have* the club. From 150 yards the
+objective puts 95% of its shots on the green; the game holds 53%. The gap is not the geometry: the gear ladder is
+coarse, the athlete's prior is linear in effort when the flight is not (a 60% five-iron believes 117 yards and
+delivers 102), and the club-choosing rule prefers exactly those partial gears. A spread wide enough to carry that
+makes the objective fatalistic — everything is off the green, the aim stops being a decision, and the best athlete
+in the field lost seventeen strokes to it. So the model is narrow and known to be kind, and the next thing to try
+is a mixture: how often the club is wrong, and how far off it is when it is. There is no bar on this one; it is a
+distance between two measurements, not a sample.
 
-- the sand looks reachable 42% of the time to the objective where the game finds it 11.6%, so the arithmetic is
-  four times more frightened of a bunker than the golf is, and it will pay 0.70 of a stroke to avoid a hazard that
-  costs 0.08 (README finding 12, record pass 13);
-- a 12 ft putt costs 1.50 strokes up the fall line and 2.17 across it, while `target()` prices every 12 ft
-  landing at 1.83 — a 0.67-stroke spread on a single landing, against the 0.87 the whole 2-to-20-ft gradient is
-  worth.
+**Direction is still missing, and it is the bigger error.** A 12 ft putt costs 1.50 strokes up the fall line and
+2.17 across it, and `target()` prices every 12 ft landing at 1.83. The objective's scatter runs across the green
+and along it and not *toward the hole*, so it never knows which way the ball will be putting. Measured 2026-11-20,
+unchanged since. This is "where it stops" item 6.
 
-This is the largest error in the game and the next pass that is not a page: it needs the landing to be a vector
-scatter instead of a number.
+**What the depth bought, stated plainly, because it is less than the file expected.** Over 1,080 holes played
+against the previous version, paired by course and seed, the whole change — the distance fix and the depth — is
+worth +0.007 ± 0.037 of a stroke a hole. The depth's own share is −0.033 ± 0.022, about a third of a stroke a
+round. On the season page the two athletes that practise hardest gain 4.0 and 4.5 strokes and the one that never
+practises loses 3.5, inside its own band. If you play this and it feels like the aiming never changes, that is
+the measurement, not your imagination.
+
+**The sand's direction is not resolved.** Four passes of hazards failed to make the target decision directional.
+The depth moved it: +0.57 / −0.37 on twenty courses — and −0.27 / +0.00 on the same twenty courses in another
+configuration of the same pass. That is the instrument's noise, and I am not claiming the effect.
 
 **The wind and the aim.** The frozen player — the one that never practises — scores +14 a round aiming at the flag,
 +10 aiming at the middle, and +15 aiming where the objective says (record pass 13). The objective's advice is good

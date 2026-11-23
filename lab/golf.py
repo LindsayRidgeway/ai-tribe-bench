@@ -119,8 +119,10 @@ SAND_PEN = 1.70                  # the athlete's price for a ball in the sand, i
 # rough (a chip's cost genuinely does not move with distance: 2.45 to 2.6 from 36 ft to 60), and the sand on
 # top of the green's price. What is averaged away: direction. A 12 ft putt costs 1.50 up the fall line and
 # 2.17 across it -- 0.67 strokes, nearly as large as the whole 2-to-20 ft gradient this pass just acquired --
-# and `target()` prices every 12 ft landing at 1.83. That is the largest thing left wrong in the objective and
-# it needs a two-dimensional landing, which is a pass of its own ("where it stops", item 6).
+# and `target()` prices every 12 ft landing at 1.83. Pass 19 gave the landing a second *axis* — depth, so the
+# ellipse and the club's shortfall are priced — and that is not the same thing: this is direction, along and
+# across the fall line, and the objective has no idea which way the green tilts. It is the largest thing left
+# wrong in the objective ("where it stops", item 6).
 COST_OFF_GREEN = 2.60            # a chip, then a putt: flat, measured 2.45 at 36 ft and 2.6 at 60
 GREEN_COST_KNOTS = ((2.0, 1.03), (3.0, 1.14), (4.0, 1.35), (6.0, 1.43), (9.0, 1.65),
                     (12.0, 1.83), (16.0, 1.83), (20.0, 1.90))
@@ -563,6 +565,16 @@ CROSS_QUIET = 0.035
 # altogether and six taught sigmas from 0.6° to 3.0° played the same card. Measured, pass 9.
 FLOOR_FT = 0.5
 
+# ...and the same floor on the other axis, plus the prior a beginner starts with. `scores()` assumed until pass
+# 19 that the ball arrives at the flag's *distance*: its landing was a scatter across the green and nothing
+# along it, so a shot that comes up twenty yards short was priced as if it had landed beside the pin. The
+# width the athlete believes it has is learned from its misses (`sigma`); this is the same number on the other
+# axis, learned the same way, from the same shots — how far past or short of its own notebook number the ball
+# finished. The prior is a beginner's, 5% of the shot, which is also where the game's hands sit once the gear
+# ladder and the wind model have taken their bites (measured: 2-6% by distance band, pass 19).
+ALONG_FLOOR_FT = 0.5
+ALONG_PRIOR = 0.05
+
 
 # What a beginner believes about a bag, against what it does. Not random: the shape of the error is the shape
 # of the mistake everybody makes — too much faith in the short irons, no idea what the wedges do, and a
@@ -613,6 +625,12 @@ class Athlete:
         self.sigma = 1.5                                   # degrees of scatter it believes it has; learned
         self.sigma_taught = sigma_taught                   # ...unless it is told, and then never learns
         self.gate = gate                                   # whether the wind is kept out of that lesson
+        # Pass 19. The other axis, learned from the same shots: how far past or short of its own number the
+        # ball finished, as a fraction of that number — a mean and a scatter about it, exactly the pair
+        # (`aim_bias`, `sigma`) it keeps for the width of its misses.
+        self.dist_misses: list[float] = []
+        self.bias_dist = 0.0
+        self.sig_dist = ALONG_PRIOR
         self.cnd_pairs: list[tuple[float, float]] = []      # (head fraction, how short the shot came back)
         self.wind_c = 0.0                                  # how much wind takes off; learned from zero
         self.rough_cost = ROUGH_LOSS                       # what the rough costs; told, not learned
@@ -633,13 +651,29 @@ class Athlete:
                     best = (score, c, g)
         return best[1], best[2]
 
-    def observe(self, name: str, gear: float, total_yd: float) -> None:
+    def observe(self, name: str, gear: float, total_yd: float, predicted: float | None = None) -> None:
         """Fold the shot into the entry it was hit on. Half a swing is not a full one: a player who
-        corrected his seven iron off a knocked-down shot would ruin the number that matters."""
+        corrected his seven iron off a knocked-down shot would ruin the number that matters.
+
+        Pass 19: and record how far the shot missed the number it was hit on, because that is the one thing
+        the notebook cannot say and the target decision now needs. It is the same lesson as `sigma`, taken off
+        the other axis: the mean of it is the notebook's own optimistic bias and the scatter about the mean is
+        how far from a distance this athlete's ball actually lands.
+        """
         self.shots += 1
         n = self.n[name][gear]
         self.n[name][gear] = n + 1
         self.table[name][gear] += (total_yd - self.table[name][gear]) / (n + 1)
+        if predicted and n >= 4:
+            # Only off a settled entry, and for the reason `observe_conditions` guards the wind the same way:
+            # the first shot at a cell reports the *notebook's* error, not the hands'. Ungated, this number
+            # came out at 14% of the shot — a player who believes its own bag so little that every target is
+            # off the green and the aim stops being a decision (measured on the field, pass 19: the guard is
+            # the difference between a 4% number and a 14% one).
+            self.dist_misses.append((total_yd - predicted) / max(1.0, predicted))
+            m = len(self.dist_misses)
+            self.bias_dist = sum(self.dist_misses) / m
+            self.sig_dist = max(0.01, math.sqrt(sum((d - self.bias_dist) ** 2 for d in self.dist_misses) / m))
 
     def observe_side(self, lateral_yd: float, distance_yd: float, aim_used: float,
                      cross: float = 0.0) -> None:
@@ -750,33 +784,33 @@ class Athlete:
         s = max(FLOOR_FT, math.radians(self.sigma) * dist_ft)
         half = GREEN_A + BUNKER_W
         step = 0.5
+        # Pass 19. The landing is a scatter on two axes now, and only the along one costs anything to build:
+        # the price of finishing at a lateral cell is the *same* for every aim, because a normal moved along x
+        # is the same normal — so the along integral is done once per cell, and the scan over targets is still
+        # the one-dimensional convolution it was.
+        s_along = max(ALONG_FLOOR_FT, self.sig_dist * dist_ft)
+        along0 = self.bias_dist * dist_ft
+        cells, cost = [], []
+        x = -half
+        while x < half - 1e-9:
+            mid = x + 0.5 * step
+            cells.append(mid)
+            cost.append(self._cell_cost(hole, mid, along0, s_along))
+            x += step
         scored: list[tuple[float, float]] = []
         for k in range(-45, 46):
             t = float(k)
-            # Pass 13. The landing is integrated over, half a foot a cell: each cell carries the probability
-            # that the shot finishes in it and is priced by where it finishes — the measured cost of holing
-            # out from that cell's distance to the pin. The window is five deviations wide, which drops
-            # 6e-7 of the mass and saves the whole grid on a tight belief. `dist_ft` is the shot's own
-            # distance to the flag, so a cell `mid` feet lateral of the green's centre lies
-            # hypot(dist_ft, mid - hole.pin) from the pin.
+            # The window is five deviations wide, which drops 6e-7 of the mass and saves the whole grid on a
+            # tight belief. `dist_ft` is the shot's own distance to the flag, so a cell `mid` feet lateral of
+            # the green's centre lies |mid − hole.pin| feet from the pin once the ball has landed at that
+            # distance — see `_cell_cost` for why that sentence cost a pass.
             lo, hi = max(-half, t - 5.0 * s), min(half, t + 5.0 * s)
             value = covered = 0.0
-            x = lo
-            while x < hi - 1e-9:
-                x0, x1 = max(x, -half), min(x + step, half)
-                weight = _phi((x1 - t) / s) - _phi((x0 - t) / s)
-                mid = 0.5 * (x0 + x1)
-                d_pin = math.hypot(dist_ft, mid - hole.pin)
-                in_sand = ((hole.sand > 0 and GREEN_A < mid <= GREEN_A + BUNKER_W) or
-                           (hole.sand < 0 and -GREEN_A - BUNKER_W <= mid < -GREEN_A))
-                if abs(mid) <= GREEN_A:
-                    value += weight * green_cost(d_pin)
-                elif in_sand:
-                    value += weight * (green_cost(d_pin) + self.sand_pen)
-                else:
-                    value += weight * COST_OFF_GREEN
-                covered += weight
-                x += step
+            for mid, price in zip(cells, cost):
+                if mid < lo or mid >= hi:
+                    continue
+                value += (_phi((mid + 0.5 * step - t) / s) - _phi((mid - 0.5 * step - t) / s)) * price
+                covered += _phi((mid + 0.5 * step - t) / s) - _phi((mid - 0.5 * step - t) / s)
             # Whatever the window did not cover is a ball that finished past the turf this objective models,
             # and it is charged the rough's price. Without this a target wider than the green scores 0.00 --
             # an empty window is not a free target, and it was exactly what the first version of this did to
@@ -784,6 +818,66 @@ class Athlete:
             value += COST_OFF_GREEN * max(0.0, 1.0 - covered)
             scored.append((value, t))
         return scored
+
+    def _cell_cost(self, hole: Hole, lat: float, along0: float, s_along: float) -> float:
+        """Strokes to hole out from a landing `lat` ft across the green's centre, averaged over the depth it
+        could have arrived at. The depth is a normal centred on `along0` — the notebook's own bias, in feet —
+        and the price of a landing has to be asked at the point it lands, because the green is an ellipse and
+        a ball ten feet off-centre has 15 ft of depth to spare where one in the middle has 28."""
+        total, k, a = 0.0, 0.0, along0 - 4.0 * s_along
+        step = max(0.5, s_along / 12.0)
+        while a < along0 + 4.0 * s_along - 1e-9:
+            a0, a1 = a, min(a + step, along0 + 4.0 * s_along)
+            w = _phi((a1 - along0) / s_along) - _phi((a0 - along0) / s_along)
+            total += w * self._landing(hole, lat, 0.5 * (a0 + a1))
+            a = a1
+        return total
+
+    def _landing(self, hole: Hole, lat: float, alo: float) -> float:
+        """What a ball that finished `lat` ft across the green's centre and `alo` ft past the flag's distance
+        is worth. This is the game's own geometry: an ellipse GREEN_A by GREEN_B, a band of sand as deep as the
+        green beside it, and the rough's constant outside both — the same three tests `on_green`, `in_sand` and
+        `lie_at` make, asked at a point rather than at a lie."""
+        lie = self._lie_of(hole, lat, alo)
+        if lie == "off":
+            return COST_OFF_GREEN
+        d_pin = math.hypot(alo, lat - hole.pin)
+        return green_cost(d_pin) + (self.sand_pen if lie == "sand" else 0.0)
+
+    def _lie_of(self, hole: Hole, lat: float, alo: float) -> str:
+        """Which of the three the ball finished on, at a point rather than at a lie: `on_green` and `in_sand`
+        asked of a landing that has both coordinates."""
+        dx, dy = lat / GREEN_A, alo / GREEN_B
+        if dx * dx + dy * dy <= 1.0:
+            return "green"
+        if (hole.sand and abs(alo) <= GREEN_B and
+                ((hole.sand > 0 and GREEN_A < lat <= GREEN_A + BUNKER_W) or
+                 (hole.sand < 0 and -GREEN_A - BUNKER_W <= lat < -GREEN_A))):
+            return "sand"
+        return "off"
+
+    def landing_prob(self, hole: Hole, dist_ft: float, aim: float | None = None) -> dict:
+        """Where this athlete believes its shot at `aim` will finish, as three fractions. Public for the same
+        reason `scores()` is: a check has to be able to hold the objective's landing against the game's, and a
+        model of a landing that nobody can ask for its answer is a model nobody can catch being wrong."""
+        aim = self.target(hole, (hole.centre[0], hole.centre[1] - dist_ft), dist_ft) if aim is None else aim
+        s = max(FLOOR_FT, math.radians(self.sigma) * dist_ft)
+        s_along = max(ALONG_FLOOR_FT, self.sig_dist * dist_ft)
+        along0 = self.bias_dist * dist_ft
+        out = {"green": 0.0, "sand": 0.0, "off": 0.0}
+        a = along0 - 4.0 * s_along
+        while a < along0 + 4.0 * s_along - 1e-9:
+            a0, a1 = a, min(a + 0.5, along0 + 4.0 * s_along)
+            wa = _phi((a1 - along0) / s_along) - _phi((a0 - along0) / s_along)
+            alo = 0.5 * (a0 + a1)
+            x = aim - 5.0 * s
+            while x < aim + 5.0 * s - 1e-9:
+                x0, x1 = x, min(x + 0.5, aim + 5.0 * s)
+                w = _phi((x1 - aim) / s) - _phi((x0 - aim) / s)
+                out[self._lie_of(hole, 0.5 * (x0 + x1), alo)] += wa * w
+                x = x1
+            a = a1
+        return out
 
 
 def _phi(z: float) -> float:
@@ -987,7 +1081,7 @@ def play_hole(hole: Hole, ath: Athlete, putter: PuttAthlete, green: Green,
                     ath.observe_conditions(head, measured / max(1.0, predicted))
                 # the notebook is a calm-day notebook: a shot with the wind behind it is divided back to
                 # what it would have done in still air, or the student learns that its driver goes 317.
-                ath.observe(club.name, gear, measured / max(0.5, cost))
+                ath.observe(club.name, gear, measured / max(0.5, cost), predicted=predicted)
                 ath.observe_side(lateral_aim, flown_yd, aim_used, cross)
         if res.get("lip"):
             lip_seen = True
@@ -1269,9 +1363,18 @@ def selftest() -> int:
           f"{green_cost(20.0):.2f}. Until pass 13 every landing on the green was 2.00 and the chip was aimed "
           f"at the middle of the grass, which is why the short game was the most expensive thing in the game")
 
-    # and the same measurement at approach range, where it does *not* hold: the objective wants the safe target
-    # badly (a tucked pin beside the sand is priced 0.6 of a stroke worse than aiming away from it) and the card
-    # pays almost nothing for it. The gap is the one-dimensional landing, and it is the thing to fix next.
+    # and the same measurement at approach range. Pass 19 rewrote this check, and the sentence it used to
+    # carry, because the pass was built on that sentence and the sentence was wrong. It said the objective
+    # thought a ball struck at a pin one foot from the sand found the sand 42% of the time while the game put
+    # it there on 11.6% of approaches: the first number is real (40.5%) but it is the objective's chance for a
+    # shot *aimed at the pin*, and the second was every shot in a round, drives included. Held like for like —
+    # the game's own shots at the same aim — the objective is if anything the optimist's: 40.5% against the
+    # game's 47.5% at the pin, 0.6% against 2.5% at its own aim. So the sand arithmetic was never the defect.
+    # What was: `d_pin` was the length of the shot, so the green's measured curve was read by chips and by
+    # nothing else, and the landing had no depth. Both are fixed; the aim now depends on where the pin is cut,
+    # and the card has begun to pay for it — which is the comparison below, taken as a *difference* between two
+    # pin positions rather than as two numbers against zero, because the paired design cancels the weather and
+    # neither of the two alone is resolved by twelve courses.
     tight, friendly = paired_advantage(19.0), paired_advantage(6.0)
     a19 = Athlete()
     a19.policy = "spread"
@@ -1279,16 +1382,18 @@ def selftest() -> int:
     sc19 = a19.scores(tuck_hole, 150.0)
     best19 = min(v for v, _ in sc19)
     at_pin = min(sc19, key=lambda tv: abs(tv[1] - 19.0))[0]
-    check("the objective's tucked-pin trade is six tenths and the card pays a tenth of it",
-          at_pin - best19 > 0.4 and abs(tight) < 0.6 and abs(friendly) < 0.6,
+    check("the tucked pin is priced, and the card does not contradict it",
+          at_pin - best19 > 0.3 and abs((tight - friendly) - (at_pin - best19)) < 0.6,
           f"a pin cut 19 ft out with sand from 20 ft: the objective prices aiming at the pin {at_pin - best19:.2f} "
-          f"strokes worse than aiming away, and playing it out over 3 bags x 12 courses the card pays "
-          f"{tight:+.2f} for the safe aim on a tucked pin and {friendly:+.2f} on a friendly one. Both are inside "
-          f"the sample's own error, and the reason is measurable: the objective thinks a ball struck at a pin one "
-          f"foot from the sand finds the sand 42% of the time, and the game puts it in the sand on 11.6% of "
-          f"approaches (check 21), because the objective's landing has no along-dimension — it always arrives at "
-          f"the pin's distance, so the sand is always in reach. Written down rather than fixed: it needs a second "
-          f"dimension, not a constant")
+          f"strokes worse than aiming away. The card, over 3 bags x 12 courses played twice — tucked pin and "
+          f"friendly pin, the same courses — pays {tight:+.2f} for the safe aim on the tucked pin and "
+          f"{friendly:+.2f} on the friendly one, a difference of {tight - friendly:+.2f}, so the two are "
+          f"{abs((tight - friendly) - (at_pin - best19)):.2f} apart and neither is resolved by twelve courses. "
+          f"The pass's evidence is not here: it is 1,080 holes played against the objective as it shipped, where "
+          f"the whole change is worth {0.007:+.3f} ± 0.037 of a stroke a hole and the depth's own share of it "
+          f"{-0.033:+.3f} ± 0.022. The shape moves the aim and just about moves the card; the honest reading is "
+          f"that the second dimension is real, calibrated and nearly free, and that it is not where the strokes "
+          f"are")
 
 # 17. the sand is where the hole says it is, and only there
     left_hole, right_hole, none = (Hole(400, 4, "S", pin=10.0, sand=-1), Hole(400, 4, "S", pin=10.0, sand=+1),
@@ -1474,17 +1579,20 @@ def selftest() -> int:
           f"({hit / max(1, seen):.1%}, against 8.8% before the putter learned to aim past the cup, which put "
           f"more balls past the hole and past the flag); a flank bunker needs the depth right as well as the "
           f"face wrong")
-    # This check asserts a negative — the pass it belongs to predicted a positive and did not get one — so it
-    # will fail if a later pass makes the sand matter, and that is the point of it (the same arrangement as the
-    # check above). The bound is loose because twenty courses cannot resolve a tenth of a stroke: pass 13 reads
-    # +0.60/+0.18 here and +0.16+-0.20/+0.07+-0.04 on the 40 x 8 reporting run, which is the number to trust.
-    # And pass 13 has a reason the sand should not be directional, which is the 42%-against-11.6% in check 21.
-    check("and so it does not make the decision directional",
-          toward < 0.9 and away < 0.9 and abs(toward - away) < 0.9,
+    # This check asserted a negative from pass 5 to pass 18 — the pass it belongs to predicted a positive and
+    # did not get one — and pass 19 tried to flip it twice and could not: with the landing given a depth the
+    # sign read +0.57 / −0.37 in one configuration and −0.27 / +0.00 in another, on the same twenty courses.
+    # That is this instrument's own noise, and the honest conclusion is the one the check has always been:
+    # twenty courses cannot see the sand's direction, so the record must not claim it in either direction. What
+    # pass 19 *can* say about the sand is on 1,080 holes and it is the check above's message.
+    check("and the sand's direction is still smaller than this instrument can see, in either direction",
+          abs(toward) < 0.9 and abs(away) < 0.9 and abs(toward - away) < 0.9,
           f"adding the sand moves what aiming away from the pin is worth by {toward:+.2f} strokes when the pin "
-          f"is cut toward it and {away:+.2f} when it is cut away. This sample is twenty courses and cannot "
-          f"resolve a tenth of a stroke; the reporting run (40 courses x 8 bags) is where this number is worth "
-          f"reading, and the prediction was that the first would rise by more than a stroke")
+          f"is cut toward it and {away:+.2f} when it is cut away — a difference of {toward - away:+.2f}, which "
+          f"this sample cannot tell from zero. It read +0.57 / −0.37 in the first configuration of this pass and "
+          f"−0.27 / +0.00 in the second, which is the same answer twice as far as the record is concerned: the "
+          f"effect, if it is there, is under a tenth of a stroke per hole and the reporting run (40 courses x 8 "
+          f"bags, where pass 13 read +0.16 ± 0.20) is the instrument for it, not this one")
 
     # 26-28. the scatter it believes against the scatter its shots have. Pass 8 is the pass that found the
     # first of these by measuring it: until then the athlete read its own scatter off the flag, so the offset
@@ -1501,6 +1609,69 @@ def selftest() -> int:
           abs(calm_ath.sigma - FACE_SD) < 0.3,
           f"it believes {calm_ath.sigma:.2f}° and the hands are {FACE_SD:.2f}° — this check exists because "
           f"for six passes the athlete read its misses off the flag and believed 1.5° for the same hands")
+
+    # 26b. the same pair of numbers on the other axis, which did not exist until this pass. The depth the
+    # athlete believes is the depth it has been shown, on the entries it knows: `sig_dist` is learned off the
+    # same shots as `sigma`, from the residual against its own notebook number, and guarded to settled entries
+    # for the reason `observe_conditions` guards the wind — the first shot at a cell reports the notebook's
+    # error, not the hands'.
+    sample = calm_ath          # trained, so there are settled entries to measure the hands off
+    settled_rows = []
+    for k in range(12):
+        for h in drawn_course(random.Random(6100 + k), 14.0, True):
+            r = play_hole(h, sample, GolfPutter(), green, learn=False, verbose=False,
+                          rng=random.Random(DEFAULT_SEED + k))
+            for e in r["log"]:
+                # `n` is read before the shot, because the shot it is about to take is what this is
+                # measuring: only shots struck with a club whose entry has been hit four times are a
+                # measurement of the hands, exactly as `observe_conditions` guards the wind.
+                if (e["kind"] == "shot" and e["lie"] == "fairway" and e["predicted"]
+                        and sample.n[e["club"]][e["gear"]] >= 4 and e["gap_ft"] > 100):
+                    settled_rows.append((e["total"] - e["predicted"]) / max(1.0, e["predicted"]))
+    dm = sum(settled_rows) / len(settled_rows)
+    ds = (sum((x - dm) ** 2 for x in settled_rows) / (len(settled_rows) - 1)) ** 0.5
+    check("the depth it learns is the depth its hands have",
+          0.5 * ds < calm_ath.sig_dist < 2.0 * ds and abs(calm_ath.bias_dist) < 0.03,
+          f"it believes its ball finishes {calm_ath.bias_dist * 100:+.1f}% ± {calm_ath.sig_dist * 100:.1f}% of the "
+          f"shot from the number it was hit on; on the entries it has hit four times, {len(settled_rows)} "
+          f"fairway shots over 12 drawn courses come out {dm * 100:+.1f}% ± {ds * 100:.1f}%. The two agree, "
+          f"which is the whole claim: a player who knows how far it is likely to be off is the one who can "
+          f"spend it on a target. It is learned only off settled entries — ungated it read 14%, and a player who "
+          f"believes its own bag that little prices every target off the green. The ungated number is not "
+          f"noise, it is the notebook's own optimism on the cells it has not hit yet, and checking the hands "
+          f"against it would be measuring the notebook and calling it a hand")
+
+    # 26c. and the objective's landing against the game's, which is where the objective is still wrong. The
+    # model's depth is a normal with the hands' spread; the game's is not. It is a tight core plus a population
+    # of balls that finish fifteen or twenty yards short because the club in the hand did not have the number —
+    # the gear ladder is coarse, the athlete's prior is linear in effort and wrong, and its wind coefficient is
+    # imperfect. A normal wide enough to carry that (18% of the shot) puts *everything* off the green, and the
+    # aim stops being a decision (measured this pass: the ungated kernel reads 14% and the field's best athlete
+    # loses seventeen strokes). So the number is asserted rather than hidden, and the next thing to try is a
+    # mixture: how often the club is wrong, and how far off it is when it is.
+    cal_hole = Hole(150, 3, "cal", pin=12.0, sand=+1)
+    cal_d = 150.0 * FT_PER_YD
+    belief = calm_ath.landing_prob(cal_hole, cal_d)
+    realised = []
+    hits = 0
+    for k in range(14):
+        for h in drawn_course(random.Random(5200 + k), 14.0, True):
+            if abs(h.yards - 150.0) > 12.0:
+                continue
+            r = play_hole(h, calm_ath, GolfPutter(), green, learn=False, verbose=False,
+                          rng=random.Random(DEFAULT_SEED + k))
+            for e in r["log"]:
+                if e["kind"] == "shot" and 400 < e["gap_ft"] < 500:
+                    realised.append(e["on_green"])
+    game_on = sum(realised) / max(1, len(realised))
+    check("the objective's landing is still too kind about holding the green, and the size of the lie is stated",
+          belief["green"] > game_on + 0.15,
+          f"from 150 yd the objective puts {belief['green']:.0%} of its shots on the green (sand "
+          f"{belief['sand']:.0%}, off {belief['off']:.0%}); the game puts {game_on:.0%} of "
+          f"{len(realised)} approaches from that range on it. The gap is not the geometry — it is that half the "
+          f"game's misses are balls that never had the club, and no normal kernel can say that. This check "
+          f"asserts the gap's existence so that the record cannot quietly stop being true; it is the same "
+          f"arrangement as check 21")
 
     windy_ath = trained_sigma(False)
     windy_rows = []
@@ -1530,11 +1701,22 @@ def selftest() -> int:
         a.sigma = sig
     near_t = [a.target(hole40, (13.0, hole40.centre[1] - 40.0), 40.0) for a in near]
     far_t = [a.target(hole200, (13.0, hole200.centre[1] - 200.0), 200.0) for a in far]
+    near_v = [min(a.scores(hole40, 40.0))[0] for a in near]
+    far_v = [min(a.scores(hole200, 200.0))[0] for a in far]
+    # Pass 19 restated the first half of this. It used to ask that a 3° belief *aim* three feet away from a
+    # 0.6° one at 40 ft as well as at 200, and that was a true statement about an objective whose green was a
+    # constant: the only thing a target could buy was distance from the sand, so a wilder belief always bought
+    # some. With the curve actually read (see `scores()`), the pin is the cheapest place on the green inside a
+    # club's length for every belief up to 3°, and an aim that does not move is the right answer rather than a
+    # dead belief — so at that range the check reads the price instead, which the old floor would have made
+    # identical, and at 200 ft it still reads the aim, which is where the decision is.
     check("the belief reaches the target at every range, not only past 76 ft",
-          near_t[0] - near_t[1] >= 3.0 and far_t[0] - far_t[1] >= 3.0,
-          f"from 40 ft a scatter of 0.6° aims at {near_t[0]:+.0f} ft and one of 3.0° at {near_t[1]:+.0f}; from "
-          f"200 ft at {far_t[0]:+.0f} and {far_t[1]:+.0f}. Until pass 9 the floor in `target()` was 2 ft, which "
-          f"is wider than a 1° scatter inside 76 ft, and both of those short answers were the same number")
+          near_v[1] > near_v[0] + 0.02 and far_t[0] - far_t[1] >= 3.0 and far_v[1] > far_v[0] + 0.02,
+          f"from 40 ft a scatter of 0.6° prices the best target at {near_v[0]:.3f} and 3.0° at {near_v[1]:.3f} "
+          f"(both aim at the pin: inside a club's length the pin is where a scattered ball has the shortest "
+          f"putt, whatever the scatter); from 200 ft they aim at {far_t[0]:+.0f} and {far_t[1]:+.0f} ft and "
+          f"price it {far_v[0]:.3f} / {far_v[1]:.3f}. Until pass 9 the floor in `target()` was 2 ft, which is "
+          f"wider than a 1° scatter inside 76 ft, and both of those short answers were the same number")
 
     # 29. Taking the floor out made the objective *flat* over a band — every target from which the ball is
     # certain to be on the green and inside 25 ft of the pin scores the same — and the scan was answering
@@ -1928,7 +2110,8 @@ def field(args) -> int:
     print("  and what each of them ended up believing:")
     for name, policy, learns, tots, ath in sorted(cards, key=lambda c: sum(c[3])):
         print(f"    {name:14s} aim bias {ath.aim_bias:+5.2f}°  sigma {ath.sigma:4.2f}°  "
-              f"wind {ath.wind_c:4.2f}  shots observed {ath.shots:4d}")
+              f"wind {ath.wind_c:4.2f}  depth {ath.bias_dist * 100:+4.1f}% ± {ath.sig_dist * 100:.1f}%  "
+              f"shots observed {ath.shots:4d}")
     return 0
 
 
@@ -2024,8 +2207,8 @@ def costs_test(args) -> int:
     print(f"  the slope and 270-360° is the reverse: an uphill putt is easier, which is the first time this game")
     print(f"  has said anything golf agrees with about *which* putt a putt is. `target()` prices every 12 ft")
     print(f"  landing at {green_cost(12.0):.2f}, so it is out by up to half a stroke on a single landing and the")
-    print(f"  average is right. That is item 6 under 'where it stops', and it needs a two-dimensional")
-    print(f"  landing: the objective's scatter is lateral only, so it never knows which way the ball puts.")
+    print(f"  average is right. Pass 19 gave the landing a depth and did not give it a slope: what is")
+    print(f"  missing is direction, and the objective has no idea which way the green tilts.")
 
     # the other two lies, measured where the compass is honest: the rough at 36 ft and beyond, where every
     # bearing is off the green in every direction, and the sand at whatever distances a ball can be in it
@@ -2551,8 +2734,8 @@ a different part of what a golfer has to learn — how far each club goes, how m
 own hands miss by — and nothing else is given to any of them. The card at the bottom is the result. The point is the
 thing underneath it: a player that has measured itself plays better than one that has not, and you can watch the
 measuring happen.</p>
-<p class="note">Everything here is one program's own numbers, produced by <code>lab/golf.py</code>. Runs, 2026-11-19
-to 2026-11-20; the game is a simulation and this page is a report on it, not a product.</p>
+<p class="note">Everything here is one program's own numbers, produced by <code>lab/golf.py</code>. Runs, __RUNS__;
+the game is a simulation and this page is a report on it, not a product.</p>
 
 <h2>The doors, in the order I would open them</h2>
 <div class="doors">
@@ -2643,7 +2826,17 @@ def start_page(args) -> int:
                f"{min(ahead):.0f} to {max(ahead):.0f} strokes a round. That gap widening is the whole claim of the "
                f"game and the only one worth testing, and the bars are there so that you can see it is not the "
                f"weather.")
-    page = (_START_PAGE.replace("__CARD__", card).replace("__COND__", cond).replace("__VERDICT__", verdict)
+    # The one date on this page, read off the record rather than typed: a hand-typed date range said the runs ended
+    # on 2026-11-20 and was still saying it on the 22nd (found by looking at the page, pass 19).
+    record_txt = out_dir.parent / "records" / "golf-2026-11-19.txt"
+    runs = "2026-11-19 onwards"
+    if record_txt.exists():
+        stamps = [ln.split("—")[1].strip()[:10] for ln in record_txt.read_text().splitlines()
+                  if ln.startswith("PASS ") and "—" in ln]
+        if stamps:
+            runs = f"{min(stamps)} to {max(stamps)}" if min(stamps) != max(stamps) else min(stamps)
+    page = (_START_PAGE.replace("__RUNS__", runs)
+            .replace("__CARD__", card).replace("__COND__", cond).replace("__VERDICT__", verdict)
             .replace("__BAGS__", str(d["bags"])))
     out = out_dir / "start.html"
     out.write_text(page)

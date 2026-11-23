@@ -53,8 +53,14 @@ when the number of positions it samples was falling with distance), a bug in its
 ball in the rough aim at the widest target it could find, the first target decision the short game has ever had
 (three quarters of a stroke at 30 ft, because a chip is all distance and the objective could not see distance), and
 the reason four passes of bunkers have failed to change the aim — the objective's landing always arrives at the
-pin's distance, so it thinks the sand is reachable 42% of the time where the game makes it 11.6%. What is left of
-golf is that: one dimension, and a scatter that is a number instead of a vector. The fourteenth pass is the first
+pin's distance, so it thinks the sand is reachable 42% of the time where the game makes it 11.6%. The nineteenth
+pass measured that sentence before building on it and it is two different quantities — the objective's 42% is for a
+shot aimed at the pin, where the game at the same aim finds the sand 47.5% of the time; the 11.6% was every shot in
+a round, drives included. What the search for the real defect found was better than the defect: `d_pin` was
+`hypot(dist_ft, …)`, the *length of the shot* read as the length of the putt, so the measured cost curve had been
+read by chips and by nothing else since the thirteenth pass. The landing got a depth too, learned off the athlete's
+own misses on the entries it has hit, and over 1,080 holes the whole change is worth 0.007 ± 0.037 of a stroke a
+hole — the shape moves the aim and barely moves the card, which is the answer the founder asked for in advance. The fourteenth pass is the first
 one with something to look at: `python3 lab/golf.py --season` writes `golf/renders/season.html`, six athletes over
 eight rounds with each one's belief about itself drawn beside its card, and a band across four practice sessions —
 a page that opens from disk with no script in it at all. The fifteenth pass is the film: `--render 7` no longer

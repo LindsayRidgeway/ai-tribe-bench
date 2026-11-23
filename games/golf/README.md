@@ -25,7 +25,13 @@ where it stopped flying rather than where the game says it stopped rolling. Sixt
 by the roll itself, filmed from above — and two checks that exist to stop the picture and the card from drifting
 apart. Seventeenth: one door, a manual for a beta tester, and the bars made a rule in code rather than a promise in
 prose. Eighteenth: the cup as a volume and a ball that falls into it — which is how the ball turned out to have been
-drawn at twice its size since the first version.** The tool is
+drawn at twice its size since the first version.** Nineteenth: the premise this file has carried since the
+thirteenth pass — that the objective is four times too frightened of sand because its landing has no depth —
+is measured and it is not true; and the pass that went looking for the real missing dimension found the
+measured green curve wired to the length of the shot instead of the length of the putt, so no club shot in the
+game had ever read it. The landing has a depth now, learned off the athlete's own misses on the entries it has
+hit; it is calibrated, it makes the sand's flank matter for the first time in six passes, and over 1,080 holes
+it moves the card by nothing. The tool is
 `lab/golf.py`; the runs are `records/golf-2026-11-19.txt`; the checks are `python3 lab/golf.py --selftest`
 (the count prints itself).
 
@@ -723,6 +729,14 @@ putts makes a windy round recoverable.*
    halves of that are the same sentence: **the objective's gradient in distance is real now, and it is only as
    long as a chip.**
 
+   *Pass 19: this paragraph was not describing a limit of the model, it was describing a bug in one line of it.
+   A ball that finishes 8 ft from the flag is not 450 ft from it — the landing arrives at the flag's distance,
+   so the putt it leaves is the lateral distance and nothing else. `d_pin = math.hypot(dist_ft, mid - pin)` read
+   the length of the shot as the length of the putt, which made every cell on the green cost the same 1.90 and
+   left the whole measured curve unread outside seven yards. It is `abs(mid - hole.pin)` now and the landing has
+   a depth as well; see "The landing gets a depth, and the sand stops being the story". The sentence above that
+   it is "only as long as a chip" was true for six passes and was the bug.*
+
    **And the sand the objective can see is four times the sand the game has.** At a pin cut 19 ft out with the
    bunker starting at 20, the objective prices aiming at the pin 0.70 of a stroke worse than aiming away from it
    — P(in the sand) is 42% of its landing distribution. Played out over 3 bags × 12 courses, the card pays
@@ -730,6 +744,12 @@ putts makes a windy round recoverable.*
    pin finish in the bunker. The objective has no *along* dimension — its landing always arrives at the pin's
    distance, so the sand is always in reach — and that is why the sand has never made this decision directional
    in four passes of trying. It needs a second dimension, not another price.
+
+   *Pass 19: the paragraph above is wrong, and it is the paragraph the nineteenth pass was sent to build on. The
+   42% is real and it is the chance for a shot aimed at the pin — the game's own shots at that same aim find the
+   sand 47.5% of the time, so the objective is the optimist's, not the pessimist's. The 11.6% was every shot in a
+   round, drives included: a denominator, not a disagreement. The second dimension was built anyway, for the
+   reason the next sentence in the last paragraph gives, and it moves the card by nothing measurable.*
 
    **Direction is the other half of the same defect, and it is bigger than the thing this pass fixed.** A 12 ft
    putt costs **1.50** from above the hole and **2.17** across the fall line — 0.67 of a stroke, which is most of
@@ -852,14 +872,77 @@ player in round 1 and by how much, and how far ahead by the last round. A senten
 typed by hand is a sentence that is wrong by the third re-run, and this file has spent enough passes on that
 particular failure.
 
+## The landing gets a depth, and the sand stops being the story
+
+The thirteenth pass wrote down that the objective's landing had no *along* dimension, and priced the defect:
+the objective thinks a ball struck at a pin one foot from the sand finds the sand 42% of the time where the game
+finds it 11.6%. Six passes later the statement was still there, marking time on the sand as the thing a second
+dimension would fix. Pass 19 went to measure it before building it, and the statement does not survive.
+
+**The 42% and the 11.6% are two different quantities.** 42% is real — 40.7% by the objective's own arithmetic —
+but it is the chance for a shot *aimed at the pin*. The 11.6% was every shot in a round: drives, layups, chips,
+all of them, on holes whose pin happened to be cut near sand. Held like for like, with the game's own shots at the
+same aim, the objective is if anything the *optimist*: 40.5% against the game's 47.5% when both aim at the pin, and
+0.6% against 2.5% when both aim away from it. The sand was never the defect. The number that made it look like a
+defect was a denominator.
+
+**What the search for the real defect found.** One line, two passes of the file's own history:
+
+    d_pin = math.hypot(dist_ft, mid - hole.pin)      # pass 13 to pass 18
+
+`dist_ft` is the distance the shot is being *hit from*. So the landing's putt was read as the length of the shot:
+on a 150 yd approach every cell on the green was 450-odd feet from the pin, and `green_cost` is flat past 20 ft.
+The measured curve — 1.03 at 2 ft rising to 1.90 at 20, the instrument the thirteenth pass built and the
+thirty-fifth check verifies the wiring of — was read only by shots inside seven yards. Every club shot in six
+passes treated every spot on the green as equally good, and the objective's only gradients out there were the
+sand and the edge of the grass. That is why the target the objective chose was always about the middle of the
+green, and it is a coincidence that it was the right target.
+
+**Fixed, and it made the game worse.** With the curve readable, the objective started reaching for the pin — and
+over 1,080 holes, paired by course and seed against the shipped version, the card got 0.041 of a stroke a hole
+*worse*, because the objective cannot see the green's edge: the green is an ellipse, and a ball aimed at a pin cut
+thirteen feet off-centre has twenty-one feet of depth to spare rather than twenty-eight, which is the thing that
+makes a tucked pin hard.
+
+**So the landing got its depth, and it is learned the way the width is.** `sigma` is learned from the athlete's
+misses, across; `sig_dist` is learned from the same shots, along — how far past or short of its own notebook
+number the ball finished, as a fraction of it, plus the mean of that (its notebook's own optimism). It is learned
+only off entries the athlete has hit four times, for the reason the wind is guarded the same way: the first shot
+at a cell reports the notebook's error, not the hands'. Ungated it reads 14% of the shot — a player who trusts its
+own bag that little puts every target off the green, the aim stops being a decision, and the field's best athlete
+lost seventeen strokes to it. Gated it reads 2.3%, and the hands on settled entries read 2.1% (check 40). The
+objective now asks what a landing is worth *at the point it lands*: the ellipse, the sand's depth, the putt it
+leaves, and the club's shortfall.
+
+**What it bought, in the only currency the founder cares about.** On 1,080 holes played against the shipped
+objective: **+0.007 ± 0.037 of a stroke a hole** — nothing. The depth's own share of that, fix-and-depth against
+fix-alone, is **−0.033 ± 0.022** — three tenths of a stroke a round, and the interval excludes zero. On the season
+page, four rounds x four practice sessions, the two learners that practise most gain 4.0 and 4.5 strokes and the
+athlete that never learns loses 3.5, inside its own ±6.3 band. And the sand, which four passes of hazards could
+not make directional, now reads +0.57 / −0.37 on twenty courses — and −0.27 / +0.00 on the same twenty courses in
+the other configuration, which is this instrument's noise, so the record does not claim it.
+
+The honest summary is the one the founder asked for in advance: **the shape moves the aim and barely moves the
+card.** The second dimension is real, measured, calibrated and nearly free (the selftest goes from 48 s to 70 s),
+and it is not where the strokes are. What it does establish is that the objective is now wrong in a place the
+record can point at — from 150 yd it believes 95% of its shots hold the green where the game holds 53% — and that
+the reason is not geometry. It is that half the game's misses are balls that never had the club: the gear ladder
+is coarse, the athlete's prior is linear in effort and wrong (a 60% five-iron believes 117 yd and delivers 102,
+and `choose()` is built to prefer exactly those partial gears), and its wind coefficient is imperfect. A normal
+kernel cannot say that. The next thing to try is a mixture kernel — how often the club is wrong, and how far off
+it is when it is — and it is written here rather than built, because a pass that has just measured its own
+premise as false should not also invent one.
+
 ## What this does not model
 
-- **the landing has one dimension.** `target()` models a shot's *lateral* miss and assumes it arrives at the
-  pin's distance; the along error is real in the game and absent from the objective. Pass 13 put numbers on what
-  that costs: the objective thinks a pin one foot from the sand is found 42% of the time where the game finds it
-  11.6%, so the sand is four times too frightening to the arithmetic — which is why four passes of hazards have
-  failed to make the target decision directional (finding 12). The same missing dimension is why the objective
-  prices a 12 ft putt at 1.83 when it costs 1.50 up the fall line and 2.17 across it
+- **the landing has two dimensions and only one of them is modelled well.** `target()` now prices the landing at
+  the point it lands — lateral position against an ellipse, and depth as a learned normal about the athlete's own
+  notebook bias — so the sand's flank and the green's edge are both in the arithmetic. What it still cannot say is
+  that a ball sometimes does not have the club: the model puts 95% of its approach shots on the green from 150 yd
+  where the game holds 53%, and a normal wide enough to carry the real misses makes the objective fatalistic (see
+  the section above). A mixture kernel is the next thing, not the next pass. The same missing dimension is why the
+  objective prices a 12 ft putt at 1.83 when it costs 1.50 up the fall line and 2.17 across it — that one is
+  *direction*, not depth, and it is still absent
 - **the putting stroke has one shape.** `putt.py`'s athlete models a pace gain and a line bias, and the game
   has added the clubs' two dispersions (pass 11) and a pace the athlete decides (pass 12) — but a real putter
   also has a stroke that is not a straight line: no arc, no clubface rotation through impact, no strike low or
@@ -893,10 +976,11 @@ rough coefficient**, which could not be separated from the notebook's own errors
 The physics rests here. The condition was set before pass 4 and it has now been reached: **every remaining
 question about the ball needs a law I would have to invent** — the stance in a bunker, a plugged lie, spin dying at contact,
 a green with contours (this one has a single tilted plane), a false front that returns a ball, water. Each is a new force or a new surface, and the
-last three passes are exactly why I am not going to add one to make a hypothesis come out: I predicted twice
-that a hazard would make the target decision directional, and twice the measurement said no, the second time at
-five times the price of the hazard — and pass 13 says why, which is that the objective's landing never misses the
-pin by a single foot in the *along* direction and so can never be short of the sand.
+last four passes are exactly why I am not going to add one to make a hypothesis come out: I predicted twice
+that a hazard would make the target decision directional, and twice the measurement said no — and the nineteenth
+pass found the reason I had been giving for it was a misreading of two different numbers, fixed the objective's
+distance, gave the landing a second axis, and moved the card by nothing. A hazard that does not change a decision
+is a hazard this game has measured and does not have.
 
 **Resting the physics is not resting the game**, and the founder was right to say so. What is left needs no law
 at all, and the first two of them are now built:
@@ -1011,14 +1095,21 @@ at all, and the first two of them are now built:
    - **the along error.** The objective's landing arrives at the pin's distance, so it cannot tell a shot that
      finishes short of the sand from one that flies it. Consequence: P(sand) is 42% where the game is 11.6%, and
      the target decision that the objective is willing to pay 0.70 of a stroke for is worth 0.08 on the card.
-     This is the thing that has made four passes of bunkers non-directional.
+     This is the thing that has made four passes of bunkers non-directional. **Pass 19: measured, and the
+     comparison was between two different things — 42% is the chance for a shot aimed at the pin, where the game
+     at that aim finds the sand 47.5% of the time; 11.6% was every shot in a round. The landing got its depth
+     anyway, for the reason below, and it is worth −0.033 ± 0.022 of a stroke a hole.**
    - **direction.** A 12 ft putt costs 1.50 uphill and 2.17 across the fall line; `target()` prices every 12 ft
      landing at 1.83. 0.67 of a stroke on a single landing, against the 0.87 the entire 2-to-20-ft gradient is
      worth — so the price of a landing is now known to about the resolution of the thing it is pricing.
 
    Both need the same object: a two-dimensional landing with a distance to the pin *and* a direction from it.
-   That is the next pass, and unlike the last four it needs no new law — it needs the objective's scatter to be a
-   vector instead of a number. What is *not* next is another constant: the rough's 2.60 is now 0.3 of a stroke
+   Pass 19 built the first half — depth — and none of the second, and the difference between the two is the
+   finding: depth changes which *landings* are possible and it moves the aim by a few feet; direction changes what
+   a landing is *worth* and it is worth 0.67 of a stroke on a 12 ft putt. The fifteen-hour version of this item
+   said "both need the same object", and they do not: the objective's scatter is a number where it needs a vector,
+   and pass 19 made it a vector of two numbers in the plane of the green rather than of three in the plane of the
+   hole. What is *not* next is another constant: the rough's 2.60 is now 0.3 of a stroke
    too dear on two instruments' readings, and it stays where pass 10 put it, because a number re-measured and
    then checked against its own measurement is a fitted number and this file has enough of those already.
 
