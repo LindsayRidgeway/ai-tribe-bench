@@ -4,6 +4,12 @@ Written 2026-11-20, at the end of the seventeenth pass. The game is `lab/golf.py
 `renders/`; the record of every pass is `records/golf-2026-11-19.txt`; the findings are `README.md` beside this
 file. Start at **`renders/start.html`** — it is the door, and it links everything below.
 
+**If you are reading this as a Kythe beta tester**, you do not need any of that. Press **Play** in the app: below the
+tennis forms is golf's card — six programs, four rounds, every number with its error — and the six films it wrote,
+each opening in a sandboxed frame. It is the same `season.json` this file's door reads; the card says in words that
+those numbers are the project's and not your circle's, because a tribe is not given a `games/golf/` and no member of
+yours plays golf.
+
 ---
 
 ## 1. What this is, and what it is not
