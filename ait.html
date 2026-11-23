@@ -320,6 +320,41 @@ const PAINTERS = {
 };
 const painterNames = () => Object.values(PAINTERS).map(p => p.label).join(', ');
 
+// Which models can actually be shown a picture. Measured with `lab/vision.py`'s probe — a red square, a blue
+// ring, on white, a picture whose contents are known — and recorded there with the model's own words. A copy
+// lives here so the page can refuse *before* it spends a call and before it tells a member something untrue;
+// `lab/page-check.mjs` fails when the two disagree, which is the only reason a copy is allowed to exist.
+//
+// **Absent means blind.** Not "probably fine". A model that has never been pointed at a picture is treated
+// exactly like one that refused one, because the failure this prevents is invisible from the outside: the reply
+// arrives in voice, describes a photograph that was never sent, and nothing anywhere says a picture was lost.
+// That is the same defect as a missing key, one layer further in.
+//
+// Measured 2026-11-22: DeepSeek's own two models disagree. `deepseek-flash` named the red square and the blue
+// ring in the right corners; `deepseek-v4-pro`, same endpoint, same key, same request, answered "no image". One
+// vendor, two answers — which is why this table is keyed by model id and not by company.
+const VISION = {
+  deepseek: {'deepseek-flash': true, 'deepseek-v4-pro': false},
+};
+
+function canSee(engine, model){
+  const id = model || modelFor(engine);
+  return !!(VISION[engine] && VISION[engine][id] === true);
+}
+
+// What to say to a person whose member cannot look, and the one action that changes it. It does not apologise
+// and it does not offer to try anyway: "try anyway" is the version of this where the member invents a picture.
+function cannotSee(engine, model){
+  const spec = ENGINES[engine] || {label: engine};
+  const id = model || modelFor(engine);
+  const able = Object.keys(VISION[engine] || {}).filter(k => VISION[engine][k] === true);
+  const fix = able.length
+    ? ` ${spec.label}'s <code>${able.join('</code> and <code>')}</code> can see — put that model name on the Keys page and this button works.`
+    : ` No model of ${spec.label}'s has been measured as seeing one, so there is nothing to switch to here.`;
+  return `${spec.label}'s model <code>${esc(id)}</code> cannot be shown a picture: it was measured, and it `
+    + `answered text only. The picture is not sent, and nothing is said to the member about it.${fix}`;
+}
+
 const S = {repo:'', token:'', branch:'main', keys:{}, members:[], chat:{}, member:null, view:'today',
            owner:'', circles:{}, app:'', appAt:0, isPrivate:null, need:{}};   // null = this page has not been told; see noteVisibility()
 
@@ -455,7 +490,9 @@ function save(){
   try {
     const kept = {};
     for (const k of Object.keys(S.chat)) kept[k] = (S.chat[k] || []).slice(-60);
-    localStorage.setItem('ait.chat', JSON.stringify(kept));
+    // The picture's bytes are never stored here: `ait.chat` is one 5 MB budget shared by every talk in this
+    // browser, and one photograph would spend it. The note stays; the bytes are gone once the turn is answered.
+    localStorage.setItem('ait.chat', JSON.stringify(kept, (k, v) => (k === 'image' ? undefined : v)));
   } catch(_){}
 }
 function load(){ try{ const j = JSON.parse(localStorage.getItem('ait') || '{}');
@@ -638,6 +675,15 @@ async function fileText(path){
 
 async function putText(path, text, message, sha){
   const body = {message, content: b64e(text), branch: S.branch};
+  if (sha) body.sha = sha;
+  return gh(`/repos/${S.repo}/contents/${encodeURI(path)}`, {method:'PUT', body});
+}
+
+// A picture is written as the bytes it already is. `putText` would base64 a base64 string, and the file would
+// arrive at GitHub as a photograph of its own encoding — the kind of failure that looks like a corrupt image
+// rather than a wrong call.
+async function putB64(path, b64, message, sha){
+  const body = {message, content: b64, branch: S.branch};
   if (sha) body.sha = sha;
   return gh(`/repos/${S.repo}/contents/${encodeURI(path)}`, {method:'PUT', body});
 }
@@ -1125,11 +1171,20 @@ async function chatStream(system, messages, engine, onDelta){
   const key = keyFor(engine).key;
   if (!key) throw new Error(`No ${spec.label} key yet — paste one on the Keys page.`);
 
+  // One picture on one message, in the shape each vendor's own documentation takes. The bytes are already
+  // base64 and the type was fixed when the page made its copy (a canvas re-encodes to JPEG), so nothing here
+  // guesses a mime type from a filename — the mistake that once made a JPEG look like a PNG, read as "Claude
+  // cannot see", and taught this project that a mislabelled file is indistinguishable from a blind model.
+  const pic = (m) => (m && m.image && m.image.data ? m.image : null);
+
   if (spec.kind === 'gemini'){
     const url = `${GEN}/v1beta/models/${encodeURIComponent(modelFor(engine))}:streamGenerateContent?alt=sse&key=${encodeURIComponent(key)}`;
     const body = {
       systemInstruction: {parts:[{text:system}]},
-      contents: messages.map(m => ({role: m.role === 'assistant' ? 'model' : 'user', parts:[{text:m.content}]})),
+      contents: messages.map(m => ({role: m.role === 'assistant' ? 'model' : 'user',
+        parts: pic(m) ? [{text:String(m.content || '')},
+                         {inline_data: {mime_type: pic(m).mime, data: pic(m).data}}]
+                      : [{text:m.content}]})),
     };
     await sse(url, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)}, (obj) => {
       const t = obj?.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
@@ -1141,7 +1196,10 @@ async function chatStream(system, messages, engine, onDelta){
   if (spec.kind === 'anthropic'){
     const body = {model: modelFor(engine), max_tokens: 2000, stream: true, system,
                   messages: messages.map(m => ({role: m.role === 'assistant' ? 'assistant' : 'user',
-                                                content: String(m.content || '')}))};
+                    content: pic(m) ? [{type:'image', source:{type:'base64',
+                                                             media_type: pic(m).mime, data: pic(m).data}},
+                                        {type:'text', text:String(m.content || '')}]
+                                    : String(m.content || '')}))};
     await sse(spec.base + '/messages', {method:'POST',
       headers:{'Content-Type':'application/json', 'x-api-key': key,
                'anthropic-version': '2023-06-01',
@@ -1157,7 +1215,11 @@ async function chatStream(system, messages, engine, onDelta){
 
   const url = spec.base + '/chat/completions';
   const body = {model: modelFor(engine), stream: true,
-                messages: [{role:'system', content:system}, ...messages]};
+                messages: [{role:'system', content:system},
+                           ...messages.map(m => ({role: m.role === 'assistant' ? 'assistant' : 'user',
+                             content: pic(m) ? [{type:'text', text:String(m.content || '')},
+                               {type:'image_url', image_url: {url: `data:${pic(m).mime};base64,${pic(m).data}`}}]
+                             : String(m.content || '')}))]};
   await sse(url, {method:'POST',
                   headers:{'Content-Type':'application/json', Authorization:'Bearer ' + key},
                   body: JSON.stringify(body)}, (obj) => {
@@ -2378,8 +2440,140 @@ function paintVisibility(connected = true){
 
 function bubbleHTML(b, showWho){
   const cls = b.role === 'user' ? 'me' : b.role === 'system' ? 'sys' : 'them';
-  const tag = showWho && b.who ? `<div class="small muted" style="margin-bottom:2px">${esc(b.who)}</div>` : '';
-  return `<div class="msg ${cls}" data-i="${b.i ?? ''}">${tag}${esc(b.content)}</div>`;
+  const who = showWho && b.who ? `<div class="small muted" style="margin-bottom:2px">${esc(b.who)}</div>` : '';
+  const pic = b.pic ? `<div class="small muted" style="margin-top:4px">a picture: ${esc(b.pic.name || 'one')}`
+    + `${b.pic.kept ? '' : ' — not kept in the repository'}</div>` : '';
+  return `<div class="msg ${cls}" data-i="${b.i ?? ''}">${who}${esc(b.content)}${pic}</div>`;
+}
+
+/* ---- one picture, in one conversation --------------------------------------------------------------
+
+   The other direction is where this has always been dishonest. A wake could be handed a picture
+   (`wake/wake.py --image`), but no person could put one in a conversation, so no member had ever been shown
+   one — and the page said nothing about it, which reads as "not possible" rather than "not built".
+
+   Three decisions, all of them visible in what follows:
+
+   1. **The gate is before the picker, not after the call.** A member whose model cannot see is told so before
+      the person chooses a file, because a picture sent to a blind model is not a wasted call — it is a
+      description of a photograph that was never delivered, in voice, with nothing to contradict it.
+   2. **The page makes its own copy.** A phone photograph is 4 to 12 MB and a repository is copied by every
+      clone for ever; the canvas version is a JPEG at most 1400px on its long edge, a few hundred kilobytes.
+      That copy, not the original, is what the member sees and what the file records.
+   3. **The record keeps the note, never the bytes.** The conversation file says a picture was here, what it
+      was called, how big it was, where the kept copy went — and it stays a file a person can read. */
+const PICTURE_NOTE = `
+
+== a picture
+
+The person has attached a picture to their message. Say only what you can actually see in it, and say where
+things are. If you cannot see an image at all, say that plainly and do not describe one: a description of a
+picture you were not given is worse than saying you cannot look, because it cannot be contradicted.`;
+
+const kb = (n) => (!n ? '0 KB' : n >= 1024 * 1024 ? (n / 1048576).toFixed(1) + ' MB'
+                                                       : Math.max(1, Math.round(n / 1024)) + ' KB');
+
+// What the record keeps about a picture: enough for a person reading the file a year later to know one was
+// here, and not one byte of it.
+function pictureNote(p){
+  return {name: p.name, w: p.w, h: p.h, bytes: p.bytes, mime: p.mime, was: p.was || 0, kept: p.kept || ''};
+}
+
+// The page's own copy. A canvas is used rather than a library because a library is a dependency that fails
+// silently on a phone, and because the browser already has a JPEG encoder that respects EXIF orientation.
+async function shrinkPicture(file, max = 1400, quality = 0.85){
+  if (!/^image\//.test(String(file.type || ''))) throw new Error('that is not a picture');
+  if (file.size > 25 * 1024 * 1024) throw new Error('that picture is larger than 25 MB — most phones can shrink it before sending');
+  const url = URL.createObjectURL(file);
+  let img;
+  try {
+    img = await new Promise((res, rej) => {
+      const i = new Image();
+      i.onload = () => res(i);
+      i.onerror = () => rej(new Error('this browser could not read that picture'));
+      i.src = url;
+    });
+  } finally { URL.revokeObjectURL(url); }
+  const scale = Math.min(1, max / Math.max(img.width || 1, img.height || 1));
+  const w = Math.max(1, Math.round((img.width || 1) * scale));
+  const h = Math.max(1, Math.round((img.height || 1) * scale));
+  const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+  const cx = cv.getContext('2d');
+  // White behind it: a transparent PNG becomes black under JPEG, and a photograph of a black rectangle is a
+  // thing a member would faithfully describe.
+  cx.fillStyle = '#fff'; cx.fillRect(0, 0, w, h); cx.drawImage(img, 0, 0, w, h);
+  const dataUrl = cv.toDataURL('image/jpeg', quality);
+  const data = String(dataUrl).slice(String(dataUrl).indexOf(',') + 1);
+  if (!data) throw new Error('this browser could not make a copy of that picture');
+  return {mime: 'image/jpeg', data, w, h, bytes: Math.round(data.length * 0.75),
+          name: String(file.name || 'picture').replace(/\.[^.]+$/, '').slice(0, 40) + '.jpg', was: file.size, kept: ''};
+}
+
+// The picture waiting to be sent, and which member it is waiting for. A picture chosen for one member must not
+// arrive at another: two tabs, one page state, and the wrong person's photograph is not a small mistake.
+const TAKE = {picture: null, forName: ''};
+
+// One decision, two callers — the button and the send — so they cannot disagree. A page left open while a key or
+// a model name was changed in another tab can hold a picture that this member may no longer be shown; this is the
+// function that notices, and it is a function rather than a condition so that it can be tested without a dialog.
+function gatePicture(pending, m){
+  return pending && m && canSee(m.engine, m.model) ? pending : null;
+}
+
+function choosePicture(name){
+  const m = (S.members || []).find(x => x.name === name); if (!m) return;
+  const msg = $('picmsg');
+  if (!canSee(m.engine, m.model)){
+    TAKE.picture = null; TAKE.forName = name;
+    if (msg) msg.innerHTML = '<span class="err">' + cannotSee(m.engine, m.model) + '</span>';
+    paintTake(name);
+    return;
+  }
+  if (msg) msg.innerHTML = '';
+  const f = $('picfile'); if (f){ f.value = ''; f.click(); }
+}
+
+async function takePicture(name, input){
+  const m = (S.members || []).find(x => x.name === name); if (!m) return;
+  const msg = $('picmsg');
+  const file = input && input.files && input.files[0];
+  if (!file) return;
+  try {
+    if (!canSee(m.engine, m.model)) throw new Error(cannotSee(m.engine, m.model).replace(/<[^>]+>/g, ''));
+    const p = await shrinkPicture(file);
+    TAKE.picture = p; TAKE.forName = name;
+    if (msg) msg.innerHTML = '';
+  } catch(e){
+    if (msg) msg.innerHTML = '<span class="err">' + esc(e.message) + '</span>';
+  } finally { if (input) input.value = ''; paintTake(name); }
+}
+
+function dropPicture(name){
+  TAKE.picture = null; TAKE.forName = '';
+  const msg = $('picmsg'); if (msg) msg.innerHTML = '';
+  paintTake(name);
+}
+
+function paintTake(name){
+  const strip = $('picstrip'); if (!strip) return;
+  const p = TAKE.picture && TAKE.forName === name ? TAKE.picture : null;
+  if (!p){ strip.style.display = 'none'; strip.innerHTML = ''; return; }
+  strip.style.display = 'flex';
+  strip.innerHTML = `<img alt="" style="height:44px;width:auto;border-radius:8px;border:1px solid var(--line)"
+      src="data:${p.mime};base64,${p.data}">
+    <span class="small">${esc(p.name)} · ${p.w}×${p.h} · ${kb(p.bytes)} (sent as this copy)</span>
+    <button class="plain small" onclick="dropPicture('${escq(name)}')">Remove</button>`;
+}
+
+// The kept copy, in the member's own folder: a picture somebody showed it is part of what it has been shown, and
+// it belongs beside its own state rather than in a folder of plates made for works.
+async function keepPicture(name, p){
+  const stamp = nowStamp().replace(' ', 'T').replace(':', '').replace(' UTC', 'Z');
+  const slug = String(p.name || 'picture').toLowerCase().replace(/\.[^.]+$/, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'picture';
+  const path = `wake/members/${name}/state/pictures/${stamp}-${slug}.jpg`;
+  try { await putB64(path, p.data, `picture: ${name} was shown ${p.name}`); return path; }
+  catch(e){ return ''; }
 }
 
 function repaintChat(name){
@@ -2565,8 +2759,15 @@ async function viewMember(main, name){
 
     <div id="roomnote">${roomNoteHTML(m.name)}</div>
     <div class="chat" id="chat">${chatHTML(m.name) || '<p class="small muted" style="margin:0">No talk yet. Say something below, and it will remember.</p>'}</div>
+    <div id="picstrip" class="row" style="display:none;gap:8px;align-items:center;margin:0 0 6px"></div>
+    <div id="picmsg" class="small" style="margin:0 0 6px"></div>
     <div class="composer">
       <textarea id="say" placeholder="Say something to ${esc(m.name)}…" autocapitalize="sentences"></textarea>
+      <input type="file" id="picfile" accept="image/*" style="display:none"
+        onchange="takePicture('${escq(m.name)}', this)">
+      <button class="plain" id="picbtn"
+        title="${canSee(m.engine, m.model) ? 'Show it a picture' : 'this model cannot be shown a picture'}"
+        onclick="choosePicture('${escq(m.name)}')">Picture</button>
       <button class="primary" id="send">Send</button>
     </div>
     <div class="row" style="margin-top:12px;gap:8px">
@@ -2630,6 +2831,7 @@ async function viewMember(main, name){
     </details>`;
 
   showVoice(name).catch(() => {});
+  paintTake(name);
   showIdentity(name).catch(() => {});
   showChapters(name).catch(() => {});
   showPictures(name).catch(() => {});
@@ -2655,7 +2857,12 @@ async function viewMember(main, name){
       const idx = arr.push({role:'assistant', content:'', at: nowStamp(), read: [], searched: []}) - 1;
       repaintChat(name);
       const msgEl = () => document.querySelector(`#chat .msg[data-i="${idx}"]`);
-      await chatStream(systemPrompt(m), arr.slice(0, idx).map(x => ({role:x.role, content:x.content})),
+      // A turn carrying a picture carries the lines that keep a member honest about it. The gate already
+      // guarantees the model can see, so this is not a hedge against blindness; it is the difference between a
+      // description of the picture and a description of what a picture like that usually contains.
+      const withPicture = arr.slice(0, idx).some(x => x.image && x.image.data);
+      await chatStream(systemPrompt(m) + (withPicture ? PICTURE_NOTE : ''),
+        arr.slice(0, idx).map(x => ({role:x.role, content:x.content, image: x.image})),
         m.engine, (d) => {
           arr[idx].content += d;
           const e = msgEl(); if (e){ e.textContent = arr[idx].content; e.scrollIntoView({block:'end'}); }
@@ -2761,10 +2968,27 @@ async function viewMember(main, name){
 
   const send = async () => {
     const box = $('say'); const text = box.value.trim();
-    if (!text) return;
+    const pending = TAKE.picture && TAKE.forName === m.name ? TAKE.picture : null;
+    if (!text && !pending) return;
+    // A member that cannot see must not be told a picture is attached, so the only place an image can enter a
+    // conversation is behind `canSee`. This is the second gate, and it is here because the first one runs when
+    // the file is chosen — and a page left open while a key was changed can hold a picture the model can no
+    // longer be shown.
+    const picture = gatePicture(pending, m);
     box.value = ''; box.disabled = true; const s1 = $('send'); if (s1) s1.disabled = true;
     const arr = (S.chat[m.name] ||= []);
-    arr.push({role:'user', content:text, at: nowStamp()});
+    arr.push({role:'user', content:text || '(a picture, with nothing said about it)', at: nowStamp(),
+              image: picture ? {mime: picture.mime, data: picture.data} : undefined,
+              pic: picture ? pictureNote(picture) : undefined});
+    TAKE.picture = null; TAKE.forName = '';
+    paintTake(m.name);
+    // The kept copy is written before the turn, so the note the conversation keeps is a path that exists rather
+    // than a promise. A repository that refuses the write is not a reason to withhold the picture from the
+    // member: the file says "not kept" and the talk goes on.
+    if (picture){
+      const kept = await keepPicture(m.name, picture);
+      arr[arr.length - 1].pic.kept = kept;
+    }
     // A link in what the person pasted is handed over as the page itself, without waiting to be asked.
     const link = (text.match(/https?:\/\/[^\s<>"')]+/i) || [])[0];
     if (link){
@@ -2794,6 +3018,10 @@ async function viewMember(main, name){
       repaintChat(m.name);
       const mm = $('mmsg'); if (mm) mm.innerHTML = '<span class="err">' + esc(e.message) + '</span>';
     } finally {
+      // The bytes are not the conversation. Once the member has been shown the picture the turn keeps the note
+      // and the page keeps nothing: otherwise every later turn in this talk would re-send a photograph taken an
+      // hour ago, and both the bill and the confusion would grow with the length of the conversation.
+      for (const b of arr) if (b.image) delete b.image.data;
       box.disabled = false; const s2 = $('send'); if (s2) s2.disabled = false; box.focus();
       save();
       try { await saveThread(m.name); } catch(e){ const mm = $('mmsg'); if (mm) mm.textContent = 'the talk could not be saved to the repository: ' + e.message; }
@@ -3417,7 +3645,11 @@ const threadPath = (name) => `wake/members/${name}/state/conversation.md`;
 function sourceLine(b){
   const read = ((b && b.read) || []).filter(Boolean);
   const looked = ((b && b.searched) || []).filter(Boolean);
-  return (read.length ? `\n[read: ${read.join(', ')}]\n` : '')
+  const pic = b && b.pic;
+  return (pic ? `\n[picture: ${pic.name || 'one'} — ${pic.w ? pic.w + '×' + pic.h + ', ' : ''}`
+      + `${kb(pic.bytes)}${pic.kept ? `, kept at ${pic.kept}` : ', not kept in the repository'}`
+      + `${pic.was && pic.was > pic.bytes ? ` (the file was ${kb(pic.was)})` : ''}]\n` : '')
+    + (read.length ? `\n[read: ${read.join(', ')}]\n` : '')
     + (looked.length ? `\n[searched: ${looked.map(q => '"' + q + '"').join(', ')}]\n` : '');
 }
 
@@ -3425,11 +3657,20 @@ function sourceLine(b){
 // member that is handed its own `[read: …]` line as prose will one day write one itself.
 function splitSources(body){
   const read = [], looked = [];
-  const content = String(body || '').replace(/^\[(read|searched): ([^\]]*)\]$/gm, (m, kind, list) => {
+  let pic = null;
+  const content = String(body || '')
+    .replace(/^\[picture: ([^\]\n]*)\]$/gm, (m, said) => {
+      // The line is enough to know a picture was here; the bytes were never in the file. Name and kept-path are
+      // pulled back out so the bubble can say which one, and a person can go and look at the kept copy.
+      const kept = (said.match(/kept at (wake\/members\/[^,\]]+)/) || [])[1] || '';
+      pic = {said: said.trim(), name: said.split(' — ')[0].trim(), kept};
+      return '';
+    })
+    .replace(/^\[(read|searched): ([^\]]*)\]$/gm, (m, kind, list) => {
     (kind === 'read' ? read : looked).push(...list.split(',').map(x => x.trim().replace(/^"|"$/g, '')).filter(Boolean));
     return '';
   }).replace(/\n{3,}/g, '\n\n').trim();
-  return {content, read, searched: looked};
+  return {content, read, searched: looked, pic};
 }
 
 function threadText(name, msgs){
@@ -3941,7 +4182,7 @@ async function loadThread(name){
       const mine = (S.members || []).some(m => m.name === h.who) ? false : true;
       const src = splitSources(body);
       return {role: mine ? 'user' : 'assistant', who: h.who, content: src.content, at: heading.split(' — ')[0],
-              read: src.read, searched: src.searched,
+              read: src.read, searched: src.searched, pic: src.pic,
               mark: h.mark, urgency: h.urgency, taken: h.taken, room: h.room};
     }).filter(x => x.content);
     // A file written before 2026-11-12 marks nothing, and the founder's own circle is full of those. The rooms
@@ -5489,10 +5730,26 @@ function keysCard(engine, members){
       <button class="plain small" onclick="testKey('${escq(engine)}')">Test</button>
       <button class="plain small" onclick="keepKeyInRepository('${escq(engine)}', 'msg-${escq(engine)}')">Also keep it in the repository, so wakes can use it</button>
     </div>
-    <p class="small muted" style="margin:8px 0 0" id="state-${escq(engine)}">${keyStateText(engine)}</p>
+    <p class="small muted" style="margin:8px 0 0">${pictureLine(engine)}</p>
+    <p class="small muted" style="margin:2px 0 0" id="state-${escq(engine)}">${keyStateText(engine)}</p>
     <p class="small muted" style="margin:2px 0 0" id="repo-${escq(engine)}">repository: reading…</p>
     <p class="small" style="margin:6px 0 0" id="msg-${escq(engine)}"></p>
   </div>`;
+}
+
+// The model name on this card is the choice that decides whether a member can be shown a picture, so the
+// measurement is printed here rather than in a manual: a person who types a blind model name meets it at the
+// moment of choosing, and a person wondering why the Picture button refuses the file finds the reason here.
+function pictureLine(engine){
+  const v = VISION[engine] || {};
+  const seeing = Object.keys(v).filter(x => v[x] === true);
+  const blind = Object.keys(v).filter(x => v[x] === false);
+  if (!seeing.length && !blind.length)
+    return 'pictures: no model on this engine has been put in front of a picture yet, so a member here cannot be '
+      + 'shown one — absent means blind, because the alternative is a description of a picture it never received';
+  return 'pictures: ' + (seeing.length ? `<code>${seeing.join('</code>, <code>')}</code> can see` : 'none measured as seeing')
+    + (blind.length ? `; <code>${blind.join('</code>, <code>')}</code> cannot` : '')
+    + ' — measured with a picture whose contents are known, not assumed from the vendor';
 }
 
 function keyStateText(engine){

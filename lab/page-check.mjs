@@ -300,9 +300,16 @@ const sandbox = {
 sandbox.window = sandbox;
 sandbox.globalThis = sandbox;
 const exchanges = [];           // what the page told the token exchange about itself, one entry per code
+const enginePosts = [];         // every engine call the page made: the address and the body it sent
 sandbox.fetch = async (url, init = {}) => {
   const u = String(url);
   if (u.startsWith('https://api.github.com')) return githubFetch(u, init);
+  if (!/\/functions\//.test(u)){
+    // Kept before the answer, because the answer is the harness's and the body is the page's: a check about
+    // what was sent has to read what was sent, not what came back.
+    try { enginePosts.push({url: u, body: JSON.parse(init.body || '{}')}); }
+    catch(_){ enginePosts.push({url: u, body: String(init.body || '')}); }
+  }
   if (/\/chat\/completions$/.test(u)) return sseResponse(MEMBER_ENTRY);
   // The one server this page has: it turns a code into a token with either the App's pair of credentials or the
   // classic one, and `app` is how it is told which. That flag is the whole of the check below.
@@ -1122,6 +1129,122 @@ async function main(){
     for (const e of cannot) if (here.has(e)) return `${e} is refused and offered at once`;
     return '';
   });
+
+  /* 5g — one picture, in one conversation (RELEASE.md item 6). Three things are checked here and they are
+     three different failures. The table: a copy of `lab/vision.py`'s measurement, which drifts the moment a
+     model name moves. The shapes: each vendor's own endpoint takes the picture differently, and a shape that
+     is wrong reads at the far end as a blind model. The gate: a picture sent to a model that cannot see is not
+     a failed call — it is a description of a photograph that was never delivered, in voice, with nothing that
+     could contradict it. */
+  check('the page\'s table of models that can see is lab/vision.py\'s, not a memory of it', () => {
+    const py = fs.readFileSync(path.join(HERE, '..', 'lab', 'vision.py'), 'utf8');
+    const block = (py.match(/TABLE = """([\s\S]*?)"""/) || [])[1] || '';
+    if (!block) return 'vision.py\'s TABLE could not be read — the check has gone blind';
+    let there;
+    try { there = JSON.parse(block); } catch(e){ return 'vision.py\'s TABLE is not JSON: ' + e.message; }
+    const here = run(ctx, 'VISION') || {};
+    const flat = {};
+    for (const [engine, byModel] of Object.entries(here))
+      for (const [model, sees] of Object.entries(byModel || {})) flat[model] = {engine, sees};
+    for (const [model, row] of Object.entries(there)){
+      if (!flat[model]) return `vision.py measured ${model} and the page does not know it`;
+      if (flat[model].engine !== row.engine)
+        return `${model} is on ${row.engine} and the page files it under ${flat[model].engine}`;
+      if (flat[model].sees !== row.sees)
+        return `vision.py records ${model} as ${row.sees ? 'seeing' : 'blind'} and the page says the opposite`;
+      if (row.sees !== null && !row.measured) return `${model} is recorded without the date it was measured`;
+    }
+    for (const model of Object.keys(flat))
+      if (!there[model]) return `the page offers ${model} as measured, and vision.py has never pointed a picture at it`;
+    return ''; });
+
+  check('a model nobody has put a picture in front of is treated as blind, not as probably fine', () => {
+    const labels = ['deepseek-flash, which was measured seeing',
+                    'deepseek-v4-pro, which was measured blind',
+                    'openai, an engine nobody has measured',
+                    'a name that is nearly one that was measured'];
+    const got = run(ctx, `[canSee('deepseek'), canSee('deepseek', 'deepseek-v4-pro'),
+                           canSee('openai'), canSee('deepseek', 'deepseek-flash-turbo')]`);
+    const want = [true, false, false, false];
+    for (let i = 0; i < want.length; i++)
+      if (got[i] !== want[i]) return `${labels[i]}: the page says ${got[i]}, and it must be ${want[i]}`;
+    const said = String(run(ctx, `cannotSee('deepseek', 'deepseek-v4-pro')`));
+    if (!/deepseek-v4-pro/.test(said)) return 'the refusal does not name the model that cannot see';
+    if (!/deepseek-flash/.test(said)) return 'the refusal does not name the model that can';
+    if (!/cannot be shown a picture/.test(said))
+      return 'the refusal does not say what happened: ' + said.slice(0, 120);
+    return ''; });
+
+  check('a picture cannot be sent to a member whose model cannot see it', () => {
+    const got = run(ctx, `(() => {
+      const pic = {mime: 'image/jpeg', data: 'AAAABBBB'};
+      return [gatePicture(pic, {name: 'Lumi', engine: 'deepseek', model: 'deepseek-v4-pro'}) === null,
+              gatePicture(pic, {name: 'Lumi', engine: 'deepseek', model: 'deepseek-flash'}) !== null,
+              gatePicture(pic, {name: 'Lumi', engine: 'openai'}) === null,
+              gatePicture(null, {name: 'Lumi', engine: 'deepseek', model: 'deepseek-flash'}) === null];
+    })()`);
+    const why = ['a blind model was handed the picture',
+                 'a seer was refused the picture',
+                 'an unmeasured engine was handed the picture',
+                 'no picture at all was sent as one'];
+    for (let i = 0; i < why.length; i++) if (got[i] !== true) return why[i];
+    return ''; });
+
+  // The picture itself, through the real transport. `posted` is what the page sent; the harness answers for
+  // OpenAI-shaped endpoints and refuses the other two, which is enough, because the body has already been made.
+  const picPost = await tryRun(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
+    S.keys = {deepseek: {key: 'sk-test-ds'}, anthropic: {key: 'sk-test-an'}, gemini: {key: 'sk-test-ge'}};
+    const msg = [{role: 'user', content: 'what is this', image: {mime: 'image/jpeg', data: 'AAAABBBB'}}];
+    const out = {};
+    for (const e of ['deepseek', 'anthropic', 'gemini']){
+      try { await chatStream('sys', msg, e, () => {}); out[e] = 'answered'; }
+      catch(err){ out[e] = 'threw: ' + String((err && err.message) || err).slice(0, 90); }
+    }
+    return out; })()`);
+
+  check('a picture goes out in the shape each engine takes, and the type is the copy\'s', () => {
+    if (picPost.err) return picPost.err;
+    const ds = enginePosts.filter(p => /api\.deepseek\.com\/chat\/completions/.test(p.url)).pop();
+    const an = enginePosts.filter(p => /api\.anthropic\.com\/v1\/messages/.test(p.url)).pop();
+    const ge = enginePosts.filter(p => /generativelanguage.*streamGenerateContent/.test(p.url)).pop();
+    if (!ds || !an || !ge) return 'an engine was never called at all: ' + JSON.stringify(picPost);
+    const d = ds.body && ds.body.messages && ds.body.messages[1] && ds.body.messages[1].content;
+    if (!Array.isArray(d)) return 'the OpenAI-shaped call sent text where the picture should be';
+    const du = d.find(x => x.type === 'image_url');
+    if (!du || !du.image_url || du.image_url.url !== 'data:image/jpeg;base64,AAAABBBB')
+      return 'the OpenAI-shaped call did not carry the picture as a data URL';
+    const a = an.body && an.body.messages && an.body.messages[0] && an.body.messages[0].content;
+    if (!Array.isArray(a) || !a.some(x => x.type === 'image' && x.source
+        && x.source.data === 'AAAABBBB' && x.source.media_type === 'image/jpeg'))
+      return 'the Anthropic call did not carry the picture as a base64 block';
+    const g = ((ge.body && ge.body.contents && ge.body.contents[0] && ge.body.contents[0].parts) || [])
+      .find(x => x.inline_data);
+    if (!g || g.inline_data.data !== 'AAAABBBB' || g.inline_data.mime_type !== 'image/jpeg')
+      return 'the Gemini call did not carry the picture as inline_data';
+    return ''; });
+
+  const keptNote = run(ctx, `(() => {
+    const kept = 'wake/members/Lumi/state/pictures/2026-11-22T2310Z-peach.jpg';
+    const t = threadText('Lumi', [{role: 'user', at: '2026-11-22 23:10 UTC', content: 'look at this',
+      pic: {name: 'peach.jpg', w: 800, h: 600, bytes: 120000, mime: 'image/jpeg', kept},
+      image: {mime: 'image/jpeg', data: 'AAAABBBB'}}]);
+    return {t, back: splitSources(t.split(/^## /m)[1] || '')};
+  })()`);
+
+  check('the record keeps a note about the picture, never the picture', () => {
+    if (keptNote.err) return keptNote.err;
+    const t = String(keptNote.t || '');
+    if (/AAAABBBB/.test(t)) return 'the bytes of the picture were written into the conversation file';
+    if (!/\[picture: peach\.jpg — 800×600, 117 KB, kept at wake\/members\/Lumi\/state\/pictures\/2026-11-22T2310Z-peach\.jpg\]/.test(t))
+      return 'the note does not say which picture, how large, and where the copy is: '
+        + JSON.stringify((t.match(/\[picture:[^\]]*\]/) || ['nothing'])[0]);
+    const back = keptNote.back || {};
+    if (!back.pic || back.pic.name !== 'peach.jpg') return 'reading the file back does not know a picture was there';
+    if (back.pic.kept !== 'wake/members/Lumi/state/pictures/2026-11-22T2310Z-peach.jpg')
+      return 'the kept copy cannot be found again from the record: ' + JSON.stringify(back.pic.kept);
+    if (/picture:/.test(String(back.content))) return 'the marker comes back as prose a member would be handed';
+    return ''; });
 
   /* 6 — the magazine, §9: one press assembles the open issue from the shelf and commits it. Two things the
      page used to do are tested against here. It assembled a magazine of its own (twelve files, newest first,
@@ -2963,6 +3086,16 @@ async function main(){
     if (/not in this browser/.test(card)) return 'a key this browser holds was reported as absent';
     return '';
   });
+
+  check('the Keys page says which model can be shown a picture, where the model is chosen', () => {
+    const cards = String((tabs.keys || {}).cards || '');
+    if (!/pictures: <code>deepseek-flash<\/code> can see/.test(cards))
+      return 'the deepseek card does not say which of its models can see';
+    if (!/deepseek-v4-pro<\/code> cannot/.test(cards))
+      return 'the card does not say which of its models cannot, so a person choosing it learns nothing';
+    if (!/measured with a picture whose contents are known/.test(cards))
+      return 'the card does not say the claim is a measurement rather than a guess';
+    return ''; });
 
   for (const r of results){
     if (r.ok) console.log('PASS  ' + r.name);
