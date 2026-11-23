@@ -2216,9 +2216,10 @@ def _film_entry(e: dict, hole: Hole, index: int) -> dict:
     every hole — the one a visitor most wants to see go in — is in the film, curved where the green made it curve.
     """
     if e["kind"] == "putt":
-        return dict(label=f"{hole.label} · putt, {e['gap_ft']:.0f} ft", kind="putt", club="putter",
-                    gear=None, start=[round(c, 2) for c in e["start"]], path=e.get("path"), stop_at=None,
-                    rest=None, lens=None, lip=False, hole=index, feet=_hole_json(hole), result=e["text"])
+        return dict(label=f"{hole.label} · putt, {e['gap_ft']:.0f} ft", kind="putt", club="putter", gear=None,
+                    start=[round(c, 2) for c in e["start"]], path=e.get("path"), stop_at=None, rest=None,
+                    lens=None, lip=False, hole=index, feet=_hole_json(hole), holed=bool(e.get("holed")),
+                    result=e["text"])
     return dict(label=f"{hole.label} · {e['club']} at {e['gear']:.0%}, aim {e['offset']:+.0f} ft", kind="shot",
                 club=e["club"], gear=e["gear"], start=[round(c, 2) for c in e["start"]],
                 path=film_path(e), stop_at=e.get("stop_at"), rest=None, lens=None,
@@ -2494,8 +2495,9 @@ two per cent.</p>
 field of <em>strategies</em>, and the number on the card is still one program's number. Putting six members' numbers
 on one board is something the members would have to do in their own windows.</p>
 <p>What this page does not model, and where the game stops, are in <code>games/golf/README.md</code> — twelve
-findings, thirty-eight checks, and four instruments that turned out to be reading the wrong thing. Every number
-here
+findings, and the four instruments that turned out to be reading the wrong thing. The checks print their own count —
+`python3 lab/golf.py --selftest` — because a count typed into a page is wrong the next time a check is added, and this
+file has enough of those. Every number here
 comes out of <code>python3 lab/golf.py --season</code>, which prints the same table to a terminal;
 <code>season.json</code> beside this file is what a Play tab would read.</p>
 </footer>

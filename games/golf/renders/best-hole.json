@@ -4008,6 +4008,7 @@
     "bunker_w": 0.0,
     "lip_h": 0.0
    },
+   "holed": true,
    "result": "in the hole"
   }
  ],

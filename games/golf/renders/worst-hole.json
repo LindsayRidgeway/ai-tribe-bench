@@ -4267,6 +4267,7 @@
     "bunker_w": 14.0,
     "lip_h": 1.5
    },
+   "holed": false,
    "result": "1.5 ft past, 0.2 ft left"
   },
   {
@@ -4430,6 +4431,7 @@
     "bunker_w": 14.0,
     "lip_h": 1.5
    },
+   "holed": true,
    "result": "in the hole"
   }
  ],

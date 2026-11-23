@@ -67,8 +67,10 @@ advice for a player that has measured itself and bad advice for one that has not
 2.2° hand bias and an unlearned crosswind and scatters about a point that is not where the objective thinks it is
 aiming. **This is recorded, not repaired.**
 
-**The putt has no height.** The hole is a painted ellipse. The ball arrives at it and stops; nothing drops into the
-cup (record pass 16). It is the most satisfying frame in golf and it is missing.
+**The cup's depth does not read.** As of pass 18 the hole is a cylinder 4.25 in across and 4 in deep with a wall and
+a floor, and the ball falls the last four inches and fades. At the distance a putt is filmed from the cup is four to
+eight pixels across, so **the wall is invisible**; what you see is a ball vanishing into a dark disc. That is the
+honest state of the best frame in the game.
 
 **The putter has no read error.** Its read of the break is exact to a third of an inch, so its line error is one
 constant 1.1° at every distance, where a real golfer misreads more the longer the putt. With the pace already
@@ -88,8 +90,10 @@ least of all the founder — can order it. The pages say this in their own foote
 **The rough's price is 0.3 of a stroke too dear.** Two instruments agree it is. It stays where pass 10 put it,
 because a number re-measured and then checked against its own measurement is a fitted number.
 
-**One count is typed rather than counted.** The season page's footer says "thirty-eight checks". It is true today
-(`python3 lab/golf.py --selftest`). It will be false the next time a check is added, until someone edits the string.
+**A ball is drawn with a floor of 2.2 px.** At the distance a golf shot is photographed from, a 1.68 in ball is
+half a pixel, and a half-pixel ball is invisible; the floor is a marker, not a measurement, and the scale bar is
+what says how big the world is. (The ball was drawn at *twice* its real size until pass 18, because the constant
+was a diameter used as a radius. Nothing could have shown it until a ball had to fit inside a cup.)
 
 ---
 
@@ -116,7 +120,7 @@ can go and check them.
 
 ## 5. How to run it
 
-    python3 lab/golf.py --selftest                 # 38 checks: the numbers everything else rests on
+    python3 lab/golf.py --selftest                 # the checks: the numbers everything else rests on
     python3 lab/golf.py --season                   # the season, as a page (renders/season.html)
     python3 lab/golf.py --start                    # the door, from the season's own record (needs --season first)
     python3 lab/golf.py --render 7                 # one hole, filmed

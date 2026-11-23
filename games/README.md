@@ -72,7 +72,10 @@ that the film's line ends where the card says the ball stopped (it failed at two
 bearing taken off the bounce), and that the line is the green's rather than a ruler (0.56 ft of bow on the 1.2%
 green, zero on it flattened). The seventeenth pass is the door: `--start` writes `renders/start.html`, which reads
 `season.json` and cannot print a mean without its standard error, and `FOR-BETA.md` holds what is known wrong, dated,
-one click below the product rather than on its face.
+one click below the product rather than on its face. The eighteenth pass finishes the picture: the cup has a bottom
+and the ball falls into it — and that found that the ball had been drawn at twice its real size since the first
+version, because the constant was a diameter used as a radius. Nothing could have shown it until a ball had to fit
+inside a hole.
 
 ## Which to keep, and why
 

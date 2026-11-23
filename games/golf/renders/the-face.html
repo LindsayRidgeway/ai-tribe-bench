@@ -73,7 +73,12 @@ function clipNear(poly, near = 0.5) {
   }
   return out;
 }
-const BALL_FT = 1.62 / 12;                 // a golf ball, in feet: the size on screen is the size it is
+/* A golf ball is 1.68 in across, so 0.07 ft is its RADIUS — and the old `BALL_FT` was 1.62/12, which is a diameter
+   being used as a radius. Every ball in this film has therefore been drawn at twice its true size since the first
+   version, and nobody could see it, because a ball alone on grass has nothing to be compared with. It became visible
+   the moment a ball had to fit into a cup: the drawn ball was wider than the drawn hole, and a ball wider than the
+   hole looks like it is resting on top of it. Found on 2026-11-22 by looking at the frame where the putt drops. */
+const BALL_R_FT = 1.68 / 2 / 12;   // 0.07 ft
 let LENS = scene.fov || 42;                // degrees across, set for each frame: a cut may change the lens
 const FOCAL = () => (cv.clientHeight / DPR) / 2 / Math.tan(LENS * Math.PI / 360);
 function project(cam, p) {
@@ -183,7 +188,10 @@ function shotCamera(s, shown) {
     const feet = feetOf(s);
     const mid = [s.start[0] + ux * travel * 0.5, s.start[1] + uy * travel * 0.5];
     LENS = scene.fov || 44;
-    const H = (travel + 13) * 0.5 / Math.tan(LENS * Math.PI / 360);   // the ball at one end, the hole at the other, and air for both
+    /* Enough frame for the ball at one end, the hole at the other and air for both — with a floor, because a two
+       foot putt framed at nineteen feet is a picture of a green with a speck on it. The floor is nine feet of span,
+       which at this lens puts the cup about seven pixels across and the ball about five. */
+    const H = Math.max(9.0, travel + 9.0) * 0.5 / Math.tan(LENS * Math.PI / 360);
     return basis([mid[0], mid[1] - 0.22 * H, Math.max(9, H)], [mid[0], mid[1], 0.0]);
   }
   /* A short shot is framed from behind the ball looking at the face, low and close, with a modest lens. The
@@ -278,7 +286,31 @@ function ground(cam, f) {          // the hole, passed in: a film that changes h
     ctx.beginPath(); ctx.ellipse(cup.x, cup.y, r, r * (0.30 + 0.55 * Math.min(1, 26 / Math.max(4, cup.d))),
                                  0, 0, Math.PI * 2);
     ctx.fillStyle = "#0b1210"; ctx.fill();
-    ctx.strokeStyle = "rgba(240,240,230,0.55)"; ctx.lineWidth = 0.8; ctx.stroke();
+    /* THE CUP HAS DEPTH. It was a painted disc, which is all a hole needs to be from a hundred feet and not
+       enough from twenty, where a ball arriving at it and stopping on top of it was the last thing wrong with the
+       putting shot. It is a cylinder 4.25 in across and 4 in deep, and what the eye uses to see that is the far
+       wall: from any camera above the green, the inside of the hole is the half of the cylinder away from the
+       lens, and it is lit differently from the mouth. Eight segments of that far half, drawn between the rim and
+       the floor, are enough for the socket to read as a socket. */
+    const R_FT = 2.125 / 12, DEEP = 0.33, seg = 8;   // the far half is +y: every camera in this film is south of it
+    for (let k = 0; k < seg; k++) {
+      const a0 = Math.PI * k / seg, a1 = Math.PI * (k + 1) / seg;
+      const px0 = flag[0] + Math.cos(a0) * R_FT, py0 = flag[1] + Math.sin(a0) * R_FT;
+      const px1 = flag[0] + Math.cos(a1) * R_FT, py1 = flag[1] + Math.sin(a1) * R_FT;
+      fillPoly(cam, [[px0, py0, 0], [px1, py1, 0], [px1, py1, -DEEP], [px0, py0, -DEEP]],
+               k % 2 ? "#141a16" : "#1b231d");
+    }
+    /* the floor, and the rim — a dark disc with nothing under it is a hole, a dark disc with a floor is a cup */
+    const floor = project(cam, [flag[0], flag[1], -DEEP]);
+    if (floor) {
+      ctx.beginPath();
+      ctx.ellipse(floor.x, floor.y, r * 0.82, r * 0.82 * (0.30 + 0.55 * Math.min(1, 26 / Math.max(4, floor.d))),
+                  0, 0, Math.PI * 2);
+      ctx.fillStyle = "#080c0a"; ctx.fill();
+    }
+    ctx.strokeStyle = "rgba(240,240,230,0.55)"; ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.ellipse(cup.x, cup.y, r, r * (0.30 + 0.55 * Math.min(1, 26 / Math.max(4, cup.d))),
+                                 0, 0, Math.PI * 2); ctx.stroke();
   }
 }
 
@@ -337,7 +369,7 @@ function drawPath(cam, pts, upto, colour, width) {
 function shadow(cam, p) {
   const q = project(cam, [p[1], p[2], 0]);
   if (!q) return;
-  const r = Math.max(2.4, Math.min(22, 1.35 * BALL_FT * FOCAL() / Math.max(1, q.d)));
+  const r = Math.max(2.4, Math.min(22, 1.35 * BALL_R_FT * FOCAL() / Math.max(1, q.d)));
   ctx.beginPath(); ctx.ellipse(q.x, q.y, r, r * 0.40, 0, 0, Math.PI * 2);
   ctx.fillStyle = "rgba(0,0,0,0.32)"; ctx.fill();
 }
@@ -348,20 +380,40 @@ function drawBall(cam, p) {
      distance a golf shot is photographed from, a 1.6-inch ball is half a pixel, and a half-pixel ball is not
      visible at all. Two and a bit pixels is the smallest honest marker, and the scale bar is the thing that says
      how big the world is — not the dot. */
-  const r = Math.max(2.2, Math.min(26, BALL_FT * FOCAL() / Math.max(1, q.d)));
+  const r = Math.max(2.2, Math.min(26, BALL_R_FT * FOCAL() / Math.max(1, q.d)));
+  /* A ball below the rim is inside the cup: it fades as it falls, because the half of the ball that is still above
+     the surface is the half the camera can see, and by the floor there is nothing left to see. Fading rather than
+     clipping is a compromise and it is the one that reads — a hard-edged sphere drawn over a dark socket looks like
+     a ball resting on the hole. */
+  const below = Math.max(0, -p[3]) / 0.33;
+  if (below > 0.92) return;
+  ctx.save();
+  if (below > 0) ctx.globalAlpha = 1 - below * 0.9;
   ctx.beginPath(); ctx.arc(q.x, q.y, r, 0, Math.PI * 2); ctx.fillStyle = "#ffffff"; ctx.fill();
   ctx.beginPath(); ctx.arc(q.x - r * 0.25, q.y - r * 0.25, r * 0.45, 0, Math.PI * 2);
   ctx.fillStyle = "rgba(255,255,255,0.9)"; ctx.fill();
+  ctx.restore();
 }
 
 /* ---- the film: one shot at a time, then the next ------------------------------------------------
    The whole thing is one function of time — `at(t)` says which frame of which shot is on screen at second
    `t` — so a still can be pinned from the address bar (`the-face.html#t=6.2`), which is how a record gets a
    picture out of a film. Nothing here is stateful but the clock. */
-const shots = (scene.shots || []).map(s => ({
-  ...s, path: truncate(s.path, s.stop_at, s.start),
-  dur: s.path && s.path.length ? s.path[s.path.length - 1][0] : 1.0,
-}));
+const shots = (scene.shots || []).map(s => {
+  let path = truncate(s.path, s.stop_at, s.start);
+  /* A putt the game says went in ends *in the cup*, and `putt.roll` stops at the plane through the hole because
+     that is the last thing physics has to say about it. Four inches of fall are added here, with the path's own
+     last point as the centre, because the alternative is a ball that arrives at the hole and stops on top of it —
+     which is what the film did before this pass and looked like a ball that had missed by nothing at all. */
+  if (s.holed && path && path.length) {
+    const last = path[path.length - 1];
+    for (let k = 1; k <= 7; k++) {
+      const u = k / 7;
+      path.push([last[0] + 0.055 * k, last[1], last[2], -0.33 * u * u]);
+    }
+  }
+  return { ...s, path, dur: path && path.length ? path[path.length - 1][0] : 1.0 };
+});
 const PRE = 3.2;                           // standing still before a ball moves, in seconds
 const START = [], BEAT = [];               // when each shot begins on the film's clock, and how long it holds first
 let total = 0;

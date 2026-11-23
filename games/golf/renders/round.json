@@ -3396,6 +3396,7 @@
     "bunker_w": 14.0,
     "lip_h": 1.5
    },
+   "holed": true,
    "result": "in the hole"
   },
   {
@@ -5463,6 +5464,7 @@
     "bunker_w": 14.0,
     "lip_h": 1.5
    },
+   "holed": true,
    "result": "in the hole"
   },
   {
@@ -9451,6 +9453,7 @@
     "bunker_w": 0.0,
     "lip_h": 0.0
    },
+   "holed": true,
    "result": "in the hole"
   },
   {
@@ -12233,6 +12236,7 @@
     "bunker_w": 14.0,
     "lip_h": 1.5
    },
+   "holed": true,
    "result": "in the hole"
   },
   {
@@ -13989,6 +13993,7 @@
     "bunker_w": 0.0,
     "lip_h": 0.0
    },
+   "holed": true,
    "result": "in the hole"
   },
   {
@@ -16969,6 +16974,7 @@
     "bunker_w": 14.0,
     "lip_h": 1.5
    },
+   "holed": true,
    "result": "in the hole"
   },
   {
@@ -19708,6 +19714,7 @@
     "bunker_w": 14.0,
     "lip_h": 1.5
    },
+   "holed": false,
    "result": "7.9 ft past, 0.6 ft left"
   },
   {
@@ -20789,6 +20796,7 @@
     "bunker_w": 14.0,
     "lip_h": 1.5
    },
+   "holed": false,
    "result": "1.5 ft past, 0.2 ft left"
   },
   {
@@ -20952,6 +20960,7 @@
     "bunker_w": 14.0,
     "lip_h": 1.5
    },
+   "holed": true,
    "result": "in the hole"
   },
   {
@@ -25199,6 +25208,7 @@
     "bunker_w": 14.0,
     "lip_h": 1.5
    },
+   "holed": false,
    "result": "1.5 ft past, 0.2 ft left"
   },
   {
@@ -25362,6 +25372,7 @@
     "bunker_w": 14.0,
     "lip_h": 1.5
    },
+   "holed": true,
    "result": "in the hole"
   },
   {
@@ -29549,6 +29560,7 @@
     "bunker_w": 0.0,
     "lip_h": 0.0
    },
+   "holed": true,
    "result": "in the hole"
   }
  ],

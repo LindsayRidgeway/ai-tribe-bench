@@ -24,9 +24,10 @@ page. **Fifteenth: the film's camera — two of them thrown away before the pict
 where it stopped flying rather than where the game says it stopped rolling. Sixteenth: the putts in the film, traced
 by the roll itself, filmed from above — and two checks that exist to stop the picture and the card from drifting
 apart. Seventeenth: one door, a manual for a beta tester, and the bars made a rule in code rather than a promise in
-prose.** The tool is
+prose. Eighteenth: the cup as a volume and a ball that falls into it — which is how the ball turned out to have been
+drawn at twice its size since the first version.** The tool is
 `lab/golf.py`; the runs are `records/golf-2026-11-19.txt`; the checks are `python3 lab/golf.py --selftest`
-(38 of them).
+(the count prints itself).
 
     python3 lab/golf.py                    # six rounds of nine, then six holes never played
     python3 lab/golf.py --calm             # the same pins on a still day
@@ -788,7 +789,8 @@ order, with three seconds of the hole standing still before each one. `--render 
 `renders/best-hole.html` and `renders/worst-hole.html` — one hole each, chosen off the card, which is the thing a
 player actually wants to watch.
 
-**The putts are in it as of pass 16**, and they are the best-looking thing in it. `putt.roll()` traces its own
+**The putts are in it as of pass 16**, and as of pass 18 the ball drops into the cup, which is the frame the whole
+film was built to get to. `putt.roll()` traces its own
 roll when asked — a putt reports the distance it finished from the hole and, until this pass, nothing about the
 line it took, so the film had been saying in its own note that the putts were not in it rather than drawing a line
 nobody computed. Each putt is photographed from above, because a putt is the one stroke whose whole content is a
@@ -806,6 +808,18 @@ Two defects came out of making it, and neither was a physics question.
 - **resizing the window blanked the page.** Setting a canvas's width clears it, and the pinned still never runs
   again, so the film went black and stayed black. Found by taking screenshots with a longer virtual-time budget:
   the frame drew, the layout settled, the canvas cleared itself. The page had this fault from its first version.
+
+**The cup was a painted disc and is now a socket** (pass 18): a cylinder 4.25 in across and 4 in deep, its far wall
+drawn in eight segments, with the floor under it. Honest note: at the distance a putt is filmed from, the cup is
+between four and eight pixels wide and **the wall does not read at all**. What reads is the ball: a putt the game says
+went in now carries four inches of fall past the plane through the hole, and the ball fades as it drops, so the last
+frame of a hole is a ball vanishing into a dark disc instead of a ball resting on top of one.
+
+And that change found a defect nine passes old. `BALL_FT` was `1.62/12` — a diameter used as a radius — so **every
+ball in this film had been drawn at twice its true size since the first version**. Nothing could have shown it: a ball
+alone on grass has nothing to be compared with. It showed the instant a ball had to fit inside a hole, because the
+drawn ball was wider than the drawn cup, and a ball wider than the hole reads as a ball resting on the hole rather
+than falling into it. The constant is `BALL_R_FT = 0.07 ft` now, which is half of 1.68 in.
 
 Two checks now stand under the picture, and they are the first checks in this file that are about the film rather
 than the golf. **37** puts the card's number beside the line the film draws, for clubs and for putts, and demands

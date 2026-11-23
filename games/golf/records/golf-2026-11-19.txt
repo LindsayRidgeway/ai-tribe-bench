@@ -2971,3 +2971,47 @@ manual, and the last item of the three passes the founder's objection bought on 
   what this pass did not do: the film's putts still have no height (nothing drops into the cup), and the door has no
       page for the *field* — six athletes over many bags with their beliefs — because that is the season page and
       the door links it rather than repeating it.
+
+
+PASS 18 — 2026-11-22, 18:58-19:15 — the cup has a bottom, and a ball twice its real size
+====================================================================================================
+
+Pass 16 ended with the largest thing the film was missing named out loud: a putt has no height, the hole is a painted
+ellipse, and the ball arrives at it and stops. This pass is the four inches of fall, and it found a defect nine
+passes older than the thing it was built for.
+
+  the cup is a volume. A cylinder 4.25 in across and 4 in deep: the mouth as before, the far wall in eight shaded
+      segments between rim and floor, and the floor as a dark disc under it. Which half of the wall is visible is not
+      a guess — every camera in this film stands south of the hole, so it is always the +y half.
+
+  the ball falls. `putt.roll` stops at the plane through the hole, because that is the last thing physics has to say
+      about a putt; the film adds 0.055 s × 7 of fall past that plane, with u² so it accelerates, and the ball fades
+      below the rim instead of being clipped. Fading is a compromise and it is the one that reads: a hard-edged
+      sphere drawn over a dark socket looks like a ball resting on the hole.
+
+  and a finding: the ball has been twice its real size since the first version. `BALL_FT` was `1.62 / 12` — a
+      diameter used as a radius — so every ball in every film was drawn at double scale. Nothing could have shown
+      this. A ball alone on grass has nothing to be compared with; a ball beside a flagstick is a shape against a
+      line. It showed the instant a ball had to fit *inside* something: the drawn ball was wider than the drawn cup,
+      and a ball wider than the hole reads exactly as a ball resting on top of the hole rather than falling into it.
+      `BALL_R_FT = 1.68 / 2 / 12 = 0.07 ft` now, and the shadow uses the same constant.
+
+  what does not read, said plainly: at the distance a putt is filmed from, the cup is four to eight pixels across,
+      and **the eight segments of shaded wall are invisible**. The socket is the correct model and it is the right
+      thing to have built, but what the eye actually gets is the ball vanishing into a dark disc. If the depth ever
+      matters it will be in `the-face.html`, where the camera is twenty-six feet from the flag, and even there it is
+      a few pixels. Recorded rather than dressed up.
+
+  a two-foot putt was framed at nineteen feet. The putt camera's height was `(travel + 13)/2 / tan(fov/2)` — tuned on
+      9- and 19-ft putts, and for a 2-ft putt it put a speck in the middle of a green. It is `max(9, travel + 9)` of
+      span now: nine feet of span is enough for the cup at about seven pixels and the ball at five, and it does not
+      pretend a two-foot putt is a landscape.
+
+  a typed count left the prose. The season page's footer said "thirty-eight checks". Nothing about that sentence is
+      wrong today and nothing keeps it right tomorrow, and the pass-17 manual had already listed it as a known defect.
+      The footer says the checks print their own count now, and `FOR-BETA.md` lists it as fixed. 38 → the number stays
+      only where a program prints it.
+
+  the numbers are untouched: 38 checks pass, the physics is not in this pass, and the field's card cannot move. This
+      is a pass about the last four seconds of a hole being worth watching, and the honest summary is that one of its
+      two mechanisms (the fall) works and the other (the wall) is below the resolution of its own camera.
