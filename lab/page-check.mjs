@@ -1173,12 +1173,14 @@ async function main(){
      is wrong reads at the far end as a blind model. The gate: a picture sent to a model that cannot see is not
      a failed call — it is a description of a photograph that was never delivered, in voice, with nothing that
      could contradict it. */
-  check('the page\'s table of models that can see is lab/vision.py\'s, not a memory of it', () => {
-    const py = fs.readFileSync(path.join(HERE, '..', 'lab', 'vision.py'), 'utf8');
-    const block = (py.match(/TABLE = """([\s\S]*?)"""/) || [])[1] || '';
-    if (!block) return 'vision.py\'s TABLE could not be read — the check has gone blind';
+  check('the page\'s table of models that can see is wake/vision.json\'s, not a memory of it', () => {
+    // The table ships in `wake/vision.json` and the page carries a copy, because a page cannot read a file
+    // out of the repository it has not been told the name of. Three readers, one file; this is the check that
+    // keeps the third honest.
+    const raw = fs.readFileSync(path.join(HERE, '..', 'wake', 'vision.json'), 'utf8');
     let there;
-    try { there = JSON.parse(block); } catch(e){ return 'vision.py\'s TABLE is not JSON: ' + e.message; }
+    try { there = JSON.parse(raw).models || {}; }
+    catch(e){ return 'wake/vision.json could not be read — the check has gone blind: ' + e.message; }
     const here = run(ctx, 'VISION') || {};
     const flat = {};
     for (const [engine, byModel] of Object.entries(here))
@@ -1190,6 +1192,7 @@ async function main(){
       if (flat[model].sees !== row.sees)
         return `vision.py records ${model} as ${row.sees ? 'seeing' : 'blind'} and the page says the opposite`;
       if (row.sees !== null && !row.measured) return `${model} is recorded without the date it was measured`;
+      if (!row.said) return `${model} records no words, and the words are the evidence`;
     }
     for (const model of Object.keys(flat))
       if (!there[model]) return `the page offers ${model} as measured, and vision.py has never pointed a picture at it`;
@@ -1268,6 +1271,24 @@ async function main(){
       image: {mime: 'image/jpeg', data: 'AAAABBBB'}}]);
     return {t, back: splitSources(t.split(/^## /m)[1] || '')};
   })()`);
+
+  check('a picture is kept in one place, and the checkbox is the whole of the difference', () => {
+    const got = run(ctx, `(() => {
+      const p = {name: 'Peaches On The Tree.JPG', data: 'AAAA'};
+      return [picturePath('Lumi', p, false), picturePath('Lumi', p, true)];
+    })()`);
+    const [shown, left] = got || [];
+    if (!/^wake\/members\/Lumi\/state\/pictures\/\d{4}-\d{2}-\d{2}T\d{4}Z-peaches-on-the-tree\.jpg$/.test(String(shown)))
+      return 'the picture a person showed is filed somewhere unexpected: ' + shown;
+    if (!/^wake\/members\/Lumi\/state\/inbox\/\d{4}-\d{2}-\d{2}T\d{4}Z-peaches-on-the-tree\.jpg$/.test(String(left)))
+      return 'leaving it for the next wake does not put it in the inbox: ' + left;
+    if (shown === left) return 'the two decisions are one path, so the inbox would never receive anything';
+    // And the record says which of the two happened, because "kept" alone would send a person looking in the
+    // wrong folder for a picture that is waiting to be looked at instead.
+    const note = String(run(ctx, `sourceLine({role: 'user', content: 'x', pic: {name: 'peaches.jpg', w: 8, h: 6,
+      bytes: 2048, kept: 'wake/members/Lumi/state/inbox/k.jpg', left: true}})`));
+    if (!/left in its inbox/.test(note)) return 'the record does not say the picture is waiting for a wake: ' + note;
+    return ''; });
 
   check('the record keeps a note about the picture, never the picture', () => {
     if (keptNote.err) return keptNote.err;

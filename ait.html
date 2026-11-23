@@ -357,6 +357,11 @@ const painterNames = () => Object.values(PAINTERS).map(p => p.label).join(', ');
 // vendor, two answers — which is why this table is keyed by model id and not by company.
 const VISION = {
   deepseek: {'deepseek-flash': true, 'deepseek-v4-pro': false},
+  // Measured 2026-11-01 with one image and three models on this machine, before any of the vendor rows existed.
+  // `qwen2.5vl:3b` is the row worth reading twice: it has eyes, it answered a question about a file instead, and
+  // it invented an action the contract does not contain. Capability is not behaviour, and the table records what
+  // a model did with a picture, not what it is able to do with one.
+  local: {'gemma3:4b': true, 'llama3.2:3b': false, 'qwen2.5vl:3b': false},
 };
 
 function canSee(engine, model){
@@ -2537,7 +2542,7 @@ async function shrinkPicture(file, max = 1400, quality = 0.85){
 
 // The picture waiting to be sent, and which member it is waiting for. A picture chosen for one member must not
 // arrive at another: two tabs, one page state, and the wrong person's photograph is not a small mistake.
-const TAKE = {picture: null, forName: ''};
+const TAKE = {picture: null, forName: '', leave: false};
 
 // One decision, two callers — the button and the send — so they cannot disagree. A page left open while a key or
 // a model name was changed in another tab can hold a picture that this member may no longer be shown; this is the
@@ -2575,8 +2580,16 @@ async function takePicture(name, input){
 }
 
 function dropPicture(name){
-  TAKE.picture = null; TAKE.forName = '';
+  TAKE.picture = null; TAKE.forName = ''; TAKE.leave = false;
   const msg = $('picmsg'); if (msg) msg.innerHTML = '';
+  paintTake(name);
+}
+
+// The difference between showing it something and leaving it something. It is one checkbox because it is one
+// decision, and it is on the strip rather than in a menu because a person who has just chosen a photograph is
+// the only person who knows which of the two they meant.
+function leavePicture(name, on){
+  TAKE.leave = !!on;
   paintTake(name);
 }
 
@@ -2588,17 +2601,31 @@ function paintTake(name){
   strip.innerHTML = `<img alt="" style="height:44px;width:auto;border-radius:8px;border:1px solid var(--line)"
       src="data:${p.mime};base64,${p.data}">
     <span class="small">${esc(p.name)} · ${p.w}×${p.h} · ${kb(p.bytes)} (sent as this copy)</span>
+    <label class="small" style="display:flex;gap:6px;align-items:center">
+      <input type="checkbox" ${TAKE.leave ? 'checked' : ''} onchange="leavePicture('${escq(name)}', this.checked)">
+      leave it for its next wake</label>
     <button class="plain small" onclick="dropPicture('${escq(name)}')">Remove</button>`;
 }
 
 // The kept copy, in the member's own folder: a picture somebody showed it is part of what it has been shown, and
 // it belongs beside its own state rather than in a folder of plates made for works.
-async function keepPicture(name, p){
+// Two places a picture can go, and the difference is what the person wants from it:
+//   state/pictures/ — this is what I showed it; the record of a conversation.
+//   state/inbox/    — leave it, so its next wake looks at it while I am not here.
+// One file, one path. A picture left in the inbox is not also copied to pictures/: two copies of the same
+// photograph in a repository is 600 KB nobody asked for, and two records of one thing that can disagree.
+function picturePath(name, p, leave){
   const stamp = nowStamp().replace(' ', 'T').replace(':', '').replace(' UTC', 'Z');
-  const slug = String(p.name || 'picture').toLowerCase().replace(/\.[^.]+$/, '')
+  const slug = String((p && p.name) || 'picture').toLowerCase().replace(/\.[^.]+$/, '')
     .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'picture';
-  const path = `wake/members/${name}/state/pictures/${stamp}-${slug}.jpg`;
-  try { await putB64(path, p.data, `picture: ${name} was shown ${p.name}`); return path; }
+  return `wake/members/${name}/state/${leave ? 'inbox' : 'pictures'}/${stamp}-${slug}.jpg`;
+}
+
+async function keepPicture(name, p, leave){
+  const path = picturePath(name, p, leave);
+  const what = leave ? `picture: left for ${name} to look at when it next wakes`
+                     : `picture: ${name} was shown ${p.name}`;
+  try { await putB64(path, p.data, what); return path; }
   catch(e){ return ''; }
 }
 
@@ -3006,14 +3033,15 @@ async function viewMember(main, name){
     arr.push({role:'user', content:text || '(a picture, with nothing said about it)', at: nowStamp(),
               image: picture ? {mime: picture.mime, data: picture.data} : undefined,
               pic: picture ? pictureNote(picture) : undefined});
-    TAKE.picture = null; TAKE.forName = '';
+    TAKE.picture = null; TAKE.forName = ''; TAKE.leave = false;
     paintTake(m.name);
     // The kept copy is written before the turn, so the note the conversation keeps is a path that exists rather
     // than a promise. A repository that refuses the write is not a reason to withhold the picture from the
     // member: the file says "not kept" and the talk goes on.
     if (picture){
-      const kept = await keepPicture(m.name, picture);
+      const kept = await keepPicture(m.name, picture, TAKE.leave);
       arr[arr.length - 1].pic.kept = kept;
+      if (TAKE.leave) arr[arr.length - 1].pic.left = true;
     }
     // A link in what the person pasted is handed over as the page itself, without waiting to be asked.
     const link = (text.match(/https?:\/\/[^\s<>"')]+/i) || [])[0];
@@ -3673,7 +3701,9 @@ function sourceLine(b){
   const looked = ((b && b.searched) || []).filter(Boolean);
   const pic = b && b.pic;
   return (pic ? `\n[picture: ${pic.name || 'one'} — ${pic.w ? pic.w + '×' + pic.h + ', ' : ''}`
-      + `${kb(pic.bytes)}${pic.kept ? `, kept at ${pic.kept}` : ', not kept in the repository'}`
+      + `${kb(pic.bytes)}${pic.kept ? (pic.left ? `, left in its inbox at ${pic.kept} for its next wake`
+                                                 : `, kept at ${pic.kept}`)
+                                   : ', not kept in the repository'}`
       + `${pic.was && pic.was > pic.bytes ? ` (the file was ${kb(pic.was)})` : ''}]\n` : '')
     + (read.length ? `\n[read: ${read.join(', ')}]\n` : '')
     + (looked.length ? `\n[searched: ${looked.map(q => '"' + q + '"').join(', ')}]\n` : '');
