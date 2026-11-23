@@ -11,14 +11,33 @@
    "sessions": []
   },
   "Bo": {
-   "balls": 0,
+   "balls": 34,
    "carried": 20,
    "seeded": {
     "balls": 20,
     "by": "the clock, opening the season",
     "when": "2026-11-19T23:19:44Z"
    },
-   "sessions": []
+   "sessions": [
+    {
+     "by": "the schedule",
+     "clock": 1795444803470,
+     "competition": true,
+     "control": 0.448,
+     "in_play": 11,
+     "longest": 6,
+     "mean_rally": 2.85,
+     "mode": "rally",
+     "of": 34,
+     "reach": 0.567,
+     "shots": 34,
+     "surface": "grass",
+     "when": "2026-11-23T14:40:10Z",
+     "with": [
+      "Dmitri"
+     ]
+    }
+   ]
   },
   "Colette": {
    "balls": 50,
@@ -68,7 +87,7 @@
    ]
   },
   "Dmitri": {
-   "balls": 48,
+   "balls": 71,
    "carried": 20,
    "seeded": {
     "balls": 20,
@@ -110,6 +129,24 @@
      "when": "2026-11-21T12:39:51Z",
      "with": [
       "Remy"
+     ]
+    },
+    {
+     "by": "the schedule",
+     "clock": 1795444803470,
+     "competition": true,
+     "control": 0.573,
+     "in_play": 17,
+     "longest": 6,
+     "mean_rally": 2.85,
+     "mode": "rally",
+     "of": 23,
+     "reach": 0.669,
+     "shots": 23,
+     "surface": "grass",
+     "when": "2026-11-23T14:40:10Z",
+     "with": [
+      "Bo"
      ]
     }
    ]

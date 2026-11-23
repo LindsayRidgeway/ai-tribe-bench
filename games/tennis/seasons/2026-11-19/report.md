@@ -10,9 +10,10 @@ From `games/tennis/seasons/2026-11-19/practice.json`, opened 2026-11-19T23:19:44
 
 ## Bo
 
-- No balls hit in this season yet.
-- **20 of the 20 balls it brings were carried in from before this season**, not hit here (seeded 2026-11-19T23:19:44Z). Every rate below is computed from this season's sessions only; the carried balls move the hands, and they are named rather than folded into the total.
-- No session in this season yet. The balls above were carried in, and nothing here has been played, so there is nothing to rate and nothing to improve on.
+- 34 balls hit this season, over 1 session; most often with Dmitri (1x).
+- 1 competition; started by the schedule (1x).
+- **20 of the 54 balls it brings were carried in from before this season**, not hit here (seeded 2026-11-19T23:19:44Z). Every rate below is computed from this season's sessions only; the carried balls move the hands, and they are named rather than folded into the total.
+- One session only (grass, 11/34 balls in play, mean rally 2.85 shots). **Nothing can be said about improvement from one session** — a second one is needed before the word is used.
 
 ## Colette
 
@@ -25,12 +26,12 @@ From `games/tennis/seasons/2026-11-19/practice.json`, opened 2026-11-19T23:19:44
 
 ## Dmitri
 
-- 48 balls hit this season, over 2 sessions; most often with Remy (2x).
-- 2 competitions; started by the schedule (2x).
-- **20 of the 68 balls it brings were carried in from before this season**, not hit here (seeded 2026-11-19T23:19:44Z). Every rate below is computed from this season's sessions only; the carried balls move the hands, and they are named rather than folded into the total.
+- 71 balls hit this season, over 3 sessions; most often with Remy (2x), Bo (1x).
+- 3 competitions; started by the schedule (3x).
+- **20 of the 91 balls it brings were carried in from before this season**, not hit here (seeded 2026-11-19T23:19:44Z). Every rate below is computed from this season's sessions only; the carried balls move the hands, and they are named rather than folded into the total.
 - First session 2026-11-19 (hard): 6/15 in play = 40%, mean rally 1.4 shots.
-- Latest session 2026-11-21 (grass): 17/33 in play = 52%, mean rally 3.3 shots.
-- **The game improved**: 40% -> 52% in play over 2 sessions, 48 balls.
+- Latest session 2026-11-23 (grass): 17/23 in play = 74%, mean rally 2.85 shots.
+- **The game improved**: 40% -> 74% in play over 3 sessions, 71 balls.
 
 ## Gwen
 
