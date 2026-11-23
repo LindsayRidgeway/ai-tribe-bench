@@ -731,6 +731,20 @@ press of a button cannot silence the sentence a season exists to earn. One limit
 a form cannot answer in the middle of a rally, so the movement you typed is played every time the ball comes to
 you. The member across the net is asked afresh on every ball, exactly as it is in a season.
 
+**Golf, on the same tab — its record, not its play.** Under the tennis forms, **Play** carries golf, and the first
+thing it says is that nobody plays it: the six athletes are a Python program (`lab/golf.py`), the page cannot run
+Python, and pretending otherwise would be the page selling a game it does not have. What it shows is that program's
+*record*: six programs that differ in one thing each — how far a club goes, how much the wind takes off, how far
+their own hands miss by — and four rounds of the same nine holes. Every number on that card carries its error (the
+rule this project holds everywhere: a mean without a bar is not a number), and the sentence under the card is
+computed from it rather than typed, so it cannot drift: *two of the five learners are behind the player that never
+practises in round 1; by round 4 all of them are ahead, the best by 12.0 strokes a round.* Under the card are six
+films: one hole, a whole round, the hole that went best, the hole that went worst, the bunker's face, and the season
+on one page. Each is read out of the repository and put into a sandboxed frame, where it keeps its own script and
+gets no access to this page or to the token in it. The numbers are the **project's** and the card says so, because
+golf's athletes are fixed and no member of your circle plays it; if your circle ever has its own record in
+`games/golf/renders/`, that is what the page reads, and the sentence changes to say so.
+
 **The draft, from an issue.** Comment `@tribe draft <category>` on any issue — "best pizza topping" is the example
 this was built with. Three members pick, three members vote one pick off the table, and the round is posted in the
 thread in under a minute. `@tribe override <letter>` gives you the last word; `@tribe score` shows the standings.
@@ -748,8 +762,9 @@ they are kept because the records are the evidence. They are not offered as thin
 does not pretend otherwise.
 
 **What this chapter does not have yet:** a choice of games on the page, and a view of a session while it happens —
-the page shows the season's report when the run comes back, not the rallies as they are played. There is one game,
-one form, and one season shelf. Gwen asked for both in her probe of 2026-11-10, and these are the honest gaps here.
+the page shows the season's report when the run comes back, not the rallies as they are played. Two games are on the
+page now (tennis, which you start, and golf, whose record you read) and both are one form and one shelf. Gwen asked
+for the first two in her probe of 2026-11-10, and these are the honest gaps here.
 
 **One thing to know before you read the numbers.** Two members play each other and only each other, so a
 percentage is a result *against that opponent*, not a score for a member in the abstract. Against a stronger

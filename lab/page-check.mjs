@@ -26,6 +26,10 @@ const files = new Map();          // path -> {text, sha}
 const failWrites = new Set();     // paths whose PUT is refused, to test the failure orders
 const clashWrites = new Set();    // paths whose PUT answers 409: somebody else wrote the file since it was read
 const calls = [];                 // every request, for the failure messages to be specific
+// The credential each request carried, because "the bench is public and is read without a token" is a claim about a
+// header and nothing else. Until 2026-11-23 the page sent `Authorization: Bearer ` (an empty credential) with every
+// request, GitHub answered 401, and a public repository could not be read at all.
+const authSeen = [];              // {path, header}
 const dispatches = [];            // every workflow_dispatch, with the inputs the page sent it
 const actions = { runs: [], onPoll: null, secrets: [], secretsDenied: false, installationsDenied: false,
                   secretPublicKey: null, secretWrites: [], secretWriteDenied: false,
@@ -64,6 +68,17 @@ function templateTree(ref){
   return tpl.refs.get(ref) || null;
 }
 function seed(p, text){ files.set(p, {text, sha: shaOf(text, files.size)}); }
+
+/* The project's own repository, which is a *different* repository from the circle the page is connected to.
+
+   Until 2026-11-23 this fake had one shelf and answered any owner/repo from it, so "the page read the circle's file"
+   and "the page read the project's file" were the same event and no test could say which had happened. Golf is the
+   first thing the page reads from outside the circle (it reads `games/golf/renders/season.json` from the repository
+   it is connected to, and falls back to the public bench), and the sentence it must get right is exactly that
+   distinction: these numbers are the project's, not this circle's. */
+const BENCH_REPO = 'LindsayRidgeway/ai-tribe-bench';
+const benchFiles = new Map();
+function seedBench(p, text){ benchFiles.set(p, {text, sha: shaOf(text, benchFiles.size)}); }
 function listing(prefix){
   const seen = new Map();
   for (const p of files.keys()){
@@ -88,6 +103,7 @@ function githubFetch(url, init = {}){
   const p = decodeURIComponent(u.pathname);          // /repos/<owner>/<repo>/contents/<path>
   const method = (init.method || 'GET').toUpperCase();
   calls.push(method + ' ' + p);
+  authSeen.push({path: p, header: String((init.headers || {})['Authorization'] || (init.headers || {})['authorization'] || '')});
   // Actions: a dispatch is accepted and forgotten; the run list is what the page reads back, and its answer is
   // the only thing that decides whether a press of "Wake now" is reported as done.
   if (/^\/repos\/[^/]+\/[^/]+\/actions\/workflows\/[^/]+\/dispatches$/.test(p)){
@@ -175,9 +191,12 @@ function githubFetch(url, init = {}){
                                 sha: shaOf(shelf.get(rest)), path: rest});
     return jsonResponse(404, {message: 'Not Found'});
   }
+  // The bench answers from its own shelf. An owner/repo that is neither the circle nor the bench is the circle, as it
+  // has always been here — the page only ever reads two outside repositories (the template and the bench).
+  const shelfFiles = (m[1] + '/' + m[2] === BENCH_REPO) ? benchFiles : files;
   if (method === 'GET'){
-    if (files.has(rest)) return jsonResponse(200, {content: Buffer.from(files.get(rest).text).toString('base64'),
-                                                  sha: files.get(rest).sha, path: rest});
+    if (shelfFiles.has(rest)) return jsonResponse(200, {content: Buffer.from(shelfFiles.get(rest).text).toString('base64'),
+                                                  sha: shelfFiles.get(rest).sha, path: rest});
     const dir = listing(rest);
     if (dir.length) return jsonResponse(200, dir);
     return jsonResponse(404, {message: 'Not Found'});
@@ -216,9 +235,15 @@ const MEMBER_ENTRY = '## 2026-11-12 19:05 UTC — attended session (the keeper p
 
 function el(id){
   const e = {
-    id, hidden: false, textContent: '', innerHTML: '', value: '', className: '', checked: false,
+    id, hidden: false, textContent: '', innerHTML: '', value: '', className: '', checked: false, attrs: {},
     dataset: {}, style: {}, files: [], href: '', download: '', nextSibling: null, parentNode: null,
-    classList: {add(){}, remove(){}, toggle(){}, contains(){ return false; }},
+    // Classes are kept, not swallowed, for the same reason the nav buttons keep their attributes: a page that puts a
+    // film in a wide dialog says so by adding a class, and `classList.add` did nothing here until 2026-11-23 — so
+    // "the film opened in the film's own shape" was a claim no check could make.
+    classList: (() => { const set = new Set(); return {
+      add(...c){ c.forEach(x => set.add(String(x))); }, remove(...c){ c.forEach(x => set.delete(String(x))); },
+      toggle(c){ set.has(c) ? set.delete(c) : set.add(c); }, contains(c){ return set.has(String(c)); },
+      values(){ return [...set]; } }; })(),
     // `insertBefore` and `appendChild` record what was inserted instead of doing nothing: a page that offers a
     // person another control (the sign-in that replaces a wrong token) said nothing in this harness until
     // 2026-11-19, when the element it inserted into had no `insertBefore` at all and the branch crashed the run
@@ -227,7 +252,14 @@ function el(id){
     appendChild(c){ e.inserted.push(c); if (c) c.parentNode = e; return c; },
     insertBefore(c, before){ e.inserted.push(c); if (c) { c.parentNode = e; c.nextSibling = before || null; } return c; },
     removeChild(){}, remove(){}, click(){}, focus(){}, blur(){},
-    scrollIntoView(){}, setAttribute(){}, getAttribute(){ return null; }, hasAttribute(){ return false; },
+    scrollIntoView(){},
+    // Attributes are recorded rather than dropped. `sandbox="allow-scripts"` on a film's frame is a security claim and
+    // `srcdoc` is what carries the film, and a fake that answered `getAttribute` with null could not tell a sandboxed
+    // frame from an unsandboxed one — the claim that a repository's HTML cannot reach this page's token would have been
+    // tested by nothing.
+    setAttribute(k, v){ e.attrs[String(k)] = String(v); },
+    getAttribute(k){ return String(k) in e.attrs ? e.attrs[String(k)] : null; },
+    hasAttribute(k){ return String(k) in e.attrs; },
     addEventListener(){}, removeEventListener(){}, showModal(){}, close(){},
     querySelector(){ return null; }, querySelectorAll(){ return []; },
     getBoundingClientRect(){ return {top: 0, left: 0, width: 0, height: 0}; },
@@ -384,7 +416,12 @@ function reset(){
   actions.login = 'someone'; actions.userRepos = []; actions.notCircles = []; actions.denyUser = false;
   exchanges.length = 0; actions.installationsDenied = false;
   actions.missingWorkflows = []; actions.busy = {};
-  for (const id of ['mmsg', 'chaptsmsg', 'main']) if (elements.has(id)) elements.delete(id);
+  // `golf`, `dlg`, `modal` and the two film slots are elements the fake document *creates on demand* (the page writes
+  // them into markup, which is a string here), so they are the ones that survive a reset with yesterday's content in
+  // them — which is how a dead tab passed a check that read the screen. Cleared for the same reason.
+  for (const id of ['mmsg', 'chaptsmsg', 'main', 'golf', 'dlg', 'modal', 'filmslot', 'filmsub'])
+    if (elements.has(id)) elements.delete(id);
+  benchFiles.clear(); authSeen.length = 0;
 }
 
 // A view function that throws inside a click is a rejected promise nobody awaits, and Node would swallow it: the
@@ -3096,6 +3133,259 @@ async function main(){
     if (!/measured with a picture whose contents are known/.test(cards))
       return 'the card does not say the claim is a measurement rather than a guess';
     return ''; });
+
+  /* 17 — golf in the Play tab, 2026-11-23
+     ------------------------------------------------------------------------------------------------------------
+     Golf cannot be played in a browser: it is `lab/golf.py`, a Python program, and six fixed athletes play it. What
+     the page can show is the program's record and the films it wrote, and the whole honesty of that rests on three
+     sentences being right: *whose* numbers these are, that a mean never appears without its error, and that a film is
+     a sandboxed stranger. Each of those is a claim no check could make before this block, and the first one was
+     false in the obvious way — the fake browser had one repository, so "read the circle's file" and "read the
+     project's file" were the same event here and no test could tell them apart. `benchFiles` is that missing second
+     repository.
+     A fixture record rather than the real `season.json`: the real one is regenerated on every golf pass, and a check
+     pinned to seven athletes' to-par sums would fail for a reason that is not a defect. The shape is what the page
+     reads, and the shape is what is planted here. */
+  const golfRecord = () => ({
+    rounds: 3, bags: 2, par: 35, per_round: 35, calm: true, pin_range: 12,
+    athletes: [
+      {name: 'never practises', policy: 'flag', learns: false,
+       to_par: [{mean: 11.0, lo: 8.0, hi: 14.0}, {mean: 11.2, lo: 8.2, hi: 14.2}, {mean: 11.4, lo: 8.4, hi: 14.4}],
+       sigma: [{mean: 1.40, lo: 1.20, hi: 1.60}, {mean: 1.40, lo: 1.20, hi: 1.60}, {mean: 1.40, lo: 1.20, hi: 1.60}],
+       nerr: [{mean: 0.22, lo: 0.20, hi: 0.24}, {mean: 0.22, lo: 0.20, hi: 0.24}, {mean: 0.22, lo: 0.20, hi: 0.24}],
+       rel: [{mean: 0, lo: 0, hi: 0}, {mean: 0, lo: 0, hi: 0}, {mean: 0, lo: 0, hi: 0}]},
+      {name: 'practiser', policy: 'spread', learns: true,
+       to_par: [{mean: 12.5, lo: 9.5, hi: 15.5}, {mean: 9.0, lo: 6.0, hi: 12.0}, {mean: 7.0, lo: 5.0, hi: 9.0}],
+       sigma: [{mean: 1.45, lo: 1.25, hi: 1.65}, {mean: 1.20, lo: 1.00, hi: 1.40}, {mean: 1.10, lo: 0.90, hi: 1.30}],
+       nerr: [{mean: 0.21, lo: 0.19, hi: 0.23}, {mean: 0.15, lo: 0.13, hi: 0.17}, {mean: 0.11, lo: 0.09, hi: 0.13}],
+       rel: [{mean: 1.5, lo: -1.0, hi: 4.0}, {mean: -2.2, lo: -5.0, hi: 0.6}, {mean: -4.4, lo: -6.9, hi: -1.9}]},
+      {name: 'good start', policy: 'pin', learns: true,
+       to_par: [{mean: 4.0, lo: 1.0, hi: 7.0}, {mean: 3.0, lo: 0.5, hi: 5.5}, {mean: 2.5, lo: 0.0, hi: 5.0}],
+       sigma: [{mean: 1.00, lo: 0.80, hi: 1.20}, {mean: 0.90, lo: 0.70, hi: 1.10}, {mean: 0.85, lo: 0.65, hi: 1.05}],
+       nerr: [{mean: 0.15, lo: 0.13, hi: 0.17}, {mean: 0.10, lo: 0.08, hi: 0.12}, {mean: 0.07, lo: 0.05, hi: 0.09}],
+       rel: [{mean: -7.0, lo: -9.5, hi: -4.5}, {mean: -8.2, lo: -10.7, hi: -5.7}, {mean: -8.9, lo: -11.4, hi: -6.4}]},
+    ],
+  });
+  const GOLF_PATH = 'games/golf/renders/season.json';
+
+  // 17a — the formatter. One function prints a mean on this page, and it cannot print one without its error.
+  const fmt = await tryRun(ctx, `(() => {
+    const m = {mean: 2.5, lo: 1.0, hi: 4.0};      // se = (4.0 - 1.0) / 2 / 1.96 = 0.765
+    return {ok: bar(m), none: bar(null), noBand: bar({mean: 3}), neg: bar({mean: -1.2, lo: -2.2, hi: -0.2}, signed),
+            pct: bar({mean: 0.214 * 100, lo: 0.204 * 100, hi: 0.224 * 100}, v => v.toFixed(1), '%')};
+  })()`);
+  check('a mean cannot be printed on this page without its error', () => {
+    if (fmt.err) return fmt.err;
+    if (!/2\.5/.test(fmt.ok) || !/±0\.8/.test(fmt.ok)) return `a mean and its band did not both print: "${fmt.ok}"`;
+    // The unit sits on the mean and not on the error — that is `_bar()` in `lab/golf.py` to the letter, and this
+    // formatter is the same arithmetic because two renderings of one number must not disagree.
+    if (!/21\.4%/.test(fmt.pct) || !/±0\.5/.test(fmt.pct)) return `the percent formatter lost its mean or its band: "${fmt.pct}"`;
+    if (!/−1\.2/.test(fmt.neg)) return `a negative mean did not get a real minus sign: "${fmt.neg}"`;
+    if (!/±/.test(fmt.neg)) return `a signed mean printed without its error: "${fmt.neg}"`;
+    if (fmt.none !== '—') return `a missing mean is printed as "${fmt.none}" instead of a dash`;
+    if (!/±/.test(fmt.noBand)) return `a mean with no band printed anyway: "${fmt.noBand}"`;
+    return '';
+  });
+
+  // 17b — a circle that has its own golf record: the card, and the circle's own numbers.
+  reset();
+  seed(GOLF_PATH, JSON.stringify(golfRecord()));
+  const own = await tryRun(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
+    await loadGolf();
+    return {html: document.getElementById('golf').innerHTML,
+            verdict: golfVerdict(${JSON.stringify(golfRecord())})};
+  })()`);
+  check('a circle with a golf record gets the card, the athletes, and the films', () => {
+    if (own.err) return own.err;
+    const h = String(own.html || '');
+    if (!/Golf — the other game/.test(h)) return 'the section has no heading';
+    for (const name of ['never practises', 'practiser', 'good start'])
+      if (!h.includes(name)) return `the athlete ${JSON.stringify(name)} is not on the card`;
+    if (!/Read from this circle&#39;s own/.test(h) && !/Read from this circle's own/.test(h))
+      return 'it does not say that these are the circle\'s own numbers';
+    if (/project&#39;s<\/em> numbers/.test(h)) return 'it says the numbers are the project\'s when they are the circle\'s';
+    if (!/The films/.test(h)) return 'the films are not offered';
+    const doors = (h.match(/openFilm\(/g) || []).length;
+    if (doors !== 6) return `it offers ${doors} films, not 6`;
+    return '';
+  });
+  check('every number on the card carries its error, which is the rule start.html set', () => {
+    if (own.err) return own.err;
+    const h = String(own.html || '');
+    const cells = [...h.matchAll(/<td>([\s\S]*?)<\/td>/g)].map(m => m[1].replace(/<[^>]+>/g, '').trim());
+    if (cells.length < 21) return `the table has ${cells.length} cells, which is not three athletes by seven columns`;
+    const bare = cells.filter(c => /\d/.test(c) && !c.includes('±') && !/the reference/.test(c));
+    if (bare.length) return `these cells print a number with no error: ${JSON.stringify(bare)}`;
+    return '';
+  });
+  check('the sentence under the card is computed from it, and says what the record says', () => {
+    if (own.err) return own.err;
+    const v = String(own.verdict || '');
+    if (!/One of the two learners is behind it in round 1/.test(v))
+      return `the opening is not what this record says: "${v}"`;
+    if (!/By round 3 all of them are ahead/.test(v)) return `the closing is not what this record says: "${v}"`;
+    // `rel` is the same courses played by the frozen athlete, so its last-round value IS the margin, negated.
+    if (!/best by 8\.9/.test(v) || !/last by 4\.4/.test(v)) return `the margins are not read off rel: "${v}"`;
+    if (!String(own.html || '').includes(v)) return 'the sentence the page prints is not the one it computed';
+    return '';
+  });
+
+  // 17c — one number changed, and the sentence changes with it. This is the whole difference between a computed
+  // sentence and a typed one, and it cannot be read off a single render.
+  const mut = await tryRun(ctx, `(() => {
+    const a = ${JSON.stringify(golfRecord())};
+    const b = JSON.parse(JSON.stringify(a));
+    b.athletes[1].rel[2].mean = 0.4;                  // practiser now finishes behind the frozen player
+    b.athletes[2].rel[2].mean = 0.9;                  // and so does the one with the good start
+    return {a: golfVerdict(a), b: golfVerdict(b)};
+  })()`);
+  check('a sentence that moves when the record moves is computed, not typed', () => {
+    if (mut.err) return mut.err;
+    if (mut.a === mut.b) return 'two different records produced the same sentence';
+    if (!/none of them is ahead of it/.test(mut.b)) return `the changed record was not read: "${mut.b}"`;
+    if (/all of them are ahead/.test(mut.b)) return 'it still says all of them are ahead';
+    return '';
+  });
+
+  // 17d — a circle with no golf, and the project's record reachable: the numbers are shown, and they are named as the
+  // project's. This is the defect class of `start.html`'s typed date, in its most tempting form: a page that shows a
+  // card full of good numbers and lets the person believe they are their circle's.
+  reset();
+  seedBench(GOLF_PATH, JSON.stringify(golfRecord()));
+  const fromBench = await tryRun(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
+    await loadGolf();
+    return {html: document.getElementById('golf').innerHTML, repo: GOLF_REPO};
+  })()`);
+  check('with no golf in the circle it reads the project\'s record and says whose it is', () => {
+    if (fromBench.err) return fromBench.err;
+    const h = String(fromBench.html || '');
+    if (fromBench.repo !== 'LindsayRidgeway/ai-tribe-bench')
+      return `it thinks it read the record from ${JSON.stringify(fromBench.repo)}`;
+    if (!/project&#39;s<\/em> numbers, not this circle&#39;s/.test(h))
+      return 'it does not say that these are the project\'s numbers and not this circle\'s';
+    if (!/no member plays it/.test(h)) return 'it does not say that nobody in this circle plays golf';
+    if (!/practiser/.test(h)) return 'it did not render the card it read';
+    return '';
+  });
+  check('the project\'s record is read without a credential, which is what makes it readable at all', () => {
+    const bench = authSeen.filter(a => /^\/repos\/LindsayRidgeway\/ai-tribe-bench\//.test(a.path));
+    if (!bench.length) return 'nothing was asked of the bench, so the claim is untested';
+    const withAuth = bench.filter(a => a.header);
+    if (withAuth.length) return `a public read carried a credential: ${JSON.stringify(withAuth[0])}`;
+    const circle = authSeen.filter(a => /^\/repos\/someone\/tribe\/contents\/games\/golf/.test(a.path));
+    if (!circle.length) return 'the circle\'s own copy was not tried first';
+    if (circle.some(a => !a.header)) return 'the circle\'s copy was read without the token it needs';
+    return '';
+  });
+
+  // 17e — neither: a sentence that names both places, because "could not read it" sends a person to look at nothing.
+  reset();
+  const neither = await tryRun(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
+    await loadGolf();
+    return {html: document.getElementById('golf').innerHTML};
+  })()`);
+  check('a circle with no golf and no bench says so, and names both places', () => {
+    if (neither.err) return neither.err;
+    const h = String(neither.html || '');
+    if (!/Golf could not be read/.test(h)) return `it did not say it could not read golf: "${h.slice(0, 200)}"`;
+    if (!/games\/golf\/renders\/season\.json/.test(h)) return 'the file it looked for is not named';
+    if (!/LindsayRidgeway\/ai-tribe-bench/.test(h)) return 'the project\'s repository is not named';
+    if (!/--season/.test(h)) return 'it does not say what writes the file';
+    if (/practiser/.test(h)) return 'it rendered a card it never read';
+    return '';
+  });
+
+  // 17f — a record that is there and is not the shape the page reads. The frame must not be left saying "reading".
+  reset();
+  seed(GOLF_PATH, JSON.stringify({rounds: 3}));          // no athletes at all
+  const broken = await tryRun(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
+    S.members = [];
+    // The Play view, pressed the way a person presses it, then the microtask queue given a turn so the golf read
+    // (which the view does not wait for) has finished before the card is read.
+    document.getElementById('main').innerHTML = '';
+    await viewPlay(document.getElementById('main'));
+    await new Promise(r => setTimeout(r, 30));
+    return {html: document.getElementById('golf').innerHTML};
+  })()`);
+  check('a record with no athletes is reported, and the card is not left thinking forever', () => {
+    if (broken.err) return broken.err;
+    const h = String(broken.html || '');
+    if (/reading the record…/.test(h)) return 'the card is still saying it is reading, which is what a stuck page looks like';
+    if (!/could not be used/.test(h) && !/could not be read/.test(h)) return `nothing was reported: "${h.slice(0, 200)}"`;
+    if (!/season\.json/.test(h)) return 'the file is not named';
+    return '';
+  });
+
+  // 17g — the film. A repository's HTML is a stranger: it gets its own script and no same-origin access, because
+  // `ait.html` holds a token and a frame that can reach the opener can read it.
+  reset();
+  seed(GOLF_PATH, JSON.stringify(golfRecord()));
+  seed(GOLF_PATH.replace('season.json', 'hole-7.html'),
+    '<!doctype html><html><body><canvas id="c"></canvas><script>requestAnimationFrame(function f(){requestAnimationFrame(f);});</script></body></html>');
+  const film = await tryRun(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
+    await loadGolf();
+    await openFilm('hole-7.html', 'One hole, filmed');
+    const slot = document.getElementById('dlg');
+    const frame = (document.getElementById('filmslot').inserted || [])[0];
+    const out = {wide: document.getElementById('modal').classList.contains('wide'),
+                 filmClass: slot.classList.contains('film'),
+                 heading: String(slot.innerHTML || ''),
+                 sub: String(document.getElementById('filmsub').innerHTML || ''),
+                 tag: frame ? frame.tagName || frame.id : null,
+                 sandbox: frame ? frame.getAttribute('sandbox') : null,
+                 srcdoc: frame ? String(frame.srcdoc || '') : '',
+                 inserted: (document.getElementById('filmslot').inserted || []).length};
+    closeDialog();
+    out.after = {html: String(document.getElementById('dlg').innerHTML || ''),
+                 wide: document.getElementById('modal').classList.contains('wide'),
+                 filmClass: document.getElementById('dlg').classList.contains('film')};
+    return out;
+  })()`);
+  check('a film opens in the dialog, whole, from the file rather than a link', () => {
+    if (film.err) return film.err;
+    if (film.inserted !== 1) return `it put ${film.inserted} frames in the dialog, not one`;
+    if (!/requestAnimationFrame/.test(film.srcdoc)) return 'the frame does not carry the film\'s own script';
+    if (!/canvas/.test(film.srcdoc)) return 'the frame does not carry the film itself';
+    if (!/hole-7\.html/.test(film.sub)) return `the dialog does not say what it is reading: "${film.sub}"`;
+    if (!/One hole, filmed/.test(film.heading)) return 'the film has no title';
+    return '';
+  });
+  check('the film\'s frame is sandboxed without same-origin, so it cannot read this page\'s token', () => {
+    if (film.err) return film.err;
+    if (film.sandbox === null) return 'the frame has no sandbox attribute at all';
+    if (!/allow-scripts/.test(film.sandbox)) return 'the film cannot run its own script';
+    if (/allow-same-origin/.test(film.sandbox))
+      return `the frame can reach this page: sandbox="${film.sandbox}"`;
+    if (/allow-popups|allow-forms|allow-top-navigation/.test(film.sandbox))
+      return `the frame was given more than a film needs: sandbox="${film.sandbox}"`;
+    return '';
+  });
+  check('closing the dialog empties the frame, so a closed film is not still running', () => {
+    if (film.err) return film.err;
+    if (film.after.html !== '') return 'the closed dialog still holds the frame, and its animation loop with it';
+    if (film.after.wide) return 'the dialog kept the wide shape after it was closed';
+    if (film.after.filmClass) return 'the dialog kept the film shape after it was closed';
+    return '';
+  });
+  // and a film that is not there: the sentence names the repository, and no frame is left behind
+  const noFilm = await tryRun(ctx, `(async () => {
+    document.getElementById('filmslot').inserted.length = 0;   // the frame the last check opened is still there
+    await openFilm('no-such-hole.html', 'A film that is not there');
+    return {html: String(document.getElementById('filmslot').innerHTML || ''),
+            inserted: (document.getElementById('filmslot').inserted || []).length};
+  })()`);
+  check('a film that is not in the repository names where it should have been', () => {
+    if (noFilm.err) return noFilm.err;
+    if (noFilm.inserted) return 'it put a frame up for a film it never read';
+    if (!/games\/golf\/renders\/no-such-hole\.html/.test(noFilm.html)) return `the path is not named: "${noFilm.html}"`;
+    if (!/blob\/main\/games\/golf/.test(noFilm.html)) return 'there is no link to the file so a person can see it is absent';
+    return '';
+  });
 
   for (const r of results){
     if (r.ok) console.log('PASS  ' + r.name);

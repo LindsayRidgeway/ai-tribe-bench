@@ -872,6 +872,34 @@ player in round 1 and by how much, and how far ahead by the last round. A senten
 typed by hand is a sentence that is wrong by the third re-run, and this file has spent enough passes on that
 particular failure.
 
+## In Kythe, which is where a beta tester will meet it
+
+`start.html` is a door, and a door needs a street. The twentieth pass put golf on the **Play** tab of `ait.html` (the
+page published as kythe.app), and the three things that had to be solved were not layout.
+
+**It cannot be played there, so it is not offered as a game.** The athletes are `lab/golf.py`; a browser cannot run
+Python, and a page that re-implemented the physics in JavaScript would be a second game with the numbers of the
+first. The tab shows the record instead — `renders/season.json`, the same file `--start` reads — and six films.
+
+**The films cannot be linked.** `lab/deploy_netlify.sh` publishes exactly one page (plus the auth function), so
+`kythe.app/games/golf/renders/hole-7.html` is a 404, and GitHub serves an `.html` file from the contents API as
+base64 text rather than rendering it. The only way to show a film is to read its bytes and hand them to a frame:
+`iframe.srcdoc`, with `sandbox="allow-scripts"` and *no* `allow-same-origin`. The film keeps its own script — it is
+a canvas and a rAF loop, and it plays — and it cannot touch the page that holds a person's token. A film is a file
+from a repository; treating it as a stranger is the whole of the security argument, and `lab/page-check.mjs` asserts
+the absence of `allow-same-origin` so it stays an argument rather than a hope.
+
+**Whose numbers are these.** A tribe made from `lab/make_template.py` does not get `games/golf/` at all (the FILES
+whitelist ships tennis, putt, rps and paint), so for every circle the honest answer is that these numbers are the
+*project's*: the page falls back to the public bench — `LindsayRidgeway/ai-tribe-bench`, read with no credential at
+all — and says so in words. The fallback taught the page a defect of its own: `gh()` sent `Authorization: Bearer `
+with an empty token, and GitHub answers 401 to an empty credential, so a *public* repository could not be read
+without one. Six lines of `gh()` had been carrying that since it was written.
+
+The bar rule crossed over too. `bar()` in the page is `_bar()` in this file, arithmetic for arithmetic (standard
+error is a 1.96th of half the interval), and it is the only thing on the page that formats a mean — which is how a
+rule survives being ported into another language by somebody in a hurry.
+
 ## The landing gets a depth, and the sand stops being the story
 
 The thirteenth pass wrote down that the objective's landing had no *along* dimension, and priced the defect:
