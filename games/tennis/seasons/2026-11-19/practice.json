@@ -1,14 +1,33 @@
 {
  "members": {
   "Ada": {
-   "balls": 0,
+   "balls": 30,
    "carried": 20,
    "seeded": {
     "balls": 20,
     "by": "the clock, opening the season",
     "when": "2026-11-19T23:19:44Z"
    },
-   "sessions": []
+   "sessions": [
+    {
+     "by": "the schedule",
+     "clock": 1795531969403,
+     "competition": true,
+     "control": 0.432,
+     "in_play": 9,
+     "longest": 5,
+     "mean_rally": 2.65,
+     "mode": "rally",
+     "of": 30,
+     "reach": 0.554,
+     "shots": 30,
+     "surface": "grass",
+     "when": "2026-11-24T14:52:52Z",
+     "with": [
+      "Gwen"
+     ]
+    }
+   ]
   },
   "Bo": {
    "balls": 34,
@@ -152,7 +171,7 @@
    ]
   },
   "Gwen": {
-   "balls": 50,
+   "balls": 73,
    "carried": 20,
    "seeded": {
     "balls": 20,
@@ -194,6 +213,24 @@
      "when": "2026-11-22T12:36:46Z",
      "with": [
       "Colette"
+     ]
+    },
+    {
+     "by": "the schedule",
+     "clock": 1795531969403,
+     "competition": true,
+     "control": 0.579,
+     "in_play": 14,
+     "longest": 5,
+     "mean_rally": 2.65,
+     "mode": "rally",
+     "of": 23,
+     "reach": 0.674,
+     "shots": 23,
+     "surface": "grass",
+     "when": "2026-11-24T14:52:52Z",
+     "with": [
+      "Ada"
      ]
     }
    ]
