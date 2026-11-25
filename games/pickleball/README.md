@@ -1887,6 +1887,12 @@ honest reading is that at *this* gap the hands have already settled it, and the 
 between players whose hands are equal: about two points a game per foot and a half. A steeper gradient would need
 a smaller gap, and it would then be re-measuring §5s.
 
+> **Retracted in part, 2026-11-25 (§5u).** 264 is 11 × 24: the trained side won **11–0 in every game**. That is a
+> ceiling, and a ceiling is not the same finding as a saturating hand. Run at a gap where the scoreline has room —
+> 150 balls against 250, reach pinned so only the hands differ — the trained side wins **21 of 24 games**, which
+> says the hands are still far from settled at 200 balls. §5u ran the row §5t asked for and the sentence "the
+> hands have already settled it" does not survive it; "there was nowhere on the scoreboard for feet to show" does.
+
 ### Chaos, and a test that had to learn it
 
 `reach` includes `shots`, as tennis's skill does, so a player's reach creeps up *during* a game — 6.00 at the
@@ -1906,8 +1912,110 @@ and the reason the stills on this page are dated.
 
 ### Owed
 
-- **Price the feet separately.** §5s prices reach between equal hands; this section prices practice between unequal
+- **Price the feet separately.** *(Paid, §5u — and paid in an unexpected currency: the row was run, and no practice gap
+  can show a practice gradient in feet, because the big gaps are at the scoreboard's ceiling and the small ones are
+  under the engine's resolution.)* §5s prices reach between equal hands; this section prices practice between unequal
   ones. The missing row is a gap small enough that the hands do not saturate — 150 against 250 balls, say — where
   the two effects can be read apart.
 - **Why the stance lesson costs points** (§5r's second measurement), still owed.
 - **The `#/play` wiring** (§5q), unchanged.
+
+## §5u What a foot of reach is worth, and what twenty-four games can see — 2026-11-25
+
+§5t ended with a named missing row — "150 against 250 balls, where the two effects can be read apart" — and with a
+sentence whose *reason* was wrong. This is the row, and the sentence does not survive it.
+
+### Three conditions, and the one thing each changes
+
+```
+hands   150 vs 250 balls, reach pinned at 6.0 for all four      the hands alone
+curve   150 vs 250 balls, the reach curve of §5t                the hands and the feet
+feet    200 vs 200 balls, reach pinned 6.00 vs 5.63             the feet alone
+```
+
+All three run in the §5s two-half shape — the trait moves between seats, the pins do not — twelve games a half,
+steady hands unless stated. The harness is `lab/pickle_feet.py`, so every number below re-runs with one command.
+
+| 24 games, steady | points | games | halves | pins agreeing in sign |
+|---|---|---|---|---|
+| hands only (150 v 250) | 252 | **21/24** | 10/12, 11/12 | 9/12 |
+| hands + feet (the curve) | 252 | 18/24 | 10/12, 8/12 | 6/12 |
+| feet only (0.37 ft, equal hands) | 212 | 14/24 | **4/12, 10/12** | **2/12** |
+
+At dink hands is 237 / 18-24 (11/12, 7/12) and the curve is 255 / 21-24 (11/12, 10/12).
+
+### First finding: the hands are not settled at two hundred balls
+
+The hands-only row goes **21 of 24** on the 250-ball side with the paddle held identical. That is a large effect and
+it was hidden by the shape of §5t's table, where the trained side scored 264 in every row: **264 is 11 × 24**, so
+those rows were 11–0 in every game. A ceiling is not a saturated hand. The hands' own curve says the same thing in
+arithmetic — `control = 0.18 + 0.74·(1 − e^(−balls/120))`, which is 0.708 at 150 balls, 0.811 at 200 and 0.828 at
+250 — so a hundred balls still buys eleven points of control, and eleven points of control wins games.
+
+So §5t's "at this gap the hands have already settled it" was wrong about the cause, and §5u's correction of it is at
+the top of §5t.
+
+### Second finding: the feet practice buys at that gap are invisible
+
+The curve gives 150 balls 5.94 ft and 250 balls 6.24 ft; measured across the twenty-four games that is **6.25 ft
+against 5.95 ft** — three tenths of a foot, the `shots` inside a game making up the difference from the curve's own
+reading. On top of the hands it changed the total by **nothing at
+all** (252 against 252) and it changed the game count *down* at steady and *up* at dink. When the sign of an effect
+depends on which chooser is playing, the effect is under the noise — and the third row measures the noise.
+
+### Third finding: what 24 games can see, and what 96 can
+
+Feet priced directly, hands held equal, 0.37 ft — the same distance the curve hands out at 150 against 250:
+
+| 0.37 ft, hands equal, steady | points | games | halves | pins agreeing |
+|---|---|---|---|---|
+| 24 games (12 a half) | 212 | 14/24 | 4/12, 10/12 | 2/12 |
+| 96 games (48 a half) | 849 | **54/96** (56.2%, ±5.1) | 23/48, 31/48 | 10/48 |
+
+At twenty-four games the two halves do not merely disagree, they invert: the longer paddle loses eight of twelve
+games in one half and wins ten of twelve in the other. At ninety-six games the same comparison gives **+0.68 points a
+game, both halves positive, and 56% of games — about 1.2σ**. So 0.37 ft is worth roughly two-thirds of a point a
+game, and twenty-four games cannot see it.
+
+The two routes to the same slope agree: §5s's 1.5 ft was +49 points over 24 games (**2.0 points a game**), and 0.37
+ft measured here is 0.68 (**1.8 points a game per foot**). Call a foot worth **one and a half points a game**, and
+then the resolution of a game count follows from the binomial alone — a margin of *m* points a game moves the win
+rate by about *m/11*, a fair coin over *N* games has a standard error of 0.5/√N, so 2σ needs *m* > 11/√N:
+
+| games a condition | margin visible at 2σ | in feet, at 1.5 points/ft |
+|---|---|---|
+| 24 | 2.2 points a game | 1.5 ft |
+| 96 | 1.1 | 0.75 ft |
+| 384 | 0.56 | 0.37 ft |
+| 1,500 | 0.28 | 0.19 ft |
+| ~7,000 | 0.13 | one inch |
+
+**That is the answer to §5t's question, and it is an answer about the instrument rather than about learning.** At a
+practice gap large enough for the feet to be worth several points a game (0 vs 200 buys 1.4 ft), the scoreline is at
+its ceiling — 11–0 — so nothing can be seen above. At a gap small enough for the scoreline to have room (150 vs
+250 buys 0.30 ft), the feet are worth under half a point a game, so nothing can be seen below. Between those two
+walls there is no gap at which a practice gradient in *feet* is measurable by score, which is why the row §5t asked
+for cannot be the row that answers it.
+
+**And the same result says where feet *are* visible: the fault mix, not the scoreline.** §5t measured it without
+noticing the significance — a zero-ball player fails to reach twice as many balls a game at driving pace (3.1 →
+6.1). The unreachable ball is the one point in a rally where the feet decide the outcome, and by then the hands have
+already lost or won it. So the member-facing statement is not "your reach has grown four inches"; it is "**six balls
+a game that you did not get to last month**". That is the stat `ui-mock.html` should end up showing, and the reason
+§5p's reach-constant sweep and §5s's head-to-head are both design tools rather than player ratings.
+
+### A note on the pins, because 2/12 looks like a broken experiment
+
+Two runs of the same clock, with the trait moved to the other seats, agreed on a winner twice in twelve. That is
+*below* a coin, and it is what the two-half design is for: whatever belongs to a seat and a clock — a lucky seed for
+the north server at 1234503 — is present in both halves but on opposite sides of the ledger, so its margins flip
+sign and it cancels in the sum while it destroys any per-pin agreement. At 96 games the agreement is 10/48, still
+below a coin, and the sum still gives the same answer the §5s row gave by a different route. **The sum is the
+statistic; the pins are what the sum is built out of.** Read individually they are noise with a seat attached.
+
+### Owed
+
+- **Why the stance lesson costs points** (§5r's second measurement). Unchanged, and now the more interesting of the
+  two open measurements.
+- **The `#/play` wiring** (§5q). Unchanged: a sport row in `ait.html`'s `viewPlay`, a recipe in `season.yml`'s
+  argument shape, seats from the member list, films into `records/` and `replays/`, with `ui-mock.html` as the spec.

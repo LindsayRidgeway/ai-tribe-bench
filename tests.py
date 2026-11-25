@@ -6950,6 +6950,24 @@ class TestPickleball(unittest.TestCase):
         self.assertIsNotNone(wide, "a six-foot paddle takes a ball six feet away")
         self.assertIsNone(tight, "a two-foot one cannot, and the legs have a tenth of a second")
 
+    def test_practice_buys_feet_below_a_hundred_balls_and_inches_above_it(self):
+        """§5u separated what practice buys in hands from what it buys in feet, and the arithmetic that made the
+        separation worth doing is worth holding: the first two hundred balls buy a foot and a half of lunge, the
+        next hundred buy under half a foot, and in that same hundred the hands gain eleven points of control. So
+        practice does not stop working — it changes currency, and a practice screen that shows reach alone is
+        showing the part of practice that moves least."""
+        pk, T = self.pk, self.t
+        def reach(balls):
+            return pk.reach_of(T.Player(name="A", north=True, practice=balls))
+        self.assertGreater(reach(200) - reach(0), 1.3, "the first two hundred balls buy a foot and a half")
+        self.assertGreater(reach(250), reach(150), "and the curve never goes backwards")
+        self.assertLess(reach(250) - reach(150), 0.42, "...but the next hundred buy under half a foot")
+        p150 = T.Player(name="A", north=True, practice=150)
+        p250 = T.Player(name="A", north=True, practice=250)
+        self.assertGreater(p250.skill("control") - p150.skill("control"), 0.10,
+                           "and in the same interval the hands gain eleven points of control, which is why §5u's "
+                           "hands-only row still goes 21/24 at a pinned reach")
+
     def test_a_body_that_is_walking_is_met_where_it_is_going(self):
         """Anticipation is the momentum rule's other reader. A player who has arrived at their stance has stopped,
         so the prediction is where they are; a player mid-jog is predicted forward by their own velocity over the
