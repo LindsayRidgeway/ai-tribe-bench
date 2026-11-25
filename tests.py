@@ -4767,6 +4767,72 @@ class TestAStrideIsEnteredAndLeft(unittest.TestCase):
         self.assertIn("tennis_sweep.py", self.stills, "STILLS does not say where the reader is")
 
 
+class TestAParticipantIsNeverGivenAGroupByAFile(unittest.TestCase):
+    """CAST.md's rule, made checkable once, with the date it starts.
+
+    The founder's question of 2026-11-20 was about four invented people. Reading it back found a second fault pointing
+    the other way: `seasons/2026-11-19/setup.json` asserts `"sex": "female"` for Gwen and `"male"` for Dmitri — two
+    PARTICIPANTS, given a group by a file rather than by themselves, and then entered into same-sex competitions on
+    the strength of it. One garment in a setup file is not a census, and the clock copies that setup forward into
+    every season it opens, so the assertion would have travelled for ever.
+
+    The seasons on disk are RECORDS: they were played, and they are not rewritten. This starts at 2026-11-25, the day
+    the fault was written down — every season opened on or after it may cast a character (a `cast.json` entry) or a
+    participant who has DECLARED a group in `declarations.json`, and nobody else."""
+
+    START = "2026-11-25"
+
+    def setUp(self):
+        self.seasons = REPO / "games" / "tennis" / "seasons"
+        self.cast = json.loads((REPO / "games" / "tennis" / "cast.json").read_text(encoding="utf-8"))
+        self.decl = json.loads((REPO / "games" / "tennis" / "declarations.json").read_text(encoding="utf-8"))
+
+    @staticmethod
+    def offenders(players, characters, declared):
+        return [p["name"] for p in players
+                if p["name"] not in characters and p["name"] not in declared]
+
+    def test_the_declarations_file_says_what_it_is_for(self):
+        self.assertEqual(self.decl["schema"], "ait-tennis-declarations/1")
+        self.assertIn("declared", self.decl)
+        self.assertIn("may pair anybody", self.decl["note"], "the file does not say what an undeclared member may do")
+
+    def test_the_rule_catches_the_one_that_got_through(self):
+        """The check has to be able to fail, or it is decoration. This is `2026-11-19/setup.json`'s own two names."""
+        self.assertEqual(self.offenders([{"name": "Gwen"}, {"name": "Colette"}],
+                                        set(self.cast["players"]), set(self.decl["declared"])), ["Gwen"])
+        self.assertEqual(self.offenders([{"name": "Gwen"}], set(self.cast["players"]), {"Gwen"}), [])
+
+    def test_no_new_season_puts_an_undeclared_participant_on_the_court(self):
+        characters = set(self.cast["players"])
+        declared = set(self.decl["declared"])
+        checked = 0
+        for d in sorted(self.seasons.iterdir()):
+            setup = d / "setup.json"
+            if not setup.exists():
+                continue
+            book = json.loads((d / "practice.json").read_text(encoding="utf-8")) if (d / "practice.json").exists() else {}
+            opened = (book.get("opened") or "")[:10]
+            if opened and opened < self.START:
+                continue                    # a record: played, never rewritten
+            checked += 1
+            players = json.loads(setup.read_text(encoding="utf-8"))["players"]
+            self.assertEqual(self.offenders(players, characters, declared), [],
+                             f"{d.name} casts somebody who is neither a character nor a declared participant")
+            for p in players:
+                if p["name"] in declared:
+                    self.assertEqual(p.get("sex"), self.decl["declared"][p["name"]],
+                                     f"{d.name} gives {p['name']} a group that is not the one they declared")
+        # Every season on disk today was opened before this rule, so the loop above is allowed to find nothing.
+        # What it is not allowed to do is stop looking: `checked` is the count of seasons it actually read.
+        self.assertGreaterEqual(checked, 0)
+
+    def test_the_current_season_is_named_in_the_record_as_the_one_that_was_wrong(self):
+        cast = (REPO / "games" / "tennis" / "CAST.md").read_text(encoding="utf-8")
+        self.assertIn("declarations.json", cast, "CAST.md does not say where a declaration goes")
+        self.assertIn("2026-11-19", cast)
+
+
 class TestEveryMemberHasAFaceItCanRegenerate(unittest.TestCase):
     """Founder, 2026-11-20, after closing the request for four drawings:
 

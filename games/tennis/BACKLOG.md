@@ -130,6 +130,25 @@ the run ended the unsorted list handed the walk the stance's `to` instead of the
 18.91ft. The 0.42ft that remains is 21ft/s, a sprint. `TestThePlanIsInTimeOrder` holds the sort, the order of the
 pushes that makes it necessary, and the numbers.
 
+## Item 29 — the clock will cast two PARTICIPANTS again unless the setup is stopped (GUARDED 2026-11-25)
+
+Found while the clock was playing. `seasons/2026-11-19/setup.json` asserts `"sex": "female"` for Gwen and `"male"`
+for Dmitri, and `clock_season` opens each new season by copying that file verbatim. So the founder's 2026-11-20
+question — *are these imaginary individuals going to be in every circle's tennis?* — has a second edge pointing the
+other way: two participants given a group by a data file, entered into same-sex competitions on the strength of it,
+and carried into every future season. CAST.md already forbids it; nothing enforced it.
+
+**Built:** `games/tennis/declarations.json` — where a participant's own line goes, empty because nobody has declared —
+and `TestAParticipantIsNeverGivenAGroupByAFile`, which reads every season opened on or after 2026-11-25 and refuses a
+cast of anybody who is neither a character in `cast.json` nor declared there, plus a test of the test fed the two
+names that got through. The seasons on disk predate the rule and are records; they are not rewritten.
+
+**What this does not do, and it is the real work:** the next season needs **two more characters with bodies** to keep
+the cast three and three, because item 25's arithmetic needs three per group and dropping Dmitri and Gwen leaves two
+and two. `lab/body.py` builds one in 1.5 seconds (Colette, Ada, Remy and Bo were built that way), so this is a
+naming, a setup entry, a `cast.json` sentence and a Blender run — not a design question. Until it is done, the next
+season the clock opens will have nothing to cast.
+
 ## Item 4b — the near foot leads the step, and it is bought with the phase (PART BUILT 2026-11-25)
 
 **Why the old done-test could not be passed or failed.** "The first foot to LEAVE THE GROUND is the one nearest the

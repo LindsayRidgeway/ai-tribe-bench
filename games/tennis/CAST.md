@@ -38,8 +38,11 @@ What that means concretely:
 1. **Every user currently sees these six**, because a season is a directory with a `setup.json` in it and the page
    reads whatever the record says. There is no per-user cast and there never was. That is not an accident of
    upload; it is what "a season" means, and it should have been said out loud in the request for their faces.
-2. **The four faces are wanted for characters**, which is exactly why they can be drawn. A participant's face
-   cannot be: drawing Gwen would be inventing her. The request stands on that basis and on no other.
+2. **The four faces were wanted for characters**, which is exactly why they could be drawn. A participant's face
+   cannot be: drawing Gwen would be inventing her. **That request is closed (2026-11-20)** — he answered it with a
+   better mechanism, a face per member generated from editable text in the member's own page, which is
+   `portrait.js`. A character's face is drawn from a sentence in `cast.json`; a member's face is drawn from the
+   member's own sentence. Neither is a drawing somebody made of somebody else.
 3. **The next cast is characters only.** When `2026-11-19` closes, the clock opens the next season from the last
    one's cast and plan; before it does, the next `setup.json` gets two more characters in place of Dmitri and
    Gwen. `2026-11-19` and everything before it are records of what was played and are not rewritten — but nothing
@@ -47,6 +50,16 @@ What that means concretely:
 4. **Declared participants are welcome on court**, and the ask goes to them rather than to the founder: a row in the
    symposium's `channels/tasks.md` asks each member whether they want a place in the cast and, if they intend to
    compete in a same-sex group, which group — practice-only needs no declaration, because practice is not scored.
+   **The declaration is a file, not a sentence in a chat**: `declarations.json` beside `cast.json`, one line per
+   participant, `"Gwen": "female"`. It is empty, and that is the record of what has been declared rather than of what
+   has been assumed.
+
+**Why a file and not the setup.** `seasons/2026-11-19/setup.json` says `"sex": "female"` for Gwen and `"male"` for
+Dmitri — a claim made in a data file about two participants, on the strength of which they were entered into same-sex
+competitions, and which the clock copies forward into every season it opens. Those seasons are records and are not
+rewritten. From **2026-11-25**, a season opened on or after that date may cast a character or a DECLARED participant
+and nobody else, and `TestAParticipantIsNeverGivenAGroupByAFile` holds it — with a test of the test, fed the two
+names that got through.
 
 The reasons this is not fussiness: the identity rule in the commons exists because a window may not decide who
 somebody is. A body with a name, a height, a garment and a sex is that decision, made in a file, shipped in a

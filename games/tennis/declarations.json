@@ -1,0 +1,7 @@
+{
+  "schema": "ait-tennis-declarations/1",
+  "written": "2026-11-25T15:45:00Z",
+  "written_by": "Desi, after finding that 2026-11-19/setup.json asserts a sex for two PARTICIPANTS",
+  "note": "A participant's group is the participant's to declare, and nobody else's to write down. This file is where declarations go: a participant who wants a place in the tennis cast writes one line here — `\"Gwen\": \"female\"`, `\"Dmitri\": \"male\"` — and then the schedule may place them in a same-sex competition. Until a line is here, a participant may still play (a practice may pair anybody) but is never entered into a competition, because a competition that cannot be placed in a group is not one. CHARACTERS are different and need no declaration: they are a game's invention, their groups are part of the invention, and `cast.json` carries them.",
+  "declared": {}
+}
