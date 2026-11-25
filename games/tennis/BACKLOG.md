@@ -130,11 +130,51 @@ the run ended the unsorted list handed the walk the stance's `to` instead of the
 18.91ft. The 0.42ft that remains is 21ft/s, a sprint. `TestThePlanIsInTimeOrder` holds the sort, the order of the
 pushes that makes it necessary, and the numbers.
 
-### The toe still jolts when a run begins (OPEN, measured 2026-11-20)
+## Item 4b — the near foot leads the step, and it is bought with the phase (PART BUILT 2026-11-25)
+
+**Why the old done-test could not be passed or failed.** "The first foot to LEAVE THE GROUND is the one nearest the
+direction of travel" is two questions wearing one sentence: *which foot leaves the ground first* (the start of the
+run) and *which foot comes across first* (the step). A cross-over deliberately puts the FAR foot in front — the far
+leg swings across the body, which is what crossing is — so a metric that reads the forward offsets answers the
+second question and is then scored against the first. Both are now reported, and they disagree by design.
+
+**What was built.** The gait's phase now counts from the start of the move (`local`) instead of from the start of the
+film (`travelled`), and carries a quarter-cycle offset towards the near side, faded in and out with the stride.
+
+**The evidence, same film, same metric, one query parameter apart (`?near=`):**
+
+| offset towards the near side | near foot came across first |
+|---|---|
+| + quarter cycle | **8 of 11** |
+| none | 4 of 11 |
+| − quarter cycle | 3 of 11 |
+
+On the cumulative phase, before the change, the same three settings gave 7, 7 and 4 of 11 — the offset was noise,
+because a run began wherever the previous walk had left the gait.
+
+**What it did not do:** the done-test's own number is "first foot to leave the ground", and on that number the pose
+reads **7 of 11 both before and after**. The two feet leave the ground one to two frames apart — the split step takes both — and a 50fps sample
+cannot resolve the difference. That is a limitation of the instrument, not of the pose, and it is why the restated
+done-test below counts the foot that comes ACROSS.
+
+**Restated done-test:** *on a run of more than 3ft, the near foot comes across first, on 8 of 10 in each direction.*
+Today: 4 of 4 towards the body's left, 4 of 7 towards its right. The right side is the open half, and the three
+misses are shots 5, 17 and 55 — all near=R, all with a run of 5ft or less except 17 — so the next thing to measure is
+whether a short run's cross-over term (`CROSS_LAT`, gated on travel) is arriving late enough to lose the advantage.
+
+### The toe still jolts when a run begins (PART FIXED 2026-11-25)
 
 The placement is fixed and this is not: a toe rises **0.697ft in one frame** as a stride starts (Gwen, T=92.04, the
 frame the run begins), and each player has ~230 frames in the film where a toe moves more than 0.10ft in 0.02s. Remy's
 version of the same numbers was 0.28ft at t=1.90 of the first point, on an older film.
+
+**Fixed in part on 2026-11-25: the stride now ramps in and out, and the jolt is half what it was.** Worst single
+frame 0.946ft → **0.425ft** (Dmitri) and 1.183ft → 0.592ft (Remy); frames with a toe moving more than 0.10ft in one
+frame 422 → 293 and 458 → 306. Two causes, both found with `?probe=` and each one frame wide: the stride switched on
+at the first frame of a run and switched off at the last (both toes fell 0.6ft together at the end of a run, with
+`grow` still at 0.97), and the near-foot offset collapsed to zero in the same frame, which dragged the phase back by
+a quarter cycle (4.93 → 3.62 rad). What is left is a smaller jolt at the extremes of the gait, and the case that has
+not been looked at is a change of ends, where `swapped` resets the yaw.
 
 It is in the POSE, not in the clamp: with `&ground=0` the toe still goes 0.332 → 0.610 between the same two samples
 on the older film. The likely cause is the gait switching from standing to walking in one frame with nothing blending

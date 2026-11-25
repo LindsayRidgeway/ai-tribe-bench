@@ -4696,6 +4696,77 @@ class TestThePlanIsInTimeOrder(unittest.TestCase):
         self.assertIn("debug plan", self.stills, "the sweep prints the plan and STILLS does not say so")
 
 
+class TestAStrideIsEnteredAndLeft(unittest.TestCase):
+    """Items 2b and 4b of the tennis backlog, which turned out to be one change.
+
+    Two things were wrong with the gait and both were the same kind of wrong — a switch where there should have
+    been a ramp:
+
+    1. **The stride switched on at the first frame of a run and off at the last.** Measured 2026-11-25 on
+       `seasons/2026-11-19` with `lab/tennis_sweep.py`: a toe rose **0.946ft in one frame** as a run began and
+       BOTH toes dropped **0.6ft in one frame** as it ended (Dmitri, T=65.16: the root stops advancing and both
+       feet fall together). Now `grow` ramps in over `STRIDE_IN` and out over `STRIDE_OUT`, and the worst frame is
+       **0.425ft** (Dmitri) and **0.592ft** (Remy), with the frames over 0.10ft down from 422/458 to 293/306.
+    2. **The gait's phase was counted from the start of the FILM**, so a run began at whatever phase the previous
+       walk left behind, and the near-foot offset item 4b needs was noise on top of it. Measured: 7 of 11 runs put
+       the near foot forward with a quarter-cycle offset, 7 of 11 with none, 4 of 11 with the opposite quarter —
+       i.e. nothing. Counted from the move's own start (`local`), the same offset separates cleanly: **8 of 11 with
+       it, 4 of 11 with none, 3 of 11 with the sign reversed.** That is how the sign was chosen, and `?near=-1`
+       is kept so it can be re-measured rather than re-argued.
+
+    What it did NOT do is move the done-test's own number. "The first foot to LEAVE THE GROUND is the near one"
+    reads 7 of 11 both before and after, because the two feet leave the ground one to two frames apart — the split
+    step takes both — and a 50fps sample cannot see the difference. The metric that does move is which foot comes
+    across first, and that is the one the offset is aimed at. The backlog says so rather than claiming the test."""
+
+    def setUp(self):
+        self.page = (REPO / "games" / "tennis" / "replay3d.html").read_text(encoding="utf-8")
+        self.backlog = (REPO / "games" / "tennis" / "BACKLOG.md").read_text(encoding="utf-8")
+        self.stills = (REPO / "games" / "tennis" / "STILLS.md").read_text(encoding="utf-8")
+
+    def test_the_stride_ramps_in_and_out_instead_of_switching(self):
+        self.assertIn("const STRIDE_IN = 0.20;", self.page)
+        self.assertIn("const STRIDE_OUT = 0.20;", self.page)
+        self.assertIn("Math.min(Math.max(0, Math.min(1, el / STRIDE_IN)), "
+                      "Math.max(0, Math.min(1, (left + STRIDE_OUT) / STRIDE_OUT)))", self.page,
+                      "grow is not the smaller of the ramp in and the ramp out")
+        # legs() must take the ramp and use it for BOTH the stride amplitude and the idle sway, or one of them
+        # switches while the other fades
+        self.assertIn("function legs(rig, phase, moving, face, turn, load, idle, walk, ramp)", self.page)
+        self.assertIn("const still = 1 - ramp;", self.page)
+        self.assertIn("idlePhase, walking, grow);", self.page)
+
+    def test_the_phase_is_counted_from_the_move_and_not_from_the_film(self):
+        """This is the whole reason the offset works now. `travelled` is cumulative across every move in the film,
+        so a phase built from it begins each run wherever the last one ended."""
+        self.assertIn("2 * Math.PI * ((local || 0) / cycle)", self.page)
+        self.assertNotIn("2 * Math.PI * (travelled / cycle)", self.page,
+                         "the phase is back on the cumulative distance, and the near-foot offset is noise again")
+        self.assertIn("let lastDir = null;", self.page,
+                      "the offset has no direction to survive the move ending, so it collapses on the last frame")
+        self.assertIn("const lateral = lastDir ?", self.page)
+
+    def test_the_sign_of_the_offset_is_measured_and_the_switch_is_kept(self):
+        self.assertIn("NEAR_LEAD", self.page)
+        self.assertIn('q.has("near")', self.page, "the sign cannot be re-measured without editing the page")
+        self.assertIn("const NEAR_GATE = 0.15;", self.page)
+
+    def test_the_numbers_and_what_they_did_not_do_are_written_down(self):
+        for piece in ("0.946", "0.425", "8 of 11", "4 of 11", "3 of 11"):
+            self.assertIn(piece, self.backlog, f"{piece} is not in the backlog entry for items 2b/4b")
+        self.assertTrue("7 of 11 both before and after" in self.backlog,
+                        "the backlog does not say that the done-test's own number did not move")
+
+    def test_the_analysis_is_a_file_and_not_a_chat(self):
+        tool = REPO / "lab" / "tennis_sweep.py"
+        self.assertTrue(tool.exists(), "the sweep reader is missing; every number above came from it")
+        text = tool.read_text(encoding="utf-8")
+        for piece in ("biggest one-frame move", "over 25ft/s", "the near foot left the ground first",
+                      "the hitter's root speed at the contact frame"):
+            self.assertIn(piece, text, f"the reader does not report {piece!r}")
+        self.assertIn("tennis_sweep.py", self.stills, "STILLS does not say where the reader is")
+
+
 class TestEveryMemberHasAFaceItCanRegenerate(unittest.TestCase):
     """Founder, 2026-11-20, after closing the request for four drawings:
 

@@ -575,7 +575,7 @@ function aimBone(bone, dir) {
    with the ground covered, not with the clock. That way the feet keep pace with the body however fast it is going
    — which is the whole difference between a figure that runs and a figure that is pushed along on castors.
    Nothing here is animation data; it is a rule about where the legs are given how far the player has travelled. */
-function legs(rig, phase, moving, face, turn, load, idle, walk) {
+function legs(rig, phase, moving, face, turn, load, idle, walk, ramp) {
   // `turn` is the twist about the body's own vertical, in radians: away from the net on the wind-up, through on
   // the follow-through. It reaches the legs because a stroke is not an arm — the pelvis turns, the knees load,
   // and only then does the racquet move. Until 2026-11-11 none of that was here: the bodies stood square and the
@@ -602,9 +602,15 @@ function legs(rig, phase, moving, face, turn, load, idle, walk) {
   // has stopped does not stay mid-step — and fades in a stance that moves: the weight rocks from one leg to the
   // other at about one cycle a second, the knees stay soft, and the pelvis rolls over the loaded leg. `idle` is
   // film time, not distance, which is the whole point: it advances whether or not the record moves them.
-  const still = moving ? 0 : 1;
+  // A STRIDE IS NOT SWITCHED ON, IT GROWS (item 2b's remainder, and item 4b's prerequisite). `still` used to be
+  // 0 or 1, so the first frame of every run put the thighs straight out of the standing sway and into a swing —
+  // measured, a toe rising 0.697ft in one frame. `ramp` is how far into the first fifth of a second of the move
+  // this frame is, and the stride is multiplied by it, so the legs arrive at the gait instead of being teleported
+  // into it. The idle sway fades out by the same number, because it is the same `still`.
+  ramp = Math.max(0, Math.min(1, (ramp === undefined) ? 1 : ramp));
+  const still = 1 - ramp;
   const idleS = Math.sin(idle || 0);
-  const live = moving ? 1 : 0.12;                       // standing still is a very small version of walking
+  const live = 0.12 + 0.88 * ramp;                      // standing still is a very small version of walking
   // The swing is set so the foot travels as far as the body does in one step (0.42 of its height), which is what
   // stops the feet skimming along the ground. A bigger swing looks more athletic and slides; the phase is already
   // driven by distance, so the stride is honest at any speed and the legs simply cycle faster when the player runs.
@@ -624,8 +630,8 @@ function legs(rig, phase, moving, face, turn, load, idle, walk) {
   // The heel itself is the FOOT bone: rotating the shin swings the ankle sideways, which is why bending the back
   // knee alone moved the ankle 0.05ft and looked like nothing. The sign of a foot rotation is not in any comment
   // here, so it is a constant with a probe behind it (`?heel=`, `?toe`) rather than a guess buried in a line.
-  set("foot.L", -0.25 * (moving ? 1 : 0) + (bk === "L" ? HEEL * 0.45 * heel : 0), 0, 0);
-  set("foot.R", -0.25 * (moving ? 1 : 0) + (bk === "R" ? HEEL * 0.45 * heel : 0), 0, 0);
+  set("foot.L", -0.25 * (1 - still) + (bk === "L" ? HEEL * 0.45 * heel : 0), 0, 0);
+  set("foot.R", -0.25 * (1 - still) + (bk === "R" ? HEEL * 0.45 * heel : 0), 0, 0);
   set("spine", -0.05 - 0.09 * live - 0.10 * load - still * 0.02, turn * 0.35 + still * 0.03 * idleS, 0.06);
   set("hips", 0.04 * live + still * 0.02, turn * 0.30, still * 0.06 * idleS);
   chestTwist(rig, turn * 0.45);
@@ -1015,13 +1021,21 @@ function whereAt(name, T) {
   // what the film did for the second half of its points.
   let sw = null;
   for (const s of (SWAP[name] || [])) if (T >= s.t && (!sw || s.t >= sw.t)) sw = s;
-  let pos = sw ? sw.to : start, moving = false, travelled = 0, dir = null;
+  let pos = sw ? sw.to : start, moving = false, travelled = 0, dir = null, mStart = 0, mLen = 0, local = 0;
+  let lastDir = null;      // the direction of the last move, which survives the move ending (see the phase below)
   const swapped = !!(sw && (T - sw.t) < 0.06);
   for (const m of moves) {
     if (sw && m.t1 <= sw.t) continue;                       // ran before they changed ends
     const from = (sw && m.t0 < sw.t) ? sw.to : m.from;
     const d = Math.hypot(m.to[0] - from[0], m.to[1] - from[1]);
-    if (T >= m.t1) { pos = m.to; travelled += d; }
+    if (T >= m.t1) {
+      pos = m.to; travelled += d;
+      // The window of the move just finished, kept so the pose can fade a stride OUT instead of switching it
+      // off. Measured 2026-11-25: at the end of a run both toes dropped 0.5ft in one frame, which is a body
+      // arriving at a dead stop rather than at the ball.
+      mStart = m.t0; mLen = m.t1 - m.t0; local = d;
+      if (d > 0.5) lastDir = [(m.to[0] - from[0]) / d, (m.to[1] - from[1]) / d];
+    }
     else if (T > m.t0) {
       // Smoothstep and not a straight line. A body does not go from standing to 11ft/s between one frame and the
       // next, and a linear interpolation does exactly that at the start of every move: measured at a strike, the
@@ -1034,14 +1048,17 @@ function whereAt(name, T) {
       travelled += d * k;
       // the direction of travel, which is the direction the body turns to: a player moving anywhere other than
       // straight back from the middle of their own baseline turns and runs, they do not reverse into the court
-      if (d > 0.5) dir = [(m.to[0] - from[0]) / d, (m.to[1] - from[1]) / d];
+      if (d > 0.5) { dir = [(m.to[0] - from[0]) / d, (m.to[1] - from[1]) / d]; lastDir = dir; }
+      // WHEN this move began, because a stride has to ease in from the standing pose it replaced and the phase
+      // offset that puts the near foot first is only safe while the stride is still growing.
+      mStart = m.t0; mLen = m.t1 - m.t0; local = d * k;
       moving = true; break;
     } else break;
   }
   // the gait's phase is the ground covered, integrated over the planned runs, so scrubbing backwards and
   // jumping to a shot both put the legs where they belong. A phase counted frame by frame would only be right
   // in continuous play, which is the one case a still cannot show.
-  return { pos, moving, travelled, dir, swapped };
+  return { pos, moving, travelled, dir, swapped, mStart, mLen, local, lastDir };
 }
 
 /* Which end is this player at during this segment of the film. `pl.north` is the end they started the match at
@@ -1139,6 +1156,13 @@ const q = new URLSearchParams(location.search);
    The founder's done-test for it is "a downward root-velocity blip of 0.10–0.20ft within 0.2s of the opponent's
    contact", so the depth is inside that band and the peak is inside that delay by construction — and `?sweep`
    measures it back out of the page rather than trusting these three numbers to be what got drawn. */
+const STRIDE_IN = 0.20;     // seconds for a run to grow out of the standing pose instead of switching into it
+const STRIDE_OUT = 0.20;    // and seconds for it to shrink back into it at the end of the run
+// The gait's offset towards the near foot, signed BY MEASUREMENT rather than by reasoning about bone rolls:
+// `?near=-1` flips it, and the two runs are the evidence (item 4b). It is a quarter cycle and not a half because
+// half a cycle is the other leg, which is the same as no offset at all with the phase reversed.
+const NEAR_LEAD = (q.has("near") ? Math.sign(parseFloat(q.get("near")) || 0) : 1) * Math.PI / 2;
+const NEAR_GATE = 0.15;     // a run less sideways than this has no near foot: it is straight ahead
 const SPLIT_DIP = 0.15;      // ft the whole body drops
 const SPLIT_LAG = 0.00;      // s after the opponent's contact before it starts
 const SPLIT_DUR = 0.28;      // s from start to standing again; the peak is at half of it, 0.14s after contact
@@ -1299,7 +1323,7 @@ function tick(now) {
     if (!rig) continue;
     // the end this player is at *now*, from the record, not the end they began the film at
     const at = northIn(seg, pl.name);
-    const { pos, moving, travelled, dir, swapped } = whereAt(pl.name, T);
+    const { pos, moving, travelled, dir, swapped, mStart, mLen, local, lastDir } = whereAt(pl.name, T);
     // Between points one of them may be walking rather than playing, and at a change of ends they walk past each
     // other. `seg.settle` is the record's account of that walk; nothing here invents a route or a time.
     let walking = false, dpass = null, otherPos = null;
@@ -1357,7 +1381,35 @@ function tick(now) {
     rig.root.rotation.y = rig.yaw;
 
     // one cycle of the gait is two steps, and a step is about 0.42 of the figure's own height
-    const phase = 2 * Math.PI * (travelled / (0.84 * Math.max(4.0, rig.height)));
+    const cycle = 0.84 * Math.max(4.0, rig.height);
+    // A STRIDE GROWS IN AND GROWS OUT (item 2b's remainder). It used to switch on at the first frame of a run and
+    // switch off at the last, and both ends were a jolt: measured 2026-11-25, a toe rising 0.95ft in one frame as a
+    // run began and BOTH toes dropping 0.5ft in one frame as it ended (Dmitri at T=65.16: x stops advancing and
+    // both feet fall half a foot in the same frame). `grow` is 0 until the standing pose is left, 1 in the middle,
+    // and 0 again once the move is over — so the gait is entered and left rather than switched.
+    const el = T - (mStart || -99), left = (mStart || -99) + (mLen || 0) - T;
+    const grow = Math.min(Math.max(0, Math.min(1, el / STRIDE_IN)), Math.max(0, Math.min(1, (left + STRIDE_OUT) / STRIDE_OUT)));
+    // WHICH FOOT GOES FIRST (item 4b). The body faces the ball, not the way it is going, so a sideways run has a
+    // near side: dot the travel direction with the body's own lateral axis — the same axis rel[] reports, so
+    // `lateral` is positive when the run is towards the LEFT toe's side. `NEAR_LEAD` then rotates the gait by a
+    // quarter cycle on that side only, which starts the near leg at the top of its swing. A run with no lateral
+    // component (down the court, or straight in) has no near side and gets no offset.
+    // The LAST move's direction, not the current one: when a run ends the offset has to stay put while the stride
+    // fades out, or the phase jumps back by the quarter cycle in the one frame the body stops. Measured
+    // 2026-11-25 with `?probe=131.76&who=Dmitri`: phase 4.93 -> 3.62 and both toes fell 0.6ft in that frame, with
+    // `grow` still at 0.97 — the stride was fine and the OFFSET was collapsing.
+    const lateral = lastDir ? (lastDir[0] * Math.cos(rig.yaw) - lastDir[1] * Math.sin(rig.yaw)) : 0;
+    const near = Math.abs(lateral) > NEAR_GATE ? Math.sign(lateral) : 0;
+    // AND THE PHASE COUNTS FROM THE START OF THIS MOVE, not from the start of the film. `travelled` is cumulative,
+    // so at the beginning of a run the gait was wherever the last walk left it — a leftover that swamps a quarter
+    // cycle of offset. Measured 2026-11-25, same film and same metric, offset applied on top of the cumulative
+    // phase: 7 of 11 runs put the near foot first with +quarter, 7 of 11 with none, 4 of 11 with -quarter, i.e.
+    // the offset was noise. Counting from the move's own start makes the first frame of every run phase = +-quarter
+    // by construction, and the fade in/out above is what makes that jump invisible.
+    const phase = 2 * Math.PI * ((local || 0) / cycle) + near * NEAR_LEAD * grow;
+    if (q.has("probe") && Math.abs(T - parseFloat(q.get("probe"))) < 0.12 && pl.name === q.get("who"))
+      console.log("debug grow", pl.name, T.toFixed(2), "moving", moving, "mStart", mStart, "mLen", mLen,
+        "local", (local || 0).toFixed(2), "grow", grow.toFixed(3), "phase", phase.toFixed(2), "near", near);
     if (q.has("debug")) console.log("debug yaw", pl.name, "moving", moving,
       "dir", dir ? dir.map(v => v.toFixed(2)).join(",") : "-", "yaw", (rig.root.rotation.y).toFixed(2),
       "net", (at ? Math.PI / 2 : -Math.PI / 2).toFixed(2));
@@ -1439,7 +1491,7 @@ function tick(now) {
     // SPLIT_DIP at SPLIT_PEAK seconds after the opponent's contact, back to standing 0.30s later. It is additive
     // and it cannot drift, because it is a function of `tlc` alone: no state, nothing to integrate, and at every
     // segment boundary the term is exactly zero.
-    legs(rig, phase, moving, new THREE.Vector3(at ? 1 : -1, 0, 0), turn, load, idlePhase, walking);
+    legs(rig, phase, moving, new THREE.Vector3(at ? 1 : -1, 0, 0), turn, load, idlePhase, walking, grow);
     // THE SPLIT STEP, as a bend rather than a teleport. With the body grounded (below), the hips can only go down
     // by bending the knees — so the dip is applied where a dip comes from. Until 2026-11-19 this was a subtraction
     // from the root's height, which is the same class of defect as everything else in item 2a: the body moves and

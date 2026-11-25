@@ -140,6 +140,23 @@ walk at the first move that has not begun — so the stance never happened and t
 number each: **24 frames of the film moved a body more than 25ft/s before the sort, 0 after; the worst single frame
 went from 18.91ft to 0.42ft.** A row tells you where a body is; the plan tells you which move put it there.
 
+**5. A sweep log needs a READER, and the reader is `lab/tennis_sweep.py`.** Every number in items 2b, 4 and 5 since
+2026-11-25 comes out of
+
+    python3 lab/tennis_sweep.py /tmp/log.txt
+
+which reports the biggest one-frame move any body makes, the frames over 25ft/s, the biggest one-frame rise of either
+toe, the per-shot contact speed, and — per run of more than 3ft — which foot is on the side the body is going and
+which foot came across first. Three notes it carries in its own comments because they cost a pass each: Chrome echoes
+the first rows after the sweep ends (the log is otherwise in time order, so the first row that does not advance is
+where the reader stops); `run` in the record belongs to the RECEIVER, not the hitter; and the toe HEIGHTS are a bad
+probe for which foot swings (the grounding clamp keeps them within 0.03ft of each other) while the toe's FORWARD
+offset separates them by up to 2.6ft.
+
+**6. `?probe=<T>&who=<name>`** prints one `debug grow` line per frame within 0.12s of a film time: `moving`, the move's
+window, the distance into the move, `grow`, the phase and the near-side sign. It is how item 2b's remainder was found,
+and it is the only instrument here that can say why a body is where it is in the frame it stops.
+
 The measurement this produced, `?sweep=0:18:0.02&ground=0|1` over `seasons/2026-11-19/watch.json` (901 frames):
 
 | | both toes > 0.10ft | samples within 0.05ft | median toe | max |
