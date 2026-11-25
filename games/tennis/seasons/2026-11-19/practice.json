@@ -106,7 +106,7 @@
    ]
   },
   "Dmitri": {
-   "balls": 71,
+   "balls": 104,
    "carried": 20,
    "seeded": {
     "balls": 20,
@@ -166,6 +166,24 @@
      "when": "2026-11-23T14:40:10Z",
      "with": [
       "Bo"
+     ]
+    },
+    {
+     "by": "the schedule",
+     "clock": 1795616588885,
+     "competition": true,
+     "control": 0.657,
+     "in_play": 19,
+     "longest": 6,
+     "mean_rally": 3.3,
+     "mode": "rally",
+     "of": 33,
+     "reach": 0.737,
+     "shots": 33,
+     "surface": "grass",
+     "when": "2026-11-25T14:23:18Z",
+     "with": [
+      "Remy"
      ]
     }
    ]
@@ -236,7 +254,7 @@
    ]
   },
   "Remy": {
-   "balls": 46,
+   "balls": 79,
    "carried": 20,
    "seeded": {
     "balls": 20,
@@ -276,6 +294,24 @@
      "shots": 33,
      "surface": "grass",
      "when": "2026-11-21T12:39:51Z",
+     "with": [
+      "Dmitri"
+     ]
+    },
+    {
+     "by": "the schedule",
+     "clock": 1795616588885,
+     "competition": true,
+     "control": 0.596,
+     "in_play": 19,
+     "longest": 6,
+     "mean_rally": 3.3,
+     "mode": "rally",
+     "of": 33,
+     "reach": 0.687,
+     "shots": 33,
+     "surface": "grass",
+     "when": "2026-11-25T14:23:18Z",
      "with": [
       "Dmitri"
      ]
