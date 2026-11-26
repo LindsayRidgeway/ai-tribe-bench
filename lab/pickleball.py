@@ -649,7 +649,8 @@ def _move(film: dict | None, rally_no: int, player: str, frm, to, t0: float, t1:
 
 def play_rally(match: Match, players: dict[str, Player], pos: "Positions", choose, surface: str,
                wind_vec, wind_in, say=print, rally_no: int = 1,
-               history: dict | None = None, film: dict | None = None) -> dict:
+               history: dict | None = None, film: dict | None = None,
+               results: dict | None = None) -> dict:
     """One rally, from the serve to the first fault.
 
     Returns {shots, why, fault_by, winner}: `fault_by` is the team index that broke a rule (None if the point
@@ -731,6 +732,11 @@ def play_rally(match: Match, players: dict[str, Player], pos: "Positions", choos
                       wind=wind_vec, pos=contact_pos, stretch=stretch, aim_dist=aim_dist)
         pos.at[p.name] = contact_pos
         ok, why = verdict(shot)
+        # The session's record is the engine's: `record_session` counts a player's in-play shots from a list of
+        # booleans, and until now nothing filled that list, so every season wrote `in_play 0 of 0` for everybody.
+        # One boolean per swing, written here, where the verdict is.
+        if results is not None:
+            results.setdefault(p.name, []).append(ok)
         if film is not None:
             # What a renderer needs and nothing else: who hit it, how, from where, the ball's own traced flight,
             # when it was struck, and what the rules said about it. The path is the integrator's trace at 0.02 s,
@@ -759,6 +765,8 @@ def play_rally(match: Match, players: dict[str, Player], pos: "Positions", choos
             f"face {shot['face']:+5.1f} power {power:3.0f} aim {aim:2.0f} [{shot['speed']:.0f}mph] -> {why}")
 
         if shot_kind == "volley" and in_kitchen(contact_pos[0]):
+            if results is not None:
+                results[p.name][-1] = False        # the ball may have landed in; the shot was still a fault
             say(f"       -- fault: volleyed from inside the kitchen "
                 f"({abs(contact_pos[0] - NET_X):.1f}ft from the net; the line is at {KITCHEN:.1f}ft)")
             return {"shots": shot_no, "why": "kitchen", "fault_by": hitter_team, "fault_name": p.name,
@@ -960,7 +968,7 @@ def play_game(names: list[str], practice: list[int], choose_factory, surface: st
     while not match.over():
         rally_no += 1
         r = play_rally(match, players, pos, choose, surface, wind_vec, wind_in, say=say,
-                       rally_no=rally_no, history=history, film=film)
+                       rally_no=rally_no, history=history, film=film, results=results)
         length = r["shots"]
         rallies.append(r)
         lengths.append(length)
@@ -1007,9 +1015,12 @@ def play_game(names: list[str], practice: list[int], choose_factory, surface: st
         f"({rally_no} rallies, mean {sum(lengths) / len(lengths):.1f} shots)")
     # `rallies` is the game's own history — every rally's {shots, why, fault_by, fault_name, winner} — so a
     # chooser can read what it did rather than be told. §5 of the page records the fault I measured with it.
+    # The players, as the engine left them. A caller that wants to write a session down needs the ball count the
+    # ENGINE kept, and before this line every caller rebuilt its own Player objects to do it and recorded zero
+    # shots for everyone — a season whose `balls` never moved. One source for one number.
     out = {"results": results, "lengths": lengths, "wind": wind_in, "clock": ms,
            "surface": surface, "why": r["why"] if lengths else "none",
-           "rallies": rallies}
+           "rallies": rallies, "players": players}
     if film is not None:
         out["film"] = film
     return match, out
@@ -1651,9 +1662,10 @@ def parse_move(reply: str) -> dict | None:
 def solve_move(p: Player, here, move: dict, shot: str, surface: str, wind) -> tuple[float, float, float, float]:
     """(face, power, aim, distance) for a movement a member named — and the sentence it should read back.
 
-    Three things have to be forgiven, and each of them is a way a member's reasonable sentence becomes an
-    unreasonable shot: a point on its own side of the net (not a shot at all), a lateral point off the court, and
-    a pace the engine will not swing (the strike clamps at 6 mph). Anything else is played exactly as named.
+    Four things have to be forgiven, and each of them is a way a member's reasonable sentence becomes an
+    unreasonable shot: a point on its own side of the net (not a shot at all), a lateral point off the court, a
+    pace the engine will not swing (the strike clamps at 6 mph), and — for a serve only — a target the rules do
+    not allow, since the service box begins fifteen feet past the net. Anything else is played exactly as named.
     """
     power = max(MIN_POWER, min(100.0, move["pace"] / 0.6))
     tx, ty = move["target"]
@@ -1662,6 +1674,51 @@ def solve_move(p: Player, here, move: dict, shot: str, surface: str, wind) -> tu
     fwd = 1.0 if p.north else -1.0
     if (tx - NET_X) * fwd <= 0.5:                 # a point on your own side: pulled to the far side of the tape
         tx = NET_X + fwd * 1.0
+    if shot == "serve":
+        # A serve is not a groundstroke with a different label, and a person gets one movement for every shot:
+        # `PACE 24 AT 26,6` is a fine dink and a service fault twice over, because 26 ft is inside the receiving
+        # kitchen and y=6 is on the server's own side of the centreline. So the target is pulled into the
+        # diagonal box — the same forgiveness as the own-side rule above, and the forgiveness the old prose
+        # fallback needed (page §5q) — and then the pace is walked to the nearest step that puts the ball in the
+        # box. A dink's 24 mph cannot carry 30 ft at all: measured, it lands 28.9 ft out with the box starting at
+        # 29. The person's pace is their pace on every other shot; on the serve the court decides, the direction
+        # of the walk is the ball's own error, and the transcript's power column says what was swung.
+        if p.north:
+            tx = max(NET_X + KITCHEN + 1.0, min(LENGTH - 1.0, tx))
+        else:
+            tx = min(NET_X - KITCHEN - 1.0, max(1.0, tx))
+        side = 1.0 if here[1] < CENTRELINE else -1.0      # the half the serve has to go to
+        # Into that half and off its own centreline: a serve aimed at the centreline is one gust from the wrong
+        # box, and a serve aimed at the sideline is one gust from wide. Two feet to five and a half covers the
+        # box's middle without taking the placement away from the person.
+        ty = CENTRELINE + side * max(2.0, min(5.5, abs(ty - CENTRELINE)))
+        # A serve has the engine's own serve pace as a floor: the scripted hands serve at 55 (this file's own
+        # number, one place below), and a person whose one movement is a dink's 24 mph is not being asked for a
+        # serve at all — they are being asked to play the shot the rules have already decided the depth of.
+        power = max(power, 55.0)
+        face = aim_at(p, (tx, ty), shot, surface, wind, power, here)
+        for _ in range(14):
+            probe = strike(p, None, face=face, power=power, aim=ty, shot=shot, surface=surface, wind=wind,
+                           pos=here, clean=True)
+            land = probe["traj"].get("land")
+            # In the box, and deep in it: a serve that scrapes the kitchen line is a serve the player's own
+            # error takes back into the kitchen, and the person did not ask for a serve at all — they asked for
+            # a movement that the serve has to be played with.
+            into_box = NET_X + fwd * (KITCHEN + 3.0)
+            if (land is not None and in_service_area(land, p.north, here[1])
+                    and (land[0] - into_box) * fwd >= 0.0):
+                break
+            short = land is None or (into_box - land[0]) * fwd > 0.0
+            if short and power < 100.0:
+                power = min(100.0, power + 6.0)            # into the net, or short: swing harder
+            elif not short and power > MIN_POWER:
+                power = max(MIN_POWER, power - 6.0)        # past the baseline: swing softer
+            else:
+                break                                      # nothing left to try at either end
+            face = aim_at(p, (tx, ty), shot, surface, wind, power, here)
+        dist = math.hypot(tx - here[0], ty - here[1])
+        return face, power, ty, dist
+        return face, power, ty, dist
     dist = math.hypot(tx - here[0], ty - here[1])
     face = aim_at(p, (tx, ty), shot, surface, wind, power, here)
     return face, power, ty, dist
@@ -1695,6 +1752,31 @@ def member_chooser_pb(engines: dict, surface, wind_in, history, fell_back):
             move = {"pace": 24.0, "target": (NET_X + fwd * 7.0, CENTRELINE)}
         print(f"  !! {p.name} wrote no usable line ({reply.strip()[:60]!r}); it plays the safe ball")
         return solve_move(p, here, move, shot_kind, surface, wind)
+    return choose
+
+
+def person_chooser_pb(move: dict, surface: str, wind_in):
+    """A person's seat, in doubles: the movement they typed is played whenever the ball comes to them.
+
+    The limitation is the same one tennis states and for the same reason — a form on a runner cannot stop
+    mid-rally to ask a question — and it is written here rather than discovered later: **one typed movement is
+    their movement for the whole session**. What is NOT fixed is where it is played from. The target is a point
+    on the court and the paddle's angle is solved afresh from wherever the person is standing, by the same
+    `solve_move` a member's line goes through, so the same sentence means a dink from the kitchen line and a
+    reach from the baseline. §5q's screen prints exactly this sentence, which is the reason the two seats share
+    one parser rather than the person getting a form of their own.
+    """
+    wind = wind_vector(*wind_in)
+
+    def choose(p, other, incoming, shot_no, lengths, shot_kind, may_volley, here):
+        # A serve is not exempt: `solve_move` pulls a target on your own side across the tape, and a serve aimed
+        # into the service box is a legal serve. What it cannot do is call a fault — that is the engine's, and it
+        # stays the engine's however the movement was chosen.
+        # The fourth value is the distance to the point, and it is the movement's own: `strike` turns it into the
+        # lateral error a swing from here should have (§5p). Returning nothing there would play every ball as
+        # though it were struck from six feet away.
+        return solve_move(p, here, move, shot_kind, surface, wind)
+
     return choose
 
 
@@ -1885,6 +1967,115 @@ def write_film(scene: dict, out_json: str | Path, out_page: str | Path | None = 
     return pj, pp
 
 
+def engines_for(names: list[str], args) -> tuple[dict, list[str]]:
+    """One vendor and one model per named member: its own voice.md unless the flags say otherwise, and the names
+    of the keys that are missing. A person's seat is never in this list — it has no engine to look up."""
+    vendors = ([v.strip().lower() for v in args.vendor.split(",")] if args.vendor else vendors_of(names))
+    if len(vendors) != len(names):
+        print(f"   --vendor needs one vendor per name ({len(names)}); got {len(vendors)}. Nothing was played.",
+              file=sys.stderr)
+        return {}, ["(the command line)"]
+    from tennis import default_model, key_for  # noqa: E402
+    models = ([m.strip() for m in args.model.split(",")] if args.model
+              else [default_model(v) for v in vendors])
+    engines, missing = {}, []
+    for n, v, mdl in zip(names, vendors, models):
+        k = key_for(v)
+        if not k:
+            missing.append(f"TRIBE_API_KEY_{v.upper()}")
+        engines[n] = (v, k, mdl)
+    return engines, missing
+
+
+def write_session(book: dict, args, names: list[str], result: dict, mode: str, by: str) -> None:
+    """One session into the season file — the engine's players, the engine's verdicts, and the partner it played
+    beside. Every number here was counted by the engine during the game; nothing is re-derived afterwards."""
+    when = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    partners: dict[str, list[str]] = {}
+    for team in (names[:2], names[2:]):
+        for n in team:
+            partners[n] = [o for o in team if o != n]
+    record_session(book, when=when, surface=result["surface"], clock=result["clock"],
+                   players=list(result["players"].values()), results=result["results"],
+                   lengths=result["lengths"], partners=partners, mode=mode, by=by)
+    save_season(book, args.season, args.season_dir, "pickleball")
+
+
+def run_person_pb(args) -> int:
+    """A person's seat in doubles: one typed movement, three members asked afresh on every ball.
+
+    The person is the FIRST name and partners the second. This is the arrangement the page's screen assumes
+    (§5q): the member beside you and the two across the net are the same members, asked the same question, that
+    they are in a game with no person in it — so a person playing badly is playing against the circle and not
+    against a special case.
+
+    What a runner cannot do is stop mid-rally, so **the movement the person typed is their movement for the
+    whole session**: the same pace and the same point on the court every time the ball comes to them. That is
+    the same limitation tennis's person's seat has, and it is stated rather than hidden. The engine still solves
+    the swing from wherever the feet are, so the sentence means something different at the kitchen line than at
+    the baseline — and the scoreline is the engine's, never the person's.
+    """
+    names = [n.strip() for n in args.names.split(",")]
+    if len(names) != 4 or not all(names) or len(set(names)) != 4:
+        print("   a person's seat in doubles needs four different names — the person first, then three "
+              "members, e.g. --names 'Lindsay,Desi,Dmitri,Gwen'. Nothing was played.", file=sys.stderr)
+        return 2
+    person, others = names[0], names[1:]
+    move = parse_move(args.person_shot or "")
+    if move is None:
+        print(f"   '{args.person_shot}' is not a movement this court can play. The shape is\n"
+              "     PACE <mph, 10 to 100> AT <x>,<y>    a point on the court: 0..44 along, 0..20 across\n"
+              f"   and your own end is x < {NET_X:.0f}. Nothing was played.", file=sys.stderr)
+        return 2
+    root = Path(__file__).resolve().parent.parent
+    absent = [n for n in others if not (root / "wake" / "members" / n / "state").is_dir()]
+    if absent:
+        print("   no such member on the shelf: " + ", ".join(absent) + ". A person's seat plays the circle, so "
+              "the other three names have to be members — name them with --names "
+              "'<you>,<member>,<member>,<member>'. Nothing was played.", file=sys.stderr)
+        return 2
+    book, practice = open_book(names, args, default="0,0,0,0", sport="pickleball")
+    engines, missing = engines_for(others, args)
+    if missing:
+        print("   " + ", ".join(sorted(set(missing))) + " not set, so a member cannot hit a ball. "
+              "Nothing was played.", file=sys.stderr)
+        return 2
+    history = {n: [] for n in names}
+    fell_back: list[str] = []
+    print(f"  {person} plays with {names[1]} against {names[2]}/{names[3]}, on every ball, the movement "
+          f"PACE {move['pace']:.0f} AT {move['target'][0]:.0f},{move['target'][1]:.0f}")
+
+    def factory(players, wind_in, surface):
+        member = member_chooser_pb(engines, surface, wind_in, history, fell_back)
+        human = person_chooser_pb(move, surface, wind_in)
+
+        def choose(p, *rest, **kw):
+            return (human if p.name == person else member)(p, *rest, **kw)
+        return choose
+
+    for g in range(max(1, args.game)):
+        film = {} if (args.film and g == 0) else None
+        match, result = play_game(names, practice, factory, surface=args.surface, first_team=g % 2,
+                                  wind_seed_ms=args.clock, film=film)
+        print(f"  game {g + 1}: {match.teams[0].score}-{match.teams[1].score}")
+        if film is not None:
+            scene = film_scene(film, names, score=(match.teams[0].score, match.teams[1].score),
+                               clock=result["clock"], surface=args.surface,
+                               note=f"pickleball doubles, {person}'s seat at PACE {move['pace']:.0f} "
+                                    f"AT {move['target'][0]:.0f},{move['target'][1]:.0f}, "
+                                    f"{len(film['rallies'])} rallies")
+            pj, pp = write_film(scene, args.film, args.page)
+            print(f"  film: {len(film['shots'])} shots -> {pj}" + (f" and {pp}" if pp else ""))
+    if fell_back:
+        print(f"  {len(fell_back)} shot(s) came back as prose and were played straight — see the record")
+    me = result["players"][person]
+    print(f"  {person}: {me.shots} shots, {sum(result['results'].get(person, []))} in play")
+    if book is not None:
+        write_session(book, args, names, result, mode="doubles", by=person)
+        print(f"  season {args.season} written")
+    return 0
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="pickleball: the player moves, the engine computes the ball")
     ap.add_argument("--rules", action="store_true", help="fire every rule in the file and print the result")
@@ -1918,6 +2109,9 @@ def main(argv=None) -> int:
                     help="record the first game and write the film to this JSON path")
     ap.add_argument("--page", default=None,
                     help="with --film, also bake the film into a standalone page at this path")
+    ap.add_argument("--person-shot", default=None,
+                    help="the movement a person plays, e.g. 'PACE 24 AT 26,6' — fills the first of the four "
+                         "names, and is played every time the ball comes to them")
     ap.add_argument("--vendor", default=None)
     ap.add_argument("--model", default=None)
     args = ap.parse_args(argv)
@@ -1973,21 +2167,12 @@ def main(argv=None) -> int:
             print("\n  a scripted game: the rules are exercised, the learning is not. No season was written.")
         return 0
 
+    if args.person_shot is not None:
+        return run_person_pb(args)
+
     # a members' game: engines, a season file, and a record
-    vendors = ([v.strip().lower() for v in args.vendor.split(",")] if args.vendor else vendors_of(names))
-    if len(vendors) != 4:
-        print("!! one vendor per name, or none and let voice.md decide", file=sys.stderr)
-        return 2
     book, practice = open_book(names, args, default="0,0,0,0", sport="pickleball")
-    from tennis import BASES, ask, default_model, key_for  # noqa: E402
-    models = ([m.strip() for m in args.model.split(",")] if args.model
-              else [default_model(v) for v in vendors])
-    engines, missing = {}, []
-    for n, v, mdl in zip(names, vendors, models):
-        k = key_for(v)
-        if not k:
-            missing.append(f"TRIBE_API_KEY_{v.upper()}")
-        engines[n] = (v, k, mdl)
+    engines, missing = engines_for(names, args)
     if missing:
         print("   " + ", ".join(sorted(set(missing))) + " not set, so nobody can hit a ball. "
               "Nothing was played; `--demo` plays the rules with no key.", file=sys.stderr)
@@ -2002,12 +2187,7 @@ def main(argv=None) -> int:
     if fell_back:
         print(f"  {len(fell_back)} shot(s) came back as prose and were played straight — see the record")
     if book is not None:
-        when = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-        players = {n: Player(name=n, north=(i < 2), practice=practice[i]) for i, n in enumerate(names)}
-        record_session(book, when=when, surface=args.surface, clock=result["clock"],
-                       players=list(players.values()), results=None or {n: [] for n in names},
-                       lengths=result["lengths"], partners={}, mode="doubles")
-        save_season(book, args.season, args.season_dir, "pickleball")
+        write_session(book, args, names, result, mode="doubles", by="the members")
         print(f"  season {args.season} written")
     return 0
 

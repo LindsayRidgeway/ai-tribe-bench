@@ -2017,5 +2017,59 @@ statistic; the pins are what the sum is built out of.** Read individually they a
 
 - **Why the stance lesson costs points** (§5r's second measurement). Unchanged, and now the more interesting of the
   two open measurements.
-- **The `#/play` wiring** (§5q). Unchanged: a sport row in `ait.html`'s `viewPlay`, a recipe in `season.yml`'s
-  argument shape, seats from the member list, films into `records/` and `replays/`, with `ui-mock.html` as the spec.
+- **The `#/play` wiring** (§5q). Unchanged, and now the only thing standing between a person and the seat itself: a
+  sport row in `ait.html`'s `viewPlay`, a dispatch in `season.yml`'s argument shape, seats from the member list, films
+  into `records/` and `replays/`, with `ui-mock.html` as the spec. The seat it would drive is built (§5v).
+
+## §5v The person's seat in doubles — 2026-11-26
+
+The engine has had a movement language since §5p and the page has had a screen since §5q, and until today no
+person could use either: `member_chooser_pb` asks four members, and a person's seat in this game did not exist.
+
+```
+python3 lab/pickleball.py --person-shot "PACE 24 AT 26,6" \
+    --names "Lindsay,Desi,Dmitri,Gwen" --season 2026-winter --clock 1234500
+```
+
+The person is the first name and partners the second, because the seating rule is the one already in the file:
+`names[:2]` are the north team. The other three seats are members asked afresh on every ball, through the same
+prompt and the same fallback they get in a game with no person in it — so playing the circle is playing the circle.
+
+**The limitation, stated rather than found later:** a form on a runner cannot stop mid-rally, so *one typed movement
+is the person's movement for the whole session* — the same limitation tennis's person's seat carries, and the reason
+this is a seat and not a controller. What the sentence still buys is position: the paddle's angle is solved from
+wherever the feet are, so `PACE 24 AT 26,6` is a dink from the kitchen line and a lunge from the baseline.
+
+### Two things playing it found, and neither was in the design
+
+**The record's balls were always zero.** `record_session` was handed `Player` objects the caller had just built, so
+every doubles season wrote `shots 0, in_play 0 of 0` for all four members and its `balls` counter never moved — a
+practice record that recorded no practice. `play_game` now hands its own players and its own per-shot verdicts back
+(`out["players"]`, `out["results"]`), and `write_session` writes those. One source for one number, and it is the
+engine's.
+
+**A dink's movement is a service fault.** A person types one line and gets it on every ball, the serve included — and
+`PACE 24 AT 26,6` is a fault twice over on a serve: 26 ft is inside the receiving kitchen, and y = 6 is on the
+server's own side of the centreline. Worse, 24 mph does not carry 30 ft at all: measured, that swing lands 28.9 ft
+out with the box beginning at 29. So `solve_move` now treats a serve as a serve:
+
+- the point is pulled into the diagonal box, and kept two to five and a half feet off the centreline (a serve aimed
+  at the centreline is one gust from the wrong box);
+- the pace is lifted to the engine's own serve pace, **55** — the number the scripted hands serve at, one place in
+  the file — and then walked, six points at a time, until the clean ball is in the box and three feet deep in it.
+
+That is a liberty and it is deliberate: the serve's depth is fixed by the rule rather than chosen by the player, so a
+movement the court has already decided the shape of is the engine's to solve. Every other shot keeps the person's
+pace exactly — a test holds both halves of that sentence, asserting power 40 for a 24 mph groundstroke and at least
+55 for the serve from the same movement.
+
+Measured across 432 extreme combinations (four stances, three paces, six targets, six winds), 424 serve legally; the
+eight that do not are corner targets in a crosswind, where the ball is carried wide. `aim_at` solves depth and never
+lateral drift, so a shot aimed at the sideline in a crosswind misses the sideline — which is a player's error and the
+same one a member makes, not a solver defect.
+
+### What is still not built
+
+The `#/play` wiring, and it is the whole of the gap between this section and a person playing from Kythe: the
+dispatch (`pickleball.yml`, in `season.yml`'s argument shape), a sport row in `ait.html`'s `viewPlay`, and the screen
+of §5q pointed at it. Until then the seat exists and is reached from a terminal only.

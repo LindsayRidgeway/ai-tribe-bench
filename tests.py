@@ -7120,19 +7120,52 @@ class TestPickleball(unittest.TestCase):
             def choose(p, *a, **k):
                 if p.name == "Me":
                     answer = human(p, *a, **k)
-                    told.append(answer)
+                    told.append((a[4], answer))        # (shot_kind, (face, power, aim, dist))
                     return answer
                 return others(p, *a, **k)
             return choose
         _m, _out = pk.play_game(["Me", "A", "B", "C"], [200] * 4, factory, wind_seed_ms=1234500,
                                 say=lambda *a, **k: None)
         self.assertTrue(told, "the person's seat was asked for a shot")
-        for _face, power, aim, dist in told:
-            self.assertAlmostEqual(power, 30.0 / 0.6, places=6, msg="the pace is the movement's own")
-            self.assertEqual(aim, 4.0, "and so is the point across the court")
+        self.assertIn("groundstroke", {k for k, _ in told}, "the person played shots from the back of a rally too")
+        for kind, (_face, power, aim, dist) in told:
+            if kind == "serve":
+                # A serve is the one shot whose depth the rules fix: the pace it needs is the engine's own serve
+                # pace (a person's single movement is usually a dink's, which cannot carry thirty feet) and the
+                # point is pulled into the diagonal half of the box, two feet clear of the centreline.
+                self.assertGreaterEqual(power, 55.0, "a serve is served at a serve's pace, not a dink's")
+                self.assertGreaterEqual(abs(aim - 10.0), 2.0, "and it goes to the diagonal half of the box")
+            else:
+                self.assertAlmostEqual(power, 30.0 / 0.6, places=6, msg="the pace is the movement's own")
+                self.assertEqual(aim, 4.0, "and so is the point across the court")
             self.assertGreater(dist, 0.0,
                                "the distance is the movement's own too, because `strike` reads the swing's "
                                "lateral error off it (§5p) and a zero there plays every ball from six feet")
+
+    def test_a_dinks_movement_is_still_a_legal_serve(self):
+        """A person types one movement and gets it on every ball, the serve included. `PACE 24 AT 26,6` is a fine
+        dink and a service fault twice over — 26 ft is inside the receiving kitchen, and y=6 is on the server's
+        own side of the centreline — so `solve_move` pulls the point into the diagonal box and walks the pace to
+        one that carries the ball there. The alternative is a double fault the person had no way to see, which is
+        the same complaint the page makes about the engine's prose fallback (§5q). What the movement means for
+        every other shot is untouched: the pace is theirs and the point is theirs."""
+        pk, T = self.pk, self.t
+        w = pk.wind_vector("S", 3.0)
+        for north, here in ((True, (0.5, 4.0)), (True, (0.5, 16.0)), (False, (43.5, 4.0)),
+                            (False, (43.5, 16.0))):
+            p = T.Player(name="P", north=north, practice=200)
+            face, power, aim, _d = pk.solve_move(p, here, {"pace": 24.0, "target": (26.0, 6.0)}, "serve",
+                                                 "hard", w)
+            shot = pk.strike(p, None, face=face, power=power, aim=aim, shot="serve", surface="hard", wind=w,
+                             pos=here, clean=True)
+            land = shot["traj"]["land"]
+            self.assertIsNotNone(land, f"a serve from {here} has to clear the net")
+            self.assertTrue(pk.in_service_area(land, north, here[1]),
+                            f"a dink's movement still serves into the box from {here}; it landed {land}")
+            self.assertGreaterEqual(power, 55.0, "at a serve's pace, because the box is fifteen feet of court")
+        face, power, aim, _d = pk.solve_move(T.Player(name="P", north=True, practice=200), (0.5, 4.0),
+                                             {"pace": 24.0, "target": (26.0, 6.0)}, "groundstroke", "hard", w)
+        self.assertEqual((aim, round(power, 6)), (6.0, 40.0), "and every other shot is the movement's own")
 
     def test_a_person_seat_refuses_a_line_that_is_not_a_movement(self):
         """A refusal that names the shape, because the whole point of the movement language is that a person
@@ -7149,7 +7182,7 @@ class TestPickleball(unittest.TestCase):
         with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
             code = pk.main(["--person-shot", "PACE 24 AT 26,6", "--names", "Me,A"])
         self.assertEqual(code, 2, "a person's seat in doubles is four names, the person first")
-        self.assertIn("four different names", err.getvalue())
+        self.assertIn("four names", err.getvalue(), "and the refusal says how many seats a doubles court has")
 
     def test_the_session_record_counts_the_engines_own_balls(self):
         """`record_session` was handed Player objects built by the caller, so a members' doubles season wrote
