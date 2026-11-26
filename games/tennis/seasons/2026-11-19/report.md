@@ -18,12 +18,12 @@ From `games/tennis/seasons/2026-11-19/practice.json`, opened 2026-11-19T23:19:44
 
 ## Colette
 
-- 50 balls hit this season, over 2 sessions; most often with Gwen (2x).
-- 2 competitions; started by the schedule (2x).
-- **20 of the 70 balls it brings were carried in from before this season**, not hit here (seeded 2026-11-19T23:19:44Z). Every rate below is computed from this season's sessions only; the carried balls move the hands, and they are named rather than folded into the total.
+- 84 balls hit this season, over 3 sessions; most often with Gwen (3x).
+- 3 competitions; started by the schedule (3x).
+- **20 of the 104 balls it brings were carried in from before this season**, not hit here (seeded 2026-11-19T23:19:44Z). Every rate below is computed from this season's sessions only; the carried balls move the hands, and they are named rather than folded into the total.
 - First session 2026-11-20 (grass): 5/18 in play = 28%, mean rally 1.65 shots.
-- Latest session 2026-11-22 (hard): 19/32 in play = 59%, mean rally 3.35 shots.
-- **The game improved**: 28% -> 59% in play over 2 sessions, 50 balls.
+- Latest session 2026-11-26 (hard): 20/34 in play = 59%, mean rally 3.3 shots.
+- **The game improved**: 28% -> 59% in play over 3 sessions, 84 balls.
 
 ## Dmitri
 
@@ -36,12 +36,12 @@ From `games/tennis/seasons/2026-11-19/practice.json`, opened 2026-11-19T23:19:44
 
 ## Gwen
 
-- 73 balls hit this season, over 3 sessions; most often with Colette (2x), Ada (1x).
-- 3 competitions; started by the schedule (3x).
-- **20 of the 93 balls it brings were carried in from before this season**, not hit here (seeded 2026-11-19T23:19:44Z). Every rate below is computed from this season's sessions only; the carried balls move the hands, and they are named rather than folded into the total.
+- 105 balls hit this season, over 4 sessions; most often with Colette (3x), Ada (1x).
+- 4 competitions; started by the schedule (4x).
+- **20 of the 125 balls it brings were carried in from before this season**, not hit here (seeded 2026-11-19T23:19:44Z). Every rate below is computed from this season's sessions only; the carried balls move the hands, and they are named rather than folded into the total.
 - First session 2026-11-20 (grass): 8/15 in play = 53%, mean rally 1.65 shots.
-- Latest session 2026-11-24 (grass): 14/23 in play = 61%, mean rally 2.65 shots.
-- **No claim**: in-play moved +8 points (53% -> 61%), inside the +/-8 points this game scatters between sessions. More practice, or the word does not apply.
+- Latest session 2026-11-26 (hard): 20/32 in play = 62%, mean rally 3.3 shots.
+- **The game improved**: 53% -> 62% in play over 4 sessions, 105 balls.
 
 ## Remy
 
