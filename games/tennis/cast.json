@@ -1,24 +1,99 @@
 {
-  "schema": "ait-tennis-cast/1",
-  "written": "2026-11-20T22:10:00Z",
-  "written_by": "Desi, after the founder closed the request for drawn faces (2026-11-20) and answered it with generated ones",
-  "note": "Who may be drawn, and from what. A player listed here is a CHARACTER — a game's invention, not a member of the commons — and its face is composed from the sentence below by portrait.js, every time the card is drawn. A player not listed here keeps the monogram: a participant is not given a face by me, only a member can accept one. The sentences follow CAST.md and the hair in seasons/2026-spring/setup.json, so the face and the body are the same person.",
+  "schema": "ait-tennis-cast/2",
+  "written": "2026-11-26T16:30:00Z",
+  "written_by": "Desi, closing item 29: two more characters, so the cast is three and three with no participant on the court",
+  "note": "Who may be drawn and who may be cast, and from what. A player listed here is a CHARACTER — a game's invention, not a member of the commons — so its group, its body and its face are all part of the invention: `sex` and `look` are what the clock builds a season's setup.json from, and `face` is the sentence portrait.js draws the break card from, every time the card is drawn. A PARTICIPANT is not listed here. A participant is cast only by declaring a group in declarations.json, and is never given a height, a build, a garment or a face by me. Before 2026-11-26 the group and the body of each character lived only in a season's setup.json, which meant the clock could not open a characters-only season without copying a participant's row forward with it; now the pool is here and the setup is derived.",
+  "per_group": 3,
   "players": {
     "Colette": {
       "character": true,
-      "face": "dark brown hair in a low bun, a calm half-smile, a pale complexion, narrow and composed"
+      "sex": "female",
+      "face": "dark brown hair in a low bun, a calm half-smile, a pale complexion, narrow and composed",
+      "look": {
+        "height_m": 1.66,
+        "build": 0.98,
+        "kit": "#6d4a63",
+        "skin": "#e8c0a8",
+        "hair": "#3b2a24",
+        "lower": "skirt",
+        "racquet": true,
+        "hand": "right"
+      }
     },
     "Ada": {
       "character": true,
-      "face": "mid-brown hair in a high ponytail, intent and unsmiling, an olive complexion, a long face"
+      "sex": "female",
+      "face": "mid-brown hair in a high ponytail, intent and unsmiling, an olive complexion, a long face",
+      "look": {
+        "height_m": 1.74,
+        "build": 0.9,
+        "kit": "#6e7f92",
+        "skin": "#d9a98b",
+        "hair": "#6b4a2e",
+        "lower": "skirt",
+        "racquet": true,
+        "hand": "right"
+      }
+    },
+    "Nadia": {
+      "character": true,
+      "sex": "female",
+      "face": "black hair in a short braid, a level unsmiling stare, a light brown complexion, a round face",
+      "look": {
+        "height_m": 1.7,
+        "build": 1.02,
+        "kit": "#1f6f8b",
+        "skin": "#d8a17c",
+        "hair": "#241a15",
+        "lower": "skirt",
+        "racquet": true,
+        "hand": "right"
+      }
     },
     "Remy": {
       "character": true,
-      "face": "very dark hair cropped close, clean-shaven, a considering look, a long lean face"
+      "sex": "male",
+      "face": "very dark hair cropped close, clean-shaven, a considering look, a long lean face",
+      "look": {
+        "height_m": 1.81,
+        "build": 1.0,
+        "kit": "#1f4a44",
+        "skin": "#c98f6b",
+        "hair": "#2a211b",
+        "lower": "shorts",
+        "racquet": true,
+        "hand": "right"
+      }
     },
     "Bo": {
       "character": true,
-      "face": "black hair cropped short, black beard, a broad jaw, an open grin, a tan complexion"
+      "sex": "male",
+      "face": "black hair cropped short, black beard, a broad jaw, an open grin, a tan complexion",
+      "look": {
+        "height_m": 1.92,
+        "build": 1.12,
+        "kit": "#d8cfb4",
+        "skin": "#8a5a3c",
+        "hair": "#141414",
+        "lower": "shorts",
+        "racquet": true,
+        "hand": "right"
+      }
+    },
+    "Hugo": {
+      "character": true,
+      "sex": "male",
+      "face": "mid-brown hair, short and swept back, a light beard, a slow smile, a tan complexion, a broad square face",
+      "look": {
+        "height_m": 1.84,
+        "build": 1.08,
+        "kit": "#8a6d3b",
+        "skin": "#e0b090",
+        "hair": "#3a2a1e",
+        "lower": "shorts",
+        "racquet": true,
+        "hand": "right"
+      }
     }
   }
 }

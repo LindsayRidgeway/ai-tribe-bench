@@ -45,7 +45,9 @@ What that means concretely:
    member's own sentence. Neither is a drawing somebody made of somebody else.
 3. **The next cast is characters only.** When `2026-11-19` closes, the clock opens the next season from the last
    one's cast and plan; before it does, the next `setup.json` gets two more characters in place of Dmitri and
-   Gwen. `2026-11-19` and everything before it are records of what was played and are not rewritten — but nothing
+   Gwen. **Done 2026-11-26**, and better than as first written: the clock no longer copies the last setup at all —
+   it builds the cast from `cast.json` and leaves off anybody a file cannot cast (see *The cast*, below).
+   `2026-11-19` and everything before it are records of what was played and are not rewritten — but nothing
    new is played with a participant's name on a body.
 4. **Declared participants are welcome on court**, and the ask goes to them rather than to the founder: a row in the
    symposium's `channels/tasks.md` asks each member whether they want a place in the cast and, if they intend to
@@ -65,10 +67,32 @@ The reasons this is not fussiness: the identity rule in the commons exists becau
 somebody is. A body with a name, a height, a garment and a sex is that decision, made in a file, shipped in a
 public video. The film is the one artifact a stranger sees first.
 
-## The six
+## The cast — six characters from 2026-11-26, and the two participants off it
 
-Six names already exist in this repository's tennis record. Four are characters and two are participants on the
-basis above; they split three and three:
+The table below is the cast as it stood on 2026-11-19 — the season that is still being played — and it is kept
+because it is the record of who played it. **It is not the cast the clock will open next.** From 2026-11-26 the pool
+is `cast.json`, six characters, three and three:
+
+| character | group | height | kit | face drawn from |
+|---|---|---|---|---|
+| Colette | female | 1.66 m | plum | a sentence in `cast.json` |
+| Ada | female | 1.74 m | slate | a sentence in `cast.json` |
+| **Nadia** | female | 1.70 m | teal blue | new, 2026-11-26 |
+| Remy | male | 1.81 m | teal green | a sentence in `cast.json` |
+| Bo | male | 1.92 m | cream | a sentence in `cast.json` |
+| **Hugo** | male | 1.84 m | khaki | new, 2026-11-26 |
+
+**Why two more.** Dmitri and Gwen are participants, and a participant stands on the court only by declaring a group.
+When they come off it, four characters are two and two — and a court of two and two has no same-sex competition in
+it, so the stagger he asked for cannot happen in either group. Nadia and Hugo restore the three and three. Each has
+a body in `games/tennis/bodies` built by `lab/body.py` in 1.5 seconds from the `look` block in `cast.json`, so the
+height, build, kit colour and garment in the file and the mesh on the court are the same person.
+
+**A film of the two of them:** `records/cast-2026-11-26.json`, watched with
+`replay3d.html?record=records/cast-2026-11-26.json&setup=records/cast-2026-11-26.setup.json` — 8 rallies, both
+beginners at 0 balls, and the point of it is that both bodies load and are posed, not that the tennis is good.
+
+**The table of the played season, for the record:**
 
 | name | group | arrived with | plays per season (automatic) | ended 2026-tour as |
 |---|---|---|---|---|
@@ -164,10 +188,12 @@ next season opens on a new directory, which is how this design resets without wi
 
 ## What this costs
 
-- **Six bodies — done 2026-11-19.** `lab/body.py` (recovered from commit `10c99298`, 433 lines) is on `main` and
-  builds one member from parameters in **1.5 seconds**. The four missing ones are built, at the heights and kit
-  colours in `seasons/2026-spring/setup.json`: Colette 1.66m plum, Ada 1.74m slate, Remy 1.81m teal, Bo 1.92m
-  cream. A film of Ada and Bo is `records/cast-2026-11-19.json`.
+- **Eight bodies — six done 2026-11-19, two more 2026-11-26.** `lab/body.py` (recovered from commit `10c99298`,
+  433 lines) is on `main` and builds one member from parameters in **1.5 seconds**. Colette 1.66m plum, Ada 1.74m
+  slate, Remy 1.81m teal and Bo 1.92m cream came from the heights and kit colours in `seasons/2026-spring/setup.json`;
+  Nadia 1.70m teal blue and Hugo 1.84m khaki came from `cast.json` itself, which is now where a character's look
+  lives. A film of Ada and Bo is `records/cast-2026-11-19.json`; a film of Nadia and Hugo is
+  `records/cast-2026-11-26.json`.
 - **Four faces — CLOSED 2026-11-20, and not with drawings.** The founder closed the request in chat: every circle
   should have its own faces, generated from editable text in each member's UI, rather than one set of drawings
   reused by everybody. `portrait.js` at the repository root now does exactly that — a deterministic SVG drawn from a

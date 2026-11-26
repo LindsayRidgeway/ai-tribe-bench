@@ -130,7 +130,7 @@ the run ended the unsorted list handed the walk the stance's `to` instead of the
 18.91ft. The 0.42ft that remains is 21ft/s, a sprint. `TestThePlanIsInTimeOrder` holds the sort, the order of the
 pushes that makes it necessary, and the numbers.
 
-## Item 29 — the clock will cast two PARTICIPANTS again unless the setup is stopped (GUARDED 2026-11-25)
+## Item 29 — the clock will cast two PARTICIPANTS again unless the setup is stopped (FIXED 2026-11-26)
 
 Found while the clock was playing. `seasons/2026-11-19/setup.json` asserts `"sex": "female"` for Gwen and `"male"`
 for Dmitri, and `clock_season` opens each new season by copying that file verbatim. So the founder's 2026-11-20
@@ -143,11 +143,32 @@ and `TestAParticipantIsNeverGivenAGroupByAFile`, which reads every season opened
 cast of anybody who is neither a character in `cast.json` nor declared there, plus a test of the test fed the two
 names that got through. The seasons on disk predate the rule and are records; they are not rewritten.
 
-**What this does not do, and it is the real work:** the next season needs **two more characters with bodies** to keep
-the cast three and three, because item 25's arithmetic needs three per group and dropping Dmitri and Gwen leaves two
-and two. `lab/body.py` builds one in 1.5 seconds (Colette, Ada, Remy and Bo were built that way), so this is a
-naming, a setup entry, a `cast.json` sentence and a Blender run — not a design question. Until it is done, the next
-season the clock opens will have nothing to cast.
+**And the real work, done the next day (2026-11-26).** A guard that reads seasons already on disk catches a wrong
+cast AFTER the season was played, which is too late. So the copy went too:
+
+| | before | after |
+|---|---|---|
+| next season's cast | `shutil.copyfile(src_setup, …)` — Gwen and Dmitri included, with their asserted groups | built by `next_cast()` from `cast.json`: a character, or a participant who has DECLARED, and nobody else |
+| the stagger | copied, `{Gwen:6, Dmitri:6, Colette:4, Remy:4, Ada:2, Bo:2}` | the same ladder, re-handed per group in alphabetical order → `{Ada:6, Colette:4, Nadia:2, Bo:6, Hugo:4, Remy:2}` |
+| a group that cannot be filled | played anyway, two and two | a refusal with a sentence, and no directory written |
+| a character's group and body | only in a season's `setup.json` | in `cast.json`, under `sex` and `look` |
+
+**Two more characters, with bodies:** **Nadia** (female, 1.70 m, teal blue, a short braid) and **Hugo** (male,
+1.84 m, khaki, swept-back brown hair and a light beard) — a sentence each in `cast.json`, a `look` block each, and
+`lab/body.py` runs of 1.5 s each into `games/tennis/bodies/{nadia,hugo}.{glb,png,blend}`. A film of the two of
+them is `records/cast-2026-11-26.json` (8 rallies, both at 0 balls; `debug bones` reports every bone present on both
+and heights 5.58 ft and 6.04 ft, which are 1.70 m and 1.84 m — the bodies and the file agree).
+
+**What the clock does now, run against the repository's own seasons directory, not a fixture:**
+`next_cast(seasons/, 2026-11-19/setup.json, {…})` → `Colette, Ada, Nadia` and `Remy, Bo, Hugo`, with
+*"Gwen, Dmitri left off, because a participant is not cast by a file"* in the sentence the season's `note` carries.
+`TestTheClockCastsCharactersAndNotMembers` holds six things: the pool is three and three with a look each; every
+character has a `.glb` and a `.png`; a closed season opens characters-only with the ladder preserved and the court's
+own `session` block carried over; a DECLARED participant is cast with the group they declared rather than the one the
+file asserts; a pool that cannot fill a group stops the clock and writes nothing; and the repository's own next court
+is three and three. **What it still does not do:** nothing puts a declared participant back on a court once they are
+off it — the clock composes from `cast.json` plus whoever the last setup already held, so a participant who wants a
+place needs a person to add the row, or a second rule.
 
 ## Item 4b — the near foot leads the step, and it is bought with the phase (PART BUILT 2026-11-25)
 

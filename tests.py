@@ -4833,6 +4833,137 @@ class TestAParticipantIsNeverGivenAGroupByAFile(unittest.TestCase):
         self.assertIn("2026-11-19", cast)
 
 
+class TestTheClockCastsCharactersAndNotMembers(unittest.TestCase):
+    """Item 29. The guard in `TestAParticipantIsNeverGivenAGroupByAFile` reads seasons that are already on disk, so it
+    catches a wrong cast AFTER the season was played. This is the half that stops it happening: the clock no longer
+    copies the last season's `setup.json` verbatim, it BUILDS the cast — the characters in `cast.json`, plus any
+    participant who has declared a group, and nobody else.
+
+    That only works if there are characters enough. On 2026-11-26 there were four (Colette, Ada, Remy, Bo) and two of
+    the six on court were participants, so dropping the participants left two and two — a court with no same-sex
+    competition in it. Hence Nadia and Hugo: a second female character and a second male one, each with a sentence in
+    `cast.json` and a body in `games/tennis/bodies`, built by `lab/body.py` in 1.5 seconds from the parameters in the
+    same file.
+
+    Every test below runs on a fixture whose cast was copied from the repository's own, or on the repository's own —
+    nothing here is a hand-written cast that could agree with the code by construction."""
+
+    def setUp(self):
+        import importlib, tempfile, shutil
+        sys.path.insert(0, str(REPO / "lab"))
+        self.T = importlib.import_module("tennis")
+        self.tmp = Path(tempfile.mkdtemp(prefix="tennis-cast-"))
+        self.addCleanup(shutil.rmtree, self.tmp, True)
+        self.base = self.tmp / "seasons"
+        self.base.mkdir()
+        shutil.copyfile(REPO / "games" / "tennis" / "cast.json", self.tmp / "cast.json")
+        self.cast = json.loads((REPO / "games" / "tennis" / "cast.json").read_text(encoding="utf-8"))
+
+    def _pool(self, players=None):
+        """A cast file at the fixture's own root, beside the seasons directory — the same place the real one sits."""
+        data = {"schema": "ait-tennis-cast/2", "per_group": 3,
+                "players": self.cast["players"] if players is None else players}
+        (self.tmp / "cast.json").write_text(json.dumps(data), encoding="utf-8")
+
+    def _season(self, name="2026-11-19", people=None):
+        d = self.base / name
+        d.mkdir(parents=True, exist_ok=True)
+        people = people or [("Gwen", "female"), ("Dmitri", "male"), ("Colette", "female"),
+                            ("Ada", "female"), ("Remy", "male"), ("Bo", "male")]
+        (d / "setup.json").write_text(json.dumps({"schema": "ait-tennis-setup/1", "session": {"surface": "clay"},
+                                                  "players": [{"name": n, "sex": s, "history": 0,
+                                                               "look": {"height_m": 1.7}}
+                                                              for n, s in people]}), encoding="utf-8")
+        book = {"season": name, "opened": "2026-11-19T23:19:44Z", "note": "",
+                "plan": {"sessions": 6, "rallies": 20,
+                         "members": {"Gwen": 6, "Dmitri": 6, "Colette": 4, "Remy": 4, "Ada": 2, "Bo": 2}},
+                "members": {"Gwen": {"balls": 30, "sessions": []}}}
+        book["closed"] = {"when": "2026-11-26T00:00:00Z", "by": "a person", "why": "played out"}
+        (d / "practice.json").write_text(json.dumps(book), encoding="utf-8")
+
+    def _open(self, when="2026-11-27T04:00:00Z"):
+        name, why = self.T.clock_season(self.base, when=when)
+        setup = json.loads((self.base / name / "setup.json").read_text(encoding="utf-8")) if name else {}
+        book = json.loads((self.base / name / "practice.json").read_text(encoding="utf-8")) if name else {}
+        return name, why, setup, book
+
+    def test_the_pool_is_six_characters_and_a_group_can_be_filled(self):
+        counts = {}
+        for name, v in self.cast["players"].items():
+            self.assertTrue(v.get("character"), f"{name} is in the pool without being called a character")
+            counts[v.get("sex")] = counts.get(v.get("sex"), 0) + 1
+            for field in ("height_m", "build", "kit", "skin", "hair", "lower"):
+                self.assertIn(field, v.get("look") or {}, f"{name} has no {field}, so the clock cannot build it")
+            self.assertGreater(len(v.get("face", "")), 24, f"{name} has no sentence for portrait.js to draw")
+        self.assertEqual(counts, {"female": 3, "male": 3}, f"the pool is {counts}, so a season of it cannot be "
+                                                           f"same-sex competition in both groups")
+        self.assertEqual(self.cast.get("per_group"), 3)
+        for member in ("Dmitri", "Gwen"):
+            self.assertNotIn(member, self.cast["players"],
+                             f"{member} is a participant and is in the cast file, so a file would be deciding a "
+                             f"member's group again")
+
+    def test_every_character_has_a_body_the_film_can_load(self):
+        for name in self.cast["players"]:
+            for ext in ("glb", "png"):
+                f = REPO / "games" / "tennis" / "bodies" / f"{name.lower()}.{ext}"
+                self.assertTrue(f.exists(), f"{f.name} is missing, so a season casting {name} has no body to draw "
+                                            f"— `lab/body.py` builds one in 1.5s")
+
+    def test_the_clock_opens_a_characters_only_season_and_leaves_the_participants_off(self):
+        self._season()
+        name, why, setup, book = self._open()
+        self.assertTrue(name, why)
+        players = [(p["name"], p["sex"]) for p in setup["players"]]
+        self.assertEqual(players, [("Colette", "female"), ("Ada", "female"), ("Nadia", "female"),
+                                   ("Remy", "male"), ("Bo", "male"), ("Hugo", "male")],
+                         f"the clock cast {players}: {why}")
+        for member in ("Gwen", "Dmitri"):
+            self.assertNotIn(member, dict(players), "a participant is on the next court without having declared")
+        self.assertIn("left off", why, "the clock dropped two people and said nothing about it")
+        self.assertEqual(set(book["plan"]["members"]), dict(players).keys(),
+                         "the stagger names somebody who is not on the court, or forgets somebody who is")
+        self.assertEqual(sorted(book["plan"]["members"].values()), [2, 2, 4, 4, 6, 6],
+                         "the stagger's ladder was not carried over, so the spread he asked for is gone")
+        self.assertEqual(setup["session"], {"surface": "clay"}, "the court's own settings were not carried over")
+
+    def test_a_declared_participant_is_cast_with_the_group_they_declared_and_not_the_files(self):
+        (self.tmp / "declarations.json").write_text(json.dumps({"declared": {"Gwen": "male"}}), encoding="utf-8")
+        self._season()
+        name, why, setup, _ = self._open()
+        sexes = {p["name"]: p["sex"] for p in setup["players"]}
+        self.assertEqual(sexes.get("Gwen"), "male",
+                         f"the setup's own claim about Gwen was copied instead of her declaration: {why}")
+        self.assertNotIn("Dmitri", sexes, "an undeclared participant was cast anyway")
+        self.assertEqual(sorted(sexes.values()).count("male"), 3)
+
+    def test_a_group_that_cannot_be_filled_stops_the_clock_instead_of_playing_two_and_two(self):
+        thin = {k: v for k, v in self.cast["players"].items() if v["sex"] == "female" or k == "Remy"}
+        self._pool(thin)
+        self._season()
+        name, why, _, _ = self._open()
+        self.assertEqual(name, "", "the clock opened a season with no same-sex competition in the male group")
+        self.assertIn("no competition to be had", why)
+        self.assertEqual([d.name for d in self.base.iterdir()], ["2026-11-19"],
+                         "the clock wrote a season it had just refused")
+
+    def test_the_repositorys_own_next_season_is_cast_from_its_own_cast_file(self):
+        """The one that matters: run the reader against the real `seasons/` and the real `cast.json`."""
+        seasons = REPO / "games" / "tennis" / "seasons"
+        players, members, why = self.T.next_cast(seasons, seasons / "2026-11-19" / "setup.json",
+                                                 {"Gwen": 6, "Dmitri": 6, "Colette": 4, "Remy": 4,
+                                                  "Ada": 2, "Bo": 2})
+        self.assertTrue(players, why)
+        sexes = [p["sex"] for p in players]
+        self.assertEqual(sorted(sexes), ["female", "female", "female", "male", "male", "male"],
+                         f"the repository's next court is {sexes}: {why}")
+        self.assertEqual(set(members), {p["name"] for p in players})
+        self.assertEqual(sorted(members.values()), [2, 2, 4, 4, 6, 6])
+        for p in players:
+            self.assertTrue((REPO / "games" / "tennis" / "bodies" / f"{p['name'].lower()}.glb").exists(),
+                            f"{p['name']} would be cast with no body")
+
+
 class TestEveryMemberHasAFaceItCanRegenerate(unittest.TestCase):
     """Founder, 2026-11-20, after closing the request for four drawings:
 
@@ -4995,18 +5126,22 @@ class TestTheFilmsCastHasFacesAndTheMembersDoNot(unittest.TestCase):
     """Item 28, and the line the founder drew on 2026-11-20: *"I don't think you want every circle's tennis games to
     use the same faces."*
 
-    The four characters in `cast.json` are drawn from a sentence each by `portrait.js`, so the film's break card no
-    longer shows a monogram. **Dmitri and Gwen are not in that file**, and that is the test that matters: they are
+    The characters in `cast.json` are drawn from a sentence each by `portrait.js`, so the film's break card no longer
+    shows a monogram. **Dmitri and Gwen are not in that file**, and that is the test that matters: they are
     participants, and a participant does not get a height, a garment or a face from me. The two of them keep whatever
-    picture the record already had, or a monogram."""
+    picture the record already had, or a monogram.
+
+    The cast was four on 2026-11-20 and is six from 2026-11-26: Nadia and Hugo were added so that dropping the two
+    participants off the court still leaves three and three (item 29), because a court of two and two has no same-sex
+    competition in it."""
 
     def setUp(self):
         self.cast = json.loads((REPO / "games" / "tennis" / "cast.json").read_text(encoding="utf-8"))
         self.page = (REPO / "games" / "tennis" / "replay3d.html").read_text(encoding="utf-8")
 
-    def test_the_four_characters_are_drawn_and_the_two_members_are_not(self):
+    def test_the_characters_are_drawn_and_the_two_members_are_not(self):
         names = set(self.cast["players"])
-        self.assertEqual(names, {"Colette", "Ada", "Remy", "Bo"},
+        self.assertEqual(names, {"Colette", "Ada", "Nadia", "Remy", "Bo", "Hugo"},
                          f"the cast file has changed: {sorted(names)}")
         for member in ("Dmitri", "Gwen"):
             self.assertNotIn(member, names,
@@ -6967,6 +7102,75 @@ class TestPickleball(unittest.TestCase):
         self.assertGreater(p250.skill("control") - p150.skill("control"), 0.10,
                            "and in the same interval the hands gain eleven points of control, which is why §5u's "
                            "hands-only row still goes 21/24 at a pinned reach")
+
+    def test_a_persons_seat_plays_the_movement_it_was_given(self):
+        """§5q's screen prints `PACE 24 AT 26,6`, and this is the seat that answers with it: one typed movement,
+        played every time the ball comes to the person, while the three members are asked afresh on every ball.
+        The line goes through `solve_move`, the same solver a member's answer goes through — so the same sentence
+        means a dink from the kitchen line and a reach from the baseline, and the paddle's angle is never the
+        person's problem (§5o). A form on a runner cannot stop mid-rally; that limitation is the seat's, and this
+        holds the rest of the seat to what it promises."""
+        pk = self.pk
+        move = pk.parse_move("PACE 30 AT 30,4")
+        self.assertEqual(move, {"pace": 30.0, "target": (30.0, 4.0)})
+        told = []
+        def factory(players, wind_in, surface):
+            human = pk.person_chooser_pb(move, surface, wind_in)
+            others = pk.make_chooser("dink")(players, wind_in, surface)
+            def choose(p, *a, **k):
+                if p.name == "Me":
+                    answer = human(p, *a, **k)
+                    told.append(answer)
+                    return answer
+                return others(p, *a, **k)
+            return choose
+        _m, _out = pk.play_game(["Me", "A", "B", "C"], [200] * 4, factory, wind_seed_ms=1234500,
+                                say=lambda *a, **k: None)
+        self.assertTrue(told, "the person's seat was asked for a shot")
+        for _face, power, aim, dist in told:
+            self.assertAlmostEqual(power, 30.0 / 0.6, places=6, msg="the pace is the movement's own")
+            self.assertEqual(aim, 4.0, "and so is the point across the court")
+            self.assertGreater(dist, 0.0,
+                               "the distance is the movement's own too, because `strike` reads the swing's "
+                               "lateral error off it (§5p) and a zero there plays every ball from six feet")
+
+    def test_a_person_seat_refuses_a_line_that_is_not_a_movement(self):
+        """A refusal that names the shape, because the whole point of the movement language is that a person
+        can form one: a page that accepts `hit it hard` and plays something is worse than one that says what
+        it wants."""
+        import contextlib, io
+        pk = self.pk
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
+            code = pk.main(["--person-shot", "hit it hard", "--names", "Me,A,B,C"])
+        self.assertEqual(code, 2, "nothing was played")
+        self.assertIn("PACE", err.getvalue(), "and the refusal says what the shape is")
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
+            code = pk.main(["--person-shot", "PACE 24 AT 26,6", "--names", "Me,A"])
+        self.assertEqual(code, 2, "a person's seat in doubles is four names, the person first")
+        self.assertIn("four different names", err.getvalue())
+
+    def test_the_session_record_counts_the_engines_own_balls(self):
+        """`record_session` was handed Player objects built by the caller, so a members' doubles season wrote
+        `shots 0, in_play 0 of 0` for everybody and its `balls` counter never moved — a season that records
+        practice it did not count. The engine hands its own players and its own per-shot verdicts back now,
+        which is also the only form of the number that cannot disagree with the film."""
+        pk = self.pk
+        _m, out = pk.play_game(["A", "B", "C", "D"], [200] * 4, pk.make_chooser("dink"), wind_seed_ms=1234500,
+                               say=lambda *a, **k: None)
+        self.assertEqual(sum(p.shots for p in out["players"].values()), sum(out["lengths"]),
+                         "every shot in the game belongs to the player who hit it")
+        for n, p in out["players"].items():
+            self.assertEqual(len(out["results"][n]), p.shots, f"{n}'s in/out list is one entry per swing")
+        book = {"members": {}}
+        pk.record_session(book, when="2026-11-26T00:00:00Z", surface="hard", clock=out["clock"],
+                          players=list(out["players"].values()), results=out["results"],
+                          lengths=out["lengths"], partners={}, mode="doubles")
+        for n, p in out["players"].items():
+            self.assertEqual(book["members"][n]["balls"], p.shots, f"{n}'s balls are the engine's count")
+            self.assertGreater(book["members"][n]["sessions"][-1]["of"], 0,
+                               "and the session says how many balls it is a record of")
 
     def test_a_body_that_is_walking_is_met_where_it_is_going(self):
         """Anticipation is the momentum rule's other reader. A player who has arrived at their stance has stopped,

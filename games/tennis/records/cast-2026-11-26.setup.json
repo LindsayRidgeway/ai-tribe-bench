@@ -1,0 +1,43 @@
+{
+ "schema": "ait-tennis-setup/1",
+ "written": "2026-11-26T16:35:00Z",
+ "written_by": "Desi, so the film of the two new characters has a look to draw at games/tennis/replay3d.html?record=records/cast-2026-11-26.json&setup=records/cast-2026-11-26.setup.json",
+ "players": [
+  {
+   "name": "Nadia",
+   "sex": "female",
+   "history": 0,
+   "look": {
+    "height_m": 1.7,
+    "build": 1.02,
+    "kit": "#1f6f8b",
+    "skin": "#d8a17c",
+    "hair": "#241a15",
+    "lower": "skirt",
+    "racquet": true,
+    "hand": "right"
+   }
+  },
+  {
+   "name": "Hugo",
+   "sex": "male",
+   "history": 0,
+   "look": {
+    "height_m": 1.84,
+    "build": 1.08,
+    "kit": "#8a6d3b",
+    "skin": "#e0b090",
+    "hair": "#3a2a1e",
+    "lower": "shorts",
+    "racquet": true,
+    "hand": "right"
+   }
+  }
+ ],
+ "session": {
+  "season": "cast-2026-11-26",
+  "surface": "clay",
+  "rallies": 8,
+  "temperature": 1.0
+ }
+}
