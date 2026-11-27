@@ -2129,3 +2129,10 @@ split a diff or sweep it up, `git show HEAD:<path>` was taken and only this sess
 `ait.html` a written blob staged with `git update-index --cacheinfo`, and for the two template files the same
 operation against versions built from `HEAD`. Zero deletions, nothing of anyone else's attributed to me — and the
 cost is that a reader cannot see the whole change in one commit, which is the honest trade.
+
+**The suite, measured twice, because once was misleading.** In this shared tree: **567 passed, 9 failed**, none of
+them this sport's — eight were another window's half-finished edit to the filing tests, and the ninth was the page
+check throwing `c.getContext is not a function` from `pbInit`, which is a real gap in the *harness* (its fake browser
+had no canvas), not in the card; golf's `455679c3` fixed it while this suite ran, and credits the card in the
+comment. In a clean worktree at `origin/main`: **591 passed, 0 failed**, 5m52s. A suite run in this checkout measures
+other people's afternoons as well as this one's, and the only honest way to read it is to run it in both.
