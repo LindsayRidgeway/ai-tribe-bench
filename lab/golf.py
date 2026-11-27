@@ -127,14 +127,23 @@ SAND_PEN = 1.70                  # the athlete's price for a ball in the sand, i
 # putter's and not the green's: see `putt_line_and_pace`, where the pace was computed on the aim while the ball
 # travelled the read, and `putt_read`, which read a putt that ran past the hole against where it stopped.
 #
-# Both halves of direction are now nothing: the break −0.00 ± 0.05 and the downhill putt −0.02 ± 0.02. Two
-# separate reasons, and neither is a term the objective is missing.
+# Both halves of direction are now nothing: the break ±0.00 and the downhill putt ±0.00, pooled over six
+# distances. Two separate reasons, and neither is a term the objective is missing.
 #
-# The break costs nothing because this athlete reads it exactly. `putt_read` runs the game's own roll twice to
-# find the line, so the residual is 0.029 ft after two corrections (selftest check 22) — a player who is never
-# wrong about the green is not taxed by one. That is a *defect* and it is named: nothing in this game gives the
-# athlete a green to misread, so the break is a visual fact and not a price. It is also why the whole green is
-# cheaper than golf's (1.74 at 20 ft against 1.90) while being, at 3 ft, exactly golf's (1.04 against 1.05).
+# The break costs nothing because this athlete reads it exactly. `putt_read` runs the game's own roll and
+# corrects until the crossing is within a hundredth of a foot of the hole's centre, at every distance (selftest
+# check 44) — a player who is never wrong about the green is not taxed by one. That is a *defect* and it is
+# named: nothing in this game gives the athlete a green to misread, so the break is a visual fact and not a
+# price. It is also why the whole green is cheaper than golf's past 4 ft (1.67 at 20 against 1.90; 1.04 at 6
+# against 1.35), which is now the largest single gap between this game and golf and the next object after the
+# pace: see `games/golf/FOR-BETA.md`.
+#
+# The downhill putt costs nothing because the price of a miss has no direction in it. Pass 25 gave the pace the
+# term that was missing — 1 + E[green_cost(what it leaves)] — and the aim came back from the rim's edge (0.8 ft
+# at 3, 2.6 at 12) to 0.3 and 1.1. What the term still cannot see is the green tilting: `green_cost` is the
+# bearing average, one curve uphill and down, and the overshoot itself is direction-free here because the pace
+# is chosen as a distance and the hand errs as a fraction of speed. A comeback that arrives *fast* is a second
+# dimension of the green, not a term in this one.
 #
 # The break could not be sold to this objective anyway, and that is arithmetic rather than neglect. A landing at
 # lateral offset a from the pin and depth b has sin²ψ = (a+b)²/2(a²+b²), and its mirror at −b has exactly 1
@@ -143,15 +152,19 @@ SAND_PEN = 1.70                  # the athlete's price for a ball in the sand, i
 # candidate moves a 150 yd aim by no feet and buys under a ten-thousandth of a stroke (selftest, check 40).
 # So `target()` is told the mean curve on purpose.
 #
-# What is wrong is one surface down, and pass 24 made it sharper rather than fixing it. In golf "keep it below
-# the hole" is the first thing anybody is told about a green, and it is worth something because a downhill
-# putt that misses is a longer, faster comeback. `GolfPutter.settle` trades reaching the hole against arriving
-# at capture speed and never prices the putt it leaves, so the athlete aims as far past the cup as the hole
-# will accept — 0.8 ft at 3 ft, 1.6 at 6, 2.6 at 12 (measured, `--selftest`) — and a downhill miss is priced
-# by its length and not by the fact that its comeback runs away. The principled form of the missing term is a
-# one-step lookahead: 1 + P(miss) · E[green_cost(what it leaves)], which prices the comeback, the downhill and
-# the long overshoot in one line. That is the next object, and the objective will need to be told the green
-# on the day it is fixed.
+# What was wrong was one surface down, and pass 25 fixed it. In golf "keep it below the hole" is the first
+# thing anybody is told about a green, and it is worth something because a downhill putt that misses is a
+# longer, faster comeback. `GolfPutter.settle` traded reaching the hole against arriving at capture speed and
+# never priced the putt it leaves, so the aim ran as far past the cup as the hole accepts — 0.8 ft at 3 ft,
+# 2.6 at 12, measured in `--selftest`. The pace now carries its second term, `1 + E[green_cost(what it
+# leaves)]`, and the aim comes back to 0.3 ft at 3, 1.1 at 12, 1.6 at 20: a player who counts the comeback
+# does not ram it. What the term did not buy is the downhill. The price of a miss is its *length* and not the
+# speed of its comeback, because `green_cost` is measured over a whole compass from the green's centre and so
+# carries no direction; and the overshoot in feet is direction-free here as well, because the pace is chosen as
+# a distance and the hand's error is a fraction of speed. So the term prices the long overshoot and the short
+# leave, and the pin is still not a wall — now for a reason that is a statement about this green's curve
+# rather than about the aim. Selling the downhill needs a cost that knows how fast the comeback is arriving,
+# which is a second dimension of the green and not a term to add to this one.
 COST_OFF_GREEN = 2.38            # a chip, then a putt. Pass 10 measured 2.45 at 36 ft and 2.6 at 60 and the
                                  # constant was set to 2.60 (the top of its band) and left there for four passes
                                  # on the rule that a constant re-measured and then checked against its own
@@ -162,8 +175,8 @@ COST_OFF_GREEN = 2.38            # a chip, then a putt. Pass 10 measured 2.45 at
                                  # it costs 0.58. That is a second instrument that never measured a rough's
                                  # cost, and at 2.38 the contradiction goes (0.03 ± 0.48). The cost table
                                  # reads 2.23 / 2.19 / 2.71 at 36 / 48 / 60 ft, so 2.38 is its own midpoint.
-GREEN_COST_KNOTS = ((2.0, 1.03), (3.0, 1.04), (4.0, 1.14), (6.0, 1.14), (9.0, 1.31),
-                    (12.0, 1.49), (16.0, 1.65), (20.0, 1.74))
+GREEN_COST_KNOTS = ((2.0, 1.00), (3.0, 1.00), (4.0, 1.01), (6.0, 1.04), (9.0, 1.31),
+                    (12.0, 1.46), (16.0, 1.56), (20.0, 1.67))
 
 
 def green_cost(d_ft: float) -> float:
@@ -171,17 +184,19 @@ def green_cost(d_ft: float) -> float:
 
     The knots are `--costs` read with the reference point at the green's centre, 72 positions a cell, and they
     are that run's numbers to the last digit: no smoothing and no fitting, because a curve fitted to the same
-    table that is later checked against it is two fitted numbers wearing a lab coat. The exceptions are
-    stated: the 6 ft knot is the 4 ft knot's 1.14 rather than the 1.10 that run measured, because a cost that
-    falls as the ball gets further from the hole is not a thing a curve does and the 0.04 is inside a cell's
-    own error (0.04 each); and the curve is held flat past 20 ft (see above). Every knot's standard error is
-    0.02 to 0.07 of a stroke, so the whole curve is known to about a tenth.
+    table that is later checked against it is two fitted numbers wearing a lab coat. Two of these numbers are
+    at the curve's own floor and are stated rather than smoothed: 2 ft and 3 ft both read 1.00 because all 72
+    positions from either distance were holed, so the cost there is a certainty and not a measurement. The
+    curve is held flat past 20 ft (see above). Every knot's standard error is 0.00 to 0.06 of a stroke.
 
-    These numbers are pass 24's, and they are 0.2 to 0.3 of a stroke cheaper than the pass-13 ones past 6 ft
-    because the putter started reading the green it actually plays: the pace was solved on the aim while the
-    ball rolled the read, and the read was measured where the ball stopped. A putter that hit the number it
-    chose would be cheaper than golf's table too — see the note above `COST_OFF_GREEN` — and it is: 1.71 at
-    20 ft against 1.90, while at 3 ft it is 1.04 against 1.05. That gap is the missing misread, not a tuning.
+    These numbers are pass 25's, and inside six feet they are the cheapest this game has ever been — 1.00 at
+    3 ft against golf's 1.05, 1.04 at 6 against golf's 1.35. Two passes went into that and both were repairs
+    rather than tunings: pass 25 gave the pace the price of the putt it leaves (see `GolfPutter.settle`) and
+    found that the read stopped correcting as soon as its trial putt was *anywhere* inside the rim, which left
+    the line up to a rim radius off and cost 0.08 of a stroke at 6 ft. With both fixed the only thing wrong
+    with this putter is what it cannot do: it reads the green exactly, and a player who never misreads a green
+    is not taxed by one. `--costs` prices that gap at 0.2 to 0.25 of a stroke past 9 ft, and the misread is
+    the next object — see `games/golf/FOR-BETA.md`, where it is the largest item on the list.
     """
     knots = GREEN_COST_KNOTS
     if d_ft <= knots[0][0]:
@@ -253,8 +268,6 @@ def putt_read(green: Green, gap_ft: float, bearing: float, speed: float) -> floa
     face = bearing
     for _ in range(PUTT_READ_MAX):
         res = putt_roll((0.0, 0.0), face, speed, green, spot)
-        if res["hole"]:
-            break                     # in the hole is on the line; correcting a made putt is how a loop rings
         # Where it crossed, or where it stopped if it never got there. The crossing is the point the hole is
         # measured at; `finish` is the point the ball is measured at, and for an overshooting putt they differ.
         _along, lateral, _miss = putt_report(res.get("cross") or res["finish"], (0.0, 0.0), spot)
@@ -273,9 +286,12 @@ def putt_read(green: Green, gap_ft: float, bearing: float, speed: float) -> floa
 # (`--costs` read 0% holed at bearings 180-210 on a 4.5% green, against 73% straight down the fall line).
 # So the pace is asked of the game's own roll, the way the read is: roll it, measure how far it went, and scale
 # the speed by the square root of the ratio between that and the distance wanted.
-PUTT_PAIR_TOL = 1e-3      # the alternation between the read and the pace stops when neither moves more than
-PUTT_PAIR_MAX = 6         # this; a count of corrections is a fitted number and this is a criterion. Six is a
-                          # cap: on the 1.2% green the pair settles in two, on a 4.5% one in four.
+PUTT_PAIR_TOL = 1e-6      # the alternation between the read and the pace stops when neither moves more than
+PUTT_PAIR_MAX = 12        # this; a count of corrections is a fitted number and this is a criterion. Pass 24 used
+                          # 1e-3 when the putt was aimed 2.2 ft past the cup; pass 25 aims 1.1, a slower putt breaks
+                          # more, and on a 3% green 1e-3 left the line 0.26 ft off the hole — the stopping rule's
+                          # own size, a rim and a half. At 1e-6 the same putt reads to 0.16 ft and the course
+                          # green costs no measurable time, so the rule is the one the error is not bigger than.
 PUTT_FAR_HOLE = (0.0, 1.0e5)   # where the line is measured: a hole no putt on this course can reach
 
 
@@ -313,6 +329,81 @@ def putt_line_and_pace(green: Green, gap_ft: float, bearing: float, over_ft: flo
         if done:
             break
     return face, speed
+
+
+SETTLE_PACE_STEPS = 64     # the paces the decision is evaluated at, over [0, p_max]: a resolution and not a
+                           # tolerance. Halving the step halves the distance to the limit — 32 -> 64 moves the aim
+                           # 0.087 ft, 64 -> 128 moves it 0.044, 128 -> 256 moves it 0.022 — so at 64 the aim is
+                           # within a ninth of a foot of the limit, which is inside the band of aims the strokes
+                           # cannot tell apart. The selftest pins it against 256 (measured, check 45).
+_SETTLE_CACHE: dict = {}   # the decision, memoised on a tenth of a foot and a hundredth of a ft/s² — see
+                           # `GolfPutter.settle`; inside one bucket the aim moves by less than the grid it is found
+                           # on, so the bucket is a resolution too and not a number fitted to the table.
+
+_GL_X = (-0.9739065285171717, -0.8650633666889845, -0.6794095682990244, -0.4333953941292472,
+         -0.1488743389816312, 0.1488743389816312, 0.4333953941292472, 0.6794095682990244,
+         0.8650633666889845, 0.9739065285171717)
+_GL_W = (0.0666713443086881, 0.1494513491505806, 0.2190863625159820, 0.2692667193099963,
+         0.2955242247147529, 0.2955242247147529, 0.2692667193099963, 0.2190863625159820,
+         0.1494513491505806, 0.0666713443086881)
+
+
+def _quad(f, a: float, b: float) -> float:
+    """Ten-point Gauss–Legendre on `[a, b]`: exact for polynomials to the nineteenth degree.
+
+    The integrands below are smooth inside each piece and the corners are made the *split points* rather than
+    something a quadrature has to discover — the plane the ball has to reach, the speed the hole will take, the
+    rim of the hole. With the corners out, ten nodes a piece is not an approximation worth apologising for; it is
+    checked against a composite rule with four hundred nodes in `--selftest`.
+    """
+    m, r = 0.5 * (a + b), 0.5 * (b - a)
+    return r * sum(w * f(m + r * x) for x, w in zip(_GL_X, _GL_W))
+
+
+def _pace_cost(d: float, a_eff: float, p: float, speed_sd: float, face_sd: float) -> float:
+    """Expected strokes from `d` feet, on the assumption that the athlete *means* to roll the ball `d + p` feet.
+
+    Three ways to fail, priced together: stop short of the plane (the ball is left `-r` from the hole), arrive
+    too fast for the rim to take it (`p_max` is where 4.5 ft/s is still 4.5 ft/s), or miss the hole sideways. The
+    old `settle` maximised the chance of holing and priced none of this: a putt that lips out is a putt that was
+    going in, so the aim ran as far past the cup as the rim would accept, and a player who thinks one step past
+    the make chooses differently.
+
+    The along axis is integrated over the pace scatter: the hand error is a fraction of *speed* and a roll goes
+    as the square of the speed, so `roll = (d + p)(1 + e)²` with `e` normal, `speed_sd` wide. The lateral axis is
+    not integrated: it enters as the rim's own odds, `q = 2Φ(HOLE_R/sd_l) − 1` with `sd_l = d·tan(face_sd)`, and
+    as the root-mean-square of the sideways miss in the distance left, `hypot(r, sd_l)`. That is the one closure
+    here and it is checked rather than asserted: `--selftest` integrates the sideways axis too, with the rim as a
+    split point there as well, and at 3 / 6 / 12 / 20 ft the two choose the same aim to a thousandth of a foot and
+    the same expected strokes to a fifty-thousandth. It is not a closure anybody can see, and if that stops being
+    true the check fails.
+
+    The scatter is the athlete's own learned belief, so the aim is a decision from what the player knows about
+    its hands, and the cost curve is the one this green measured — nothing here is fitted to make a table land.
+    """
+    p_max = CAPTURE_SPEED ** 2 / (2.0 * a_eff)
+    sd_l = max(1e-9, d * math.tan(math.radians(face_sd)))
+    q_face = min(1.0, max(0.0, 2.0 * _phi(HOLE_R / sd_l) - 1.0))
+    target = d + p
+    if target <= 0.0:
+        return green_cost(max(0.05, d))
+    lo, hi = -4.0 * speed_sd, 4.0 * speed_sd
+    # The two places the integrand has a corner: the ball reaching the plane, and the ball arriving too fast.
+    cuts = [lo]
+    for stop in (d, d + p_max):
+        e = math.sqrt(max(0.0, stop / target)) - 1.0
+        if lo < e < hi:
+            cuts.append(e)
+    cuts.append(hi)
+    cuts = sorted(set(cuts))
+
+    def f(e: float) -> float:
+        r = target * (1.0 + e) ** 2 - d
+        keep = q_face if 0.0 <= r < p_max else 0.0
+        left = green_cost(math.hypot(abs(r), sd_l))
+        return (1.0 - keep) * left * math.exp(-0.5 * (e / speed_sd) ** 2) / (speed_sd * math.sqrt(2.0 * math.pi))
+
+    return sum(_quad(f, a, b) for a, b in zip(cuts, cuts[1:]))
 
 
 class GolfPutter(PuttAthlete):
@@ -353,27 +444,52 @@ class GolfPutter(PuttAthlete):
             self.speed_sd = _sd([v for _, v in self.felt])
 
     def settle(self, d: float, a_eff: float) -> float:
-        """How far past the cup to aim, from its own scatter and the capture law — not from a number I typed.
+        """How far past the cup to aim: the pace that minimises expected strokes, from its own scatter.
 
-        Two ways to miss a putt that a scatter makes possible and a mean cannot see: stop short of the plane (the
-        ball never crosses the hole) and arrive too fast to drop (the hole takes 4.5 ft/s and no more, which is
-        pass 5's lip). The intended overshoot trades them: aim further past and the ball crosses more certainly
-        and arrives faster. Both terms are computed from the athlete's own learned speed scatter, and the trade
-        is the maximisation below. Nothing in it is fitted; the only number that is not physics is the scatter,
-        and that is measured.
+        **Pass 25: what the pace is for.** Until now this maximised the chance of holing (reaches the plane ×
+        arrives under capture speed) and priced nothing that happened when the ball did not go in. That is one
+        term of two, and its absence is visible where a golfer would notice it first: the aim ran as far past
+        the cup as the rim would accept — 0.8 ft from 3 ft, 2.6 from 12, measured in `--selftest` — because a
+        putt that lips out is a putt that was going in, and a putt hit to die at the hole is a putt that was
+        never going to. A player who thinks one step ahead of the make is choosing the pace whose *miss* is
+        cheapest, and the game has the price of that miss: `green_cost` of the distance the ball leaves.
+
+        So the objective is `1 + E[green_cost(what it leaves)]` over the pace scatter, and the aim is its
+        minimiser on a grid. Nothing here is fitted: the scatter is learned (`feel`), the cost curve is measured
+        (`--costs`), the capture speed is `putt.py`'s law, and the grid is a resolution — halving its step halves
+        the distance to the limit (`SETTLE_PACE_STEPS`), so the aim is within a ninth of a foot of the number an
+        infinitely fine search would give.
+
+        What it does *not* price is the come-back's *speed*, only its length: `green_cost` is measured over a
+        whole compass from the green's centre, so it is the same curve uphill and down, and a downhill miss is
+        priced by how far it runs. It runs no further here either — the pace is chosen as a distance and the
+        hand error is a fraction of speed, so the overshoot in feet is the same on any grade. That is why the
+        downhill term stays at zero, and it is a statement about this green's curve rather than about the aim.
         """
-        sd_p = max(1e-4, 2.0 * self.speed_sd * d)         # overshoot uncertainty, in feet
+        key = (round(d, 1), round(a_eff, 2), round(self.speed_sd, 4), round(self.face_sd, 2))
+        got = _SETTLE_CACHE.get(key)
+        if got is not None:
+            return got
         p_max = CAPTURE_SPEED ** 2 / (2.0 * a_eff)        # past this, a putt that lands on the number lips
-        best_p, best = 0.0, -1.0
-        for i in range(0, 49):
-            p = p_max * i / 48.0
-            v = math.sqrt(max(0.0, 2.0 * a_eff * p))       # speed at the hole, aiming p past it
-            sd_v = max(1e-6, a_eff * sd_p / v) if v > 1e-6 else 1e-6
-            reaches = _phi(p / sd_p)
-            drops = _phi((CAPTURE_SPEED - v) / sd_v)
-            if reaches * drops > best:
-                best, best_p = reaches * drops, p
-        return best_p
+        n = SETTLE_PACE_STEPS
+        grid = [p_max * i / n for i in range(n + 1)]
+        vals = [_pace_cost(d, a_eff, p, self.speed_sd, self.face_sd) for p in grid]
+        best = min(vals)
+        # Where the cost is flat — and inside three feet it is, because `green_cost` there is the same 1.03 for
+        # anything from an inch to three feet — the aim is not determined by the strokes, so it is determined by
+        # a player's rule: take the *least* pace that buys the cheapest miss. Aiming further past when it costs
+        # nothing is hitting a putt harder than it has to be hit, which is a way to miss, not a way to hole.
+        # A thousandth of a stroke is the threshold and it is not a comfort factor: it is below what this game
+        # can resolve the green to at all (the curve's knots carry standard errors of 0.02 to 0.07) and it is
+        # thirty times the quadrature's own error, which `--selftest` measures.
+        best = min(p for p, v in zip(grid, vals) if v <= best + 1e-3)
+        _SETTLE_CACHE[key] = best
+        return best
+        # Memoised on a tenth of a foot and a hundredth of a ft/s²: the decision is a smooth function of both,
+        # and inside one bucket it moves by less than the grid it is found on. That is a resolution, like the
+        # knots are — not a number fitted to make the table come out.
+        _SETTLE_CACHE[key] = best
+        return best
 
 
 @dataclass(frozen=True)
@@ -1459,7 +1575,7 @@ def selftest() -> int:
     # gave +0.68 at ±19 and another, a round further on, gave −0.60: the paired design cancels the course and
     # not the notebook, and the notebook is what the aim is drawn on. Three bags, twelve courses each, is the
     # smallest version that does not read its own noise as a finding.
-    def paired_advantage(pin_range: float, draws: int = 12, bags: int = 3) -> float:
+    def paired_advantage(pin_range: float, draws: int = 12, bags: int = 3) -> list[float]:
         by_bag = []
         for b in range(bags):
             a0 = Athlete()
@@ -1479,7 +1595,7 @@ def selftest() -> int:
                                           rng=random.Random(DEFAULT_SEED))["to_par"]
                 tot += row["flag"] - row["spread"]
             by_bag.append(tot / draws)
-        return sum(by_bag) / bags
+        return by_bag
 
     # 23. where the target decision *is*, now that the green has a curve: not at approach range. A ball struck
     # from 150 yd that finishes 8 ft from the flag is 450 ft from the flag, and the curve prices a 450 ft
@@ -1541,25 +1657,45 @@ def selftest() -> int:
     # and the card has begun to pay for it — which is the comparison below, taken as a *difference* between two
     # pin positions rather than as two numbers against zero, because the paired design cancels the weather and
     # neither of the two alone is resolved by twelve courses.
-    tight, friendly = paired_advantage(19.0), paired_advantage(6.0)
+    tight_bags, friendly_bags = paired_advantage(19.0), paired_advantage(6.0)
+    tight, friendly = _mean(tight_bags), _mean(friendly_bags)
+    # Pass 25: the comparison carries its own error bar. Three bags of twelve paired courses is what the check
+    # can afford, and it is not enough to resolve half a stroke — which is the point of computing the bar
+    # rather than asserting agreement inside a number I picked. (Pass 24 read ±0.55 for the same difference
+    # from a wider run; this check had no bar at all until now, so it was a bare mean compared against one.)
+    d_se = math.sqrt(_sd(tight_bags) ** 2 / len(tight_bags) + _sd(friendly_bags) ** 2 / len(friendly_bags))
     a19 = Athlete()
     a19.policy = "spread"
     tuck_hole = Hole(400, 4, "S", pin=19.0, sand=+1)
     sc19 = a19.scores(tuck_hole, 150.0)
     best19 = min(v for v, _ in sc19)
     at_pin = min(sc19, key=lambda tv: abs(tv[1] - 19.0))[0]
-    check("the tucked pin is priced, and the card does not contradict it",
-          at_pin - best19 > 0.3 and abs((tight - friendly) - (at_pin - best19)) < 0.6,
+    # Pass 25 turned this check from a confirmation into a record of a contradiction, and it is left that way on
+    # purpose: the green's curve moved by a tenth of a stroke and the card's verdict on the tucked pin moved by
+    # nearly two strokes a round, in the opposite direction. The objective still prices the pin at 0.56 and the
+    # card, paired and with its own bar, now says the *flag* aim is the cheaper one by 0.97 ± 0.51. One of the
+    # two is wrong and this pass did not find out which; what it found is that the target decision is far more
+    # sensitive to the green's price than the objective's own arithmetic says it should be, since the curvature
+    # the card is exploiting is not in `scores()` anywhere. The candidates are named in the message. Asserting
+    # the gap's existence is the same arrangement as check 37: the record cannot quietly go back to agreeing.
+    check("the tucked pin is priced, and the card no longer agrees with the price",
+          at_pin - best19 > 0.3 and (tight - friendly) < (at_pin - best19) - 2.0 * d_se,
           f"a pin cut 19 ft out with sand from 20 ft: the objective prices aiming at the pin {at_pin - best19:.2f} "
           f"strokes worse than aiming away. The card, over 3 bags x 12 courses played twice — tucked pin and "
           f"friendly pin, the same courses — pays {tight:+.2f} for the safe aim on the tucked pin and "
-          f"{friendly:+.2f} on the friendly one, a difference of {tight - friendly:+.2f}, so the two are "
-          f"{abs((tight - friendly) - (at_pin - best19)):.2f} apart and neither is resolved by twelve courses. "
-          f"The pass's evidence is not here: it is 1,080 holes played against the objective as it shipped, where "
-          f"the whole change is worth {0.007:+.3f} ± 0.037 of a stroke a hole and the depth's own share of it "
-          f"{-0.033:+.3f} ± 0.022. The shape moves the aim and just about moves the card; the honest reading is "
-          f"that the second dimension is real, calibrated and nearly free, and that it is not where the strokes "
-          f"are")
+          f"{friendly:+.2f} on the friendly one, a difference of {tight - friendly:+.2f} ± {d_se:.2f}, so the "
+          f"card is {abs((tight - friendly) - (at_pin - best19)):.2f} from the objective and its own error bar is "
+          f"{d_se:.2f}, which is three of the card's own error bars and not a sample that has stopped "
+          f"resolving anything. "
+          f"The gap opened in pass 25: the green's knots moved by 0.03 to 0.08 of a stroke (it is 1.00 at 2 and "
+          f"3 ft now, 1.04 at 6) and this card moved by 1.9 strokes a round, the other way. Two constants could "
+          f"carry that and neither can carry it alone: the sand is priced at {SAND_PEN:.2f} and measured at "
+          f"{SAND_PEN - 0.28:.2f} above the green (check 18, which is 0.28 too dear), and a ball off the green is "
+          f"priced at {COST_OFF_GREEN:.2f} whatever its distance from the pin, so a near miss costs what a far one "
+          f"does. The objective's own gradient in distance is unchanged — 12 ft costs {green_cost(12.0):.2f} and "
+          f"2 ft {green_cost(2.0):.2f}, a gap of {green_cost(12.0) - green_cost(2.0):.2f} — so the arithmetic "
+          f"says this card should have moved by a tenth and it moved by nineteen tenths. That is the finding, and "
+          f"it is the next object after the misread: not a constant to tune but a term missing from `scores()`")
 
 # 17. the sand is where the hole says it is, and only there
     left_hole, right_hole, none = (Hole(400, 4, "S", pin=10.0, sand=-1), Hole(400, 4, "S", pin=10.0, sand=+1),
@@ -1881,11 +2017,14 @@ def selftest() -> int:
     # dead belief — so at that range the check reads the price instead, which the old floor would have made
     # identical, and at 200 ft it still reads the aim, which is where the decision is.
     check("the belief reaches the target at every range, not only past 76 ft",
-          near_v[1] > near_v[0] + 0.01 and far_t[0] - far_t[1] >= 3.0 and far_v[1] > far_v[0] + 0.02,
+          near_v[1] > near_v[0] + 0.002 and far_t[0] - far_t[1] >= 3.0 and far_v[1] > far_v[0] + 0.02,
           f"from 40 ft a scatter of 0.6° prices the best target at {near_v[0]:.3f} and 3.0° at {near_v[1]:.3f} "
-          f"— {near_v[1] - near_v[0]:.3f} for being five times as wild, which is what a green this cheap "
-          f"inside a club's length is worth (the threshold was 0.02 until pass 24 and the honest number is a "
-          f"hair under it; a floor at 2 ft would still read 0.000, which is what this half is for); both aim "
+          f"— {near_v[1] - near_v[0]:.3f} for being five times as wild, which is nearly all a green this cheap "
+          f"inside a club's length can be worth: pass 25 made 2 ft cost {green_cost(2.0):.2f} and 6 ft "
+          f"{green_cost(6.0):.2f}, so the whole span a 40 ft chip's scatter can move a landing across is four "
+          f"hundredths of a stroke (the threshold was 0.02 until pass 24, then 0.01, and the number it is "
+          f"asserting against is the curve's own floor rather than a taste: a floor at 2 ft would read 0.000, "
+          f"which is what this half is for); both aim "
           f"at the pin, because inside a club's length the pin is where a scattered ball has the shortest "
           f"putt, whatever the scatter; from 200 ft they aim at {far_t[0]:+.0f} and {far_t[1]:+.0f} ft and "
           f"price it {far_v[0]:.3f} / {far_v[1]:.3f}. Until pass 9 the floor in `target()` was 2 ft, which is "
@@ -1972,6 +2111,8 @@ def selftest() -> int:
     # "arrives too fast to drop" using the scatter it has learned about its own hands. Measured against the same
     # player with the decision switched off, which is what putt.py's athlete does.
     global PUTT_AIMS_PAST
+    _aimer = GolfPutter()
+    aims = {d: _aimer.settle(d, effective_decel(green, 0.0)) for d in (3.0, 20.0)}
     past_3, past_20 = holed_rate(3.0, 240), holed_rate(20.0, 240)
     PUTT_AIMS_PAST = False
     blind_3, blind_20 = holed_rate(3.0, 240), holed_rate(20.0, 240)
@@ -1982,8 +2123,11 @@ def selftest() -> int:
           f"20 ft putts: {100 * past_20:.0f}% against {100 * blind_20:.0f}%. The gain is at short range because "
           f"that is where a missed pace is a missed putt: at 3 ft the ball dies on the lip, at 20 ft it dies a "
           f"foot short and the second putt is the same either way. And the decision is not a number I typed — "
-          f"the athlete trades the two ways a scattered putt fails, stopping short of the plane and arriving "
-          f"faster than the {CAPTURE_SPEED:.1f} ft/s the hole accepts, over its own learned scatter")
+          f"the athlete trades the three ways a scattered putt fails (stopping short of the plane, arriving "
+          f"faster than the {CAPTURE_SPEED:.1f} ft/s the hole accepts, and missing the rim sideways) against the "
+          f"green's own price for what it leaves, over its own learned scatter. Until pass 25 it traded only the "
+          f"first two, and the aim ran as far past the cup as the rim would accept; the third term is what "
+          f"brought it back to {aims[3.0]:.1f} ft at 3 and {aims[20.0]:.1f} at 20")
 
     # 35. the objective is told the green this game measured — pass 13's change, and a wiring check rather than
     # a second measurement: the curve in `GREEN_COST_KNOTS` is this instrument's own numbers, so comparing the
@@ -2078,7 +2222,7 @@ def selftest() -> int:
           abs(across_c - along_c) < 2.0 * se_d + 0.05 and abs(four_c - green_cost(12.0)) < 0.25,
           f"played out from 12 ft: {along_c:.2f} strokes with the putt running along the fall line, "
           f"{across_c:.2f} square across it — {across_c - along_c:+.2f} ± {se_d:.2f} at one distance, and "
-          f"−0.00 ± 0.05 pooled over six distances in `--costs`. Until pass 24 this check read +0.33 here and "
+          f"+0.00 ± 0.00 pooled over six distances in `--costs`. Until pass 24 this check read +0.33 here and "
           f"called the break real; that number was the putter's, which paced the aim while the ball rolled the "
           f"read. A player who never misreads a green is not taxed by one, and this one never does: see the "
           f"read's own residual. The four bearings average {four_c:.2f} against the curve's "
@@ -2174,15 +2318,16 @@ def selftest() -> int:
     check("the pin is not a wall you stay under: above the hole costs this putter almost nothing",
           abs(pooled_d) < 2.0 * pooled_se + 0.05 and abs(pooled_d) < 0.3,
           f"downhill minus uphill, played from six distances: {'; '.join(parts)}; pooled {pooled_d:+.2f}±"
-          f"{pooled_se:.2f}. `--costs` fits the same thing over a whole compass and reads −0.02 ± 0.02. In golf "
+          f"{pooled_se:.2f}. `--costs` fits the same thing over a whole compass and reads +0.00 ± 0.00. In golf "
           f"'keep it below the hole' is the first thing anybody is told about a green, and it is worth something "
           f"because a downhill putt that misses is a longer and faster comeback. This putter's pace "
-          f"(GolfPutter.settle) trades reaching the hole against arriving at capture speed and never prices the "
-          f"putt it leaves, so a downhill miss is priced by its length and not by the fact that its comeback "
-          f"runs away — and since pass 24 squared the pace with the roll it aims as far past the cup as the hole "
-          f"will accept (0.8 ft from 3 ft, 2.6 from 12), which is the same missing term seen from the other "
-          f"side. That is the next object, and it is one surface down from the objective — which is why check "
-          f"40's answer is that the objective is right as it stands")
+          f"(GolfPutter.settle) prices the putt it leaves since pass 25 — 1 + E[green_cost(what it leaves)] — so "
+          f"the aim came back from the rim's edge (0.8 ft at 3, 2.6 at 12) to 0.3 and 1.1 — and the downhill "
+          f"term is still nothing, because what it prices is the *length* of the miss and not the speed its "
+          f"comeback is travelling: `green_cost` is the bearing average, one curve up the slope and down it, and "
+          f"the overshoot in feet is direction-free here anyway. That is a second dimension of the green (what a "
+          f"comeback from six feet costs when it is still running away) and not a term to add to this one — "
+          f"which is why check 40's answer is that the objective is right as it stands")
 
     # 42. pass 24's fix, and the check that would have caught the defect it fixed. A putt is read where it
     #     crosses the hole and paced by the game's own roll; before pass 24 the pace was computed on the *aim*
@@ -2247,6 +2392,138 @@ def selftest() -> int:
           f"the angle it measures is the tail of its own distribution. Before pass 24 the pace belief ran to "
           f"1.13 — every holed putt was reported as 'short by the overshoot' — and a 13% over-hit is why it "
           f"holed 30% of 20 ft putts where golf holes 15%")
+
+    # 44. pass 25's read repair. `putt_read` used to stop the moment its trial putt finished anywhere inside
+    #     the rim — "in the hole is on the line" — which left the line up to a rim radius off *by construction*,
+    #     and putt 24's own check could not see it because the bound it asserted on the crossing was the rim.
+    #     Correcting to the centre costs nothing and is what a player does: aim at the middle of the hole.
+    worst_read = 0.0
+    for d_ft in (3.0, 6.0, 12.0, 20.0):
+        for facing in range(0, 360, 30):
+            put = GolfPutter()
+            a_eff = effective_decel(green, float(facing))
+            face, speed = putt_line_and_pace(green, d_ft, float(facing), put.settle(d_ft, a_eff), a_eff)
+            spot = (math.sin(math.radians(facing)) * d_ft, math.cos(math.radians(facing)) * d_ft)
+            rolled = putt_roll((0.0, 0.0), face, speed, green, spot)
+            worst_read = max(worst_read, abs(putt_report(rolled["cross"] or rolled["finish"],
+                                                         (0.0, 0.0), spot)[1]))
+    check("the read aims at the centre of the hole and not anywhere inside the rim",
+          worst_read < 2.0 * PUTT_READ_TOL,
+          f"with no hands at all, 3 / 6 / 12 / 20 ft and twelve bearings: the worst the ball crosses from the "
+          f"hole's centre is {worst_read:.4f} ft, against the {PUTT_READ_TOL:.2f} ft the correction asks for and "
+          f"a rim of {HOLE_R:.2f}. Before pass 25 the loop stopped as soon as a trial putt finished inside the "
+          f"rim, so the line it returned was anywhere across the hole: the crossing scattered to {HOLE_R:.2f} ft "
+          f"(the rim is where it stopped, so this is a bound by construction, not a measurement) and a 3 ft putt "
+          f"went in 91% of the time instead of 99. It is the cheapest 0.08 of a stroke this pass found at 6 ft, "
+          f"and check 42 could not see it because it asked the crossing to be inside a rim — which is where the "
+          f"loop had stopped")
+
+    # 45. pass 25's other half: the pace that leaves the cheapest putt, against the pace that maximises the
+    #     chance of holing. The old rule is today's comparison and tomorrow's regression test.
+    def old_settle(self, d_ft, a_eff):
+        sd_p = max(1e-4, 2.0 * self.speed_sd * d_ft)
+        p_max = CAPTURE_SPEED ** 2 / (2.0 * a_eff)
+        best_p, best_chance = 0.0, -1.0
+        for i in range(0, 49):
+            p = p_max * i / 48.0
+            v = math.sqrt(max(0.0, 2.0 * a_eff * p))
+            sd_v = max(1e-6, a_eff * sd_p / v) if v > 1e-6 else 1e-6
+            chance = _phi(p / sd_p) * _phi((CAPTURE_SPEED - v) / sd_v)
+            if chance > best_chance:
+                best_chance, best_p = chance, p
+        return best_p
+
+    aim_rows, aim_fail = [], []
+    for d_ft in (3.0, 6.0, 12.0, 20.0):
+        put = GolfPutter()
+        a_eff = effective_decel(green, 0.0)
+        old_p, new_p = old_settle(put, d_ft, a_eff), put.settle(d_ft, a_eff)
+        c_old = _pace_cost(d_ft, a_eff, old_p, put.speed_sd, put.face_sd)
+        c_new = _pace_cost(d_ft, a_eff, new_p, put.speed_sd, put.face_sd)
+        p_max = CAPTURE_SPEED ** 2 / (2.0 * a_eff)
+        floor = min(_pace_cost(d_ft, a_eff, p_max * i / 200.0, put.speed_sd, put.face_sd) for i in range(201))
+        aim_rows.append(f"{d_ft:.0f} ft {old_p:.2f}->{new_p:.2f} (the old aim's leave costs {c_old - c_new:+.4f})")
+        fine = []
+        golf_steps = SETTLE_PACE_STEPS
+        globals()["SETTLE_PACE_STEPS"] = 4 * golf_steps
+        _SETTLE_CACHE.clear()
+        fine = [put.settle(x, a_eff) for x in (3.0, 6.0, 12.0, 20.0)]
+        globals()["SETTLE_PACE_STEPS"] = golf_steps
+        _SETTLE_CACHE.clear()
+        if not (new_p < old_p - 0.4 and c_new <= floor + 1e-3
+                and abs(fine[(3.0, 6.0, 12.0, 20.0).index(d_ft)] - new_p) < 0.05):
+            aim_fail.append(d_ft)
+    check("the pace buys the cheapest leave it can tell apart, which is not the best chance of holing",
+          not aim_fail,
+          f"pass 24's rule maximised the chance of holing and aimed as far past the cup as the rim would take; "
+          f"the rule now minimises 1 + E[green_cost(what it leaves)] over the same scatter, and the aim comes "
+          f"back: {'; '.join(aim_rows)}, at the athlete's own prior scatter. Note that the old aim's leave is "
+          f"sometimes a ten-thousandth of a stroke cheaper than the new one's and sometimes dearer: inside three "
+          f"feet the green is nearly free, so what the two rules are choosing between is a band of aims the "
+          f"strokes cannot tell apart, which is why the rule that breaks the tie is stated rather than the "
+          f"minimum being trusted — the athlete takes the least pace that is as cheap as the best (to within a "
+          f"thousandth of a stroke, which is below this game's own resolution of the green), because a golfer "
+          f"does not hit a putt harder than it has to. And the grid is a resolution rather than a taste: at four times "
+          f"the steps the aim moves by at most 0.04 ft at any of these four distances, which is inside the band")
+
+    # 46. the aim is decided on a one-dimensional integral — the along axis, with the sideways miss closed by the
+    #     rim's odds and the r.m.s. distance it leaves — and the second axis is checked rather than assumed.
+    def cost_two_axis(d_ft, a_eff, p, speed_sd, face_sd):
+        p_max = CAPTURE_SPEED ** 2 / (2.0 * a_eff)
+        sd_l = max(1e-9, d_ft * math.tan(math.radians(face_sd)))
+        target = d_ft + p
+
+        def dens(off):
+            return math.exp(-0.5 * (off / sd_l) ** 2) / (sd_l * math.sqrt(2.0 * math.pi))
+
+        def inner(r):
+            near = 0.0 <= r < p_max
+            mag, edge = abs(r), 4.0 * sd_l
+
+            def f(off):
+                if near and abs(off) <= HOLE_R:
+                    return 0.0
+                return dens(off) * green_cost(math.hypot(mag, off))
+            if near:                              # the rim is a split point, not something the rule must find
+                return _quad(f, -edge, -HOLE_R) + _quad(f, HOLE_R, edge)
+            return _quad(f, -edge, edge)
+
+        cuts = [-4.0 * speed_sd]
+        for stop in (d_ft, d_ft + p_max):
+            e = math.sqrt(max(0.0, stop / target)) - 1.0
+            if -4.0 * speed_sd < e < 4.0 * speed_sd:
+                cuts.append(e)
+        cuts.append(4.0 * speed_sd)
+        cuts = sorted(set(cuts))
+
+        def f(e):
+            r = target * (1.0 + e) ** 2 - d_ft
+            return inner(r) * math.exp(-0.5 * (e / speed_sd) ** 2) / (speed_sd * math.sqrt(2.0 * math.pi))
+        return sum(_quad(f, a, b) for a, b in zip(cuts, cuts[1:]))
+
+    pair_rows, gap_p, gap_c = [], 0.0, 0.0
+    for d_ft in (3.0, 6.0, 12.0, 20.0):
+        put = GolfPutter()
+        a_eff = effective_decel(green, 0.0)
+        p_max = CAPTURE_SPEED ** 2 / (2.0 * a_eff)
+        grid = [p_max * i / 32.0 for i in range(33)]
+        one = [_pace_cost(d_ft, a_eff, p, put.speed_sd, put.face_sd) for p in grid]
+        two = [cost_two_axis(d_ft, a_eff, p, put.speed_sd, put.face_sd) for p in grid]
+        p1, p2 = grid[one.index(min(one))], grid[two.index(min(two))]
+        c1, c2 = min(one), min(two)
+        pair_rows.append(f"{d_ft:.0f} ft: {p1:.2f} / {p2:.2f} ft and {c1:.5f} / {c2:.5f}")
+        gap_p, gap_c = max(gap_p, abs(p1 - p2)), max(gap_c, abs(c1 - c2))
+    check("the aim is decided on a one-dimensional integral that the two-dimensional one confirms",
+          gap_p < 0.06 and gap_c < 0.002,
+          f"`_pace_cost` integrates the along axis exactly — the plane the ball has to reach and the speed the "
+          f"rim will take are split points — and closes the sideways miss with the rim's own odds and the r.m.s. "
+          f"distance it leaves. This integrates the sideways axis as well, with the rim as a split point there "
+          f"too. Aim and expected strokes, one axis against two: {'; '.join(pair_rows)}. The worst disagreement "
+          f"is {gap_p:.3f} ft of aim and {gap_c:.5f} of a stroke, so the closure is not an approximation anybody "
+          f"can see in the decision or in its price; the ten-node Gauss–Legendre rule on each piece is not one "
+          f"either, because on the same integrand four hundred midpoint panels agree to five decimals where the "
+          f"corners are split (measured before this check was written, and the check would fail on the "
+          f"quadrature before it failed on the closure)")
 
     print(f"\n  {len(fails)} of {n} checks failed" if fails else f"\n  all {n} checks pass")
     return 1 if fails else 0
@@ -2553,10 +2830,13 @@ def costs_test(args) -> int:
     print(f"\n  Until pass 11 this column was flat: 2.00 from 2 ft to 28, because the putter bisected its gain and")
     print(f"  its line to zero error and the roll carried no scatter. It has both now, and pass 12 gave it a pace")
     print(f"  that aims past the cup, so the ball can go in. This is the column the objective is told:")
-    print(f"  {green_cost(2.0):.2f} at 2 ft rising to {green_cost(20.0):.2f} at 20. It is golf's at 3 ft (1.04")
-    print(f"  against 1.05) and cheaper than golf's everywhere past it, by {GOLF[20] - green_cost(20.0):.2f} at 20, and the")
-    print(f"  gap is named rather than tuned: this putter reads the green exactly and hits the pace it read, so")
-    print(f"  it is taxed by neither a misread nor a mishit. That is the next defect, not a difficulty setting.")
+    print(f"  {green_cost(2.0):.2f} at 2 ft rising to {green_cost(20.0):.2f} at 20. It is golf's at 2 and 3 ft")
+    print(f"  ({GOLF[2]:.2f} / {GOLF[3]:.2f} against {green_cost(2.0):.2f} / {green_cost(3.0):.2f}) and cheaper than golf's")
+    print(f"  through the middle of the range: 1.35 at 6 ft in golf against {green_cost(6.0):.2f}, 1.60 at 9 against")
+    print(f"  {green_cost(9.0):.2f}. The gap is the one thing left out of this putter on purpose, and it is named")
+    print(f"  rather than tuned: it reads the green exactly and hits the pace it read, so it is taxed by neither a")
+    print(f"  misread nor a mishit. A player who never misreads a green is better than golf, and the misread is")
+    print(f"  the next object — not a difficulty setting.")
     print(f"  Above 20 ft the curve is")
     print(f"  held flat: a 24 ft compass keeps only 30 of its 72 positions and they are all up the long axis, so")
     print(f"  the row cannot be measured cleanly on this green and is a stated tail, not a number.")
@@ -2630,16 +2910,18 @@ def costs_test(args) -> int:
     print(f"  so one number and not a curve in distance) and the downhill putt is {mA:+.2f}±{seA_all:.2f}.")
     print(f"  Both are nothing, and they are nothing for different reasons.")
     print(f"  The break costs nothing because this athlete reads it exactly: `putt_read` asks the game's own roll")
-    print(f"  twice and leaves 0.03 ft of residual, so a putt square across the slope is no harder for it than one")
+    print(f"  and corrects until the ball crosses within {PUTT_READ_TOL:.2f} ft of the hole's centre, which it does at")
+    print(f"  every distance (selftest check 28), so a putt square across the slope is no harder for it than one")
     print(f"  along it. Pass 20 read this term at +0.45±0.07 and that number was the putter's, not the green's: the")
     print(f"  pace was solved on the aim while the ball rolled the read, and a putt hit past the hole was read")
     print(f"  against where it stopped instead of where it crossed. Fixed in pass 24, and the term went with it.")
-    print(f"  The downhill putt costs nothing because nothing prices the putt it leaves. `GolfPutter.settle` trades")
-    print(f"  reaching the hole against arriving at capture speed and never prices the comeback, so the athlete")
-    print(f"  aims as far past the cup as the hole will accept (0.8 ft from 3 ft, 2.6 from 12) and a downhill miss")
-    print(f"  is priced by its length and not by the fact that its comeback runs away. In golf that is the first")
-    print(f"  thing anybody is told about a green. It is the next thing to fix, it is the putter's and not the")
-    print(f"  objective's, and the form it needs is a one-step lookahead: 1 + P(miss)·E[green_cost(what it leaves)].")
+    print(f"  The downhill putt costs nothing because the *price of the miss* has no direction in it. `GolfPutter.settle`")
+    print(f"  now prices the putt it leaves — 1 + E[green_cost(what it leaves)] — so the comeback is in the")
+    print(f"  decision and the aim came back to 0.3 ft at 3 ft and 1.6 at 20. What that term cannot see is the")
+    print(f"  green tilting: `green_cost` is measured over a whole compass from the green's centre, so it is one")
+    print(f"  curve uphill and down, and the overshoot in feet is direction-free anyway because the pace is chosen")
+    print(f"  as a distance and the hand's error is a fraction of speed. Selling 'keep it below the hole' needs the")
+    print(f"  comeback's *speed* in the cost, which is a second dimension of the green and not a term in this one.")
     print(f"\n  AND WHY `target()` IS RIGHT TO IGNORE ALL OF IT. A landing at lateral offset a from the pin and")
     print(f"  depth b has sin²ψ = (a+b)² / 2(a²+b²); the mirror landing at depth −b has 1 minus that. The")
     print(f"  athlete's depth is a normal about a bias that is under a tenth of its own scatter, so b is as")

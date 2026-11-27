@@ -1098,8 +1098,9 @@ the pace it read and reads the green it is on is a better putter than one that d
 | golf, roughly | 1.02 | 1.05 | 1.12 | 1.35 | 1.60 | 1.75 | 1.85 | 1.90 |
 | this game, pass 13–23 | 1.03 | 1.14 | 1.35 | 1.43 | 1.65 | 1.83 | 1.83 | 1.90 |
 
-The objective's knots are that row to the last digit (with the 6 ft knot held at the 4 ft one, because a cost that
-falls with distance is not a thing a curve does and the 0.04 is inside a cell's own error). It is golf's curve at
+The objective's knots were that row to the last digit (with the 6 ft knot held at the 4 ft one, because a cost
+that falls with distance is not a thing a curve does and the 0.04 is inside a cell's own error). **Superseded by
+the next section: pass 25 re-measured the green at 1.00 / 1.00 / 1.01 / 1.04 / 1.31 / 1.46 / 1.56 / 1.67.** It is golf's curve at
 3 ft and cheaper than golf's everywhere past it, by 0.16 at 20 ft, and the gap is *named* rather than tuned: this
 putter is never wrong about the green and never mis-hits the pace it read, so it pays for neither a misread nor a
 mishit. **That is the next defect, and it is visible in the direction terms.**
@@ -1157,6 +1158,111 @@ target decision flips when the prices are corrected is a game whose target decis
 to the ninth decimal, and the objective is still told the mean curve on purpose. The break being zero does not
 make a direction term useful; it makes the case for one *vacuous twice over* — the objective cannot spend it, and
 the game no longer has it.
+
+### What the twenty-fifth pass found: the pace was priced and the read was stopping at the rim
+
+Pass 24 left one defect in the short game named and unbuilt: `GolfPutter.settle` maximised the chance of holing a
+putt and priced nothing that happened when it did not. The form it needed was written down as a one-step
+lookahead, `1 + P(miss) · E[green_cost(what it leaves)]`. That is what this pass built, and it is worth about a
+fortieth of a stroke — which is the first honest thing to say about it, and the second thing is that the pass
+found something else that was worth twice as much.
+
+**The pace.** The decision is now an expected-strokes minimisation. Three ways to fail, priced together: stop
+short of the plane (the ball is left `-r` from the hole), arrive too fast for the rim to take it (4.5 ft/s), or
+miss the hole sideways (`HOLE_R` against `d·tan(face_sd)`). The along axis is integrated over the athlete's own
+learned pace scatter — a roll goes as the square of the speed, so `roll = (d+p)(1+e)²` — with the plane and the
+capture speed as *split points* of the quadrature rather than corners it has to find. The sideways axis is closed
+by the rim's own odds and the root-mean-square distance it leaves; check 46 integrates that axis too and the two
+choose the same aim to a thousandth of a foot and the same price to a ten-thousandth of a stroke, so the closure
+is not an approximation anybody can see. Nothing in it is fitted: the scatter is learned, the cost curve is
+measured, and the search is a grid plus a golden section to three decimals.
+
+The aim came back. Pass 24 aimed as far past the cup as the rim would accept, because a putt that lips out is a
+putt that was going in; a player who counts the comeback does not:
+
+| distance | 3 ft | 6 ft | 12 ft | 20 ft |
+|---|---|---|---|---|
+| pass 24's aim (best chance of holing) | 0.81 | 1.53 | 2.24 | 2.24 |
+| pass 25's aim (cheapest leave) | 0.31 | 0.61 | 1.14 | 1.76 |
+
+Where the cost is flat — and inside three feet it is, because the green there is nearly free — the athlete takes
+the **least** pace that is as cheap as the best, to within a thousandth of a stroke. That threshold is stated
+rather than picked: it is below what this game can resolve the green to at all, since the curve's own knots carry
+standard errors of 0.02 to 0.06.
+
+**What the term did not buy: the downhill.** In golf "keep it below the hole" is the first thing anybody is told
+about a green, and the reason is that a downhill miss is coming back at you. That reason is a *speed*, and this
+green's price is a distance: `green_cost` is measured over a whole compass from the green's centre, so it is one
+curve uphill and down. The overshoot itself is direction-free here as well, because the pace is chosen as a
+distance and the hand's error is a fraction of speed, so a 1.5% fast putt runs 3% long on any grade. Both
+direction terms are therefore still zero — and `--costs` now reads **+0.00 ± 0.00** pooled for the break and
+**+0.00 ± 0.00** for downhill-minus-uphill, which is a cleaner zero than pass 24's −0.01 ± 0.05 for a better
+reason: it is not that the term is small, it is that the quantity it would spend is not in the model. Selling it
+needs the comeback's speed in the price, which is a second dimension of the green.
+
+**The find: the read was aiming at the rim, not at the hole.** `putt_read` corrected the face until its trial
+putt was on the hole — and stopped the moment that trial putt finished *anywhere inside the rim*, on the sound
+principle that a made putt is on the line. The principle is wrong by a rim radius: the line it returned was
+anywhere across the 0.18 ft hole, so the ball crossed on the edge of the cup and a 1.1° hand error tipped it out.
+Measured: a 3 ft putt went in **91%** of the time; correcting to the *centre* — which is what a player does, and
+which costs nothing — makes it **99%**, and the crossing at 3, 6, 12 and 20 ft is now within 0.0085 ft of the
+centre against 0.18 before. It is worth **0.08 of a stroke at 6 ft**.
+
+Pass 24's own check could not see it, and that is the part worth writing down: check 42 asserted that the crossing
+was inside a rim, and the rim was exactly where the loop had stopped. A check whose bound is the stopping rule
+measures the stopping rule. Check 44 asserts the crossing within two hundredths of a foot instead.
+
+**And the stopping rule one layer out.** The alternation between read and pace stopped when neither moved more
+than 1e-3 — a rule pass 24 chose when the putt was aimed 2.2 ft past the cup. Pass 25 aims 1.1, a slower putt
+breaks more, and on a 3% green 1e-3 left the line 0.26 ft off the hole: the stopping rule's own size. At 1e-6 the
+same putt reads to 0.16 ft and the course green costs no measurable time.
+
+**The green, which is now cheap inside six feet and further from golf than it has ever been.**
+
+| strokes to hole out, from the green's centre | 2 | 3 | 4 | 6 | 9 | 12 | 16 | 20 |
+|---|---|---|---|---|---|---|---|---|
+| this game, pass 25 | 1.00±0.00 | 1.00±0.00 | 1.01±0.01 | 1.04±0.02 | 1.31±0.06 | 1.46±0.06 | 1.56±0.06 | 1.67±0.06 |
+| this game, pass 24 | 1.03 | 1.04 | 1.14 | 1.10 | 1.31 | 1.49 | 1.65 | 1.74 |
+| golf, roughly | 1.02 | 1.05 | 1.12 | 1.35 | 1.60 | 1.75 | 1.85 | 1.90 |
+
+Two of those numbers are at the curve's floor and said so: all 72 positions from 2 ft and from 3 ft were holed,
+so 1.00 there is a certainty and not a measurement. The objective's knots are the row to the last digit.
+
+The gap to golf is now the **missing misread** and nothing else. A player with 1.1° of face, 1.5% of pace and a
+perfect read of the green holes 90% of 6-footers; golf holes about 70%. Pass 24's probe measured what a misread
+would be worth by scaling the read: half the break takes the curve to 1.03 / 1.21 / 1.39 / 1.67 / 1.96 at
+2 / 4 / 6 / 12 / 20 ft against golf's 1.02 / 1.12 / 1.35 / 1.75 / 1.90, and the holed rates to 85 / 60 / 27 /
+13%. That is the next object and it is the largest one left.
+
+**The card moved again, and the leader changed again.**
+
+| athlete | aims at | strokes | ± | to par | was (pass 24) |
+|---|---|---|---|---|---|
+| practiser | spread | 152.2 | 5.0 | +12.2 | +21.0 |
+| blind hands | spread | 152.8 | 3.3 | +12.8 | +14.8 |
+| flag-hunter | flag | 154.0 | 10.8 | +14.0 | +14.2 |
+| cautious | centre | 156.5 | 7.4 | +16.5 | +20.8 |
+| bad start | spread | 156.5 | 2.3 | +16.5 | +20.5 |
+| no practice | spread | 191.2 | 4.6 | +51.2 | +50.0 |
+
+The practiser now leads and the flag-hunter is third, from first, and the frozen player is where it was. Three
+passes, three different leaders — which is what a card with bars of this width should do (flag-hunter's is ±10.8),
+and the claim that survives is the one the game is for: every practised player is 12 to 16 strokes a round ahead
+of the one that never practises, and that gap is 39 strokes, four times the widest bar on the page.
+
+**A contradiction opened and is left open.** The green's knots moved by 0.03 to 0.08 of a stroke and the card's
+verdict on a tucked pin moved by **1.9 strokes a round, the other way**: pass 24 read +0.94 for the safe aim on a
+pinned-in pin against the objective's +0.56 price, and pass 25 reads −0.97 ± 0.51 against the same 0.56. The
+objective's own gradient in distance barely moved (12 ft costs 1.46, 2 ft 1.00 — a gap of 0.46, as before), so the
+arithmetic says that card should have moved by a tenth of a stroke and it moved by nineteen tenths. Something is
+missing from `scores()` and this pass did not find out what: the candidates are named in the check. Check 24 is
+now the record of the contradiction rather than a confirmation of the price, which is the same arrangement as
+check 37 — the record cannot quietly go back to agreeing.
+
+**What the pass did not do.** No misread (the largest item, measured above); no correction for the censored face
+belief; no mixture kernel for the club that never had the shot; the downhill unbuilt and now for a reason that is
+stated. The shared tree bites: this pass began in a worktree, as pass 24 ended by promising.
+
 
 ## What this does not model
 
