@@ -119,7 +119,10 @@ def resolves(rel: str, root: Path, member: Path | None) -> bool:
     manual names lives in a member's folder and none of it exists until there is a member."""
     for placeholder, real in SUBSTITUTIONS.items():
         rel = rel.replace(placeholder, real)
-    rel = rel.lstrip("./")
+    # `lstrip("./")` ate the leading dot of `.github/workflows/`, which is how a path that ships came back as a
+    # path that does not exist — a bug in the checker reported as a bug in the manual. Strip a `./` prefix only.
+    while rel.startswith("./"):
+        rel = rel[2:]
     if "<" in rel or "*" in rel:                       # still a pattern: check the folder it names
         rel = rel.split("<")[0].split("*")[0].rsplit("/", 1)[0] + "/"
     places = [root]
