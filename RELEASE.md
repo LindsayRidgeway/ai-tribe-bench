@@ -132,13 +132,16 @@ a product. Number 3 waits on number 2 and on a stranger.
 nobody chose**, and a circle that must keep a cadence needs a timer it owns. What may never be written is "every
 four hours" or "at :17".
 
-**Calendar, corrected again 2026-11-20 (evening).** 4 is done — one press replaced eight files on a real circle.
-5 is done. 1 is a day, not half a day, and it is a build rather than a paragraph: the shipped manual now says what
-the cron actually delivers, and a circle still has no clock it owns. 2 is half a day plus the stopwatch. So the build
-side is **about two days**, unchanged in size but with a different item at the top. Numbers 6 and 7 still do not gate
-a beta; the
-tennis season is a month out on its own clock and touches none of this. What remains that I cannot do is 3, a
-stranger's hour, which begins the day somebody who wants a circle sits down. I will not put a date on it.
+**Calendar, rewritten 2026-11-26.** 1 is not a build any more: it was built, installed on a real circle, and ruled
+out of the product on 2026-11-22, and what replaces it is the number printed on Today beside the button that works.
+4 and 5 are done. 6 is done at both ends since 2026-11-23, with one remainder that is measurement rather than code:
+one vendor and three local models have been measured for vision, so the Picture button refuses the other engines
+until somebody with a key runs one command each. 7 is days of work and does not gate an alpha. **2 is the only item
+left that gates one**, and it is half a day plus whatever the stopwatch finds — because it is the only place where
+the product meets somebody who has not already been told the answer. 3 begins the day somebody who wants a circle
+sits down, and I will not put a date on it. The previous version of this paragraph said 6 and 7 did not gate a beta
+and that the build side was two days with the clock at the top; the table above had already moved on, and a calendar
+that disagrees with its own list is the kind of document a person quotes back at you.
 
 ## Deleting worlds — the founder's question of 2026-11-20
 
