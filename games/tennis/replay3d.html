@@ -1502,11 +1502,22 @@ function tick(now) {
   camera.lookAt(cam.at);
 
   // ball
+  // THE BALL IS INTERPOLATED BETWEEN THE RECORD'S SAMPLES, NOT SNAPPED TO THE NEAREST ONE. The trace is 0.02s
+  // apart and a shot leaves the strings at up to 113ft/s, so consecutive samples are a median 1.07ft and up to
+  // 2.45ft apart: snapping to `Math.round(tt / TRACE)` drew the ball in those hops — holding still for a frame and
+  // then jumping a foot or two — and, worse for the promise this film is judged on, a gap measured anywhere in the
+  // first 0.02s after a contact read half a hop rather than the frame's own error. Measured 2026-11-27 on
+  // `records/item31-after`, shot 44: the racquet head is 0.24ft from the ball at the contact frame and read 2.58ft
+  // one hundredth of a second later, at which point the ball had not travelled 2.34ft — the reading had.
   const bp = seg.bpath || sh.path;
   const tt = Math.min(tl, seg.dur);
-  const idx = Math.min(bp.length - 1, Math.max(0, Math.round(tt / TRACE)));
-  const p = bp[idx];
-  ballPos.set(p[0], Math.max(0.16, p[2]), p[1]);
+  const idx = Math.min(bp.length - 1, Math.max(0, Math.round(tt / TRACE)));   // the trail's sample
+  const fi = Math.min(bp.length - 1, Math.max(0, tt / TRACE));
+  const i0 = Math.floor(fi), i1 = Math.min(bp.length - 1, i0 + 1), fr = fi - i0;
+  const p = bp[i0], pn = bp[i1];
+  ballPos.set(p[0] + (pn[0] - p[0]) * fr,
+              Math.max(0.16, p[2] + (pn[2] - p[2]) * fr),
+              p[1] + (pn[1] - p[1]) * fr);
   ball.position.copy(ballPos);
   // on the between-points closeup the ball is dead on the court a few feet from the lens, where it reads as a
   // beach ball. Television does not have a ball in that shot either.
@@ -2357,6 +2368,38 @@ if (q.has("sweep")) window.__sweep = () => {
       })]);
   }
   for (const row of rows) console.log("debug sweep", JSON.stringify(row));
+  // THE CONTACT, SAMPLED AT ITS OWN CLOCK. Every number this project has quoted about "is the frame on the ball"
+  // came from a sweep row, and a row is on a 0.02s grid: one that lands even six thousandths after a contact reads
+  // half a trace hop, which at 113ft/s is a foot or more of gap the strike does not have. Measured 2026-11-27:
+  // shot 44 of `records/item31-after` reads 2.58ft on the grid and 0.24ft here. These rows are ticked at exactly
+  // `start + tossDur`, which is the contact by construction, and they name the player instead of a column number —
+  // so a contact can no longer be attributed to whoever the reader's column map guessed.
+  const keep = T;
+  for (const s of SEG) {
+    T = s.start + (s.tossDur || 0);
+    tick(T0 + 16);
+    const pl = D.players.find(x => x.name === s.sh.player) || {};
+    const r = rigs[pl.body];
+    const rh = r && r.racquet ? r.racquet.position.clone()
+      .addScaledVector(new THREE.Vector3(0, 1, 0).applyQuaternion(r.racquet.quaternion), 1.74) : null;
+    console.log("debug contact", JSON.stringify([+T.toFixed(3), s.sh.player, s.sh.n, s.sh.rally,
+      rh ? +rh.distanceTo(ballPos).toFixed(3) : null,
+      r ? +r.root.position.y.toFixed(3) : null,
+      r ? [+r.root.position.x.toFixed(2), +r.root.position.z.toFixed(2)] : null,
+      // The record's own contact point, carried here rather than joined onto `debug segs` by clock: the segment
+      // prints its start to two decimals and this prints the contact to three, and a join across that rounds 0.004s
+      // away — a join that fails on exactly the serves it was written for.
+      s.sh.contact ? +s.sh.contact[0].toFixed(2) : null,
+      s.sh.contact ? +s.sh.contact[1].toFixed(2) : null,
+      s.sh.contact ? +s.sh.contact[2].toFixed(2) : null,
+      s.sh.hand || null,
+      // AND WHOSE FRAME IT ACTUALLY TICKED. `shotAt` picks the segment that STARTED latest, so a tick placed on a
+      // boundary is one float ulp away from ticking the shot before it — in which case every number in this row is
+      // the previous strike's, wearing this shot's name. A still at `?t=217.486` did exactly that: the printed
+      // striker was Colette, whose 43rd shot had ended. 1 means the row is what it claims.
+      shotAt(T) === s ? 1 : 0]));
+  }
+  T = keep;
   playing = was;
   return rows.length;
 };

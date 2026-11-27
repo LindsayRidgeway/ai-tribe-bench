@@ -1244,13 +1244,12 @@ a frame carrying a 0.72ft rise. The `debug leanapply` line prints the applied of
 this can be re-checked in one command; it is also the line a replace of mine silently deleted earlier in the day,
 which is why there is now a test for the instrument itself.
 
-**What it still lets through, honestly.** Nine contacts are over 1ft after the stride's own calibration below
-(five serves, four groundstrokes), against sixteen before it. `rq` is read at 0.02s samples and a ball at 30mph moves
-0.9ft between them, so the population is an upper bound on the miss rather than a lower one — the same caveat as
-before, now on numbers small enough for it to matter. The worst, shot 44 at T=217.5, is not the stride: the shoulder
-is 4.12ft from the ball there (0.2ft past the 3.92ft arm) and the frame lands **2.58ft** off it, which is the arm
-solver not being aimed at the ball rather than the feet not being under it. That is the trophy position and the
-finish, i.e. item 19's remainder.
+**What it still lets through, honestly — and it was the instrument again.** The nine contacts over 1ft, and the
+worst at 2.58ft, were read off the sweep's 0.02s grid. They are not there. `rq` is the racquet head's distance to the
+ball, and the ball the sweep measures against is `bp[Math.round(tt / TRACE)]` — the nearest trace sample of a record
+whose samples are a median 1.07ft and up to 2.45ft apart. So a row six thousandths of a second after a contact reads
+the ball **at the next sample**: on shot 44 (113ft/s) that is 2.26ft of gap the strike does not have. The number below
+is the correction, and the fix is in the code from the same day (see "the last nine were the grid").
 
 **Two corrections to the paragraph that used to be here, both mine, both from measuring with the wrong field.**
 
@@ -1280,6 +1279,55 @@ written next to the constant.
 **The instrument was wrong twice and both are fixed.** Shot numbers restart at 1 on every rally, so keying a contact
 on the shot number mixed rallies: it put 116 "serves" through a film of 108 shots. A contact is now keyed on the
 clock, and the section splits serves from groundstrokes because they are two different questions.
+
+### …and the last nine were the grid, and the ball itself was drawn in hops (DONE 2026-11-27, third pass)
+
+The item 16 story is the same defect three times over, and this is the third: **the frame was on the ball and the
+instrument said otherwise.** Two things had to be true for that, and both were.
+
+1. **The contact was measured on a 0.02s grid.** A sweep row is one instant on the sweep's own grid, and the ball it
+   is measured against is the record's trace snapped to its nearest sample (0.02s). A row that lands a few
+   thousandths *after* a contact therefore reads a ball that has already jumped to the next sample. Measured on
+   `records/item31-after`, shot 44: **2.58ft on the grid at T=217.5, 0.24ft at the contact frame itself.**
+2. **The ball was drawn in hops.** `ballPos` snapped to `Math.round(tt / TRACE)` — not a measurement artefact but a
+   picture defect: at 113ft/s the ball holds still for a frame and then jumps 2.26ft, and the median hop over this
+   film's 7,121 samples is **1.07ft**, the largest **2.45ft**. The founder's gate is "no frame where ball and racquet
+   disagree", and a ball drawn two feet from where it is at that instant fails it on its own.
+
+**The fix, both halves at once.** The ball is now **interpolated between its samples** (`i0`, `i1`, the fraction
+between), so its motion is continuous at any speed and the toss-to-flight boundary (which is exact — a serve's toss
+ends on its own contact point, gap 0.00ft) needs no special case. And the page prints **`debug contact`**: one row per
+shot, ticked at exactly `start + tossDur` — the contact by construction — naming the player, carrying the record's
+own contact point, and carrying `shotAt(T) === s` so a row that ticked the *previous* shot's segment says so. (A
+still at `?t=217.486` did tick the previous one and printed Colette, whose shot had already ended, under a clock that
+belongs to Gwen's. On the contact pass: **108 of 108 tick their own segment.**)
+
+| `records/item31-after`, all 108 contacts | grid (0.01s sweep, post-fix) | `debug contact`, at the contact |
+|---|---|---|
+| head to ball, median / p90 / worst | 0.17 / 0.79 / 0.96ft | **0.01 / 0.33 / 0.55ft** |
+| contacts over 1ft | 0 of 108 | **0 of 108** |
+| contacts over 0.5ft | 6 of 108 | 4 of 108 |
+| serves (n=65), median / p90 / worst | — | **0.00 / 0.18 / 0.23ft** |
+| groundstrokes (n=43), median / p90 / worst | — | **0.15 / 0.46 / 0.55ft** |
+| feet to contact, median / p90 / worst | — | 1.88 / 3.59 / 3.63ft |
+
+The two instruments now agree to within their own quantisation (0.005s × 85ft/s = 0.4ft), which is the check that was
+missing when they disagreed by 2.3ft and the grid was believed.
+
+**The frame arrives at the ball rather than materialising on it** — the gap either side of the contact, median over
+all 108 (0.01s sweep):
+
+| tlc | -0.10 | -0.06 | -0.04 | -0.02 | **0** | +0.02 | +0.04 | +0.10 |
+|---|---|---|---|---|---|---|---|---|
+| median gap | 1.01ft | 0.60 | 0.38 | 0.18 | **0.17** | 1.56 | 3.24 | 8.28 |
+
+Closing at 10-15ft/s into the strike and opening at ~85ft/s out of it, which is what a ball leaving the strings at
+113ft/s past a frame that has stopped is. No discontinuity on either side.
+
+**So the correction to the paragraph above, and to my own journal from the same morning: the nine were not the arm.**
+The arm solver was never 2.58ft off the ball. Item 19's remainder is real but it is a *look*, not a gap: the trophy
+position, the tossing arm, and the kick serve. **Item 16's contact promise is now met on the whole film with 0.55ft
+to spare, i.e. inside the racquet head's own width.**
 
 ## Item 17 — there is no ground past the run-off (DONE 2026-11-19)
 

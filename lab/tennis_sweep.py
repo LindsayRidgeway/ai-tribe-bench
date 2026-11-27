@@ -87,6 +87,34 @@ def heights(path):
     return out
 
 
+def contacts_at_the_contact(path):
+    """`debug contact` rows: one per shot, ticked at exactly the contact clock. The right way to read `rq`.
+
+    Row: `[t, player, shot n, rally, rq, rootY, [rootX, rootZ], contactX, contactLateral, contactHeight, hand]`.
+
+    This exists because every other contact number in this file came from a row on the sweep's own grid, and the
+    record's ball trace is sampled every 0.02s: a row six thousandths of a second after a contact read the ball at
+    the NEXT trace sample, which on a 113ft/s shot is 2.26ft further down the road. The defect was in the
+    instrument, not the frame — measured 2026-11-27, shot 44 of `records/item31-after`: 2.58ft on the grid, 0.24ft
+    at the contact. A grid row is not a strike and must not be averaged as one."""
+    out = []
+    for line in open(path, encoding="utf-8", errors="ignore"):
+        i = line.find("debug contact ")
+        if i < 0:
+            continue
+        try:
+            v, _ = DEC.raw_decode(line[i + len("debug contact "):].lstrip())
+        except ValueError:
+            continue
+        if not isinstance(v, list) or len(v) < 7 or v[4] is None:
+            continue
+        out.append({"n": v[2], "rally": v[3], "who": v[1], "rq": v[4], "t": v[0], "rootY": v[5], "feet": v[6],
+                    "contact": v[7:10] if len(v) >= 10 else None, "hand": v[10] if len(v) > 10 else None,
+                    # the page's own account of whether the tick landed in the shot it is named for
+                    "own": v[11] if len(v) > 11 else None})
+    return out
+
+
 def order(rows, segs, fallback):
     """Which column of a sweep row is which player — MEASURED from the log, not assumed from `debug plan`.
 
@@ -234,10 +262,21 @@ def main(argv):
 
     # ---- item 16's remainder: is the frame on the ball at the contact?
     print("\n== the contact — how far the racquet head is from the ball when the ball is struck ==")
-    print("   the sweep already carries it as the sixth field of each player entry: `rq`, the head's distance to the")
-    print("   ball in that frame. Read at the row nearest the contact, for the player the record says is striking.")
-    contacts = []
-    for sg in segs:
+    exact = contacts_at_the_contact(path)
+    if exact:
+        print("   read from `debug contact`, which the page ticks at exactly `start + tossDur` — the contact by")
+        print("   construction. A sweep row is on a 0.02s grid and the record's trace is 0.02s apart, so a row that")
+        print("   lands a few thousandths after a contact reads half a trace hop: measured 2026-11-27, shot 44 read")
+        print("   2.58ft on the grid and 0.24ft at the contact, at 113ft/s. The grid row is not a strike.")
+    else:
+        print("   read at the row nearest each contact (no `debug contact` lines in this log): a 0.02s grid against")
+        print("   a 0.02s trace, so a fast shot's gap is overstated by up to half a hop.")
+    if exact:
+        off = [c for c in exact if c.get("own") == 0]
+        print(f"   each row ticked its own segment: {len(exact) - len(off)} of {len(exact)}"
+              + (f"  ({len(off)} did not — their numbers belong to the shot BEFORE them)" if off else ""))
+    contacts = list(exact)
+    for sg in ([] if exact else segs):
         n, hitter = sg[0], sg[4]
         k = idx.get(hitter)
         if k is None:
@@ -271,7 +310,8 @@ def main(argv):
         d = sorted(c["rq"] for c in contacts)
         w = max(contacts, key=lambda c: c["rq"])
         print(f"  {len(d)} contacts this log reaches: head to ball median {d[len(d) // 2]:.2f}ft,"
-              f" p90 {d[int(len(d) * 0.9)]:.2f}ft, worst {d[-1]:.2f}ft (shot {w['n']}, T={w['t']})")
+              f" p90 {d[int(len(d) * 0.9)]:.2f}ft, worst {d[-1]:.2f}ft"
+              f" (r{w.get('rally', '?')} shot {w['n']}, {w['who']}, T={w['t']})")
         print(f"  over 0.5ft: {sum(1 for x in d if x > 0.5)} of {len(d)}"
               f"   over 1ft: {sum(1 for x in d if x > 1.0)} of {len(d)}")
         # A SERVE AND A GROUNDSTROKE ARE TWO DIFFERENT QUESTIONS. A serve is struck 8.8ft up, and the stride cannot

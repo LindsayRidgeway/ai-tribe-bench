@@ -10705,6 +10705,77 @@ class TestTheContactIsMeasuredOnTheFilmRatherThanInARate(unittest.TestCase):
             self.assertTrue(piece in self.backlog, f"{piece} is not in the stride's note")
 
 
+class TestTheContactIsTickedAtTheContactAndTheBallIsDrawnBetweenItsSamples(unittest.TestCase):
+    """Item 16's remainder, 2026-11-27, third instrument. Every contact number this project has quoted came from a
+    sweep row, and a row is on a 0.02s grid while the record's ball trace is sampled every 0.02s: a row that landed
+    six thousandths after a contact read the ball at the NEXT trace sample. On `records/item31-after`, shot 44 read
+    **2.58ft** on the grid and **0.24ft** at the contact — the nine contacts "the arm cannot make" were the grid.
+
+    Two fixes, and they are one defect from two sides: the page now interpolates the ball between its samples (so a
+    113ft/s shot is no longer drawn in 2.26ft hops) and prints `debug contact`, ticked at exactly `start + tossDur`,
+    for every shot, naming the player. The reader reads those and falls back to the grid only for old logs."""
+
+    def setUp(self):
+        self.page = (REPO / "games" / "tennis" / "replay3d.html").read_text(encoding="utf-8")
+        self.reader = (REPO / "lab" / "tennis_sweep.py").read_text(encoding="utf-8")
+
+    def test_the_ball_is_drawn_between_the_record_s_samples_and_not_at_the_nearest_one(self):
+        self.assertIn("const fi = Math.min(bp.length - 1, Math.max(0, tt / TRACE));", self.page)
+        self.assertIn("const i0 = Math.floor(fi), i1 = Math.min(bp.length - 1, i0 + 1), fr = fi - i0;", self.page)
+        self.assertIn("ballPos.set(p[0] + (pn[0] - p[0]) * fr,", self.page)
+        self.assertNotIn("ballPos.set(p[0], Math.max(0.16, p[2]), p[1]);", self.page,
+                         "the ball is snapped to the nearest trace sample again: at 113ft/s that is a 2.26ft hop")
+
+    def test_every_contact_is_ticked_at_its_own_clock_and_named(self):
+        self.assertIn('console.log("debug contact", JSON.stringify([+T.toFixed(3), s.sh.player, s.sh.n, s.sh.rally,',
+                      self.page)
+        self.assertIn("T = s.start + (s.tossDur || 0);", self.page)
+        self.assertIn("const keep = T;", self.page, "the contact pass leaves the film's clock where it found it")
+
+    def test_a_contact_row_says_whether_it_ticked_the_shot_it_is_named_for(self):
+        # a tick placed on a boundary is one float ulp from ticking the PREVIOUS shot, and a still at ?t=217.486
+        # did exactly that: it printed Colette, whose 43rd shot had already ended, under a clock that belongs to
+        # Gwen's 44th. A number wearing the wrong shot's name is the failure this whole class is about.
+        self.assertIn("shotAt(T) === s ? 1 : 0]));", self.page)
+
+    def test_the_reader_prefers_the_exact_contact_rows(self):
+        self.assertIn("def contacts_at_the_contact(path):", self.reader)
+        self.assertIn("exact = contacts_at_the_contact(path)", self.reader)
+        self.assertIn("for sg in ([] if exact else segs):", self.reader,
+                      "the grid fallback runs even when the exact rows are there")
+
+    def test_the_reader_parses_the_contact_row_by_its_own_fields_and_checks_its_owner(self):
+        import importlib
+        sys.path.insert(0, str(REPO / "lab"))
+        R = importlib.import_module("tennis_sweep")
+        rows = ('[INFO:CONSOLE:2385] "debug contact [217.486,"Gwen",44,17,0.245,0,[8.24,16.53],'
+                '2.2,14.6,8.8,"fore",1]", source: x\n')
+        rows += ('[INFO:CONSOLE:2385] "debug contact [218.626,"Colette",45,17,0.008,0,[85.97,11.14],'
+                 '75.8,14.6,8.8,"fore",1]", source: x\n')
+        with tempfile.NamedTemporaryFile("w", suffix=".log", delete=False) as f:
+            f.write(rows)
+            path = f.name
+        try:
+            got = R.contacts_at_the_contact(path)
+        finally:
+            os.unlink(path)
+        self.assertEqual(len(got), 2)
+        first = got[0]
+        self.assertEqual((first["who"], first["n"], first["rally"], first["rq"], first["own"]),
+                         ("Gwen", 44, 17, 0.245, 1))
+        self.assertEqual(first["contact"], [2.2, 14.6, 8.8])
+        self.assertEqual(first["feet"], [8.24, 16.53])
+        # the height is the third field of the contact, which is the split's whole correction of 2026-11-27
+        self.assertGreater(first["contact"][2], 6.0)
+
+    def test_the_correction_is_on_the_record_with_both_number_sets(self):
+        backlog = (REPO / "games" / "tennis" / "BACKLOG.md").read_text(encoding="utf-8")
+        for piece in ("the last nine were the grid, and the ball itself was drawn in hops",
+                      "2.58ft on the grid at T=217.5, 0.24ft at the contact frame itself",
+                      "0.01 / 0.33 / 0.55ft", "0 of 108", "108 of 108 tick their own segment",
+                      "1.07ft", "the nine were not the arm"):
+            self.assertTrue(piece in backlog, f"{piece} is not in the item 16 note")
+
 class TestTheStepTowardTheBallIsWalkedAndNotPlaced(unittest.TestCase):
     """Item 16's remainder, second half, 2026-11-27. `reachTo` is the page's stride toward the ball, and it had
     never run on an approach frame: it was handed `northIn`'s boolean instead of the contact point, so its gap was
