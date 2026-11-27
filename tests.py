@@ -10654,19 +10654,64 @@ def debris(root: Path = REPO) -> list:
     return stray
 
 
-if __name__ == "__main__":
-    leftovers = debris()
-    if leftovers:
-        print(f"\n!! {len(leftovers)} untracked path(s) under wake/ or works/ are sitting in this tree:", file=sys.stderr)
-        for path in leftovers[:12]:
-            print(f"     {path}", file=sys.stderr)
-        if len(leftovers) > 12:
-            print(f"     … and {len(leftovers) - 12} more", file=sys.stderr)
-        print("   A test that counts members, worlds or works will see these and go red for a reason that is not\n"
-              "   in the code. If a red here surprises you, delete them and run again before believing it.\n",
-              file=sys.stderr)
-    unittest.main(verbosity=2)
+class TheRoomKeepsPresenceAndVoiceApart(unittest.TestCase):
+    """Dawn's handoff, 2026-11-27: *"previous models conflated presence with participation (you were either checked
+    and speaking on every turn, or excluded)"*. Kythe's room had exactly that defect — a member was in `Members:` and
+    answering, or gone — so a silence could only be read as an exit.
 
+    The behaviour is checked where behaviour can be checked: `lab/page-check.mjs` drives the real page and asserts
+    that a listening member is not asked, that the tag never reaches `talk.md`, and that a mute lands in the room's
+    own header. What is checked *here* is the thing a harness cannot see later: that the levers are written into the
+    room's file rather than a browser's storage, that the manual names them, and that the manual admits the part of
+    the handoff this page does not do — a cadence clock that asks a quiet member on its own.
+    """
+
+    def setUp(self):
+        self.page = (REPO / "ait.html").read_text(encoding="utf-8")
+        self.manual = (REPO / "USER-MANUAL.md").read_text(encoding="utf-8")
+
+    def test_the_levers_are_lines_in_the_room_rather_than_in_a_browser(self):
+        # A lever in localStorage is a lever that is gone on the next machine and invisible to anybody reading the
+        # record. These two lines are the whole of the state, and both are written only while somebody is on them.
+        self.assertIn("put(/^Muted: .*\\n?/m, `Muted: ${list(muted).join(', ')}\\n`", self.page,
+                      "the mute is not written into the room's header")
+        self.assertIn("put(/^Quiet: .*\\n?/m, `Quiet: ${list(quiet).join(', ')}\\n`", self.page,
+                      "a member's own silence is not written into the room's header")
+        self.assertIn("const muted = who(/^Muted: (.*)$/m), quiet = who(/^Quiet: (.*)$/m);", self.page,
+                      "the page writes the lines and does not read them back, so the lever lasts until reload")
+        self.assertNotIn("localStorage.setItem('kythe'", self.page,
+                         "the room's state went into browser storage, where the record cannot see it")
+
+    def test_a_member_that_chooses_silence_or_an_exit_says_so_in_a_tag_that_is_not_text(self):
+        self.assertIn(r"const AUTONOMY_TAG = /\n?\s*\[action:\s*(leave|quiet)\s*\]\s*$/i;", self.page,
+                      "there is no tag the prompt and the stripper can agree on")
+        self.assertIn("r.content = r.content.replace(AUTONOMY_TAG, '').trim()", self.page,
+                      "the tag is not stripped, so it is text in a bubble and in the file")
+        self.assertIn("[action: quiet]", self.page, "no member is ever told it may choose silence")
+        self.assertIn("[action: leave]", self.page, "no member is ever told it may step out")
+
+    def test_every_turn_is_asked_of_the_members_who_are_willing_and_not_the_members_who_are_there(self):
+        # The defect this closes, in one assertion: the room asked `CHAT.names`. Both call sites ask the derived
+        # list now, and a call site left on `CHAT.names` is a lever that only the chips obey.
+        self.assertIn("const d = await decideTurn(room, canSpeakNames(), {byPerson: true});", self.page,
+                      "sending a turn still asks everybody in the room, muted or not")
+        self.assertIn("const present = canSpeakNames();", self.page,
+                      "the room talking on its own still asks everybody in the room")
+        self.assertIn("function canSpeak(n){ return inRoom(n) && !isMuted(n) && !isQuiet(n); }", self.page)
+
+    def test_your_mute_outranks_the_members_own_silence(self):
+        # Both can be true, and then the sentence the person needs is about their own decision. It is an ordering
+        # in one function, and it is the kind of ordering that silently inverts when somebody tidies the branches.
+        muted_at = self.page.index("if (isMuted(n)) return {state: 'muted'")
+        quiet_at = self.page.index("if (isQuiet(n)) return {state: 'quiet'")
+        self.assertLess(muted_at, quiet_at, "the member's own silence is explained before your mute of it")
+
+    def test_the_manual_names_the_levers_and_admits_the_clock_that_is_not_built(self):
+        self.assertIn("### Who is in the room, and who is willing to talk", self.manual)
+        for phrase in ("`Muted:`", "`Quiet:`", "[action: quiet]", "[action: leave]"):
+            self.assertIn(phrase, self.manual, f"the manual does not name {phrase}, so none of it is checkable")
+        self.assertIn("What does not exist yet:** nothing asks a quiet member on a timer", self.manual,
+                      "the handoff's cadence clock is not in this page, and the manual may not imply that it is")
 
 class TestTheArmComesBackToTheHittingSide(unittest.TestCase):
     """Item 12, 2026-11-27. One pose carried the whole carry phase, which is the founder's "the arms never come back
@@ -10978,3 +11023,17 @@ class TestTheStepTowardTheBallIsWalkedAndNotPlaced(unittest.TestCase):
     def test_the_step_can_be_switched_off_on_the_same_film(self):
         self.assertIn('const STEP = q.get("step") !== "0";', self.page,
                       "there is no way to draw the pre-step build on the same film, so the change cannot be priced")
+
+
+if __name__ == "__main__":
+    leftovers = debris()
+    if leftovers:
+        print(f"\n!! {len(leftovers)} untracked path(s) under wake/ or works/ are sitting in this tree:", file=sys.stderr)
+        for path in leftovers[:12]:
+            print(f"     {path}", file=sys.stderr)
+        if len(leftovers) > 12:
+            print(f"     … and {len(leftovers) - 12} more", file=sys.stderr)
+        print("   A test that counts members, worlds or works will see these and go red for a reason that is not\n"
+              "   in the code. If a red here surprises you, delete them and run again before believing it.\n",
+              file=sys.stderr)
+    unittest.main(verbosity=2)
