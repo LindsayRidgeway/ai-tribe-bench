@@ -6092,6 +6092,56 @@ function pbPick(e){
   pbLine(); pbDraw();
 }
 
+async function pbTrend(me){
+  // §5y: the mix is a number; a number in one game is a reading, not a trend. The session files have carried a
+  // list of sessions since September, and since §5x each one can carry what its points were lost to. So this
+  // reads the seasons a circle actually has and puts the same number beside itself, oldest first — which is the
+  // only shape in which "practice shows up" is a claim rather than a hope.
+  const slot = $('pbtrend'); if (!slot) return;
+  const base = 'games/pickleball/seasons';
+  let dirs = [];
+  try {
+    const listing = await gh(`/repos/${S.repo}/contents/${base}?ref=${S.branch || 'main'}`);
+    // A circle that has never played a season gets `null`/404 from the contents API, and that is not an error:
+    // it is the ordinary state of a new circle, so it says nothing at all rather than showing a failure.
+    if (Array.isArray(listing)) dirs = listing.filter(d => d.type === 'dir').map(d => d.name).sort();
+  } catch(e){ return; }
+  if (!dirs.length) return;
+  const rows = [];
+  for (const name of dirs.slice(-6)) {                        // six seasons is a trend; forty is a scroll
+    try {
+      const f = await gh(`/repos/${S.repo}/contents/${base}/${encodeURIComponent(name)}/practice.json?ref=${S.branch || 'main'}`);
+      const book = JSON.parse(b64d(f.content));
+      const heard = ((book.members || {})[me] || {}).sessions || [];
+      for (const s of heard) {
+        // no `faults` means not counted, not zero: a session recorded before §5x is a gap in the trend and is
+        // left out rather than averaged in as a good day
+        if (!s.faults || typeof s.faults !== 'object') continue;
+        const lost = Object.values(s.faults).reduce((a, n) => a + Number(n || 0), 0);
+        rows.push({season: name, when: String(s.when || ''), lost,
+                   unreached: Number(s.faults.unreachable || 0), shots: s.shots, faults: s.faults});
+      }
+    } catch(e){ /* a season folder without a practice.json is not a season this page can read */ }
+  }
+  rows.sort((a, b) => (a.when < b.when ? -1 : a.when > b.when ? 1 : 0));
+  if (!rows.length){
+    slot.innerHTML = `<p class="small muted" style="margin:10px 0 0">Seasons on file: ${dirs.length}, and none of
+      them yet carries a fault mix — the field arrived on 2026-11-27, so a season from before it is a gap in the
+      trend rather than a good day.</p>`;
+    return;
+  }
+  const line = rows.map(r => `<span title="${esc(JSON.stringify(r.faults))}">${esc(r.season)}: <b>${r.unreached}</b>
+    did not get to, ${r.lost} lost${r.shots ? ` of ${r.shots} shots` : ''}</span>`).join(' &nbsp;·&nbsp; ');
+  const first = rows[0], last = rows[rows.length - 1], d = last.unreached - first.unreached;
+  const say = rows.length < 2
+    ? 'one session is a reading, not a trend — the next one is the second point.'
+    : d === 0
+      ? `unchanged across ${rows.length} sessions, and a trend that has not moved is not a result.`
+      : `${Math.abs(d)} ${d < 0 ? 'fewer' : 'more'} than the first of them.`;
+  slot.innerHTML = `<p class="small" style="margin:10px 0 0"><b>Balls you did not get to, season by season</b> —
+    ${line}. Over ${rows.length} session${rows.length === 1 ? '' : 's'}: ${say}</p>`;
+}
+
 function pbInit(){
   const c = pbCv(); if (!c) return;
   const w = c.clientWidth || 760;
@@ -6153,7 +6203,9 @@ async function pbRead(season, me){
       ${last ? `<p class="small muted" style="margin:4px 0 0">the last point: ${esc(String(last.outcome || last.why || ''))}</p>` : ''}
       <p class="small muted" style="margin:6px 0 0">The film is <code>${esc(path)}</code>; the page of it is
       <code>${esc(path.replace('records', 'replays').replace('.json', '.html'))}</code>, and it opens from disk.</p>
+      <div id="pbtrend"></div>
     </div>`;
+    pbTrend(me);
   } catch(e){
     // The record is committed by the run's own last step, so a read straight after the run can arrive a moment early.
     box.innerHTML = '<p class="small muted" style="margin-top:12px">the run finished, and the film is not readable yet — '

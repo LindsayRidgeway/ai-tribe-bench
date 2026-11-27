@@ -7485,6 +7485,62 @@ class TestPickleball(unittest.TestCase):
             self.assertGreater(book["members"][n]["sessions"][-1]["of"], 0,
                                "and the session says how many balls it is a record of")
 
+    def test_a_session_writes_the_fault_mix_and_a_sport_without_one_writes_no_key(self):
+        """§5y. The season file has carried `reach` and `control` per session since September — two numbers that
+        move by inches over hundreds of balls — and not the number that moves by whole balls a game. The mix goes
+        in as an optional field, and the absence is the point: a tennis session must not look like a pickleball one
+        that happened to lose nothing, because then a trend would read a gap as a good day."""
+        pk = self.pk
+        _m, out = pk.play_game(["A", "B", "C", "D"], [200] * 4, pk.make_chooser("dink"), wind_seed_ms=1234500,
+                               say=lambda *a, **k: None)
+        book = {"members": {}}
+        pk.record_session(book, when="2026-11-27T00:00:00Z", surface="hard", clock=out["clock"],
+                          players=list(out["players"].values()), results=out["results"],
+                          lengths=out["lengths"], partners={}, mode="doubles",
+                          faults=pk.fault_mix({"rallies": out["rallies"]}))
+        lost = {n: sum(1 for r in out["rallies"] if r.get("fault_name") == n) for n in out["players"]}
+        for n in out["players"]:
+            sess = book["members"][n]["sessions"][-1]
+            self.assertIn("faults", sess, f"{n}'s session does not carry the mix")
+            self.assertEqual(sum(sess["faults"].values()), lost[n],
+                             f"{n}'s mix adds up to the rallies {n} lost")
+        plain = {"members": {}}
+        pk.record_session(plain, when="2026-11-27T00:00:00Z", surface="hard", clock=1,
+                          players=list(out["players"].values()), results=out["results"],
+                          lengths=out["lengths"], partners={}, mode="rallies")
+        for n in out["players"]:
+            self.assertNotIn("faults", plain["members"][n]["sessions"][-1],
+                             "a session with no mix recorded has no mix key")
+
+    def test_the_trend_reads_seasons_oldest_first_and_leaves_a_gap_as_a_gap(self):
+        """§5y's reader. `season_mix` walks `games/pickleball/seasons/*/practice.json`, takes only the sessions that
+        carry a mix, and sorts by when — because a season's folder name is not its date and a trend printed in
+        folder order is a trend that can run backwards. A session without the field is a gap, not a zero."""
+        pk = self.pk
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp) / "games" / "pickleball" / "seasons"
+            def put(season, sessions):
+                d = base / season
+                d.mkdir(parents=True)
+                (d / "practice.json").write_text(json.dumps(
+                    {"season": season, "opened": sessions[0]["when"], "members": {"A": {"balls": 9, "sessions": sessions}}}))
+            put("zzz-later-named", [{"when": "2026-11-27T18:00:00Z", "shots": 90, "in_play": 60,
+                                     "faults": {"net": 2, "unreachable": 2}}])
+            put("aaa-earlier-named", [{"when": "2026-10-02T18:00:00Z", "shots": 96, "in_play": 70,
+                                       "faults": {"net": 4, "unreachable": 6}},
+                                      {"when": "2026-10-20T18:00:00Z", "shots": 91, "in_play": 65}])  # a gap
+            rows = pk.season_mix("A", root=Path(tmp))
+            self.assertEqual([r["when"][:10] for r in rows], ["2026-10-02", "2026-11-27"],
+                             "the trend is by date, not by folder name")
+            self.assertEqual([r["unreached"] for r in rows], [6, 2])
+            self.assertNotIn("2026-10-20", [r["when"][:10] for r in rows], "a session with no mix is not a row")
+            self.assertEqual(pk.season_mix("nobody", root=Path(tmp)), [])
+            one = pk.trend_table("A", rows[:1])
+            self.assertIn("one session is a reading", one)
+            both = pk.trend_table("A", rows)
+            self.assertIn("4 fewer", both, "6 → 2 is four fewer balls not got to")
+            self.assertNotIn("one session is a reading", both)
+
     def test_a_lost_point_says_which_miss_it_was_and_the_phrase_agrees(self):
         """§5x. The film's rallies carried the rule that ended them (`why: out`) and the phrase lived only on the
         shot, so a record with every word in it could not answer 'how do I lose points'. `_judge` now returns the

@@ -501,6 +501,67 @@ def fault_mix(film: dict, who: str | None = None) -> dict[str, dict[str, int]]:
     return out
 
 
+def season_mix(name: str, sport: str = "pickleball", root: Path | None = None) -> list[dict]:
+    """One person's practice number across every season that has a record, oldest first.
+
+    §5u's arithmetic said a practice gradient cannot be read off one scoreline, and §5x made the fault mix
+    countable from a single game. Neither is a measurement: one game's mix is four players' mistakes in one
+    paragraph, and a mixture of two numbers moving is not a trend. The trend is the same person's mix in season
+    after season, and it is already on disk — `games/<sport>/seasons/<season>/practice.json` has carried a
+    session list since September, and since §5y each session carries the mixed it lost its points to.
+
+    Only sessions that have the field are returned. A season recorded before the mix existed is not zero
+    faults, it is no count, and averaging it in as a good day is the failure this file keeps finding: a record
+    that guesses at a missing number. The caller is given the gap as a gap.
+    """
+    base = (root or Path(__file__).resolve().parent.parent) / "games" / sport / "seasons"
+    rows: list[dict] = []
+    if not base.is_dir():
+        return rows
+    for f in base.glob("*/practice.json"):
+        try:
+            book = json.loads(f.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        member = (book.get("members") or {}).get(name) or {}
+        for s in member.get("sessions") or []:
+            mix = s.get("faults")
+            if not isinstance(mix, dict):
+                continue                       # no count is not zero
+            rows.append({"season": book.get("season") or f.parent.name,
+                         "when": s.get("when"), "faults": mix,
+                         "lost": sum(mix.values()), "unreached": int(mix.get("unreachable", 0)),
+                         "shots": s.get("shots"), "in_play": s.get("in_play")})
+    rows.sort(key=lambda r: (r["when"] or "", r["season"]))
+    return rows
+
+
+def trend_table(name: str, rows: list[dict]) -> str:
+    """The trend as a person reads it: one line a session, the unreached count among the columns, and a last line
+    saying which way it went — or that it did not, because a trend that has not moved is not a result."""
+    if not rows:
+        return (f"{name}: no season yet carries a fault mix. A person's seat (§5v) writes one per session, and "
+                f"this fills in from the second onwards.")
+    out = [f"{name}'s points lost, oldest first:"]
+    out.append(f"  {'season':14s} {'when':10s} {'lost':>4s} {'unreached':>9s} {'shots':>5s}  what they were")
+    for r in rows:
+        out.append(f"  {str(r['season'])[:14]:14s} {str(r['when'] or '')[:10]:10s} {r['lost']:4d} "
+                   f"{r['unreached']:9d} {str(r['shots'] if r['shots'] is not None else '—'):>5s}  "
+                   f"{mix_phrase(r['faults'])}")
+    first, last = rows[0], rows[-1]
+    if len(rows) == 1:
+        out.append("  one session is a reading, not a trend. The next one is the second point.")
+    else:
+        d = last["unreached"] - first["unreached"]
+        if d == 0:
+            out.append(f"  balls not got to: {first['unreached']} → {last['unreached']} over {len(rows)} "
+                       f"sessions — unmoved, and a trend that has not moved is not a result.")
+        else:
+            out.append(f"  balls not got to: {first['unreached']} → {last['unreached']} over {len(rows)} "
+                       f"sessions — {abs(d)} {'fewer' if d < 0 else 'more'}.")
+    return "\n".join(out)
+
+
 def mix_phrase(counts: dict[str, int]) -> str:
     """A fault mix in the words a person reads: net and long first, because those are the two to correct."""
     if not counts:
@@ -2070,6 +2131,7 @@ def write_session(book: dict, args, names: list[str], result: dict, mode: str, b
         for n in team:
             partners[n] = [o for o in team if o != n]
     record_session(book, when=when, surface=result["surface"], clock=result["clock"],
+                   faults=fault_mix({"rallies": result["rallies"]}),
                    players=list(result["players"].values()), results=result["results"],
                    lengths=result["lengths"], partners=partners, mode=mode, by=by)
     save_season(book, args.season, args.season_dir, "pickleball")
@@ -2193,6 +2255,9 @@ def main(argv=None) -> int:
                     help="record the first game and write the film to this JSON path")
     ap.add_argument("--page", default=None,
                     help="with --film, also bake the film into a standalone page at this path")
+    ap.add_argument("--trend", default=None, metavar="NAME",
+                    help="print one person's points-lost mix across every season on this bench, oldest first; "
+                         "reads the season files and plays nothing")
     ap.add_argument("--person-shot", default=None,
                     help="the movement a person plays, e.g. 'PACE 24 AT 26,6' — fills the first of the four "
                          "names, and is played every time the ball comes to them")
@@ -2200,6 +2265,9 @@ def main(argv=None) -> int:
     ap.add_argument("--model", default=None)
     args = ap.parse_args(argv)
 
+    if args.trend:
+        print(trend_table(args.trend, season_mix(args.trend)))
+        return 0
     if args.rules:
         return cmd_rules(argv)
     if args.report:

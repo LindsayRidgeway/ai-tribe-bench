@@ -2201,3 +2201,57 @@ suite in a clean worktree at this commit: **607 passed, 0 failed**, 6m21s.
   (§5r); the mix counts the outcome, not the margin. A person losing balls by 0.2 s and by 2 s is two different
   coaching notes.
 - The stance lesson's mechanism (§5r) is still unexplained, and §5c's perfect defence is still open.
+
+## §5y The trend: the same number beside itself, season after season — 2026-11-27, midday
+
+§5x made the mix countable in one game, which is a reading, not a measurement. One game's mix is four players'
+mistakes in one paragraph, and a person who wants to know whether practice is arriving needs the same number in
+season after season. The season files have carried a list of sessions since September; the mix was simply not in
+them.
+
+**The field, and its absence.** `record_session` gains `faults=` — optional and keyword-only, because tennis has no
+mix and a sport that has none must not appear to have lost nothing. A session recorded without it has **no key at
+all**, so a reader can tell "no faults" from "not counted". That distinction is the whole of this section's honesty
+budget: everything downstream treats a missing mix as a gap, never as a zero.
+
+```
+  Lindsay's points lost, oldest first:
+    season         when       lost unreached shots  what they were
+    2026-winter    2026-11-26   10         6    92  3 into the net, 1 long, 6 did not get to
+    2026-spring    2026-11-27    5         3    88  2 into the net, 3 did not get to
+    balls not got to: 6 → 3 over 2 sessions — 3 fewer.
+```
+
+`python3 lab/pickleball.py --trend Lindsay` prints that from the season files and plays nothing. `season_mix()` walks
+`games/pickleball/seasons/*/practice.json`, keeps the sessions that carry a mix, and sorts by `when` — a season's
+folder name is not its date, and a trend printed in folder order can run backwards. `trend_table()` says what a
+person would say: one session is a reading; unmoved is *not a result*; and only then a direction.
+
+**The card reads it too.** Under the game's own report, the Play tab now puts the number beside itself:
+
+> **Balls you did not get to, season by season** — 2026-autumn: **6** did not get to, 10 lost of 96 shots ·
+> 2026-winter: **2** did not get to, 5 lost of 92 shots. Over 2 sessions: 4 fewer than the first of them.
+
+It reads the seasons folder with the contents API, takes the last six, and gives up quietly in three ordinary cases:
+a circle with no seasons (says nothing — that is a new circle, not an error), a season folder with no
+`practice.json` (skipped, the rest still reads), and a session from before the field (a gap, named as one in the
+"none of them yet carries a fault mix" sentence rather than averaged in).
+
+**Checked by.** Two engine tests: the mix a session writes adds up to the rallies that player lost, and a session
+recorded without one carries no key; and `season_mix` orders two seasons by date across folder names that sort the
+other way, drops the gap, and gets "4 fewer" out of `trend_table`. Four page checks driven through the page itself,
+one per way the trend can lie — and the gap-as-a-zero one **mutation-tested**: making a missing mix default to `{}`
+put the uncounted season into the trend as a good day, the check went red saying so, the line was restored, 174/174
+again. The harness also learned a lesson of its own in the process: `#pbresult` and `#pbtrend` are elements the fake
+document creates on demand, so they survive `reset()` with yesterday's text in them — which made the "no seasons"
+check read the previous check's trend. Both are now cleared in `reset()`, beside `golf` and `dlg`, for the same
+reason already written there.
+
+### Owed
+
+- **The season report stays silent about it.** `report.md` is generated for tennis's numbers; pickleball's session
+  now carries a mix the report does not print. Either the report learns the sport or pickleball writes its own, and
+  the rule that a report is a *function of the record* says the first is right.
+- **"Stretched" and "late" are still one row.** The film has `demand` and `spare` per shot; the mix counts outcomes.
+  Two players can lose the same six balls for opposite reasons.
+- The stance lesson's mechanism (§5r) and §5c's perfect defence remain open.

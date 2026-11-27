@@ -444,7 +444,11 @@ function reset(){
   // `golf`, `dlg`, `modal` and the two film slots are elements the fake document *creates on demand* (the page writes
   // them into markup, which is a string here), so they are the ones that survive a reset with yesterday's content in
   // them — which is how a dead tab passed a check that read the screen. Cleared for the same reason.
-  for (const id of ['mmsg', 'chaptsmsg', 'main', 'golf', 'dlg', 'modal', 'filmslot', 'filmsub'])
+  // `pbresult` and `pbtrend` are pickleball's two slots, added 2026-11-27: a check that presses the sport
+  // twice must not read the first press's answer out of the second — which is exactly what happened when the
+  // trend check ran after a seeded one, and it read the trend of a circle that no longer existed.
+  for (const id of ['mmsg', 'chaptsmsg', 'main', 'golf', 'dlg', 'modal', 'filmslot', 'filmsub',
+                    'pbresult', 'pbtrend'])
     if (elements.has(id)) elements.delete(id);
   benchFiles.clear(); authSeen.length = 0;
 }
@@ -3726,6 +3730,81 @@ async function main(){
     const h = String(pbClean.html || '');
     if (/points lost:/.test(h)) return `it claims you lost points: "${h.slice(0, 300)}"`;
     if (!/You did not lose a point/.test(h)) return 'it says nothing about your own faults';
+    return '';
+  });
+
+  /* 17k — the trend, which is the only shape in which "practice shows up" is a claim.
+     ------------------------------------------------------------------------------------------------------------
+     §5x made the fault mix countable in one game; one game is a reading. §5y records the mix in the season file,
+     so the same person's number can be put beside itself season after season. Three things can go wrong and are
+     checked here: a session recorded before the field existed being averaged in as a good day (a gap is not a
+     zero), a season folder the page cannot read taking the rest of the trend with it, and a circle with no seasons
+     at all being shown an error where it should be shown nothing. */
+  const PBSEASON = (name, sessions) => JSON.stringify({
+    season: name, opened: sessions[0] && sessions[0].when, members: {Lindsay: {balls: 20, sessions}},
+  });
+  const pbTrendRun = `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main'; S.members = []; S.keys = {};
+    document.getElementById('main').innerHTML = '';
+    await viewPlay(document.getElementById('main'));
+    await pbRead('2026-winter', 'Lindsay');
+    for (let i = 0; i < 4; i++) await new Promise(r => setTimeout(r, 5));   // pbTrend is fired, not awaited
+    return {trend: String(document.getElementById('pbtrend').innerHTML || ''),
+            card: String(document.getElementById('pbresult').innerHTML || '')};
+  })()`;
+  reset();
+  seed(PBF, pbFilm([{rally: 1, shots: 2, why: 'out', fault_kind: 'net', fault_name: 'Lindsay',
+                     outcome: 'side out', score: [0, 0]}]));
+  seed('games/pickleball/seasons/2026-autumn/practice.json', PBSEASON('2026-autumn', [
+    {when: '2026-10-02T18:00:00Z', shots: 96, in_play: 70, faults: {net: 4, unreachable: 6}}]));
+  seed('games/pickleball/seasons/2026-winter/practice.json', PBSEASON('2026-winter', [
+    {when: '2026-11-27T18:00:00Z', shots: 92, in_play: 66, faults: {net: 3, unreachable: 2}}]));
+  const pbT = await tryRun(ctx, pbTrendRun);
+  check('the card puts your number beside itself, oldest season first', () => {
+    if (pbT.err) return pbT.err;
+    const h = String(pbT.trend || '');
+    const a = h.indexOf('2026-autumn'), b = h.indexOf('2026-winter');
+    if (a < 0 || b < 0) return `a season is missing from the trend: "${h.slice(0, 300)}"`;
+    if (a > b) return 'the seasons are not in order';
+    if (!/>6</.test(h) || !/>2</.test(h)) return `the counts are not the record's: "${h.slice(0, 300)}"`;
+    if (!/4 fewer/.test(h)) return `the direction is not stated: "${h.slice(0, 400)}"`;
+    return '';
+  });
+  reset();
+  seed(PBF, pbFilm([]));
+  seed('games/pickleball/seasons/2026-autumn/practice.json', PBSEASON('2026-autumn', [
+    {when: '2026-10-02T18:00:00Z', shots: 96, in_play: 70}]));            // before the mix existed
+  seed('games/pickleball/seasons/2026-winter/practice.json', PBSEASON('2026-winter', [
+    {when: '2026-11-27T18:00:00Z', shots: 92, in_play: 66, faults: {net: 3, unreachable: 2}}]));
+  const pbT2 = await tryRun(ctx, pbTrendRun);
+  check('a season from before the field is a gap in the trend, not a day with no faults', () => {
+    if (pbT2.err) return pbT2.err;
+    const h = String(pbT2.trend || '');
+    if (/2026-autumn/.test(h)) return `the uncounted season is in the trend as a number: "${h.slice(0, 300)}"`;
+    if (!/one session is a reading/.test(h)) return `one counted session is not described as one: "${h.slice(0, 400)}"`;
+    if (!/>2</.test(h)) return 'the counted season is missing';
+    return '';
+  });
+  reset();
+  seed(PBF, pbFilm([]));
+  seed('games/pickleball/seasons/2026-winter/report.md', '# a season with no practice.json\n');
+  seed('games/pickleball/seasons/2026-spring/practice.json', PBSEASON('2026-spring', [
+    {when: '2026-11-01T18:00:00Z', shots: 80, in_play: 60, faults: {unreachable: 5}}]));
+  const pbT3 = await tryRun(ctx, pbTrendRun);
+  check('a season folder the page cannot read does not take the rest of the trend with it', () => {
+    if (pbT3.err) return pbT3.err;
+    const h = String(pbT3.trend || '');
+    if (!/2026-spring/.test(h)) return `the readable season is missing: "${h.slice(0, 300)}"`;
+    if (!/>5</.test(h)) return 'its count is missing';
+    return '';
+  });
+  reset();
+  seed(PBF, pbFilm([]));
+  const pbT4 = await tryRun(ctx, pbTrendRun);
+  check('a circle with no seasons is shown nothing, not an error', () => {
+    if (pbT4.err) return pbT4.err;
+    const h = String(pbT4.trend || '');
+    if (h.trim() !== '') return `it said something about seasons it does not have: "${h.slice(0, 300)}"`;
     return '';
   });
 
