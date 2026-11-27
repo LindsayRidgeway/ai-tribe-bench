@@ -2494,6 +2494,10 @@ otherwise meet with no sentence on screen to explain it.
 end to end. It also needs a season in which the person has already played — the first half has no "then" until the
 record does — and the page says that in as many words when the run ends badly.
 
+`replays/still-2026-11-27-play-tab.png` is the card as it now stands — two presses, and the sentence saying what the
+second one does. The 2026-11-26 still beside it is the card *before* the button and is kept rather than replaced,
+because a still is a claim about a date.
+
 **Checked by**: 182/182 page checks (five of them this unit's) and 646 tests in a clean worktree at this commit —
 **646 passed, 0 failed**, 7m19s. The Watch button is the one thing this checkout cannot verify: the press has never
 reached a runner, and it needs a circle in which the person has already played a session.
