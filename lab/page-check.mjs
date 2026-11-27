@@ -3628,6 +3628,77 @@ async function main(){
     return '';
   });
 
+  /* 17j — pickleball's one practice number: what the points were lost to.
+     ------------------------------------------------------------------------------------------------------------
+     §5u closed the scoreline as a measure of practice — an inch of reach is a fraction of a point a game, and
+     seven thousand games to see it — and left one number standing: a beginner fails to *reach* twice as many
+     balls a game. That number is in the film's rally lines already (`why`, `fault_name`, and since §5x
+     `fault_kind`), so the card counts what the record says rather than guessing at a second record. These
+     checks are the three ways it can go wrong: counting a miss against the wrong person, dropping the balls
+     nobody got to (the engine writes `fault_by: None` there, so a naive "whose fault" count loses exactly the
+     thing that improves), and an older film whose out balls have no kind. */
+  const PBF = 'games/pickleball/records/2026-winter-game-1.json';
+  const pbFilm = rallies => JSON.stringify({
+    sport: 'pickleball', clock_ms: 1234500, score: [11, 4],
+    teams: [['Lindsay', 'Desi'], ['Dmitri', 'Gwen']], shots: [], rallies,
+  });
+  const pbCourt = `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main'; S.members = []; S.keys = {};
+    document.getElementById('main').innerHTML = '';
+    await viewPlay(document.getElementById('main'));
+    await pbRead('2026-winter', 'Lindsay');
+    return {html: String(document.getElementById('pbresult').innerHTML || '')};
+  })()`;
+  reset();
+  seed(PBF, pbFilm([
+    {rally: 1, shots: 3, why: 'out', fault_kind: 'net', fault_name: 'Lindsay', outcome: 'side out', score: [0, 0]},
+    {rally: 2, shots: 5, why: 'out', fault_kind: 'long', fault_name: 'Lindsay', outcome: 'side out', score: [0, 0]},
+    {rally: 3, shots: 2, why: 'unreachable', fault_kind: null, fault_name: 'Lindsay', outcome: 'point', score: [0, 1]},
+    {rally: 4, shots: 1, why: 'out', fault_kind: 'net', fault_name: 'Desi', outcome: 'second server', score: [0, 1]},
+  ]));
+  const pbMix = await tryRun(ctx, pbCourt);
+  check('the card says what your points were lost to, and counts only your own faults', () => {
+    if (pbMix.err) return pbMix.err;
+    const h = String(pbMix.html || '');
+    if (!/points lost: 3/.test(h)) return `the three of yours are not counted as three: "${h.slice(0, 300)}"`;
+    if (!/1 into the net/.test(h)) return 'the net is not named';
+    if (!/1 long/.test(h)) return 'the long ball is not named';
+    if (/2 into the net/.test(h)) return 'the partner\'s net ball was counted against you';
+    return '';
+  });
+  check('a ball you never got to is in the count, not dropped for having no one at fault', () => {
+    if (pbMix.err) return pbMix.err;
+    const h = String(pbMix.html || '');
+    if (!/1 of those were balls you never got to/.test(h)) return `the unreachable ball is not spoken: "${h.slice(0, 300)}"`;
+    return '';
+  });
+  reset();
+  seed(PBF, pbFilm([
+    {rally: 1, shots: 4, why: 'out', fault_name: 'Lindsay', outcome: 'side out', score: [0, 0]},
+    {rally: 2, shots: 2, why: 'serve', fault_name: 'Dmitri', outcome: 'point', score: [1, 0]},
+  ]));
+  const pbOld = await tryRun(ctx, pbCourt);
+  check('a film baked before the kinds existed still counts, without inventing a reason', () => {
+    if (pbOld.err) return pbOld.err;
+    const h = String(pbOld.html || '');
+    if (!/points lost: 1/.test(h)) return `the old film's fault is not counted: "${h.slice(0, 300)}"`;
+    if (!/1 out/.test(h)) return 'an out ball with no kind is not reported as an out ball';
+    if (/into the net|long by|wide by/.test(h)) return 'it invented a kind the record does not carry';
+    return '';
+  });
+  reset();
+  seed(PBF, pbFilm([
+    {rally: 1, shots: 2, why: 'out', fault_kind: 'net', fault_name: 'Gwen', outcome: 'point', score: [1, 0]},
+  ]));
+  const pbClean = await tryRun(ctx, pbCourt);
+  check('a game in which you faulted nothing says so, rather than showing an empty list', () => {
+    if (pbClean.err) return pbClean.err;
+    const h = String(pbClean.html || '');
+    if (/points lost:/.test(h)) return `it claims you lost points: "${h.slice(0, 300)}"`;
+    if (!/You did not lose a point/.test(h)) return 'it says nothing about your own faults';
+    return '';
+  });
+
   for (const r of results){
     if (r.ok) console.log('PASS  ' + r.name);
     else { bad++; console.log('FAIL  ' + r.name + (r.why ? '\n        ' + r.why : '')); }

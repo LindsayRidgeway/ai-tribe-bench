@@ -6121,6 +6121,27 @@ async function pbRead(season, me){
     const mean = ral.length ? (ral.reduce((a, r) => a + r.shots, 0) / ral.length).toFixed(1) : '—';
     const last = ral.length ? ral[ral.length - 1] : null;
     const score = Array.isArray(film.score) ? film.score.join('–') : '';
+    // The one practice number a game count can carry (§5u): a practice gradient is not visible in the score, and
+    // it *is* visible in how the points were lost. Read from the film's own rally lines, attributed the way the
+    // engine attributes them — an out ball to the player who hit it, an unreachable ball to the player who did
+    // not get to it. Nothing here recomputes the game; it counts what the record already says.
+    const PBW = {net: 'into the net', long: 'long', wide: 'wide', short: 'short of the net', out: 'out',
+                 lost: 'lost', kitchen: 'volleyed from the kitchen', serve: 'serve outside the box',
+                 momentum: 'carried into the kitchen', unreachable: 'did not get to'};
+    const m = {};
+    for (const r of ral)
+      if (r.fault_name === me) { const k = (r.why === 'out' ? (r.fault_kind || 'out') : r.why) || 'out';
+                                 m[k] = (m[k] || 0) + 1; }
+    const order = ['net', 'long', 'wide', 'short', 'out', 'lost', 'kitchen', 'serve', 'momentum', 'unreachable'];
+    const mix = order.filter(k => m[k]).map(k => `${m[k]} ${PBW[k] || k}`)
+      .concat(Object.keys(m).filter(k => !order.includes(k)).map(k => `${m[k]} ${k}`));
+    const missed = ral.filter(r => r.fault_name === me && r.why === 'unreachable').length;
+    const lost = ral.filter(r => r.fault_name === me).length;
+    const mixLine = lost
+      ? `<p class="small" style="margin:8px 0 0"><b>Your points lost: ${lost}</b> over ${ral.length} rallies —
+         ${esc(mix.join(', '))}${missed ? `. ${missed} of those were balls you never got to` : ''}.</p>`
+      : `<p class="small" style="margin:8px 0 0">You did not lose a point in ${ral.length} rallies — the
+         opponents did the faulting.</p>`;
     box.innerHTML = `<div class="card" style="margin-top:12px">
       <div class="row" style="justify-content:space-between;align-items:baseline">
         <div style="font:600 22px var(--mono)">${esc(score)}</div>
@@ -6128,6 +6149,7 @@ async function pbRead(season, me){
       </div>
       <p class="small" style="margin:8px 0 0">${ral.length} rallies, mean ${esc(mean)} shots · ${shots.length} shots,
       ${mine.length} of them yours · clock ${esc(String(film.clock_ms || '—'))}</p>
+      ${mixLine}
       ${last ? `<p class="small muted" style="margin:4px 0 0">the last point: ${esc(String(last.outcome || last.why || ''))}</p>` : ''}
       <p class="small muted" style="margin:6px 0 0">The film is <code>${esc(path)}</code>; the page of it is
       <code>${esc(path.replace('records', 'replays').replace('.json', '.html'))}</code>, and it opens from disk.</p>

@@ -2136,3 +2136,67 @@ check throwing `c.getContext is not a function` from `pbInit`, which is a real g
 had no canvas), not in the card; golf's `455679c3` fixed it while this suite ran, and credits the card in the
 comment. In a clean worktree at `origin/main`: **591 passed, 0 failed**, 5m52s. A suite run in this checkout measures
 other people's afternoons as well as this one's, and the only honest way to read it is to run it in both.
+
+## §5x The stat a game can carry: what your points were lost to — 2026-11-27, morning
+
+§5u ended on an arithmetic rather than a feeling: **a practice gradient cannot be read off a scoreline.** Big gaps
+sit at 11–0, small ones are worth half a point a game, and an inch of reach would need about seven thousand games to
+show. The feet do show somewhere, and §5t had already priced it without calling it the app's number — the
+unreachable count goes 3.1 to 6.1 a game at driving pace. *Six balls a game you did not get to* is true, legible,
+and it moves with practice.
+
+This section makes that number a thing the record answers.
+
+**The vocabulary of losing a point was one word.** The film's rally lines have carried `why` since §5m: `out`,
+`kitchen`, `serve`, `unreachable`, `momentum`. In the demo film 32 of 33 rallies end `out` — into the net, long, wide
+and short of the net are all the same word in the record, while the phrase that says which ("into the net at 2.4ft,
+0.5ft under the tape — needs more height") lived only on the shot. A record with every word in it could not be asked
+how a player loses points. So `verdict()` — which has returned `(ok, phrase)` since §5d — is now `_judge()` returning
+`(ok, phrase, kind)`, and `verdict()` is that without the third field for the callers that only print. One authority:
+a ball counted `net` is a ball whose phrase says "into the net", and a test walks a whole game asserting exactly
+that. `MISS_KINDS = (net, long, wide, short, lost)` is closed so a count needs no catch-all.
+
+**Attribution is the whole of it, and it is not "whose fault".** A ball hit out, into the net, into the kitchen
+under the no-volley rule or carried into it by a volley's momentum is charged to the player who hit it. An
+unreachable ball is charged to the player who **did not get to it** — the engine writes `fault_by: None` there
+because nobody faulted, and a naive "whose fault" count would drop every line that practice improves. `cap` (the
+record's ceiling) belongs to nobody and is not counted. Three Python tests and four page checks hold that, including
+the one that matters: a film with a partner's net ball in it must not charge it to you.
+
+**Where it is said.**
+
+```
+  faults: net 24, short 8, serve 1                  # the game's own summary, in the miss kinds
+  Lindsay lost: 3 into the net, 1 long, 2 did not get to
+  Desi lost: 4 did not get to
+```
+
+`fault_mix(film, who)` reads the film's rallies; `mix_phrase` puts net and long first because those are the two to
+correct; the person's seat prints their line first and every member after. And the Play tab's card, which used to
+report the score, the rallies and the mean, now says:
+
+> **Your points lost: 3** over 33 rallies — 2 into the net, 1 long. 1 of those were balls you never got to.
+
+and, when you faulted nothing, says *that* rather than showing an empty list. An older film — baked before the kinds
+existed — is counted as `out`, not invented into a reason: there is a check for that too, because the field is
+younger than the films.
+
+**The rebake moved nothing.** Same command, same clock, same level: `film-2026-11-19.json` comes back **11–2 in 33
+rallies and 160 shots**, identical to the last bake, with `shots` and `moves` byte-identical and only `fault_kind`
+new on each rally line. Adding a field to a record is not a retune, and here that is measurable rather than asserted.
+
+**What it is checked by.** Three Python tests in `TestPickleball` (the kind agrees with the phrase across a whole
+game; the mix charges an unreachable ball to the one who did not get there; the sentence reads in a person's words),
+and four checks in `lab/page-check.mjs` driven through the page's own `pbRead` with a stubbed film — 170/170 checks
+pass. The checks were mutation-tested the only way that counts: attribution was deliberately broken (`fault_name ===
+me` replaced by `true`), the suite went red naming the net ball, the line was restored, 170/170 again.
+
+### Owed
+
+- **The number needs a trend, not a reading.** One game's mix is a mixture of four players; a person's own mix across
+  five seasons in `seasons/<season>/` is the thing that shows practice arriving. The record has the rallies; nobody
+  has read them across seasons yet.
+- **Nothing yet separates "you were stretched" from "you were late".** The film carries `demand` and `spare` per shot
+  (§5r); the mix counts the outcome, not the margin. A person losing balls by 0.2 s and by 2 s is two different
+  coaching notes.
+- The stance lesson's mechanism (§5r) is still unexplained, and §5c's perfect defence is still open.

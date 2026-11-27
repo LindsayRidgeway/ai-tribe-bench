@@ -7485,6 +7485,58 @@ class TestPickleball(unittest.TestCase):
             self.assertGreater(book["members"][n]["sessions"][-1]["of"], 0,
                                "and the session says how many balls it is a record of")
 
+    def test_a_lost_point_says_which_miss_it_was_and_the_phrase_agrees(self):
+        """§5x. The film's rallies carried the rule that ended them (`why: out`) and the phrase lived only on the
+        shot, so a record with every word in it could not answer 'how do I lose points'. `_judge` now returns the
+        kind with the phrase, from one place, so the count and the sentence cannot drift apart: a ball counted as
+        `net` is a ball whose phrase says 'into the net'."""
+        pk = self.pk
+        _m, out = pk.play_game(["A", "B", "C", "D"], [200] * 4, pk.make_chooser("dink"), wind_seed_ms=1234500,
+                               say=lambda *a, **k: None, film={})
+        outs = [r for r in out["film"]["rallies"] if r["why"] == "out"]
+        self.assertGreater(len(outs), 10, "a dink game loses its points on struck balls, or this tests nothing")
+        for r in outs:
+            self.assertIn(r.get("fault_kind"), pk.MISS_KINDS, f"rally {r['rally']} carries no miss kind")
+        # the phrase on the shot that ended each rally says the same thing as the kind on the rally
+        by_rally = {s["rally"]: s["why"] for s in out["film"]["shots"]}
+        for r in outs:
+            phrase = by_rally[r["rally"]]
+            want = {"net": "into the net", "long": "long by", "wide": "wide by",
+                    "short": "their own side of the net", "lost": "lost the ball"}[r["fault_kind"]]
+            self.assertIn(want, phrase, f"rally {r['rally']} counted {r['fault_kind']} but its shot says {phrase!r}")
+        # and the kinds are a closed list, so a count can be taken without a catch-all
+        self.assertEqual(set(pk.MISS_KINDS), {"net", "long", "wide", "short", "lost"})
+
+    def test_the_fault_mix_charges_a_ball_nobody_got_to_to_the_person_who_did_not(self):
+        """Attribution is the whole of §5x and it is not the same for every fault. A hit ball belongs to the
+        hitter; an unreachable one has `fault_by: None` on the engine's own record, so a naive 'whose fault' count
+        drops exactly the balls practice improves. `cap` belongs to nobody and is not counted."""
+        pk = self.pk
+        film = {"rallies": [
+            {"rally": 1, "why": "out", "fault_kind": "net", "fault_name": "A", "fault_by": 0},
+            {"rally": 2, "why": "out", "fault_kind": "long", "fault_name": "A", "fault_by": 0},
+            {"rally": 3, "why": "unreachable", "fault_name": "A", "fault_by": None},
+            {"rally": 4, "why": "kitchen", "fault_name": "B", "fault_by": 1},
+            {"rally": 5, "why": "cap", "fault_name": None, "fault_by": None},
+            {"rally": 6, "why": "out", "fault_name": "B", "fault_by": 1},          # an older film: no kind
+        ]}
+        mix = pk.fault_mix(film)
+        self.assertEqual(mix["A"], {"net": 1, "long": 1, "unreachable": 1},
+                         "the ball A did not get to is charged to A, beside the two A hit out")
+        self.assertEqual(mix["B"], {"kitchen": 1, "out": 1},
+                         "an out ball with no kind is counted as an out ball, not invented")
+        self.assertEqual(pk.fault_mix(film, who="A"), {"A": {"net": 1, "long": 1, "unreachable": 1}})
+        self.assertEqual(sum(sum(v.values()) for v in mix.values()), 5, "the ceiling is nobody's fault")
+
+    def test_the_fault_mix_reads_in_the_words_a_person_would_use(self):
+        """A count is for the record; the sentence is for the person. Net and long come first because those are
+        the two to correct, and a kind this function has not heard of is said rather than silently dropped."""
+        pk = self.pk
+        self.assertEqual(pk.mix_phrase({}), "no point lost")
+        self.assertEqual(pk.mix_phrase({"unreachable": 2, "net": 3, "long": 1}),
+                         "3 into the net, 1 long, 2 did not get to")
+        self.assertEqual(pk.mix_phrase({"brandnew": 1}), "1 brandnew")
+
     def test_a_body_that_is_walking_is_met_where_it_is_going(self):
         """Anticipation is the momentum rule's other reader. A player who has arrived at their stance has stopped,
         so the prediction is where they are; a player mid-jog is predicted forward by their own velocity over the

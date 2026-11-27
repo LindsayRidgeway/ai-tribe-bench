@@ -426,9 +426,23 @@ def aim_at(p: Player, target: tuple[float, float], shot: str, surface: str, wind
     return face
 
 
-def verdict(shot: dict) -> tuple[bool, str]:
-    """In play or not, and a phrase a player can learn from. An out ball says how far out and which way,
-    because a player learns by correcting a number, not by being told 'out'."""
+MISS_KINDS = ("net", "long", "wide", "short", "lost")
+"""The five ways a struck ball can fail on this court, in the words a player corrects.
+
+`net` is short of the tape, `long` past the baseline, `wide` outside a sideline, `short` on the hitter's own
+side of the net (a shot that did not cross), `lost` a ball the solver could not give a landing at all. They are
+a closed list rather than a phrase because the phrase is for a player and the list is for a count: §5u's
+conclusion was that a practice gradient cannot be read off a scoreline, and the stat that *can* carry it is the
+mix of misses. A count needs names, not sentences.
+"""
+
+
+def _judge(shot: dict) -> tuple[bool, str, str]:
+    """In play or not, a phrase a player can learn from, and which miss it was.
+
+    One authority for both, so the phrase and the count cannot disagree: a ball counted as `net` is a ball whose
+    phrase says 'into the net'. `verdict()` is this without the third field, for the callers that only print.
+    """
     t = shot["traj"]
     p = shot["player"]
     fwd = 1 if p.north else -1
@@ -436,19 +450,73 @@ def verdict(shot: dict) -> tuple[bool, str]:
         if t.get("net"):
             tape = net_profile(t["net"][0])
             return False, (f"into the net at {t['net'][1]:.1f}ft, {tape - t['net'][1]:.1f}ft under the tape "
-                           f"— needs more height")
-        return False, "lost the ball"
+                           f"— needs more height"), "net"
+        return False, "lost the ball", "lost"
     x, y = t["land"]
     if y < SIDELINE_W or y > SIDELINE_E:
         side = "west" if y < SIDELINE_W else "east"
-        return False, f"wide by {abs(y - (SIDELINE_W if y < 0 else SIDELINE_E)):.1f}ft on the {side} sideline"
+        return False, f"wide by {abs(y - (SIDELINE_W if y < 0 else SIDELINE_E)):.1f}ft on the {side} sideline", "wide"
     if t["land"] is not None and ((p.north and x > LENGTH) or (not p.north and x < 0.0)):
-        return False, f"long by {(x - LENGTH) if p.north else -x:.1f}ft past the baseline"
+        return False, f"long by {(x - LENGTH) if p.north else -x:.1f}ft past the baseline", "long"
     depth = (NET_X - x) * fwd
     if depth > 0:
-        return False, f"their own side of the net, {depth:.1f}ft short"
+        return False, f"their own side of the net, {depth:.1f}ft short", "short"
     return True, ("in the kitchen" if in_kitchen(x) else
-                  f"{(LENGTH - x) if p.north else x:.0f}ft from their baseline")
+                  f"{(LENGTH - x) if p.north else x:.0f}ft from their baseline"), ""
+
+
+def verdict(shot: dict) -> tuple[bool, str]:
+    """In play or not, and a phrase a player can learn from. An out ball says how far out and which way,
+    because a player learns by correcting a number, not by being told 'out'."""
+    ok, why, _kind = _judge(shot)
+    return ok, why
+
+
+def fault_mix(film: dict, who: str | None = None) -> dict[str, dict[str, int]]:
+    """Per player, how their lost points were lost — the one practice stat a game count can carry.
+
+    §5u's arithmetic closed the scoreline as a measure of practice: an inch of reach is worth a fraction of a
+    point a game, and seven thousand games to see it. The feet do show up somewhere, and it is here: a beginner
+    fails to reach twice as many balls a game. So the record is asked a different question than 'who won' —
+    *what went wrong, and whose* — and this is the answer, read from the film's own rally lines.
+
+    Attribution is the whole point and it is not the same for every fault. A ball hit out, into the net, into
+    the kitchen under the no-volley rule, or carried into it by momentum is charged to the player who hit it. An
+    unreachable ball is charged to the player who *did not get to it* — the engine writes `fault_by: None` there
+    because nobody faulted, and a statistic that dropped those lines would hide exactly the thing that improves
+    with practice. `cap` (the ceiling) belongs to no one and is not counted.
+
+    Films baked before §5x carry no `fault_kind`, so their out balls land in a bucket called `out`: the count is
+    still complete, and only the reason is older than the field.
+    """
+    out: dict[str, dict[str, int]] = {}
+    for r in (film.get("rallies") or []):
+        name = r.get("fault_name")
+        if not name or (who is not None and name != who):
+            continue
+        why = r.get("why")
+        kind = (r.get("fault_kind") if why == "out" else why) or "out"
+        out.setdefault(name, {})
+        out[name][kind] = out[name].get(kind, 0) + 1
+    return out
+
+
+def mix_phrase(counts: dict[str, int]) -> str:
+    """A fault mix in the words a person reads: net and long first, because those are the two to correct."""
+    if not counts:
+        return "no point lost"
+    order = ("net", "long", "wide", "short", "out", "lost", "kitchen", "serve", "momentum", "unreachable")
+    words = {"net": "into the net", "long": "long", "wide": "wide", "short": "short of the net",
+             "out": "out", "lost": "lost", "kitchen": "volleyed from the kitchen",
+             "serve": "serve outside the box", "momentum": "carried into the kitchen",
+             "unreachable": "did not get to"}
+    parts = []
+    for k in order:
+        if counts.get(k):
+            parts.append(f"{counts[k]} {words.get(k, k)}")
+    if not parts:                                    # a kind this function has not heard of, said rather than dropped
+        parts = [f"{v} {k}" for k, v in sorted(counts.items())]
+    return ", ".join(parts)
 
 
 # ---- the point: scoring, servers, and sides ---------------------------------------------------------
@@ -731,7 +799,7 @@ def play_rally(match: Match, players: dict[str, Player], pos: "Positions", choos
         shot = strike(p, incoming, face=face, power=power, aim=aim, shot=shot_kind, surface=surface,
                       wind=wind_vec, pos=contact_pos, stretch=stretch, aim_dist=aim_dist)
         pos.at[p.name] = contact_pos
-        ok, why = verdict(shot)
+        ok, why, miss = _judge(shot)
         # The session's record is the engine's: `record_session` counts a player's in-play shots from a list of
         # booleans, and until now nothing filled that list, so every season wrote `in_play 0 of 0` for everybody.
         # One boolean per swing, written here, where the verdict is.
@@ -775,7 +843,10 @@ def play_rally(match: Match, players: dict[str, Player], pos: "Positions", choos
         if not ok:
             say(f"       -- {p.name} faulted: {why}")
             return {"shots": shot_no, "why": "out", "fault_by": hitter_team, "fault_name": p.name,
-                    "winner": 1 - hitter_team}
+                    # which miss it was — the film's rallies have carried the phrase in `shots[].why`
+                    # since §5m and the category nowhere, so a count of "how do I lose points" could not
+                    # be taken from a record that had every word in it (page §5x)
+                    "fault_kind": miss, "winner": 1 - hitter_team}
         t = shot["traj"]
         land = t["land"]
         if shot_no == 1 and not in_service_area(land, p.north, contact_pos[1]):
@@ -994,6 +1065,7 @@ def play_game(names: list[str], practice: list[int], choose_factory, surface: st
             # one line per rally, written after the score has moved: a film whose captions disagreed with its own
             # scoreboard would be a second record of the game, and there is only ever one
             film["rallies"].append({"rally": rally_no, "shots": r["shots"], "why": r["why"],
+                                    "fault_kind": r.get("fault_kind"),
                                     "winner": r["winner"], "fault_by": r["fault_by"],
                                     "fault_name": r.get("fault_name"), "serving": serving_team,
                                     "why_not": r.get("why_not"), "fault_at": r.get("fault_at"),
@@ -1008,7 +1080,9 @@ def play_game(names: list[str], practice: list[int], choose_factory, surface: st
     winner = 0 if match.teams[0].score > match.teams[1].score else 1
     kinds: dict[str, int] = {}
     for r in rallies:
-        kinds[r["why"]] = kinds.get(r["why"], 0) + 1
+        # the *miss*, not just the rule that ended the rally: §5x's stat is spoken here too, so the transcript a
+        # runner prints and the count a person's card shows are the same category, in the same words
+        kinds[r.get("fault_kind") or r["why"]] = kinds.get(r.get("fault_kind") or r["why"], 0) + 1
     say(f"  faults: " + (", ".join(f"{k} {v}" for k, v in sorted(kinds.items())) or "none"))
     say(f"  game: {match.teams[winner].names[0]}/{match.teams[winner].names[1]} "
         f"{match.teams[winner].score}-{match.teams[1 - winner].score} "
@@ -2053,10 +2127,12 @@ def run_person_pb(args) -> int:
             return (human if p.name == person else member)(p, *rest, **kw)
         return choose
 
+    every_rally: list[dict] = []
     for g in range(max(1, args.game)):
         film = {} if (args.film and g == 0) else None
         match, result = play_game(names, practice, factory, surface=args.surface, first_team=g % 2,
                                   wind_seed_ms=args.clock, film=film)
+        every_rally += result["rallies"]
         print(f"  game {g + 1}: {match.teams[0].score}-{match.teams[1].score}")
         if film is not None:
             scene = film_scene(film, names, score=(match.teams[0].score, match.teams[1].score),
@@ -2070,6 +2146,14 @@ def run_person_pb(args) -> int:
         print(f"  {len(fell_back)} shot(s) came back as prose and were played straight — see the record")
     me = result["players"][person]
     print(f"  {person}: {me.shots} shots, {sum(result['results'].get(person, []))} in play")
+    # §5u's arithmetic says a practice gradient cannot be read off a scoreline; this is where it *can* be
+    # read. The person's line first, in the words a player corrects, then every member who lost a point, so a
+    # person can see that the opponents lose them too and in what way (page §5x).
+    mixes = fault_mix({"rallies": every_rally})
+    print(f"  {person} lost: {mix_phrase(mixes.get(person, {}))}")
+    for n in sorted(mixes, key=lambda k: -sum(mixes[k].values())):
+        if n != person:
+            print(f"  {n} lost: {mix_phrase(mixes[n])}")
     if book is not None:
         write_session(book, args, names, result, mode="doubles", by=person)
         print(f"  season {args.season} written")
