@@ -277,8 +277,12 @@ def main(argv):
         # A SERVE AND A GROUNDSTROKE ARE TWO DIFFERENT QUESTIONS. A serve is struck 8.8ft up, and the stride cannot
         # reach that: `rise` in the page is capped at 0.95ft, so a serve's contact is short by the jump that is not
         # drawn (item 19). One median over both hides which of the two is still wrong, and they are 40% of this film.
-        tall = [c["rq"] for c in contacts if c["contact"] and c["contact"][1] > 6.0]
-        flat = [c["rq"] for c in contacts if not (c["contact"] and c["contact"][1] > 6.0)]
+        # THE HEIGHT IS THE THIRD FIELD, NOT THE SECOND. A record's contact is `[x, lateral, height]` — the page builds
+        # its vector as `(contact[0], contact[2], contact[1])` — and the first version of this split read `contact[1]`,
+        # i.e. the lateral coordinate, and called 98 of 108 contacts "serves struck 6ft up". A wrong index does not
+        # fail: it produces a plausible population and a number that means nothing.
+        tall = [c["rq"] for c in contacts if c["contact"] and c["contact"][2] > 6.0]
+        flat = [c["rq"] for c in contacts if not (c["contact"] and c["contact"][2] > 6.0)]
         for label, v in (("serves, struck 6ft up or more", tall), ("groundstrokes", flat)):
             if not v:
                 continue

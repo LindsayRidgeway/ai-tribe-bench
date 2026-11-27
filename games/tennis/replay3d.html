@@ -820,7 +820,12 @@ function reachTo(rig, lead, ball, tTo, since = 0, key = "", who = "") {
   const b = rig.bones["upperarmR"] || rig.bones["upperarm" + lead];
   if (!b) return;
   if (!STEP) return;
-  const r = Math.max(0, Math.min(1, 1 - Math.abs(tTo) / 0.5));
+  // HOW LONG BEFORE THE BALL IS MET THE BODY STARTS TOWARD IT, and how long after it comes back. Half a second was
+  // the number when the step was 3.2ft; at 3.8ft the same window draws the feet at 7.6ft/s on top of a run the record
+  // already has at 20, and item 2b's own line (25ft/s) is crossed on 23 frames instead of 11. A wider window is both
+  // the cheaper answer and the truer one: a player starts moving to the ball earlier than half a second out, and the
+  // step still arrives exactly at the contact because `r` is 1 there whatever the window is.
+  const r = Math.max(0, Math.min(1, 1 - Math.abs(tTo) / R_WINDOW));
   // A STEP THAT IS NO LONGER NEEDED LEAVES LIKE ONE. `r` is zero more than half a second from a contact, and this
   // used to set the offset to zero on that frame and return — which, on the first frame of a serve's segment (it
   // starts at the toss, 0.84s before the strike), dropped a body out of a stride back onto the plan in one frame.
@@ -845,7 +850,10 @@ function reachTo(rig, lead, ball, tTo, since = 0, key = "", who = "") {
     // same ball, so a step computed from the shoulder grew 0.19ft of gap in one frame even with the feet anchored. A
     // player's stride does not depend on how tall they are standing at that instant, so the vertical datum is the
     // standing shoulder — 0.82 of stature, which is the usual proportion and sits between the two measured poses.
-    const sy = root.y + 0.82 * Math.max(4.0, rig.height || 5.4);
+    // 0.82 of stature, and MEASURED rather than assumed: 0.88 and 0.93 were swept and both made the serves worse
+  // (median head-to-ball 0.08ft -> 0.28 -> 0.49) while buying a groundstroke p90 of 0.1ft. The strike pose does put
+  // the shoulder higher than standing, but the extra height goes into the reach, not into the step's datum.
+  const sy = root.y + 0.82 * Math.max(4.0, rig.height || 5.4);
     let lean = 0, rise = 0;
     for (let pass = 0; pass < 3; pass++) {
       const gy = ball.y - (sy + rise);
@@ -1310,7 +1318,7 @@ const q = new URLSearchParams(location.search);
 // lean. A cap of 1.30 therefore left 1.8ft of a contact that no arm could close, and on the film the racquet head
 // was a median 1.08ft from the ball. `?lean=` sweeps it, because the price of closing the gap is a step, and a step
 // drawn as a slide is worse than the gap.
-const LEAN_MAX = q.has("lean") ? Math.max(0, parseFloat(q.get("lean")) || 0) : 3.20;
+const LEAN_MAX = q.has("lean") ? Math.max(0, parseFloat(q.get("lean")) || 0) : 3.80;
 // SECONDS FOR A NEW STROKE'S STEP TO TAKE OVER FROM THE LAST ONE'S. The step itself is continuous within a stroke
 // (`r` is a ramp about the contact), so the only discontinuity is the segment boundary, where the ball the body is
 // reaching for is REPLACED by the next one and the target jumps. Measured without this hand-off: 1.36ft in one
@@ -1318,6 +1326,8 @@ const LEAN_MAX = q.has("lean") ? Math.max(0, parseFloat(q.get("lean")) || 0) : 3
 // `?step=0` draws the build with no stride toward the ball at all, which is what every film in `records/` was drawn
 // with before item 16's remainder: it is the before/after on ONE film, and the only honest way to price the step.
 const STEP = q.get("step") !== "0";
+// seconds of film either side of a contact in which the stride toward the ball is drawn
+const R_WINDOW = q.has("rwin") ? Math.max(0.2, parseFloat(q.get("rwin")) || 0.75) : 0.75;
 const CARRY = q.get("carry") !== "0";   // ?carry=0 draws the build before item 12, for a before/after on one film
 const CARRY_PUMP = q.has("pump") ? Math.max(0, parseFloat(q.get("pump")) || 0) : 1.70;
 // ft the hand swings either side of the ready point, on the body's lateral axis. `?pump=` overrides it, because

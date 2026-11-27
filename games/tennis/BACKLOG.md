@@ -1204,8 +1204,8 @@ entry before today was taken on 0:300, i.e. the first 57% of it, 63 of its 108 c
 
 | `records/item31-after`, whole film, 108 contacts | `?step=0` | this build |
 |---|---|---|
-| head to ball, groundstrokes (n=10) | median **3.16ft** | median **0.27ft** |
-| head to ball, serves struck 6ft up or more (n=98) | median **1.19ft** | median **0.17ft** |
+| head to ball, groundstrokes (n=43) | median **3.16ft** | median **0.25ft** |
+| head to ball, serves struck 6ft up or more (n=65) | median **1.19ft** | median **0.08ft** |
 | p90 / worst, all contacts | 3.87 / 5.48ft | **1.15 / 2.72ft** |
 | contacts over 1ft | **69 of 108** | **16 of 108** |
 | feet to contact | median 2.46ft, p90 7.00ft | median 1.89ft, p90 **3.85ft** |
@@ -1244,11 +1244,38 @@ a frame carrying a 0.72ft rise. The `debug leanapply` line prints the applied of
 this can be re-checked in one command; it is also the line a replace of mine silently deleted earlier in the day,
 which is why there is now a test for the instrument itself.
 
-**What it still lets through, honestly.** The 16 contacts over 1ft are **15 serves** — struck 8.8ft up, where the
-page's `rise` is capped at 0.95ft, so those are short by the jump that is not drawn, which is item 19 and not this.
-One groundstroke is at 1.01ft. And `rq` is read at 0.02s samples, and a ball at 30mph moves 0.9ft between them, so
-the population is an upper bound on the miss rather than a lower one — the same caveat as before, now on numbers
-that are small enough for it to matter.
+**What it still lets through, honestly.** Nine contacts are over 1ft after the stride's own calibration below
+(five serves, four groundstrokes), against sixteen before it. `rq` is read at 0.02s samples and a ball at 30mph moves
+0.9ft between them, so the population is an upper bound on the miss rather than a lower one — the same caveat as
+before, now on numbers small enough for it to matter. The worst, shot 44 at T=217.5, is not the stride: the shoulder
+is 4.12ft from the ball there (0.2ft past the 3.92ft arm) and the frame lands **2.58ft** off it, which is the arm
+solver not being aimed at the ball rather than the feet not being under it. That is the trophy position and the
+finish, i.e. item 19's remainder.
+
+**Two corrections to the paragraph that used to be here, both mine, both from measuring with the wrong field.**
+
+1. **"The 16 contacts over 1ft are 15 serves."** They were not. A record's contact is `[x, lateral, height]` and the
+   split read `contact[1]`, which is the *lateral* coordinate — so 98 of 108 contacts were called "serves struck 6ft
+   up". Read off the third field: **65 serves and 43 groundstrokes** in this film, the serves at **0.08ft** median
+   and the groundstrokes at **0.43ft**. The serves were never the problem, item 19's jump was already drawn (the toes
+   are 0.93-1.1ft off the court at every serve contact), and the remaining gap was the stride's own cap.
+2. **The stride was capped 0.6ft short and ramped too fast.** `LEAN_MAX` was 3.20ft, set when the step was applied
+   late and as a jolt and needed a small number to be safe; with the step now anchored on the feet and phased on the
+   contact it is **3.80**, which is where the record's 7.00ft-of-feet meets a 3.92ft arm and a ball 2ft below the
+   shoulder. And the half-second window that phases it was drawing a 3.8ft stride at 7.6ft/s on top of a run the
+   record already has at 20ft/s, so `R_WINDOW` is **0.75s** — earlier and slower, which is what a player does, and
+   the step still arrives exactly at the contact because `r` is 1 there whatever the window is.
+
+| `records/item31-after`, 0:530, 108 contacts | before this pass | `LEAN_MAX 3.80`, `R_WINDOW 0.75` |
+|---|---|---|
+| head to ball, median / p90 / worst | 0.17 / 1.14 / 2.72ft | **0.15 / 0.96 / 2.58ft** |
+| contacts over 1ft | 16 of 108 | **9 of 108** |
+| item 2b, frames over 25ft/s | 11 and 0 | **0 and 0** |
+| item 2b, biggest one-frame move | 0.52ft | **0.50ft** |
+
+The shoulder-height datum was swept too (0.88 and 0.93 of stature against the 0.82 in the code) and both made the
+serves worse — 0.08ft median to 0.28 and 0.49 — for 0.1ft off a groundstroke p90. So 0.82 stays, and the reason is
+written next to the constant.
 
 **The instrument was wrong twice and both are fixed.** Shot numbers restart at 1 on every rally, so keying a contact
 on the shot number mixed rallies: it put 116 "serves" through a film of 108 shots. A contact is now keyed on the

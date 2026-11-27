@@ -10638,6 +10638,10 @@ class TestTheContactIsMeasuredOnTheFilmRatherThanInARate(unittest.TestCase):
         # they are two different questions: a serve is struck 8.8ft up and the stride cannot reach it
         self.assertIn('for label, v in (("serves, struck 6ft up or more", tall), ("groundstrokes", flat)):',
                       self.reader)
+        # the height is contact[2], not contact[1]: reading the lateral coordinate called 98 of 108 contacts
+        # "serves struck 6ft up" and put the whole remaining gap on the wrong stroke.
+        self.assertIn('c["contact"][2] > 6.0', self.reader)
+        self.assertNotIn('c["contact"][1] > 6.0', self.reader)
 
     def test_the_gap_between_the_two_promises_is_on_the_record(self):
         self.assertIn("WHAT IT STILL LETS THROUGH — MEASURED 2026-11-27", self.backlog)
@@ -10701,6 +10705,22 @@ class TestTheStepTowardTheBallIsWalkedAndNotPlaced(unittest.TestCase):
         # match, which is how the step's own instrument went missing for a turn.
         self.assertIn('"debug leanapply", T.toFixed(2), who, key,', self.page)
         self.assertIn('"at", (root.x + dx).toFixed(2), (root.z + dz).toFixed(2));', self.page)
+
+    def test_the_stride_s_cap_and_window_are_the_measured_ones(self):
+        # 3.20 was set when the step was applied late and as a jolt; 3.80 is where the record's 7.00ft of feet meets
+        # a 3.92ft arm. 0.75s, not 0.5: the same 3.8ft over half a second is 7.6ft/s on top of a 20ft/s run, and
+        # item 2b's line is 25.
+        self.assertIn("const LEAN_MAX = q.has(\"lean\") ? Math.max(0, parseFloat(q.get(\"lean\")) || 0) : 3.80;",
+                      self.page)
+        self.assertIn("const R_WINDOW = q.has(\"rwin\") ? Math.max(0.2, parseFloat(q.get(\"rwin\")) || 0.75) : 0.75;",
+                      self.page)
+        self.assertIn("1 - Math.abs(tTo) / R_WINDOW", self.page)
+
+    def test_the_shoulder_datum_was_swept_and_the_sweep_is_next_to_it(self):
+        # 0.88 and 0.93 both made the serves worse (0.08ft -> 0.28 -> 0.49) for 0.1ft off a groundstroke p90
+        self.assertIn("const sy = root.y + 0.82 * Math.max(4.0, rig.height || 5.4);", self.page)
+        self.assertIn("0.88 and 0.93 were swept and both made the serves worse", self.page)
+        self.assertNotIn("SH_FRAC", self.page, "a swept parameter was left behind as a dead knob")
 
     def test_the_step_can_be_switched_off_on_the_same_film(self):
         self.assertIn('const STEP = q.get("step") !== "0";', self.page,
