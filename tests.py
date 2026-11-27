@@ -10286,3 +10286,65 @@ if __name__ == "__main__":
               "   in the code. If a red here surprises you, delete them and run again before believing it.\n",
               file=sys.stderr)
     unittest.main(verbosity=2)
+
+
+class TestTheArmComesBackToTheHittingSide(unittest.TestCase):
+    """Item 12, 2026-11-27. One pose carried the whole carry phase, which is the founder's "the arms never come back
+    to the right side during a run". Measured on `records/item31-after` with the sweep's ninth field (the racquet
+    head's lateral offset in the body's own frame), in the carry phase of a run at 9ft/s and up: 0.64 and 0.48
+    crossings per stride pair before, 1.44 and 1.75 after. The strike is untouched — the racquet head's distance to
+    the ball at the contact frame is identical on all 63 contacts the sweep can see."""
+
+    def setUp(self):
+        self.page = (REPO / "games" / "tennis" / "replay3d.html").read_text(encoding="utf-8")
+        self.reader = (REPO / "lab" / "tennis_sweep.py").read_text(encoding="utf-8")
+        self.backlog = (REPO / "games" / "tennis" / "BACKLOG.md").read_text(encoding="utf-8")
+        self.stills = (REPO / "games" / "tennis" / "STILLS.md").read_text(encoding="utf-8")
+
+    def test_the_defect_its_fix_and_the_numbers_are_on_the_record(self):
+        self.assertIn("## Item 12 — the arms never come back to the right side during a run (DONE 2026-11-27)",
+                      self.backlog)
+        for piece in ("0.64", "0.48", "1.44", "1.75", "item31-after", "9ft/s", "63 contacts"):
+            self.assertTrue(piece in self.backlog, f"{piece} is not in the item 12 entry")
+
+    def test_all_three_branches_that_carry_the_frame_carry_it(self):
+        # The striker recovering from their own shot, the player with no ball to strike at all (the one who has just
+        # lost the point, which was a fixed pose), and the player whose ball is coming while they run to it.
+        self.assertIn("const carrySwing = (CARRY && moving && !walking) ? Math.sin(phase) * CARRY_PUMP * pumpGrow : 0;",
+                      self.page, "the striker's recovery does not carry the frame")
+        self.assertIn("const carryHand = CARRY ? wait.clone()", self.page)
+        self.assertIn("const sway = CARRY ? Math.sin(phase) * CARRY_PUMP * pumpGrow : 0;", self.page,
+                      "the player with no ball to strike still holds one fixed pose for the whole run")
+        self.assertIn("placeRacquet(rig, readyAim.clone().add(carryPoint.clone().sub(wait)), _face);", self.page,
+                      "the no-ball branch solves the hand to the carry but leaves the frame where it was")
+        self.assertIn("const pump = CARRY ? Math.sin(phase) * CARRY_PUMP * pumpGrow * (1 - windup) : 0;", self.page,
+                      "the carry's swing is not faded out as the take-back comes in")
+
+    def test_the_lateral_axis_is_built_before_the_carry_uses_it(self):
+        # The first version of this crashed the whole page — `Uncaught ReferenceError: right is not defined` — and a
+        # sweep that returns no rows at all reads exactly like a broken sweep. `rightW` was built forty lines BELOW
+        # the carry that needed it. This is the one assertion that would have caught it before a headless run did.
+        self.assertLess(self.page.index("const rightW = new THREE.Vector3(-Math.cos(rig.yaw), 0, Math.sin(rig.yaw));"),
+                        self.page.index(".addScaledVector(rightW, CARRY_READY * grow"),
+                        "the carry uses its lateral axis before it is defined, which throws away the whole frame")
+
+    def test_the_carry_is_measured_and_the_before_build_is_still_drawable(self):
+        self.assertIn('const CARRY = q.get("carry") !== "0";', self.page,
+                      "there is no way to draw the build before this item on the same film")
+        self.assertIn('q.has("pump") ? Math.max(0, parseFloat(q.get("pump")) || 0)', self.page,
+                      "the swing's amplitude cannot be swept, so the number above is a preference")
+        # The pump's ramp is its own: a 3ft run at 8ft/s lasts 0.375s, and the stride's 0.20s-in/0.20s-out ramp
+        # never reaches 1 in that time, which cost the crossings on the short moves.
+        self.assertIn("const PUMP_IN = 0.06;", self.page)
+        self.assertIn("const pumpGrow = Math.min(Math.max(0, Math.min(1, el / PUMP_IN))", self.page)
+
+    def test_the_reader_splits_a_walk_from_a_run_and_says_why(self):
+        self.assertIn("def measure(t, name, carry_only):", self.reader)
+        self.assertIn('("run, carry", True), ("run, stroke", False)', self.reader)
+        # The walk/run line is a gap found in THIS film's own speed histogram, not a number chosen for the answer.
+        self.assertIn("gap = min((b for b in buckets if 7 <= b <= 9), key=lambda b: buckets[b], default=8)",
+                      self.reader, "the walk/run line is not measured from the record")
+        self.assertIn('"rh": (p[8][0] if len(p) > 8 and p[8] else None)', self.reader,
+                      "the ninth sweep field is not read")
+        self.assertTrue("**10. A WALK IS NOT A RUN" in self.stills,
+                        "the population error that hid this fix is not on the record")

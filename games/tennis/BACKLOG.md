@@ -733,11 +733,58 @@ from the net, where the same angle error covers more ground.
 **Done-test:** 7/7 volleys from the forecourt land in, with the margin scaled by distance from the net. **Number:**
 mean landing distance inside the baseline, before and after.
 
-## Item 12 — the arms never come back to the right side during a run
+## Item 12 — the arms never come back to the right side during a run (DONE 2026-11-27)
 
-One pose carries the whole carry phase; a running player's racquet should come back to the hitting side as they
+One pose carried the whole carry phase; a running player's racquet should come back to the hitting side as they
 move. **Done-test:** in a sampled run, the racquet head crosses from the non-hitting side to the hitting side at
-least once per stride pair. **Number:** crossings per 10 strides, before and after.
+least once per stride pair. **Number:** crossings per stride pair, before and after — **0.64 and 0.48 → 1.44 and
+1.75**, on `records/item31-after`, swept 0:300 at 0.02s, measured by `lab/tennis_sweep.py` from the sweep's own
+ninth field.
+
+| `records/item31-after`, the carry phase of a run (9ft/s and up) | crossings per stride pair |
+| before — `?carry=0`, which draws the old build | **0.64** (Colette), **0.48** (Gwen) |
+| after — the carry and its swing | **1.44** (Colette), **1.75** (Gwen) |
+| the part of a run with a stroke in it, which was never the complaint | 0.73/0.60 → 1.46/1.81 |
+
+**The strike is untouched, measured rather than assumed.** The racquet head's distance to the ball at the contact
+frame is identical before and after on all 63 contacts the sweep can see: median 1.08ft, worst 5.47ft, 38 over
+1ft — the same numbers, frame for frame, because the carry is blended out by `rest` wherever the arm is on the
+ball. Item 2b's biggest one-frame move (0.40ft / 0.39ft) and the toe (0.371ft / 0.249ft) are also unchanged.
+
+**What was actually wrong, in order.**
+1. The first attempt put the swing on `prep`/`head` — the path a player takes when the ball is coming to them.
+   Measured: nothing. **A player recovering after their own shot runs through the STRIKE branch**, where
+   `solveArm(rig, onGrip.lerp(wait, rest), lead)` always relaxed to the ready pose.
+2. The second attempt put the carry in that branch and the page threw `Uncaught ReferenceError: right is not
+   defined` and produced no sweep rows at all: the lateral axis it needed was built forty lines below the use, as
+   `rightW`. A sweep that returns zero rows reads like a broken sweep (STILLS.md trap 1) and it was a one-line
+   scope error.
+3. The third attempt worked and moved the number by 0.1, because **58% of the frames the measurement called a run
+   were walks** — the stroll between points moves at 6-7ft/s, which is faster than the 3ft/s gate the reader used.
+   The walk already carried the frame (the racquet goes down by the thigh and `stroll()` swings the arms), so a
+   population that mixed the two reported the walk's crossings as the carry's.
+4. The last piece is a branch with no stroke in it at all: **the player who has just lost the point**, running back
+   to the middle. That was `solveArm(rig, wait, "R"); placeRacquet(rig, readyAim, _face)` and nothing else — a
+   fixed pose for a whole run, which is the founder's sentence exactly. It now carries the same point, with the
+   same swing.
+
+**Two things about the numbers that are easy to get wrong.** The walk/run line is read off the film's own speed
+histogram (`5:1427, 6:2130, 7:2241, 8:158, 9:140, 10:86, 11:112`), so the gate is a gap in this record rather than
+a number chosen to make the answer. And a stride pair is `0.84 * height` ft — 4.62ft here — from the page's own
+gait cycle, with the heights read from the log's `debug bones` line.
+
+**The swing is the founder's own note of 2026-11-11:** "If the players are remembering 'racquet back,' they run
+with their arm open for a forehand shot, but with their arm crossing in front of their body when they run towards
+a backhand shot." `CARRY_READY` puts the frame 0.47ft toward the take-back on the hitting side for a forehand and
+0.30ft across the body for a backhand; `CARRY_PUMP` swings it 1.70ft either side of that point on the body's own
+lateral axis, at the gait's own phase, so it crosses the centre line once a stride pair. The amplitude was swept
+on this same film and this same measure: `?pump=1.15` gives 1.28/1.53 per stride pair, 1.70 gives 1.44/1.75, and
+2.40 gives 1.52/1.75 — the answer has stopped moving before the hand has stopped travelling, so 1.70 is what the
+page takes. 2.40 is a person flailing.
+
+`?carry=0` draws the build before this item on any film, which is how the before column above was taken, and
+`?pump=` overrides the amplitude. `?pumpdebug` prints `debug carry` and `debug noprep` (moving, walking, grow,
+pumpGrow, phase, sway) for the two branches that carry the frame.
 
 ## Item 13 — the way a record is decided is now the way a scoreline is (DONE 2026-11-15); the geometry's producer is still missing
 

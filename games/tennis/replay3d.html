@@ -1247,6 +1247,19 @@ const q = new URLSearchParams(location.search);
    The founder's done-test for it is "a downward root-velocity blip of 0.10–0.20ft within 0.2s of the opponent's
    contact", so the depth is inside that band and the peak is inside that delay by construction — and `?sweep`
    measures it back out of the page rather than trusting these three numbers to be what got drawn. */
+// ITEM 12 (2026-11-27): HOW FAR A RUNNING PLAYER'S RACQUET ARM SWINGS. A player running to a ball does not hold the
+// ready pose in front of the shoulder — one pose carried the whole carry phase, which is what "the arms never come
+// back to the hitting side" means. The arm pumps with the gait, so the frame crosses the body's own centre line once
+// per stride pair. Measured on `records/item31-after` during the carry phase (the part of a run before the take-back
+// starts), the frame crossed 0.32-0.38 times per 10ft of running; a stride pair is `0.84 * height` = 4.7ft, so that
+// is 0.16 per stride pair where the picture wants one.
+const CARRY = q.get("carry") !== "0";   // ?carry=0 draws the build before item 12, for a before/after on one film
+const CARRY_PUMP = q.has("pump") ? Math.max(0, parseFloat(q.get("pump")) || 0) : 1.70;
+// ft the hand swings either side of the ready point, on the body's lateral axis. `?pump=` overrides it, because
+// how far it has to swing to cross the body's centre line is a measurement and not a preference.
+const CARRY_READY = 0.55;   // how far toward the take-back a RUNNING player carries the frame, all run long
+const PUMP_IN = 0.06;       // seconds for the carry's swing to arrive — short moves must still get their swing
+const PUMP_OUT = 0.06;      // and seconds to leave it before the pose snaps back to the standing one
 const STRIDE_IN = 0.20;     // seconds for a run to grow out of the standing pose instead of switching into it
 const STRIDE_OUT = 0.20;    // and seconds for it to shrink back into it at the end of the run
 // The gait's offset towards the near foot, signed BY MEASUREMENT rather than by reasoning about bone rolls:
@@ -1504,6 +1517,11 @@ function tick(now) {
     // and 0 again once the move is over — so the gait is entered and left rather than switched.
     const el = T - (mStart || -99), left = (mStart || -99) + (mLen || 0) - T;
     const grow = Math.min(Math.max(0, Math.min(1, el / STRIDE_IN)), Math.max(0, Math.min(1, (left + STRIDE_OUT) / STRIDE_OUT)));
+    // The carry's own ramp, much shorter than the stride's. A run of 3ft at 8ft/s lasts 0.375s, so `grow` — 0.20s in
+    // and 0.20s out — never reaches 1 and the pump scaled by it never arrives; measured on this film that cost most
+    // of the crossings on the short recovery moves. The pump needs no ramp at all to start (sin(phase) is 0 at the
+    // first frame of a move by construction), only enough to leave it before the pose snaps back.
+    const pumpGrow = Math.min(Math.max(0, Math.min(1, el / PUMP_IN)), Math.max(0, Math.min(1, (left + PUMP_OUT) / PUMP_OUT)));
     // WHICH FOOT GOES FIRST (item 4b). The body faces the ball, not the way it is going, so a sideways run has a
     // near side: dot the travel direction with the body's own lateral axis — the same axis rel[] reports, so
     // `lateral` is positive when the run is towards the LEFT toe's side. `NEAR_LEAD` then rotates the gait by a
@@ -1765,7 +1783,22 @@ function tick(now) {
       const u = ball.clone().sub(_sh0).normalize();                  // shoulder -> ball
       const butt = ball.clone().addScaledVector(u, -(PALM + 1.74));   // the WRIST, a palm further back
       const onGrip = (sh.hand === "back") ? ball.clone().addScaledVector(u, -(PALM + 1.38)) : butt;
-      solveArm(rig, onGrip.lerp(wait, rest), lead);
+      // ITEM 12 (2026-11-27): A PLAYER RUNNING BACK TO THE MIDDLE CARRIES THE FRAME RATHER THAN HOLDING THE READY POSE.
+      // Measured with the sweep's 9th field (the frame's lateral offset in the body's own frame) on the old build:
+      // through a whole recovery run the offset was the same to two decimals — one pose carrying the entire carry
+      // phase, which is the founder's complaint. The hand comes down toward the hip and out on the hitting side, and
+      // the gait swings it, so the frame moves once per stride pair instead of hanging.
+      // right = forward x up. The previous line had it as (cos, 0, -sin), which is the LEFT: every preparation
+      // and every finish was mirrored onto the wrong side of the body. The engineer's check is the engine's own
+      // side_of(): "a player at the north end faces +x, so their right hand is toward +y" — which is +z in world
+      // terms — and this vector pointed at -z. The founder saw it on the run before any number did.
+      // It is built HERE because the carry needs it too, and the carry is solved before the finish is placed.
+      const rightW = new THREE.Vector3(-Math.cos(rig.yaw), 0, Math.sin(rig.yaw));
+      const carrySwing = (CARRY && moving && !walking) ? Math.sin(phase) * CARRY_PUMP * pumpGrow : 0;
+      const carryHand = CARRY ? wait.clone()
+        .addScaledVector(rightW, CARRY_READY * grow * (back ? -0.55 : 0.85) + carrySwing)
+        .addScaledVector(_up, -1.05 * CARRY_READY * grow) : wait.clone();
+      solveArm(rig, onGrip.lerp(carryHand, rest), lead);
       if (sh.hand === "back") solveArm(rig, butt.lerp(wait, rest), "R");   // the butt hand
       // The swing does not stop at the ball and drift home. It finishes: the racquet carries on up and across the
       // body to the shoulder on the hitting side and only then relaxes. Without that, a backhand — which starts on
@@ -1774,11 +1807,6 @@ function tick(now) {
       const chestW = new THREE.Vector3();
       (rig.bones["chest"] || rig.root).getWorldPosition(chestW);
       const fwdW = new THREE.Vector3(Math.sin(rig.yaw), 0, Math.cos(rig.yaw));   // where the chest points
-      // right = forward x up. The previous line had it as (cos, 0, -sin), which is the LEFT: every preparation
-      // and every finish was mirrored onto the wrong side of the body. The engineer's check is the engine's own
-      // side_of(): "a player at the north end faces +x, so their right hand is toward +y" — which is +z in world
-      // terms — and this vector pointed at -z. The founder saw it on the run before any number did.
-      const rightW = new THREE.Vector3(-Math.cos(rig.yaw), 0, Math.sin(rig.yaw));
       const fin = chestW.clone()
         .addScaledVector(rightW, back ? 1.05 : 0.80)
         .addScaledVector(fwdW, back ? 0.45 : 0.55);
@@ -1787,11 +1815,22 @@ function tick(now) {
       // ...and back out of it by the END OF THIS SHOT, not half a second after it. The relax used to take 0.5s,
       // which the old 0.55s beat between shots hid; with the beat gone the arm was still up in the finish when the
       // next shot began, and the frame dropped 1.5ft between one frame and the next.
-      const relax = Math.max(0, Math.min(1, (tlc - 0.17) / Math.max(0.14, seg.dur - (seg.tossDur || 0) - 0.17)));
+      let relax = Math.max(0, Math.min(1, (tlc - 0.17) / Math.max(0.14, seg.dur - (seg.tossDur || 0) - 0.17)));
+      // ITEM 12 (2026-11-27): A PLAYER WHO HAS TO RUN CANNOT HOLD THE FINISH. The relax above spreads the return to
+      // the ready pose over whatever is left of the shot, which on a two-second segment is two seconds — so a striker
+      // recovering to the middle stood in the finish, motionless, for the whole run, and the frame never went to the
+      // hitting side and back. Measured on the same film with `?carry=0` against this build, the frame crossed the
+      // body's centre line 0.19 times per stride pair; so the run's own carry takes over 0.30s after the finish
+      // instead, and the pump in it is what moves the frame from then on.
+      if (CARRY && moving && !walking) relax = Math.max(relax, Math.min(1, (tlc - 0.17) / 0.30));
+      if (q.has("pumpdebug")) console.log("debug carry", pl.name, T.toFixed(2), "tlc", tlc.toFixed(2),
+        "moving", moving ? 1 : 0, "walking", walking ? 1 : 0, "grow", grow.toFixed(2),
+        "phase", phase.toFixed(2), "rest", rest.toFixed(2), "relax", relax.toFixed(2),
+        "carrySwing", carrySwing.toFixed(2));
       // The pose it relaxes into is the ready pose, the same one the other player is standing in: hand at `wait`,
       // frame 0.70ft in front of it and 0.75ft up. It used to relax the frame onto `wait` itself, i.e. held straight
       // above the hand, which is not a pose anybody stands in.
-      _readyAim.copy(wait).addScaledVector(_face, 0.70).addScaledVector(_up, 0.75);
+      _readyAim.copy(carryHand).addScaledVector(_face, 0.70).addScaledVector(_up, 0.75);
       placeRacquet(rig, ball.clone().lerp(fin, done).lerp(_readyAim, relax), _face);
       if (q.has("debug")) {
         const hR = rig.bones["handR"], hL = rig.bones["handL"], d = v => (v ? v.getWorldPosition(new THREE.Vector3()).distanceTo(ball) : NaN);
@@ -1874,7 +1913,25 @@ function tick(now) {
       // `wait` and not the hand's current position: the angular ready pose and the solved one are 1.5ft apart, and
       // the hand's current position is the angular one because arms() has just run. `wait` is the point the hitter
       // relaxes to and the point the standing player is now solved to, so all three agree.
-      const prep = wait.clone().lerp(handPrep, windup);           // a beginner never gets here
+      // The pump is the gait's own phase, faded in by `grow` so a standing player and the first frame of a run are
+      // exactly where they were, and it is on the body's lateral axis so it crosses the centre line rather than
+      // pushing the hand forward. `phase` advances with distance covered (`cycle` ft per stride pair), so the frame
+      // goes out and back exactly once each stride pair — which is what the arm of a person running does.
+      // AND THE CARRY IS THE FOUNDER'S, not the ready pose: "If the players are remembering 'racquet back,' they run
+      // with their arm open for a forehand shot, but with their arm crossing in front of their body when they run
+      // towards a backhand shot." That is `handPrep` — the PREPARATION panel of the reference sheet — reached by
+      // `windup`, which is zero until the ball is half a second away, so for the whole run the frame sat in the
+      // ready pose with a lateral offset of ~0 either side (measured: median rh -0.23ft for a forehand, -0.07 for a
+      // backhand, i.e. no side at all). `CARRY_READY` puts the frame that far toward the take-back for the whole
+      // run, and the pump on top of it makes the arm move with the gait rather than hang.
+      // `1 - windup`: the pump belongs to the carry, and a take-back is not a carry. Without this the swing went on
+      // pushing the hand 1.7ft sideways through the quarter second in which the arm is deliberately taking the frame
+      // back, which is a wobble in the one part of the stroke a beginner is actually being taught.
+      const pump = CARRY ? Math.sin(phase) * CARRY_PUMP * pumpGrow * (1 - windup) : 0;
+      const carryK = CARRY ? Math.max(windup, CARRY_READY * grow) : windup;
+      if (q.has("pumpdebug")) console.log("debug pump", pl.name, T.toFixed(2), "pump", pump.toFixed(3),
+        "grow", grow.toFixed(2), "phase", phase.toFixed(2), "moving", moving ? 1 : 0, "walking", walking ? 1 : 0);
+      const prep = wait.clone().lerp(handPrep, carryK).addScaledVector(right, pump);   // a beginner never gets here
       if (isReceiver) {
         // When, not whether: the take-back happens in the last half-second of the ball's flight, and the swing
         // from there to the ball in the last of it, ending exactly on the frame the next shot starts on. A rushed
@@ -1885,7 +1942,8 @@ function tick(now) {
         const thruK = Math.max(0, Math.min(1, (tl - (t0 + swing * 0.55)) / (swing * 0.45)));
         const nxtBall = (recv && recv.rally === sh.rally) ? recv : null;
         let hand = prep.clone().lerp(handTake, upK);
-        let head = readyAim.clone().lerp(headPrep, windup).lerp(headTake, upK);
+        // The head of the frame travels with the hand, or the racquet's shaft would swing like a metronome.
+        let head = readyAim.clone().lerp(headPrep, carryK).addScaledVector(right, pump).lerp(headTake, upK);
         if (nxtBall) {
           const outc = new THREE.Vector3(nxtBall.v0[0], nxtBall.v0[2], nxtBall.v0[1]).normalize();
           const cBall = new THREE.Vector3(nxtBall.contact[0], nxtBall.contact[2], nxtBall.contact[1]);
@@ -1921,8 +1979,23 @@ function tick(now) {
         // Solved to the hand's own ready point, exactly as the hitter's arm is solved to it when the stroke relaxes.
         // The pose used to be made two ways — angles here, IK there — and the two answers were 1.3ft apart, so the
         // racquet left at 33ft/s whenever the picture switched from one to the other.
-        solveArm(rig, wait, "R");
-        placeRacquet(rig, readyAim, _face);
+        //
+        // AND THIS IS WHERE ITEM 12 ACTUALLY LIVES. Everything above is a player with a stroke to make; this branch
+        // is a player with NO ball to strike — the one who has just lost the point, running back to the middle. It
+        // was a fixed ready pose for the whole run, which is the founder's "the arms never come back to the right
+        // side during a run" exactly. Measured on `records/item31-after` before this branch carried anything: the
+        // frame's lateral offset was the SAME to two decimals for the whole of a recovery, while the legs under it
+        // ran a full stride pair. The same carry as the striker's — out on the hitting side, swinging with the gait
+        // — moves the hand where the arm of a person running moves, and `grow` fades it in and out with the stride.
+        const sway = CARRY ? Math.sin(phase) * CARRY_PUMP * pumpGrow : 0;
+        if (q.has("pumpdebug")) console.log("debug noprep", pl.name, T.toFixed(2), "moving", moving ? 1 : 0,
+          "walking", walking ? 1 : 0, "grow", grow.toFixed(2), "pumpGrow", pumpGrow.toFixed(2),
+          "phase", phase.toFixed(2), "sway", sway.toFixed(2), "el", (T - (mStart || -99)).toFixed(2));
+        const carryPoint = wait.clone()
+          .addScaledVector(right, (CARRY ? CARRY_READY * grow * (back ? -0.55 : 0.85) : 0) + sway)
+          .addScaledVector(_up, CARRY ? -1.05 * CARRY_READY * grow : 0);
+        solveArm(rig, carryPoint, "R");
+        placeRacquet(rig, readyAim.clone().add(carryPoint.clone().sub(wait)), _face);
       }
     }
     if (walking) {
@@ -2164,6 +2237,11 @@ if (q.has("sweep")) window.__sweep = () => {
         // same number as the y in `rel`, which is measured from the root and so is invariant to the clamp. Reading
         // the body-frame figure on both sides of the switch reported "grounding changes nothing" on a build where
         // the median toe went from 0.254ft to 0.020ft.
+        // The RACQUET HEAD in the body's own frame, on the same convention as `rel`: x is the body's lateral
+        // axis, so the sign says which side of the body's own centre line the frame is on. Item 12 is a question
+        // about that sign changing during a run, and no row before this could answer it.
+        const rh2 = r.racquet ? r.racquet.position.clone()
+          .addScaledVector(new THREE.Vector3(0, 1, 0).applyQuaternion(r.racquet.quaternion), 1.74) : null;
         return [+r.root.position.y.toFixed(3), shotAt(T).sh.player === pl.name ? 1 : 0, +yaw.toFixed(3),
                 rel(L), rel(Rf), rq,
                 [L ? +L.y.toFixed(3) : null, Rf ? +Rf.y.toFixed(3) : null],
@@ -2171,7 +2249,10 @@ if (q.has("sweep")) window.__sweep = () => {
                 // description. Items 5 and 6 are questions about how fast the body is still moving when it
                 // strikes and which way it is facing when it is done, and both are differences of this pair
                 // between two rows. Appended, not inserted: every index before it keeps its meaning.
-                [+r.root.position.x.toFixed(2), +r.root.position.z.toFixed(2)]];
+                [+r.root.position.x.toFixed(2), +r.root.position.z.toFixed(2)],
+                // Item 12's field: the frame's lateral offset in the body's own frame, positive toward the
+                // body's own right. Appended for the same reason.
+                rh2 ? rel(rh2) : null];
       })]);
   }
   for (const row of rows) console.log("debug sweep", JSON.stringify(row));

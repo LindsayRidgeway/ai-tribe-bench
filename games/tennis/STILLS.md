@@ -184,3 +184,14 @@ one-frame move was 0.86ft on `seasons/2026-11-19` — and 6.00ft (300ft/s) on th
 **change of ends** in it, made for a different item entirely. A twenty-rally session does not change ends; a
 forty-rally one does. So a number measured on one film is a claim about that film, and the honest form of it is
 "the worst move in a film that changes ends: 0.40ft", not "the worst move in the game".
+
+**10. A WALK IS NOT A RUN, AND 58% OF THE FIRST ITEM-12 MEASURE WAS A WALK.** Item 12's question is what the arms
+do during a run. The reader counted a frame as "running" when the root moved more than 3ft/s — and the stroll
+between points moves at 6-7ft/s, which is *above* that gate. The walk already carried the frame (the racquet goes
+down by the thigh and `stroll()` swings the arms), so the population reported the walk's crossings as the carry's
+and the fix that followed looked like it barely worked. The line was then read off the film's own speed histogram
+— `5:1427, 6:2130, 7:2241, 8:158, 9:140, 10:86, 11:112` — where the bins at 5-7 are walks and the bins at 9-20 are
+runs, so 9ft/s is a gap in the record rather than a threshold chosen to make the answer come out.
+
+The lesson is the general one: **a population defined by a speed gate has to be checked against what is actually
+moving at each speed**, or a fix gets measured on the frames it does not touch.

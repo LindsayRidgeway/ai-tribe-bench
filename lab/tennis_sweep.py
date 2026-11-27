@@ -18,6 +18,9 @@ What it prints, and why each number is here rather than in a chat:
            with the lateral axis the sweep already reports, so a player running sideways while facing the net is
            read correctly and a player running straight ahead has no near side at all.
   item 5   the hitter's root speed at the contact frame
+  item 12  whether the racquet head crosses the body's own centre line while the player runs, in crossings per
+           stride pair — with the walk and the run split apart, because a walk already carried the frame and a
+           population that mixes them reports the walk's crossings as the carry's (STILLS.md trap 10)
   the toe  the biggest one-frame rise of either toe, which is the standing-to-stride switch
   the toss a serve is drawn from its toss only if some frame during that toss is drawn as ITS OWN segment; the
            row's second field is the segment `shotAt` picked, so a previous point's break that swallowed the
@@ -63,6 +66,27 @@ def read(path):
     return out, segs or [], plan or []
 
 
+def heights(path):
+    """Each player's figure height in feet, from the log's own `debug bones <name> ... height 5.44` line.
+
+    The stride pair is `0.84 * height` in the page, so a crossings-per-stride-pair number needs the height, and a
+    table of heights written into this file would be a second place for it to be wrong."""
+    out = {}
+    for line in open(path, encoding="utf-8", errors="ignore"):
+        i = line.find("debug bones ")
+        if i < 0:
+            continue
+        rest = line[i + 12:]
+        name = rest.split(" ", 1)[0]
+        j = rest.find("height ")
+        if j >= 0:
+            try:
+                out[name] = float(rest[j + 7:].split(" ")[0])
+            except ValueError:
+                pass
+    return out
+
+
 def order(rows, segs, fallback):
     """Which column of a sweep row is which player — MEASURED from the log, not assumed from `debug plan`.
 
@@ -105,7 +129,12 @@ def main(argv):
             p = r[3 + k]
             if p and len(p) > 7 and p[7]:
                 traj[k].append({"T": r[0], "x": p[7][0], "z": p[7][1], "yaw": p[2],
-                                "rl": p[3], "rr": p[4], "tl": p[6][0], "tr": p[6][1]})
+                                "rl": p[3], "rr": p[4], "tl": p[6][0], "tr": p[6][1],
+                                # the frame's lateral offset in the body's own frame (9th field, 2026-11-27)
+                                "rh": (p[8][0] if len(p) > 8 and p[8] else None),
+                                # which shot this row is in, and how far from its contact — the two numbers that
+                                # say whether a running player is carrying the frame or winding up to strike
+                                "n": r[1], "tlc": r[2]})
     print(f"{len(rows)} frames, {len(segs)} shots, players {', '.join(names)}")
 
     # ---- item 2b: a body placed rather than walked
@@ -124,6 +153,72 @@ def main(argv):
                         for j in ("tl", "tr") if a[j] is not None and b[j] is not None), reverse=True)
         over = sum(1 for d, _ in rises if d > 0.10)
         print(f"  {n:8s} {rises[0][0]:.3f}ft at T={rises[0][1]:7.2f}   over 0.10ft in a frame: {over}")
+
+    # ---- item 12: does the frame come back across the body while the player runs?
+    print("\n== item 12 — the frame's side of the body while moving ==")
+    print("   the racquet head's lateral offset is the 9th field of each player entry (appended 2026-11-27), in the")
+    print("   BODY's frame, so a sign change is the frame crossing the body's own centre line. A stride pair is")
+    print("   `0.84 * height` ft, the page's own gait cycle, and the heights come out of the log's `debug bones` line")
+    print("   rather than a table. The carry phase is the part of a move with no stroke in it: for the striker, more")
+    print("   than 0.47s after contact (the finish is over); for anybody else, more than 0.55s before the take-back.")
+    hts = heights(path)
+    seg_by_n = {s[0]: s for s in segs}
+
+    def speeds(t):
+        out = []
+        for a, b in zip(t, t[1:]):
+            if a.get("rh") is None or "x" not in a:
+                continue
+            out.append(math.hypot(b["x"] - a["x"], b["z"] - a["z"]) / 0.02)
+        return out
+
+    # THE WALK/RUN LINE, MEASURED. The engine walks at 4.6ft/s and runs at 8ft/s and up, and a line picked by hand
+    # would decide the answer, so it is read off this film's own histogram: the speed bin with the fewest frames
+    # between 7 and 9ft/s is the gap the two populations are separated by.
+    buckets = {}
+    for k in idx.values():
+        for v in speeds(traj[k]):
+            if v >= 3.0:
+                buckets[round(v)] = buckets.get(round(v), 0) + 1
+    gap = min((b for b in buckets if 7 <= b <= 9), key=lambda b: buckets[b], default=8)
+    print(f"   the walk/run line is {gap}ft/s, the emptiest bin between 7 and 9 in this film's speeds ("
+          + ", ".join(f"{b}:{buckets[b]}" for b in sorted(buckets) if 5 <= b <= 11) + ")")
+
+    def measure(t, name, carry_only):
+        crossings, moved, last = 0, 0.0, None
+        for a, b in zip(t, t[1:]):
+            if a.get("rh") is None or "x" not in a:
+                continue
+            step = math.hypot(b["x"] - a["x"], b["z"] - a["z"])
+            if step / 0.02 < gap:                   # a walk is not a run, and the walk already carried the frame
+                continue
+            if carry_only:
+                sg = seg_by_n.get(a.get("n"))
+                if sg and len(sg) > 4:
+                    dur, toss, hitter = sg[2], sg[3] or 0.0, sg[4]
+                    busy = a["tlc"] <= 0.47 if hitter == name else (a["tlc"] + toss) >= dur - 0.55
+                    if busy:
+                        continue
+            moved += step
+            sign = 1 if a["rh"] >= 0 else -1
+            if last is not None and sign != last:
+                crossings += 1
+            last = sign
+        return crossings, moved
+
+    for n, k in idx.items():
+        stride = 0.84 * hts.get(n, 5.5)
+        cells = [(lab, measure(traj[k], n, carry)) for lab, carry in
+                 (("run, carry", True), ("run, stroke", False))]
+        cells = [(lab, c, ft) for lab, (c, ft) in cells]
+        if not any(ft >= 1.0 for _, _, ft in cells):
+            print(f"  {n:8s} no run in this log")
+            continue
+        for lab, c, ft in cells:
+            if ft < 1.0:
+                continue
+            print(f"  {n:8s} stride pair {stride:4.2f}ft | {lab:11s} {c:3d} crossings in {ft:6.1f}ft"
+                  f" = {c / ft * 10:4.2f} per 10ft = {c / (ft / stride):4.2f} per stride pair")
 
     # ---- the toss: does a serve's own segment own any frame during its own toss?
     print("\n== the toss — a serve is drawn from its toss only if a frame during that toss is drawn as its segment ==")
