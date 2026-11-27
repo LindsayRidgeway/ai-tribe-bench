@@ -5940,7 +5940,12 @@ async function viewPlay(main){
       kitchen line and a reach from the baseline. The serve is the exception: a dink's pace cannot carry thirty feet,
       so the engine serves at the pace the box requires.</p>
       <div class="row" style="margin-top:14px"><button class="primary" id="pbplay" onclick="pbPlay()">Play</button>
+      <button id="pbwatch" onclick="pbWatch()" style="margin-left:8px">Watch: the same game at two hands</button>
       <span class="small muted" id="pbmsg"></span></div>
+      <p class="small muted" style="margin:6px 0 0">The second button plays the same pinned game twice — your hands as
+      they came into this season, and your hands now — and bakes both into one film, so the thing that changed between
+      the halves is your practice and nothing else. The engine's own dink hands play both halves, so a different shot
+      choice is not a second cause with a nicer name.</p>
       <div id="pbresult"></div>
     </div>
 
@@ -6248,6 +6253,83 @@ async function pbPlay(){
   } catch(e){
     if (msg) msg.innerHTML = '<span class="err">' + esc(e.message) + '</span>';
   } finally { b.disabled = false; }
+}
+
+async function pbWatch(){
+  // §5ac: the film a person most wants to see — the same game at their hands then and now. It reads the season to
+  // find out what "then" is, so it needs a record; a circle that has played nothing is told that rather than being
+  // given two identical halves and a claim of improvement.
+  const msg = $('pbmsg'), b = $('pbwatch');
+  if (!S.repo) { if (msg) msg.textContent = 'Which circle?'; return; }
+  const me = (($('pbname') || {}).value || personLabel()).trim();
+  const three = [$('pbpartner').value, $('pbopp1').value, $('pbopp2').value];
+  if (new Set(three).size !== 3 || three.includes(me)) {
+    if (msg) msg.textContent = 'Three different members, please — your partner and the two across the net — and none of them you.';
+    return;
+  }
+  const season = (($('pbseason') || {}).value || '2026-winter').trim();
+  b.disabled = true;
+  try {
+    const since = Date.now();
+    if (msg) msg.textContent = 'sent to the court — two games at one clock, so it takes about twice as long as one…';
+    await dispatch('pickleball.yml', {season, person: me, players: three.join(','), shot: 'PACE 24 AT 26,6',
+                                      games: '1', clock: '', surface: 'hard', then_now: 'yes'});
+    const run = await waitForRun('pickleball', since, t => { if (msg) msg.textContent = t; });
+    if (run.conclusion !== 'success') {
+      const url = run.html_url || `https://github.com/${S.repo}/actions/runs/${run.id}`;
+      if (msg) msg.innerHTML = '<span class="err">' + esc('the run ended: ' + run.conclusion + '.') + '</span> '
+        + `<a href="${esc(url)}" target="_blank" rel="noopener">${esc(String(run.id))}</a>`
+        + `<span class="small muted">${esc(' — the log says why. A circle with no season yet has no "then" to film.')}</span>`;
+      return;
+    }
+    if (msg) msg.textContent = 'baked. reading it';
+    await pbThenNow(season, me);
+  } catch(e){
+    if (msg) msg.innerHTML = '<span class="err">' + esc(e.message) + '</span>';
+  } finally { b.disabled = false; }
+}
+
+async function pbThenNow(season, me){
+  const box = $('pbresult'); if (!box) return;
+  box.innerHTML = '<p class="small muted" style="margin-top:12px">reading the film…</p>';
+  const path = `games/pickleball/records/${season}-then-now.json`;
+  try {
+    const film = JSON.parse((await fileText(path)).text);
+    const parts = film.parts || [];
+    // A film with no `parts` is one game, and saying so is the only honest answer: a page that invented a second
+    // half would be claiming a difference the record does not contain.
+    if (parts.length !== 2) {
+      box.innerHTML = `<p class="small muted" style="margin-top:12px">The record at <code>${esc(path)}</code>
+        holds one game, not two, so there is no second half to compare with. The watch button bakes a pair; this
+        file is from something else.</p>`;
+      return;
+    }
+    const half = (p, i) => `<tr><td class="small">${esc(String(p.label || '—'))}</td>
+      <td style="font:600 16px var(--mono)">${esc(Array.isArray(p.score) ? p.score.join('–') : '—')}</td>
+      <td class="small">${esc(String(p.rallies ?? '—'))} rallies</td>
+      <td class="small">${esc(String(p.mean_rally ?? '—'))} shots a rally</td>
+      <td class="small">${esc(String(p.shots ?? '—'))} shots</td></tr>`;
+    const [a, z] = parts;
+    const longer = (Number(z.mean_rally) > Number(a.mean_rally)) ? 'longer' :
+                   (Number(z.mean_rally) < Number(a.mean_rally)) ? 'shorter' : 'the same length';
+    box.innerHTML = `<div class="card" style="margin-top:12px">
+      <div class="small muted">the same clock, the same three opponents, ${esc(me)}'s hands changed</div>
+      <table style="width:100%;border-collapse:collapse;margin-top:8px">
+        <tr class="small muted"><th style="text-align:left">hands</th><th style="text-align:left">score</th>
+        <th style="text-align:left">length</th><th style="text-align:left">rally</th><th style="text-align:left">work</th></tr>
+        ${parts.map(half).join('')}
+      </table>
+      <p class="small" style="margin:10px 0 0">Rallies now run <b>${esc(longer)}</b> than they did coming in —
+      ${esc(String(a.mean_rally))} shots a rally against ${esc(String(z.mean_rally))}. The film plays both halves in
+      order and every point is captioned with whose hands are on it.</p>
+      <p class="small muted" style="margin:6px 0 0">The film is <code>${esc(path)}</code>; its page is
+      <code>${esc(path.replace('records', 'replays').replace('.json', '.html'))}</code>, and it opens from disk.</p>
+    </div>`;
+  } catch(e){
+    box.innerHTML = '<p class="small muted" style="margin-top:12px">the film is not readable yet — the run commits '
+      + 'it as its last step, so give it a moment and open '
+      + `<code>${esc(path)}</code>. <span class="small muted">${esc(e.message)}</span></p>`;
+  }
 }
 
 async function readSeason(season){

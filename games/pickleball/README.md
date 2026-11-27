@@ -2434,3 +2434,64 @@ not have). The existing film tests — the empty court, the pinned frame, the ca
   wiring rather than thought, and is the next unit.
 - The film shows *reach* improving. Control, the mix and the rally length all move with it, and nothing on screen yet
   says which of them did what.
+
+## §5ac The button that shows it: the same game at two hands, from the Play card — 2026-11-27, late afternoon
+
+§5ab built the instrument and left it on the bench. A film nobody can press is a test, not a game, and the whole
+argument for it — *the score cannot see practice; the length of a rally can* — only reaches a person through a
+control. This unit is that control, and it is deliberately small: one button, one input on the workflow, one reader.
+
+**The level is chosen by measurement, not taste.** The same fixture clocks at three scripted hands, 0 balls against
+800, mean rally in shots:
+
+| hands the engine plays | 0 balls | 800 balls | what moved |
+|---|---|---|---|
+| `dink` | 3.6 | 8.7 | 2.4× |
+| `steady` | 3.3 | 5.5 | 1.7× |
+| `place` | 4.0 | 5.6 | 1.4× |
+
+Dink hands are used because they give the largest visible difference — and because a patient hands-only rally is where
+reach shows: a beginner's short court is punctuated by balls nobody gets to, a trained pair's is not. The note says
+so, in the film's own words: *the halves differ only in that member's practice, as the season records it.*
+
+**The wiring, and the one thing that had to be got right.** `pickleball.yml` gains a `then_now` input (default empty,
+so every existing press is unchanged) and the Play step branches on it:
+
+```yaml
+if [ "$THEN_NOW" = "yes" ]; then
+  args=(--then-now "$PERSON" --names "$NAMES" --season "$SEASON" --surface "$SURFACE" --level dink
+        --film "games/pickleball/records/$SEASON-then-now.json"
+        --page "games/pickleball/replays/$SEASON-then-now.html"
+        --note "...the halves differ only in $PERSON's practice...")
+else
+  args=(--person-shot "$SHOT" ...)
+fi
+```
+
+A watch run plays no movement of yours, so the `PACE 24 AT 26,6` shape check is skipped for it — otherwise the run
+would fail on a field it does not use. Everything else is shared: same runner, same keys, same three seats.
+
+On the page, `pbWatch()` sends `then_now: 'yes'` and then reads `records/<season>-then-now.json` back through
+`pbThenNow()`, which puts the two halves side by side — label, score, rallies, shots a rally, shots — and states the
+one sentence the film exists to earn: *rallies now run longer than they did coming in, 3.3 shots a rally against 11.*
+
+**The four ways this press can lie, and the check for each** (`page-check.mjs` 17l, five checks, mutation-tested):
+
+1. **Sending a session instead of a watch.** If `then_now` is not `'yes'` the two halves differ in the movement as
+   well as the hands, and the film claims a cause it does not have. *Broken on purpose → red.*
+2. **Reading a film that holds one game and calling it two.** A `parts` list with one entry is refused with the file's
+   name and the words *holds one game, not two*, rather than comparing a game with itself. *Swapping the halves → red.*
+3. **Reading a failed run as a baked film.** The run is named and linked, and the card is left as it was.
+4. **Letting a person stand on both sides of the net.** Three seats, none of them you — otherwise "their hands
+   changed" describes nobody. *Guard removed on purpose → red.*
+
+**A defect the wiring found in the machinery.** Writing the test that the page's inputs are the workflow's inputs
+turned up YAML 1.1's oldest trap: `on:` parses as the boolean `True`, so `doc["on"]` is `None` and the first version
+of the check declared *every* input missing and then compared against nothing — a check that passed while looking at
+an empty set. It now reads `doc.get("on") or doc.get(True)`, and it is tested in the direction that matters: delete
+`then_now` from the YAML and it goes red naming `pickleball.yml: ['then_now']`. That is the 422 a person would
+otherwise meet with no sentence on screen to explain it.
+
+**Not verified here:** this checkout has no runner, no keys and no members on the shelf, so the press has never run
+end to end. It also needs a season in which the person has already played — the first half has no "then" until the
+record does — and the page says that in as many words when the run ends badly.

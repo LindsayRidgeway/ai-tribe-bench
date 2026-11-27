@@ -10100,6 +10100,83 @@ class TheTemplateMustBeEnough(unittest.TestCase):
         self.assertEqual(mt.unshipped_dispatches(), {},
                          "the page starts a workflow the template does not ship")
 
+    @staticmethod
+    def _sent_inputs(text: str, workflow: str) -> list[set[str]]:
+        """Every input name the page sends to `workflow`, one set per `dispatch()` call.
+
+        Read out of the object literal at the call rather than out of the workflow, because the direction that
+        breaks is this one: the page grows an input, the YAML does not, and GitHub answers 422 to the press with
+        nothing on screen to say so. Quoted strings are dropped first so a value that happens to contain a colon
+        cannot look like a name.
+        """
+        calls = []
+        for m in re.finditer(r"dispatch\(\s*['\"]" + re.escape(workflow) + r"['\"]\s*,\s*\{", text):
+            i, depth = m.end() - 1, 0
+            while i < len(text):
+                if text[i] == "{":
+                    depth += 1
+                elif text[i] == "}":
+                    depth -= 1
+                    if depth == 0:
+                        break
+                i += 1
+            body = text[m.end():i]
+            bare = re.sub(r"'[^']*'|\"[^\"]*\"|`[^`]*`", "", body)
+            # Names sit at the top level of the object; a nested object's keys are somebody else's business.
+            top, depth = [], 0
+            for ch in bare:
+                if ch in "{[(<":
+                    depth += 1
+                elif ch in "}])>":
+                    depth -= 1
+                elif depth <= 0:
+                    top.append(ch)
+            calls.append(set(re.findall(r"([a-z_][a-z0-9_]*)\s*:", "".join(top)))
+                     | set(re.findall(r"(?:^|[,{])\s*([a-z_][a-z0-9_]*)\s*(?=[,}])", "".join(top))))
+        return calls
+
+    @unittest.skipIf(yaml is None, "PyYAML not installed")
+    def test_every_input_the_page_sends_is_an_input_the_workflow_declares(self):
+        """A dispatch that names an undeclared input is a 422, and the person pressing the button sees a wall.
+
+        Found 2026-11-27 while wiring §5ac: the watch button sends `then_now`, and the whole watch film exists on
+        the other side of that name being in `pickleball.yml`'s `workflow_dispatch.inputs`. The template whitelist
+        check above only asks whether the *file* is shipped, which was true while the name was still missing —
+        GitHub refuses such a dispatch with "Unexpected inputs provided" and the page has no sentence for it.
+        """
+        page = (REPO / "ait.html").read_text(encoding="utf-8")
+        seen, wrong = 0, []
+        for m in re.finditer(r"dispatch\(\s*['\"]([a-z0-9_-]+\.yml)['\"]", page):
+            wf = m.group(1)
+            sent = self._sent_inputs(page, wf)
+            doc = yaml.safe_load((REPO / ".github" / "workflows" / wf).read_text(encoding="utf-8")) or {}
+            # `on:` is YAML 1.1's boolean true, so the key comes back as `True` — the reason this test's first
+            # version declared every input missing and passed its own eyes: it was comparing against nothing.
+            trigger = doc.get("on") or doc.get(True) or {}
+            declared = set((trigger.get("workflow_dispatch") or {}).get("inputs") or {})
+            for one in sent:
+                seen += 1
+                if one - declared:
+                    wrong.append(f"{wf}: {sorted(one - declared)}")
+        self.assertTrue(seen, "no dispatch() call was read out of ait.html at all")
+        self.assertEqual(wrong, [], "the page sends inputs the workflow does not declare (GitHub answers 422)")
+
+    def test_the_page_input_check_reads_a_name_the_workflow_does_not_have(self):
+        """The check above once read nothing and passed; a reader that finds no calls cannot be trusted."""
+        page = (REPO / "ait.html").read_text(encoding="utf-8")
+        calls = self._sent_inputs(page, "pickleball.yml")
+        self.assertTrue(calls, "pickleball.yml's press has no inputs to read")
+        self.assertIn("then_now", set().union(*calls), "the watch press's own input is not seen")
+        self.assertIn("person", set().union(*calls))
+        doc = yaml.safe_load((REPO / ".github" / "workflows" / "pickleball.yml").read_text(encoding="utf-8"))
+        declared = ((doc.get("on") or doc.get(True) or {}).get("workflow_dispatch") or {}).get("inputs") or {}
+        self.assertIn("then_now", declared, "the workflow declares no such input (or the reader cannot see the file's)")
+        # And a name that is not there, added where a real one is: the reader finds it and the comparison fails.
+        doctored = page.replace("then_now: 'yes'", "then_now: 'yes', nowhere_at_all: '1'", 1)
+        self.assertNotEqual(doctored, page, "the watch press changed shape; this test is no longer looking at it")
+        extra = set().union(*self._sent_inputs(doctored, "pickleball.yml")) - set().union(*calls)
+        self.assertEqual(extra, {"nowhere_at_all"})
+
     def test_the_new_checks_actually_fire_when_a_workflow_is_left_out(self):
         """A check nobody has seen fail is a check nobody knows works."""
         sys.path.insert(0, str(REPO / "lab"))

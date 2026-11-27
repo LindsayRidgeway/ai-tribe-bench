@@ -3815,6 +3815,115 @@ async function main(){
     return '';
   });
 
+  /* 17l — the film that shows practice, from the card (§5ac).
+     ------------------------------------------------------------------------------------------------------------
+     §5ab found the thing a person most wants to watch: the same pinned game played twice, once with the hands they
+     came into the season with and once with the hands they have now, because the scoreline cannot show practice and
+     the length of a rally can — a factor of ten between a beginner's hands and a trained pair. That measurement is
+     worthless from a page nobody presses. The press is checked here for the four ways it can lie: sending a run that
+     is not a watch (the halves would then differ in the movement as well as the hands, which is the one thing the
+     film exists to hold still), reading a film that holds one game and calling it two, reading a run that failed as
+     a film that was baked, and letting a person stand on both sides of the net so that "their hands changed"
+     describes nobody. */
+  const PBTN = 'games/pickleball/records/2026-winter-then-now.json';
+  const pbTwoGames = JSON.stringify({
+    sport: 'pickleball', clock_ms: 1234500, teams: [['Lindsay', 'Lumi'], ['Dmitri', 'Gwen']],
+    shots: [], moves: [], rallies: [],
+    parts: [
+      {label: 'Lindsay, 0 balls coming in', score: [9, 11], rallies: 50, shots: 163, mean_rally: 3.3},
+      {label: 'Lindsay, 800 balls now', score: [11, 8], rallies: 39, shots: 430, mean_rally: 11.0},
+    ],
+  });
+  const pbWatchRun = (three) => `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main'; S.owner = 'Lindsay';
+    S.members = [{name: 'Lumi'}, {name: 'Dmitri'}, {name: 'Gwen'}]; S.keys = {};
+    document.getElementById('main').innerHTML = '';
+    await viewPlay(document.getElementById('main'));
+    const set = (id, v) => { document.getElementById(id).value = v; };
+    set('pbname', 'Lindsay'); set('pbpartner', '${three[0]}');
+    set('pbopp1', '${three[1]}'); set('pbopp2', '${three[2]}'); set('pbseason', '2026-winter');
+    await pbWatch();
+    return {card: String(document.getElementById('pbresult').innerHTML || ''),
+            msg: String((document.getElementById('pbmsg') || {}).innerHTML || ''),
+            said: String((document.getElementById('pbmsg') || {}).textContent || '')};
+  })()`;
+  reset();
+  seed(PBF, pbFilm([]));
+  seed(PBTN, pbTwoGames);
+  actions.runs.push({id: 51400001, name: 'pickleball', event: 'workflow_dispatch', status: 'completed',
+    conclusion: 'success', html_url: 'https://github.com/someone/tribe/actions/runs/51400001',
+    created_at: new Date().toISOString()});
+  const pbW = await tryRun(ctx, pbWatchRun(['Lumi', 'Dmitri', 'Gwen']));
+  check('the watch press asks the runner for a film of the same game at two hands', () => {
+    if (pbW.err) return pbW.err;
+    const d = dispatches[dispatches.length - 1];
+    if (!d) return 'the press dispatched nothing';
+    if (d.workflow !== 'pickleball.yml') return `it dispatched ${d.workflow}`;
+    if (String(d.inputs.then_now ?? '') !== 'yes')
+      return 'the run was asked to play a session, not to film two hands';
+    if (String(d.inputs.person ?? '') !== 'Lindsay') return `the person was ${JSON.stringify(d.inputs.person)}`;
+    if (String(d.inputs.players ?? '') !== 'Lumi,Dmitri,Gwen')
+      return `the three were ${JSON.stringify(d.inputs.players)}`;
+    if (String(d.inputs.season ?? '') !== '2026-winter') return `the season was ${JSON.stringify(d.inputs.season)}`;
+    return '';
+  });
+  check('and what it shows is both halves beside each other, with the rallies measured', () => {
+    if (pbW.err) return pbW.err;
+    const h = String(pbW.card || '');
+    if (!/Lindsay, 0 balls coming in/.test(h) || !/Lindsay, 800 balls now/.test(h))
+      return `the two halves are not both named: "${h.slice(0, 400)}"`;
+    if (!/9–11/.test(h) || !/11–8/.test(h)) return `the scores are not both there: "${h.slice(0, 400)}"`;
+    if (!/3\.3/.test(h) || !/11(\.0)?\b/.test(h)) return 'the rally lengths are not the film\'s numbers';
+    if (!/Rallies now run <b>longer<\/b>/.test(h))
+      return `the direction is not stated: "${h.slice(0, 500)}"`;
+    return '';
+  });
+  reset();
+  seed(PBF, pbFilm([]));
+  // A `parts` list with one entry in it: the shape a watch run would leave if the second half were dropped on the
+  // way out. (A file with no `parts` at all is the old one-game film; both must be refused, and one of them is the
+  // shape the guard is actually about.)
+  seed(PBTN, JSON.stringify({sport: 'pickleball', clock_ms: 1234500, shots: [], moves: [], rallies: [],
+    parts: [{label: 'Lindsay, 800 balls now', score: [11, 8], rallies: 39, shots: 430, mean_rally: 11.0}]}));
+  const pbOne = await tryRun(ctx, `(async () => {
+    document.getElementById('main').innerHTML = '<div id="pbresult"></div>';
+    await pbThenNow('2026-winter', 'Lindsay');
+    return {card: String(document.getElementById('pbresult').innerHTML || '')};
+  })()`);
+  check('a film that holds one game is not read as two, and says which file it was', () => {
+    if (pbOne.err) return pbOne.err;
+    const h = String(pbOne.card || '');
+    if (/Rallies now run/.test(h)) return 'it compared a game with itself and called the result an improvement';
+    if (!/holds one game, not two/.test(h)) return `it does not say the file is one game: "${h.slice(0, 300)}"`;
+    if (!/2026-winter-then-now\.json/.test(h)) return 'it does not name the file it read';
+    return '';
+  });
+  reset();
+  seed(PBF, pbFilm([]));
+  actions.runs.push({id: 51400002, name: 'pickleball', event: 'workflow_dispatch', status: 'completed',
+    conclusion: 'failure', html_url: 'https://github.com/someone/tribe/actions/runs/51400002',
+    created_at: new Date().toISOString()});
+  const pbFail = await tryRun(ctx, pbWatchRun(['Lumi', 'Dmitri', 'Gwen']));
+  check('a watch run that failed names the run, and does not claim a film was baked', () => {
+    if (pbFail.err) return pbFail.err;
+    const said = String(pbFail.msg || ''), card = String(pbFail.card || '');
+    if (!/51400002/.test(said)) return `the run is not named: "${said}"`;
+    if (!/actions\/runs\/51400002/.test(said)) return 'the run number is not a link to the run';
+    if (/baked/.test(said.replace(/the run ended[^.]*\./, ''))) return 'it says a film was baked';
+    if (/Rallies now run/.test(card)) return 'a failed run produced a comparison out of nothing';
+    return '';
+  });
+  reset();
+  seed(PBF, pbFilm([]));
+  const pbSame = await tryRun(ctx, pbWatchRun(['Lindsay', 'Dmitri', 'Gwen']));
+  check('a person cannot stand on both sides of the net, so "their hands changed" describes someone', () => {
+    if (pbSame.err) return pbSame.err;
+    if (dispatches.length) return `it was sent anyway (${dispatches.length} dispatch(es))`;
+    if (!/Three different members/.test(String(pbSame.said || '')))
+      return `nothing told the person: "${pbSame.said}"`;
+    return '';
+  });
+
   /* ---- a season you can watch (item 7, the half that was missing) -------------------------------------
 
      The press used to be three minutes of nothing and then a card. The engine now writes the card it has after
