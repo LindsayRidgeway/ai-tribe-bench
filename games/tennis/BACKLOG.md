@@ -1209,13 +1209,40 @@ entry before today was taken on 0:300, i.e. the first 57% of it, 63 of its 108 c
 | p90 / worst, all contacts | 3.87 / 5.48ft | **1.15 / 2.72ft** |
 | contacts over 1ft | **69 of 108** | **16 of 108** |
 | feet to contact | median 2.46ft, p90 7.00ft | median 1.89ft, p90 **3.85ft** |
-| item 2b, biggest one-frame move | 0.40ft | **0.51ft** |
-| item 2b, frames over 25ft/s | 0 | **3** (Colette; Gwen 0) |
+| item 2b, biggest one-frame move | 0.40ft | **0.52ft** |
+| item 2b, frames over 25ft/s | 0 | **11** (Colette; Gwen 0) |
 
 Item 12's carry is unmoved (1.49/1.75 crossings per stride pair) and the toe's worst one-frame rise is unmoved
-(0.420ft). The cost is written down in the last two rows: **3 frames of 26ft/s in 26,501**, at Colette's fastest
-sprint (20ft/s of plan plus the last 5ft/s of step budget), and 0.01ft of overshoot over the line because the plan's
-own speed is measured between samples.
+(0.420ft). The cost is written down in the last two rows, and it is **not a placement**: all eleven of Colette's
+frames sit inside one run and every one has its neighbours at 0.46-0.52ft. The record's own plan moves her at
+20ft/s there and the drawn stride adds the last 6, which is a sprint with a lunge in it. There is no isolated spike
+anywhere in the film.
+
+### The step is a function of the clock, and the state it carried for an hour is gone
+
+The first version of this fix carried state between frames — the applied offset, its clock, the previous frame's plan
+position — to rate-limit the stride. That breaks the rule this file states and has already paid for: **a pose must be
+replayable by a probe that seeks backwards.** A still at `?t=17.30` showed why, and showed it in one line: the page
+ticks at a *fixed* T, so `T - lastT` is zero after the first frame, the rate cap is zero, and the body freezes in the
+first half-foot of a stride the film draws in full. The step applied **0.50ft where the target was 0.96ft**.
+
+Two things came out of removing it.
+
+**A real defect it had been hiding.** The striker's branch was handed `tlc`, which is *clamped* to the end of its own
+shot — so during the break after a point it stops at 0.35s, `r` stops at 0.30, and the striker stood in a **0.96ft
+lean toward a ball 64ft away for the whole of a thirty-second break**, dropping it on the next shot's first frame.
+That was the 0.95ft frame at T=412.98 and all 13 of Colette's over-25ft/s frames before this pass. The unclamped clock
+(`tlRaw - tossDur`) puts the ball out of reach at half a second, which is what a step away from the ball means.
+
+**And the state was not needed.** With the target anchored on the feet, phased on the contact and measured from a
+standing shoulder, the film's item 2b with *no* state at all is 11 frames over 25ft/s for Colette and **0 for Gwen**,
+with the contact numbers untouched (0.27ft median on groundstrokes, 0.17 on serves, 16 of 108 over 1ft).
+
+**Verified, not asserted:** `?t=17.30`, `?t=300.00` and `?t=443.10` each rendered as stills and compared against the
+same clock in a 0:530 sweep — the body's drawn position agrees to the hundredth of a foot in all six cases, including
+a frame carrying a 0.72ft rise. The `debug leanapply` line prints the applied offset *and* the root it produced, so
+this can be re-checked in one command; it is also the line a replace of mine silently deleted earlier in the day,
+which is why there is now a test for the instrument itself.
 
 **What it still lets through, honestly.** The 16 contacts over 1ft are **15 serves** — struck 8.8ft up, where the
 page's `rise` is capped at 0.95ft, so those are short by the jump that is not drawn, which is item 19 and not this.

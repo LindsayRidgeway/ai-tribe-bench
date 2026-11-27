@@ -10604,7 +10604,7 @@ class TestTheContactIsMeasuredOnTheFilmRatherThanInARate(unittest.TestCase):
 
     def test_the_stride_that_closed_it_is_on_the_record_with_both_price_tags(self):
         for piece in ("the stride that puts the frame on the ball (DONE 2026-11-27)",
-                      "3.16ft", "0.27ft", "69 of 108", "16 of 108", "0.51ft", "3** (Colette; Gwen 0)",
+                      "3.16ft", "0.27ft", "69 of 108", "16 of 108", "0.52ft", "**11** (Colette; Gwen 0)",
                       "`?step=0` draws the pre-fix build", "swept 0:530"):
             self.assertTrue(piece in self.backlog, f"{piece} is not in the stride's note")
 
@@ -10636,14 +10636,30 @@ class TestTheStepTowardTheBallIsWalkedAndNotPlaced(unittest.TestCase):
                         self.page.index("const hx = ball.x - root.x"),
                         "the root is read after the geometry that borrows it")
 
-    def test_zero_is_a_target_and_goes_through_the_slew(self):
+    def test_zero_is_a_target_like_any_other(self):
         self.assertIn("let dx = 0, dy = 0, dz = 0;", self.page)
         self.assertNotIn("rig.lean = { x: 0, y: 0, z: 0 };\n    return;", self.page,
                          "the zero-offset early return is back, and it drops a body out of a stride in one frame")
 
-    def test_the_step_is_slewed_against_the_body_s_own_budget(self):
-        self.assertIn("const cap = Math.max(0, dtn * BODY_SPEED - baseStep);", self.page)
-        self.assertIn("const BODY_SPEED = 25;", self.page, "the cap is not item 2b's own line")
-        self.assertIn("rig.basePrev = [root.x, root.z];", self.page)
+    def test_the_step_is_about_a_ball_and_the_clock_is_not_clamped(self):
+        # `tlc` stops at the end of the shot, so during the break after a point the striker stood in a 0.96ft lean
+        # toward a ball 64ft away for a whole thirty-second break, and dropped it on the next shot's first frame.
+        self.assertIn("reachTo(rig, lead, ball, tlRaw - (seg.tossDur || 0), tlc,", self.page)
+
+    def test_the_step_carries_no_state_between_frames(self):
+        # a still at `?t=17.30` applied 0.50ft of a 0.96ft target: the page ticks at a fixed T, so the rate cap is
+        # `T - lastT` = 0 and the body freezes in the first half-foot of a stride the film draws in full. A probe
+        # seeking backwards then shows a different picture from the film it is meant to be checking.
+        for gone in ("rig.lean =", "rig.leanAt", "rig.basePrev", "rig.leanT", "rig.fade"):
+            self.assertNotIn(gone, self.page, f"{gone} is back, so a still can no longer be trusted to match the film")
+        self.assertIn("A POSE IS A FUNCTION OF THE FILM'S CLOCK, AND THE STEP HAS TO BE ONE TOO.", self.page)
+
+    def test_the_instrument_that_proved_it_is_still_there(self):
+        # the applied offset and the root it produced. This print was silently deleted by a replace that did not
+        # match, which is how the step's own instrument went missing for a turn.
+        self.assertIn('"debug leanapply", T.toFixed(2), who, key,', self.page)
+        self.assertIn('"at", (root.x + dx).toFixed(2), (root.z + dz).toFixed(2));', self.page)
+
+    def test_the_step_can_be_switched_off_on_the_same_film(self):
         self.assertIn('const STEP = q.get("step") !== "0";', self.page,
                       "there is no way to draw the pre-step build on the same film, so the change cannot be priced")
