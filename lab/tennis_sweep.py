@@ -19,6 +19,9 @@ What it prints, and why each number is here rather than in a chat:
            read correctly and a player running straight ahead has no near side at all.
   item 5   the hitter's root speed at the contact frame
   the toe  the biggest one-frame rise of either toe, which is the standing-to-stride switch
+  the toss a serve is drawn from its toss only if some frame during that toss is drawn as ITS OWN segment; the
+           row's second field is the segment `shotAt` picked, so a previous point's break that swallowed the
+           toss shows up here as a serve with no frame in its own window (STILLS.md, trap 8)
 
 Usage:  python3 lab/tennis_sweep.py /tmp/log.txt [--segs]
 """
@@ -60,11 +63,42 @@ def read(path):
     return out, segs or [], plan or []
 
 
+def order(rows, segs, fallback):
+    """Which column of a sweep row is which player — MEASURED from the log, not assumed from `debug plan`.
+
+    The obvious mapping is `debug plan`'s key order, and it is WRONG: `PLAN` is filled as the settle moves are
+    pushed, which is not the order of `D.players`, so on `seasons/2026-11-19` the plan is `[Colette, Gwen]` while
+    the row's columns are `[Gwen, Colette]`. With exactly two players a swapped map still picks "the other one"
+    correctly, so every number that reported the OTHER player survived it — and the two that reported the NAMED
+    player did not. Measured 2026-11-26: item 5's "the striker's root speed at contact, median 0.50ft/s" was the
+    RECEIVER's speed; the striker's own is 1.82ft/s. `isHitter` in the row is the log's own account of who is
+    striking, so the mapping is read off that and checked: every shot must have exactly one column claiming it."""
+    by_n = {s[0]: s for s in segs}
+    votes = {}
+    for r in rows:
+        s = by_n.get(r[1])
+        if not s:
+            continue
+        for i, p in enumerate(r[3:]):
+            if p and p[1] == 1:
+                votes.setdefault(i, set()).add(s[4])
+    out = {}
+    for i, who in votes.items():
+        assert len(who) == 1, f"column {i} claims to be hitting for {sorted(who)}"
+        out[next(iter(who))] = i
+    if not out:
+        out = {n: i for i, n in enumerate(fallback)}
+    return out
+
+
 def main(argv):
     path = argv[1] if len(argv) > 1 else "/tmp/log.txt"
     rows, segs, plan = read(path)
     names = [p[0] for p in plan] or ["A", "B"]
-    idx = {n: i for i, n in enumerate(names)}
+    idx = order(rows, segs, names)
+    names = [None] * len(idx)
+    for n, i in idx.items():
+        names[i] = n
     traj = {k: [] for k in idx.values()}
     for r in rows:
         for k in idx.values():
@@ -90,6 +124,26 @@ def main(argv):
                         for j in ("tl", "tr") if a[j] is not None and b[j] is not None), reverse=True)
         over = sum(1 for d, _ in rises if d > 0.10)
         print(f"  {n:8s} {rises[0][0]:.3f}ft at T={rises[0][1]:7.2f}   over 0.10ft in a frame: {over}")
+
+    # ---- the toss: does a serve's own segment own any frame during its own toss?
+    print("\n== the toss — a serve is drawn from its toss only if a frame during that toss is drawn as its segment ==")
+    serves = [s for s in segs if len(s) > 3 and (s[3] or 0) > 0.10]
+    never = []
+    for s in serves:
+        n, start, toss = s[0], s[1], s[3]
+        if not any(r[1] == n and start <= r[0] < start + toss for r in rows):
+            never.append(n)
+    print(f"  serves whose toss is never drawn: {len(never)} of {len(serves)}"
+          + (f": {never}" if never else ""))
+    cover = []
+    for s in serves:
+        n, start, toss = s[0], s[1], s[3]
+        got = [r[0] for r in rows if r[1] == n and start <= r[0] < start + toss]
+        if got:
+            cover.append(((got[-1] - got[0]), toss, n))
+    if cover:
+        shortest = min(cover)
+        print(f"  the shortest toss drawn covers {shortest[0]:.2f}s of its {shortest[1]:.2f}s (shot {shortest[2]})")
 
     # ---- item 4 + 5, shot by shot
     def near(k, t):
@@ -163,6 +217,77 @@ def main(argv):
     mid = sorted(v for v, _ in vals)[len(vals) // 2]
     print(f"  median {mid:.2f}ft/s  max {vals[0][0]:.2f}ft/s (shot {vals[0][1]})"
           f"  over 30ft/s: {sum(1 for v, _ in vals if v > 30)} of {len(vals)}")
+
+    # ---- item 6: the turn-back
+    print("\n== item 6, the turn-back — how long until the striker is facing the middle of the court,")
+    print("   and where the recovery run goes ==")
+    print("   The facing is read against the line from the body to the CENTRE of the court (39, 13.5), which is what")
+    print("   'back towards the centre' means when the body is standing anywhere but the middle of the baseline.")
+    print("   `err@c` is the error ON the contact frame — it is the chase's facing, and the body has to turn from it")
+    print("   to the net, so a large number here is the size of the snap the eye sees at the strike.")
+    CEN = (39.0, 13.5)
+    NET = 39.0
+
+    def to_centre(p):
+        return math.atan2(CEN[0] - p["x"], CEN[1] - p["z"])
+
+    def err(p):
+        return math.degrees((p["yaw"] - to_centre(p) + math.pi * 3) % (math.pi * 2) - math.pi)
+
+    def err_net(p):
+        # Square to the net is what the restated done-test asks, and it is the measure that does not move when a
+        # player meets the ball four feet past the net: from there "the middle of the court" is behind her.
+        net = math.pi / 2 if p["x"] < NET else -math.pi / 2
+        return math.degrees((p["yaw"] - net + math.pi * 3) % (math.pi * 2) - math.pi)
+
+    rows6 = []
+    for s in segs:
+        n, start, toss, hitter = s[0], s[1], s[3], s[4]
+        k = idx[hitter]
+        t = traj[k]
+        i = near(k, start + toss)
+        p = t[i]
+        j = near(k, start + toss - 1.2)
+        ax, az = p["x"] - t[j]["x"], p["z"] - t[j]["z"]
+        app = math.hypot(ax, az)
+        hit = next((q["T"] - (start + toss) for q in t[i:] if abs(err(q)) <= 20), None)
+        r = near(k, start + toss + 1.2)
+        rx, rz = t[r]["x"] - p["x"], t[r]["z"] - p["z"]
+        rec = math.hypot(rx, rz)
+        ang = None
+        if app > 0.5 and rec > 0.5:
+            ang = math.degrees(math.acos(max(-1.0, min(1.0, (ax * rx + az * rz) / (app * rec)))))
+        rows6.append({"n": n, "who": hitter, "err0": err(p), "hit": hit, "err12": err(t[r]),
+                      "errn0": err_net(p), "errn12": err_net(t[r]),
+                      "rec": rec, "ang": ang, "x": p["x"], "z": p["z"]})
+        print(f"  shot {n:2d} {hitter:8s} at {p['x']:6.1f},{p['z']:5.1f} err@contact {err(p):+6.0f}deg"
+              f" ({err_net(p):+4.0f} to the net)"
+              f" | within 20deg after {('%5.2fs' % hit) if hit is not None else '  never'}"
+              f" | err at +1.2s {err(t[r]):+6.0f}deg | recovery {rec:5.2f}ft"
+              f" {('at %3.0fdeg to the way in' % ang) if ang is not None else ''}")
+    if not rows6:
+        return
+    worst = max(rows6, key=lambda w: abs(w["err0"]))
+    late = max((w["hit"] for w in rows6 if w["hit"] is not None), default=0.0)
+    moved = [w for w in rows6 if w["rec"] > 1.0]
+    print(f"\n  the facing at contact is off the middle by {worst['err0']:+.0f}deg at worst (shot {worst['n']}),"
+          f" and within 20deg {late:.2f}s after it at worst")
+    wn = max(rows6, key=lambda w: abs(w["errn0"]))
+    print(f"  SQUARE TO THE NET, which is the restated done-test: {wn['errn0']:+.0f}deg at worst (shot {wn['n']}),"
+          f" median {sorted(abs(w['errn0']) for w in rows6)[len(rows6) // 2]:.1f}deg,"
+          f" over 5deg on {sum(1 for w in rows6 if abs(w['errn0']) > 5)} of {len(rows6)},"
+          f" over 20deg on {sum(1 for w in rows6 if abs(w['errn0']) > 20)}")
+    print(f"  on the {len(moved)} shots that end in a recovery of more than 1ft: over 20deg off the middle 1.2s later"
+          f" on {sum(1 for w in moved if abs(w['err12']) > 20)} of them,"
+          f" worst {max(abs(w['err12']) for w in moved):.0f}deg"
+          f" — those are the ones whose body is still facing the way it is running")
+    retrace = [w for w in moved if w["ang"] is not None and w["ang"] < 30]
+    print(f"  and the recovery retraces the way in (under 30deg between the two) on {len(retrace)} of them:"
+          f" {[w['n'] for w in retrace]}")
+    app_wide = [w for w in rows6 if abs(w["z"] - CEN[1]) >= 3.0]
+    print(f"  of the {len(app_wide)} shots struck from more than 3ft off the centre line, the facing at contact is"
+          f" off the middle by a median of"
+          f" {sorted(abs(w['err0']) for w in app_wide)[len(app_wide) // 2]:.0f}deg")
 
 
 if __name__ == "__main__":

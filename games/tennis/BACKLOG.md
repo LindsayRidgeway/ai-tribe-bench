@@ -130,6 +130,30 @@ the run ended the unsorted list handed the walk the stance's `to` instead of the
 18.91ft. The 0.42ft that remains is 21ft/s, a sprint. `TestThePlanIsInTimeOrder` holds the sort, the order of the
 pushes that makes it necessary, and the numbers.
 
+**AND THE SAME DEFECT ONE LAYER DOWN: two moves that OVERLAP (FIXED 2026-11-26).** Sorting makes a plan walkable;
+it does not make it true per frame. `whereAt` answers one move per frame and walks in order, so an overlapping pair
+was read as *the first move until its own `t1`, and then the second move's `to`* — the second had already finished
+by then. Measured on the same film, which is now 9,201 frames because the clock has played six more sessions:
+
+| `seasons/2026-11-19/watch.json`, 9,201 frames, 66 shots | biggest one-frame move | frames over 25ft/s |
+|---|---|---|
+| a move ends at its own `t1` | **5.13ft** at T=180.60 | 2 |
+| a move ends no later than the next begins | **0.86ft** at T=77.84 | 41 |
+
+The 5.13ft case is Colette running 33.6ft forward to a volley `[178.41,180.60]`, reaching to `[43.46,8.44]` inside
+it at `[179.87,180.37]`, and recovering from 180.53: at T=180.60 the body went from `[45.98,13.45]` to
+`[43.68,8.87]` — 5.13ft in one 0.02s frame, **256ft/s**. The plan is now normalised once, after the last push: a
+move ends no later than the next one begins, it ends where that leaves it (interpolated, not re-timed — a run cut
+short that still had to reach its `to` would have to sprint), and the next move starts from that point rather than
+from its own `from`, which is what a lunge means.
+
+**The 41 frames over 25ft/s are the record's fault, not the picture's, and they are item 31.** They sit at three
+moments (T≈77.8, 179.2, 180.5). At 77.8, Colette's recovery from an approach is timed to cover 36ft at 14.8ft/s —
+2.44s — while the opponent's ball comes back in 1.56s. The record's own `recover.in_time` says `false`, and then the
+run to the ball is measured from a start point the player never reached: 13.6ft in the 0.48s of flight that is
+left, 28ft/s. The rendering is now continuous and too fast; the fix is for the record to abandon a recovery the
+ball has already interrupted, and that changes the engine's own physics, so it gets a measured season of its own.
+
 ## Item 29 — the clock will cast two PARTICIPANTS again unless the setup is stopped (FIXED 2026-11-26)
 
 Found while the clock was playing. `seasons/2026-11-19/setup.json` asserts `"sex": "female"` for Gwen and `"male"`
@@ -359,13 +383,101 @@ covered and the ground covered starts at zero. **The done-test should be restate
 travel is towards the body's +lateral side), not another foot revision. Written as **item 4b**.
 
 ## Item 5 — brake
+
+**A CORRECTION, 2026-11-26: the number reported here was measured on the wrong body.** `lab/tennis_sweep.py` mapped
+`debug plan`'s key order onto the sweep row's columns, and the plan's order is not the players' order — on this film
+the plan is `[Colette, Gwen]` and the columns are `[Gwen, Colette]`. With two players, everything that reports "the
+other one" survives the swap, so item 4's answer stands; item 5 reports the NAMED player, and its
+"median 0.50ft/s at contact" was the RECEIVER's speed. The striker's own, measured 2026-11-26 on the same film with
+the mapping read off the log's own `isHitter` flag:
+
+| | median | max | over 30ft/s |
+|---|---|---|---|
+| what was reported (the receiver) | 0.50ft/s | 2.75ft/s | 0 of 66 |
+| the striker, actually | **1.82ft/s** | **10.68ft/s** (shot 53) | **0 of 66** |
+
+The done-test survives it: nobody strikes while sliding at a sprint, and the five fastest contacts are 10.68, 9.65,
+9.03, 8.00 and 7.25ft/s. But 1.8ft/s is a walking pace at the moment of the strike, which is the "pause that doesn't
+occur in real life" the founder named on 2026-11-12, and it is worth a look of its own rather than a victory lap.
+`TestTheTurnBack.test_the_reader_maps_the_columns_to_the_players_by_measurement` holds the reader's fix.
 - **Done-test:** root speed at the contact frame is under 0.5 ft/frame for a shot reached at a run,
   i.e. the body is not still sliding when it hits. **Number:** peak speed and contact speed per shot.
 
-## Item 6 — turn-back
-- **Done-test:** after the shot, the figure's facing is back towards the centre of the court within
-  1.2 s, and the recovery run does not cross the shot's own path. **Number:** seconds to re-face, per
-  shot; the fraction with a crossed path (target 0).
+## Item 6 — turn-back (MEASURED 2026-11-26; the done-test is restated, and one fix is in)
+
+**The done-test as written could not fail.** "The facing is back towards the centre of the court within 1.2s" is
+true by construction whenever a body is standing still, because the page already faces a still body at the net and
+the net is within a few degrees of the centre line from everywhere except the corners. Measured with `?sweep` on
+`seasons/2026-11-19` (9,201 frames, 66 shots), facing read against the line from the body to the middle of the
+court (39, 13.5):
+
+| | value |
+|---|---|
+| seconds to be within 20deg of the middle, after the contact | **0.04s** at worst, 0.00s on most shots |
+| the facing ON the contact frame, off the middle | **26deg** at worst (shot 46), 8deg median on the 14 shots struck from more than 3ft off the centre line |
+| of the 34 shots ending in a recovery of more than 1ft, facing over 20deg off the middle 1.2s later | 3, worst **98deg** |
+| of those 34, the recovery going back within 30deg of the way in | 6 |
+
+So: 3 of the 34 recoveries run 98deg off the middle, and 6 of the 34 go back the way they came.
+
+**What that says.** The 0.04s is the vacuous half. The 26deg was real, and it was NOT the striking window's — it
+was `shotAt`'s. The page picked the FIRST segment whose window contained the time, and a serve's segment starts
+0.84s before its own contact, inside the previous point's break, so the striker was still finishing the previous
+point's watch at the frame she struck. 16 of the 26 serves in the same film never drew their toss from the same
+bug. Taking the latest segment that has started, measured on the same season against the same measure (square to
+the net, on the contact frame):
+
+| | before: the first segment whose window contains the time | after: the latest segment that has started |
+|---|---|---|
+| facing at the contact, off square to the net | **26deg** at worst (shot 46); 9 of 66 over 5deg; 1 over 20deg | **15deg** at worst (shot 44); 7 of 66 over 5deg; **0 over 20deg** |
+| serves whose toss is never drawn | 16 of 26 | **0 of 26** |
+
+**`SQUARE_UP` IS NOT WHAT FIXED IT, and on this film it does nothing at all.** `SQUARE_UP = 0.35` before the
+contact and `SQUARE_AFTER = 0.45` after it replace `tl < 0.45`, so that a striker ARRIVING at a run turns to the
+net during her backswing instead of while the ball is leaving. But a sweep with `?square=5` — a window fifteen
+times wider than the default — is frame-for-frame identical to the default run (the whole item-6 table, `diff`ed:
+nothing), because no striker in this record is moving when she strikes: she is standing, or she is already running
+at the net. So the window is UNMEASURED here, it is kept because an arriving striker is the case it guards, and
+`?square=` is how it will be measured on a film that contains one. **The lesson is the same one item 5 taught:
+a number that moves is not evidence that the change you made is the change that moved it.**
+
+**Why the measure changed from the middle of the court to the net.** Two shots (28, 63) are struck from four feet
+PAST the net, and from there "the middle of the court" is behind the striker, so the centre-based number reports
+45-52deg for a body that is square to the net — it got *worse* after the fix for that reason alone. The restated
+done-test is about the net, so the number is too.
+
+**The 3 shots at 98deg and the 6 retraces are NOT defects, and the done-test's second half is wrong as written.**
+The body faces the direction of travel — the founder, 2026-11-11, verbatim: *"From any other stroke, the player will
+turn their body in the direction that they are running."* A recovery that runs sideways therefore faces sideways,
+and a wide ball's way back IS the way in, so "the recovery does not cross the shot's own path" describes a
+side-step a tennis player does not take. The number to hold is the facing at the contact; the recovery is left to
+the instruction.
+
+- **Restated done-test:** the facing ON the contact frame is within 15deg of square to the net on every shot and
+  within 5deg on 59 of 66 (the film is now 15deg at worst, 0 of 66 over 20deg), and no body turns more than 30deg
+  within 0.1s of a contact. **Number:** the worst facing error at a contact, per film, printed by the reader as
+  `SQUARE TO THE NET`.
+
+## Item 31 — a recovery the ball has already interrupted (OPEN 2026-11-26, and it changes the engine)
+
+Found while removing the last 5ft pop from the plan (item 2b). The record gives the player who has just hit a
+recovery — from the contact to `recovery_spot()`, over `min(2.5s, distance/speed)` — and it advances
+`where[hitter]` by the WHOLE of it, whatever the opponent's ball is doing. On `seasons/2026-11-19`, shot 26:
+Colette hits an approach from [82,13.5], recovers 36ft to [46,13.5] at 14.8ft/s (2.44s), and the ball comes back in
+1.56s. The record's own `recover.in_time` is `false` — it knows — and then it puts her at [46,13.5] anyway, so the
+run to the next ball is measured from a place she never reached: 4.96ft of it is recorded, and the 13.6ft she
+actually had to cover is left to the picture, which runs it at 28ft/s (41 frames over 25ft/s, all at two shots).
+
+**The fix, and why it is not a picture fix.** `where[hitter]` should advance by `min(t_rec, traj["time"])`: a player
+whose approach shot is answered before they get in is caught in the middle of the court, which is exactly the risk an
+approach shot takes and exactly what the founder's 2026-11-11 rule (*"the court in front of the baseline is never
+used by good players to receive the next shot"*) is about. But that changes where the engine thinks the receiver is
+standing, so it changes reachability, in-play percentages and rally lengths — the season's numbers. It needs its own
+before/after season, not a quiet edit inside a renderer turn.
+
+- **Done-test:** no plan move in a film needs more than 26ft/s at any frame (the smoothstep peak is 1.5x the mean),
+  measured with `?sweep` and `lab/tennis_sweep.py`'s "frames over 25ft/s". **Number:** frames over 25ft/s per film,
+  and the two shots (26, 44) that carry the 41 today.
 
 ## Item 7 — the scoreboard (his spec, 2026-11-11)
 Two rows: Sets, Games, Points — with 0/15/30/40/AD and "Game" for the row that takes it, written up in
@@ -1067,6 +1179,30 @@ disagree with the strike about where the ball was.
 **The test that makes it safe:** switch `TOSS_PEAK` to 0 and build the same film again. Every serve's `contact`, `v0`,
 `land` and `path` are identical, and every groundstroke in the film is untouched. A toss that moved the ball would be
 a second physics, and this engine has paid for that once.
+
+**...AND IT WAS BUILT BUT NEVER SEEN — FIXED 2026-11-26.** Every word above was true of the record and none of it
+reached the screen, because `shotAt` returned the FIRST segment whose `[start, start+dur+hold)` contained the time
+and those windows overlap by construction: a point's break runs past the instant the next serve's toss begins, so the
+break won every time. Measured on `seasons/2026-11-19` (66 shots, 26 serves), counting the first frame at which a
+serve's own segment is the one being drawn:
+
+| | serves whose toss is never drawn |
+|---|---|
+| the first segment whose window contains the time | **16 of 26** |
+| the latest segment that has started | **0 of 26** |
+
+So on 16 serves the ball appeared at the contact, from nothing, and the body was still finishing the previous point's
+watch at the frame it struck — which is the 26deg facing error item 6 had been chasing, seen from the other end. Two
+changes: `shotAt` takes the latest segment that has started (a film is a timeline; a hold is the room a segment was
+given, not a claim on the next one's frames), and the break that precedes a serve is extended by the next shot's own
+stance lead, read off the record (`const room = Math.max(0.75, lead + 0.05)`) instead of the hard-coded 0.75, so the
+walk back still finishes before the toss begins. `debug segs` now ends with each segment's window end and there is a
+`debug film` line, because the question is about two overlapping windows and a log should carry the windows.
+
+**And `debug film` was itself wrong on the first run** — printed from `T0`, which is the frame timer and is reassigned
+on every frame, so it reported the last frame's `performance.now()` as the start of the film (`[142, 184]` on a
+184-second film). It is `SEG[0].start` now, and a test holds it.
+`TestAServeIsDrawnFromItsToss` holds it.
 
 **What changed in the picture.** A serve's segment now begins at the release rather than at the strike (its start
 moves back by the toss and its duration grows by it, so nothing after it moves), and everything that belongs to the

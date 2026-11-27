@@ -914,8 +914,10 @@ const WINPOS = {};
   // started at t=0.8 would begin in the middle of it, with negative time on the clock.
   let t = 1.7;
   let rallySeen = 0;
+  let si = -1;                 // the shot's own index, because the NEXT shot's stance decides this one's hold
   const lastNorth = {};
   for (const sh of D.shots) {
+    si += 1;
     if (sh.rally !== rallySeen) {                    // first shot of a new rally: has anyone changed ends?
       const r = D.rallies.find(x => x.rally === sh.rally) || {};
       for (const name in (r.ends || {})) {
@@ -986,7 +988,17 @@ const WINPOS = {};
       // 0.75 and not 0.35: the next point's own walk to the service line starts 0.6s before its first frame, so
       // the break has to end after the walk back does or the two moves overlap and the body is placed rather
       // than walked — measured, a 0.99ft step at every one of the film's sixteen ordinary breaks.
-      hold = Math.max(hold, rr.settle.dur + 0.75);
+      // AND IT IS THE RECORD'S OWN LEAD, NOT A NUMBER HERE (2026-11-26). The next point begins with a serve, and a
+      // serve's stance starts before the contact — 0.6s before it when this was written, 1.44s from the record of
+      // 2026-11-26, because a server walks to the line and THEN throws the ball up rather than tossing it on the
+      // way. Reading `t0` off the next shot's own stance means the break is as long as the walk into it and not a
+      // guess that goes stale the next time the record's timing changes. `0.75` stays as the floor, so a film
+      // recorded before this keeps the break it was recorded with.
+      const nxt = D.shots[si + 1];
+      const nxtStance = nxt ? (Array.isArray(nxt.stance) ? nxt.stance : (nxt.stance ? [nxt.stance] : [])) : [];
+      const lead = nxtStance.length ? Math.max(...nxtStance.map(m => -m.t0)) : 0;
+      const room = Math.max(0.75, lead + 0.05);
+      hold = Math.max(hold, rr.settle.dur + room);
       seg.hold = hold;
     }
     t += dur + hold;
@@ -1008,6 +1020,35 @@ const WINPOS = {};
      and then appeared at the run's `from` of [82,13.5] in one frame, and when the run finished the same unsorted
      list handed the scan the stance's `to` instead of the settle's route, which is the 18.91ft. */
   for (const name of Object.keys(PLAN)) PLAN[name].sort((a, b) => a.t0 - b.t0);
+
+  /* AND A LATER MOVE OWNS ITS OWN FRAMES, AND STARTS WHERE THE LAST ONE GOT TO (2026-11-26). Two moves for the same
+     player can overlap in the record, and they are supposed to: a run to a ball, a lunge inside the last half-second
+     of it, a recovery from the moment of the strike. `whereAt` can only answer one of them per frame, and it walks
+     the list in order, so an overlapping pair used to be read as *the run until its own t1, and then the lunge's
+     `to`* — because by the time the run ended the lunge had already finished. Measured on the clock's own film
+     (`seasons/2026-11-19`): Colette ran 33.6ft forward at [178.41,180.60], reached to [43.46,8.44] inside it at
+     [179.87,180.37], and recovered from 180.53, and at T=180.60 the body went from [45.98,13.45] to [43.68,8.87]
+     — **5.13ft in one 0.02s frame, 256ft/s**. Two frames over 25ft/s, both this.
+
+     So the plan is normalised once, after the last push, in three parts: a move ENDS no later than the next one
+     begins; it ends wherever that leaves it (interpolated, not re-timed — a clipped run that still had to reach its
+     `to` would have to sprint); and the next move begins from that point rather than from its own `from`, which is
+     what the record meant in the first place — a lunge starts from the body, not from a coordinate. When nothing
+     overlaps, all three parts are the identity, which is why every other move in the film is unchanged. */
+  for (const name of Object.keys(PLAN)) {
+    const seq = [];
+    for (let i = 0; i < PLAN[name].length; i++) {
+      const m = PLAN[name][i];
+      const next = PLAN[name][i + 1];
+      const end = Math.min(m.t1, next ? next.t0 : Infinity);
+      const from = seq.length ? seq[seq.length - 1].to : m.from;
+      const u = Math.max(0, Math.min(1, (end - m.t0) / Math.max(0.05, m.t1 - m.t0)));
+      const k = u * u * (3 - 2 * u);
+      const to = end >= m.t1 ? m.to : [from[0] + (m.to[0] - from[0]) * k, from[1] + (m.to[1] - from[1]) * k];
+      seq.push({ ...m, from, to, t1: end });
+    }
+    PLAN[name] = seq;
+  }
 }
 
 /* Where a player is at time T. The record says where each run began and ended and how long it took; there is
@@ -1163,6 +1204,16 @@ const STRIDE_OUT = 0.20;    // and seconds for it to shrink back into it at the 
 // half a cycle is the other leg, which is the same as no offset at all with the phase reversed.
 const NEAR_LEAD = (q.has("near") ? Math.sign(parseFloat(q.get("near")) || 0) : 1) * Math.PI / 2;
 const NEAR_GATE = 0.15;     // a run less sideways than this has no near foot: it is straight ahead
+/* HOW LONG THE BODY IS SQUARE TO THE NET (item 6). Not a preference: the founder's instruction of 2026-11-11 is
+   that a body turns to the direction it is running, with three exceptions, and *striking* is one of them. The
+   question this constant answers is WHEN striking starts. It used to start at the contact — `tl < 0.45`, where `tl`
+   counts from the segment, and a rally shot's segment begins at the strike. So a striker still moving when the ball
+   arrived was facing her run at the frame of the contact and turned to the net over the next 0.1s, which is a
+   26deg snap at the one instant the eye is on the strings. `SQUARE_UP` starts the turn that many seconds BEFORE the
+   contact, which is the backswing; `SQUARE_AFTER` still ends it, so the recovery run that follows is a run in its
+   own direction like any other. `?square=` re-measures it rather than re-arguing it (0 = the old behaviour). */
+const SQUARE_UP = q.has("square") ? Math.max(0, parseFloat(q.get("square")) || 0) : 0.35;
+const SQUARE_AFTER = 0.45;  // seconds after the contact the body is still square: the finish of the stroke
 const SPLIT_DIP = 0.15;      // ft the whole body drops
 const SPLIT_LAG = 0.00;      // s after the opponent's contact before it starts
 const SPLIT_DUR = 0.28;      // s from start to standing again; the peak is at half of it, 0.14s after contact
@@ -1219,8 +1270,20 @@ const GROUND = q.has("ground") ? q.get("ground") !== "0" : true;
 const GROUND_MAX = 0.75;
 
 function shotAt(t) {
-  for (const s of SEG) if (t >= s.start && t < s.start + s.dur + s.hold) return s;
-  return SEG[SEG.length - 1];
+  // THE SEGMENT THAT STARTED LATEST IS THE ONE BEING PLAYED (2026-11-26). This used to return the first segment
+  // whose [start, start+dur+hold) contained t, and those windows OVERLAP: a serve's segment starts a toss (0.84s)
+  // before its contact, and the break of the point before it runs past that instant, so the break won and the
+  // toss was never drawn. Measured on the clock's own film (`seasons/2026-11-19`, 66 shots, 26 serves): the ball
+  // appeared at the contact on **16 of 26 serves** — half the serves in the film arrived from nowhere, and the
+  // body was still finishing the previous point's watch at the frame it struck, which is the 26deg facing error
+  // item 6 had been chasing. A film is a timeline, so the later start wins; the hold is the earlier segment's
+  // room to breathe, not a claim on the other one's frames.
+  let found = SEG[0];
+  for (const s of SEG) {
+    if (t < s.start) break;
+    found = s;
+  }
+  return found || SEG[SEG.length - 1];
 }
 
 /* ---------- per-frame ---------- */
@@ -1349,7 +1412,9 @@ function tick(now) {
     // So: turn towards the direction of travel, except in the one case where backing up is the shot — moving
     // away from the net while standing on the middle of the baseline — and except while striking, where the body
     // is square to the net by definition. The turn is rate-limited, because a body turning 90 degrees in one
-    // frame is a puppet on a stick.
+    // frame is a puppet on a stick. "While striking" runs from SQUARE_UP before the contact to SQUARE_AFTER after
+    // it (item 6): the striking window used to open AT the contact, so a striker arriving at a run turned her body
+    // to the net during the ball's departure and not during her backswing.
     const netYaw = at ? Math.PI / 2 : -Math.PI / 2;
     let yaw = netYaw;
     if (sh.watch && sh.watch.player === pl.name && !moving && tl > sh.watch.t1) {
@@ -1357,7 +1422,7 @@ function tick(now) {
       // has let one go watches it land. `ballPos` is the ball's own drawn position, so the turn follows the
       // flight rather than pointing at the bounce mark in advance.
       yaw = Math.atan2(ballPos.x - pos[0], ballPos.z - pos[1]);
-    } else if (moving && dir && !(sh.player === pl.name && tl < 0.45)) {
+    } else if (moving && dir && !(sh.player === pl.name && tlc > -SQUARE_UP && tlc < SQUARE_AFTER)) {
       const towardNet = at ? 1 : -1;
       const along = dir[0] * towardNet;                       // > 0 is towards the net
       const onTheMiddle = Math.abs(pos[1] - WID / 2) < 6.0 &&
@@ -1412,7 +1477,7 @@ function tick(now) {
         "local", (local || 0).toFixed(2), "grow", grow.toFixed(3), "phase", phase.toFixed(2), "near", near);
     if (q.has("debug")) console.log("debug yaw", pl.name, "moving", moving,
       "dir", dir ? dir.map(v => v.toFixed(2)).join(",") : "-", "yaw", (rig.root.rotation.y).toFixed(2),
-      "net", (at ? Math.PI / 2 : -Math.PI / 2).toFixed(2));
+      "net", (at ? Math.PI / 2 : -Math.PI / 2).toFixed(2), "tlc", tlc.toFixed(2), "hitter", sh.player === pl.name ? 1 : 0);
     if (q.has("debug")) console.log("debug legs", pl.name, "moving", moving, "travelled", travelled.toFixed(2),
       "phase", phase.toFixed(2), "thigh", rig.bones["thighL"] ? rig.bones["thighL"].rotation.x.toFixed(3) : "MISSING");
     // Whose ball is it? The hitter struck at this segment's first frame, so the swing is already past contact and
@@ -2010,7 +2075,12 @@ if (q.has("sweep")) window.__sweep = () => {
   console.log("debug segs", JSON.stringify(SEG.map(s => [s.sh.n, +s.start.toFixed(2), +s.dur.toFixed(3),
     +(s.tossDur || 0).toFixed(3), s.sh.player,
     s.sh.run ? [+s.sh.run.dist.toFixed(2), s.sh.run.from[0], s.sh.run.from[1],
-                s.sh.run.to[0], s.sh.run.to[1]] : null])));
+                s.sh.run.to[0], s.sh.run.to[1]] : null,
+    // when this segment's hold ends, so that "which segment is being played" can be recomputed from the record
+    // rather than read off the frames — the toss question of 2026-11-26 is a question about two overlapping windows
+    +((s.start + s.dur + s.hold).toFixed(2))])));
+  console.log("debug film", JSON.stringify([+SEG[0].start.toFixed(2), +(SEG[SEG.length - 1].start + SEG[SEG.length - 1].dur
+    + SEG[SEG.length - 1].hold).toFixed(2)]));
   // And the plan itself, because "why is this body here" is answered by the move whose window T is inside, and
   // the one thing a row cannot say is WHICH move put it there. Printed once, before the rows.
   console.log("debug plan", JSON.stringify(Object.keys(PLAN).map(n => [n, (PLAN[n] || []).map(m =>

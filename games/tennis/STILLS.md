@@ -157,6 +157,21 @@ offset separates them by up to 2.6ft.
 window, the distance into the move, `grow`, the phase and the near-side sign. It is how item 2b's remainder was found,
 and it is the only instrument here that can say why a body is where it is in the frame it stops.
 
+**7. `debug plan`'s KEY ORDER IS NOT THE ROW'S COLUMN ORDER, and mapping one to the other silently renames the
+players.** The plan is filled as the settle moves are pushed, in whatever order they are pushed; `D.players` order is
+the film's. On `seasons/2026-11-19` the plan is `[Colette, Gwen]` and the columns are `[Gwen, Colette]`. With two
+players, anything that reports "the other one" survives the swap — which is why item 4's answer stood — and anything
+that reports the NAMED player does not: item 5's "the striker's root speed at contact, median 0.50ft/s" was the
+RECEIVER's, and the striker's own is 1.82ft/s. The mapping is now read off the log's own `isHitter` flag
+(`tennis_sweep.order()`), and every column must claim exactly one name or the reader refuses.
+
+**8. A segment's `hold` is the room it was given, not a claim on the next segment's frames.** `shotAt` used to return
+the first segment whose `[start, start+dur+hold)` contained the time, and a serve's segment starts a toss (0.84s)
+before its contact — inside the break of the point before it. So the break won and **16 of 26 serves in the film never
+drew their toss**: the ball appeared at the contact, from nothing. The later start wins now. `debug segs` carries each
+segment's window end as a seventh field and `debug film` carries the film's end, so the overlap can be recomputed from
+one log instead of being inferred from where a body was.
+
 The measurement this produced, `?sweep=0:18:0.02&ground=0|1` over `seasons/2026-11-19/watch.json` (901 frames):
 
 | | both toes > 0.10ft | samples within 0.05ft | median toe | max |

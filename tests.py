@@ -6782,6 +6782,116 @@ class TestTheFilmIsTheSession(unittest.TestCase):
         self.assertEqual(list(self.tmp.iterdir()), [], "a preview wrote into a season folder")
 
 
+class TestAServeIsDrawnFromItsToss(unittest.TestCase):
+    """Item 19's remainder, 2026-11-26: the toss was in the record for a week and never on the screen.
+
+    `shotAt` returned the FIRST segment whose `[start, start+dur+hold)` contained the time, and those windows overlap
+    by construction — a point's break runs past the instant the next serve's toss begins — so the break won and 16 of
+    26 serves in `seasons/2026-11-19` were drawn from a contact with no ball before it. A film is a timeline, so the
+    segment that is being drawn is the latest one that has STARTED. The second half is the break that has to make
+    room for the next shot's own stance lead, or the walk back is drawn over the toss."""
+
+    def setUp(self):
+        self.page = (REPO / "games" / "tennis" / "replay3d.html").read_text(encoding="utf-8")
+        self.tool = (REPO / "lab" / "tennis_sweep.py").read_text(encoding="utf-8")
+        self.backlog = (REPO / "games" / "tennis" / "BACKLOG.md").read_text(encoding="utf-8")
+
+    def test_the_segment_being_drawn_is_the_latest_that_has_started(self):
+        self.assertIn("if (t < s.start) break;", self.page,
+                      "shotAt no longer walks forward to the last segment that has begun")
+        self.assertNotIn("t < s.start + s.dur + s.hold", self.page,
+                         "shotAt is back to the first window that contains the time")
+
+    def test_the_break_before_a_point_makes_room_for_the_next_stance(self):
+        self.assertIn("const room = Math.max(0.75, lead + 0.05);", self.page,
+                      "the break before a point is a hard-coded 0.75s again, so a toss is drawn over the walk back")
+
+    def test_the_log_carries_the_windows_and_the_film(self):
+        self.assertIn("+((s.start + s.dur + s.hold).toFixed(2))", self.page,
+                      "debug segs no longer prints each segment's window end")
+        self.assertIn("debug film", self.page, "there is no debug film line")
+        # `debug film` was printed from T0, which is the frame timer and is reassigned every frame, so it reported
+        # the last frame's clock as the film's start. It is the first segment's start now.
+        self.assertIn("SEG[0].start.toFixed(2)", self.page, "debug film is printed from the frame timer again")
+        self.assertNotIn("T0.toFixed(0), +(SEG[SEG.length - 1]", self.page,
+                         "debug film reports performance.now() as the start of the film")
+
+    def test_the_reader_counts_the_tosses_it_cannot_see(self):
+        self.assertTrue("serves whose toss is never drawn" in self.tool,
+                        "the reader cannot count the tosses")
+        self.assertTrue("start <= r[0] < start + toss" in self.tool,
+                        "the reader does not test a frame against the segment's own toss window")
+        self.assertTrue("16 of 26" in self.backlog and "**0 of 26**" in self.backlog,
+                        "the backlog does not carry both sides of the toss count")
+
+
+class TestAnOverlappingPlanIsWalkedAndNotJumped(unittest.TestCase):
+    """Item 2b's follow-up, 2026-11-26: 5.13ft in one 0.02s frame is 256ft/s, and no body does that.
+
+    Two moves for the same player overlapped in the record, so `whereAt` read the first until its own `t1` and then
+    the second's `to`, which had already finished. The first attempt clipped inside `whereAt` and made it worse —
+    it changed the coordinate frame in the middle of a move — so the clip is a normalisation pass over the sorted
+    plan: each move ends no later than the next begins, the clipped `to` is interpolated rather than re-timed, and
+    `from` is taken from the previous entry so the walk is continuous."""
+
+    def setUp(self):
+        self.page = (REPO / "games" / "tennis" / "replay3d.html").read_text(encoding="utf-8")
+        self.backlog = (REPO / "games" / "tennis" / "BACKLOG.md").read_text(encoding="utf-8")
+
+    def test_the_plan_is_sorted_then_clipped_then_chained(self):
+        self.assertIn("const end = Math.min(m.t1, next ? next.t0 : Infinity);", self.page,
+                      "a move is no longer clipped to the next one's start")
+        self.assertIn("const from = seq.length ? seq[seq.length - 1].to : m.from;", self.page,
+                      "a move no longer starts where the previous one ended")
+        self.assertIn("PLAN[name] = seq;", self.page, "the normalised sequence is thrown away")
+        self.assertIn("const to = end >= m.t1 ? m.to : [from[0] + (m.to[0] - from[0]) * k,", self.page,
+                      "a clipped move is re-timed rather than interpolated")
+
+    def test_the_numbers_are_in_the_record(self):
+        for piece in ("5.13", "0.86", "33.6ft", "14.8ft/s"):
+            self.assertTrue(piece in self.backlog, f"{piece} is not in backlog item 2b")
+        self.assertTrue("item 31" in self.backlog.lower(),
+                        "the 41 frames the fix did not remove are not attributed to item 31")
+
+
+class TestTheTurnBack(unittest.TestCase):
+    """Item 6, 2026-11-26. Two claims were wrong and the second was wrong because of the first.
+
+    (1) The done-test "facing back towards the centre within 1.2s" is true by construction on a still body: the page
+    already faces a still body at the net. (2) The 26deg facing error at a contact was NOT the striking window's. It
+    was `shotAt`'s — the body was still in the previous point's watch — and the same bug cost 16 of 26 tosses. A
+    sweep with `?square=5`, a window fifteen times wider than the default, is frame-for-frame identical to the
+    default, which is the evidence that `SQUARE_UP` is unmeasured on this film rather than the cure. The restated
+    done-test is square to the NET, because two shots are struck from past the net where "the middle of the court"
+    is behind the striker."""
+
+    def setUp(self):
+        self.page = (REPO / "games" / "tennis" / "replay3d.html").read_text(encoding="utf-8")
+        self.tool = (REPO / "lab" / "tennis_sweep.py").read_text(encoding="utf-8")
+        self.backlog = (REPO / "games" / "tennis" / "BACKLOG.md").read_text(encoding="utf-8")
+
+    def test_the_striking_window_opens_before_the_contact(self):
+        self.assertIn('const SQUARE_UP = q.has("square")', self.page, "the striking window has no knob")
+        self.assertIn("tlc > -SQUARE_UP && tlc < SQUARE_AFTER", self.page,
+                      "the striking window opens at the contact again")
+        self.assertNotIn("sh.player === pl.name && tl < 0.45", self.page,
+                         "the old window that opened at the contact is back")
+
+    def test_the_reader_reports_square_to_the_net(self):
+        self.assertTrue("SQUARE TO THE NET" in self.tool, "the reader does not report the restated done-test")
+        self.assertTrue("def err_net(" in self.tool, "there is no net-facing measure in the reader")
+
+    def test_the_backlog_says_which_change_moved_the_number(self):
+        for piece in ("0.04s", "26deg", "8deg", "6 of the 34", "98deg", "15deg"):
+            self.assertTrue(piece in self.backlog, f"{piece} is not in the backlog entry for item 6")
+        self.assertTrue("IS NOT WHAT FIXED IT" in self.backlog,
+                        "the backlog still credits SQUARE_UP with the facing fix")
+        self.assertTrue("?square=5" in self.backlog,
+                        "the backlog does not carry the measurement that shows the window is inert here")
+        self.assertTrue("could not fail" in self.backlog,
+                        "the vacuous half of the old done-test is not named")
+
+
 class TestPickleball(unittest.TestCase):
     """The second sport: the rules that are not tennis's, and the ball that is not a tennis ball.
 
