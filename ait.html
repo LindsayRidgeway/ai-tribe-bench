@@ -6348,10 +6348,15 @@ async function loadGolf(){
         <th>against the frozen player</th><th>believes its hands</th><th>notebook error</th></tr>
         ${rows}
       </table></div>
-      <div class="row" style="margin:16px 0 0;align-items:center">
+      <div class="grid two" style="margin:16px 0 0">
+        <div><label>Rounds of nine</label><input id="golfrounds" type="number" value="4" min="2" max="12" step="1"></div>
+        <div><label>Practice sessions each</label><input id="golfbags" type="number" value="4" min="2" max="8" step="1"></div>
+      </div>
+      <div class="row" style="margin-top:12px;align-items:center">
         <button class="primary" id="golfplay" onclick="playGolfSeason()">Play a season in this circle</button>
-        <span class="small muted" id="golfmsg">about three minutes on this circle's own runner; it writes
-        <code>games/golf/renders/</code> and these become your circle's numbers, not the project's. A circle made
+        <span class="small muted" id="golfmsg">about three minutes at four rounds and four practice sessions,
+        and longer as either goes up; it runs on this circle's own machine and writes
+        <code>games/golf/renders/</code>, so these become your circle's numbers, not the project's. A circle made
         before golf gets the four files it is missing first, and then plays.</span>
       </div>
       <p class="small" style="margin:14px 0 0">${verdict}</p>
@@ -6437,7 +6442,20 @@ async function playGolfSeason(){
       ? `${fix.wrote.length} file${fix.wrote.length === 1 ? '' : 's'} added — this circle was made before golf. Sending…`
       : 'sent to this circle\'s runner…';
     const since = Date.now();
-    await dispatch('golf.yml', {rounds: '4', bags: '4', seed: String(Math.floor(Date.now() / 1000)), calm: 'wind'});
+    // What the two fields ask for, clamped rather than trusted: the engine needs two rounds before there is a
+    // before and an after, one practice session has no error bar to draw, and a number typed as a thousand would
+    // sit in a runner's queue for the rest of the month. The ranges are the same ones the workflow's own form
+    // offers, so a person who uses either sees the same game.
+    const clamp = (id, lo, hi, dflt) => {
+      // An empty field is the default, not zero: `Number('')` is 0 and would be clamped to the low end, which is
+      // the wrong answer to "a person has not typed anything yet".
+      const raw = String((($(id) || {}).value ?? '')).trim();
+      const n = raw === '' ? NaN : Math.round(Number(raw));
+      return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : dflt;
+    };
+    const rounds = clamp('golfrounds', 2, 12, 4), bags = clamp('golfbags', 2, 8, 4);
+    await dispatch('golf.yml', {rounds: String(rounds), bags: String(bags),
+                                seed: String(Math.floor(Date.now() / 1000)), calm: 'wind'});
     const run = await waitForRun('golf', since, t => { if (msg) msg.textContent = t; });
     if (run.conclusion !== 'success'){
       // A run that ended in a word, and the word is not an explanation. The run is named and linked; its log says

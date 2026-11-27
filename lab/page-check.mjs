@@ -3499,6 +3499,8 @@ async function main(){
     const d = dispatches.find(x => x.workflow === 'golf.yml');
     if (!d) return 'nothing was dispatched: ' + JSON.stringify(dispatches.map(x => x.workflow));
     for (const k of ['rounds', 'bags', 'seed']) if (!d.inputs[k]) return `the dispatch has no ${k}`;
+    if (String(d.inputs.rounds) !== '4' || String(d.inputs.bags) !== '4')
+      return `the fields were not read: rounds=${d.inputs.rounds} bags=${d.inputs.bags}`;
     if (!/^\d{9,}$/.test(String(d.inputs.seed))) return `the seed is not a drawn one: ${JSON.stringify(d.inputs.seed)}`;
     if (Number(d.inputs.rounds) < 2) return 'fewer than two rounds is not a before and an after';
     if (!Object.keys(GOLF_SHIPPED).every(p => files.has(p))) return 'the dispatch was sent before the files were written';
@@ -3604,6 +3606,34 @@ async function main(){
     const mine = text('lab/golf.py');
     if (!/seventh I added/.test(String(mine))) return 'it overwrote a file somebody in the circle had edited';
     if (!dispatches.some(d => d.workflow === 'golf.yml')) return 'it did not dispatch, so the editing stopped the game';
+    return '';
+  });
+
+  // the two fields: what a person typed is what the run gets, and a number that would wreck the run is clamped
+  const pressWith = async (rounds, bags) => {
+    const before = dispatches.length;
+    const r = await tryRun(ctx, `(async () => {
+      const b = document.getElementById('golfplay'); if (b) b.disabled = false;
+      document.getElementById('golfrounds').value = ${JSON.stringify(rounds)};
+      document.getElementById('golfbags').value = ${JSON.stringify(bags)};
+      await loadGolf();                    // the press re-renders the card, so the fields are put back each time
+      await playGolfSeason();
+      return 'ok';
+    })()`);
+    return {err: r.err, sent: dispatches.length > before ? dispatches[dispatches.length - 1].inputs : null};
+  };
+  const typedA = await pressWith('7', '3');
+  const typedB = await pressWith('999', '0');
+  const typedC = await pressWith('many', '');
+  check('the two fields reach the run, and a number that would wreck it is clamped not obeyed', () => {
+    for (const t of [typedA, typedB, typedC]) if (t.err) return t.err;
+    if (String(typedA.sent.rounds) !== '7' || String(typedA.sent.bags) !== '3')
+      return `what was typed did not reach the dispatch: ${JSON.stringify(typedA.sent)}`;
+    if (String(typedB.sent.rounds) !== '12') return `999 rounds was not clamped to 12: ${typedB.sent.rounds}`;
+    if (String(typedB.sent.bags) !== '2') return `0 practice sessions was not clamped to 2: ${typedB.sent.bags}`;
+    // A field cleared or filled with a word is the default, not a broken run.
+    if (String(typedC.sent.rounds) !== '4' || String(typedC.sent.bags) !== '4')
+      return `a nonsense value was not replaced by the default: ${JSON.stringify(typedC.sent)}`;
     return '';
   });
 
