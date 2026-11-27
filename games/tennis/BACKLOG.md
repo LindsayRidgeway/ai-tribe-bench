@@ -1370,6 +1370,27 @@ zero, so a build read "0 over 25ft/s" beside its own 0.37ft maximum. Both thresh
 was taken on (`25 * dt`, and `10 * dt` for the toe), and the honest answer on this film is **2 and 6 frames at
 25.3ft/s** — the record's own 20ft/s run plus the last of the stride, not a jolt.
 
+### a jump is not an approach (DONE 2026-11-27)
+
+The rise in `reachTo` — the up-on-the-toes part of the step toward a ball — is phased symmetrically over
+`R_WINDOW` = 0.75s. For an approach that is right and measured. **A serve has no approach:** the ball is overhead, so
+the whole of `rise` is a jump, and the same window had the server drifting up through the toss: at t=414.90, 0.32s
+before Colette's second serve, **both toes 0.505 and 0.611ft off the court with the ball still in her tossing hand.**
+
+So the striker's rise gets its own inbound window, `RISE_UP` = 0.30s, while the LEAN keeps `R_WINDOW` and the
+receiver keeps the default — both of those are approaches, and the receiver's step is the one `R_WINDOW` was
+calibrated on. 0.30 is not a taste: the arm solver asks for a **1.1ft** jump at a serve's contact, and a 1.1ft jump
+takes `sqrt(2h/g)` = **0.26s** to rise, so the window is about as long as the ball's own flight allows.
+
+**Swept rather than assumed** (`?riseup=`): 0.20 and 0.70 against 0.30 — the toes at the contact and at the apex are
+**identical at all three** (0.962/0.913 at the strike, 1.101/1.001 at the apex), because `rr` is 1 at the contact
+whatever the window is; only the float before it moves, 0.30 / 0.50 / 0.74ft at 0.15s out. And the landing now
+happens inside the shot: the peak one-frame toe move across the whole serve is **0.083ft (8.3ft/s)**, against
+0.230ft at the worst frame in the film.
+
+The whole film is unchanged where it must be: item 2b **0.25ft = 25.3ft/s**, the toe's worst frame **0.239 / 0.230ft**,
+the 108 contacts **median 0.01ft, worst 0.56**, feet to contact **1.88 / 3.59 / 3.63ft**.
+
 ## Item 17 — there is no ground past the run-off (DONE 2026-11-19)
 
 Found while checking that Item 15's tail had not broken anything, which is the only reason it was found at all. Of

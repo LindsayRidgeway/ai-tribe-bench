@@ -813,7 +813,7 @@ function placeRacquet(rig, aim, face) {
    overhead — by exactly the gap, capped, and eased in and out over half a second either side of the strike so
    that it is a movement and not a teleport. */
 const _ras = new THREE.Vector3();
-function reachTo(rig, lead, ball, tTo, since = 0, key = "", who = "", wOut = R_WINDOW) {
+function reachTo(rig, lead, ball, tTo, since = 0, key = "", who = "", wOut = R_WINDOW, wIn = R_WINDOW) {
   // The frame is placed at the right hand on every stroke — the butt hand — so the right shoulder is the one
   // that has to be able to reach one shaft-length short of the ball. On a forehand that is the hitting shoulder;
   // on a backhand it is the far one, which is why a backhand has always been the stroke this rig could not play.
@@ -833,7 +833,15 @@ function reachTo(rig, lead, ball, tTo, since = 0, key = "", who = "", wOut = R_W
   // on the shot's own remaining time, while the LEAN keeps the window it was calibrated with: a player who has
   // stepped at a ball stays in the step afterwards, and rate-limiting the 3.8ft lean to a short shot's tail is how
   // a body is thrown (measured, applying the same window to both: 0.37ft in one frame, 37ft/s, worse than before).
-  const wIn = R_WINDOW, wOutNow = tTo < 0 ? wIn : Math.min(R_WINDOW, Math.max(0.15, wOut));
+  const wInNow = Math.min(R_WINDOW, Math.max(0.10, wIn));
+  const wOutNow = tTo < 0 ? wInNow : Math.min(R_WINDOW, Math.max(0.15, wOut));
+  // AND IT RISES LATE, BECAUSE A JUMP IS NOT AN APPROACH (2026-11-27). The inbound window above is an APPROACH's:
+  // a player starts toward a ball well before meeting it, and 0.75s was measured for that. A serve has no approach
+  // — the ball is overhead, so the whole of `rise` is a jump — and `R_WINDOW` therefore had the server drifting
+  // upward through the toss instead of driving up at the strike: measured on `records/item31-after` at t=414.90
+  // (0.32s before Colette's second serve), both toes 0.505 and 0.611ft off the court with the ball still in her
+  // hand. `RISE_UP` is the striker's inbound window for the rise only; the lean keeps `r` and the receiver keeps
+  // the default, because both of those are approaches.
   const r = Math.max(0, Math.min(1, 1 - Math.abs(tTo) / R_WINDOW));
   const rr = Math.max(0, Math.min(1, 1 - Math.abs(tTo) / wOutNow));
   // A STEP THAT IS NO LONGER NEEDED LEAVES LIKE ONE. `r` is zero more than half a second from a contact, and this
@@ -1338,6 +1346,14 @@ const LEAN_MAX = q.has("lean") ? Math.max(0, parseFloat(q.get("lean")) || 0) : 3
 const STEP = q.get("step") !== "0";
 // seconds of film either side of a contact in which the stride toward the ball is drawn
 const R_WINDOW = q.has("rwin") ? Math.max(0.2, parseFloat(q.get("rwin")) || 0.75) : 0.75;
+// HOW LONG BEFORE THE STRIKE THE STRIKER IS ALREADY UP. A serve's ball is overhead, so its whole `rise` is a jump
+// and it belongs to the last third of a second, not to the whole approach: at R_WINDOW the server drifted up through
+// the toss and was 0.51/0.61ft off the court with the ball still in her tossing hand. 0.30s is not a taste: the arm
+// solver asks for a 1.1ft jump at a serve's contact and a 1.1ft jump takes sqrt(2h/g) = 0.26s to rise, so the body
+// is off the ground for about as long as the ball's own flight to the strings allows. Swept (`?riseup=0.20` and
+// `0.70` against this): the toes at the contact and at the apex are identical at all three — `rr` is 1 at the
+// contact whatever the window is — and only the float before it moves: 0.30 / 0.50 / 0.74ft at 0.15s out.
+const RISE_UP = q.has("riseup") ? Math.max(0.10, parseFloat(q.get("riseup")) || 0.30) : 0.30;
 const CARRY = q.get("carry") !== "0";   // ?carry=0 draws the build before item 12, for a before/after on one film
 const CARRY_PUMP = q.has("pump") ? Math.max(0, parseFloat(q.get("pump")) || 0) : 1.70;
 // ft the hand swings either side of the ready point, on the body's lateral axis. `?pump=` overrides it, because
@@ -1863,8 +1879,11 @@ function tick(now) {
       // on the first frame of the next shot — the 0.95ft frame at T=412.98, which is 13 of Colette's 13 frames over
       // 25ft/s. The unclamped clock puts the ball out of reach at 0.5s, which is what a step away from the ball means.
       reachTo(rig, lead, ball, tlRaw - (seg.tossDur || 0), tlc, seg.sh.rally + ":" + seg.sh.n, pl.name + "/hit",
-              // the shot's own time left after the strike, which is what the rise has to fade out inside
-              seg.dur - (seg.tossDur || 0) - tlc);
+              // the shot's own time left after the strike, which is what the rise has to fade out inside...
+              seg.dur - (seg.tossDur || 0) - tlc,
+              // ...and how long before the strike the striker is already off the ground: a third of a second, not
+              // the approach's three quarters. See RISE_UP.
+              RISE_UP);
       // THE PLANT. Contact is this segment's first frame and the run ends there, so until now the body arrived and
       // swung on whatever stride the gait froze in: no weight transfer, no push off the back foot, and the load
       // constant dipped the root 0.05ft rather than raising it. A stroke is powered from the ground, so the weight

@@ -10936,7 +10936,7 @@ class TestARecoveryStepAndAServeCrouchAreEnteredAndNotSwitched(unittest.TestCase
         self.assertIn("const rr = Math.max(0, Math.min(1, 1 - Math.abs(tTo) / wOutNow));", self.page)
         self.assertIn("dy = rise > 0 ? rise * rr : 0;", self.page)
         self.assertIn("const r = Math.max(0, Math.min(1, 1 - Math.abs(tTo) / R_WINDOW));", self.page)
-        self.assertIn("seg.dur - (seg.tossDur || 0) - tlc);", self.page,
+        self.assertIn("seg.dur - (seg.tossDur || 0) - tlc,", self.page,
                       "the striker's call site does not hand reachTo the time its own shot has left")
 
     def test_the_reader_s_thresholds_come_from_the_grid_it_was_taken_on(self):
@@ -10952,6 +10952,36 @@ class TestARecoveryStepAndAServeCrouchAreEnteredAndNotSwitched(unittest.TestCase
                       "35.6ft/s", "23.9ft/s", "49.4", "23.0", "0.473ft", "0.12ft BELOW the court"):
             self.assertTrue(piece in backlog, f"{piece} is not in item 2b's remainder")
 
+
+class TestAJumpIsNotAnApproach(unittest.TestCase):
+    """Item 19's look, 2026-11-27. `reachTo`'s rise is phased over 0.75s on both sides because 0.75s is what an
+    APPROACH was measured to need. A serve has no approach — the ball is overhead, so the whole of `rise` is a jump —
+    and the same window had the server drifting upward through the toss: measured at t=414.90, 0.32s before Colette's
+    second serve, both toes 0.505 and 0.611ft off the court with the ball still in her tossing hand."""
+
+    def setUp(self):
+        self.page = (REPO / "games" / "tennis" / "replay3d.html").read_text(encoding="utf-8")
+
+    def test_the_striker_s_rise_has_its_own_inbound_window(self):
+        self.assertIn('function reachTo(rig, lead, ball, tTo, since = 0, key = "", who = "", '
+                      'wOut = R_WINDOW, wIn = R_WINDOW) {', self.page)
+        self.assertIn("const wInNow = Math.min(R_WINDOW, Math.max(0.10, wIn));", self.page)
+        self.assertIn("const wOutNow = tTo < 0 ? wInNow : Math.min(R_WINDOW, Math.max(0.15, wOut));", self.page)
+
+    def test_the_lean_and_the_approach_keep_the_window_they_were_measured_with(self):
+        # `r` is the lean's ramp and it must stay R_WINDOW on both sides: the receiver's step is an approach, and the
+        # striker's step is a step. Only `rr`, which multiplies `rise`, is handed the striker's own windows.
+        self.assertIn("const r = Math.max(0, Math.min(1, 1 - Math.abs(tTo) / R_WINDOW));", self.page)
+        self.assertIn("dy = rise > 0 ? rise * rr : 0;", self.page)
+
+    def test_the_window_is_a_third_of_a_second_and_sweepable(self):
+        self.assertIn('const RISE_UP = q.has("riseup")', self.page)
+        self.assertIn(": 0.30;", self.page)
+        self.assertIn("RISE_UP);", self.page, "the striker's call site does not pass the window")
+
+    def test_the_reason_it_is_a_third_of_a_second_is_written_down(self):
+        self.assertIn("sqrt(2h/g) = 0.26s", self.page)
+        self.assertIn("0.505 and 0.611ft off the court", self.page)
 
 class TestTheStepTowardTheBallIsWalkedAndNotPlaced(unittest.TestCase):
     """Item 16's remainder, second half, 2026-11-27. `reachTo` is the page's stride toward the ball, and it had
