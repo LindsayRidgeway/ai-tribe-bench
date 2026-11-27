@@ -220,6 +220,38 @@ def main(argv):
             print(f"  {n:8s} stride pair {stride:4.2f}ft | {lab:11s} {c:3d} crossings in {ft:6.1f}ft"
                   f" = {c / ft * 10:4.2f} per 10ft = {c / (ft / stride):4.2f} per stride pair")
 
+    # ---- item 16's remainder: is the frame on the ball at the contact?
+    print("\n== the contact — how far the racquet head is from the ball when the ball is struck ==")
+    print("   the sweep already carries it as the sixth field of each player entry: `rq`, the head's distance to the")
+    print("   ball in that frame. Read at the row nearest the contact, for the player the record says is striking.")
+    contacts = []
+    for sg in segs:
+        n, hitter = sg[0], sg[4]
+        k = idx.get(hitter)
+        if k is None:
+            continue
+        best = None
+        for r in rows:
+            if r[1] != n or abs(r[2]) > 0.20:
+                continue
+            p = r[3 + k]
+            if not p or len(p) < 6 or p[5] is None:
+                continue
+            if best is None or p[5] < best[0]:
+                best = (p[5], r[0], r[2])
+        if best:
+            contacts.append({"n": n, "who": hitter, "rq": best[0], "t": best[1]})
+    if contacts:
+        d = sorted(c["rq"] for c in contacts)
+        w = max(contacts, key=lambda c: c["rq"])
+        print(f"  {len(d)} contacts this log reaches: head to ball median {d[len(d) // 2]:.2f}ft,"
+              f" p90 {d[int(len(d) * 0.9)]:.2f}ft, worst {d[-1]:.2f}ft (shot {w['n']}, T={w['t']})")
+        print(f"  over 0.5ft: {sum(1 for x in d if x > 0.5)} of {len(d)}"
+              f"   over 1ft: {sum(1 for x in d if x > 1.0)} of {len(d)}")
+        print("  the page's own line for a contact no arm can make is `shoulder-B more than 3.9ft` (?debug's `debug")
+        print("  geo`), and the record only promises the contact is inside RACQUET_REACH = 7.0ft of the feet — so a")
+        print("  film can satisfy its own done-test and still be a contact the picture cannot draw.")
+
     # ---- the toss: does a serve's own segment own any frame during its own toss?
     print("\n== the toss — a serve is drawn from its toss only if a frame during that toss is drawn as its segment ==")
     serves = [s for s in segs if len(s) > 3 and (s[3] or 0) > 0.10]

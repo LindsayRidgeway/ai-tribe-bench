@@ -1143,6 +1143,35 @@ point depends on where the body is instead of a constant. Item 14's done-test st
 record's 95 shots — but the scatter has doubled, and a claim of "reproduces the record's shot count" is worth less
 than it was this morning.
 
+**WHAT IT STILL LETS THROUGH — MEASURED 2026-11-27.** The done-test above is `RACQUET_REACH = 7.0ft` from the feet,
+and it is met at its own boundary ("worst 7.01ft of 7.0"). The picture's own line is stricter and it is written in
+`replay3d.html`: *"A strike whose shoulder is more than 3.9ft from the ball is a strike no arm and frame can make."*
+So a film can pass item 16 and still be a contact the renderer cannot draw, which is the founder's V1 gate — **no
+frame where the ball and the racquet disagree**.
+
+Measured on `records/item31-after`, swept 0:300 at 0.02s, the racquet head's distance to the ball at each contact
+(the sweep's own `rq`, read by `lab/tennis_sweep.py`):
+
+| 63 contacts the sweep reaches | head to ball |
+|---|---|
+| median | **1.08ft** |
+| p90 | **4.45ft** |
+| worst | **5.47ft** (shot 44, T=217.5) |
+| over 0.5ft | **63 of 63** |
+| over 1ft | **38 of 63** |
+
+And one contact read off the page itself, `?t=19.56&debug` on shot 6: `shoulder-B 7.20  feet-B 6.99  ballY 2.87`,
+`racquet head to ball 3.27`, both hands 5.4-5.6ft from the ball — a stroke at the far end of item 16's 7ft budget
+and well past the 3.9ft the page says is reachable.
+
+Two things are true at once and only one of them is a defect: `rq` is measured at 0.02s samples and a ball at 30mph
+moves 0.9ft between them, so a contact read at the nearest sample overstates the miss by up to half a foot — but a
+median of 1.08ft is not that, and the whole population being over 0.5ft is not that either. **The next piece of work
+is to decide which of the two numbers is the promise**: either the record must bring the contact inside the arm's
+reach (a producer change, costing rally length and probably aces, the way item 16's height rule did), or the page's
+3.9ft sentence is the wrong sentence. It is not a thing to fix by moving a threshold — the film either draws a
+racquet on the ball or it does not, and today it does not on 38 of 63.
+
 ## Item 17 — there is no ground past the run-off (DONE 2026-11-19)
 
 Found while checking that Item 15's tail had not broken anything, which is the only reason it was found at all. Of

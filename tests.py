@@ -10348,3 +10348,27 @@ class TestTheArmComesBackToTheHittingSide(unittest.TestCase):
                       "the ninth sweep field is not read")
         self.assertTrue("**10. A WALK IS NOT A RUN" in self.stills,
                         "the population error that hid this fix is not on the record")
+
+
+class TestTheContactIsMeasuredOnTheFilmRatherThanInARate(unittest.TestCase):
+    """Item 16's remainder, 2026-11-27. The record's done-test is `RACQUET_REACH = 7.0ft` from the feet, and the
+    page's own line is `shoulder-B more than 3.9ft is a strike no arm and frame can make`. Both cannot be the
+    promise, and this instrument is what says the gap is real: on `records/item31-after` the racquet head is a
+    median 1.08ft from the ball at the contact, and every one of the 63 contacts the sweep reaches is over 0.5ft."""
+
+    def setUp(self):
+        self.reader = (REPO / "lab" / "tennis_sweep.py").read_text(encoding="utf-8")
+        self.backlog = (REPO / "games" / "tennis" / "BACKLOG.md").read_text(encoding="utf-8")
+
+    def test_the_reader_reads_the_head_to_ball_distance_at_each_contact(self):
+        self.assertIn("== the contact — how far the racquet head is from the ball when the ball is struck ==",
+                      self.reader)
+        self.assertIn('if not p or len(p) < 6 or p[5] is None:', self.reader,
+                      "the contact section is not reading the sweep's own rq field")
+        self.assertIn("if r[1] != n or abs(r[2]) > 0.20:", self.reader,
+                      "the contact section is not restricted to the striker's own contact window")
+
+    def test_the_gap_between_the_two_promises_is_on_the_record(self):
+        self.assertIn("WHAT IT STILL LETS THROUGH — MEASURED 2026-11-27", self.backlog)
+        for piece in ("1.08ft", "4.45ft", "5.47ft", "63 of 63", "38 of 63", "3.9ft", "RACQUET_REACH = 7.0ft"):
+            self.assertTrue(piece in self.backlog, f"{piece} is not in the item 16 note")
