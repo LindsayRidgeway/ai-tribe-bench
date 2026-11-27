@@ -2108,3 +2108,19 @@ showing nothing.
 the shelf and no runner. What *is* verified is that the page's JavaScript parses, that the card draws the court it
 claims to draw, and that the engine it calls plays the seat (§5v's tests). The first real press is the first real
 test, and it will be on the founder's circle rather than here.
+
+**The template had to learn the sport, and main was red till it did.** A workflow the page dispatches but the
+template does not ship gives a new circle the button and no engine to answer it; a path under `games/` that the
+updater calls *content* lets an update delete a circle's own seasons. Committing the card made both tests fire in
+sequence — `{'pickleball.yml': ['ait.html']}` on the first run — and both are fixed: three paths join
+`lab/make_template.py`'s `FILES` (the workflow, `lab/pickleball.py`, `games/pickleball/replay3d.html`) and
+`lab/update_tribe.py` gains a named `MACHINERY_FILES` entry for the player alone, so an update may replace the thing
+that draws a film and never the films. That fix is `f4e95553`; all sixteen template/manifest tests pass on top of
+it, where main was failing before it.
+
+**Committed file by file, for the second time in one evening.** The working tree carries other windows' in-flight
+work on `ait.html` (golf card and footer), on both template files (golf's half) and on the golf records. Rather than
+split a diff or sweep it up, `git show HEAD:<path>` was taken and only this session's lines were put back: for
+`ait.html` a written blob staged with `git update-index --cacheinfo`, and for the two template files the same
+operation against versions built from `HEAD`. Zero deletions, nothing of anyone else's attributed to me — and the
+cost is that a reader cannot see the whole change in one commit, which is the honest trade.
