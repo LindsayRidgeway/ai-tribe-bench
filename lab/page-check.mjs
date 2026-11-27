@@ -218,6 +218,7 @@ function githubFetch(url, init = {}){
     const prev = files.get(rest);
     if (body.sha && prev && body.sha !== prev.sha) return jsonResponse(409, {message: 'sha does not match'});
     if (body.sha && !prev) return jsonResponse(409, {message: 'sha does not match'});
+    commitMessages.push({path: rest, message: String(body.message || '')});
     files.set(rest, {text, sha: shaOf(text)});
     return jsonResponse(200, {content: {sha: files.get(rest).sha}});
   }
@@ -363,6 +364,8 @@ const sandbox = {
 };
 sandbox.window = sandbox;
 sandbox.globalThis = sandbox;
+let ENGINE_ANSWER = null;       // the answer the fake engine gives, when a check needs a particular one
+const commitMessages = [];      // every commit the page wrote, so a check can read the sentence beside the change
 const exchanges = [];           // what the page told the token exchange about itself, one entry per code
 const enginePosts = [];         // every engine call the page made: the address and the body it sent
 sandbox.fetch = async (url, init = {}) => {
@@ -374,7 +377,10 @@ sandbox.fetch = async (url, init = {}) => {
     try { enginePosts.push({url: u, body: JSON.parse(init.body || '{}')}); }
     catch(_){ enginePosts.push({url: u, body: String(init.body || '')}); }
   }
-  if (/\/chat\/completions$/.test(u)) return sseResponse(MEMBER_ENTRY);
+  // What a member answers is sometimes the thing under test — a member that ends its turn with
+  // `[action: quiet]`, say — so a check can say what comes back instead of every check getting the same journal
+  // entry. Null means the ordinary answer.
+  if (/\/chat\/completions$/.test(u)) return sseResponse(ENGINE_ANSWER || MEMBER_ENTRY);
   // The one server this page has: it turns a code into a token with either the App's pair of credentials or the
   // classic one, and `app` is how it is told which. That flag is the whole of the check below.
   if (/\.netlify\/functions\/auth$/.test(u)){
@@ -458,6 +464,7 @@ function reset(){
                     'pbresult', 'pbtrend'])
     if (elements.has(id)) elements.delete(id);
   benchFiles.clear(); authSeen.length = 0; timers.made.length = 0; timers.cleared.length = 0;
+  commitMessages.length = 0; ENGINE_ANSWER = null;
 }
 
 // A view function that throws inside a click is a rejected promise nobody awaits, and Node would swallow it: the
@@ -2123,6 +2130,10 @@ async function main(){
     return '';
   });
 
+  // 2026-11-19's lesson was that a circle freshly installed and told nothing is the circle that most needs the
+  // update row — and 2026-11-27 moved that row to Settings & diagnostics. The lesson is kept and the check is
+  // re-expressed rather than deleted: **the empty circle still finds out**, by the dot on the account button (the
+  // signal, which is what has to be ambient) and by the row with both presses on the page the dot leads to.
   reset();
   seed('wake/members/.gitkeep', '');
   const empty = await tryRun(ctx, `(async () => {
@@ -2130,14 +2141,99 @@ async function main(){
     UPDATE = {state:'unknown', why:'this circle has no .ait/version.json'};
     UPDATE_NOTE = 'Could not check for updates: this circle has no .ait/version.json.';
     await viewToday(document.getElementById('main'));
-    return document.getElementById('main').innerHTML;
+    const today = document.getElementById('main').innerHTML;
+    // Both directions, because the fake document invents an element for any id it is asked for — a check that only
+    // asked "is it lit" passed with the dot deleted from the page entirely (found 2026-11-27 by mutating it).
+    UPDATE = {state:'unknown'};
+    paintUpdateDot();
+    const dotted = document.getElementById('upddot').hidden === false;
+    UPDATE = {state:'current'};
+    paintUpdateDot();
+    const dark = document.getElementById('upddot').hidden === true;
+    UPDATE = {state:'unknown', why:'this circle has no .ait/version.json'};
+    await viewSettings(document.getElementById('main'));
+    const settings = document.getElementById('main').innerHTML;
+    return {today, settings, dotted, dark};
   })()`);
-  check('an empty circle still shows the update line and its button', () => {
+  check('an empty circle still finds out there is an update, and the row is one press away', () => {
     if (empty.err) return empty.err;
-    const html = String(empty);
-    if (!/Could not check for updates/.test(html)) return 'the update line is missing from an empty circle';
-    if (!/See what an update would change/.test(html)) return 'no button: an empty circle is offered nothing';
-    if (!/no members yet/.test(html)) return 'the empty state itself is gone, so this is testing nothing';
+    const src = fs.readFileSync(path.join(HERE, '..', 'ait.html'), 'utf8');
+    if (!/<span id="upddot"/.test(src)) return 'there is no dot in the header for anything to light';
+    if (!empty.dotted) return 'nothing on the page says there is something to read in Settings';
+    if (!empty.dark) return 'the dot is lit whatever the state says, which is a light nobody will read';
+    if (!/no members yet/.test(String(empty.today))) return 'the empty state itself is gone, so this is testing nothing';
+    if (/See what an update would change/.test(String(empty.today)))
+      return 'the update row is still on Today, so moving it did not happen';
+    // The dot is ambient, and an icon is not a sentence: the circle that has just been installed is told in words
+    // that there is something to read, and given the door, without the row returning to the front page.
+    if (!/says what would change/.test(String(empty.today)))
+      return 'Today says nothing in words about the update, so the dot is the only sign of it';
+    if (!/Could not check for updates/.test(String(empty.settings)))
+      return 'the update line is missing from Settings, so the dot leads nowhere';
+    if (!/See what an update would change/.test(String(empty.settings)))
+      return 'no button: an empty circle is offered nothing';
+    return '';
+  });
+
+  // The shell itself: what the account button opens, and what it must never copy.
+  reset();
+  clipboardWrites.length = 0;
+  seed('wake/members/.gitkeep', '');
+  const whoShell = await tryRun(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 'ghp_a_very_secret_token'; S.branch = 'main'; S.owner = 'Sam';
+    S.keys = {deepseek: {key: 'sk-also-a-secret'}};
+    location.hash = '#/settings';
+    await render();
+    const settings = document.getElementById('main').innerHTML;
+    const foot = document.getElementById('foot').innerHTML;
+    openWho();
+    const menu = document.getElementById('dlg').innerHTML;
+    copySystemInfo();
+    await new Promise(r => setTimeout(r, 5));
+    return {settings, foot, menu};
+  })()`);
+  check('settings carries the diagnostics, the footer has stopped carrying them, and the menu is one door', () => {
+    if (whoShell.err) return whoShell.err;
+    const st = String(whoShell.settings || '');
+    if (!/Settings &amp; diagnostics/.test(st)) return 'the settings page does not name itself';
+    if (!/Build/.test(st)) return 'the build stamp is not in Settings';
+    if (!/someone\/tribe/.test(st)) return 'the circle is not named in Settings';
+    if (!/Forget this circle in this browser/.test(st)) return 'there is no way out of this circle from Settings';
+    if (!/What this page does not do yet/.test(st)) return 'the honesty block was thrown away instead of moved';
+    // The footer is static markup, and the fake document does not parse it into an element — so the honest place to
+    // read it is the file the browser is handed, and the check says so rather than passing on an empty string.
+    const ft = fs.readFileSync(path.join(HERE, '..', 'ait.html'), 'utf8');
+    const foot = (ft.match(/<footer id="foot">([\s\S]*?)<\/footer>/) || [])[1] || '';
+    if (/What this page does not do yet/.test(foot)) return 'the footer still carries the honesty block';
+    if (/id="build"/.test(foot)) return 'the footer still carries the build stamp';
+    if (!/Settings &amp; diagnostics/.test(foot)) return 'the footer has no door to Settings';
+    const menu = String(whoShell.menu || '');
+    for (const item of ['Settings &amp; diagnostics', 'Copy system info', 'Support', 'Forget this circle'])
+      if (!menu.includes(item)) return 'the account menu is missing ' + item;
+    // `clipboardWrites` belongs to the harness, not to the page's sandbox: what the page asked the browser to
+    // copy is read here, from the outside, which is the only place it can be read at all.
+    const copied = String(clipboardWrites.slice(-1)[0] || '');
+    if (!/someone\/tribe/.test(copied)) return 'system info does not name the circle';
+    if (/ghp_a_very_secret_token/.test(copied)) return 'system info copied the token — that goes to a support letter';
+    if (/sk-also-a-secret/.test(copied)) return 'system info copied an API key';
+    return '';
+  });
+
+  reset();
+  seed('wake/members/.gitkeep', '');
+  actions.repos = [];
+  const gone = await tryRun(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main'; S.owner = 'Sam';
+    rememberRepo('someone/tribe', 't');
+    forgetCircle('someone/tribe');
+    await new Promise(r => setTimeout(r, 10));
+    return {repo: S.repo, hash: location.hash, kept: Object.keys(S.circles || {})};
+  })()`);
+  check('forgetting the circle from the menu takes the credential and leaves the page at the connect screen', () => {
+    if (gone.err) return gone.err;
+    if (gone.repo) return 'the page still believes it is in ' + gone.repo;
+    if (gone.kept.includes('someone/tribe')) return 'the stored token survived the forget';
+    if (!/connect/.test(String(gone.hash))) return 'it did not send the person to the connect screen: ' + gone.hash;
     return '';
   });
 
@@ -4010,6 +4106,118 @@ async function main(){
     if (!/51300016|played/.test(String(pressed.said))) return `the press said nothing about the run: "${pressed.said}"`;
     if (!timers.made.length) return 'the press started no watcher, so nothing was read while the season played';
     if (!timers.made.every(t => timers.cleared.includes(t))) return 'an interval the press started was never cleared';
+    return '';
+  });
+
+  /* 22 — the room's two questions, kept apart. Until 2026-11-27 a member of a room was answering or gone, so a
+     silence had to be read as an exit. The levers are in the room's own file (`Muted:`, `Quiet:`), which is where a
+     person can read them back tomorrow, and the chips are on the screen where the silence is, not behind a dialog.
+     Dawn's handoff, 2026-11-27; the four levers are three here, because "allowed into the room at all" is what
+     being in the room already means. */
+  const ROOM = 'chats/the-trojan-war';
+  const roomFiles = (head, extra = '') => {
+    seed(ROOM + '/chat.md', head + extra);
+    seed(ROOM + '/talk.md', ['# Talk — the trojan war', '',
+      '## 2026-11-12 22:34 UTC — Sam', '', 'what was asked in the room', ''].join('\n'));
+  };
+  const twoMembers = `S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main'; S.owner = 'Sam';
+    S.members = ['Hermes', 'Dionysus'].map(n => ({name: n, engine: 'deepseek', model: 'deepseek-flash', journal: ''}));
+    S.keys = {deepseek: {key: 'k'}}; S.chat = {};`;
+
+  reset();
+  roomFiles('# A chat — The Trojan War\n\nMembers: Hermes, Dionysus\nFloor: claim\n', '\nQuiet: Dionysus\n');
+  const askedPosts = enginePosts.length;
+  const quietRoom = await tryRun(ctx, `(async () => {
+    ${twoMembers}
+    location.hash = '#/c/the-trojan-war';
+    await render();
+    const chips = document.getElementById('tchips').innerHTML;
+    document.getElementById('tsay').value = 'What do the two of you make of this?';
+    await chatSay();
+    return {chips};
+  })()`);
+  const wasAsked = enginePosts.slice(askedPosts).map(p => JSON.stringify(p.body || {}));
+  // Then everybody in the room is either muted or listening: nobody is asked, and the room has to say which of the
+  // two it is rather than going quiet without explanation.
+  const askedPosts2 = enginePosts.length;
+  const muteAll = await tryRun(ctx, `(async () => {
+    CHAT.quiet = ['Dionysus']; CHAT.muted = ['Hermes'];
+    document.getElementById('tsay').value = 'Anybody?';
+    await chatSay();
+    return {said: document.getElementById('tmsg').textContent || ''};
+  })()`);
+  const askedAgain = enginePosts.length - askedPosts2;
+
+  check('a member who is listening is not asked, and the room says why it is quiet', () => {
+    if (quietRoom.err) return quietRoom.err;
+    if (!/Listening/.test(String(quietRoom.chips))) return 'the chip row does not say that Dionysus is listening';
+    if (!wasAsked.length) return 'nobody was asked at all, so the quiet member was not the only one skipped';
+    if (wasAsked.some(b => /as Dionysus/.test(b)))
+      return 'a member who chose to listen was asked anyway, so the lever is decoration';
+    if (!wasAsked.some(b => /as Hermes/.test(b))) return 'the member who is speaking was not asked either';
+    if (muteAll.err) return muteAll.err;
+    if (askedAgain) return 'a room where everybody is muted or listening still spent a call';
+    if (!/muted or listening/.test(String(muteAll.said)))
+      return `the room went quiet without saying why: "${muteAll.said}"`;
+    return '';
+  });
+
+  /* The tag is how a member says it in its own answer, and it must never be text: not in the bubble, not in the
+     room's file, and not in anybody's memory. What it does is move a lever, once, after the turn is written. One
+     member in the room, because two writing the same claim is a tie and a tie is the person's to settle — which is
+     a different check, and would leave this one testing the tie. */
+  reset();
+  ENGINE_ANSWER = 'URGENCY: 4\n\nI would rather listen for a while.\n\n[action: quiet]';
+  roomFiles('# A chat — The Trojan War\n\nMembers: Hermes\nFloor: claim\n');
+  const tagTurn = await tryRun(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main'; S.owner = 'Sam';
+    S.members = [{name: 'Hermes', engine: 'deepseek', model: 'deepseek-flash', journal: ''}];
+    S.keys = {deepseek: {key: 'k'}}; S.chat = {};
+    location.hash = '#/c/the-trojan-war';
+    await render();
+    document.getElementById('tsay').value = 'What do you make of this?';
+    await chatSay();
+    return {quiet: (CHAT.quiet || []).slice(), chips: document.getElementById('tchips').innerHTML};
+  })()`);
+
+  check('a member that chooses quiet is obeyed, and the tag it chose with is not text', () => {
+    if (tagTurn.err) return tagTurn.err;
+    const talk = text(ROOM + '/talk.md') || '';
+    if (/\[action:/.test(talk)) return 'the tag was written into the room\'s file, so it is text and not a lever';
+    if (!/I would rather listen for a while/.test(talk)) return 'what the member actually said was lost with the tag';
+    if (!(tagTurn.quiet || []).includes('Hermes')) return 'the lever did not move: Hermes chose quiet and is still asked';
+    const head = text(ROOM + '/chat.md') || '';
+    if (!/^Quiet: .*Hermes/m.test(head)) return 'the choice is not in the room\'s own file, so it lasts until reload';
+    if (!commitMessages.some(c => /chose to listen/.test(c.message)))
+      return 'the commit says nothing about it, so the record does not explain the silence';
+    if (!/Listening/.test(String(tagTurn.chips))) return 'the chip did not change, so the person is not told';
+    return '';
+  });
+
+  /* Your lever, and the one that outranks theirs: a member you have muted is explained by your decision, not by its
+     own, even when both are true. */
+  reset();
+  roomFiles('# A chat — The Trojan War\n\nMembers: Hermes, Dionysus\nFloor: claim\n');
+  const mutedTurn = await tryRun(ctx, `(async () => {
+    ${twoMembers}
+    location.hash = '#/c/the-trojan-war';
+    await render();
+    await presencePress('Hermes');
+    CHAT.quiet = ['Hermes'];
+    const both = presenceOf('Hermes');
+    return {muted: (CHAT.muted || []).slice(), both: both.badge,
+            chips: document.getElementById('tchips').innerHTML,
+            said: document.getElementById('tmsg').textContent || ''};
+  })()`);
+
+  check('your mute is written into the room, and it outranks the member\'s own silence', () => {
+    if (mutedTurn.err) return mutedTurn.err;
+    if (!(mutedTurn.muted || []).includes('Hermes')) return 'pressing Mute did not mute anybody';
+    const head = text(ROOM + '/chat.md') || '';
+    if (!/^Muted: .*Hermes/m.test(head)) return 'the mute is not in the room\'s file, so it lasts until reload';
+    if (!commitMessages.some(c => /muted by you/.test(c.message))) return 'the commit does not say who muted whom';
+    if (mutedTurn.both !== 'Muted by you') return `with both levers pulled the badge said "${mutedTurn.both}"`;
+    if (!/Muted by you/.test(String(mutedTurn.chips))) return 'the chip does not carry the badge';
     return '';
   });
 

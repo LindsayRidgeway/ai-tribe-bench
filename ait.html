@@ -59,6 +59,11 @@
   /* ---- things you press ---- */
   button.primary{font:600 15px system-ui;background:var(--accent);color:#fff;border:0;border-radius:10px;
     padding:10px 16px;cursor:pointer;min-height:42px}
+  /* The account button: a person glyph with the update dot in its corner. The dot is absolutely positioned, so it
+     marks the control rather than sitting beside the glyph like a second word. */
+  #who{position:relative;margin-left:8px;padding:4px 9px;line-height:1;font-size:15px}
+  #upddot{position:absolute;top:-2px;right:-2px;margin:0;width:8px;height:8px;
+          border:2px solid var(--bg);background:var(--warn)}
   button.plain{font:inherit;font-size:14px;background:var(--panel);border:1px solid var(--line);
     border-radius:10px;padding:8px 12px;min-height:38px;cursor:pointer;color:var(--ink)}
   button.plain:hover{border-color:#cfc6b6}
@@ -87,6 +92,20 @@
   .chip{display:inline-block;font:12px var(--mono);background:var(--chip);border-radius:999px;padding:2px 8px;color:#4a443c}
   .chip.ok{background:#e2f0e6;color:var(--ok)}
   .chip.warn{background:#fbe6e1;color:var(--warn)}
+  /* Who is in the room and who is willing to talk, on the screen the person is already reading. No popups: the
+     answer to "why is nobody answering me" has to be where the silence is. */
+  .chips{display:flex;flex-wrap:wrap;gap:7px;margin:2px 0 8px}
+  .pchip{display:inline-flex;align-items:center;gap:7px;padding:3px 9px 3px 8px;border:1px solid var(--line);
+    border-radius:999px;background:var(--panel);font-size:13px}
+  .pchip .pbadge{font:11px var(--mono);color:var(--mute);text-transform:lowercase}
+  .pchip.muted{background:#fbe6e1;border-color:#f0c9bf}
+  .pchip.quiet{background:var(--chip)}
+  .pchip.invited{border-color:var(--accent)}
+  .pdot{width:8px;height:8px;border-radius:50%;background:var(--ok);flex:0 0 8px}
+  .pdot.muted{background:var(--warn)}
+  .pdot.quiet{background:var(--mute)}
+  .pdot.invited{background:var(--accent);animation:none}
+  .pchip button.plain{padding:0 4px;line-height:1.5}
   .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px;background:var(--ok)}
   .dot.quiet{background:var(--warn)}
   .notice{border-left:3px solid var(--accent);background:var(--panel);border-radius:0 10px 10px 0;
@@ -187,6 +206,8 @@
     </svg>
     <div class="brand">K<span>ythe</span></div>
     <div id="repo-label" title="Which circle this page is in — press to switch or connect another"></div>
+    <button id="who" class="plain" aria-haspopup="dialog" aria-label="This page, this circle, and where to ask for help"
+            title="This page, this circle, and where to ask for help">👤<span id="upddot" class="dot" hidden></span></button>
   </header>
   <nav id="nav" hidden>
     <button data-go="today">Today</button>
@@ -200,15 +221,9 @@
   <footer id="foot">
     <p><strong>Kythe stores nothing.</strong> Every button is an operation on your own repository; chat keys stay in
     this browser.</p>
-    <p><a href="#/install">Install another circle</a> · <a href="#/connect">Connect one you already have</a></p>
-    <details>
-      <summary>What this page does not do yet</summary>
-      <p class="small" style="margin:8px 0 0">A member cannot ask for a picture inside a conversation — that happens
-      on its own page, and the chat is text in, text out. A tennis evening is reported at the end of the run, not
-      watched while it is played. Nobody plays golf: its six athletes are a script, so the Play tab starts a run on
-      your circle's own machine and shows the card and the replays it wrote, and says whose numbers they are.</p>
-    </details>
-    <p class="small" style="margin:10px 0 0">early version<span id="build" hidden></span></p>
+    <p><a href="#/install">Install another circle</a> · <a href="#/connect">Connect one you already have</a> ·
+    <a href="#/settings">Settings &amp; diagnostics</a></p>
+    <p class="small muted" style="margin:10px 0 0">early version</p>
   </footer>
 </div>
 
@@ -1008,6 +1023,7 @@ async function ensureUpdateNote(){
   try {
     UPDATE = await updateCheck();
     UPDATE_NOTE = updateSentence(UPDATE).trim();
+    paintUpdateDot();
     if (!location.hash || location.hash === '#/today') render();
   } catch(_){ /* a check that fails says nothing; silence here is the absence of a claim, not a claim of absence */ }
 }
@@ -1061,6 +1077,19 @@ function copyAddress(){
     if (!navigator.clipboard) throw new Error('no clipboard');
     navigator.clipboard.writeText(a).then(() => said('copied'), () => said('press and hold to copy it'));
   } catch(_){ said('press and hold to copy it'); }
+}
+
+// The one thing that stays on Today when this circle is behind: a sentence saying there is something to read, and a
+// door to it. The buttons and the paragraph moved to Settings & diagnostics on 2026-11-27 — but the circle a person
+// has just installed is the one that needs telling, and it is the one with nothing else on the page, so the signal
+// is ambient (a dot on the account button) and the pointer is a line rather than a fold nobody opens.
+function updPointer(){
+  const st = UPDATE && UPDATE.state;
+  if (st !== 'behind' && st !== 'unknown') return '';
+  return `<p class="sub">${st === 'behind'
+    ? 'This circle is running an older copy of the page than the template ships.'
+    : 'This page could not tell whether this circle is up to date.'}
+    <a href="#/settings">Settings &amp; diagnostics</a> says what would change.</p>`;
 }
 
 function updBlock(){
@@ -1490,6 +1519,9 @@ async function renderBody(){
     ? S.repo + ' — press to switch circle, connect another, or sign in on this device'
     : 'Which circle this page is in — press to switch or connect another';
   $('repo-label').onclick = connected ? () => setView('connect') : null;
+  const who = $('who');
+  if (who) who.onclick = openWho;
+  paintUpdateDot();
 
   paintVisibility(connected);
 
@@ -1498,6 +1530,9 @@ async function renderBody(){
   // holding a token. Neither may be reachable only by not being signed in.
   if (view === 'install'){ nav('install'); return viewInstall(main); }
   if (view === 'connect'){ nav('connect'); return viewConnect(main); }
+  // Settings is one of the two pages that belong to the page rather than to a circle (Install is the other): the
+  // build and the browser are facts about this tab, and somebody with no circle still needs them to ask for help.
+  if (view === 'settings'){ nav(null); paintUpdateDot(); return viewSettings(main); }
   if (connected) ensureUpdateNote();     // a page reopened on a circle checks once, without being asked
 
   if (!connected){
@@ -1522,6 +1557,129 @@ async function renderBody(){
   if (view === 'magazine') return viewMagazine(main);
   if (view.startsWith('m') && view !== 'members') return viewMember(main, decodeURIComponent((location.hash.split('/')[2] || '')));
   return viewToday(main);
+}
+
+/* ---- settings & diagnostics ---------------------------------------------------------------
+   Dawn's handoff of 2026-11-27, adopted and not transplanted: the update telemetry, the build stamp and the
+   forgetting of a circle leave the greeting and the footer for a page of their own, because a person arriving at a
+   circle should meet the circle and not a commit sha. Two things her sketch did not carry are kept, and both are
+   here because this page learned them the hard way:
+
+     - the *signal* stays ambient. A dot on the account button says "there is something to look at in here", so an
+       owner of a circle that is behind still finds out without opening a page. The lesson of 2026-11-19 was that
+       the update row was missing exactly where it mattered most — a circle freshly installed and told nothing.
+     - the sentence about what this page does not do yet moves here rather than disappearing. It is the only place
+       those gaps are admitted, and a page that hides them from the footer has not closed them. */
+
+function systemInfo(){
+  // Copied for a support letter, so it is built to contain no credential: no token, no API key, no member's words.
+  // What is left is the four facts a person would otherwise be asked to retype from a screenshot.
+  return [
+    'Kythe ' + (BUILD.startsWith('__') ? '(local build)' : BUILD),
+    'address: ' + location.href.split('?')[0].split('#')[0],
+    'circle: ' + (S.repo || '(none open)'),
+    'branch: ' + (S.branch || 'main'),
+    'browser: ' + (navigator.userAgent || 'unknown'),
+    'when: ' + nowStamp(),
+  ].join('\n');
+}
+
+function copySystemInfo(){
+  const said = (t) => { const el = $('whomsg'); if (el) el.textContent = t; };
+  try {
+    if (!navigator.clipboard) throw new Error('no clipboard');
+    navigator.clipboard.writeText(systemInfo()).then(() => said('copied — it holds no key and no token'),
+                                                     () => said('press and hold to copy it'));
+  } catch(_){ said('press and hold to copy it'); }
+}
+
+// The dot is painted from `UPDATE` rather than from a flag of its own: one statement of "this circle is behind"
+// and every surface reads it. Silence when the check has not run or could not decide — an amber dot for "we do not
+// know" would train people to ignore the colour, which is the failure `updBlock()` already refuses at length.
+function paintUpdateDot(){
+  const dot = $('upddot');
+  if (!dot) return;
+  dot.hidden = !(UPDATE && (UPDATE.state === 'behind' || UPDATE.state === 'unknown'));
+}
+
+function openWho(){
+  const dlg = $('modal'), slot = $('dlg');
+  slot.className = 'dlg';
+  const row = (onclick, title, sub, extra = '') =>
+    `<button class="member" style="width:100%" ${onclick}>${extra}
+      <div class="grow"><div class="name">${title}</div><div class="meta">${sub}</div></div></button>`;
+  slot.innerHTML = `<div style="padding:4px 2px">
+    <h2 style="margin:0 0 4px">This page</h2>
+    <p class="small muted" style="margin:0 0 14px">${esc(S.repo || 'no circle open')}${
+      BUILD.startsWith('__') ? '' : ' · build ' + esc(BUILD.split(' ')[0])}</p>
+    <div class="grid" style="gap:8px">
+      ${row(`onclick="closeDialog();setView('settings')"`, 'Settings &amp; diagnostics',
+            'the build, the template this circle runs, and what this page does not do yet')}
+      ${row('onclick="copySystemInfo()"', 'Copy system info',
+            'for a support letter: the build, the address, the circle, the browser — and nothing that is a key')}
+      ${row(`onclick="closeDialog();open('mailto:support@kythe.app')"`, 'Support',
+            'support@kythe.app')}
+      ${row(`onclick="closeDialog();window.open('https://github.com/LindsayRidgeway/ai-tribe-bench/issues','_blank','noopener')"`,
+            'Tell us it is broken', 'an issue on the project&#39;s own repository, where every fix is recorded in public')}
+      ${S.repo ? row(`onclick="closeDialog();forgetCircle('${escq(S.repo)}')"`, 'Forget this circle in this browser',
+            'nothing at GitHub is deleted; the stored credential goes') : ''}
+    </div>
+    <p class="small muted" id="whomsg" style="margin:12px 0 0"></p>
+    <div class="row" style="margin-top:14px"><button class="plain" onclick="closeDialog()">Close</button></div>
+  </div>`;
+  dlg.showModal();
+}
+
+async function viewSettings(main){
+  if (!UPD_CHECKED && S.repo && S.token) ensureUpdateNote();
+  main.innerHTML = `<h1>Settings &amp; diagnostics</h1>
+    <p class="sub">What this page is, what this circle is, and how to tell whether either of them has moved.</p>
+
+    <div class="card">
+      <h2 style="margin-top:0">The template this circle runs</h2>
+      <p style="margin:0 0 10px">${UPDATE_NOTE ? esc(UPDATE_NOTE)
+        : 'Not checked yet. The page reads this circle&#39;s record of which template it came from and compares it '
+          + 'with the template today; nothing is written until you press.'}</p>
+      ${updBlock() || '<p class="small muted" style="margin:0">Nothing to do: this circle already has every file the '
+        + 'template ships.</p>'}
+      <p class="small muted" style="margin:10px 0 0">This row used to sit on the front page, where it was the first
+      thing a person met in their own circle. It is here now, and the account button carries a dot while there is
+      something in here to read — the signal without the paragraph.</p>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0">This circle</h2>
+      <p style="margin:0 0 6px"><code>${esc(S.repo || 'no circle open')}</code> on branch
+        <code>${esc(S.branch || 'main')}</code></p>
+      ${S.repo ? addrBlock() : ''}
+      ${S.repo ? `<div class="row" style="margin-top:12px">
+        <button class="plain" onclick="forgetCircle('${escq(S.repo)}')">Forget this circle in this browser</button>
+        <span class="small muted">Nothing at GitHub is deleted. The stored credential goes, and the page returns to
+        the connect screen.</span></div>` : ''}
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0">This page</h2>
+      <p style="margin:0 0 6px">Build <code>${esc(BUILD.startsWith('__') ? 'local copy, no stamp' : BUILD)}</code></p>
+      <p class="small muted" style="margin:0 0 12px">A tab left open keeps running the program it loaded. If a change
+      you expect is missing, reload this page — that is the whole of the fix.</p>
+      <div class="row"><button class="plain" onclick="copySystemInfo()">Copy system info</button>
+        <a class="small" href="mailto:support@kythe.app">support@kythe.app</a>
+        <a class="small" href="https://github.com/LindsayRidgeway/ai-tribe-bench/issues" target="_blank"
+           rel="noopener">the project&#39;s own issue list</a></div>
+      <p class="small muted" id="whomsg" style="margin:8px 0 0"></p>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0">What this page does not do yet</h2>
+      <p class="small" style="margin:0 0 8px">A member cannot ask for a picture inside a conversation — that happens
+      on its own page, and the chat is text in, text out. A tennis evening is reported at the end of the run, not
+      watched while it is played (a golf season is: its rounds land one at a time). Nobody plays golf: its six
+      athletes are a script, so the Play tab starts a run on your circle&#39;s own machine and shows the card and the
+      replays it wrote, and says whose numbers they are.</p>
+      <p class="small muted" style="margin:0">This list is here rather than in the footer because it is the only
+      place these gaps are admitted.</p>
+    </div>`;
 }
 
 function viewHome(main){
@@ -2673,22 +2831,23 @@ function roomNoteHTML(name){
 }
 
 async function viewToday(main){
-  main.innerHTML = `<h1>Today</h1>`
-    + (UPDATE_NOTE ? `<p class="sub">${esc(UPDATE_NOTE)}</p>` : '')
-    + updBlock()
-    + `<p class="sub">reading the record…</p>`;
+  // The update row is not here any more (2026-11-27): the account button carries a dot while there is something to
+  // read, and the row, the sentence and both presses are on Settings & diagnostics. What was true of the old place
+  // is still true of the new one — it exists on an empty circle too, and that is the circle that needs it.
+  main.innerHTML = `<h1>Today</h1><p class="sub">reading the record…</p>`;
   let members;
   try { members = await loadMembers(); } catch(e){ return fail(main, e); }
 
   if (!members.length){
-    // An empty circle keeps the update line and its buttons. This is where the row was missing when it mattered
-    // most: a circle freshly installed, checked, and told nothing — measured 2026-11-19 on a real one.
+    // An empty circle keeps the pointer to the update. This is where the row was missing when it mattered most: a
+    // circle freshly installed, checked, and told nothing — measured 2026-11-19 on a real one. The row and both
+    // presses moved to Settings & diagnostics on 2026-11-27; the sentence that says there is something to read,
+    // and where, stays here, because this is the circle with nothing else on it.
     main.innerHTML = `<h1>Today</h1>`
-      + (UPDATE_NOTE ? `<p class="sub">${esc(UPDATE_NOTE)}</p>` : '')
-      + updBlock()
       + `<div class="card"><p style="margin:0">There are no members yet, so there is nothing to read.</p>
       <p class="small muted" style="margin:8px 0 14px">A member is a folder of text with a name on it.</p>
       <button class="primary" onclick="addMember()">Add a member</button></div>`
+      + updPointer()
       + `<details><summary>This circle's address</summary>${addrBlock()}</details>`;
     return;
   }
@@ -2755,10 +2914,9 @@ async function viewToday(main){
     <h1>Today</h1>
     ${clocked ? `<p class="sub">${clocked}</p>` : ''}
     ${clocked ? CLOCK_REALITY : ''}
-    ${UPDATE_NOTE ? `<p class="sub">${esc(UPDATE_NOTE)}</p>` : ''}
+    ${updPointer()}
     ${armed}
     ${blindNote}
-    ${updBlock()}
     ${quiet.length ? `<div class="notice">The clock has gone quiet for ${quiet.map(m => esc(m.name)).join(', ')}.
       A schedule that has stopped looks exactly like a circle with nothing to say. The usual cause is
       ${gaps && gaps.length ? 'a schedule GitHub has disabled' : 'a missing key, then a disabled schedule'}.</div>` : ''}
@@ -4792,16 +4950,24 @@ async function makeMember(){
 
 // `bench` is the answers to the turn just asked, before the room decides which one it hears; `aside` is the ones
 // it did not hear. Nothing here is thrown away: the bench is decided, not discarded.
-let CHAT = {slug: '', topic: '', names: [], msgs: [], bench: [], aside: [], pending: null, pendingTop: 0,
-            last: null, busy: false, total: 0,
-            // Turns spoken but not yet written — the person's, always, and any that a round is holding.
-            queue: [],
-            // The room talking on its own: `left` rounds still to run, `stop` set by the person, `done` so far.
-            loop: {running: false, left: 0, max: 0, done: 0, stop: false},
-            // Who decides what is said next: the members' own claims, or a judge named here.
-            floor: 'claim', judge: '', repeat: 1, streak: {}, byJudge: [], stats: [], lastJudge: null, failed: [],
-            // The rally: consecutive answers that returned the ball, and how many dropped in a row.
-            rally: {now: 0, best: 0}, drops: 0};
+function chatBlank(){
+  return {
+    slug: '', topic: '', names: [], muted: [], quiet: [], invited: [], msgs: [], bench: [], aside: [],
+    pending: null, pendingTop: 0,
+    last: null, busy: false, total: 0,
+    // Turns spoken but not yet written — the person's, always, and any that a round is holding.
+    queue: [],
+    // The room talking on its own: `left` rounds still to run, `stop` set by the person, `done` so far.
+    loop: {running: false, left: 0, max: 0, done: 0, stop: false},
+    // Who decides what is said next: the members' own claims, or a judge named here.
+    floor: 'claim', judge: '', repeat: 1, streak: {}, byJudge: [], stats: [], lastJudge: null, failed: [],
+    // The rally: consecutive answers that returned the ball, and how many dropped in a row.
+    rally: {now: 0, best: 0}, drops: 0};
+}
+// Built from `chatBlank()` rather than from whatever CHAT held: opening a room must not inherit the loop, the
+// queue or the streak of the room that was open before it, and a state object missing the fields the room's own
+// functions read is a page that throws on the next press rather than on this one.
+let CHAT = chatBlank();
 const chatDir = (slug) => `chats/${slug}`;
 
 function slugOfTopic(topic){
@@ -4908,6 +5074,8 @@ async function loadChat(slug){
   const judge = ((head.match(/^Judge: ([a-z0-9_-]+)/im) || [, ''])[1] || '').toLowerCase();
   const rep = ((head.match(/^Repeat: (any|\d+)/im) || [, '1'])[1] || '1').toLowerCase();
   const repeat = rep === 'any' ? 0 : Math.max(1, Math.min(9, Number(rep) || 1));
+  const who = (re) => (((head.match(re) || [, ''])[1]) || '').split(',').map(x => x.trim()).filter(Boolean);
+  const muted = who(/^Muted: (.*)$/m), quiet = who(/^Quiet: (.*)$/m);
   return {
     topic: (head.match(/^# A chat — (.+)$/m) || [, slug])[1],
     names: names && names !== '(nobody yet)' ? names.split(',').map(x => x.trim()).filter(Boolean) : [],
@@ -4918,13 +5086,183 @@ async function loadChat(slug){
     floor: rule === 'judge' ? 'judge' : 'claim',
     judge,
     repeat,
+    muted,
+    quiet,
     byJudge: judgeRecord(all),
   };
 }
 
+// ---- In the room, and allowed to speak: the two questions this page used to ask as one ---------------------
+// Until 2026-11-27 a member of a room was answering, or gone. Dawn's point in the handoff is the one that matters
+// here: being present and being willing to talk are different questions, and a room that cannot ask them separately
+// forces every silence to look like an exit. So there are two lists beside `Members:` — `Muted:` (the person has
+// silenced them) and `Quiet:` (they chose to listen) — and they are in the room's own file, not in this browser,
+// for the same reason everything else is: a lever nobody can read afterwards is not a record.
+//
+// Both lines exist only while somebody is on them, so a room where no lever has been used reads exactly as it did
+// before this was added. The precedence is the person's: muted beats quiet, because if both are true the thing the
+// member needs explaining is your decision, not theirs.
+const inRoom = (n) => CHAT.names.includes(n);
+const isMuted = (n) => (CHAT.muted || []).includes(n);
+const isQuiet = (n) => (CHAT.quiet || []).includes(n);
+
+// Present is not the same as heard: a quiet member is in the room and hears it, and is simply not asked. That is the
+// whole of the memory gap — an absent member gets no prompt and no turn written into its memory, because the writes
+// are keyed on `CHAT.names` and it is not in them.
+function canSpeak(n){ return inRoom(n) && !isMuted(n) && !isQuiet(n); }
+function canSpeakNames(){ return CHAT.names.filter(canSpeak); }
+
+// The states, in the order they are asked, with the sentence each one owes the person. Amended from the handoff:
+// "allowed into the room at all" is not a lever here, because a member who is not in the room is out of it, and the
+// page already has one honest way to put them back (the add list) rather than two.
+function presenceOf(n){
+  if (!inRoom(n)) return {state: 'out', badge: 'Out of the room',
+    line: 'Not in this room. The add list puts them back.'};
+  if (isMuted(n)) return {state: 'muted', badge: 'Muted by you',
+    line: 'Muted by you. Still in the room and still reading it; not asked, and nothing it says is written.'};
+  if (isQuiet(n)) return {state: 'quiet', badge: 'Listening',
+    line: 'They chose to listen without speaking. They may answer again on their own if you invite them, and are '
+      + 'not asked until you do.'};
+  if ((CHAT.invited || []).includes(n)) return {state: 'invited', badge: 'Invited',
+    line: 'An invitation is out and nothing has come back yet.'};
+  return {state: 'speaking', badge: 'Speaking', line: 'In the room and asked every round.'};
+}
+
+function chipButton(n){
+  const p = presenceOf(n);
+  if (p.state === 'muted') return `<button class="plain small" onclick="presencePress('${escq(n)}')">Unmute</button>`;
+  if (p.state === 'quiet') return `<button class="plain small" onclick="presencePress('${escq(n)}')">Invite</button>`;
+  if (p.state === 'invited') return `<span class="small muted">asked…</span>`;
+  return `<button class="plain small" onclick="presencePress('${escq(n)}')">Mute</button>`;
+}
+
+// Ambient, and never a popup: the badge is the answer to "why is nobody answering me", and it is on the screen the
+// person is already looking at.
+function paintChips(){
+  const box = $('tchips'); if (!box) return;
+  if (!CHAT.names.length){ box.innerHTML = `<span class="small muted">Nobody is in this room yet.</span>`; return; }
+  box.innerHTML = CHAT.names.map(n => {
+    const p = presenceOf(n);
+    return `<span class="pchip ${p.state}" title="${escq(p.line)}">
+      <span class="pdot ${p.state}"></span><strong>${esc(n)}</strong>
+      <span class="pbadge">${esc(p.badge)}</span>
+      ${chipButton(n)}
+      <button class="plain small" onclick="leaveRoom('${escq(n)}')" title="Take ${escq(n)} out of this room"
+        aria-label="Take ${escq(n)} out of this room">✕</button></span>`;
+  }).join('');
+}
+
+// Writing the levers is a commit like every other write, and the message says which lever moved — so the room's
+// history answers "why did Carlo stop answering on the 3rd" without anybody opening the page.
+async function saveRoomRules({names, muted, quiet, note}){
+  const cur = await fileText(`${chatDir(CHAT.slug)}/chat.md`);
+  await putText(`${chatDir(CHAT.slug)}/chat.md`,
+    withRules(cur.text, {names: names || CHAT.names, floor: CHAT.floor, judge: CHAT.judge, repeat: CHAT.repeat,
+      muted: muted || CHAT.muted, quiet: quiet || CHAT.quiet}), note, cur.sha);
+}
+
+async function presencePress(n){
+  const msg = $('tmsg'), here = presenceOf(n);
+  if (here.state === 'quiet' || here.state === 'invited') return inviteToSpeak(n);
+  const to = here.state === 'muted' ? 'speaking' : 'muted';
+  const muted = (CHAT.muted || []).filter(x => x !== n), quiet = (CHAT.quiet || []).filter(x => x !== n);
+  if (to === 'muted') muted.push(n);
+  try {
+    if (msg) msg.textContent = 'saving who may speak…';
+    await saveRoomRules({muted, quiet, note: `chat: ${n} is ${to === 'muted' ? 'muted by you' : 'unmuted'} in "${CHAT.topic}"`});
+    CHAT.muted = muted; CHAT.quiet = quiet;
+    paintChips();
+    if (msg) msg.textContent = n + ' — ' + presenceOf(n).line;
+  } catch(e){ if (msg) msg.innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }
+}
+
+async function leaveRoom(n){
+  const names = CHAT.names.filter(x => x !== n);
+  const muted = (CHAT.muted || []).filter(x => x !== n), quiet = (CHAT.quiet || []).filter(x => x !== n);
+  const msg = $('tmsg');
+  try {
+    if (msg) msg.textContent = 'taking ' + n + ' out of the room…';
+    await saveRoomRules({names, muted, quiet, note: `chat: ${n} is out of "${CHAT.topic}"`});
+    CHAT.names = names; CHAT.muted = muted; CHAT.quiet = quiet;
+    render();
+  } catch(e){ if (msg) msg.innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }
+}
+
+// The invitation is one call, and the person is the one who pressed it: there is no clock here that asks a quiet
+// member anything they did not agree to being asked. It goes out in isolation — the member is given its own identity
+// and the room's name, and nothing of what the others said — so a quiet member does not come back holding a
+// conversation it was never in. One answer, and either it is a line for the room or it is NO.
+async function inviteToSpeak(n){
+  const m = (S.members || []).find(x => x.name === n), msg = $('tmsg');
+  if (!m){ if (msg) msg.textContent = n + ' is not a member of this circle any more.'; return; }
+  CHAT.invited = [...(CHAT.invited || []).filter(x => x !== n), n];
+  paintChips();
+  if (msg) msg.textContent = 'asking ' + n + ' whether they want to speak again…';
+  let out = '';
+  try {
+    await chatStream(systemPrompt(m, '') + `\n\nYou are in a room called "${CHAT.topic}" and you have not been `
+      + `speaking — by your own choice, or because you were asked to be quiet. Someone has now invited you to speak `
+      + `again. If you have nothing you want to say, answer with the single word NO and nothing else. If you do want `
+      + `to speak, answer with only the line you would say in the room now, in your own voice, in one or two short `
+      + `sentences — no greeting, no thanks for the invitation, and no mention of having been away.`,
+      [{role: 'user', content: `Do you want to speak in "${CHAT.topic}" again?`}], m.engine, d => { out += d; });
+  } catch(e){
+    const x = explainEngineError(e, m.engine);
+    CHAT.invited = (CHAT.invited || []).filter(y => y !== n); paintChips();
+    if (msg) msg.innerHTML = '<span class="err">' + esc(n) + ' could not be asked — ' + esc(x.short) + ' ' + esc(x.fix) + '</span>';
+    return;
+  }
+  CHAT.invited = (CHAT.invited || []).filter(y => y !== n);
+  const said = stripUrgency(String(out || '')).trim();
+  const no = /^no\b/i.test(said) || said.length < 2;
+  if (no){
+    paintChips();
+    if (msg) msg.textContent = n + ' was asked, and would rather stay quiet. Nothing else was written.';
+    return;
+  }
+  const turn = {role: 'assistant', who: n, at: nowStamp(), content: said, mark: 'came back when invited'};
+  const quiet = (CHAT.quiet || []).filter(x => x !== n);
+  try {
+    CHAT.msgs.push(turn);
+    await chatPersist(CHAT.slug, [turn], Object.fromEntries(CHAT.names.map(x => [x, [turn]])));
+    await saveRoomRules({quiet, note: `chat: ${n} spoke again in "${CHAT.topic}"`});
+    CHAT.quiet = quiet;
+    chatPaint(); paintChips();
+    if (msg) msg.textContent = n + ' took the invitation and said something.';
+  } catch(e){ if (msg) msg.innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }
+}
+
+// A member may end its answer with `[action: quiet]` or `[action: leave]`. The line is machinery: it is stripped
+// before anything is shown or saved, and the lever it names moves once, after the turn is written — so the record of
+// the talk never contains a tag, and the record of the decision is the commit that moved the lever.
+const AUTONOMY_TAG = /\n?\s*\[action:\s*(leave|quiet)\s*\]\s*$/i;
+
+// The bench it reads is passed in, because `chatTake` empties `CHAT.bench` before it writes — and the turn whose
+// member chose quiet is exactly the turn that is being written when the lever has to move.
+function applyActions(bench = CHAT.bench || []){
+  const acts = (bench || []).filter(r => r.action && !r.applied);
+  if (!acts.length) return Promise.resolve();
+  const muted = (CHAT.muted || []).slice(), quiet = (CHAT.quiet || []).slice(), names = CHAT.names.slice();
+  const moved = [];
+  for (const r of acts){
+    r.applied = true;
+    if (r.action === 'quiet' && names.includes(r.who) && !quiet.includes(r.who) && !muted.includes(r.who)){
+      quiet.push(r.who); moved.push(r.who + ' chose to listen');
+    }
+    if (r.action === 'leave' && names.includes(r.who)){
+      names.splice(names.indexOf(r.who), 1); moved.push(r.who + ' stepped out of the room');
+    }
+  }
+  if (!moved.length) return Promise.resolve();
+  CHAT.names = names; CHAT.quiet = quiet;
+  paintChips();
+  return saveRoomRules({names, muted, quiet,
+    note: `chat: in "${CHAT.topic}", ${moved.join(' and ')}`}).catch(() => {});
+}
+
 // The header is the room's settings, so it is rewritten a line at a time: `Opened` is a fact about the past and
 // regenerating it would move the room's birthday every time somebody joined or changed the judge.
-function withRules(head, {names, floor, judge, repeat = 1}){
+function withRules(head, {names, floor, judge, repeat = 1, muted = [], quiet = []}){
   let t = String(head || '').replace(/\s*$/, '\n');
   const put = (re, line, keep = true) => {
     if (re.test(t)) t = keep ? t.replace(re, line) : t.replace(re, '');
@@ -4934,6 +5272,12 @@ function withRules(head, {names, floor, judge, repeat = 1}){
   put(/^Floor: .*$/m, `Floor: ${floor === 'judge' ? 'judge' : 'claim'}`);
   put(/^Judge: .*\n?/m, `Judge: ${judge || 'gemini'}\n`, floor === 'judge');
   put(/^Repeat: .*\n?/m, `Repeat: ${repeat === 0 ? 'any' : repeat}\n`, floor === 'judge');
+  // Who may speak is not the same question as who is in the room, and until 2026-11-27 this page could not tell
+  // them apart: a member was in the room and answering, or out of the room and gone. Both lines are kept only while
+  // somebody is on them, so a room where nobody has used a lever reads exactly as it did before.
+  const list = (xs) => xs.filter(n => names.includes(n));
+  put(/^Muted: .*\n?/m, `Muted: ${list(muted).join(', ')}\n`, list(muted).length > 0);
+  put(/^Quiet: .*\n?/m, `Quiet: ${list(quiet).join(', ')}\n`, list(quiet).length > 0);
   return t;
 }
 
@@ -4972,7 +5316,8 @@ async function viewChat(main, slug){
       <p><a href="#/table">← all chats</a></p>`;
     return;
   }
-  CHAT = {...CHAT, slug, topic: c.topic, names: c.names, msgs: c.msgs, total: c.total,
+  CHAT = {...chatBlank(), slug, topic: c.topic, names: c.names, muted: c.muted, quiet: c.quiet, invited: [],
+          msgs: c.msgs, total: c.total,
           bench: [], aside: [], pending: null, last: null, stats: c.stats,
           rally: c.rally || {now: 0, best: 0}, drops: 0,
           repeat: c.repeat, streak: {}, byJudge: c.byJudge || [],
@@ -4989,8 +5334,8 @@ async function viewChat(main, slug){
   main.innerHTML = `
     <p class="back small"><a href="#/table">← all chats</a></p>
     <h1>${esc(c.topic)}</h1>
-    <p class="sub">${CHAT.names.length ? CHAT.names.map(esc).join(', ') : 'Nobody is in this room yet'}
-      · ${c.total} turn${c.total === 1 ? '' : 's'}${c.total > 60 ? ', showing the last 60' : ''}</p>
+    <div class="chips" id="tchips"></div>
+    <p class="sub">${c.total} turn${c.total === 1 ? '' : 's'}${c.total > 60 ? ', showing the last 60' : ''}</p>
     <div class="chat" id="tchat"></div>
     <div class="composer">
       <textarea id="tsay" placeholder="Say something in ${esc(c.topic)}…" autocapitalize="sentences"></textarea>
@@ -5067,6 +5412,7 @@ async function viewChat(main, slug){
 
   $('tsend').onclick = chatSay;
   $('tsay').onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); chatSay(); } };
+  paintChips();
   chatPaint();
 }
 
@@ -5216,7 +5562,13 @@ function chatPrompt(m, claim = true){
     + `${others.length ? others.join(' and ') + ' and ' : ''}the person who keeps this circle. Everyone in the room `
     + `hears everything that is said. You are all being asked the same thing at the same time, without hearing the `
     + `others' answers first — so, as in a real room, more than one of you may want the floor at once, and not all of `
-    + `you will get it.\n\n`;
+    + `you will get it.\n\n`
+    + `You may also decide that the room does not need you. Two things are yours to choose and nothing else can `
+    + `choose them for you: to listen without speaking, and to leave. If you would rather stay and say nothing for `
+    + `now, end your answer with the line [action: quiet] on its own. If you would rather step out of this room `
+    + `altogether, end it with [action: leave]. Only if you mean it: while you are quiet you are not asked anything `
+    + `and you will not be shown what the others say until someone invites you back, and a member who leaves stops `
+    + `hearing the room at all. Writing neither means you are asked again next round, which is the ordinary case.\n\n`;
   if (!claim){
     return head + `Say what you would say next, in your own voice, in one or two short paragraphs. Someone outside `
       + `the room will decide whose answer is heard, and it has been told not to be even-handed. Do not speak for `
@@ -5350,12 +5702,10 @@ async function chatSay(){
   CHAT.last = person; CHAT.msgs.push(person); CHAT.queue.push(person);
   CHAT.aside = []; CHAT.pending = null;
   chatPaint();
-  if (!CHAT.names.length && msg)
-    msg.textContent = 'Nobody is in this room, so nobody will answer — but it is written down.';
 
   try {
     const room = CHAT.msgs.slice();   // the room as it stands, without these answers
-    const d = await decideTurn(room, CHAT.names, {byPerson: true});
+    const d = await decideTurn(room, canSpeakNames(), {byPerson: true});
     if (d.pending){
       CHAT.pending = d.pending; CHAT.pendingTop = d.top;
       if (msg) msg.textContent = d.pending.join(' and ') + ' both claimed ' + d.top + '. The floor is yours to give.';
@@ -5389,6 +5739,11 @@ async function askRoom(room, names, claim = true){
     r.claimed = p.urgency;
     r.urgency = p.urgency === null ? 0 : p.urgency;
     r.content = p.text || '(nothing came back)';
+    // A member that chose quiet or leave said so with a line, and the line is machinery: it never reaches a bubble,
+    // a file or another member's memory as text. What it does is move a lever, once, after the turn is written.
+    const act = r.content.match(AUTONOMY_TAG);
+    if (act){ r.action = act[1].toLowerCase(); r.content = r.content.replace(AUTONOMY_TAG, '').trim()
+      || '(said nothing — chose to ' + r.action + ')'; }
     r.done = true;
     chatPaint();
   }));
@@ -5422,8 +5777,17 @@ async function startLoop(rounds){
     // With claims deciding, nobody is asked about their own sentence. With a judge, everyone is asked every round —
     // otherwise in a two-member room there is one candidate and the judge is decoration.
     const lastWho = (CHAT.msgs[CHAT.msgs.length - 1] || {}).who;
-    const asked = CHAT.floor === 'judge' ? CHAT.names.slice() : CHAT.names.filter(n => n !== lastWho);
-    if (!asked.length){ stopLoop('nobody left to answer'); break; }
+    // A muted or listening member is not asked — that is the whole point of having the levers — and if that empties
+    // the room the loop stops and says which of the two it was, because "nobody left to answer" covered both and
+    // meant neither.
+    const present = canSpeakNames();
+    const asked = CHAT.floor === 'judge' ? present.slice() : present.filter(n => n !== lastWho);
+    if (!asked.length){
+      stopLoop(!CHAT.names.length ? 'nobody is in the room'
+        : !present.length ? 'everybody in the room is muted or listening'
+        : 'nobody is left to answer — the one other voice spoke last');
+      break;
+    }
     CHAT.loop.done++;
     chatPaint();
     const room = CHAT.msgs.slice();
@@ -5511,7 +5875,7 @@ async function chatTake(chosen, {auto = false, judge = null} = {}){
   }
   chatPaint();
 
-  if (!lead.length && !taken.length && !aside.length) return;
+  if (!lead.length && !taken.length && !aside.length){ await applyActions(bench); return; }
   // What the record says about this turn: a claim the room weighed, or a judge that chose and said why. Either way
   // the reason goes in the file beside the answer, because a decision nobody can read afterwards is not evidence.
   const markOf = (r, isTaken) => {
@@ -5549,6 +5913,7 @@ async function chatTake(chosen, {auto = false, judge = null} = {}){
 
   try {
     await chatPersist(CHAT.slug, roomTurns, byName);
+    await applyActions(bench);
     if (msg && judge && !judge.failed){
       msg.textContent = judge.who
         ? `The judge (${ENGINES[judge.engine] ? ENGINES[judge.engine].label : judge.engine}) chose ${judge.who}` + (judge.why ? `: ${judge.why}` : '.')
@@ -5561,8 +5926,15 @@ async function chatTake(chosen, {auto = false, judge = null} = {}){
         + ' The room fell back on the members\' claims for this turn.</span>';
       return;
     }
+    // A room that answered and was passed over is a different thing from a room that was never asked, and until the
+    // levers existed the page could only say the first. What it says now names the lever, because the person's next
+    // move depends on which it was: unmute somebody, or invite somebody, or add somebody.
     if (msg) msg.textContent = taken.length
       ? taken.map(r => r.who).join(' and ') + ' took the floor.'
+      : !bench.length && CHAT.names.length
+        ? 'Nobody was asked — everybody in this room is muted or listening. It is written down.'
+      : !bench.length
+        ? 'Nobody is in this room, so nobody answered. It is written down.'
       : 'Nobody took the floor' + (bench.some(r => r.urgency)
           ? ' — the highest claim was ' + Math.max(...bench.map(r => r.urgency || 0)) + '.'
           : '.') + ' What each of them said is kept in the room\'s file.';
