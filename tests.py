@@ -10853,6 +10853,61 @@ class TestTheContactIsTickedAtTheContactAndTheBallIsDrawnBetweenItsSamples(unitt
                       "1.07ft", "the nine were not the arm"):
             self.assertTrue(piece in backlog, f"{piece} is not in the item 16 note")
 
+class TestARecoveryStepAndAServeCrouchAreEnteredAndNotSwitched(unittest.TestCase):
+    """Item 2b's remainder, 2026-11-27. Three pose terms were gated by a boolean that flips at a segment boundary,
+    so each of them arrived at full amplitude on one frame and vanished on the next: the cross-over step (switched
+    by `moving`), the serve's crouch (`-tlc / 0.45` is already 1 on its segment's first frame) and the stride's own
+    rise (its segment ends before its 0.75s window does). Measured on `records/item31-after` at a 0.01s grid, the
+    biggest one-frame toe move went 35.6ft/s -> 23.9ft/s for Colette and 49.4 -> 23.0 for Gwen."""
+
+    def setUp(self):
+        self.page = (REPO / "games" / "tennis" / "replay3d.html").read_text(encoding="utf-8")
+        self.reader = (REPO / "lab" / "tennis_sweep.py").read_text(encoding="utf-8")
+
+    def test_the_cross_over_step_is_faded_on_the_move_s_own_clock(self):
+        self.assertIn("const mAmt = Math.min(1, Math.max(0, el / CROSS_IN), "
+                      "Math.max(0, Math.min(1, (left + CROSS_OUT) / CROSS_OUT)));", self.page)
+        self.assertIn("const amt = mAmt * Math.max(0, Math.min(Math.min(1, tlc / 0.10), "
+                      "1 - Math.max(0, tlc - 0.10) / 0.25));", self.page)
+        self.assertNotIn("if (moving && dir && !walking) {", self.page,
+                         "the cross-over is switched by `moving` again: a run that ends inside 0.35s drops it in "
+                         "one frame, which was 0.473ft of toe at 95ft/s")
+
+    def test_the_cross_over_keeps_its_direction_while_it_fades_out(self):
+        # `dir` is null once the move is over, and the fade-out still needs somewhere to point
+        self.assertIn("if (mAmt > 0 && (dir || lastDir) && !walking) {", self.page)
+        self.assertIn("const d0 = dir || lastDir;", self.page)
+
+    def test_a_serve_s_crouch_is_entered_over_the_first_quarter_second_of_the_toss(self):
+        self.assertIn("Math.max(0, Math.min(1, Math.min(tl / 0.25, -tlc / 0.45)))", self.page)
+        self.assertIn("const CROSS_IN = 0.10;", self.page)
+
+    def test_the_crouch_is_the_knees_and_not_a_push_into_the_court(self):
+        self.assertNotIn("rig.root.position.y -= 0.12 * serveLoad;", self.page,
+                         "the crouch is pushed into the root again after the grounding clamp, which put both toes "
+                         "0.12ft below the court for the length of every toss")
+
+    def test_the_rise_lands_inside_its_own_shot_and_the_lean_does_not(self):
+        self.assertIn("const rr = Math.max(0, Math.min(1, 1 - Math.abs(tTo) / wOutNow));", self.page)
+        self.assertIn("dy = rise > 0 ? rise * rr : 0;", self.page)
+        self.assertIn("const r = Math.max(0, Math.min(1, 1 - Math.abs(tTo) / R_WINDOW));", self.page)
+        self.assertIn("seg.dur - (seg.tossDur || 0) - tlc);", self.page,
+                      "the striker's call site does not hand reachTo the time its own shot has left")
+
+    def test_the_reader_s_thresholds_come_from_the_grid_it_was_taken_on(self):
+        # 25ft/s is 0.5ft only on a 0.02s sweep. At 0.01s a 0.37ft frame is 37ft/s and was counted as zero, which
+        # is a build reading "0 over 25ft/s" beside its own 0.37ft maximum.
+        self.assertIn("fast = [j for j in jumps if j[0] > 25.0 * dt]", self.reader)
+        self.assertIn("over = sum(1 for d, _ in rises if d > 10.0 * dt)", self.reader)
+        self.assertNotIn("fast = [j for j in jumps if j[0] > 0.5]", self.reader)
+
+    def test_the_numbers_are_on_the_record(self):
+        backlog = (REPO / "games" / "tennis" / "BACKLOG.md").read_text(encoding="utf-8")
+        for piece in ("a step is entered, a crouch is entered, and a jump lands (DONE 2026-11-27)",
+                      "35.6ft/s", "23.9ft/s", "49.4", "23.0", "0.473ft", "0.12ft BELOW the court"):
+            self.assertTrue(piece in backlog, f"{piece} is not in item 2b's remainder")
+
+
 class TestTheStepTowardTheBallIsWalkedAndNotPlaced(unittest.TestCase):
     """Item 16's remainder, second half, 2026-11-27. `reachTo` is the page's stride toward the ball, and it had
     never run on an approach frame: it was handed `northIn`'s boolean instead of the contact point, so its gap was

@@ -1329,6 +1329,47 @@ The arm solver was never 2.58ft off the ball. Item 19's remainder is real but it
 position, the tossing arm, and the kick serve. **Item 16's contact promise is now met on the whole film with 0.55ft
 to spare, i.e. inside the racquet head's own width.**
 
+### a step is entered, a crouch is entered, and a jump lands (DONE 2026-11-27)
+
+Item 2b's remainder was "a toe still rises ~0.4ft in one frame as a stride starts", and it was three different
+switches, all of them a BOOLEAN or a clock that changes under a pose at a segment boundary:
+
+1. **The cross-over step was gated on `moving`.** `amt` runs 0-0.35s from the opponent's contact, but the term
+   itself vanished on the frame the run ended. A recovery run of 0.11s therefore drew the cross-over at FULL
+   amplitude on its last frame and nothing on the next: **Gwen's right toe fell 0.473ft in one 5ms frame at
+   T=304.04** (ankles 1.017 -> 0.506), which is 95ft/s. It now fades in over the first tenth of a second of the move
+   and out over the last fifth — `mAmt`, on the move's own clock, with `dir || lastDir` because the fade-out still
+   needs a direction.
+2. **The serve's crouch was switched on.** `serveLoad = -tlc / 0.45` is already 1 on a serve's first frame, because
+   a serve's segment begins at its toss — 0.84s before the strike. Measured: Colette's toes fell **0.35ft between
+   T=414.375 and T=414.380**, the first frame of her second serve. It is now entered over the first quarter second
+   of the toss.
+3. **The stride's rise outlived its own shot.** `r` is symmetric over 0.75s, but shot 82's segment ends 0.44s after
+   its strike, so the body was still 0.26ft up on its last frame and the next serve's toss (where `r` is 0) put it
+   back on the court in one frame. The RISE now lands inside its own shot, on the shot's remaining time; the LEAN
+   keeps its calibrated window, because a player who has stepped at a ball stays in the step (and rate-limiting the
+   3.8ft lean to a short shot's tail measured 0.37ft in one frame, worse than the defect).
+
+**And the crouch was being pushed into the court.** `rig.root.position.y -= 0.12 * serveLoad` ran AFTER the
+grounding clamp, so for the length of every toss **both toes were 0.12ft BELOW the court** (measured: -0.014 and
+-0.120, the second constant to the hundredth). The clamp is the mechanism that turns a bent knee into a body dip —
+the `0.10 * load` term inside `legs()` is the bend — so the second push did not crouch the figure, it sank it.
+
+| `records/item31-after`, 0:530, 0.01s grid | before | after |
+|---|---|---|
+| biggest one-frame toe move, Colette | 0.356ft = **35.6ft/s** at T=414.38 | **0.239ft = 23.9ft/s** |
+| biggest one-frame toe move, Gwen | 0.494ft = **49.4ft/s** at T=304.04 | **0.230ft = 23.0ft/s** |
+| frames over 10ft/s of toe | 149 and 168 | **109 and 112** |
+| item 2b, biggest one-frame move | 0.25ft in 0.01s = 25.3ft/s | **0.25ft = 25.3ft/s** |
+| item 2b, frames over 25ft/s | 2 and 6 (see below) | **2 and 6** |
+| the 108 contacts, at the contact | median 0.01ft, worst 0.55 | **median 0.01ft, worst 0.56** |
+
+**The reader's own threshold was the fourth instrument of the day.** "over 25ft/s" was hard-coded as `0.5ft`,
+which is 25ft/s only on the 0.02s grid it was calibrated on: at 0.01s a 0.37ft frame is 37ft/s and was counted as
+zero, so a build read "0 over 25ft/s" beside its own 0.37ft maximum. Both thresholds now come from the grid the run
+was taken on (`25 * dt`, and `10 * dt` for the toe), and the honest answer on this film is **2 and 6 frames at
+25.3ft/s** — the record's own 20ft/s run plus the last of the stride, not a jolt.
+
 ## Item 17 — there is no ground past the run-off (DONE 2026-11-19)
 
 Found while checking that Item 15's tail had not broken anything, which is the only reason it was found at all. Of

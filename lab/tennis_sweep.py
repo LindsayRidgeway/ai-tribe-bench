@@ -178,12 +178,19 @@ def main(argv):
     print(f"{len(rows)} frames, {len(segs)} shots, players {', '.join(names)}")
 
     # ---- item 2b: a body placed rather than walked
-    print("\n== item 2b — the biggest one-frame move, and how many frames are over 25ft/s ==")
+    # THE THRESHOLD IS 25ft/s, SO IT IS 25 * THE GRID, not a fixed half a foot. It was hard-coded at 0.5ft,
+    # which is 25ft/s only on the 0.02s sweep it was calibrated on: at 0.01s a 0.37ft frame is 37ft/s and was
+    # counted as zero. Measured 2026-11-27, the day a build's own item 2b read "0 over 25ft/s" beside a 0.37ft
+    # maximum — the fourth instrument in a row to hide a defect behind a number that looked like a verdict.
+    dt = sorted(b["T"] - a["T"] for k in idx.values() for a, b in zip(traj[k], traj[k][1:]))
+    dt = dt[len(dt) // 2] if dt else 0.02
+    print(f"\n== item 2b — the biggest one-frame move, and how many frames are over 25ft/s (grid {dt:.3f}s) ==")
     for n, k in idx.items():
         jumps = sorted(((math.hypot(b["x"] - a["x"], b["z"] - a["z"]), b["T"])
                         for a, b in zip(traj[k], traj[k][1:])), reverse=True)
-        fast = [j for j in jumps if j[0] > 0.5]
-        print(f"  {n:8s} {jumps[0][0]:6.2f}ft at T={jumps[0][1]:7.2f}   over 25ft/s: {len(fast)}"
+        fast = [j for j in jumps if j[0] > 25.0 * dt]
+        print(f"  {n:8s} {jumps[0][0]:6.2f}ft in {dt:.3f}s = {jumps[0][0] / dt:4.1f}ft/s at T={jumps[0][1]:7.2f}"
+              f"   over 25ft/s: {len(fast)}"
               f"   next {[(round(d, 2), round(t, 2)) for d, t in jumps[1:4]]}")
 
     # ---- the toe: the standing-to-stride switch
@@ -191,8 +198,10 @@ def main(argv):
     for n, k in idx.items():
         rises = sorted(((abs(b[j] - a[j]), b["T"]) for a, b in zip(traj[k], traj[k][1:])
                         for j in ("tl", "tr") if a[j] is not None and b[j] is not None), reverse=True)
-        over = sum(1 for d, _ in rises if d > 0.10)
-        print(f"  {n:8s} {rises[0][0]:.3f}ft at T={rises[0][1]:7.2f}   over 0.10ft in a frame: {over}")
+        # 10ft/s of toe, on the same grid the run was taken at — the same correction as item 2b's threshold.
+        over = sum(1 for d, _ in rises if d > 10.0 * dt)
+        print(f"  {n:8s} {rises[0][0]:.3f}ft in {dt:.3f}s = {rises[0][0] / dt:4.1f}ft/s at T={rises[0][1]:7.2f}"
+              f"   over 10ft/s: {over}")
 
     # ---- item 12: does the frame come back across the body while the player runs?
     print("\n== item 12 — the frame's side of the body while moving ==")
