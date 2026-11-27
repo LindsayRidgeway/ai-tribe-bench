@@ -7485,6 +7485,60 @@ class TestPickleball(unittest.TestCase):
             self.assertGreater(book["members"][n]["sessions"][-1]["of"], 0,
                                "and the session says how many balls it is a record of")
 
+    def test_a_pickleball_season_is_reported_in_its_own_units_and_never_in_tenniss(self):
+        """§5z. `season_report(…, "pickleball")` accepted the sport and ignored it: it read
+        `games/tennis/seasons/<season>/practice.json` and answered "Nobody has hit a ball in <season> yet" about a
+        season sitting in `games/pickleball/seasons/`. An argument that is accepted and does nothing is the most
+        expensive kind of defect, because every caller believes it was answered. There were two callers — the
+        season writer and `--report` — and both were wrong."""
+        pk = self.pk
+        _m, out = pk.play_game(["A", "B", "C", "D"], [200] * 4, pk.make_chooser("dink"), wind_seed_ms=1234500,
+                               say=lambda *a, **k: None)
+        with tempfile.TemporaryDirectory() as tmp:
+            season, d = "2026-winter", str(Path(tmp) / "2026-winter")
+            book = {"season": season, "members": {}}
+            pk.record_session(book, when="2026-11-27T00:00:00Z", surface="hard", clock=out["clock"],
+                              players=list(out["players"].values()), results=out["results"],
+                              lengths=out["lengths"], partners={}, mode="doubles",
+                              faults=pk.fault_mix({"rallies": out["rallies"]}), score=out["score"])
+            pk.save_season(book, season, d, "pickleball", report=pk.report)
+            written = (Path(d) / "report.md").read_text()
+            self.assertIn("pickleball, what the record says", written)
+            self.assertNotIn("tennis", written, "the season's own report mentions tennis")
+            self.assertIn("points lost, in the words a player corrects", written)
+            self.assertIn(f"the game was {out['score'][0]}–{out['score'][1]}", written,
+                          "the report leaves out the one number a person looks for")
+            self.assertIn(f"{season}/practice.json", written)
+            # and the reader, asked directly, does not pretend to answer in tennis's units
+            said = self.t.season_report(season, d, "pickleball")
+            self.assertIn("practice.json", said)
+            self.assertNotIn("Nobody has hit a ball", said, "it answered about a file it never read")
+            self.assertIn(f"lab/pickleball.py --report {season}", said, "it does not say where the report is")
+
+    def test_the_report_names_a_session_without_a_mix_as_a_gap(self):
+        """The same rule as the trend, in the artefact a person is handed at the end of a season: a session from
+        before the field existed is a gap, and a season with no mixes at all is not a clean sheet."""
+        pk = self.pk
+        with tempfile.TemporaryDirectory() as tmp:
+            d = str(Path(tmp) / "2026-winter")
+            book = {"season": "2026-winter", "members": {"A": {"balls": 40, "sessions": [
+                {"when": "2026-11-20T00:00:00Z", "surface": "hard", "clock": 1, "shots": 20, "in_play": 16,
+                 "of": 20, "mean_rally": 4.0, "longest": 9, "faults": {"net": 2, "unreachable": 3}},
+                {"when": "2026-11-21T00:00:00Z", "surface": "hard", "clock": 2, "shots": 20, "in_play": 15,
+                 "of": 20, "mean_rally": 4.0, "longest": 9},
+            ]}}}
+            pk.save_season(book, "2026-winter", d, "pickleball", report=pk.report)
+            said = (Path(d) / "report.md").read_text()
+            self.assertIn("carries no mix", said)
+            self.assertIn("2 into the net, 3 did not get to", said)
+            self.assertIn("One session carries a mix", said)
+            book["members"]["A"]["sessions"][0].pop("faults")
+            pk.save_season(book, "2026-winter", d, "pickleball", report=pk.report)
+            said = (Path(d) / "report.md").read_text()
+            self.assertIn("No session in this season carries a fault mix", said)
+            self.assertNotIn("points lost, in the words a player corrects", said,
+                             "a season with no count reports no counts")
+
     def test_a_session_writes_the_fault_mix_and_a_sport_without_one_writes_no_key(self):
         """§5y. The season file has carried `reach` and `control` per session since September — two numbers that
         move by inches over hundreds of balls — and not the number that moves by whole balls a game. The mix goes

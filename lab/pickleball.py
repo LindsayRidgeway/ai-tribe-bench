@@ -1154,6 +1154,7 @@ def play_game(names: list[str], practice: list[int], choose_factory, surface: st
     # ENGINE kept, and before this line every caller rebuilt its own Player objects to do it and recorded zero
     # shots for everyone — a season whose `balls` never moved. One source for one number.
     out = {"results": results, "lengths": lengths, "wind": wind_in, "clock": ms,
+           "score": (match.teams[0].score, match.teams[1].score),
            "surface": surface, "why": r["why"] if lengths else "none",
            "rallies": rallies, "players": players}
     if film is not None:
@@ -2102,6 +2103,97 @@ def write_film(scene: dict, out_json: str | Path, out_page: str | Path | None = 
     return pj, pp
 
 
+def report(season: str, override: str | None = None) -> str:
+    """A pickleball season's report: the record's own numbers, in this sport's units, and only the sentences the
+    numbers support.
+
+    Until 2026-11-27 a pickleball season had no report of its own — `season_report(…, "pickleball")` accepted the
+    sport, ignored it, read tennis's file and said nobody had hit a ball (page §5z). What this prints instead is
+    what the file can carry: the balls, the in-play rate, the length of a rally, and the mix of misses — which is
+    the number §5u's arithmetic left standing as the one a game count can carry.
+
+    The guards are the same ones tennis's report keeps, for the same reason: one session is a reading, a session
+    with no mix is a gap and not a good day, and a season that has played nothing is described as having played
+    nothing rather than being rated at zero.
+    """
+    from tennis import load_season, season_paths, practice_of, ROOT
+    book = load_season(season, override, "pickleball")
+    d, f = season_paths(season, override, "pickleball")
+    try:
+        shown = f.relative_to(ROOT)
+    except ValueError:
+        shown = f
+    if not book.get("members"):
+        return (f"No pickleball season at {shown}. Nobody has hit a ball in {season} yet, so there is nothing to "
+                f"report and nothing to cite.\n")
+    out = [f"# {season} — pickleball, what the record says", "",
+           f"From `{shown}`, opened {book.get('opened') or 'unknown'}. Every number below is computed from the "
+           f"sessions in that file; nothing here is written from memory.", ""]
+    for name in sorted(book["members"]):
+        m = book["members"][name]
+        ss = m.get("sessions") or []
+        out += [f"## {name}", ""]
+        partners: dict[str, int] = {}
+        for s in ss:
+            for other in s.get("with", []):
+                partners[other] = partners.get(other, 0) + 1
+        who = ", ".join(f"{o} ({n}x)" for o, n in sorted(partners.items(), key=lambda kv: -kv[1]))
+        if m.get("balls"):
+            out.append(f"- {m['balls']} ball{'' if m['balls'] == 1 else 's'} hit this season over "
+                       f"{len(ss)} session{'' if len(ss) == 1 else 's'}"
+                       + (f"; most often with {who}" if who else "") + ".")
+        else:
+            out.append("- No balls hit in this season yet.")
+        if m.get("carried"):
+            out.append(f"- **{int(m['carried'])} of the {practice_of(book, name)} balls it brings were carried in "
+                       f"from before this season**, not hit here. The rates below are this season's sessions only.")
+        if not ss:
+            out += ["- No session in this season yet, so there is nothing to rate and nothing to improve on.", ""]
+            continue
+        in_play = sum(int(s.get("in_play") or 0) for s in ss)
+        of = sum(int(s.get("of") or 0) for s in ss)
+        out.append(f"- {in_play}/{of} balls in play ({100.0 * in_play / of:.0f}%)." if of else
+                   "- no ball was struck in these sessions")
+        means = [float(s.get("mean_rally") or 0) for s in ss]
+        scores = [s["score"] for s in ss if isinstance(s.get("score"), list)]
+        out.append(f"- mean rally {sum(means) / len(means):.1f} shots, longest "
+                   f"{max(int(s.get('longest') or 0) for s in ss)}, over {len(ss)} "
+                   f"session{'' if len(ss) == 1 else 's'}"
+                   + (f"; the game was {scores[0][0]}–{scores[0][1]}" if len(scores) == 1 else
+                      f"; the games were " + ", ".join(f"{a}–{b}" for a, b in scores) if scores else "") + ".")
+        # THE MIX. Sessions that carry it are the evidence; sessions that do not are named as gaps.
+        mixed = [(s.get("when"), s["faults"]) for s in ss if isinstance(s.get("faults"), dict)]
+        gaps = len(ss) - len(mixed)
+        if not mixed:
+            out.append("- No session in this season carries a fault mix, so this report cannot say how the points "
+                       "were lost. The field arrived on 2026-11-27; a season from before it has no count, and no "
+                       "count is not a clean sheet.")
+        else:
+            tot: dict[str, int] = {}
+            for _when, mix in mixed:
+                for k, v in mix.items():
+                    tot[k] = tot.get(k, 0) + int(v)
+            out.append(f"- points lost, in the words a player corrects: {mix_phrase(tot)}.")
+            if len(mixed) == 1:
+                out.append("- One session carries a mix, and one session is a reading: the second is what turns "
+                           "this into a trend.")
+            else:
+                first, last = mixed[0][1], mixed[-1][1]
+                a, b = int(first.get("unreachable", 0)), int(last.get("unreachable", 0))
+                if a == b:
+                    out.append(f"- balls not got to: {a} → {b} over {len(mixed)} sessions — unmoved, and a trend "
+                               f"that has not moved is not a result.")
+                else:
+                    out.append(f"- balls not got to: {a} → {b} over {len(mixed)} sessions — "
+                               f"{abs(b - a)} {'fewer' if b < a else 'more'}.")
+            if gaps:
+                out.append(f"- {gaps} session{'' if gaps == 1 else 's'} in this season "
+                           f"{'carries' if gaps == 1 else 'carry'} no mix and {'is' if gaps == 1 else 'are'} left "
+                           f"out of that line rather than counted as days without a fault.")
+        out.append("")
+    return "\n".join(out)
+
+
 def engines_for(names: list[str], args) -> tuple[dict, list[str]]:
     """One vendor and one model per named member: its own voice.md unless the flags say otherwise, and the names
     of the keys that are missing. A person's seat is never in this list — it has no engine to look up."""
@@ -2131,10 +2223,10 @@ def write_session(book: dict, args, names: list[str], result: dict, mode: str, b
         for n in team:
             partners[n] = [o for o in team if o != n]
     record_session(book, when=when, surface=result["surface"], clock=result["clock"],
-                   faults=fault_mix({"rallies": result["rallies"]}),
+                   faults=fault_mix({"rallies": result["rallies"]}), score=result.get("score"),
                    players=list(result["players"].values()), results=result["results"],
                    lengths=result["lengths"], partners=partners, mode=mode, by=by)
-    save_season(book, args.season, args.season_dir, "pickleball")
+    save_season(book, args.season, args.season_dir, "pickleball", report=report)
 
 
 def run_person_pb(args) -> int:
@@ -2271,8 +2363,7 @@ def main(argv=None) -> int:
     if args.rules:
         return cmd_rules(argv)
     if args.report:
-        from tennis import season_report
-        print(season_report(args.report, args.season_dir, "pickleball"))
+        print(report(args.report, args.season_dir))
         return 0
     names = [n.strip() for n in args.names.split(",")]
     if len(names) != 4:
