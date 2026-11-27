@@ -2155,6 +2155,94 @@ def game_line(g: dict, show_clock: bool = False) -> str:
             f"fields that carry them.")
 
 
+def merge_scenes(parts: list[tuple[str, dict]]) -> dict:
+    """Two games, one film: the rally numbers run on and every rally carries the label of the hands that played it.
+
+    The founder asked (2026-11-27) for the thing a person most wants to see — a video of a game that reflects the
+    players' current skill, and that over time shows improved play. One game answers the first half. The second
+    half needs two games, and the honest way to show a difference is to hold everything except the difference
+    fixed: same court, same clock, same four names, and one member's hands changed. Then whatever moves on screen
+    moved because of practice and nothing else.
+
+    They are put in *one* film rather than two pages so that a person watches them in order without touching
+    anything: the first game is played, the second follows it, and the caption names whose hands are on the ball.
+    Nothing here recomputes a ball; both games were integrated by the engine and are concatenated, renumbered only
+    so that a rally number is unique in the file (the renderer keys its scoreboard on it).
+    """
+    if not parts:
+        raise ValueError("no films to merge")
+    _label0, base = parts[0]
+    out = json.loads(json.dumps(base))                     # a copy: a caller's scene is not ours to edit
+    out["rallies"] = [dict(r, label=parts[0][0]) for r in out.get("rallies") or []]
+    top = max([r["rally"] for r in out["rallies"]] or [0])
+    for label, scene in parts[1:]:
+        off = top
+        for key in ("shots", "moves"):
+            for x in scene.get(key) or []:
+                y = dict(x)
+                y["rally"] = x["rally"] + off
+                out.setdefault(key, []).append(y)
+        for r in scene.get("rallies") or []:
+            out["rallies"].append(dict(r, rally=r["rally"] + off, label=label))
+        top += max([r["rally"] for r in scene.get("rallies") or []] or [0])
+    out["note"] = " · ".join(f"{label}: {scene.get('score', [0, 0])[0]}–{scene.get('score', [0, 0])[1]} "
+                             f"in {len(scene.get('rallies') or [])} rallies" for label, scene in parts)
+    out["parts"] = [{"label": label, "score": scene.get("score"), "rallies": len(scene.get("rallies") or []),
+                     "shots": len(scene.get("shots") or []),
+                     "mean_rally": round(sum(r["shots"] for r in scene.get("rallies") or []) /
+                                         max(1, len(scene.get("rallies") or [])), 1)} for label, scene in parts]
+    return out
+
+
+def run_then_now(args) -> int:
+    """The same pinned game played at two hands, in one film: what practice looks like on screen.
+
+    `then` is the member's balls *coming into* this season and `now` is its balls including this season's sessions,
+    so the two games differ by exactly the practice the season has recorded — a difference the record can cite and
+    a viewer can watch. The other three players keep their current hands, so the film is a controlled experiment
+    rather than a different match: one body's reach and control change between the halves and nothing else does.
+    """
+    person = args.then_now
+    names = [n.strip() for n in args.names.split(",")]
+    if len(names) != 4 or len(set(names)) != 4 or not all(names):
+        print("   --then-now needs four different names, member first: --names '<you>,<m>,<m>,<m>'", file=sys.stderr)
+        return 2
+    book, practice = open_book(names, args, default="0,0,0,0", sport="pickleball")
+    if book is None or person not in (book.get("members") or {}):
+        print(f"   {person} has no record in this season, so there is no 'then' to film. Play a session first.",
+              file=sys.stderr)
+        return 2
+    now = practice_of(book, person)
+    then = max(0, now - int(book["members"][person].get("balls", 0)))
+    if then == now:
+        print(f"   {person} came in with {now} balls and has hit none this season, so the two halves would be the "
+              f"same film. Nothing was baked.", file=sys.stderr)
+        return 2
+    clock = args.clock if args.clock is not None else 1234500
+    factory = make_chooser(args.level)
+    parts: list[tuple[str, dict]] = []
+    for label, balls in ((f"{person}, {then} balls coming in", then), (f"{person}, {now} balls now", now)):
+        hands = [balls if n == person else p for n, p in zip(names, practice)]
+        film: dict = {}
+        match, result = play_game(names, hands, factory, surface=args.surface, first_team=0,
+                                  wind_seed_ms=clock, film=film,
+                                  say=print if getattr(args, "verbose", False) else (lambda *a, **k: None))
+        scene = film_scene(film, names, score=(match.teams[0].score, match.teams[1].score), clock=clock,
+                           surface=args.surface,
+                           note=f"{label} — the same clock, the same three opponents"
+                                + (f" · {args.note}" if getattr(args, "note", None) else ""))
+        parts.append((label, scene))
+        mean = sum(film["rallies"][i]["shots"] for i in range(len(film["rallies"]))) / max(1, len(film["rallies"]))
+        miss = fault_mix({"rallies": film["rallies"]})
+        print(f"  {label}: {match.teams[0].score}-{match.teams[1].score} in {len(film['rallies'])} rallies, "
+              f"mean {mean:.1f} shots, not got to {sum(v.get('unreachable', 0) for v in miss.values())}")
+    merged = merge_scenes(parts)
+    pj, pp = write_film(merged, args.film or "games/pickleball/records/then-now.json",
+                        args.page or "games/pickleball/replays/then-now.html")
+    print(f"  film: {len(merged['shots'])} shots over two games -> {pj}" + (f" and {pp}" if pp else ""))
+    return 0
+
+
 def report(season: str, override: str | None = None) -> str:
     """A pickleball season's report: the record's own numbers, in this sport's units, and only the sentences the
     numbers support.
@@ -2420,6 +2508,12 @@ def main(argv=None) -> int:
                     help="record the first game and write the film to this JSON path")
     ap.add_argument("--page", default=None,
                     help="with --film, also bake the film into a standalone page at this path")
+    ap.add_argument("--then-now", default=None, metavar="NAME", dest="then_now",
+                    help="film the same pinned game twice — that member's hands coming into this season and its "
+                         "hands now — and bake both into one page: what practice looks like on screen")
+    ap.add_argument("--verbose", action="store_true", help="with --then-now, print the shot-by-shot transcript")
+    ap.add_argument("--note", default=None,
+                    help="a sentence to carry in the film's own note — for a demonstration, say what it is")
     ap.add_argument("--trend", default=None, metavar="NAME",
                     help="print one person's points-lost mix across every season on this bench, oldest first; "
                          "reads the season files and plays nothing")
@@ -2430,6 +2524,8 @@ def main(argv=None) -> int:
     ap.add_argument("--model", default=None)
     args = ap.parse_args(argv)
 
+    if args.then_now:
+        return run_then_now(args)
     if args.trend:
         print(trend_table(args.trend, season_mix(args.trend)))
         return 0

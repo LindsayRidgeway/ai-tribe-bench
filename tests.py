@@ -7485,6 +7485,56 @@ class TestPickleball(unittest.TestCase):
             self.assertGreater(book["members"][n]["sessions"][-1]["of"], 0,
                                "and the session says how many balls it is a record of")
 
+    def test_two_games_become_one_film_with_the_hands_named_on_every_rally(self):
+        """§5ab. The founder asked for the thing a person most wants to see: a game that reflects current skill, and
+        over time shows improved play. One game answers the first half; the second needs two games and the honest
+        way to show a difference is to hold everything except the difference fixed — same clock, same four names,
+        one body's hands changed. They go in one film so a viewer watches them in order, and every rally line says
+        whose hands are on the ball, because a caption that left it to memory would be a film that has to be
+        believed rather than checked."""
+        pk = self.pk
+        parts = []
+        for label, balls in (("0 balls", 0), ("800 balls", 800)):
+            film = {}
+            m, out = pk.play_game(["A", "B", "C", "D"], [balls] + [200] * 3, pk.make_chooser("dink"),
+                                  wind_seed_ms=1234500, film=film, say=lambda *a, **k: None)
+            parts.append((label, pk.film_scene(film, ["A", "B", "C", "D"], score=(m.teams[0].score, m.teams[1].score),
+                                               clock=1234500, note=label)))
+        merged = pk.merge_scenes(parts)
+        self.assertEqual(len(merged["rallies"]), len(parts[0][1]["rallies"]) + len(parts[1][1]["rallies"]))
+        numbers = [r["rally"] for r in merged["rallies"]]
+        self.assertEqual(numbers, sorted(set(numbers)), "rally numbers repeat or run backwards across the join")
+        self.assertEqual([r["shots"] for r in merged["rallies"]][:1], [parts[0][1]["rallies"][0]["shots"]],
+                         "the first game's rallies were disturbed by the merge")
+        self.assertEqual({r["label"] for r in merged["rallies"]}, {"0 balls", "800 balls"},
+                         "a rally does not say whose hands are on it")
+        self.assertEqual(len(merged["shots"]), len(parts[0][1]["shots"]) + len(parts[1][1]["shots"]))
+        self.assertEqual({s["rally"] for s in merged["shots"]} - set(numbers), set(),
+                         "a shot is attached to a rally number that is not in the film")
+        self.assertIn("0 balls", merged["note"])
+        self.assertIn("800 balls", merged["note"])
+        self.assertEqual([p["label"] for p in merged["parts"]], ["0 balls", "800 balls"])
+        # and the difference the film exists to show is in it: the same clock, longer rallies at better hands
+        self.assertLess(merged["parts"][0]["mean_rally"], merged["parts"][1]["mean_rally"],
+                        "the trained half does not play longer rallies than the beginner half")
+
+    def test_the_then_now_film_refuses_a_member_with_no_then(self):
+        """A member who came in with nothing and has hit nothing has one game, not two: the film would be the same
+        game twice, which is a film that claims a difference it does not have."""
+        pk = self.pk
+        with tempfile.TemporaryDirectory() as tmp:
+            d = Path(tmp) / "2026-winter"
+            d.mkdir(parents=True)
+            (d / "practice.json").write_text(json.dumps({"season": "2026-winter", "members": {
+                "A": {"balls": 0, "sessions": []}, "B": {"balls": 0}, "C": {"balls": 0}, "D": {"balls": 0}}}))
+            from types import SimpleNamespace as _NS
+            args = _NS(then_now="A", names="A,B,C,D", season="2026-winter", season_dir=str(d),
+                                         level="dink", clock=1234500, surface="hard", practice=None,
+                                         seed=None, film=str(Path(tmp) / "f.json"),
+                                         page=None, note=None, verbose=False, vendor=None)
+            self.assertEqual(pk.run_then_now(args), 2, "it baked a film of one game twice")
+            self.assertFalse((Path(tmp) / "f.json").exists(), "a refusal still wrote a film")
+
     def test_a_game_is_reported_once_and_from_the_side_that_won_it(self):
         """§5aa. A session is written under every player's name — that is what a member's record is — and a *game*
         is a fact about four people. The report could only see half of it: two bullets, each saying "played with",

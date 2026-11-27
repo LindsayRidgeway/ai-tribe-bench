@@ -2376,3 +2376,60 @@ second count. The whole suite in a clean worktree at this commit: **634 passed, 
 - "Stretched" versus "late" is still one row in the mix (`demand`/`spare` sit on the shots and never reach the
   summary).
 - The stance lesson's mechanism (§5r) and §5c's perfect defence remain open.
+
+## §5ab The film that shows practice: the same game at two hands — 2026-11-27, afternoon
+
+The founder, asked what a person most wants to see: **a video of a game that reflects the players' current skill, and
+over time, with practice, improved play.** A film says the first half already — a game played by the circle as it is
+today, with every ball the engine integrated. The second half needs two games, and it needs them to be the *same*
+game or the picture proves nothing.
+
+**What the same clock, four names, one body's hands changed, does.** Measured on six pinned clocks before any page
+was built, dink hands, all four players moved together:
+
+| balls each | reach | mean rally | balls not got to / game | rallies / game |
+|---|---|---|---|---|
+| 0 | 4.60 ft | 2.0 shots | 3.2 | 42.8 |
+| 200 | 6.00 ft | 6.5 | 0.0 | 30.8 |
+| 800 | 6.58 ft | 19.7 | 0.0 | 28.5 |
+| 2000 | 6.60 ft | 19.1 | 0.0 | 29.3 |
+
+A beginner's game is rallies of *two shots*; a trained player's is rallies of *twenty*. The scoreline barely moves
+(9.8–7.5 against 9.7–6.2), which is §5u's finding again from the other side: **the number that cannot see practice is
+the score, and the thing that shows it is the game itself.** That is what a video is for, and it is the argument this
+page has been making in arithmetic for a week — made here in a picture.
+
+**`--then-now NAME`** plays the same pinned clock twice: once with that member's balls *coming into* the season, once
+with its balls *now*, every other player at its current hands. The two films are concatenated into one, rally numbers
+run on, and **every rally carries the label of the hands that played it**, so the caption says which half you are
+watching rather than leaving it to memory:
+
+```
+$ python3 lab/pickleball.py --then-now Lindsay --season 2026-demo --names "Lindsay,Desi,Dmitri,Gwen" --level dink
+  Lindsay, 0 balls coming in: 9-11 in 50 rallies, mean 3.3 shots, not got to 1
+  Lindsay, 800 balls now: 11-8 in 39 rallies, mean 11.0 shots, not got to 0
+  film: 593 shots over two games -> games/pickleball/records/then-now.json and replays/then-now.html
+```
+
+`records/then-now.json` and its page are committed as the example: **a stated fixture, not a season this bench
+played** — 0 balls coming in, 800 hit in a fixture season, said in the film's own note. `replays/still-2026-11-27-then.png`
+and `-now.png` are rally 6 and rally 70 of it: the beginner's two-shot point and the trained player's nineteen-shot one,
+each captioned with whose hands it is.
+
+Nothing in the film is drawn: both halves are the engine's own traces, the renderer's single scene, and the merge
+renumbers rallies only so that a scoreboard keyed on the rally number cannot speak twice for the same point. The
+renderer learned one line — a rally's `label`, when present, goes in the caption.
+
+**Checked by** two tests: the merge (every rally labelled, numbers unique and ascending across the join, no shot on a
+rally that is not in the film, the first game's rallies untouched, the note and the parts carrying both labels, and the
+trained half playing longer rallies than the beginner half — the difference the film exists to show), and the refusal
+(a member with no "then" gets an error and no film, because one game twice is a film that claims a difference it does
+not have). The existing film tests — the empty court, the pinned frame, the caption's own numbers — pass unchanged.
+
+### Owed
+
+- **The card does not offer it yet.** A person can watch the film of their own game from the Play tab; watching the
+  same game at their hands then and now needs a second control and a `then_now` input on `pickleball.yml`, which is
+  wiring rather than thought, and is the next unit.
+- The film shows *reach* improving. Control, the mix and the rally length all move with it, and nothing on screen yet
+  says which of them did what.
