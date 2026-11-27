@@ -230,17 +230,31 @@ def main(argv):
         k = idx.get(hitter)
         if k is None:
             continue
+        # THE SHOT NUMBER IS NOT UNIQUE. A film of forty rallies restarts its shot numbers at 1 on every point, so
+        # keying a contact on `n` silently mixed one rally's strike into another's: on `records/item31-after` it put
+        # 116 "serves" through a film of 108 shots, and the rq it read was whichever rally's row sorted first. The
+        # contact TIME is unique in a film, so a row belongs to a segment by its clock or not at all.
+        when = sg[1] + (sg[3] or 0.0)
         best = None
         for r in rows:
-            if r[1] != n or abs(r[2]) > 0.20:
+            off = abs(r[0] - when)
+            if off > 0.25:
                 continue
             p = r[3 + k]
-            if not p or len(p) < 6 or p[5] is None:
+            if not p or len(p) < 9 or p[5] is None:
                 continue
-            if best is None or p[5] < best[0]:
-                best = (p[5], r[0], r[2])
+            if best is None or off < best[3]:
+                best = (p[5], r[0], r[2], off, p[7], sg[7] if len(sg) > 7 else None)
         if best:
-            contacts.append({"n": n, "who": hitter, "rq": best[0], "t": best[1]})
+            contacts.append({"n": n, "who": hitter, "rq": best[0], "t": best[1], "tlc": best[2],
+                             "feet": best[4], "contact": best[5]})
+    # ...and the same contact against the FEET, from the record's own contact point (the eighth field of `debug
+    # segs`, appended 2026-11-27) and the row's root position. This is the number the engine's reach decides.
+    feet = []
+    for c in contacts:
+        if not c["contact"] or not c["feet"]:
+            continue
+        feet.append(math.hypot(c["feet"][0] - c["contact"][0], c["feet"][1] - c["contact"][1]))
     if contacts:
         d = sorted(c["rq"] for c in contacts)
         w = max(contacts, key=lambda c: c["rq"])
@@ -248,6 +262,21 @@ def main(argv):
               f" p90 {d[int(len(d) * 0.9)]:.2f}ft, worst {d[-1]:.2f}ft (shot {w['n']}, T={w['t']})")
         print(f"  over 0.5ft: {sum(1 for x in d if x > 0.5)} of {len(d)}"
               f"   over 1ft: {sum(1 for x in d if x > 1.0)} of {len(d)}")
+        # A SERVE AND A GROUNDSTROKE ARE TWO DIFFERENT QUESTIONS. A serve is struck 8.8ft up, and the stride cannot
+        # reach that: `rise` in the page is capped at 0.95ft, so a serve's contact is short by the jump that is not
+        # drawn (item 19). One median over both hides which of the two is still wrong, and they are 40% of this film.
+        tall = [c["rq"] for c in contacts if c["contact"] and c["contact"][1] > 6.0]
+        flat = [c["rq"] for c in contacts if not (c["contact"] and c["contact"][1] > 6.0)]
+        for label, v in (("serves, struck 6ft up or more", tall), ("groundstrokes", flat)):
+            if not v:
+                continue
+            v = sorted(v)
+            print(f"  {label}: n={len(v)} median {v[len(v) // 2]:.2f}ft, p90 {v[int(len(v) * 0.9)]:.2f}ft,"
+                  f" worst {v[-1]:.2f}ft, over 1ft {sum(1 for x in v if x > 1.0)}")
+        if feet:
+            f = sorted(feet)
+            print(f"  feet to contact, same {len(f)} contacts: median {f[len(f) // 2]:.2f}ft, p90"
+                  f" {f[int(len(f) * 0.9)]:.2f}ft, worst {f[-1]:.2f}ft")
         print("  the page's own line for a contact no arm can make is `shoulder-B more than 3.9ft` (?debug's `debug")
         print("  geo`), and the record only promises the contact is inside RACQUET_REACH = 7.0ft of the feet — so a")
         print("  film can satisfy its own done-test and still be a contact the picture cannot draw.")

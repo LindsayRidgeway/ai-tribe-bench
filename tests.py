@@ -10564,8 +10564,8 @@ class TestTheArmComesBackToTheHittingSide(unittest.TestCase):
 class TestTheContactIsMeasuredOnTheFilmRatherThanInARate(unittest.TestCase):
     """Item 16's remainder, 2026-11-27. The record's done-test is `RACQUET_REACH = 7.0ft` from the feet, and the
     page's own line is `shoulder-B more than 3.9ft is a strike no arm and frame can make`. Both cannot be the
-    promise, and this instrument is what says the gap is real: on `records/item31-after` the racquet head is a
-    median 1.08ft from the ball at the contact, and every one of the 63 contacts the sweep reaches is over 0.5ft."""
+    promise, and this instrument is what says the gap is real: on `records/item31-after` the racquet head was a
+    median 1.08ft from the ball at the contact and 38 of 63 contacts were over 1ft, before the stride was fixed."""
 
     def setUp(self):
         self.reader = (REPO / "lab" / "tennis_sweep.py").read_text(encoding="utf-8")
@@ -10574,12 +10574,68 @@ class TestTheContactIsMeasuredOnTheFilmRatherThanInARate(unittest.TestCase):
     def test_the_reader_reads_the_head_to_ball_distance_at_each_contact(self):
         self.assertIn("== the contact — how far the racquet head is from the ball when the ball is struck ==",
                       self.reader)
-        self.assertIn('if not p or len(p) < 6 or p[5] is None:', self.reader,
+        self.assertIn('if not p or len(p) < 9 or p[5] is None:', self.reader,
                       "the contact section is not reading the sweep's own rq field")
-        self.assertIn("if r[1] != n or abs(r[2]) > 0.20:", self.reader,
-                      "the contact section is not restricted to the striker's own contact window")
+
+    def test_the_reader_keys_a_contact_on_the_clock_and_not_on_the_shot_number(self):
+        # Shot numbers restart at 1 on every rally: keying on them put 116 "serves" through a film of 108 shots,
+        # and read the rq off whichever rally's row sorted first. The clock is unique in a film; `n` is not.
+        self.assertIn("when = sg[1] + (sg[3] or 0.0)", self.reader)
+        self.assertIn("if off > 0.25:", self.reader)
+        self.assertNotIn("if r[1] != n or", self.reader,
+                         "the contact section is matching rows by shot number again, which collides across rallies")
+
+    def test_the_reader_splits_a_serve_from_a_groundstroke(self):
+        # they are two different questions: a serve is struck 8.8ft up and the stride cannot reach it
+        self.assertIn('for label, v in (("serves, struck 6ft up or more", tall), ("groundstrokes", flat)):',
+                      self.reader)
 
     def test_the_gap_between_the_two_promises_is_on_the_record(self):
         self.assertIn("WHAT IT STILL LETS THROUGH — MEASURED 2026-11-27", self.backlog)
         for piece in ("1.08ft", "4.45ft", "5.47ft", "63 of 63", "38 of 63", "3.9ft", "RACQUET_REACH = 7.0ft"):
             self.assertTrue(piece in self.backlog, f"{piece} is not in the item 16 note")
+
+    def test_the_stride_that_closed_it_is_on_the_record_with_both_price_tags(self):
+        for piece in ("the stride that puts the frame on the ball (DONE 2026-11-27)",
+                      "3.16ft", "0.27ft", "69 of 108", "16 of 108", "0.51ft", "3** (Colette; Gwen 0)",
+                      "`?step=0` draws the pre-fix build", "swept 0:530"):
+            self.assertTrue(piece in self.backlog, f"{piece} is not in the stride's note")
+
+
+class TestTheStepTowardTheBallIsWalkedAndNotPlaced(unittest.TestCase):
+    """Item 16's remainder, second half, 2026-11-27. `reachTo` is the page's stride toward the ball, and it had
+    never run on an approach frame: it was handed `northIn`'s boolean instead of the contact point, so its gap was
+    NaN and the step was always zero. Each test here is one of the five defects that had to be fixed in order."""
+
+    def setUp(self):
+        self.page = (REPO / "games" / "tennis" / "replay3d.html").read_text(encoding="utf-8")
+
+    def test_the_receiver_s_step_is_not_handed_the_north_flag_as_a_ball(self):
+        # `const at` was block-local, so the call took the outer `at` = northIn(seg, name) = true/false.
+        self.assertIn("let meet = null, stepAt = null;", self.page)
+        self.assertIn("meet = cBall.clone().sub(shift);", self.page)
+        self.assertIn("reachTo(rig, lead, stepAt,", self.page)
+        self.assertNotIn("reachTo(rig, lead, at,", self.page)
+
+    def test_the_step_is_phased_on_the_contact_and_not_on_the_landing(self):
+        self.assertIn('CONTACT[sh.rally + ":" + sh.n] = t;', self.page)
+        self.assertIn('const meetT = CONTACT[nxtBall.rally + ":" + nxtBall.n];', self.page)
+
+    def test_the_step_is_measured_from_the_root_and_not_from_the_shoulder(self):
+        # the two branches disagree by 0.84ft of shoulder on the same ball, which was a 1.05ft frame at 52ft/s
+        self.assertIn("const root = rig.root.position;   // read here, not inside the `r > 0` branch", self.page)
+        self.assertIn("const hx = ball.x - root.x, hz = ball.z - root.z", self.page)
+        self.assertLess(self.page.index("const root = rig.root.position;"),
+                        self.page.index("const hx = ball.x - root.x"),
+                        "the root is read after the geometry that borrows it")
+
+    def test_zero_is_a_target_and_goes_through_the_slew(self):
+        self.assertIn("let dx = 0, dy = 0, dz = 0;", self.page)
+        self.assertNotIn("rig.lean = { x: 0, y: 0, z: 0 };\n    return;", self.page,
+                         "the zero-offset early return is back, and it drops a body out of a stride in one frame")
+
+    def test_the_step_is_slewed_against_the_body_s_own_budget(self):
+        self.assertIn("const cap = Math.max(0, dtn * 25 - baseStep);", self.page)
+        self.assertIn("rig.basePrev = [root.x, root.z];", self.page)
+        self.assertIn('const STEP = q.get("step") !== "0";', self.page,
+                      "there is no way to draw the pre-step build on the same film, so the change cannot be priced")

@@ -813,45 +813,107 @@ function placeRacquet(rig, aim, face) {
    overhead — by exactly the gap, capped, and eased in and out over half a second either side of the strike so
    that it is a movement and not a teleport. */
 const _ras = new THREE.Vector3();
-function reachTo(rig, lead, ball, tTo, since = 0, key = "") {
+function reachTo(rig, lead, ball, tTo, since = 0, key = "", who = "") {
   // The frame is placed at the right hand on every stroke — the butt hand — so the right shoulder is the one
   // that has to be able to reach one shaft-length short of the ball. On a forehand that is the hitting shoulder;
   // on a backhand it is the far one, which is why a backhand has always been the stroke this rig could not play.
   const b = rig.bones["upperarmR"] || rig.bones["upperarm" + lead];
   if (!b) return;
+  rig.leanT = T;                     // says the step was asked for this frame, so an abandoned one can fade out
+  if (!STEP) return;
   const r = Math.max(0, Math.min(1, 1 - Math.abs(tTo) / 0.5));
-  if (r <= 0) {
-    if (rig.leanKey !== key) { rig.carry = rig.lean || { x: 0, y: 0, z: 0 }; rig.leanKey = key; }
-    const uu0 = Math.max(0, Math.min(1, since / 0.34)), ww0 = 1 - uu0 * uu0 * (3 - 2 * uu0);
-    const c0 = rig.carry || { x: 0, y: 0, z: 0 };
-    rig.root.position.x += c0.x * ww0; rig.root.position.y += c0.y * ww0; rig.root.position.z += c0.z * ww0;
-    rig.lean = { x: c0.x * ww0, y: c0.y * ww0, z: c0.z * ww0 };
-    return;
+  // A STEP THAT IS NO LONGER NEEDED LEAVES LIKE ONE. `r` is zero more than half a second from a contact, and this
+  // used to set the offset to zero on that frame and return — which, on the first frame of a serve's segment (it
+  // starts at the toss, 0.84s before the strike), dropped a body out of a stride back onto the plan in one frame.
+  // Measured on `records/item31-after`: 0.95ft at T=412.98, and 13 frames over 25ft/s for Colette over the film,
+  // every one of them at a toss. Zero is a target like any other, so it goes through the same slew below.
+  const root = rig.root.position;   // read here, not inside the `r > 0` branch: the slew at the end needs it too
+  let dx = 0, dy = 0, dz = 0;
+  if (r > 0) {
+    const s = b.getWorldPosition(_ras);
+    // WHERE THE BODY STANDS, NOT WHERE ITS SHOULDER HAPPENS TO BE. A step is a move of the FEET toward the ball, and the
+    // shoulder is dragged around by the stroke itself: on the same ball 0.02s apart, the take-back pose and the strike
+    // pose put the right shoulder 0.84ft apart, so a step computed from the shoulder changed by 1.12ft in one frame at
+    // the handover from the approach to the strike (measured, shots 12→13, T=36.52: lean 0.80 → 1.92, 1.05ft of body
+    // in one frame at 52ft/s). Anchored on the root, both branches compute the SAME step for the same ball, which is
+    // what makes the handover continuous — and the stroke's own reach is the arm solver's business, not the stride's.
+    // The shoulder is still the vertical datum: the 3.92ft is arm, palm and frame measured from it up.
+    const hx = ball.x - root.x, hz = ball.z - root.z, hl = Math.hypot(hx, hz) || 1;
+    // Split the gap into a stride and a rise, and then look again: moving along two axes is not moving along the
+    // line between them, so one pass leaves a hand's width of the gap behind (measured: 0.3ft on the serve, which
+    // is the stroke where the gap is nearly all vertical). Three passes close it to nothing.
+    // And the same for the height: the shoulder is 4.39ft up in a take-back and 4.61ft up on the strike frame of the
+    // same ball, so a step computed from the shoulder grew 0.19ft of gap in one frame even with the feet anchored. A
+    // player's stride does not depend on how tall they are standing at that instant, so the vertical datum is the
+    // standing shoulder — 0.82 of stature, which is the usual proportion and sits between the two measured poses.
+    const sy = root.y + 0.82 * Math.max(4.0, rig.height || 5.4);
+    let lean = 0, rise = 0;
+    for (let pass = 0; pass < 3; pass++) {
+      const gy = ball.y - (sy + rise);
+      const gh = Math.hypot(ball.x - (root.x + (hx / hl) * lean), ball.z - (root.z + (hz / hl) * lean));
+      const gap = Math.hypot(gh, gy) - 3.92;      // 1.85ft of arm, 0.35ft of palm, 1.74ft of frame, and a hair
+      if (gap <= 1e-3) break;
+      // How much of the gap is up rather than out: a ball at the shoulder is a stride, a ball overhead is a jump.
+      const over = Math.max(0, Math.min(1, gy / 2.5));
+      lean = Math.min(LEAN_MAX, lean + gap * (1 - 0.55 * over) * 1.05);
+      rise = Math.min(0.95, rise + gap * 0.55 * over * 1.05);
   }
-  const s = b.getWorldPosition(_ras);
-  const hx = ball.x - s.x, hz = ball.z - s.z, hl = Math.hypot(hx, hz) || 1;
-  // Split the gap into a stride and a rise, and then look again: moving along two axes is not moving along the
-  // line between them, so one pass leaves a hand's width of the gap behind (measured: 0.3ft on the serve, which
-  // is the stroke where the gap is nearly all vertical). Three passes close it to nothing.
-  let lean = 0, rise = 0;
-  for (let pass = 0; pass < 3; pass++) {
-    const gy = ball.y - (s.y + rise), gh = Math.hypot(ball.x - (s.x + (hx / hl) * lean), ball.z - (s.z + (hz / hl) * lean));
-    const gap = Math.hypot(gh, gy) - 3.92;      // 1.85ft of arm, 0.35ft of palm, 1.74ft of frame, and a hair
-    if (gap <= 1e-3) break;
-    // How much of the gap is up rather than out: a ball at the shoulder is a stride, a ball overhead is a jump.
-    const over = Math.max(0, Math.min(1, gy / 2.5));
-    lean = Math.min(1.30, lean + gap * (1 - 0.55 * over) * 1.05);
-    rise = Math.min(0.95, rise + gap * 0.55 * over * 1.05);
+  dx = lean > 0 ? (hx / hl) * lean * r : 0;
+  dz = lean > 0 ? (hz / hl) * lean * r : 0;
+  dy = rise > 0 ? rise * r : 0;
+  if (q.has("leandebug")) console.log("debug lean", T.toFixed(2), who, key, "tTo", tTo.toFixed(2), "since", since.toFixed(2),
+    "r", r.toFixed(2), "lean", lean.toFixed(2), "rise", rise.toFixed(2),
+    "gap", (Math.hypot(hx, hz, ball.y - s.y) - 3.92).toFixed(2),
+    "ball", JSON.stringify(ball), "sh", JSON.stringify(s));
   }
-  if (rig.leanKey !== key) { rig.carry = rig.lean || { x: 0, y: 0, z: 0 }; rig.leanKey = key; }
-  const uu = Math.max(0, Math.min(1, since / 0.34)), ww = 1 - uu * uu * (3 - 2 * uu);
-  const c = rig.carry || { x: 0, y: 0, z: 0 };
-  const dx = lean > 0 ? (hx / hl) * lean * r : 0, dz = lean > 0 ? (hz / hl) * lean * r : 0;
-  const dy = rise > 0 ? rise * r : 0;
-  rig.root.position.x += dx + (c.x - dx) * ww;
-  rig.root.position.y += dy + (c.y - dy) * ww;
-  rig.root.position.z += dz + (c.z - dz) * ww;
-  rig.lean = { x: dx + (c.x - dx) * ww, y: dy + (c.y - dy) * ww, z: dz + (c.z - dz) * ww };
+  // ITEM 16's REMAINDER (2026-11-27): THE STEP IS PHASED WITH THE STROKE, NOT WITH THE CARRY. This used to blend the
+  // new step in over `since / 0.34` where `since` is the time since CONTACT — which is negative for the whole
+  // approach, so `ww` sat at 1 and the body got the carried offset instead of the step for every frame before the
+  // ball was struck, and then stepped AFTER it. Measured on `records/item31-after`: raising the cap from 1.30ft to
+  // 3.20ft moved the drawn feet toward the contact by 0.03ft at the contact frame and put 3 frames over 25ft/s in
+  // the film, i.e. the step was applied late and as a jolt. `r` is the ramp that is already symmetric about the
+  // contact, so the step arrives WITH the strike and leaves after it, and no frame moves more than `LEAN_MAX / 0.5`
+  // ft per second.
+  // NO STEP FASTER THAN THE LEGS. `r` is continuous within one stroke, but the SEGMENT changes underneath it: the
+  // ball the body is reaching for is replaced by the next one, and on the first frame of the new segment the target
+  // jumps. Measured with the step applied without this cap: 1.36ft in one 0.02s frame (68ft/s) and 12 frames over
+  // 25ft/s, which is item 2b's defect rebuilt. The offset is therefore rate-limited like a limb rather than a
+  // teleport, and it still arrives: `r` gives the step half a second and the cap covers 3ft in a quarter.
+  const cur = rig.lean || { x: 0, y: 0, z: 0 };
+  const head = { x: dx, y: dy, z: dz };
+  // NO STEP FASTER THAN A LEG, AND THAT IS THE WHOLE OF IT. `r` phases the step about the contact, so it GROWS over
+  // the last half second of the approach and shrinks after the strike; what it cannot know is that the target it is
+  // growing toward changes underneath it — the ball being reached for is replaced by the next one at a segment
+  // boundary, the shoulder that measures the gap is dragged around by the stroke, and on the frame a point ends the
+  // stride stops being asked for at all. Every one of those is a per-frame change of several feet, and item 2b is
+  // about exactly one thing: a body placed rather than walked. So the applied offset is slewed, and the cap is in
+  // ft/s taken from the clock rather than per frame, because the film is sampled at 0.02s and a screen is not.
+  // Measured with the blends that used to be here instead (a 0.25s hand-off keyed on the stroke): the same film gave
+  // 24 frames over 25ft/s for Colette and 10 for Gwen, worst 0.95ft — because a blend keyed on the stroke is still a
+  // step change in the rate, and a hand-off from the previous stroke's offset delays the arrival by construction.
+  const dtn = rig.leanAt === undefined ? TRACE : Math.max(0, Math.min(0.25, T - rig.leanAt));
+  rig.leanAt = T;
+  let ax = head.x, ay = head.y, az = head.z;
+  // THE BUDGET IS THE BODY'S, NOT THE OFFSET'S. The plan is already moving this player — a run to the ball is the
+  // biggest thing in the film, and on `records/item31-after` Colette's fastest is 20ft/s — so a stride applied at
+  // its own 12ft/s on top of that reads 32ft/s and crosses item 2b's line on 11 frames of the film even though no
+  // frame is placed: 0.52ft is a sprint with a lunge in it, and the metric cannot tell that from a teleport. So the
+  // step gets what is left of 25ft/s, which is the number the item is written about. When the plan is already
+  // carrying the body to the ball there is nothing for the step to add; that is what arriving means.
+  const baseStep = rig.basePrev ? Math.hypot(root.x - rig.basePrev[0], root.z - rig.basePrev[1]) : 0;
+  rig.basePrev = [root.x, root.z];
+  const cap = Math.max(0, dtn * 25 - baseStep);
+  const mv = Math.hypot(ax - cur.x, ay - cur.y, az - cur.z);
+  if (mv > cap && mv > 1e-6) {
+    const f = cap / mv;
+    ax = cur.x + (ax - cur.x) * f;
+    ay = cur.y + (ay - cur.y) * f;
+    az = cur.z + (az - cur.z) * f;
+  }
+  rig.root.position.x += ax;
+  rig.root.position.y += ay;
+  rig.root.position.z += az;
+  rig.lean = { x: ax, y: ay, z: az };
 }
 
 /* A nod is one joint, so it is cheap, and it is the whole of the greeting the founder asked for: two people
@@ -884,6 +946,11 @@ function headPose(rig, pitch, fwd) {
 
 /* ---------- the film ---------- */
 const SEG = [];
+// WHEN EACH BALL IS STRUCK, by shot. `seg.start + seg.dur` is when the ball LANDS, not when the next player meets it,
+// and the difference is the whole of the next approach: a return is struck mid-flight, 0.2-0.4s before the ball it
+// came off would have bounced. The step toward the ball is phased on the contact, and phasing it on the landing left
+// it at a quarter strength on the frame the striker took over and received the whole thing in one frame.
+const CONTACT = {};
 const PLAN = {};                       // name -> [{t0,t1,from,to}] in seconds of film
 /* Where each player is when a change of ends has happened, as a floor under everything else: the walk round the
    post is in the record (see `settle` below), and this only says which side of the net a body is on after it.
@@ -969,6 +1036,7 @@ const WINPOS = {};
     if (tossDur) seg.bpath = sh.toss.concat(sh.path);
     if (LASTN[sh.rally] === sh.n && POINT[sh.rally]) seg.point = POINT[sh.rally];
     SEG.push(seg);
+    CONTACT[sh.rally + ":" + sh.n] = t;      // the contact, which is where the ball is met and not where it lands
     if (sh.run) {
       (PLAN[sh.run.player] = PLAN[sh.run.player] || []).push(
         { t0: t + sh.run.t0, t1: t + Math.min(sh.run.t1, dur), from: sh.run.from, to: sh.run.to });
@@ -1253,6 +1321,24 @@ const q = new URLSearchParams(location.search);
 // per stride pair. Measured on `records/item31-after` during the carry phase (the part of a run before the take-back
 // starts), the frame crossed 0.32-0.38 times per 10ft of running; a stride pair is `0.84 * height` = 4.7ft, so that
 // is 0.16 per stride pair where the picture wants one.
+// HOW FAR A STRIKE MAY CARRY THE BODY TOWARD THE BALL. This was 1.30ft and it is the cap that decides whether the
+// frame can be on the ball at all: the record places every contact `RACQUET_REACH` = 7.0ft from the feet (measured
+// 2026-11-27 over 228 rally pairs in three films: median 7.00ft, worst 7.01), while the rig reaches 3.92ft and this
+// lean. A cap of 1.30 therefore left 1.8ft of a contact that no arm could close, and on the film the racquet head
+// was a median 1.08ft from the ball. `?lean=` sweeps it, because the price of closing the gap is a step, and a step
+// drawn as a slide is worse than the gap.
+const LEAN_MAX = q.has("lean") ? Math.max(0, parseFloat(q.get("lean")) || 0) : 3.20;
+// SECONDS FOR A NEW STROKE'S STEP TO TAKE OVER FROM THE LAST ONE'S. The step itself is continuous within a stroke
+// (`r` is a ramp about the contact), so the only discontinuity is the segment boundary, where the ball the body is
+// reaching for is REPLACED by the next one and the target jumps. Measured without this hand-off: 1.36ft in one
+// 0.02s frame (68ft/s) and 12 frames over 25ft/s — item 2b's defect rebuilt. A quarter second is one step.
+// ft/s the drawn stride may be applied at. A foot can swing faster than this; a body being carried 3ft toward a
+// ball cannot, and this is the number that keeps item 2b true no matter which branch computed the target.
+const STEP_SLEW = q.has("slew") ? Math.max(0.5, parseFloat(q.get("slew")) || 12) : 12;
+// `?step=0` draws the build with no stride toward the ball at all, which is what every film in `records/` was drawn
+// with before item 16's remainder: it is the before/after on ONE film, and the only honest way to price the step.
+const STEP = q.get("step") !== "0";
+const FADE_OUT = 0.18;      // seconds for a stride nobody asked for to be walked out instead of vanishing
 const CARRY = q.get("carry") !== "0";   // ?carry=0 draws the build before item 12, for a before/after on one film
 const CARRY_PUMP = q.has("pump") ? Math.max(0, parseFloat(q.get("pump")) || 0) : 1.70;
 // ft the hand swings either side of the ready point, on the body's lateral axis. `?pump=` overrides it, because
@@ -1742,7 +1828,7 @@ function tick(now) {
       // the arm to fold into its own chest — the CCD cannot get there, and the elbow ends up by the ear, which
       // is the "statue reaching for something" the founder has been looking at. Measured with ?debug: the hand
       // was 0.86ft short of its own target on every shot.
-      reachTo(rig, lead, ball, tlc, tlc, seg.rally + ":" + seg.n);
+      reachTo(rig, lead, ball, tlc, tlc, seg.sh.rally + ":" + seg.sh.n, pl.name + "/hit");
       // THE PLANT. Contact is this segment's first frame and the run ends there, so until now the body arrived and
       // swung on whatever stride the gait froze in: no weight transfer, no push off the back foot, and the load
       // constant dipped the root 0.05ft rather than raising it. A stroke is powered from the ground, so the weight
@@ -1944,6 +2030,15 @@ function tick(now) {
         let hand = prep.clone().lerp(handTake, upK);
         // The head of the frame travels with the hand, or the racquet's shaft would swing like a metronome.
         let head = readyAim.clone().lerp(headPrep, carryK).addScaledVector(right, pump).lerp(headTake, upK);
+        // WHERE THE NEXT BALL WILL BE MET, and it has to outlive the block that computes it: the step toward the
+        // contact is drawn from here. Declared outside because the same point is needed twice — once for the swing
+        // and once for the stride — and the first version of this wrote it as `const at` inside the block, so the
+        // call below silently took the OUTER `at`, which is `northIn(seg, name)` and therefore a BOOLEAN. A boolean
+        // has no `.y`, so the gap came out NaN, `NaN > 0` is false, and the step was set to zero on every frame of
+        // every approach since the step was written. Measured on `records/item31-after`: the receiver's applied
+        // offset was 0.00,0.00,0.00 on the last six frames before a contact, and the whole 3.20ft arrived in one
+        // frame on the striker's first frame instead — 3.23ft in 0.02s, which is item 2b's defect rebuilt.
+        let meet = null, stepAt = null;
         if (nxtBall) {
           const outc = new THREE.Vector3(nxtBall.v0[0], nxtBall.v0[2], nxtBall.v0[1]).normalize();
           const cBall = new THREE.Vector3(nxtBall.contact[0], nxtBall.contact[2], nxtBall.contact[1]);
@@ -1952,12 +2047,19 @@ function tick(now) {
           // that is still to come, so the blend ends on the contact exactly when the body arrives there.
           const shift = new THREE.Vector3(0, 0, 0);
           if (sh.run && sh.run.player === pl.name) shift.set(sh.run.to[0] - pos[0], 0, sh.run.to[1] - pos[1]);
-          const at = cBall.clone().sub(shift);
-          hand.lerp(at.clone().addScaledVector(outc, -(PALM + 1.74)), thruK);
-          head.lerp(at, thruK);
+          meet = cBall.clone().sub(shift);
+          stepAt = cBall;                       // the step aims at the contact, not at the swing's shifted target
+          hand.lerp(meet.clone().addScaledVector(outc, -(PALM + 1.74)), thruK);
+          head.lerp(meet, thruK);
         }
         const lead = back ? "L" : "R";
-        if (nxtBall) reachTo(rig, lead, at, seg.dur - tl, tl, seg.rally + ":" + seg.n);
+        // `seg.dur - tl` is when the ball this player must return LANDS. The meet is struck earlier than that, so the
+        // step is phased on the record's own contact time for that shot and not on the end of the flight.
+        if (meet) {
+          const meetT = CONTACT[nxtBall.rally + ":" + nxtBall.n];
+          reachTo(rig, lead, stepAt, (meetT === undefined ? seg.start + seg.dur : meetT) - T, tl,
+                  seg.sh.rally + ":" + seg.sh.n, pl.name + "/recv");
+        }
         solveArm(rig, hand, lead);
         const shaftNow = head.clone().sub(hand).normalize();
         if (back) solveArm(rig, hand.clone().addScaledVector(shaftNow, 0.36), "R");   // the butt hand
@@ -2016,6 +2118,31 @@ function tick(now) {
       headPose(rig, pitch, fwd);
     } else {
       headPose(rig, 0, new THREE.Vector3(Math.sin(rig.yaw), 0, Math.cos(rig.yaw)));
+    }
+
+    // A STEP NOBODY ASKED FOR IS STILL A STEP (2026-11-27). `reachTo` is called only by the striker and by the player
+    // the ball is coming to. On the frame a point ends, or a rally hands the ball to someone else, a body can go from
+    // a 2.5ft stride to no stride at all between two frames — the same teleport the blend inside `reachTo` exists to
+    // prevent, one branch over, and it is the reason item 2b went from 0 frames over 25ft/s to 24 on the full film.
+    // A body cannot un-step, so the stride is walked out over FADE_OUT, from the offset it actually had.
+    if (STEP && rig.leanT !== T) {
+      const prev = rig.lean || { x: 0, y: 0, z: 0 };
+      if (Math.hypot(prev.x, prev.z) > 0.02 || Math.abs(prev.y) > 0.02) {
+        if (!rig.fade) rig.fade = { t0: T, x: prev.x, y: prev.y, z: prev.z };
+        const u = Math.min(1, (T - rig.fade.t0) / FADE_OUT);
+        const w = 1 - u * u * (3 - 2 * u);
+        const ax = rig.fade.x * w, ay = rig.fade.y * w, az = rig.fade.z * w;
+        rig.root.position.x += ax;
+        rig.root.position.y += ay;
+        rig.root.position.z += az;
+        rig.lean = { x: ax, y: ay, z: az };
+        if (u >= 1) { rig.fade = null; rig.lean = { x: 0, y: 0, z: 0 }; }
+      } else {
+        rig.fade = null;
+        rig.lean = { x: 0, y: 0, z: 0 };
+      }
+    } else {
+      rig.fade = null;
     }
   }
 
@@ -2202,7 +2329,11 @@ if (q.has("sweep")) window.__sweep = () => {
                 s.sh.run.to[0], s.sh.run.to[1]] : null,
     // when this segment's hold ends, so that "which segment is being played" can be recomputed from the record
     // rather than read off the frames — the toss question of 2026-11-26 is a question about two overlapping windows
-    +((s.start + s.dur + s.hold).toFixed(2))])));
+    +((s.start + s.dur + s.hold).toFixed(2)),
+    // WHERE THE BALL IS MET, which is the other half of "is the frame on the ball": the row carries the feet, the
+    // feet are in the plan, and until now nothing in a log said where the contact was. Item 16's remainder is the
+    // distance between these two, read per contact instead of for one printed frame at a time.
+    s.sh.contact ? [+s.sh.contact[0].toFixed(2), +s.sh.contact[1].toFixed(2), +s.sh.contact[2].toFixed(2)] : null])));
   console.log("debug film", JSON.stringify([+SEG[0].start.toFixed(2), +(SEG[SEG.length - 1].start + SEG[SEG.length - 1].dur
     + SEG[SEG.length - 1].hold).toFixed(2)]));
   // And the plan itself, because "why is this body here" is answered by the move whose window T is inside, and

@@ -1172,6 +1172,61 @@ reach (a producer change, costing rally length and probably aces, the way item 1
 3.9ft sentence is the wrong sentence. It is not a thing to fix by moving a threshold — the film either draws a
 racquet on the ball or it does not, and today it does not on 38 of 63.
 
+### …and fixed the same day: the stride that puts the frame on the ball (DONE 2026-11-27)
+
+Neither promise had to move. `reachTo` — the page's stride toward the ball, written for this exact gap — **had never
+run on a single approach frame**, and the reason is the kind this project has paid for before: a silently wrong
+*variable*, not a wrong idea. Five defects, each found by measuring the one before:
+
+1. **The receiver's step was handed a boolean.** `reachTo(rig, lead, at, …)` sat outside the block that declared
+   `const at = cBall.clone().sub(shift)`, so it took the outer `at`, which is `northIn(seg, pl.name)` — `true` or
+   `false`, the end of the court. `ball.y` was `undefined`, the gap `NaN`, `NaN > 0` false, and the step was set to
+   zero on every approach frame since the stride was written. **A boolean cannot fail a type check, and a NaN gap is
+   indistinguishable from "nothing to do".** The fix is `let meet` declared outside the block.
+2. **It was phased on when the ball LANDS.** `seg.dur - tl` is the end of the flight, and a return is struck
+   mid-flight, 0.2-0.4s earlier — so the step peaked at a quarter strength on the frame the striker took over and
+   received the whole thing in one frame. `CONTACT[sh.rally + ":" + sh.n]` is now the record's own contact time.
+3. **It was measured from the shoulder.** On the same ball 0.02s apart the take-back pose and the strike pose put the
+   right shoulder 0.84ft apart, so the step changed by 1.12ft across the branch switch — 1.05ft of body in one frame
+   at 52ft/s. A step is a move of the FEET, so it is now computed from the root, with the standing shoulder
+   (`0.82 × height`) as the vertical datum and not the pose's.
+4. **`r <= 0` zeroed the offset and returned**, before the slew could catch it. On the first frame of a serve's
+   segment — it starts at the toss, 0.84s before the strike — that dropped a body out of a stride in one frame:
+   0.95ft at T=412.98, and 13 frames over 25ft/s for Colette, all of them at a toss. Zero is a target like any other.
+5. **The offset is slewed, and the budget is the body's.** The drawn stride is applied at no more than what is left
+   of 25ft/s after the plan's own motion this frame, because a 20ft/s run with a lunge in it reads as 0.52ft in a
+   frame and item 2b cannot tell that from a teleport. When the plan is already carrying the body to the ball there
+   is nothing for the step to add; that is what arriving means.
+
+**`?step=0` draws the pre-fix build on the same film** (`STEP = q.get("step") !== "0"`), which is the only honest
+way to price it. `records/item31-after` **swept 0:530** — the film is 528s long, and every contact number in this
+entry before today was taken on 0:300, i.e. the first 57% of it, 63 of its 108 contacts:
+
+| `records/item31-after`, whole film, 108 contacts | `?step=0` | this build |
+|---|---|---|
+| head to ball, groundstrokes (n=10) | median **3.16ft** | median **0.27ft** |
+| head to ball, serves struck 6ft up or more (n=98) | median **1.19ft** | median **0.17ft** |
+| p90 / worst, all contacts | 3.87 / 5.48ft | **1.15 / 2.72ft** |
+| contacts over 1ft | **69 of 108** | **16 of 108** |
+| feet to contact | median 2.46ft, p90 7.00ft | median 1.89ft, p90 **3.85ft** |
+| item 2b, biggest one-frame move | 0.40ft | **0.51ft** |
+| item 2b, frames over 25ft/s | 0 | **3** (Colette; Gwen 0) |
+
+Item 12's carry is unmoved (1.49/1.75 crossings per stride pair) and the toe's worst one-frame rise is unmoved
+(0.420ft). The cost is written down in the last two rows: **3 frames of 26ft/s in 26,501**, at Colette's fastest
+sprint (20ft/s of plan plus the last 5ft/s of step budget), and 0.01ft of overshoot over the line because the plan's
+own speed is measured between samples.
+
+**What it still lets through, honestly.** The 16 contacts over 1ft are **15 serves** — struck 8.8ft up, where the
+page's `rise` is capped at 0.95ft, so those are short by the jump that is not drawn, which is item 19 and not this.
+One groundstroke is at 1.01ft. And `rq` is read at 0.02s samples, and a ball at 30mph moves 0.9ft between them, so
+the population is an upper bound on the miss rather than a lower one — the same caveat as before, now on numbers
+that are small enough for it to matter.
+
+**The instrument was wrong twice and both are fixed.** Shot numbers restart at 1 on every rally, so keying a contact
+on the shot number mixed rallies: it put 116 "serves" through a film of 108 shots. A contact is now keyed on the
+clock, and the section splits serves from groundstrokes because they are two different questions.
+
 ## Item 17 — there is no ground past the run-off (DONE 2026-11-19)
 
 Found while checking that Item 15's tail had not broken anything, which is the only reason it was found at all. Of
