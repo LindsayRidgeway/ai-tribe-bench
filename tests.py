@@ -10635,7 +10635,8 @@ class TestTheStepTowardTheBallIsWalkedAndNotPlaced(unittest.TestCase):
                          "the zero-offset early return is back, and it drops a body out of a stride in one frame")
 
     def test_the_step_is_slewed_against_the_body_s_own_budget(self):
-        self.assertIn("const cap = Math.max(0, dtn * 25 - baseStep);", self.page)
+        self.assertIn("const cap = Math.max(0, dtn * BODY_SPEED - baseStep);", self.page)
+        self.assertIn("const BODY_SPEED = 25;", self.page, "the cap is not item 2b's own line")
         self.assertIn("rig.basePrev = [root.x, root.z];", self.page)
         self.assertIn('const STEP = q.get("step") !== "0";', self.page,
                       "there is no way to draw the pre-step build on the same film, so the change cannot be priced")

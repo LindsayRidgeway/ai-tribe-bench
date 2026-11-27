@@ -902,7 +902,7 @@ function reachTo(rig, lead, ball, tTo, since = 0, key = "", who = "") {
   // carrying the body to the ball there is nothing for the step to add; that is what arriving means.
   const baseStep = rig.basePrev ? Math.hypot(root.x - rig.basePrev[0], root.z - rig.basePrev[1]) : 0;
   rig.basePrev = [root.x, root.z];
-  const cap = Math.max(0, dtn * 25 - baseStep);
+  const cap = Math.max(0, dtn * BODY_SPEED - baseStep);
   const mv = Math.hypot(ax - cur.x, ay - cur.y, az - cur.z);
   if (mv > cap && mv > 1e-6) {
     const f = cap / mv;
@@ -1332,9 +1332,9 @@ const LEAN_MAX = q.has("lean") ? Math.max(0, parseFloat(q.get("lean")) || 0) : 3
 // (`r` is a ramp about the contact), so the only discontinuity is the segment boundary, where the ball the body is
 // reaching for is REPLACED by the next one and the target jumps. Measured without this hand-off: 1.36ft in one
 // 0.02s frame (68ft/s) and 12 frames over 25ft/s — item 2b's defect rebuilt. A quarter second is one step.
-// ft/s the drawn stride may be applied at. A foot can swing faster than this; a body being carried 3ft toward a
-// ball cannot, and this is the number that keeps item 2b true no matter which branch computed the target.
-const STEP_SLEW = q.has("slew") ? Math.max(0.5, parseFloat(q.get("slew")) || 12) : 12;
+// ft/s a body may be drawn moving. Not a preference: it is item 2b's own line (`over 25ft/s`), and the stride toward
+// the ball is slewed against what this leaves after the plan's own motion, so no branch can put a body over it.
+const BODY_SPEED = 25;
 // `?step=0` draws the build with no stride toward the ball at all, which is what every film in `records/` was drawn
 // with before item 16's remainder: it is the before/after on ONE film, and the only honest way to price the step.
 const STEP = q.get("step") !== "0";
