@@ -758,6 +758,13 @@ putts makes a windy round recoverable.*
    20 ft the split is 1.72 against 2.11. This is measured, it is the largest error left in the objective, and it
    is item 6 below.
 
+   *Pass 20: the measurement holds and the sentence does not. The break is real — 0.45 ± 0.07 of a stroke pooled
+   over six distances — and it is worth nothing to an objective that chooses a lateral target, because the
+   athlete's landing is as likely short as long and the break is the same putt at both ends. The objective is
+   right to price the mean curve. What the table also found is that the *downhill* putt costs this game nothing,
+   0.02 ± 0.03, which is the defect underneath the "1.50 from above the hole" this paragraph quotes: there is no
+   such thing in the game. See "The break is real, and the objective is right to ignore it" below.*
+
    **What it did to the cards.** The learner's still-air rounds improve (+6 +1 +1 −2 −2 −2, held-out +2 against
    a frozen player at +9), the wind rounds do not (+13 +4 +4 −2 +2 +2), and the field changes order for the
    third time: `bad start` +39 leads, `practiser` +46, `blind hands` +71, `flag-hunter` +77, frozen +111. Two
@@ -990,6 +997,54 @@ kernel cannot say that. The next thing to try is a mixture kernel — how often 
 it is when it is — and it is written here rather than built, because a pass that has just measured its own
 premise as false should not also invent one.
 
+## The break is real, and the objective is right to ignore it
+
+The twenty-eighth item on the list was **direction**, and the record had called it "the largest thing left wrong
+in the objective": a 12 ft putt costs 1.50 from above the hole and 2.17 across the fall line, `target()` prices
+every 12 ft landing at 1.83, and the objective's scatter was lateral only. This pass measured it properly and then
+declined to use it, and the reason is worth more than the term would have been.
+
+**The instrument first.** Quadrant means are a bad instrument for a shape: a quadrant mixes sin²ψ 0.25, 0.85 and
+1, where ψ is the angle between the putt and the fall line, and two distances cannot say whether the effect grows
+with the putt. `--costs` now bands every bearing by sin²ψ (0 along the fall line, 1 square across it), at six
+distances, 24 bearings × 3 streams each, and fits two terms together:
+
+| distance | along | 0.15–0.5 | 0.5–0.85 | across | down the slope | across it |
+|---|---|---|---|---|---|---|
+| 3 ft | 1.00±0.00 | 1.11±0.08 | 1.22±0.10 | 1.22±0.10 | −0.01±0.06 | +0.28±0.11 |
+| 6 ft | 1.11±0.08 | 1.56±0.12 | 1.50±0.12 | 1.56±0.12 | +0.01±0.08 | +0.38±0.16 |
+| 9 ft | 1.44±0.12 | 1.56±0.15 | 1.67±0.11 | 1.94±0.15 | −0.04±0.09 | +0.50±0.19 |
+| 12 ft | 1.39±0.12 | 1.72±0.14 | 2.00±0.16 | 2.22±0.13 | +0.08±0.10 | +0.80±0.20 |
+| 16 ft | 1.50±0.12 | 1.83±0.15 | 1.89±0.11 | 2.06±0.15 | +0.13±0.09 | +0.48±0.19 |
+| 20 ft | 1.56±0.12 | 1.83±0.09 | 2.17±0.17 | 2.06±0.13 | +0.01±0.09 | +0.63±0.18 |
+
+Pooled over the six distances, which are six independent estimates of the same two numbers: **the break is
++0.45 ± 0.07 of a stroke** (χ² 6.6 on five, so one number and not a curve in distance), and **a putt running down
+the slope costs +0.02 ± 0.03 more than one running up it** — that is, nothing. The direction is one number, the
+break is five times the downhill term, and the distance curve the objective reads is exactly their mean: the four
+bearings at 12 ft average 1.71 against the curve's 1.83, and the two rows straddle it.
+
+**Then the arithmetic that makes it worthless here.** A landing at lateral offset *a* from the pin and depth *b*
+has sin²ψ = (a+b)²/2(a²+b²); its mirror at depth −b has exactly 1 minus that. The athlete's depth is a normal
+about a bias a twentieth of its own scatter, so the two landings are as likely as each other and the pair sums to
+exactly 1. The depth average of the break is therefore ½ — the curve's own mean — **for every lateral cell**, and
+a direction term in `_landing` adds the same number to every one of them. It is worth nothing to an objective that
+chooses a lateral target: built as a candidate and wired in, it moved a 150 yd aim at a pin cut 13 ft right by no
+feet and bought under a ten-thousandth of a stroke. What it would have spent is the athlete's 0.5% mis-estimate of
+its own depth, not anything the green does.
+
+**And then the defect underneath.** Why is the downhill term nothing, when "keep it below the hole" is the first
+thing anybody is told about a green? Because this game's putter has no below-the-hole penalty: a downhill putt that
+misses is priced by the length of its comeback and not by the fact that the comeback runs away. `GolfPutter.settle`
+trades reaching the hole against arriving at capture speed and never prices the putt it leaves. Measured through
+the game, downhill minus uphill at 3/6/9/12/16/20 ft reads 0.00, 0.00, −0.33±0.30, 0.00, −0.17±0.31, −0.17±0.31;
+pooled −0.11 ± 0.10. So the game does not have the effect, and an objective that had been told about it would be
+aiming for a profit that does not exist in its own physics. **The silence is right; the putter is wrong.** That is
+the next object, one surface down, and the objective will need to be told the green on the day it is fixed.
+
+The pass is therefore a finding and not a change: no aim moved, no card moved, and the committed season record is
+byte-identical, which is the right evidence for a pass that concluded its own premise was false.
+
 ## What this does not model
 
 - **the landing has two dimensions and only one of them is modelled well.** `target()` now prices the landing at
@@ -997,9 +1052,9 @@ premise as false should not also invent one.
   notebook bias — so the sand's flank and the green's edge are both in the arithmetic. What it still cannot say is
   that a ball sometimes does not have the club: the model puts 95% of its approach shots on the green from 150 yd
   where the game holds 53%, and a normal wide enough to carry the real misses makes the objective fatalistic (see
-  the section above). A mixture kernel is the next thing, not the next pass. The same missing dimension is why the
-  objective prices a 12 ft putt at 1.83 when it costs 1.50 up the fall line and 2.17 across it — that one is
-  *direction*, not depth, and it is still absent
+  the section above). A mixture kernel is the next thing, not the next pass. Direction is *not* missing any more,
+  and it is not missed: the break is 0.45 ± 0.07 of a stroke and it cancels exactly against a landing that is as
+  likely short as long, so the objective's mean curve is the right answer (pass 20)
 - **the putting stroke has one shape.** `putt.py`'s athlete models a pace gain and a line bias, and the game
   has added the clubs' two dispersions (pass 11) and a pace the athlete decides (pass 12) — but a real putter
   also has a stroke that is not a straight line: no arc, no clubface rotation through impact, no strike low or
@@ -1156,19 +1211,20 @@ at all, and the first two of them are now built:
      comparison was between two different things — 42% is the chance for a shot aimed at the pin, where the game
      at that aim finds the sand 47.5% of the time; 11.6% was every shot in a round. The landing got its depth
      anyway, for the reason below, and it is worth −0.033 ± 0.022 of a stroke a hole.**
-   - **direction.** A 12 ft putt costs 1.50 uphill and 2.17 across the fall line; `target()` prices every 12 ft
-     landing at 1.83. 0.67 of a stroke on a single landing, against the 0.87 the entire 2-to-20-ft gradient is
-     worth — so the price of a landing is now known to about the resolution of the thing it is pricing.
+   - **direction — closed, pass 20, without a change.** The break is +0.45 ± 0.07 of a stroke (bands of sin²ψ at
+     six distances) and the downhill putt is +0.02 ± 0.03. The break cancels exactly in the objective: a landing
+     at lateral offset *a* and depth *b* has sin²ψ = (a+b)²/2(a²+b²), its mirror at −*b* has 1 minus that, and the
+     athlete's depth is as likely one way as the other — so the depth integral is ½ for every lateral cell and a
+     direction term is a constant. Built as a candidate it moved the aim by no feet and bought under a
+     ten-thousandth of a stroke. `target()` is told the mean curve on purpose, and the selftest now pins the
+     cancellation (check 40) so that the day the athlete learns a real depth bias, the term is no longer free.
 
-   Both need the same object: a two-dimensional landing with a distance to the pin *and* a direction from it.
-   Pass 19 built the first half — depth — and none of the second, and the difference between the two is the
-   finding: depth changes which *landings* are possible and it moves the aim by a few feet; direction changes what
-   a landing is *worth* and it is worth 0.67 of a stroke on a 12 ft putt. The fifteen-hour version of this item
-   said "both need the same object", and they do not: the objective's scatter is a number where it needs a vector,
-   and pass 19 made it a vector of two numbers in the plane of the green rather than of three in the plane of the
-   hole. What is *not* next is another constant: the rough's 2.60 is now 0.3 of a stroke
-   too dear on two instruments' readings, and it stays where pass 10 put it, because a number re-measured and
-   then checked against its own measurement is a fitted number and this file has enough of those already.
+   What *is* the defect underneath, and it is one surface down: the game's putter has no below-the-hole penalty
+   (+0.02 ± 0.03 over a compass, −0.11 ± 0.10 through the game), because `GolfPutter.settle` never prices the putt
+   it leaves. That is item 6's live half now, and the objective must be told the green on the day it is fixed.
+   What is *not* next is another constant: the rough's 2.60 is now 0.3 of a stroke too dear on two instruments'
+   readings, and it stays where pass 10 put it, because a number re-measured and then checked against its own
+   measurement is a fitted number and this file has enough of those already.
 
 7. **A dogleg.** The driver's distance has never been a decision, because the corridor is straight and 40 yd
    wide. A corner with trees inside turns "hit it as far as you can" into a question with a number on it — and

@@ -68,10 +68,14 @@ in the field lost seventeen strokes to it. So the model is narrow and known to b
 is a mixture: how often the club is wrong, and how far off it is when it is. There is no bar on this one; it is a
 distance between two measurements, not a sample.
 
-**Direction is still missing, and it is the bigger error.** A 12 ft putt costs 1.50 strokes up the fall line and
-2.17 across it, and `target()` prices every 12 ft landing at 1.83. The objective's scatter runs across the green
-and along it and not *toward the hole*, so it never knows which way the ball will be putting. Measured 2026-11-20,
-unchanged since. This is "where it stops" item 6.
+**Direction was on this list and came off it, which is the one item here that closed by measuring.** A 12 ft putt
+does cost more across the fall line than along it — 0.45 ± 0.07 of a stroke, pooled over six distances, measured
+2026-11-27 — and `target()` still prices every 12 ft landing at 1.83. That is not an omission and it is not a bug:
+the athlete's ball is as likely to finish short of the pin as long, an across-the-fall putt is the same putt from
+either end, and the two halves cancel exactly in the arithmetic the aim is made of. Wiring the term in moved the
+aim by no feet. What the same table found is a real defect one surface down: a putt left above the hole costs this
+game nothing, where golf's oldest piece of advice says it should cost a lot. That is not fixed yet and it is named
+in the record rather than hidden.
 
 **What the depth bought, stated plainly, because it is less than the file expected.** Over 1,080 holes played
 against the previous version, paired by course and seed, the whole change — the distance fix and the depth — is
