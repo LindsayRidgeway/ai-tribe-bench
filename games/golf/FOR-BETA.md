@@ -75,8 +75,10 @@ six distances, measured 2026-11-27. On 2026-11-27, later the same day, the same 
 the putter that produced the first number was wrong: it computed its pace on the line it aimed while the ball rolled
 the line it read, and it read a putt that runs past the hole at the place where it *stopped*. The break did not
 shrink; the thing measuring it was broken, and it was broken in a way that made a putt across the slope harder than
-a putt along it. Fixed, both direction terms are zero — break −0.01 ± 0.05, downhill putt −0.01 ± 0.02 — and the
-green got 0.2 to 0.3 of a stroke cheaper past 6 ft, which is why the card moved.
+a putt along it. Fixed, both direction terms are zero — pass 24 read break −0.01 ± 0.05 and downhill putt
+−0.01 ± 0.02; pass 25 reads **+0.00 ± 0.00** for both, because the read now aims at the centre of the hole rather
+than anywhere inside the rim, and nothing in the model prices the direction of a miss — and the green got 0.2 to
+0.3 of a stroke cheaper past 6 ft, which is why the card moved.
 
 One defect is left where that number used to be, and pass 25 made it bigger rather than smaller. **The putter
 never misreads a green** — its read is exact to a hundredth of a foot — so the break is a picture and not a price,
