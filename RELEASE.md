@@ -21,7 +21,13 @@ no round is repeated because a round you spend twice is worth half.
   **The correction matters because the two documents disagreed and the beta-facing one was the wrong one.** The
   product sentence may not be "it wakes within a few hours of the time you set". It is "it wakes on its own, two or
   three times a day, at hours neither of you chooses" — and a circle that must keep a cadence needs a trigger it
-  owns, outside GitHub.
+  owns, outside GitHub. **Re-measured 2026-11-27 with `lab/clock.py`, seven days, both repositories: the shape
+  holds and the numbers are worse in one place and better in another.** 41 due slots each; 18 runs here and 16 in
+  the founder's circle, so two or three a day out of six; a median of 93 and 112 minutes late, up to 235; the
+  longest silence 13.6 and 13.8 hours. The 08:17Z slot was delivered **0 times out of 7 on both repositories**
+  — a fact that was "never once delivered" in the November sheet and is now measured twice — while 12:17Z arrived
+  6 of 7 on both. Four slots on the bench produced two runs each (duplicates, not deliveries). The figure and the
+  tool that takes it are now in the manual's §5, so the paragraph is re-derived rather than remembered.
 - **One press now carries a fix to a circle (proven 2026-11-20 16:25Z).** The founder's circle took eight machinery
   files from a single press — its own `clock.yml`, `tribe.py`, `magazine.py` and others replaced, not merely recorded
   — which is the first evidence that the update path replaces rather than only notes a version. What it has not yet

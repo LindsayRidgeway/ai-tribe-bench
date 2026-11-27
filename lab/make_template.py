@@ -66,6 +66,7 @@ lab/pickleball.py
 lab/rps.py
 lab/paint.py
 lab/vision.py
+lab/clock.py
 lab/update_tribe.py
 issues/README.md
 letters/README.md

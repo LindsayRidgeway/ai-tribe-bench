@@ -9626,6 +9626,96 @@ class TheClockSaysWhatItFound(unittest.TestCase):
         self.assertTrue(films, "the page links a film and no season on disk has one to fetch")
 
 
+class TheClockIsCountedRatherThanRemembered(unittest.TestCase):
+    """The number in §5 is a measurement, and a measurement is only as good as the arithmetic under it.
+
+    The sentence this replaces was wrong in the direction that costs trust: "eight consecutive due turns each
+    produced a run, 43-192 minutes late" is a count of *runs*, and reading it as appointments kept produced the
+    claim that the clock "fires, always, and always late" for a schedule that in fact drops two thirds of them.
+    So the two mistakes that produced it are pinned here as tests: a run credited to the slot it happened in
+    rather than the slot it missed, and a person's press counted as the scheduler's delivery.
+
+    No network. `fetch_runs` returns a sentence on failure and is not exercised here; the arithmetic and the
+    words are, because those are the parts that go quietly wrong.
+    """
+
+    def setUp(self):
+        self.clock = load(REPO / "lab" / "clock.py", "clock_mod")
+        self.every, self.minute = 4, 17
+
+    def _t(self, day, hour, minute):
+        return datetime(2026, 11, day, hour, minute, tzinfo=timezone.utc)
+
+    def _run(self, t, event="schedule", conclusion="success", name="clock", path=".github/workflows/clock.yml"):
+        return {"created_at": t.strftime("%Y-%m-%dT%H:%M:%SZ"), "event": event,
+                "conclusion": conclusion, "name": name, "path": path}
+
+    def test_a_run_too_late_to_belong_to_its_slot_is_credited_to_the_slot_it_missed(self):
+        """04:17 arrives at 08:10 — the 2026-11-20 error, in one assertion.
+
+        Credited to 08:17 it reads as a slot kept and seven minutes *early*; credited to 04:17 it reads as a
+        slot missed and a run delivered 233 minutes after the time it belonged to. The second is what a person
+        waiting at 04:17 experienced, and the first is how a clock that drops a third of its slots came to be
+        described as one that always fires.
+        """
+        self.assertEqual(self.clock.slot_for(self._t(21, 8, 10), self.every, self.minute), self._t(21, 4, 17))
+        self.assertEqual(self.clock.slot_for(self._t(21, 8, 20), self.every, self.minute), self._t(21, 8, 17))
+
+    def test_a_slot_that_produced_nothing_is_a_miss_and_not_a_late_arrival(self):
+        start, end = self._t(20, 0, 0), self._t(21, 0, 0)
+        runs = [self._run(self._t(20, 4, 40))]          # one run, six slots
+        s = self.clock.summarise(runs, start, end, self.every, self.minute)
+        self.assertEqual(s["due"], 5, "five complete slots fall between 00:00 and 24:00 at :17 past every fourth hour")
+        self.assertEqual(s["delivered"], 1)
+        self.assertEqual(s["missed"], 4, "four slots were silent and the summary does not say so")
+        self.assertEqual(s["lates"], [23.0], "the one run that came was 23 minutes late, not on time")
+
+    def test_a_run_a_person_pressed_is_not_a_delivery_of_the_clock(self):
+        start, end = self._t(20, 0, 0), self._t(21, 0, 0)
+        runs = [self._run(self._t(20, 9, 0), event="workflow_dispatch")]
+        s = self.clock.summarise(runs, start, end, self.every, self.minute)
+        self.assertEqual((s["delivered"], s["runs"]), (0, 0), "a hand wake was counted as the scheduler's")
+        self.assertEqual(s["events"].get("workflow_dispatch"), 1, "and then it is not counted anywhere at all")
+        self.assertEqual(s["missed"], 5)
+
+    def test_two_runs_inside_one_slot_are_a_duplicate_and_not_two_wakes(self):
+        start, end = self._t(20, 0, 0), self._t(21, 0, 0)
+        runs = [self._run(self._t(20, 4, 20)), self._run(self._t(20, 4, 50))]
+        s = self.clock.summarise(runs, start, end, self.every, self.minute)
+        self.assertEqual(s["delivered"], 1)
+        self.assertEqual(s["duplicates"], 1)
+        self.assertEqual(s["lates"], [3.0], "the slot is as late as its first run, not as late as its worst")
+
+    def test_a_window_that_has_not_finished_yet_is_not_counted_as_missed(self):
+        """The last slot still has hours left to arrive in; counting it as missed makes every recent look worse."""
+        start = self._t(20, 0, 0)
+        end = self._t(20, 4, 40)
+        self.assertEqual(len(self.clock.due_slots(start, end, self.every, self.minute)), 1,
+                         "the 04:17 slot is still open at 04:40 and was counted as due anyway")
+
+    def test_the_sentences_come_from_the_summary_rather_than_from_the_source(self):
+        """A number typed into a sentence is wrong by the third re-run — this file has learned that twice."""
+        start, end = self._t(20, 0, 0), self._t(21, 0, 0)
+        s = self.clock.summarise([self._run(self._t(20, 4, 50))], start, end, self.every, self.minute)
+        said = self.clock.report("some/repo", s)
+        self.assertIn("1 of them", said)                    # delivered
+        self.assertIn("5 slots", said)                      # due
+        self.assertIn("33 minutes", said)                   # median lateness, from the summary
+        empty = self.clock.summarise([], self._t(20, 0, 0), self._t(20, 1, 0), self.every, self.minute)
+        self.assertIn("nothing to say", self.clock.report("some/repo", empty),
+                      "a window with no complete slot printed zeros, which read as a clock that never ran")
+
+    def test_the_manual_cites_the_instrument_and_the_day_it_was_read(self):
+        """A range with no tool and no date is a memory. This is the check that keeps §5 re-derivable."""
+        manual = (REPO / "USER-MANUAL.md").read_text(encoding="utf-8")
+        self.assertTrue("lab/clock.py" in manual,
+                        "§5 prints a measured range and does not say how to re-take it")
+        self.assertTrue(re.search(r"Measured 2026-11-27", manual),
+                        "the clock paragraph no longer carries the day its figure was read")
+        self.assertTrue("0 of" in manual,
+                        "the slot the scheduler never delivers is a fact; §5 may not drop it silently")
+
+
 class TheTemplateMustBeEnough(unittest.TestCase):
     """An installed tribe is a copy of a whitelist, so the whitelist has to be enough.
 
