@@ -5915,8 +5915,13 @@ class TestTheBallIsMetInTheBand(unittest.TestCase):
             if not (m["ok"] and frm):
                 continue
             away = 1.0 if not p.north else -1.0          # the direction that is away from the net
+            # How far in front of their own baseline the player STARTED, which since item 31 (2026-11-26) is not
+            # always zero: a recovery the ball interrupts leaves a player caught in the middle of the court, and a
+            # ball hit past them has to be chased back. The rate below is asked of both, and the worst case only of
+            # the ones who start at home, because the far-side crossing the rule is about is a receiving position.
+            depth = (frm[0] - 2.0) if p.north else (t.LENGTH - 2.0 - frm[0])
             out.append(((m["meet"][0] - frm[0]) * away, m["height"],
-                        max(-m["meet"][0], m["meet"][0] - t.LENGTH, 0.0)))
+                        max(-m["meet"][0], m["meet"][0] - t.LENGTH, 0.0), depth))
         self.assertGreater(len(out), 25, "too few contacts to say anything")
         return out
 
@@ -5941,9 +5946,18 @@ class TestTheBallIsMetInTheBand(unittest.TestCase):
         self.assertGreater(back(old), 0.35, f"the old rule only backed up on {back(old):.0%} of contacts — this "
                                             f"test needs a rule that visibly did it")
         self.assertLess(back(new), 0.25, f"the band still runs a player backwards on {back(new):.0%} of contacts")
-        self.assertLess(max(r[0] for r in new), 13.0,
-                        f"worst backward run is {max(r[0] for r in new):.1f}ft — the far-side crossing is still "
-                        f"winning somewhere")
+        home = [r for r in new if r[3] <= 2.0]
+        caught = [r for r in new if r[3] > 2.0]
+        self.assertLess(max(r[0] for r in home), 13.0,
+                        f"worst backward run from the baseline is {max(r[0] for r in home):.1f}ft — the far-side "
+                        f"crossing is still winning somewhere")
+        # And the ones who start inside the court run back the whole way, which is not the rule failing: it is a
+        # player caught by an approach who is passed. Measured on this population: 15 of 322 balls are received from
+        # inside the court, 93% of those run backwards, 26.5ft at worst; from the baseline, 17% and 9.9ft at worst.
+        if caught:
+            self.assertGreater(max(r[0] for r in caught), 3.0,
+                               "the engine can no longer leave a player caught in the court, so item 31's risk "
+                               "has been removed rather than measured")
 
     def test_the_contact_does_not_depend_on_where_the_run_off_is_drawn(self):
         """The claim that makes Item 17's bound a backstop rather than the fix: with no ground bound at all, the band
@@ -6877,6 +6891,16 @@ class TestTheTurnBack(unittest.TestCase):
         self.assertNotIn("sh.player === pl.name && tl < 0.45", self.page,
                          "the old window that opened at the contact is back")
 
+    def test_the_reader_maps_the_columns_to_the_players_by_measurement(self):
+        # `debug plan`'s key order is the PUSH order and the sweep row's columns are `D.players`' order; on this
+        # season those are `[Colette, Gwen]` and `[Gwen, Colette]`. Mapping one to the other silently renames the
+        # players, which is how item 5 reported the receiver's speed as the striker's (STILLS.md, trap 7).
+        self.assertTrue("def order(rows, segs, fallback):" in self.tool, "the reader maps columns by position")
+        self.assertTrue('if p and p[1] == 1:' in self.tool,
+                        "the reader no longer votes from the log's own isHitter flag")
+        self.assertTrue("assert len(who) == 1" in self.tool,
+                        "a column that claims two hitters no longer stops the reader")
+
     def test_the_reader_reports_square_to_the_net(self):
         self.assertTrue("SQUARE TO THE NET" in self.tool, "the reader does not report the restated done-test")
         self.assertTrue("def err_net(" in self.tool, "there is no net-facing measure in the reader")
@@ -6890,6 +6914,78 @@ class TestTheTurnBack(unittest.TestCase):
                         "the backlog does not carry the measurement that shows the window is inert here")
         self.assertTrue("could not fail" in self.backlog,
                         "the vacuous half of the old done-test is not named")
+
+
+class TestARecoveryTheBallHasAlreadyInterrupted(unittest.TestCase):
+    """Item 31, 2026-11-26. The record used to finish every recovery whatever the opponent's ball was doing, and
+    then measure the next run from a place the player never reached: on `seasons/2026-11-19` shot 26 Colette is
+    sent 36ft in 2.44s while the ball comes back in 1.56s, so the next run starts 13.6ft from where her feet are
+    drawn and is covered in 0.48s — and the film pays for it at 43ft/s over 41 frames. A recovery now stops when the
+    ball she has just hit comes back, in BOTH engines, because a picture that disagrees with the scoreline about
+    where the feet are is two different matches."""
+
+    def setUp(self):
+        import importlib
+        sys.path.insert(0, str(REPO / "lab"))
+        self.S = importlib.import_module("tennis_script")
+        self.T = importlib.import_module("tennis")
+        self.script = (REPO / "lab" / "tennis_script.py").read_text(encoding="utf-8")
+        self.engine = (REPO / "lab" / "tennis.py").read_text(encoding="utf-8")
+        self.backlog = (REPO / "games" / "tennis" / "BACKLOG.md").read_text(encoding="utf-8")
+
+    def _film(self, rallies=24):
+        return self.S.play((300, 600), ("A", "C"), rallies, 1793809110303, "clay", self.S.SWAP_EVERY)
+
+    def test_both_engines_bound_the_recovery_by_the_flight_of_the_ball(self):
+        self.assertIn('caught = t_rec > traj["time"]', self.script,
+                      "the picture runs the whole recovery whatever the ball is doing")
+        self.assertIn('"cut": bool(caught)', self.script, "the record does not say a recovery was cut")
+        self.assertIn('min(min(2.5, d / max(movement_speed(receiver), 1.0)), t["time"])', self.engine,
+                      "the scoreline still moves the feet to the full recovery spot")
+
+    def test_no_recovery_outlives_the_ball_and_no_run_outruns_the_legs(self):
+        film = self._film()
+        recs = [s["recover"] for s in film["shots"] if s.get("recover")]
+        self.assertTrue(any(r.get("cut") for r in recs), "no recovery in this film was cut by the ball")
+        for r in recs:
+            self.assertLessEqual(r["got"], r["dist"] + 0.05,
+                                 msg=f"the feet got {r['got']}ft of a {r['dist']}ft recovery")
+            self.assertLessEqual(r["got"], 2.5 * r["speed"] + 0.05, msg="a recovery ran past its 2.5s cap")
+            if not r.get("cut"):
+                self.assertAlmostEqual(r["got"], r["dist"], places=0,
+                                       msg="a recovery that was not cut still did not reach its spot")
+        for s in film["shots"]:
+            run = s.get("run")
+            if run and run.get("t1"):
+                self.assertLessEqual(run["dist"] / run["t1"], (run.get("speed") or 0) * 1.05,
+                                     f"shot {s['n']} asks for {run['dist'] / run['t1']:.1f}ft/s "
+                                     f"from legs that do {run.get('speed')}")
+
+    def test_the_backlog_says_what_was_measured_and_what_was_not(self):
+        self.assertTrue("FIXED 2026-11-26 for the mechanism" in self.backlog,
+                        "item 31's headline does not distinguish the mechanism from the number")
+        self.assertTrue("cannot be reproduced" in self.backlog,
+                        "the backlog still implies the 41 frames were re-measured")
+
+
+class TestAChangeOfEndsIsInThePlan(unittest.TestCase):
+    """Item 32, 2026-11-26, found by sweeping the first film that has a change of ends in it: 6.00ft in one 0.02s
+    frame, because the swap is applied inside `whereAt` AFTER the first serve's stance lead has already walked the
+    player to the other spot."""
+
+    def setUp(self):
+        self.page = (REPO / "games" / "tennis" / "replay3d.html").read_text(encoding="utf-8")
+        self.backlog = (REPO / "games" / "tennis" / "BACKLOG.md").read_text(encoding="utf-8")
+
+    def test_the_defect_and_its_numbers_are_on_the_record(self):
+        self.assertTrue("## Item 32" in self.backlog, "item 32 is not opened")
+        for piece in ("6.00ft", "202.04", "item31-after", "1ft in a frame"):
+            self.assertTrue(piece in self.backlog, f"{piece} is not in the item 32 entry")
+
+    def test_the_swap_is_still_the_thing_whereAt_applies(self):
+        # Not a defence of the bug: this pins WHERE it is, so the fix (a move in the plan) has to move the test.
+        self.assertIn("for (const s of (SWAP[name] || [])) if (T >= s.t && (!sw || s.t >= sw.t)) sw = s;",
+                      self.page, "whereAt no longer applies the change of ends, and item 32 needs re-reading")
 
 
 class TestPickleball(unittest.TestCase):

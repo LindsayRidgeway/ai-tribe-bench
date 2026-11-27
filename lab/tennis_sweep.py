@@ -128,15 +128,23 @@ def main(argv):
     # ---- the toss: does a serve's own segment own any frame during its own toss?
     print("\n== the toss — a serve is drawn from its toss only if a frame during that toss is drawn as its segment ==")
     serves = [s for s in segs if len(s) > 3 and (s[3] or 0) > 0.10]
+    # A serve whose window the log does not REACH has not been measured, and counting it as a miss is how one
+    # wrong number gets quoted twice: a 108-shot film swept 0:300 reported "27 of 65 never drawn" because its
+    # last serves are past the end of the sweep. Only a window with both ends inside the logged range can be
+    # called drawn or not drawn.
+    tmin, tmax = rows[0][0], rows[-1][0]
+    covered = [s for s in serves if s[1] >= tmin and s[1] + s[3] <= tmax]
     never = []
-    for s in serves:
+    for s in covered:
         n, start, toss = s[0], s[1], s[3]
         if not any(r[1] == n and start <= r[0] < start + toss for r in rows):
             never.append(n)
-    print(f"  serves whose toss is never drawn: {len(never)} of {len(serves)}"
+    print(f"  serves whose toss is never drawn: {len(never)} of {len(covered)}"
+          + (f" ({len(serves) - len(covered)} of {len(serves)} serves are past the end of the log, unmeasured)"
+             if len(covered) < len(serves) else "")
           + (f": {never}" if never else ""))
     cover = []
-    for s in serves:
+    for s in covered:
         n, start, toss = s[0], s[1], s[3]
         got = [r[0] for r in rows if r[1] == n and start <= r[0] < start + toss]
         if got:

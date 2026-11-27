@@ -382,7 +382,7 @@ covered and the ground covered starts at zero. **The done-test should be restate
 10 in each direction* — and the fix it implies is one line in the gait (offset the phase half a cycle when the
 travel is towards the body's +lateral side), not another foot revision. Written as **item 4b**.
 
-## Item 5 — brake
+## Item 5 — brake (DONE 2026-11-26: 1.82ft/s median, 10.68 at worst, 0 of 66 over 30ft/s)
 
 **A CORRECTION, 2026-11-26: the number reported here was measured on the wrong body.** `lab/tennis_sweep.py` mapped
 `debug plan`'s key order onto the sweep row's columns, and the plan's order is not the players' order — on this film
@@ -402,6 +402,11 @@ occur in real life" the founder named on 2026-11-12, and it is worth a look of i
 `TestTheTurnBack.test_the_reader_maps_the_columns_to_the_players_by_measurement` holds the reader's fix.
 - **Done-test:** root speed at the contact frame is under 0.5 ft/frame for a shot reached at a run,
   i.e. the body is not still sliding when it hits. **Number:** peak speed and contact speed per shot.
+- **Done, and it was done before the number was right:** the worst contact in the film is 10.68ft/s = 0.21ft per
+  frame of 0.02s, which is under the 0.5 the test asks for, and 1.82ft/s median is a tenth of that. What is left is
+  not a slip but its opposite — the striker is nearly STILL when she hits, the "pause that doesn't occur in real
+  life" the founder named on 2026-11-12. That is a movement question, not this item's, and it is item 31's company:
+  both are the engine letting a body arrive somewhere it did not have time to reach.
 
 ## Item 6 — turn-back (MEASURED 2026-11-26; the done-test is restated, and one fix is in)
 
@@ -458,7 +463,36 @@ the instruction.
   within 0.1s of a contact. **Number:** the worst facing error at a contact, per film, printed by the reader as
   `SQUARE TO THE NET`.
 
-## Item 31 — a recovery the ball has already interrupted (OPEN 2026-11-26, and it changes the engine)
+## Item 32 — a change of ends teleports the player 6ft (OPEN 2026-11-26, found by sweeping a film that has one)
+
+Two 40-rally practice films made for item 31 (`records/item31-before.json`, `records/item31-after.json`, same
+`--clock 20261126`) contain a change of ends, and `?sweep` reads **6.00ft in one 0.02s frame** (300ft/s) for Colette
+at T=202.04, 5.97ft back at 202.24, and **2.00ft** for Gwen at T=275.06 and 279.4. The season film that item 2b was
+measured on has no change of ends in it, which is why 0.86ft looked like the worst move in the game: this is the
+first film the sweeps have had that exercises the path.
+
+The mechanism, from `debug plan` and `debug segs` on `item31-after`:
+
+```
+[192.12, 201.28, [39,-6.7] -> [76,13.5]]      a recovery behind the baseline
+[201.43, 201.98, [76,13.5] -> [82,13.5]]      the first serve's stance lead: she walks 6ft back
+[202.22, 202.57, [82,13.5] -> [77.6,12.53]]   and then chases the return
+```
+
+The change of ends is placed at the start of the new rally (`replay3d.html` pushes `SWAP` at the new rally's first
+segment) = 202.04, which is AFTER that stance lead has already walked her to [82,13.5]. `whereAt` then sets
+`pos = sw.to` = [76,13.5] and skips every move that finished before the swap — including the walk to 82 — so for
+0.18s she stands 6ft behind where the record has her, and the next move takes `from = m.from` = [82,13.5] and she
+jumps forward to reach it.
+
+- **The fix, sketched:** a change of ends belongs in the PLAN and not in a special case inside `whereAt` — insert an
+  instantaneous move to the swap point at the swap time and chain the moves after it, so the first serve's stance
+  lead walks her from where the swap actually left her.
+- **Done-test:** no player moves more than 1ft in a frame in a film that contains a change of ends. **Number:** the
+  biggest one-frame move per film, on both of these (6.00ft today), and it must be re-measured on the season film
+  too, which has never shown one because it has never changed ends.
+
+## Item 31 — a recovery the ball has already interrupted (FIXED 2026-11-26 for the mechanism; the 41 frames are not re-measured)
 
 Found while removing the last 5ft pop from the plan (item 2b). The record gives the player who has just hit a
 recovery — from the contact to `recovery_spot()`, over `min(2.5s, distance/speed)` — and it advances
@@ -478,6 +512,34 @@ before/after season, not a quiet edit inside a renderer turn.
 - **Done-test:** no plan move in a film needs more than 26ft/s at any frame (the smoothstep peak is 1.5x the mean),
   measured with `?sweep` and `lab/tennis_sweep.py`'s "frames over 25ft/s". **Number:** frames over 25ft/s per film,
   and the two shots (26, 44) that carry the 41 today.
+
+**BUILT 2026-11-26, in both engines.** `lab/tennis_script.py` bounds a recovery by the flight of the ball the player
+has just hit — `caught = t_rec > traj["time"]`, and the recover entry now carries `cut` and `got` (how far the feet
+actually got) — and `lab/tennis.py` does the same arithmetic on its own `where`, so the picture and the scoreline
+cannot disagree about where the feet are. What it costs, measured with the same `--clock 20261126` on 40 rallies,
+old engine vs new:
+
+| | before | after |
+|---|---|---|
+| shots, in play, rallies, mean rally | 108, 44 (41%), 40, 2.70 | 108, 44 (41%), 40, 2.70 |
+| recoveries cut short by the ball | 0 (there was no such thing) | **3** |
+| recoveries longer than 2s | 1 | **0** |
+| the next run starts at the spot the feet reached | yes (the record forced it) | yes (it is now reached) |
+
+**The one thing it does change is the situations the engine can produce**, and `TestTheBallIsMetInTheBand` caught
+it: with a player honestly left mid-court, a ball hit past them has to be chased back. Measured over 322 real
+interception calls, split by where the player STARTED: from the baseline, 17% of balls are met by running backwards
+and 9.9ft is the worst; from inside the court, 15 balls (4.7%) and **93% of them run backwards, 26.5ft at worst**.
+That is not the meeting-point rule failing — it is a player caught by an approach and passed — and the test now says
+so by splitting the two populations instead of tightening a threshold until its own subject disappeared.
+
+So the season's numbers did not move in this sample — the cut lands on points that were ending anyway — and the
+honest reading is that the fix closes a hole rather than changing the game. **What it does NOT do is prove the 41
+frames are gone from the film that had them**: `seasons/2026-11-19` cannot be reproduced. Re-running it with its own
+`clock_ms` (1795701263347), its own names and 20 rallies gives a different film from shot one — the players' skill
+is read from `practice.json`'s balls and comes out 11.2ft/s where the film had 14.8 — so the two shots (26, 44) that
+carry the 41 are not re-measurable, and the done-test stays OPEN on the number and CLOSED on the mechanism. That is
+the second film defect of the evening that a lost seed hides (see item 32, found the same way).
 
 ## Item 7 — the scoreboard (his spec, 2026-11-11)
 Two rows: Sets, Games, Points — with 0/15/30/40/AD and "Game" for the row that takes it, written up in

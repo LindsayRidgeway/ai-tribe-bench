@@ -1545,8 +1545,21 @@ def play_point(server: Player, receiver: Player, surface: str, wind_vec, wind_in
             lines.append(f"{receiver.name} loses the point.")
             server.winners += 1
             return lines
-        # Where the feet are next time: back behind the baseline, or in behind an approach shot.
-        where[receiver.name] = recovery_spot(receiver, shot["contact"], plan["kind"] == "approach")
+        # Where the feet are next time: back behind the baseline, or in behind an approach shot — as far as she
+        # gets before the ball she has just hit comes back (item 31, 2026-11-26). Charging the whole recovery
+        # whatever the opponent's ball is doing put the next shot's run at 28ft/s and let a receiver stand in a
+        # place she could not have reached; a player caught in the middle of the court is the risk an approach
+        # takes. The film has done this since the same change in `lab/tennis_script.py`, and the two must agree
+        # about where the feet are or the season's numbers and the picture are two different matches.
+        spot = recovery_spot(receiver, shot["contact"], plan["kind"] == "approach")
+        c0, c1 = shot["contact"][0], shot["contact"][1]
+        d = math.hypot(spot[0] - c0, spot[1] - c1)
+        if d > 1e-6:
+            got = min(min(2.5, d / max(movement_speed(receiver), 1.0)), t["time"])
+            f = min(1.0, got * max(movement_speed(receiver), 1.0) / d)
+            where[receiver.name] = (c0 + (spot[0] - c0) * f, c1 + (spot[1] - c1) * f)
+        else:
+            where[receiver.name] = spot
         incoming = t["bounce"]
         incoming["speed_in"] = t["bounce"]["speed_out"] / MPH
         server, receiver = receiver, server
