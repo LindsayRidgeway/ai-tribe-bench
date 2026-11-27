@@ -2189,7 +2189,8 @@ new on each rally line. Adding a field to a record is not a retune, and here tha
 game; the mix charges an unreachable ball to the one who did not get there; the sentence reads in a person's words),
 and four checks in `lab/page-check.mjs` driven through the page's own `pbRead` with a stubbed film — 170/170 checks
 pass. The checks were mutation-tested the only way that counts: attribution was deliberately broken (`fault_name ===
-me` replaced by `true`), the suite went red naming the net ball, the line was restored, 170/170 again.
+me` replaced by `true`), the suite went red naming the net ball, the line was restored, 170/170 again. The whole
+suite in a clean worktree at this commit: **607 passed, 0 failed**, 6m21s.
 
 ### Owed
 
