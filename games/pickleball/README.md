@@ -2118,6 +2118,11 @@ sequence — `{'pickleball.yml': ['ait.html']}` on the first run — and both ar
 that draws a film and never the films. That fix is `f4e95553`; all sixteen template/manifest tests pass on top of
 it, where main was failing before it.
 
+**The card, as it stands:** `replays/still-2026-11-26-play-tab.png`. Shot from the card's own markup and script
+lifted into a standalone page with four stubs (`$`, `esc`, `personLabel`, `S`), at 2× device scale — not from a live
+`#/play`, which refuses to render without a stored repository and token. So the still is evidence that the court
+draws the way this section says it draws, and not evidence that the press works.
+
 **Committed file by file, for the second time in one evening.** The working tree carries other windows' in-flight
 work on `ait.html` (golf card and footer), on both template files (golf's half) and on the golf records. Rather than
 split a diff or sweep it up, `git show HEAD:<path>` was taken and only this session's lines were put back: for
