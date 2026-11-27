@@ -10585,6 +10585,13 @@ class TestTheContactIsMeasuredOnTheFilmRatherThanInARate(unittest.TestCase):
         self.assertNotIn("if r[1] != n or", self.reader,
                          "the contact section is matching rows by shot number again, which collides across rallies")
 
+    def test_a_log_with_no_rows_says_so_instead_of_dying(self):
+        # a page-side exception and a run whose compositor never started both produce zero rows, and both used to
+        # read as `IndexError: list index out of range` from `jumps[0]` — three different faults, one message.
+        self.assertIn("if not rows:", self.reader)
+        self.assertIn("no `debug sweep` rows in", self.reader)
+        self.assertIn("`--screenshot=` on the command line", self.reader)
+
     def test_the_reader_splits_a_serve_from_a_groundstroke(self):
         # they are two different questions: a serve is struck 8.8ft up and the stride cannot reach it
         self.assertIn('for label, v in (("serves, struck 6ft up or more", tall), ("groundstrokes", flat)):',

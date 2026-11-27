@@ -118,6 +118,18 @@ def order(rows, segs, fallback):
 def main(argv):
     path = argv[1] if len(argv) > 1 else "/tmp/log.txt"
     rows, segs, plan = read(path)
+    if not rows:
+        # A LOG WITH NO ROWS IS NOT A BROKEN INSTRUMENT, AND IT MUST NOT READ LIKE ONE. Two traps in STILLS.md say
+        # the same thing from the other side: a page-side exception produces no `debug sweep` rows, and a headless
+        # run without `--screenshot=` never starts the sweep at all — both look exactly like "the sweep did not run".
+        # This used to fall through to `jumps[0]` and die with `IndexError: list index out of range`, which says
+        # nothing about which of the three it was. Measured 2026-11-27: a `ReferenceError` in an edited page cost a
+        # 15,001-row run and this traceback before the log was read by hand.
+        print(f"  no `debug sweep` rows in {path}: {len(segs)} shot rows, so the page parsed the record and the film"
+              f" was built, but no frame was sampled. Check, in this order: an `Uncaught` in the log (a page-side"
+              f" exception reads exactly like a broken sweep), `--screenshot=` on the command line (without it the"
+              f" compositor may never run a frame), and that `?sweep=t0:t1:dt` is inside the film's own clock.")
+        return
     names = [p[0] for p in plan] or ["A", "B"]
     idx = order(rows, segs, names)
     names = [None] * len(idx)
