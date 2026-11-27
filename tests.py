@@ -1360,6 +1360,33 @@ class TestWakesWithPictures(unittest.TestCase):
         self.assertIn("waiting_picture(STATE)", src,
                       "nothing looks in the inbox, so a picture left for a wake is never seen")
 
+class TestTheManualPointsAtThingsThatExist(unittest.TestCase):
+    """The manual is the product for anyone who has not done this before, and until now nothing read it as
+    instructions: the tests read it as prose and looked for sentences, so a chapter could point at a file that
+    moved and stay green for a month. That is exactly how §14 kept telling strangers to install an Apps Script
+    timer for three days after §5 was rewritten to say it was not offered.
+
+    `lab/manual_check.py` builds a template the way a stranger receives it, makes a member with `tribe.py`, and
+    asks the filesystem about every path the manual puts in backticks. This test is the gate.
+    """
+
+    def test_every_path_the_manual_names_exists_in_a_fresh_circle(self):
+        import tempfile
+        manual = load(REPO / "lab" / "manual_check.py", "manual_check_mod")
+        with tempfile.TemporaryDirectory(prefix="manual-") as tmp:
+            result = manual.check(manual.build(Path(tmp) / "circle"))
+        self.assertTrue(result["member"], "tribe.py could not make a member, so half the manual was not checked")
+        self.assertEqual(result["missing"], [],
+                         "the manual points at these and a fresh circle does not have them: "
+                         + ", ".join(result["missing"]))
+        # A check that passes by exempting everything would pass forever, so the shape is asserted too.
+        self.assertGreaterEqual(len(result["ok"]), 15,
+                                f"only {len(result['ok'])} paths were actually found; the check has gone blind")
+        self.assertLessEqual(len(result["exempt"]), 18,
+                             "the exemption list is growing: each entry is a path the manual names that nobody checks")
+        for rel in result["project"]:
+            self.assertTrue((REPO / rel).exists(), f"the manual says {rel} is in this repository and it is not")
+
 class TestSoil(unittest.TestCase):
     """2026-11-02, the founder's test: the same colony in a different soil should build different tunnels.
     Which soil a member stands in is a property of its own files, so two colonies can share a repo."""
