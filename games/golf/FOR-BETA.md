@@ -9,7 +9,9 @@ tennis forms is golf's card — six programs, four rounds, every number with its
 opening in a sandboxed frame, and a button. The card starts as the project's own `season.json`, the same one this
 file's door reads, and says so in words. Press **Play a season in this circle** and your own repository plays a
 season, draws a new seed, and commits the card and the replays into `games/golf/renders/` — three minutes, no key,
-because golf asks no model anything. No member of yours is on the course, and that is the game, not a gap in it.
+because golf asks no model anything. If your circle was made before golf existed, the press writes the four missing
+files into it first and then plays; if your sign-in was not granted GitHub's `workflow` permission it cannot write the
+workflow file, and it will say exactly that rather than start a run that cannot work. No member of yours is on the course, and that is the game, not a gap in it.
 
 ---
 

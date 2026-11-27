@@ -6329,7 +6329,8 @@ async function loadGolf(){
       <div class="row" style="margin:16px 0 0;align-items:center">
         <button class="primary" id="golfplay" onclick="playGolfSeason()">Play a season in this circle</button>
         <span class="small muted" id="golfmsg">about three minutes on this circle's own runner; it writes
-        <code>games/golf/renders/</code> and these become your circle's numbers, not the project's</span>
+        <code>games/golf/renders/</code> and these become your circle's numbers, not the project's. A circle made
+        before golf gets the four files it is missing first, and then plays.</span>
       </div>
       <p class="small" style="margin:14px 0 0">${verdict}</p>
       <p class="small muted" style="margin:6px 0 0">Every number carries its error. Each row is one program trained
@@ -6339,6 +6340,43 @@ async function loadGolf(){
     </div>
     <h2>The films</h2>
     <div class="card">${doors}</div>`;
+}
+
+// A circle made before golf has none of the four files the press needs: the engine, the module it borrows
+// (`putt.py` — the short game was already a game), the player that draws a scene, and the workflow that runs them on
+// this circle's own machine. Telling the person to go and run `lab/update_tribe.py --write` is the page handing its
+// own work to whoever pressed the button; the founder said so on 2026-11-26 — "ideally you would automatically
+// retrofit the circle and then proceed to play".
+//
+// It is done with the machinery that already exists and is already careful: `updatePlan()` names what may be written
+// (the template's own manifest), refuses to overwrite a file somebody edited here, and needs no proof to *add* a
+// file. This function only narrows that plan to golf's four paths, so a press that says "play golf" cannot quietly
+// rewrite the circle's other machinery. One of the four is special and is named separately below: GitHub will not
+// let a token write under `.github/workflows/` unless it was granted the `workflow` permission at sign-in, and
+// nothing the page does can grant that to itself.
+const GOLF_NEEDS = ['lab/golf.py', 'lab/putt.py', 'games/golf/replay3d.html', '.github/workflows/golf.yml'];
+
+async function ensureGolf(){
+  // The cheap question first. A current circle must be able to press and play even if the template cannot be read
+  // just now — a press that fails because a *public* repository had a bad minute would be the page inventing a
+  // dependency it does not have. One request answers it, and the plan (four more) is only built when something is
+  // actually missing.
+  const have = await treeOf(S.repo, S.branch || 'main');
+  if (GOLF_NEEDS.every(p => have.has(p))) return {wrote: [], refused: [], held: [], head: ''};
+  const plan = await updatePlan();
+  const todo = [...plan.writes, ...plan.adds].filter(f => GOLF_NEEDS.includes(f.path));
+  const held = [...plan.kept, ...plan.waiting].filter(p => GOLF_NEEDS.includes(p));
+  const wrote = [], refused = [];
+  for (const f of todo){
+    const {text} = await templateText(f.path, plan.head);
+    try { await putText(f.path, text, `page: golf — ${f.path}`, f.sha); wrote.push(f.path); }
+    catch(e){
+      const m = String(e.message || '');
+      if (f.path.startsWith('.github/workflows/') && /workflow/i.test(m)) refused.push({path: f.path, said: m});
+      else throw e;
+    }
+  }
+  return {wrote, refused, held, head: plan.head};
 }
 
 // The press that makes golf happen in the circle rather than on the project's bench. It sends a workflow and then
@@ -6351,8 +6389,32 @@ async function playGolfSeason(){
   if (!S.repo){ if (msg) msg.textContent = 'Which circle?'; return; }
   if (b) b.disabled = true;
   try {
+    // First: does this circle have the machinery at all? A circle installed before golf existed does not, and the
+    // run would fail after checkout with a log line about a file nobody can see from here. So the press retrofits
+    // and then plays — one press, and the sentence afterwards says what it had to do.
+    let fix = {wrote: [], refused: [], held: []};
+    try {
+      if (msg) msg.textContent = 'checking this circle has the machinery…';
+      fix = await ensureGolf();
+    } catch(e){
+      if (msg) msg.innerHTML = '<span class="err">' + esc('this circle could not be brought up to date: ' + e.message) + '</span>';
+      return;
+    }
+    if (fix.refused.length){
+      // The one wall the page cannot climb: a workflow file is not an ordinary file. GitHub's own words are quoted,
+      // because they name the permission exactly and a paraphrase would not.
+      if (msg) msg.innerHTML = '<span class="err">' + esc('GitHub refused to put ' + fix.refused[0].path + ' in this '
+        + 'circle: ' + fix.refused[0].said) + '</span> <span class="small muted">That is a permission on the token, '
+        + 'not something this page can grant itself: writing under <code>.github/workflows/</code> needs the '
+        + '<code>workflow</code> permission, which is asked for at sign-in. The engine and the player are in place now; '
+        + 'sign in with a token that has <code>workflow</code> in its scopes and press again, and this will finish. '
+        + 'Nothing was sent to a runner.</span>';
+      return;
+    }
+    if (msg) msg.textContent = fix.wrote.length
+      ? `${fix.wrote.length} file${fix.wrote.length === 1 ? '' : 's'} added — this circle was made before golf. Sending…`
+      : 'sent to this circle\'s runner…';
     const since = Date.now();
-    if (msg) msg.textContent = 'sent to this circle\'s runner…';
     await dispatch('golf.yml', {rounds: '4', bags: '4', seed: String(Math.floor(Date.now() / 1000)), calm: 'wind'});
     const run = await waitForRun('golf', since, t => { if (msg) msg.textContent = t; });
     if (run.conclusion !== 'success'){

@@ -912,6 +912,19 @@ on the circle's own runner, writes `renders/` and commits it. Three consequences
   imports, and `unshipped_dispatches()` is what catches a page offering a button whose workflow a new circle has not
   got.
 
+**And the press repairs the circles that came before it.** The first version of this told the owner to go and run
+`lab/update_tribe.py --write`, which is the page handing its own work to the person who pressed the button; the founder
+refused it on 2026-11-26 ("ideally you would automatically retrofit the circle and then proceed to play"). So the
+press asks one cheap question — does this circle have the four files? — and if anything is missing it builds the
+update plan the page already trusts (the template's manifest, blob shas, and the rule that a file edited in the circle
+is never overwritten), narrows it to golf's four paths, writes them, says how many it added, and dispatches. A circle
+that is already current is not touched and does not even read the template: one request to see it has them.
+
+One of the four is not an ordinary file. GitHub refuses a write under `.github/workflows/` to a token that was not
+granted the `workflow` permission at sign-in, and nothing a page can do grants that to itself. That path writes the
+engine and the player, quotes GitHub's refusal, names the permission, and sends no run — because a run without its
+workflow is a red X and a log line rather than a game.
+
 The bar rule crossed over too. `bar()` in the page is `_bar()` in this file, arithmetic for arithmetic (standard
 error is a 1.96th of half the interval), and it is the only thing on the page that formats a mean — which is how a
 rule survives being ported into another language by somebody in a hurry.

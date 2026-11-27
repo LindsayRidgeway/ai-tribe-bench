@@ -33,6 +33,10 @@ const authSeen = [];              // {path, header}
 const dispatches = [];            // every workflow_dispatch, with the inputs the page sent it
 const actions = { runs: [], onPoll: null, secrets: [], secretsDenied: false, installationsDenied: false,
                   secretPublicKey: null, secretWrites: [], secretWriteDenied: false,
+                  // GitHub refuses a write under `.github/workflows/` to a token without the `workflow` permission,
+                  // and that is the one wall the page cannot climb by itself. Without this knob the refusal path was
+                  // unreachable and the check that covers it passed by accident.
+                  refuseWorkflowWrites: false,
                   // Which account answers `/user`, what `/user/repos` says it owns, and which of those are *not*
                   // circles. A page that can only ever see one repository cannot be asked whether it finds a
                   // circle by searching rather than by being told the name.
@@ -203,6 +207,9 @@ function githubFetch(url, init = {}){
   }
 
   if (method === 'PUT'){
+    if (actions.refuseWorkflowWrites && /^\.github\/workflows\//.test(rest))
+      return jsonResponse(403, {message: 'refusing to allow a GitHub App to create or update workflow `' + rest
+        + '` without `workflows` permission'});
     if (failWrites.has(rest)) return jsonResponse(500, {message: 'the repository said no'});
     if (clashWrites.has(rest)) return jsonResponse(409, {message: 'sha does not match'});
     if (actions.busy[rest] > 0){ actions.busy[rest]--; return jsonResponse(409, {message: 'Git Repository is empty.'}); }
@@ -433,7 +440,7 @@ function reset(){
   actions.secretPublicKey = null; actions.secretWrites.length = 0; actions.secretWriteDenied = false;
   actions.login = 'someone'; actions.userRepos = []; actions.notCircles = []; actions.denyUser = false;
   exchanges.length = 0; actions.installationsDenied = false;
-  actions.missingWorkflows = []; actions.busy = {};
+  actions.missingWorkflows = []; actions.busy = {}; actions.refuseWorkflowWrites = false;
   // `golf`, `dlg`, `modal` and the two film slots are elements the fake document *creates on demand* (the page writes
   // them into markup, which is a string here), so they are the ones that survive a reset with yesterday's content in
   // them — which is how a dead tab passed a check that read the screen. Cleared for the same reason.
@@ -3427,65 +3434,185 @@ async function main(){
   });
 
 
-  /* 17h — the press that makes golf happen in the circle. Until 2026-11-26 the Play tab could only *read* golf: the
-     card on the project's bench, or a record somebody had committed by hand. That is a status view, and it is not
-     what "golf is in Kythe" means — tennis, the game this tab was built for, dispatches a workflow and reads the
-     record back (`season.yml`), and golf had no such workflow at all. This is that press: `golf.yml`, the seed drawn
-     at the press, and the card re-read afterwards as the circle's own. */
+  /* 17h — the press that makes golf happen in the circle, on a circle that was made before golf.
+     ------------------------------------------------------------------------------------------------------------
+     Until 2026-11-26 the Play tab could only *read* golf: the project's committed season, or a record somebody had
+     committed by hand. Then the press existed but handed its own work back to the person — "run lab/update_tribe.py
+     --write" — which the founder refused in one line: "ideally you would automatically retrofit the circle and then
+     proceed to play". So the press asks one cheap question (does this circle have the four files?), and only if
+     something is missing does it build an update plan, narrowed to golf's four paths, write them, and dispatch.
+
+     A circle made before golf and a circle made after it look identical from here except for those four files, so
+     these checks are the difference. The template is seeded with the manifest and the four files, the circle with
+     nothing of golf, and the press is watched doing both halves. */
+  const HEADG = 'c'.repeat(40);
+  const GOLF_SHIPPED = {
+    'lab/golf.py': '# golf.py from the template\n',
+    'lab/putt.py': '# putt.py from the template\n',
+    'games/golf/replay3d.html': '<!doctype html><html>the player</html>\n',
+    '.github/workflows/golf.yml': 'name: golf\n',
+  };
+  function seedGolfTemplate(){
+    tpl.sha = HEADG;
+    seedTemplate('.tribe-manifest.json', JSON.stringify({schema: 'ait-manifest/1',
+      files: ['wake/wake.py', ...Object.keys(GOLF_SHIPPED)]}));
+    for (const [p, t] of Object.entries(GOLF_SHIPPED)) seedTemplate(p, t);
+  }
+  // A circle that already has the machinery: what every circle made after golf has, and what the press must not
+  // touch (no plan, no template read, no writes — one request to see it has them, then the dispatch).
+  function seedCurrentGolf(){ for (const [p, t] of Object.entries(GOLF_SHIPPED)) seed(p, t); }
+
   reset();
-  // The circle starts with no golf of its own and the project's record on the bench — which is exactly the state a
-  // real circle is in before the first press. The runner then writes a season whose first athlete is named for the
-  // seed, so the "after" card can be shown to have been *read again* rather than re-used from the screen.
+  seedGolfTemplate();
+  seed('wake/wake.py', '# wake.py\n');                       // machinery it was born with, and golf is absent
+  seedBench(GOLF_PATH, JSON.stringify(golfRecord()));
+  actions.runs.push({id: 51300011, name: 'golf', event: 'workflow_dispatch', status: 'completed',
+    conclusion: 'success', html_url: 'https://github.com/someone/tribe/actions/runs/51300011',
+    created_at: new Date().toISOString()});
+  const retrofit = await tryRun(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
+    await loadGolf();
+    const before = document.getElementById('golf').innerHTML;
+    // The message the person sees while the run is playing is replaced by the card when it finishes, so it is
+    // captured at the one moment it matters: when the press sends the dispatch, after the retrofit.
+    const real = dispatch; let said = '';
+    dispatch = async (...a) => { said = String(document.getElementById('golfmsg').textContent || ''); return real(...a); };
+    try { await playGolfSeason(); } finally { dispatch = real; }
+    return {before, said, after: document.getElementById('golf').innerHTML};
+  })()`);
+  check('a circle made before golf gets the four files it is missing, on the same press', () => {
+    if (retrofit.err) return retrofit.err;
+    for (const [p, t] of Object.entries(GOLF_SHIPPED)){
+      const got = text(p);
+      if (got !== t) return `${p} was not put into the circle: ${JSON.stringify(String(got).slice(0, 60))}`;
+    }
+    return '';
+  });
+  check('and it says so while the run plays, rather than looking stuck', () => {
+    if (retrofit.err) return retrofit.err;
+    if (!/\b4 files added\b/.test(String(retrofit.said))) return `the press said: "${retrofit.said}"`;
+    if (!/made before golf/.test(String(retrofit.said))) return 'it does not say why it had to write anything';
+    return '';
+  });
+  check('the retrofit comes before the dispatch, so the run has machinery to run', () => {
+    if (retrofit.err) return retrofit.err;
+    const d = dispatches.find(x => x.workflow === 'golf.yml');
+    if (!d) return 'nothing was dispatched: ' + JSON.stringify(dispatches.map(x => x.workflow));
+    for (const k of ['rounds', 'bags', 'seed']) if (!d.inputs[k]) return `the dispatch has no ${k}`;
+    if (!/^\d{9,}$/.test(String(d.inputs.seed))) return `the seed is not a drawn one: ${JSON.stringify(d.inputs.seed)}`;
+    if (Number(d.inputs.rounds) < 2) return 'fewer than two rounds is not a before and an after';
+    if (!Object.keys(GOLF_SHIPPED).every(p => files.has(p))) return 'the dispatch was sent before the files were written';
+    return '';
+  });
+
+  // the card afterwards is read from the circle, not from the bench
+  reset();
+  seedGolfTemplate();
+  seed('wake/wake.py', '# wake.py\n');
   const pressedRecord = golfRecord();
-  pressedRecord.athletes[0].name = 'never practises (seed 51300)';
+  pressedRecord.athletes[0].name = 'never practises (seed 51301)';
   seedBench(GOLF_PATH, JSON.stringify(golfRecord()));
   actions.onPoll = (fs) => fs.set(GOLF_PATH, {text: JSON.stringify(pressedRecord), sha: 'r1'});
-  actions.runs.push({id: 51300001, name: 'golf', event: 'workflow_dispatch', status: 'completed',
-    conclusion: 'success', html_url: 'https://github.com/someone/tribe/actions/runs/51300001',
+  actions.runs.push({id: 51300012, name: 'golf', event: 'workflow_dispatch', status: 'completed',
+    conclusion: 'success', html_url: 'https://github.com/someone/tribe/actions/runs/51300012',
     created_at: new Date().toISOString()});
-  const press = await tryRun(ctx, `(async () => {
+  const reread = await tryRun(ctx, `(async () => {
     S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
     await loadGolf();
     const before = document.getElementById('golf').innerHTML;
     await playGolfSeason();
     return {before, after: document.getElementById('golf').innerHTML};
   })()`);
-  check('the golf card offers a press, and says what the press costs and where it writes', () => {
-    if (press.err) return press.err;
-    const h = String(press.before || '');
-    if (!/id="golfplay"/.test(h)) return 'there is no button to run a season here';
-    if (!/Play a season in this circle/.test(h)) return 'the button does not say what it does';
-    if (!/games\/golf\/renders\//.test(h)) return 'it does not say where the season will be written';
-    return '';
-  });
-  check('the press sends golf.yml with a seed of its own, so two presses are two seasons', () => {
-    if (press.err) return press.err;
-    const d = dispatches.find(x => x.workflow === 'golf.yml');
-    if (!d) return 'nothing was dispatched: ' + JSON.stringify(dispatches.map(x => x.workflow));
-    for (const k of ['rounds', 'bags', 'seed']) if (!d.inputs[k]) return `the dispatch has no ${k}: ` + JSON.stringify(d.inputs);
-    if (!/^\d{9,}$/.test(String(d.inputs.seed))) return `the seed is not a drawn one: ${JSON.stringify(d.inputs.seed)}`;
-    if (Number(d.inputs.rounds) < 2) return 'fewer than two rounds is not a before and an after';
-    return '';
-  });
-  check('and after it plays, the card is re-read as the circle\'s own record', () => {
-    if (press.err) return press.err;
-    const before = String(press.before || ''), after = String(press.after || '');
+  check('after the press the card is the circle\'s own record, read again rather than re-used', () => {
+    if (reread.err) return reread.err;
+    const before = String(reread.before || ''), after = String(reread.after || '');
     if (!/project&#39;s<\/em> numbers/.test(before))
       return 'the card did not start on the project\'s record, so this check proves nothing: ' + before.slice(0, 200);
-    if (!/this circle&#39;s own/.test(after))
-      return 'the card does not say the numbers are now the circle\'s: ' + after.slice(0, 240);
+    if (!/this circle&#39;s own/.test(after)) return 'the card does not say the numbers are now the circle\'s';
     if (/project&#39;s<\/em> numbers/.test(after)) return 'it still says the numbers are the project\'s';
-    if (!/seed 51300/.test(after))
-      return 'the card was not read again after the run — the athlete the runner wrote is not on it';
+    if (!/seed 51301/.test(after)) return 'the card was not read again — the athlete the runner wrote is not on it';
     if (!/id="golfplay"/.test(after)) return 'the press is gone, so a circle can only ever play one season';
+    return '';
+  });
+
+  // a current circle: no plan, no template, no writes. If the template cannot be read, a press must still work —
+  // a public repository having a bad minute is not a reason for the product to stop.
+  reset();
+  seedCurrentGolf();
+  seedBench(GOLF_PATH, JSON.stringify(golfRecord()));
+  actions.runs.push({id: 51300013, name: 'golf', event: 'workflow_dispatch', status: 'completed',
+    conclusion: 'success', html_url: 'https://github.com/someone/tribe/actions/runs/51300013',
+    created_at: new Date().toISOString()});
+  const current = await tryRun(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
+    await loadGolf();
+    await playGolfSeason();
+    return {yes: true};
+  })()`);
+  check('a circle that already has the machinery is not touched, and does not even read the template', () => {
+    if (current.err) return 'the press failed on a current circle: ' + current.err;
+    const puts = calls.filter(c => c.startsWith('PUT '));
+    if (puts.length) return 'it wrote files into a circle that already had them: ' + JSON.stringify(puts);
+    const tpl_ = calls.filter(c => /ai-tribe-template/.test(c));
+    if (tpl_.length) return 'it read the template to answer a question the circle itself answers: ' + JSON.stringify(tpl_);
+    if (!dispatches.some(d => d.workflow === 'golf.yml')) return 'the press dispatched nothing';
+    return '';
+  });
+
+  // the wall: a workflow file is not an ordinary file
+  reset();
+  seedGolfTemplate();
+  seed('wake/wake.py', '# wake.py\n');
+  actions.refuseWorkflowWrites = true;
+  const walled = await tryRun(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
+    await loadGolf();
+    await playGolfSeason();
+    return {msg: String(document.getElementById('golfmsg').innerHTML || '')};
+  })()`);
+  actions.refuseWorkflowWrites = false;
+  check('a token that may not write workflows is told so in GitHub\'s own words, and nothing is sent', () => {
+    if (walled.err) return walled.err;
+    const h = String(walled.msg || '');
+    if (!/refused to put \.github\/workflows\/golf\.yml/.test(h)) return `the refusal is not named: "${h.slice(0, 200)}"`;
+    if (!/workflows. permission|workflow<\/code> permission/.test(h)) return 'the permission it needs is not named';
+    if (!/Nothing was sent/.test(h)) return 'it does not say that no run was started';
+    if (dispatches.some(d => d.workflow === 'golf.yml')) return 'it dispatched a workflow it had just failed to install';
+    // and the half that does not need that permission landed, so the next press has less to do
+    for (const p of ['lab/golf.py', 'lab/putt.py', 'games/golf/replay3d.html'])
+      if (text(p) !== GOLF_SHIPPED[p]) return `${p} was not written, though it needs no special permission`;
+    return '';
+  });
+
+  // a golf file somebody edited here is not overwritten — the update machinery's oldest rule, applied to the press
+  reset();
+  seedGolfTemplate();
+  seed('wake/wake.py', '# wake.py\n');
+  seed('lab/golf.py', '# golf.py, edited here on purpose: 6 athletes and a seventh I added\n');
+  seedBench(GOLF_PATH, JSON.stringify(golfRecord()));
+  actions.runs.push({id: 51300014, name: 'golf', event: 'workflow_dispatch', status: 'completed',
+    conclusion: 'success', html_url: 'https://github.com/someone/tribe/actions/runs/51300014',
+    created_at: new Date().toISOString()});
+  const keptEdit = await tryRun(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
+    await loadGolf();
+    await playGolfSeason();
+    return {yes: true};
+  })()`);
+  check('a golf engine edited in this circle is left alone, and the press still plays', () => {
+    if (keptEdit.err) return 'the press failed: ' + keptEdit.err;
+    const mine = text('lab/golf.py');
+    if (!/seventh I added/.test(String(mine))) return 'it overwrote a file somebody in the circle had edited';
+    if (!dispatches.some(d => d.workflow === 'golf.yml')) return 'it did not dispatch, so the editing stopped the game';
     return '';
   });
 
   // a run that ends in a word: the run is named, and the page does not say a season was played
   reset();
-  seed(GOLF_PATH, JSON.stringify(golfRecord()));
-  actions.runs.push({id: 51300002, name: 'golf', event: 'workflow_dispatch', status: 'completed',
-    conclusion: 'failure', html_url: 'https://github.com/someone/tribe/actions/runs/51300002',
+  seedCurrentGolf();
+  seedBench(GOLF_PATH, JSON.stringify(golfRecord()));
+  actions.runs.push({id: 51300015, name: 'golf', event: 'workflow_dispatch', status: 'completed',
+    conclusion: 'failure', html_url: 'https://github.com/someone/tribe/actions/runs/51300015',
     created_at: new Date().toISOString()});
   const failedGolf = await tryRun(ctx, `(async () => {
     S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
@@ -3495,38 +3622,9 @@ async function main(){
   })()`);
   check('a golf run that failed names the run, and does not claim a season was played', () => {
     if (failedGolf.err) return failedGolf.err;
-    if (!/51300002/.test(failedGolf.msg)) return `the run is not named: "${failedGolf.msg}"`;
-    if (!/actions\/runs\/51300002/.test(failedGolf.msg)) return 'the run number is not a link to the run';
-    if (/played/.test(String(failedGolf.said || '').replace(/the run ended[^.]*\./, '')))
-      return 'it says a season was played';
-    return '';
-  });
-
-  // an old circle, whose repository has no golf.yml: the page must say so rather than report a broken page
-  reset();
-  seed(GOLF_PATH, JSON.stringify(golfRecord()));
-  const oldCircle = await tryRun(ctx, `(async () => {
-    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
-    await loadGolf();
-    const real = gh;
-    gh = async (path, opts, token) => {
-      // indexOf, not a regex: this code is written into a template literal above, and a template literal eats the
-      // backslashes a regex needs — the first version of this line failed with "Invalid regular expression flags".
-      // (The same trap ended a template literal early in this file an hour later: do not put a backtick in here.)
-      if (String(path).indexOf('golf.yml/dispatches') >= 0)
-        throw new Error('404 · Not Found');
-      return real(path, opts, token);
-    };
-    try { await playGolfSeason(); } catch(e){ /* the press reports into the card, it does not throw */ }
-    finally { gh = real; }
-    return {msg: document.getElementById('golfmsg').innerHTML || ''};
-  })()`);
-  check('a circle whose repository predates golf is told what to do, not given a 404', () => {
-    if (oldCircle.err) return oldCircle.err;
-    const h = String(oldCircle.msg || '');
-    if (!/golf\.yml is not in this circle/.test(h)) return `the workflow is not named as missing: "${h}"`;
-    if (!/Nothing was sent/.test(h)) return 'it does not say that nothing happened';
-    if (!/update_tribe/.test(h)) return 'it does not say how to bring the repository up to date';
+    if (!/51300015/.test(failedGolf.msg)) return `the run is not named: "${failedGolf.msg}"`;
+    if (!/actions\/runs\/51300015/.test(failedGolf.msg)) return 'the run number is not a link to the run';
+    if (/played/.test(String(failedGolf.said || '').replace(/the run ended[^.]*\./, ''))) return 'it says a season was played';
     return '';
   });
 

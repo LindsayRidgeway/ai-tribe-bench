@@ -748,6 +748,15 @@ press draws a new seed, so it is a new nine holes rather than the same one again
 then reads *your* circle's numbers instead of the project's. Before that first press, the card says plainly that the
 numbers are the project's: golf's athletes are fixed and no member of your circle plays it.
 
+A circle made before golf existed does not have to be updated first. The press checks for the four files golf needs —
+the engine, the putting module it borrows, the player that draws a scene, and the workflow — writes whatever is
+missing from the template, says how many it added, and then plays. Files you have edited here are never overwritten;
+they are left alone and the run uses yours. There is one thing the page cannot do for itself, and it is GitHub's rule
+rather than Kythe's: writing a file under `.github/workflows/` needs a token that was granted the `workflow`
+permission at sign-in. If the sign-in you use was not, the press writes the other three files, says in GitHub's own
+words what was refused, and tells you that a token with that permission finishes the job — it does not send a run
+that would fail.
+
 **The draft, from an issue.** Comment `@tribe draft <category>` on any issue — "best pizza topping" is the example
 this was built with. Three members pick, three members vote one pick off the table, and the round is posted in the
 thread in under a minute. `@tribe override <letter>` gives you the last word; `@tribe score` shows the standings.
