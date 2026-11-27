@@ -9841,6 +9841,36 @@ class TheTemplateMustBeEnough(unittest.TestCase):
         finally:
             _sh.rmtree(tmp, ignore_errors=True)
 
+    def test_the_template_carries_no_record_of_anything_that_happened_elsewhere(self):
+        """A seed is not a circle, and two files had been quietly making it one.
+
+        `.tribe-beacon` says a beacon was already sent from *this* repository; `.ait/last-clock.json` says which
+        engines *this* project's clock found at 00:38Z on 27 November. Both were committed in the published
+        template for weeks, so a stranger's new circle began with a record of two events that did not happen in
+        it — and the second is the page's own source for "what did the last wake find", which is the worst kind of
+        file to hand somebody prefilled. Neither was ever on the whitelist, which is why nothing deleted them and
+        every publish put them back by hand.
+
+        The build is the only place that can be asked: on disk the bench has both files and always will.
+        """
+        import shutil as _sh
+        tmp = Path(tempfile.mkdtemp(prefix="seed-"))
+        try:
+            r = subprocess.run([sys.executable, str(REPO / "lab" / "make_template.py"), "--out", str(tmp / "c")],
+                               cwd=REPO, capture_output=True, text=True, timeout=300)
+            self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+            seed = tmp / "c"
+            for rel in (".tribe-beacon", ".ait/last-clock.json"):
+                self.assertFalse((seed / rel).exists(),
+                                 f"the template ships {rel}, a record of a run that happened in this project")
+            self.assertFalse((seed / ".ait").exists(),
+                             "the template ships an .ait/ directory: a record of a clock nobody has run yet")
+            # And it must not be there because the build failed: the whitelist is the list a circle receives, so a
+            # seed with nothing in it would pass this test and ship nothing.
+            self.assertTrue((seed / "wake" / "wake.py").is_file(), "the build produced nothing to be sure of")
+        finally:
+            _sh.rmtree(tmp, ignore_errors=True)
+
     def test_the_files_the_page_writes_into_an_old_circle_are_files_the_template_publishes(self):
         """The press retrofits a circle made before golf, so the page now carries a list of four paths.
 

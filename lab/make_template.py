@@ -28,6 +28,14 @@ ROOT = Path(__file__).resolve().parent.parent
 
 # A tribe needs three things: the harness that wakes a member, the workflows that schedule it, and
 # the empty rooms it will fill. Everything else in this repository is the project's own record.
+#
+# Two files are deliberately NOT on this list, and both were on disk in the published template anyway:
+# `.tribe-beacon` (a line saying a beacon was already sent from *this* repository, to this endpoint) and
+# `.ait/last-clock.json` (a record of which engines *this* project's clock found at 00:38 on 27 November). A seed is
+# not a circle: a stranger's first look at either file is a record of something that did not happen in their
+# repository — the same defect class as a mock number wearing the clothes of a measurement. They stayed there
+# because nothing here named them and nothing deleted them; the clock that wrote one of them now runs on the
+# template's own repository only by mistake, and its workflow there is off (2026-11-27).
 FILES = """
 .github/workflows/clock.yml
 .github/workflows/wake.yml
