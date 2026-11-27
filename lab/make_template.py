@@ -36,7 +36,9 @@ FILES = """
 .github/workflows/attic.yml
 .github/workflows/play.yml
 .github/workflows/season.yml
+.github/workflows/pickleball.yml
 .github/workflows/paint.yml
+games/pickleball/replay3d.html
 .github/workflows/magazine.yml
 tribe.py
 brief.py
@@ -56,6 +58,7 @@ play/log.py
 lab/members.py
 lab/tennis.py
 lab/tennis_script.py
+lab/pickleball.py
 lab/rps.py
 lab/paint.py
 lab/vision.py
