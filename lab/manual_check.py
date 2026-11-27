@@ -63,7 +63,13 @@ WRITTEN = {
 # PROJECT — a real file, in the project's own repository rather than in a circle. The manual talks about them on
 # purpose (the experiments that are not shipped, the source of the golf record), so they are checked against this
 # repository instead of against the template: a chapter that points at a renamed script is the same rot either way.
-PROJECT = {"lab/golf.py", "lab/putt.py", "LINKS.md", "RELEASE.md", "RUN.md"}
+# `LINKS.md` is the one file the manual sends a reader to in *this* repository rather than their own — the list of
+# addresses, which belongs to the project because it is the project's addresses.
+#
+# `lab/golf.py` and `lab/putt.py` were in this set this morning, because the template did not ship them, and by the
+# evening it did: the check went on passing while the manual told a reader those two files were not in the circle
+# they were standing in. This tool cannot read a sentence — it can only refuse to vouch for one it has not checked.
+PROJECT = {"LINKS.md"}
 
 # EXEMPT — not a path in a circle at all. Each with its reason, because an exemption list with reasons is a
 # decision and a regex that skips things is a hole.
