@@ -2245,7 +2245,8 @@ put the uncounted season into the trend as a good day, the check went red saying
 again. The harness also learned a lesson of its own in the process: `#pbresult` and `#pbtrend` are elements the fake
 document creates on demand, so they survive `reset()` with yesterday's text in them — which made the "no seasons"
 check read the previous check's trend. Both are now cleared in `reset()`, beside `golf` and `dlg`, for the same
-reason already written there.
+reason already written there. The whole suite in a clean worktree at this commit: **616 passed, 0 failed**,
+6m10s.
 
 ### Owed
 
