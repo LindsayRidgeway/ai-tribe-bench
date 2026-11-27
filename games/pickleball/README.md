@@ -2314,7 +2314,8 @@ that has no score in its record must not look like a 0–0.
 its own season file, carries the mix and the score — and the reader, asked directly for a pickleball season, names
 the file and points at the command instead of claiming nobody has hit a ball; and a season with one mixed session
 and one gap says both things, while a season with no mixes at all says that rather than counting zeros. The tennis
-report's own tests are unchanged and still pass.
+report's own tests are unchanged and still pass. The whole suite in a clean worktree at this commit: **621
+passed, 0 failed**, 6m25s.
 
 ### Owed
 
