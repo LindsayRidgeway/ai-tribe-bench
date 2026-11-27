@@ -1,6 +1,7 @@
 # golf — for a beta tester
 
-Written 2026-11-20, at the end of the seventeenth pass. The game is `lab/golf.py`; the pages it writes are in
+Written 2026-11-20, at the end of the seventeenth pass; last revised 2026-11-27, at the end of the
+twenty-fourth. The game is `lab/golf.py`; the pages it writes are in
 `renders/`; the record of every pass is `records/golf-2026-11-19.txt`; the findings are `README.md` beside this
 file. Start at **`renders/start.html`** — it is the door, and it links everything below.
 
@@ -68,14 +69,24 @@ in the field lost seventeen strokes to it. So the model is narrow and known to b
 is a mixture: how often the club is wrong, and how far off it is when it is. There is no bar on this one; it is a
 distance between two measurements, not a sample.
 
-**Direction was on this list and came off it, which is the one item here that closed by measuring.** A 12 ft putt
-does cost more across the fall line than along it — 0.45 ± 0.07 of a stroke, pooled over six distances, measured
-2026-11-27 — and `target()` still prices every 12 ft landing at 1.83. That is not an omission and it is not a bug:
-the athlete's ball is as likely to finish short of the pin as long, an across-the-fall putt is the same putt from
-either end, and the two halves cancel exactly in the arithmetic the aim is made of. Wiring the term in moved the
-aim by no feet. What the same table found is a real defect one surface down: a putt left above the hole costs this
-game nothing, where golf's oldest piece of advice says it should cost a lot. That is not fixed yet and it is named
-in the record rather than hidden.
+**Direction was on this list, came off it, and then was taken back off it — this is the item to read if you only
+read one.** A 12 ft putt *did* cost more across the fall line than along it: 0.45 ± 0.07 of a stroke, pooled over
+six distances, measured 2026-11-27. On 2026-11-27, later the same day, the same fit read **−0.01 ± 0.05**, because
+the putter that produced the first number was wrong: it computed its pace on the line it aimed while the ball rolled
+the line it read, and it read a putt that runs past the hole at the place where it *stopped*. The break did not
+shrink; the thing measuring it was broken, and it was broken in a way that made a putt across the slope harder than
+a putt along it. Fixed, both direction terms are zero — break −0.01 ± 0.05, downhill putt −0.01 ± 0.02 — and the
+green got 0.2 to 0.3 of a stroke cheaper past 6 ft, which is why the card moved.
+
+Two defects are left where that number used to be, and both are named rather than hidden. **The putter never
+misreads a green** — its read is exact to a hundredth of a foot — so the break is a picture and not a price, and
+its green is cheaper than golf's at every distance past 4 ft. And **nothing prices the putt it leaves**: the pace
+decision trades reaching the hole against arriving too fast to drop, and never asks what the comeback costs, so it
+aims as far past the cup as the hole will accept (0.8 ft from 3 ft, 2.6 from 12) and a downhill miss is priced by
+its length and not by the fact that its comeback runs away. In golf "keep it below the hole" is the first thing
+anybody is told; here it is worth nothing, twice measured. `target()` is still told the mean curve on purpose: a
+landing that is as likely short as long makes the two halves of a break cancel exactly, and wiring the term in moved
+the aim by no feet.
 
 **What the depth bought, stated plainly, because it is less than the file expected.** Over 1,080 holes played
 against the previous version, paired by course and seed, the whole change — the distance fix and the depth — is
@@ -99,9 +110,17 @@ a floor, and the ball falls the last four inches and fades. At the distance a pu
 eight pixels across, so **the wall is invisible**; what you see is a ball vanishing into a dark disc. That is the
 honest state of the best frame in the game.
 
-**The putter has no read error.** Its read of the break is exact to a third of an inch, so its line error is one
-constant 1.1° at every distance, where a real golfer misreads more the longer the putt. With the pace already
-fixed, this game holes more putts than golf does from 6 ft out (README finding 10).
+**The putter has no read error, and it is now the largest single thing wrong with the short game.** Its read of
+the break is exact to a hundredth of a foot (it runs the game's own roll and corrects until the crossing is on the
+hole), so its line error is one constant 1.1° at every distance, where a real golfer misreads more the longer the
+putt. Two consequences, both measured on 2026-11-27: the green costs 1.10 against golf's 1.5 at 6 ft and 1.74
+against 1.9 at 20, and the break costs it nothing at all.
+
+**The putter over-believes its own face, and it is a censored sample.** A putt is only shown to it if it missed, and
+a miss from 3 ft is a putt that passed two inches wide, so the scatter it measures is the tail of its own
+distribution: it believes 2.8° of face for hands that have 1.1°. It does not use that number to make a decision —
+the number it uses, how badly it misses its pace, is learned from real rolls and reads 0.027 against hands of 0.015
+— but the belief is wrong and nothing in the game corrects for the censoring yet.
 
 **The green has no contour.** One grade, one fall line, everywhere. No tiers, no swales, no two-break putts.
 
@@ -114,8 +133,12 @@ decision — it is always "hit it as far as you can". Geometry, not physics, and
 six *members*' numbers on one board is something the members would have to do in their own windows, and nobody —
 least of all the founder — can order it. The pages say this in their own footers.
 
-**The rough's price is 0.3 of a stroke too dear.** Two instruments agree it is. It stays where pass 10 put it,
-because a number re-measured and then checked against its own measurement is a fitted number.
+**The rough's price was 0.3 of a stroke too dear, and it was fixed by the second instrument, not the first.** It
+sat at 2.60 from pass 10 to pass 23 on the rule that a constant re-measured and then checked against its own
+measurement is a fitted number. Pass 24 lowered it to 2.38, and not on that rule's terms: the green got cheaper,
+which widened the green-to-rough margin, and the *card* then caught it — aiming at a tucked pin paid 1.11 ± 0.55
+better than aiming away from it, where the objective says it costs 0.58. At 2.38 the contradiction goes
+(+0.03 ± 0.48). `--costs` reads 2.23 / 2.19 / 2.71 at 36 / 48 / 60 ft, so 2.38 is its own midpoint.
 
 **A ball is drawn with a floor of 2.2 px.** At the distance a golf shot is photographed from, a 1.68 in ball is
 half a pixel, and a half-pixel ball is invisible; the floor is a marker, not a measurement, and the scale bar is

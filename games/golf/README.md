@@ -650,6 +650,9 @@ putts makes a windy round recoverable.*
    | this game | 1.03 | 1.14 | 1.35 | 1.43 | 1.65 | 1.83 | 1.82 | 1.90 |
    | golf, roughly | 1.02 | 1.05 | 1.12 | 1.35 | 1.6 | 1.75 | 1.85 | 1.9 |
 
+   *(Pass 24 re-measured this row with a putter that reads the green it plays and got 1.03 / 1.04 / 1.14 / 1.10 /
+   1.31 / 1.49 / 1.65 / 1.74. The objective is told those numbers now. See "The break was the putter's".)*
+
    *(Pass 12 printed this table read around a flag cut 13 ft off-centre and read 1.00 / 1.21 / 1.23 / 1.54 /
    1.62 / 1.70 / 1.89 / 1.93. The numbers are the same to a tenth and the table was still wrong: past 20 ft the
    compass leaves a 40-ft green and the row keeps 27 of its 48 positions. Finding 12.)*
@@ -693,7 +696,7 @@ putts makes a windy round recoverable.*
 12. **The green is a curve now, and a curve is priced by distance — so it reaches exactly as far as a shot is
    short, and not one yard further. Plus a fourth instrument reading the wrong thing, and the sand the objective
    can see and the game cannot.** `target()` is no longer told that a green costs 2.00 wherever the ball stops;
-   it is told `green_cost(d)`, a measured curve from 1.03 at 2 ft to 1.90 at 20, and it integrates the landing
+   it is told `green_cost(d)`, a measured curve from 1.03 at 2 ft to 1.74 at 20, and it integrates the landing
    over half-foot cells rather than pricing the whole surface at one number.
 
    **The instrument, which is the fourth of these and the third in the same table.** Pass 12 fixed the cost table
@@ -764,6 +767,13 @@ putts makes a windy round recoverable.*
    right to price the mean curve. What the table also found is that the *downhill* putt costs this game nothing,
    0.02 ± 0.03, which is the defect underneath the "1.50 from above the hole" this paragraph quotes: there is no
    such thing in the game. See "The break is real, and the objective is right to ignore it" below.*
+
+   *Pass 24: the measurement above is withdrawn. Half of it was the putter — the 1.50 from above the hole, the
+   2.17 across the fall line and the 0.45 pooled over six distances were all measured with a putter that paced
+   its aim while the ball rolled its read, and read a putt that ran past the hole where it stopped. Re-measured,
+   both terms are zero: −0.01 ± 0.05 for the break and −0.01 ± 0.02 for the downhill. The sentence that survives
+   is the one about the objective: a direction term is still worth nothing to it, and now it is worth nothing
+   twice over, because the game has no direction term to sell.*
 
    **What it did to the cards.** The learner's still-air rounds improve (+6 +1 +1 −2 −2 −2, held-out +2 against
    a frozen player at +9), the wind rounds do not (+13 +4 +4 −2 +2 +2), and the field changes order for the
@@ -956,7 +966,7 @@ defect was a denominator.
 
 `dist_ft` is the distance the shot is being *hit from*. So the landing's putt was read as the length of the shot:
 on a 150 yd approach every cell on the green was 450-odd feet from the pin, and `green_cost` is flat past 20 ft.
-The measured curve — 1.03 at 2 ft rising to 1.90 at 20, the instrument the thirteenth pass built and the
+The measured curve — 1.03 at 2 ft rising to 1.74 at 20 (1.90 until pass 24 re-measured it), the instrument the thirteenth pass built and the
 thirty-fifth check verifies the wiring of — was read only by shots inside seven yards. Every club shot in six
 passes treated every spot on the green as equally good, and the objective's only gradients out there were the
 sand and the edge of the grass. That is why the target the objective chose was always about the middle of the
@@ -997,7 +1007,15 @@ kernel cannot say that. The next thing to try is a mixture kernel — how often 
 it is when it is — and it is written here rather than built, because a pass that has just measured its own
 premise as false should not also invent one.
 
-## The break is real, and the objective is right to ignore it
+## The break was the putter's
+
+**Pass 24 withdrew the measurement this section is built on, and the withdrawal is the finding.** What follows is
+what pass 20 measured — the break at +0.45 ± 0.07 of a stroke, the downhill putt at +0.02 ± 0.03 — and those
+numbers were the *putter's*, not the green's: it paced the line it aimed on while the ball rolled the line it read,
+and it read a putt that ran past the hole where it stopped. Re-measured with a putter that reads the green it
+actually plays, the break is **−0.01 ± 0.05** and the downhill putt **−0.01 ± 0.02**. The instrument in the
+section below is the part that survived, so it is kept as it was written; the diagnosis and the new numbers are
+under "What the twenty-fourth pass found" at the end of it.
 
 The twenty-eighth item on the list was **direction**, and the record had called it "the largest thing left wrong
 in the objective": a 12 ft putt costs 1.50 from above the hole and 2.17 across the fall line, `target()` prices
@@ -1045,6 +1063,101 @@ the next object, one surface down, and the objective will need to be told the gr
 The pass is therefore a finding and not a change: no aim moved, no card moved, and the committed season record is
 byte-identical, which is the right evidence for a pass that concluded its own premise was false.
 
+### What the twenty-fourth pass found: the pace was on the wrong line and the miss was read at the wrong place
+
+The break did not get smaller because the green changed. It got smaller because the thing measuring it was broken,
+and it was broken in a way that made a putt across the slope systematically harder than a putt along it — which is
+exactly what "the break costs strokes" looks like from outside.
+
+**The two errors.** `putt_read` asks the game's own roll for the face that puts the ball on the hole; the pace was
+then computed by `pace(d, effective_decel(green, aim))`, the deceleration along the *aim*. On a breaking green the
+ball does not travel the aim — it travels the read, up to 40° off it on a steep green — so the deceleration it
+actually meets is a different number and the putt arrives at a different speed. The second error was in the read
+itself: it measured the ball's **stopping place**. For a putt hit to die at the cup the stopping place and the
+crossing point are the same point within an inch, which is why six passes never saw it; for a putt hit 2.6 ft past
+the cup they are far apart, so the read was aiming the ball's *finishing place* at the hole.
+
+Neither error is visible in a table of holed putts. Both are visible in a table of holed putts *by direction*: on
+a 4.5% green the putter holed **0–2% at bearings 60–90 and 180–210 against 73% straight down the fall line**. A
+distance table that says half a compass cannot be holed is not a fact about putting.
+
+**The fix, in three parts, none of them a number I chose.** `putt_roll` now reports `cross`, the point at which
+the path came nearest the hole, and everything that reads the *line* reads it there — the read, the card's phrase,
+and the athlete's belief about its own hands. `putt_line_and_pace` solves the pace from the game's own roll: roll
+it with the hole 100,000 ft away so a putt that would have dropped still reports where it stopped, measure how
+far it went, and scale the speed by the square root of the ratio. Read and pace are then alternated **until neither
+moves**, which replaced "two corrections" with a tolerance — two is enough on the 1.2% green this course plays and
+not on a 4.5% one, where the same read left 1.9 ft.
+
+**What it did to the green.** The green got 0.2 to 0.3 of a stroke cheaper past 6 ft, because a putter that hits
+the pace it read and reads the green it is on is a better putter than one that does neither:
+
+| strokes to hole out, from the green's centre | 2 | 3 | 4 | 6 | 9 | 12 | 16 | 20 |
+|---|---|---|---|---|---|---|---|---|
+| this game, pass 24 | 1.03±0.02 | 1.04±0.02 | 1.14±0.04 | 1.10±0.04 | 1.31±0.06 | 1.49±0.07 | 1.65±0.07 | 1.74±0.07 |
+| golf, roughly | 1.02 | 1.05 | 1.12 | 1.35 | 1.60 | 1.75 | 1.85 | 1.90 |
+| this game, pass 13–23 | 1.03 | 1.14 | 1.35 | 1.43 | 1.65 | 1.83 | 1.83 | 1.90 |
+
+The objective's knots are that row to the last digit (with the 6 ft knot held at the 4 ft one, because a cost that
+falls with distance is not a thing a curve does and the 0.04 is inside a cell's own error). It is golf's curve at
+3 ft and cheaper than golf's everywhere past it, by 0.16 at 20 ft, and the gap is *named* rather than tuned: this
+putter is never wrong about the green and never mis-hits the pace it read, so it pays for neither a misread nor a
+mishit. **That is the next defect, and it is visible in the direction terms.**
+
+**Both direction terms are zero and they are zero for different reasons.** The break costs nothing because this
+athlete reads it exactly: `putt_read` runs to a hundredth of a foot, so a putt square across the slope is no
+harder for it than one along it. A reader who cannot misread the green is not taxed by a green, and nothing in
+this game gives it one to misread — the break is a *visual* fact here and not a price. The downhill putt costs
+nothing because nothing prices the putt it leaves: `GolfPutter.settle` trades reaching the hole against arriving at
+capture speed and never prices the comeback, so it aims as far past the cup as the hole will accept — **0.8 ft from
+3 ft, 1.6 from 6, 2.6 from 12** (measured). In golf "keep it below the hole" is the first thing anybody is told
+about a green; here it is worth 0.00. The principled form of that missing term is a one-step lookahead,
+`1 + P(miss) · E[green_cost(what it leaves)]`, which prices the comeback, the downhill and the long overshoot in
+one line. That is the next object.
+
+**And the athlete was learning the wrong number, one layer up.** `feel()` was fed the miss at the *stopping
+place*, so on a breaking green it learned the green's curl as its own hand error — it believed **3.9° of face for
+hands with 1.1°** — and a *holed* putt reported its pace residual as if the ball had stopped short by the
+overshoot, so a putter that holed more putts learned to hit them harder: **a 13% over-hit**, which is why it holed
+30% of 20 ft putts where golf holes 15%. Both are censoring, and both are now handled: the pace residual is a real
+roll and a made putt teaches nothing about it, and the scatter it believes (which governs how far past the cup it
+aims) is learned only off putts whose pace was its own. It now believes a gain of 1.020 against a truth of 1.000
+and a speed scatter of 0.027 against hands of 0.015 — still high, because the lever it divides out is oscillating
+by a per cent. Its *face* belief stays at 2.8° against 1.1°, and that one is left as a stated defect: a putt is
+only shown to it if it missed, and a miss at 3 ft is a putt that passed two inches wide, so the sample is the tail
+of its own distribution. Nothing in the game corrects a censored sample yet.
+
+**Two things the pass had to pay for, and both were caught by an instrument rather than by me.** The objective's
+cost curve moved, so every target it prices now is priced differently, and the card moved with it. And
+`COST_OFF_GREEN` — 2.60 since pass 10, on the rule that a constant re-measured and then checked against its own
+measurement is a fitted number — had to come down to 2.38, because the green got cheaper and the *card* caught the
+consequence: with the constant at 2.60, aiming at a tucked pin paid **1.11 ± 0.55 better** than aiming away from
+it, where the objective says it costs 0.58. At 2.38 the contradiction goes (+0.03 ± 0.48). That is a second
+instrument that never measured a rough's cost, and `--costs` reads 2.23 / 2.19 / 2.71 at 36 / 48 / 60 ft, so 2.38
+is also that table's own midpoint.
+
+**The card.** Four rounds of nine, par 35, four practice sessions, the band the spread across them:
+
+| athlete | aims at | strokes | ± | to par | was (pass 23) |
+|---|---|---|---|---|---|
+| flag-hunter | flag | 154.2 | 2.2 | +14.2 | +40.8 |
+| blind hands | spread | 154.8 | 6.1 | +14.8 | +31.0 |
+| bad start | spread | 160.5 | 4.3 | +20.5 | +32.0 |
+| cautious | centre | 160.8 | 7.3 | +20.8 | +36.0 |
+| practiser | spread | 161.0 | 3.5 | +21.0 | +28.5 |
+| no practice | spread | 190.0 | 7.9 | +50.0 | +58.8 |
+
+Every athlete got better and the frozen player got better by least in relative terms, which is the improvement
+claim intact. What changed is *which* player is best: the flag-hunter now leads, from last of the five. That is a
+consequence of the two repairs and not a preference — with the green cheaper at long range and the rough no
+longer over-priced by a fifth of a stroke, being aggressive stopped being the expensive policy. A game whose
+target decision flips when the prices are corrected is a game whose target decision is real.
+
+**What the pass did not do.** No aim moved because of the *direction* terms: check 40's cancellation still holds
+to the ninth decimal, and the objective is still told the mean curve on purpose. The break being zero does not
+make a direction term useful; it makes the case for one *vacuous twice over* — the objective cannot spend it, and
+the game no longer has it.
+
 ## What this does not model
 
 - **the landing has two dimensions and only one of them is modelled well.** `target()` now prices the landing at
@@ -1053,8 +1166,11 @@ byte-identical, which is the right evidence for a pass that concluded its own pr
   that a ball sometimes does not have the club: the model puts 95% of its approach shots on the green from 150 yd
   where the game holds 53%, and a normal wide enough to carry the real misses makes the objective fatalistic (see
   the section above). A mixture kernel is the next thing, not the next pass. Direction is *not* missing any more,
-  and it is not missed: the break is 0.45 ± 0.07 of a stroke and it cancels exactly against a landing that is as
-  likely short as long, so the objective's mean curve is the right answer (pass 20)
+  and it is not missed: the break cancels exactly against a landing that is as likely short as long, so the
+  objective's mean curve is the right answer (pass 20) — and since pass 24 the game does not have a break to
+  price either (−0.01 ± 0.05), because the athlete reads the green exactly. **The read error is the missing
+  thing**: a putter that never misreads a green is not taxed by one, and that is why this game's green is 0.16 of
+  a stroke cheaper than golf's at 20 ft
 - **the putting stroke has one shape.** `putt.py`'s athlete models a pace gain and a line bias, and the game
   has added the clubs' two dispersions (pass 11) and a pace the athlete decides (pass 12) — but a real putter
   also has a stroke that is not a straight line: no arc, no clubface rotation through impact, no strike low or
@@ -1211,8 +1327,10 @@ at all, and the first two of them are now built:
      comparison was between two different things — 42% is the chance for a shot aimed at the pin, where the game
      at that aim finds the sand 47.5% of the time; 11.6% was every shot in a round. The landing got its depth
      anyway, for the reason below, and it is worth −0.033 ± 0.022 of a stroke a hole.**
-   - **direction — closed, pass 20, without a change.** The break is +0.45 ± 0.07 of a stroke (bands of sin²ψ at
-     six distances) and the downhill putt is +0.02 ± 0.03. The break cancels exactly in the objective: a landing
+   - **direction — closed, pass 20, without a change; and pass 24 took the measurement back.** The break is
+     −0.01 ± 0.05 of a stroke (bands of sin²ψ at six distances) and the downhill putt is −0.01 ± 0.02; the
+     pass-20 numbers, +0.45 ± 0.07 and +0.02 ± 0.03, were measured with the putter pacing its aim, and they were
+     the putter's. The break still cancels exactly in the objective: a landing
      at lateral offset *a* and depth *b* has sin²ψ = (a+b)²/2(a²+b²), its mirror at −*b* has 1 minus that, and the
      athlete's depth is as likely one way as the other — so the depth integral is ½ for every lateral cell and a
      direction term is a constant. Built as a candidate it moved the aim by no feet and bought under a
@@ -1220,11 +1338,14 @@ at all, and the first two of them are now built:
      cancellation (check 40) so that the day the athlete learns a real depth bias, the term is no longer free.
 
    What *is* the defect underneath, and it is one surface down: the game's putter has no below-the-hole penalty
-   (+0.02 ± 0.03 over a compass, −0.11 ± 0.10 through the game), because `GolfPutter.settle` never prices the putt
-   it leaves. That is item 6's live half now, and the objective must be told the green on the day it is fixed.
-   What is *not* next is another constant: the rough's 2.60 is now 0.3 of a stroke too dear on two instruments'
-   readings, and it stays where pass 10 put it, because a number re-measured and then checked against its own
-   measurement is a fitted number and this file has enough of those already.
+   (−0.01 ± 0.02 over a compass, −0.11 ± 0.10 through the game), because `GolfPutter.settle` never prices the putt
+   it leaves — and since pass 24 squared the pace with the roll it aims as far past the cup as the hole accepts,
+   which is the same missing term seen from the other side. That is item 6's live half, and the objective must be
+   told the green on the day it is fixed. **Added by pass 24: the read has no error.** Nothing gives the athlete a
+   green to misread, so the break is free and the green is cheaper than golf's past 6 ft — one defect with two
+   symptoms. The rough's 2.60 did come down (to 2.38: `--costs` reads 2.23 / 2.19 / 2.71, and the card caught the
+   over-price on a tucked pin at 1.11 ± 0.55), which is the case where a second instrument — not the same
+   measurement — is what moved a constant.
 
 7. **A dogleg.** The driver's distance has never been a decision, because the corridor is straight and 40 yd
    wide. A corner with trees inside turns "hit it as far as you can" into a question with a number on it — and
