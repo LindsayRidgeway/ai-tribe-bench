@@ -2073,3 +2073,38 @@ same one a member makes, not a solver defect.
 The `#/play` wiring, and it is the whole of the gap between this section and a person playing from Kythe: the
 dispatch (`pickleball.yml`, in `season.yml`'s argument shape), a sport row in `ait.html`'s `viewPlay`, and the screen
 of §5q pointed at it. Until then the seat exists and is reached from a terminal only.
+
+## §5w The wiring: a person presses Play in Kythe — 2026-11-26, evening
+
+§5v built the seat and left the gap a person can see. This closes it: `.github/workflows/pickleball.yml` runs the
+seat on the circle's own runner, and the Play tab has a Pickleball card that dispatches it.
+
+**The dispatch, in the shape three sports now share.** Inputs are `season`, `person`, `players`, `shot`, `games`,
+`clock`, `surface`; it plays `lab/pickleball.py --person-shot … --names "you,partner,opp,opp"`, writes the film to
+`games/pickleball/records/<season>-game-1.json` and its page beside it, prints the season report, and commits. The
+`clock` input is there for the same reason the engine has a `--clock`: a pin makes a game a record that can be
+played again, and an empty one makes a game a game.
+
+**The card is the court.** `ait.html`'s Play view gains a section whose control is a drawn top-down court: click the
+place, choose a pace (15 / 24 / 32 / 42), and it prints the line it will send — `PACE 24 AT 26,6`. The four things it
+refuses to ask for are face degrees, power per cent, aim in feet and a model choice; three of those are what the
+tennis form asks and what §5o proved nobody can answer.
+
+**A picture was wrong about the court, and it took drawing it in feet to see.** The mock's canvas shaded the two ends
+of the long axis and labelled them kitchens, put the player's dot inside the near kitchen, and drew the centreline
+through the no-volley zone. All three are the same mistake — the ends are the *service* courts and the kitchen is the
+seven-foot strip beside the net — and none of it was visible while the mock was a mock. The wired card shades
+`[NET_X - KITCHEN, NET_X]` and `[NET_X, NET_X + KITCHEN]`, stands the player at `KITCHEN_LINE - 2` (the engine's own
+`APPROACH_DEFAULT`), and labels the *ends* as ends. This is the argument for building the screen rather than
+describing it, made by the screen.
+
+**What it does after the run.** It reads the film back out of the repository and prints the score, the rallies, the
+mean rally, how many shots were the person's own, and clock — from `film.score`, `film.rallies`, `film.shots`. Not
+from a summary the run wrote: the same file the page of the film is drawn from, so a person's screen and their film
+cannot disagree. If the read arrives before the run's commit lands, it says so and names the path rather than
+showing nothing.
+
+**Unverified, and said plainly:** the dispatch has never been run, because this checkout has no keys, no members on
+the shelf and no runner. What *is* verified is that the page's JavaScript parses, that the card draws the court it
+claims to draw, and that the engine it calls plays the seat (§5v's tests). The first real press is the first real
+test, and it will be on the founder's circle rather than here.

@@ -5908,6 +5908,42 @@ async function viewPlay(main){
       <span class="small muted" id="pmsg"></span></div>
     </div>
 
+    <h2>Pickleball</h2>
+    <div class="card">
+      <p class="small muted" style="margin:0 0 12px">Doubles: you and a partner against two members, first to eleven.
+      <b>The court is the control</b> — click where you want the ball, choose how hard, and that is the whole
+      instruction. The engine solves the paddle's angle, so nothing here asks you for degrees.</p>
+      <canvas id="pbcourt" width="760" height="404"
+        style="width:100%;max-width:760px;display:block;border-radius:10px;cursor:crosshair;touch-action:none"></canvas>
+      <div class="row" style="margin-top:12px;align-items:baseline;gap:12px">
+        <code id="pbmove" style="font:600 14px var(--mono)">pick a point on their court</code>
+        <span class="small muted" id="pbsaid"></span>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="pbp" data-pace="15" style="background:transparent;border:1px solid var(--line);border-radius:8px;padding:6px 10px;font:inherit;font-size:12.5px;cursor:pointer;color:inherit">dink 15</button>
+        <button class="pbp" data-pace="24" style="background:transparent;border:1px solid var(--line);border-radius:8px;padding:6px 10px;font:inherit;font-size:12.5px;cursor:pointer;color:inherit">drive 24</button>
+        <button class="pbp" data-pace="32" style="background:transparent;border:1px solid var(--line);border-radius:8px;padding:6px 10px;font:inherit;font-size:12.5px;cursor:pointer;color:inherit">push 32</button>
+        <button class="pbp" data-pace="42" style="background:transparent;border:1px solid var(--line);border-radius:8px;padding:6px 10px;font:inherit;font-size:12.5px;cursor:pointer;color:inherit">hard 42</button>
+      </div>
+      <div class="grid two" style="margin-top:14px">
+        <div><label>Your partner</label><select id="pbpartner">${names}</select></div>
+        <div><label>Their side</label><select id="pbopp1">${names}</select><select id="pbopp2">${names}</select></div>
+      </div>
+      <div class="grid two">
+        <div><label>Games to 11</label><input id="pbgames" type="number" value="1" min="1" max="5"></div>
+        <div><label>Season</label><input id="pbseason" value="${esc(seasons[0] || '2026-winter')}"></div>
+      </div>
+      <label>Your name on the court</label>
+      <input id="pbname" value="${esc(personLabel())}">
+      <p class="small muted" style="margin:8px 0 0">Your movement is played on <em>every</em> ball that comes to you —
+      a runner cannot stop mid-rally — but the swing is solved from wherever your feet are, so it means a dink at the
+      kitchen line and a reach from the baseline. The serve is the exception: a dink's pace cannot carry thirty feet,
+      so the engine serves at the pace the box requires.</p>
+      <div class="row" style="margin-top:14px"><button class="primary" id="pbplay" onclick="pbPlay()">Play</button>
+      <span class="small muted" id="pbmsg"></span></div>
+      <div id="pbresult"></div>
+    </div>
+
     <h2>Seasons</h2>
     <div class="card">${seasons.length ? seasons.map(s =>
       `<button class="member" onclick="readSeason('${escq(s)}')"><div class="grow"><div class="name">${esc(s)}</div>
@@ -5953,6 +5989,191 @@ async function viewPlay(main){
     } catch(e){ msg.innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }
     finally { const g = $('go'); if (g) g.disabled = false; }
   };
+  pbInit();
+}
+
+// ---- pickleball: the court is the control ---------------------------------------------------------------
+// §5q's screen, wired. It is drawn rather than described because the design's one claim is about what a player is
+// asked for: how hard, and where — never a paddle's angle, which the engine can solve and which two members proved
+// nobody can say (§5o). What the press sends is the same one-line movement a member answers with, `PACE 24 AT 26,6`,
+// and on the runner it is played by `lab/pickleball.py --person-shot` on every ball that comes to the person's seat.
+const PBC = {LENGTH: 44, WIDTH: 20, NET_X: 22, KITCHEN_LINE: 15, KITCHEN: 7, CENTRELINE: 10};
+const PBDPR = Math.min(2, (typeof devicePixelRatio === 'number' && devicePixelRatio) || 1);
+const PBPAD = 30;
+let PBTARGET = null, PBPACE = 24;
+
+const pbCv = () => $('pbcourt');
+const pbW = () => { const c = pbCv(); return c ? c.width / PBDPR : 760; };
+const pbH = () => { const c = pbCv(); return c ? c.height / PBDPR : 404; };
+const pbX = x => PBPAD + (x / PBC.LENGTH) * (pbW() - 2 * PBPAD);
+const pbY = y => PBPAD + (y / PBC.WIDTH) * (pbH() - 2 * PBPAD);
+
+function pbDraw(){
+  const c = pbCv(); if (!c) return;
+  const g = c.getContext('2d'), W = pbW(), H = pbH();
+  g.clearRect(0, 0, W, H);
+  g.fillStyle = '#f4efe4'; g.fillRect(0, 0, W, H);
+  // The kitchens, shaded because they are the rule nobody expects: they are the two seven-foot strips beside the
+  // net, not the ends. (The mock this is drawn from shaded the ends and labelled them kitchens — a picture can be
+  // wrong about a court in a way a sentence cannot, which is why the geometry here is written in feet.)
+  g.fillStyle = '#e8dfca';
+  for (const [x0, x1] of [[PBC.NET_X - PBC.KITCHEN, PBC.NET_X], [PBC.NET_X, PBC.NET_X + PBC.KITCHEN]])
+    g.fillRect(pbX(x0), pbY(0), pbX(x1) - pbX(x0), pbY(PBC.WIDTH) - pbY(0));
+  g.strokeStyle = 'rgba(27,25,22,0.55)'; g.lineWidth = 1.2;
+  g.strokeRect(pbX(0), pbY(0), pbX(PBC.LENGTH) - pbX(0), pbY(PBC.WIDTH) - pbY(0));
+  g.beginPath();
+  for (const x of [PBC.KITCHEN_LINE, PBC.LENGTH - PBC.KITCHEN_LINE]) {
+    g.moveTo(pbX(x), pbY(0)); g.lineTo(pbX(x), pbY(PBC.WIDTH));
+  }
+  for (const [x0, x1] of [[0, PBC.KITCHEN_LINE], [PBC.LENGTH - PBC.KITCHEN_LINE, PBC.LENGTH]]) {
+    g.moveTo(pbX(x0), pbY(PBC.CENTRELINE)); g.lineTo(pbX(x1), pbY(PBC.CENTRELINE));
+  }
+  g.stroke();
+  g.strokeStyle = '#7a4520'; g.lineWidth = 2.2;
+  g.beginPath(); g.moveTo(pbX(PBC.NET_X), pbY(0)); g.lineTo(pbX(PBC.NET_X), pbY(PBC.WIDTH)); g.stroke();
+  g.strokeStyle = 'rgba(122,69,32,0.28)'; g.lineWidth = 1;
+  for (let y = 0; y <= PBC.WIDTH; y += 0.8) {
+    g.beginPath(); g.moveTo(pbX(PBC.NET_X) - 5, pbY(y)); g.lineTo(pbX(PBC.NET_X) + 5, pbY(y)); g.stroke();
+  }
+  g.fillStyle = 'rgba(107,100,89,0.9)'; g.font = '11px ui-monospace, Menlo, monospace'; g.textAlign = 'center';
+  g.fillText('your end', pbX(6), pbY(0) + 14);
+  g.fillText('their end', pbX(PBC.LENGTH - 6), pbY(PBC.WIDTH) - 7);
+  g.fillText('kitchen', pbX(PBC.NET_X - PBC.KITCHEN / 2), pbY(PBC.WIDTH) - 7);
+  g.fillText('kitchen', pbX(PBC.NET_X + PBC.KITCHEN / 2), pbY(0) + 14);
+  // Where a player actually stands: about two feet behind their own kitchen line, which is the engine's own
+  // `APPROACH_DEFAULT`. The dot is not decoration — a court picture with the player in the kitchen would teach the
+  // one thing this game forbids.
+  const me = [PBC.KITCHEN_LINE - 2, 6.5];
+  g.beginPath(); g.arc(pbX(me[0]), pbY(me[1]), 6, 0, Math.PI * 2); g.fillStyle = '#a03b2a'; g.fill();
+  g.fillStyle = '#6b6459'; g.fillText('you', pbX(me[0]), pbY(me[1]) - 11);
+  if (PBTARGET) {
+    const [tx, ty] = PBTARGET;
+    g.setLineDash([4, 4]); g.strokeStyle = 'rgba(47,107,70,0.55)'; g.lineWidth = 1.2;
+    g.beginPath(); g.moveTo(pbX(me[0]), pbY(me[1])); g.lineTo(pbX(tx), pbY(ty)); g.stroke();
+    g.setLineDash([]);
+    g.strokeStyle = '#2f6b46'; g.lineWidth = 2;
+    g.beginPath(); g.arc(pbX(tx), pbY(ty), 7, 0, Math.PI * 2); g.stroke();
+    g.beginPath();
+    g.moveTo(pbX(tx) - 10, pbY(ty)); g.lineTo(pbX(tx) + 10, pbY(ty));
+    g.moveTo(pbX(tx), pbY(ty) - 10); g.lineTo(pbX(tx), pbY(ty) + 10); g.stroke();
+    g.fillStyle = '#2f6b46'; g.textAlign = 'left';
+    g.fillText(`${tx.toFixed(0)},${ty.toFixed(0)}`, pbX(tx) + 12, pbY(ty) - 9);
+  }
+}
+
+function pbLine(){
+  const move = $('pbmove'), said = $('pbsaid');
+  if (!move) return;
+  if (!PBTARGET) { move.textContent = 'pick a point on their court'; if (said) said.textContent = ''; return; }
+  const [tx, ty] = PBTARGET;
+  move.textContent = `PACE ${PBPACE} AT ${tx.toFixed(0)},${ty.toFixed(0)}`;
+  if (said) {
+    const over = tx - PBC.NET_X;
+    said.textContent = over <= 0.5 ? 'on your own side — the engine would pull it across the tape'
+      : over <= PBC.KITCHEN ? 'in their kitchen: a dink, or a fault if you are volleying'
+      : `${over.toFixed(0)} ft past the net`;
+  }
+  for (const b of document.querySelectorAll('.pbp')) {
+    const on = Number(b.dataset.pace) === PBPACE;
+    b.style.borderColor = on ? '#2f6b46' : 'var(--line)';
+    b.style.color = on ? '#2f6b46' : 'inherit';
+    b.style.fontWeight = on ? '600' : '400';
+  }
+}
+
+function pbPick(e){
+  const c = pbCv(); if (!c) return;
+  const r = c.getBoundingClientRect();
+  const px = (e.clientX - r.left) / r.width * pbW(), py = (e.clientY - r.top) / r.height * pbH();
+  const tx = Math.max(0.5, Math.min(PBC.LENGTH - 0.5, (px - PBPAD) / (pbW() - 2 * PBPAD) * PBC.LENGTH));
+  const ty = Math.max(0.5, Math.min(PBC.WIDTH - 0.5, (py - PBPAD) / (pbH() - 2 * PBPAD) * PBC.WIDTH));
+  PBTARGET = [tx, ty];
+  const msg = $('pbmsg'); if (msg) msg.textContent = '';
+  pbLine(); pbDraw();
+}
+
+function pbInit(){
+  const c = pbCv(); if (!c) return;
+  const w = c.clientWidth || 760;
+  c.width = Math.round(w * PBDPR); c.height = Math.round(w * 0.535 * PBDPR);
+  c.getContext('2d').setTransform(PBDPR, 0, 0, PBDPR, 0, 0);
+  c.addEventListener('pointerdown', pbPick);
+  for (const b of document.querySelectorAll('.pbp'))
+    b.onclick = () => { PBPACE = Number(b.dataset.pace); pbLine(); };
+  // Three different members, and a partner who is not the two across the net: the seats are the engine's
+  // `names[:2]` (north) against `names[2:]`, so the person taking a member's seat would be two people in one name.
+  for (const id of ['pbopp1', 'pbopp2']) {
+    const el = $(id); if (!el) continue;
+    el.selectedIndex = Math.min(el.options.length - 1, id === 'pbopp1' ? 1 : 2);
+  }
+  pbLine(); pbDraw();
+  if (!addEventListener.pbWired) { addEventListener('resize', () => { pbLine(); pbDraw(); }); addEventListener.pbWired = true; }
+}
+
+async function pbRead(season, me){
+  const box = $('pbresult'); if (!box) return;
+  box.innerHTML = '<p class="small muted" style="margin-top:12px">reading the record…</p>';
+  const path = `games/pickleball/records/${season}-game-1.json`;
+  try {
+    const film = JSON.parse((await fileText(path)).text);
+    const shots = film.shots || [], ral = film.rallies || [];
+    const mine = shots.filter(s => s.player === me);
+    const mean = ral.length ? (ral.reduce((a, r) => a + r.shots, 0) / ral.length).toFixed(1) : '—';
+    const last = ral.length ? ral[ral.length - 1] : null;
+    const score = Array.isArray(film.score) ? film.score.join('–') : '';
+    box.innerHTML = `<div class="card" style="margin-top:12px">
+      <div class="row" style="justify-content:space-between;align-items:baseline">
+        <div style="font:600 22px var(--mono)">${esc(score)}</div>
+        <div class="small muted">${esc((film.teams || []).map(t => t.join('/')).join('  vs  '))}</div>
+      </div>
+      <p class="small" style="margin:8px 0 0">${ral.length} rallies, mean ${esc(mean)} shots · ${shots.length} shots,
+      ${mine.length} of them yours · clock ${esc(String(film.clock_ms || '—'))}</p>
+      ${last ? `<p class="small muted" style="margin:4px 0 0">the last point: ${esc(String(last.outcome || last.why || ''))}</p>` : ''}
+      <p class="small muted" style="margin:6px 0 0">The film is <code>${esc(path)}</code>; the page of it is
+      <code>${esc(path.replace('records', 'replays').replace('.json', '.html'))}</code>, and it opens from disk.</p>
+    </div>`;
+  } catch(e){
+    // The record is committed by the run's own last step, so a read straight after the run can arrive a moment early.
+    box.innerHTML = '<p class="small muted" style="margin-top:12px">the run finished, and the film is not readable yet — '
+      + 'the session is committed by the run\'s last step, so give it a moment and open the film from '
+      + `<code>${esc(path)}</code>. <span class="small muted">${esc(e.message)}</span></p>`;
+  }
+}
+
+async function pbPlay(){
+  const msg = $('pbmsg'), b = $('pbplay');
+  if (!S.repo) { if (msg) msg.textContent = 'Which circle?'; return; }
+  const me = (($('pbname') || {}).value || personLabel()).trim();
+  const partner = $('pbpartner').value, o1 = $('pbopp1').value, o2 = $('pbopp2').value;
+  const three = [partner, o1, o2];
+  if (new Set(three).size !== 3 || three.includes(me)) {
+    if (msg) msg.textContent = 'Three different members, please — your partner and the two across the net — and none of them you.';
+    return;
+  }
+  if (!PBTARGET) { if (msg) msg.textContent = 'Pick a point on their court: the court is the control.'; return; }
+  const season = (($('pbseason') || {}).value || '2026-winter').trim();
+  const games = String(($('pbgames') || {}).value || 1);
+  const shot = `PACE ${PBPACE} AT ${PBTARGET[0].toFixed(0)},${PBTARGET[1].toFixed(0)}`;
+  const engines = three.map(n => (S.members.find(m => m.name === n) || {}).engine);
+  b.disabled = true;
+  try {
+    const since = Date.now();
+    if (msg) msg.textContent = 'sent to the court — a game to eleven is a few minutes of the members thinking…';
+    await dispatch('pickleball.yml', {season, person: me, players: three.join(','), shot, games,
+                                      clock: '', surface: 'hard'});
+    const run = await waitForRun('pickleball', since, t => { if (msg) msg.textContent = t; });
+    if (run.conclusion !== 'success') {
+      const url = run.html_url || `https://github.com/${S.repo}/actions/runs/${run.id}`;
+      if (msg) msg.innerHTML = '<span class="err">' + esc('the run ended: ' + run.conclusion + '.') + '</span> '
+        + `<a href="${esc(url)}" target="_blank" rel="noopener">${esc(String(run.id))}</a>`
+        + `<span class="small muted">${esc(await missingKeys(engines) || ' — its log says why, in one line.')}</span>`;
+      return;
+    }
+    if (msg) msg.textContent = 'played. reading the record';
+    await pbRead(season, me);
+  } catch(e){
+    if (msg) msg.innerHTML = '<span class="err">' + esc(e.message) + '</span>';
+  } finally { b.disabled = false; }
 }
 
 async function readSeason(season){
