@@ -895,6 +895,7 @@ def record_session(book: dict, *, when: str, surface: str, clock: int, players, 
                    partners: dict, mode: str = "rally", competition: bool = None,
                    faults: dict[str, dict[str, int]] | None = None,
                    score: tuple[int, int] | None = None,
+                   teams: list[list[str]] | None = None,
                    by: str = "a person") -> None:
     """Add one session to the book. The balls are the ones the ENGINE counted, not the ones a member
     claims — a being that inflates its own practice should be findable in the record, and here it cannot
@@ -929,6 +930,12 @@ def record_session(book: dict, *, when: str, surface: str, clock: int, players, 
             # lists the balls and the rally length and not the score is a report with the one fact a person looks
             # for left out; the film has it, and the film is not what a season is read from (page §5z).
             **({"score": [int(score[0]), int(score[1])]} if score is not None else {}),
+            # WHO WAS ON WHICH SIDE. `with` already says who was beside you, and says nothing about who was
+            # across the net or which half of the score was yours — so a report could only ever say "played with
+            # Desi" about a game that was 11–2, which is a fact about a partnership and not about a game. The two
+            # sides, in the order the score is written in, make the session a game rather than a bullet under one
+            # player's name (page §5z).
+            **({"teams": [list(t) for t in teams]} if teams else {}),
         })
         m["balls"] += p.shots
 

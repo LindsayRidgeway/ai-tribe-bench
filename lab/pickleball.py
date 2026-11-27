@@ -2103,6 +2103,58 @@ def write_film(scene: dict, out_json: str | Path, out_page: str | Path | None = 
     return pj, pp
 
 
+def games_in(book: dict) -> list[dict]:
+    """The season's games, each one once — reconstructed from the sessions the file keeps per member.
+
+    A session is written under every player's name, because that is what a member's record is: its own balls, its
+    own in-play count, its own mix. A *game* is a fact about four people, and until §5aa the report could only see
+    the member's half of it: two bullets, one under Lindsay and one under Desi, each saying "played with", neither
+    saying that the same eleven-to-two happened to both of them on the same side of the same net.
+
+    Sessions are grouped by `(when, clock)` — the millisecond count is the game's own identity, so two games played
+    against the same four people cannot be mistaken for one — and a session that carries neither teams nor a score
+    is still a game for counting purposes and says so rather than being dropped.
+    """
+    seen: dict[tuple, dict] = {}
+    for name, m in sorted(book.get("members", {}).items()):
+        for s in m.get("sessions") or []:
+            key = (s.get("when"), s.get("clock"))
+            g = seen.setdefault(key, {"when": s.get("when"), "clock": s.get("clock"),
+                                      "surface": s.get("surface"), "score": s.get("score"),
+                                      "teams": s.get("teams"), "modes": set(), "played": set()})
+            g["played"].add(name)
+            if s.get("mode"):
+                g["modes"].add(s["mode"])
+            g["score"] = g["score"] or s.get("score")
+            g["teams"] = g["teams"] or s.get("teams")
+    return [seen[k] for k in sorted(seen, key=lambda k: (str(k[0]), str(k[1])))]
+
+
+def game_line(g: dict, show_clock: bool = False) -> str:
+    """One game as a person would say it: who was on each side, and which side the score belongs to.
+
+    `show_clock` is for a season that played two games inside one minute — which a runner does — where the times
+    alone would print two identical lines and a reader could not tell them apart.
+    """
+    when = str(g.get("when") or "unknown")[:16].replace("T", " ")
+    bits = [when, str(g.get("surface") or "unknown surface")]
+    if show_clock and g.get("clock") is not None:
+        bits.append(f"clock {g['clock']}")
+    head = " ".join(bits)
+    teams, score = g.get("teams"), g.get("score")
+    if teams and len(teams) == 2 and isinstance(score, list) and len(score) == 2:
+        a, b = teams
+        if score[0] == score[1]:
+            verb = "level with"
+            return f"- {head} · **{score[0]}–{score[1]}** — {'/'.join(a)} {verb} {'/'.join(b)}."
+        win, lose = (a, b) if score[0] > score[1] else (b, a)
+        return f"- {head} · **{score[0]}–{score[1]}** — {'/'.join(win)} beat {'/'.join(lose)}."
+    if teams:
+        return f"- {head} — {'/'.join(teams[0])} against {'/'.join(teams[1])}, and no score in the record."
+    return (f"- {head} — a game whose sides and score were not recorded; this session is older than the "
+            f"fields that carry them.")
+
+
 def report(season: str, override: str | None = None) -> str:
     """A pickleball season's report: the record's own numbers, in this sport's units, and only the sentences the
     numbers support.
@@ -2129,6 +2181,11 @@ def report(season: str, override: str | None = None) -> str:
     out = [f"# {season} — pickleball, what the record says", "",
            f"From `{shown}`, opened {book.get('opened') or 'unknown'}. Every number below is computed from the "
            f"sessions in that file; nothing here is written from memory.", ""]
+    games = games_in(book)
+    if games:
+        minute = lambda g: str(g.get("when") or "")[:16]
+        twice = {minute(g) for g in games if sum(1 for o in games if minute(o) == minute(g)) > 1}
+        out += ["## the games", ""] + [game_line(g, minute(g) in twice) for g in games] + [""]
     for name in sorted(book["members"]):
         m = book["members"][name]
         ss = m.get("sessions") or []
@@ -2138,6 +2195,21 @@ def report(season: str, override: str | None = None) -> str:
             for other in s.get("with", []):
                 partners[other] = partners.get(other, 0) + 1
         who = ", ".join(f"{o} ({n}x)" for o, n in sorted(partners.items(), key=lambda kv: -kv[1]))
+        sides: dict[str, int] = {}
+        for s in ss:
+            teams = s.get("teams")
+            if not teams or len(teams) != 2:
+                continue
+            mine = next((i for i, team in enumerate(teams) if name in team), None)
+            if mine is None:
+                continue
+            beside = [o for o in teams[mine] if o != name]
+            across = teams[1 - mine]
+            key = (f"beside {' and '.join(beside) or 'nobody'} against {' and '.join(across)}")
+            sides[key] = sides.get(key, 0) + 1
+        if sides:
+            out.append("- played " + "; ".join(f"{k} ({v} game{'' if v == 1 else 's'})"
+                                        for k, v in sorted(sides.items(), key=lambda kv: -kv[1])) + ".")
         if m.get("balls"):
             out.append(f"- {m['balls']} ball{'' if m['balls'] == 1 else 's'} hit this season over "
                        f"{len(ss)} session{'' if len(ss) == 1 else 's'}"
@@ -2224,6 +2296,7 @@ def write_session(book: dict, args, names: list[str], result: dict, mode: str, b
             partners[n] = [o for o in team if o != n]
     record_session(book, when=when, surface=result["surface"], clock=result["clock"],
                    faults=fault_mix({"rallies": result["rallies"]}), score=result.get("score"),
+                   teams=[names[:2], names[2:]],
                    players=list(result["players"].values()), results=result["results"],
                    lengths=result["lengths"], partners=partners, mode=mode, by=by)
     save_season(book, args.season, args.season_dir, "pickleball", report=report)

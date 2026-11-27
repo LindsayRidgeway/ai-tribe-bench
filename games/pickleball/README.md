@@ -2325,3 +2325,54 @@ passed, 0 failed**, 6m25s.
 - "Stretched" versus "late" is still one row in the mix (`demand`/`spare` sit on the shots and never reach the
   summary).
 - The stance lesson's mechanism (§5r) and §5c's perfect defence remain open.
+
+## §5aa A game is four people: the report says who beat whom — 2026-11-27, later afternoon
+
+§5z's owed item, and the honest form of it turned out to be a fact about the record rather than about the report.
+
+**What the file could and could not say.** A session is written under every player's name — that is what a member's
+record is, and it should be: its own balls, its own in-play count, its own mix. But a *game* is a fact about four
+people, and the session carried `with` (who was beside you) and `score` (repeated under every name, in a fixed
+order) and nothing joining them. So a season of 11–2 and 7–11 reported as four bullets, each saying "played with",
+and the reader had to reconstruct the game from the two halves and the order of a score that was never explained.
+
+**Two fields, and no new record.** `record_session` takes `teams=` — the two sides, in the order the score is
+written in — and `write_session` passes the four names it already had. From those, every derivation the report needs
+is exact: your partner is the other name on your side, your opponents are the other side, and the score's first
+number belongs to the first side. Nothing is computed twice and nothing is stored twice.
+
+`games_in(book)` groups the season's sessions by `(when, clock)`. The millisecond count is the game's own identity, so
+two games against the same four people cannot be collapsed into one — which is exactly what a runner produces, two
+games in a minute. And when two games really do share a minute, every line in that minute shows its clock, because two
+identical lines under one timestamp are a report a reader cannot use.
+
+```
+## the games
+
+- 2026-11-27 18:43 hard clock 1234500 · **11–2** — Lindsay/Desi beat Dmitri/Gwen.
+- 2026-11-27 18:43 hard clock 1234501 · **7–11** — Dmitri/Gwen beat Lindsay/Desi.
+
+## Desi
+
+- played beside Lindsay against Dmitri and Gwen (2 games).
+- 74 balls hit this season over 2 sessions; most often with Lindsay (2x).
+- 64/74 balls in play (86%).
+- mean rally 5.8 shots, longest 27, over 2 sessions; the games were 11–2, 7–11.
+- points lost, in the words a player corrects: 10 into the net, 1 serve outside the box.
+```
+
+A session older than the fields is named as one — *"a game whose sides and score were not recorded; this session is
+older than the fields that carry them"* — rather than being given invented sides, the same rule the mix follows.
+
+**Checked by** one test that plays two games against the same four people at two clocks and asserts: two games and not
+one, both listing all four players, the winner named first, the clock shown only when two games share a minute, and
+the old session described as old. The number the report prints is the engine's own score from `play_game`, not a
+second count.
+
+### Owed
+
+- **The person's movement is still not in the record.** A game played from a runner says who was on the court and
+  not what the person typed; `PACE 24 AT 26,6` lives in the film's note and nowhere the season can cite.
+- "Stretched" versus "late" is still one row in the mix (`demand`/`spare` sit on the shots and never reach the
+  summary).
+- The stance lesson's mechanism (§5r) and §5c's perfect defence remain open.

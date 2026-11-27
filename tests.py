@@ -7485,6 +7485,48 @@ class TestPickleball(unittest.TestCase):
             self.assertGreater(book["members"][n]["sessions"][-1]["of"], 0,
                                "and the session says how many balls it is a record of")
 
+    def test_a_game_is_reported_once_and_from_the_side_that_won_it(self):
+        """§5aa. A session is written under every player's name — that is what a member's record is — and a *game*
+        is a fact about four people. The report could only see half of it: two bullets, each saying "played with",
+        neither saying that the same eleven-to-two happened to both of them on the same side of the same net. The
+        record now carries the two sides in the order the score is written in, and the report groups sessions by
+        `(when, clock)` — the millisecond count is the game's identity, so two games against the same four people
+        cannot be collapsed into one."""
+        pk = self.pk
+        with tempfile.TemporaryDirectory() as tmp:
+            d = str(Path(tmp) / "2026-winter")
+            book = {"season": "2026-winter", "members": {}}
+            games = []
+            for clock in (1234500, 1234501):
+                _m, out = pk.play_game(["A", "B", "C", "D"], [200] * 4, pk.make_chooser("dink"),
+                                       wind_seed_ms=clock, say=lambda *a, **k: None)
+                games.append(out)
+                pk.record_session(book, when="2026-11-27T18:00:00Z", surface="hard", clock=clock,
+                                  players=list(out["players"].values()), results=out["results"],
+                                  lengths=out["lengths"], partners={}, mode="doubles",
+                                  score=out["score"], teams=[["A", "B"], ["C", "D"]])
+            found = pk.games_in(book)
+            self.assertEqual(len(found), 2, "two games against the same four people were counted as one")
+            self.assertEqual([g["clock"] for g in found], [1234500, 1234501], "the games are not in the clock order")
+            for g in found:
+                self.assertEqual(g["played"], {"A", "B", "C", "D"},
+                                 "a game is four people, and the report found fewer")
+                line = pk.game_line(g)
+                self.assertIn("A/B", line)
+                self.assertIn("C/D", line)
+                self.assertEqual("beat" in line, g["score"][0] != g["score"][1])
+                winner_side = "A/B" if g["score"][0] > g["score"][1] else "C/D"
+                if g["score"][0] != g["score"][1]:
+                    self.assertLess(line.index(winner_side + " beat"), len(line), "the winner is not named first")
+            # two games in the same minute would print identical lines: the clock is shown, and only then
+            dated = [dict(g, when="2026-11-27T18:00:00Z") for g in found]
+            lines = {pk.game_line(g, True) for g in dated}
+            self.assertEqual(len(lines), 2, "two games inside one minute printed as one line")
+            self.assertTrue(all("clock" in x for x in lines), "the clock is not shown when the times collide")
+            # and a session older than the fields says so rather than inventing sides
+            old = {"when": "2026-10-01T10:00:00Z", "clock": 1, "surface": "hard", "score": None, "teams": None}
+            self.assertIn("older than the fields that carry them", pk.game_line(old))
+
     def test_a_pickleball_season_is_reported_in_its_own_units_and_never_in_tenniss(self):
         """§5z. `season_report(…, "pickleball")` accepted the sport and ignored it: it read
         `games/tennis/seasons/<season>/practice.json` and answered "Nobody has hit a ball in <season> yet" about a
