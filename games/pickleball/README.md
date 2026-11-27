@@ -2424,7 +2424,8 @@ renderer learned one line — a rally's `label`, when present, goes in the capti
 rally that is not in the film, the first game's rallies untouched, the note and the parts carrying both labels, and the
 trained half playing longer rallies than the beginner half — the difference the film exists to show), and the refusal
 (a member with no "then" gets an error and no film, because one game twice is a film that claims a difference it does
-not have). The existing film tests — the empty court, the pinned frame, the caption's own numbers — pass unchanged.
+not have). The existing film tests — the empty court, the pinned frame, the caption's own numbers — pass unchanged. The whole suite in a clean worktree at this commit:
+**638 passed, 0 failed**, 6m55s.
 
 ### Owed
 
