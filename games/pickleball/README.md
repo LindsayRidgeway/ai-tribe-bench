@@ -2429,9 +2429,7 @@ not have). The existing film tests — the empty court, the pinned frame, the ca
 
 ### Owed
 
-- **The card does not offer it yet.** A person can watch the film of their own game from the Play tab; watching the
-  same game at their hands then and now needs a second control and a `then_now` input on `pickleball.yml`, which is
-  wiring rather than thought, and is the next unit.
+- ~~**The card does not offer it yet.**~~ Offered as of §5ac: one button, one input on `pickleball.yml`.
 - The film shows *reach* improving. Control, the mix and the rally length all move with it, and nothing on screen yet
   says which of them did what.
 
@@ -2495,3 +2493,7 @@ otherwise meet with no sentence on screen to explain it.
 **Not verified here:** this checkout has no runner, no keys and no members on the shelf, so the press has never run
 end to end. It also needs a season in which the person has already played — the first half has no "then" until the
 record does — and the page says that in as many words when the run ends badly.
+
+**Checked by**: 182/182 page checks (five of them this unit's) and 646 tests in a clean worktree at this commit —
+**646 passed, 0 failed**, 7m19s. The Watch button is the one thing this checkout cannot verify: the press has never
+reached a runner, and it needs a circle in which the person has already played a session.
