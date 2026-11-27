@@ -463,7 +463,7 @@ the instruction.
   within 0.1s of a contact. **Number:** the worst facing error at a contact, per film, printed by the reader as
   `SQUARE TO THE NET`.
 
-## Item 32 — a change of ends teleports the player 6ft (OPEN 2026-11-26, found by sweeping a film that has one)
+## Item 32 — a change of ends teleports the player 6ft (FIXED 2026-11-26, same evening)
 
 Two 40-rally practice films made for item 31 (`records/item31-before.json`, `records/item31-after.json`, same
 `--clock 20261126`) contain a change of ends, and `?sweep` reads **6.00ft in one 0.02s frame** (300ft/s) for Colette
@@ -485,12 +485,36 @@ segment) = 202.04, which is AFTER that stance lead has already walked her to [82
 0.18s she stands 6ft behind where the record has her, and the next move takes `from = m.from` = [82,13.5] and she
 jumps forward to reach it.
 
-- **The fix, sketched:** a change of ends belongs in the PLAN and not in a special case inside `whereAt` — insert an
-  instantaneous move to the swap point at the swap time and chain the moves after it, so the first serve's stance
-  lead walks her from where the swap actually left her.
+**THE FIX, and the first attempt at it made the film worse.** A change of ends belongs in the PLAN and not in a
+special case inside `whereAt`: an extra zero-length move at the swap time, chained like any other. Done that way
+alone, the count of over-fast frames went from 4 to 8 — because a zero-length move IS a teleport, so the swap's own
+6ft became a jump of its own. The point that was missed: **this record does not need the cut at all.** It carries
+the journey — the settle walk runs [39,-6.7] -> [76,13.5] in 9.2s (4.6ft/s) and the stance lead finishes the job —
+so the swap's hard-coded `[76,13.5]` was a second, staler statement of where the player stands. The swap is now
+placed where the PLAN already has them, and only cuts when the plan still has them on the other side:
+
+```js
+let at = null;
+PLAN[name] = (PLAN[name] || []).sort((a, b) => a.t0 - b.t0);   // the sample is only meaningful in time order
+for (const m of PLAN[name]) if (m.t1 <= s.t) at = m.to;
+const to = (at && (at[0] < LEN / 2) === s.north) ? at : s.to;
+```
+
+So a modern record walks its own change of ends and the swap does nothing; a record that does not is cut to the
+end-of-court spot as before, which is the belt it was always meant to be.
+
+| film | biggest one-frame move | frames over 25ft/s |
+|---|---|---|
+| `records/item31-after` before | **6.00ft** at T=202.04 (300ft/s), 2.00ft at two more | 8 |
+| `records/item31-after` after | **0.40ft** at T=104.66 | **0** |
+| `records/item31-before` before | **6.00ft** at T=203.28 (Colette) and 276.50 (Gwen) | 8 |
+| `records/item31-before` after | **0.39ft** at T=146.26 | **0** |
+| `seasons/2026-11-19` (no change of ends in it) | 0.86ft, unchanged | 41, item 31's |
+
 - **Done-test:** no player moves more than 1ft in a frame in a film that contains a change of ends. **Number:** the
-  biggest one-frame move per film, on both of these (6.00ft today), and it must be re-measured on the season film
-  too, which has never shown one because it has never changed ends.
+  biggest one-frame move per film — 0.40ft and 0.39ft on the two films that have one, 0 frames over 25ft/s in
+  either. The season film has no change of ends in it and cannot test this, which is how the defect survived to
+  tonight.
 
 ## Item 31 — a recovery the ball has already interrupted (FIXED 2026-11-26 for the mechanism; the 41 frames are not re-measured)
 

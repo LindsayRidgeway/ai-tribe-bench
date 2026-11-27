@@ -6970,22 +6970,29 @@ class TestARecoveryTheBallHasAlreadyInterrupted(unittest.TestCase):
 
 class TestAChangeOfEndsIsInThePlan(unittest.TestCase):
     """Item 32, 2026-11-26, found by sweeping the first film that has a change of ends in it: 6.00ft in one 0.02s
-    frame, because the swap is applied inside `whereAt` AFTER the first serve's stance lead has already walked the
-    player to the other spot."""
+    frame, because the swap was applied inside `whereAt` AFTER the first serve's stance lead had already walked the
+    player to the other spot — and the swap's own hard-coded spot was a staler statement of where they stand than
+    the plan's. A change of ends is a move in the plan now, and it only cuts when the plan has not already carried
+    the journey. Measured: 6.00ft -> 0.40ft and 0.39ft, and 0 frames over 25ft/s in either film."""
 
     def setUp(self):
         self.page = (REPO / "games" / "tennis" / "replay3d.html").read_text(encoding="utf-8")
         self.backlog = (REPO / "games" / "tennis" / "BACKLOG.md").read_text(encoding="utf-8")
 
-    def test_the_defect_and_its_numbers_are_on_the_record(self):
+    def test_the_defect_its_fix_and_the_numbers_are_on_the_record(self):
         self.assertTrue("## Item 32" in self.backlog, "item 32 is not opened")
-        for piece in ("6.00ft", "202.04", "item31-after", "1ft in a frame"):
+        for piece in ("6.00ft", "202.04", "item31-after", "1ft in a frame", "0.40ft", "**0**"):
             self.assertTrue(piece in self.backlog, f"{piece} is not in the item 32 entry")
 
-    def test_the_swap_is_still_the_thing_whereAt_applies(self):
-        # Not a defence of the bug: this pins WHERE it is, so the fix (a move in the plan) has to move the test.
-        self.assertIn("for (const s of (SWAP[name] || [])) if (T >= s.t && (!sw || s.t >= sw.t)) sw = s;",
-                      self.page, "whereAt no longer applies the change of ends, and item 32 needs re-reading")
+    def test_the_swap_is_a_move_in_the_plan_and_whereAt_no_longer_skips(self):
+        self.assertIn("(PLAN[name] = PLAN[name] || []).push({ t0: s.t - 0.001, t1: s.t, from: to, to, swap: true });",
+                      self.page, "the change of ends is not a move in the plan")
+        self.assertTrue("if (sw && m.t1 <= sw.t) continue;" not in self.page,
+                        "whereAt still skips the moves before a change of ends, which is what undid the walk")
+        self.assertTrue("(sw && m.t0 < sw.t) ? sw.to : m.from" not in self.page,
+                        "whereAt still re-bases a move on the hard-coded swap spot")
+        self.assertTrue("const to = (at && north === s.north) ? at : s.to;" in self.page,
+                        "the swap no longer prefers the plan's own position to its hard-coded one")
 
 
 class TestPickleball(unittest.TestCase):

@@ -1019,6 +1019,32 @@ const WINPOS = {};
      Before the fix Colette's stance was never applied at all: the body stood at [76,13.5] through the whole stance
      and then appeared at the run's `from` of [82,13.5] in one frame, and when the run finished the same unsorted
      list handed the scan the stance's `to` instead of the settle's route, which is the 18.91ft. */
+  /* AND A CHANGE OF ENDS IS A MOVE IN THE PLAN, NOT A SPECIAL CASE IN `whereAt` (2026-11-26, item 32).
+     It used to be applied inside `whereAt`: the swap set the body at the end-of-court spot and every move that
+     finished before the swap was skipped. But the record's first serve of the new rally carries a stance lead that
+     starts BEFORE the swap and walks the player back to the middle — [76,13.5] -> [82,13.5] in 0.55s on
+     `records/item31-after` — so the swap undid a walk that had already happened, and the next move took its `from`
+     from the record and the body covered the difference in one frame: **6.00ft at T=202.04, 300ft/s**, and 2.00ft
+     at two more, in the first film a sweep ever had with a change of ends in it. As a zero-length move in the plan
+     it inherits the chaining above: the stance lead is cut where the swap falls and everything after starts from
+     where the swap put them. */
+  for (const name of Object.keys(SWAP)) {
+    for (const s of SWAP[name]) {
+      // WHERE THE PLAN ALREADY HAS THEM IS WHERE THE CUT GOES. A change of ends is a cut and a cut is allowed to
+      // cross the court between two points — but only when the plan does not already carry the journey. On
+      // `records/item31-after` the record's own settle walk and stance lead put Colette at [82,13.5] on the south
+      // side before the swap, and the swap's hard-coded [76,13.5] then pulled her 6ft back for 0.18s and the next
+      // move pulled her 6ft forward again: two jumps, neither of them a change of ends. So the cut is applied only
+      // if the plan still has them on the OTHER side; if they are already where the swap wants them, the swap does
+      // nothing at all.
+      let at = null;
+      PLAN[name] = (PLAN[name] || []).sort((a, b) => a.t0 - b.t0);   // the sample is only meaningful in time order
+      for (const m of PLAN[name]) if (m.t1 <= s.t) at = m.to;
+      const north = at ? (at[0] < LEN / 2) : null;
+      const to = (at && north === s.north) ? at : s.to;
+      (PLAN[name] = PLAN[name] || []).push({ t0: s.t - 0.001, t1: s.t, from: to, to, swap: true });
+    }
+  }
   for (const name of Object.keys(PLAN)) PLAN[name].sort((a, b) => a.t0 - b.t0);
 
   /* AND A LATER MOVE OWNS ITS OWN FRAMES, AND STARTS WHERE THE LAST ONE GOT TO (2026-11-26). Two moves for the same
@@ -1056,18 +1082,20 @@ const WINPOS = {};
 function whereAt(name, T) {
   const moves = PLAN[name] || [];
   const start = (D.start.find(s => s.name === name) || { at: [0, WID / 2] }).at;
-  // A change of ends comes before the runs in the same way a run does: it happens at an instant, and only the
-  // moves that come after it count. Skipping the earlier ones is the whole job — applying the change last, after
-  // the runs, pins the player to the end of the court they changed to and they never move again, which is exactly
-  // what the film did for the second half of its points.
+  // A change of ends is a move in the plan (item 32, 2026-11-26) — the plan block above inserts it, chains the
+  // moves after it and cuts it only when the plan has not already carried the journey. What is left here is the
+  // INSTANT, which is all `whereAt` needs: the body is arriving at the other end for 0.06s and its yaw is reset
+  // rather than turned through the whole 180 degrees. (It used to skip every move that finished before the swap,
+  // which is what undid the first serve's own stance lead and cost 6ft.)
   let sw = null;
   for (const s of (SWAP[name] || [])) if (T >= s.t && (!sw || s.t >= sw.t)) sw = s;
-  let pos = sw ? sw.to : start, moving = false, travelled = 0, dir = null, mStart = 0, mLen = 0, local = 0;
+  let pos = start, moving = false, travelled = 0, dir = null, mStart = 0, mLen = 0, local = 0;
   let lastDir = null;      // the direction of the last move, which survives the move ending (see the phase below)
+  // The swap is a move in the plan now, so all this does is say when the body is arriving at the other end and its
+  // yaw should be reset rather than turned through the whole 180 degrees (see the change-of-ends note below).
   const swapped = !!(sw && (T - sw.t) < 0.06);
   for (const m of moves) {
-    if (sw && m.t1 <= sw.t) continue;                       // ran before they changed ends
-    const from = (sw && m.t0 < sw.t) ? sw.to : m.from;
+    const from = m.from;
     const d = Math.hypot(m.to[0] - from[0], m.to[1] - from[1]);
     if (T >= m.t1) {
       pos = m.to; travelled += d;

@@ -178,3 +178,9 @@ The measurement this produced, `?sweep=0:18:0.02&ground=0|1` over `seasons/2026-
 |---|---|---|---|---|
 | `&ground=0` | 823 of 901 | 43 of 1,802 | 0.254ft | 1.080ft |
 | `&ground=1` | 60 of 901 | 958 of 1,802 | 0.020ft | 0.898ft |
+
+**9. A SWEEP FINDS ONLY WHAT THE FILM REACHES, AND A DEFECT LIVES IN THE PATH NO FILM TAKES.** Item 2b's biggest
+one-frame move was 0.86ft on `seasons/2026-11-19` — and 6.00ft (300ft/s) on the first film a sweep ever had with a
+**change of ends** in it, made for a different item entirely. A twenty-rally session does not change ends; a
+forty-rally one does. So a number measured on one film is a claim about that film, and the honest form of it is
+"the worst move in a film that changes ends: 0.40ft", not "the worst move in the game".
