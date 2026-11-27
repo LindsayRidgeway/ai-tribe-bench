@@ -6337,6 +6337,86 @@ function golfVerdict(season){
   return opening + closing;
 }
 
+// **A season you can watch.** Until 2026-11-27 the golf press was three minutes of nothing and then a card: the
+// engine played four rounds in one process and wrote `season.json` once, at the end, so the page had nothing to
+// read in between and nothing to say except "sent to this circle's runner…". The honest fix was not a spinner —
+// it was to make the record exist earlier: `lab/golf.py --season --progress …` writes the card as it stands after
+// each round, and the workflow commits that file whenever it changes. So there are two files with two jobs:
+// `progress.json` is a season in progress (written only between rounds, never during one, so nothing in it is a
+// stroke that did not happen) and `season.json` is the record, written once, and it is what the card reads.
+const GOLF_PROGRESS = 'games/golf/renders/progress.json';
+
+async function readGolfProgress(repo){
+  // Absent is the ordinary case and not an error: most of the time no season is playing anywhere.
+  try { return JSON.parse((await fetchRepo(repo, GOLF_PROGRESS)).text); }
+  catch(e){ return null; }
+}
+
+// The runner writes the file between rounds; the loop between rounds is under a minute, so a card that has not
+// moved in a quarter of an hour is not a season being watched, it is a run that died part way with a file left
+// behind — and those are different sentences, not one sentence with a number in it.
+function golfProgressIsLive(prog){
+  const t = Date.parse(prog && prog.when);
+  if (!isFinite(t)) return null;                    // unreadable: say nothing rather than "playing now"
+  const mins = (Date.now() - t) / 60000;
+  return mins >= -2 && mins < 15;
+}
+
+function golfMinutes(n){
+  const m = Math.round(n);
+  if (m < 1) return 'less than a minute ago';
+  if (m === 1) return 'a minute ago';
+  return m + ' minutes ago';
+}
+
+function golfRunning(prog, live){
+  const rounds = prog.rounds, done = prog.done;
+  const rows = (prog.athletes || []).map((a, i) =>
+    `<tr><td>${i + 1}</td><td>${esc(a.name)}</td>
+     <td>${esc(a.policy)}${a.learns ? '' : ' <span class="pm">frozen</span>'}</td>
+     <td>${(a.to_par || []).map(v => (v >= 0 ? '+' : '\u2212') + Math.abs(v).toFixed(0)).join(' ')}</td>
+     <td>${typeof a.strokes === 'number' ? a.strokes.toFixed(1) : '—'}</td></tr>`).join('');
+  const head = live
+    ? `<b>Round ${done} of ${rounds}</b> — playing now, and this is the card so far.`
+    : `<b>Round ${done} of ${rounds}</b> — and that is where it stopped.`;
+  const when = isFinite(Date.parse(prog.when)) ? golfMinutes((Date.now() - Date.parse(prog.when)) / 60000) : esc(String(prog.when || ''));
+  const tail = live
+    ? `Written by the runner ${when}, after round ${done} finished and before round ${done + 1} started, so every
+       number here is a round that happened. Ordered by strokes so far — the lead changes hands, which is the
+       reason to watch.`
+    : `The runner wrote this ${when} and nothing has moved since, so the season stopped part way: no card was
+       written. Pressing Play again plays a fresh one, and the next round replaces this file.`;
+  return `<div class="card" style="margin-top:14px">
+    <p style="margin:0 0 10px">${head}</p>
+    <div class="tblwrap"><table class="tbl">
+      <tr><th>#</th><th>athlete</th><th>aims at</th><th>to par, round by round</th><th>strokes so far</th></tr>
+      ${rows}</table></div>
+    <p class="small muted" style="margin:10px 0 0">${tail}</p>
+    <p class="small muted" style="margin:6px 0 0">${prog.bags} practice sessions each, par ${prog.par},
+      ${rounds} rounds. The card is a <code>golf</code> run committing <code>${GOLF_PROGRESS}</code> once per round —
+      open the repository and you will find the commits.</p>
+  </div>`;
+}
+
+// One read of the running card, in a function of its own for two reasons: the interval calls it and so can a
+// check, without anybody waiting six seconds to find out what the page would have said; and a failed read is
+// silence rather than an error, because the run's own status is already on the line beside it and a page that
+// shouted every missed poll would be noisier than the thing it was watching.
+const GOLF_POLL_MS = 6000;
+
+async function paintGolfRunning(){
+  const box = $('golfrun');
+  if (!box) return false;
+  const prog = await readGolfProgress(GOLF_REPO || S.repo);
+  if (!prog) return false;
+  const live = golfProgressIsLive(prog);
+  if (live === null) return false;                 // unreadable timestamp: say nothing rather than guess
+  box.innerHTML = golfRunning(prog, live);
+  const msg = $('golfmsg');
+  if (live && msg) msg.textContent = `round ${prog.done} of ${prog.rounds} is in — the card fills in above`;
+  return true;
+}
+
 async function loadGolf(){
   const box = $('golf'); if (!box) return;
   box.innerHTML = `<h2>Golf — the other game</h2><div class="card">
@@ -6357,6 +6437,12 @@ async function loadGolf(){
     }
   }
   GOLF_REPO = own ? S.repo : BENCH;
+
+  // Is a season playing here right now? Asked of the file the runner commits, not of the run list, because the
+  // file is the thing that has the numbers in it. Absent, unreadable or stale all end the same way: no block.
+  const prog = await readGolfProgress(GOLF_REPO);
+  const live = prog ? golfProgressIsLive(prog) : null;
+  const running = prog && live !== null ? golfRunning(prog, live) : '';
 
   const rows = season.athletes.map(a => {
     const last = a.to_par[a.to_par.length - 1], rel = a.rel[a.rel.length - 1];
@@ -6400,6 +6486,8 @@ async function loadGolf(){
         <th>against the frozen player</th><th>believes its hands</th><th>notebook error</th></tr>
         ${rows}
       </table></div>
+      ${running}
+      <div id="golfrun"></div>
       <div class="grid two" style="margin:16px 0 0">
         <div><label>Rounds of nine</label><input id="golfrounds" type="number" value="4" min="2" max="12" step="1"></div>
         <div><label>Practice sessions each</label><input id="golfbags" type="number" value="4" min="2" max="8" step="1"></div>
@@ -6409,7 +6497,8 @@ async function loadGolf(){
         <span class="small muted" id="golfmsg">about three minutes at four rounds and four practice sessions,
         and longer as either goes up; it runs on this circle's own machine and writes
         <code>games/golf/renders/</code>, so these become your circle's numbers, not the project's. A circle made
-        before golf gets the four files it is missing first, and then plays.</span>
+        before golf gets the four files it is missing first, and then plays. You do not have to sit and guess: the
+        run commits the card after each round, and it appears above.</span>
       </div>
       <p class="small" style="margin:14px 0 0">${verdict}</p>
       <p class="small muted" style="margin:6px 0 0">Every number carries its error. Each row is one program trained
@@ -6465,6 +6554,7 @@ async function ensureGolf(){
 // played again exactly, and two presses are two seasons rather than one season twice.
 async function playGolfSeason(){
   const b = $('golfplay'), msg = $('golfmsg');
+  let watch = 0;                 // the round-by-round read, cleared however this press ends
   if (!S.repo){ if (msg) msg.textContent = 'Which circle?'; return; }
   if (b) b.disabled = true;
   try {
@@ -6508,21 +6598,34 @@ async function playGolfSeason(){
     const rounds = clamp('golfrounds', 2, 12, 4), bags = clamp('golfbags', 2, 8, 4);
     await dispatch('golf.yml', {rounds: String(rounds), bags: String(bags),
                                 seed: String(Math.floor(Date.now() / 1000)), calm: 'wind'});
-    const run = await waitForRun('golf', since, t => { if (msg) msg.textContent = t; });
+    // The press used to have nothing to show between "sent" and "played". It does now: the runner commits the card
+    // after every round, so this reads the same file while the season is being played, and the message line says
+    // which round is in. A read that fails is not worth a sentence — the run's own status is on the line beside it,
+    // and a page that shouted every failed poll would be noisier than the thing it is watching.
+    watch = setInterval(paintGolfRunning, GOLF_POLL_MS);
+    try {
+      const run = await waitForRun('golf', since, t => { if (msg) msg.textContent = t; });
+      clearInterval(watch); watch = 0;
     if (run.conclusion !== 'success'){
       // A run that ended in a word, and the word is not an explanation. The run is named and linked; its log says
       // why. (This is the same sentence tennis prints, and the reason it exists there applies here verbatim.)
-      const url = run.html_url || `https://github.com/${S.repo}/actions/runs/${run.id}`;
-      if (msg) msg.innerHTML = '<span class="err">' + esc('the run ended: ' + run.conclusion + '.') + '</span> '
-        + `<a href="${esc(url)}" target="_blank" rel="noopener">${esc(String(run.id))}</a>`
-        + '<span class="small muted"> — its log says why.</span>';
-      return;
+        const url = run.html_url || `https://github.com/${S.repo}/actions/runs/${run.id}`;
+        if (msg) msg.innerHTML = '<span class="err">' + esc('the run ended: ' + run.conclusion + '.') + '</span> '
+          + `<a href="${esc(url)}" target="_blank" rel="noopener">${esc(String(run.id))}</a>`
+          + '<span class="small muted"> — its log says why.</span>';
+        return;
+      }
+      if (msg) msg.textContent = 'played. reading this circle\'s record';
+      await loadGolf();        // which replaces this button, so nothing below may touch it
+    } catch(e) {
+      // The run itself failed, or the read after it did. Either way the button comes back in the `finally` below,
+      // so an error that leaves a person with a disabled button and no sentence is the one outcome not available.
+      throw e;
     }
-    if (msg) msg.textContent = 'played. reading this circle\'s record';
-    await loadGolf();          // which replaces this button, so nothing below may touch it
   } catch(e){
     if (msg) msg.innerHTML = '<span class="err">' + esc(e.message) + '</span>';
   } finally {
+    if (watch) clearInterval(watch);   // a press that ended in an error must not keep reading the repository
     const again = $('golfplay');       // present only if the read failed and the card is still on screen
     if (again) again.disabled = false;
   }

@@ -2628,6 +2628,43 @@ def _hole_json(hole: Hole) -> dict:
 SEASON_COLOURS = ("#2f6f4e", "#8c2f39", "#2c5f8a", "#8a6a1f", "#6b4b8a", "#7a7a7a")
 
 
+def write_progress(path: Path, field, raw, done: int, rounds: int, bags: int, par: int) -> None:
+    """The card as it stands after `done` rounds — what a person watching the run reads.
+
+    Two decisions here are the whole of this file's honesty about being watched. It is written only between rounds,
+    so nothing in it is a stroke that did not happen; and the athletes are ordered by how they stand *now*, which is
+    what makes it a leaderboard rather than a table that happens to be half filled. It is not the record: `season.json`
+    is, and it is written once, at the end, from the same numbers.
+
+    The file is deleted when the season finishes, so its presence means a season is in progress or was interrupted
+    — and `when` is in it so a page can tell those two apart without guessing.
+    """
+    import datetime as _dt
+    athletes = []
+    for name, policy, learns, _prior, _sigma in field:
+        to_par = [round(_mean([raw[name][bag][r]["to_par"] for bag in range(bags)]), 2) for r in range(done)]
+        strokes = round(_mean([sum(raw[name][bag][r]["strokes"] for r in range(done)) for bag in range(bags)]), 1)
+        athletes.append(dict(name=name, policy=policy, learns=learns, to_par=to_par, strokes=strokes))
+    athletes.sort(key=lambda a: a["strokes"])
+    data = dict(schema="golf-progress/1", when=_dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                rounds=rounds, bags=bags, par=par, done=done, athletes=athletes)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".part")
+    tmp.write_text(json.dumps(data, indent=1) + "\n")
+    tmp.replace(path)          # a commit loop reads this file; it never sees half of it
+
+
+def render_dir() -> Path:
+    """Where this game's record goes: `games/golf/renders/` under the project this file lives in.
+
+    A function rather than three copies of the same expression, because the tests have to be able to point it at a
+    temporary directory. Found the hard way on 2026-11-27: the new watching tests called `season()` in-process, which
+    wrote a two-round card over the project's committed four-round one — a test run silently replacing the record it
+    was supposed to be checking. The record is the product here; a suite that edits it is worse than no suite.
+    """
+    return Path(__file__).resolve().parent.parent / "games" / "golf" / "renders"
+
+
 def season(args) -> int:
     """Six athletes, many rounds, a few bags — each one's belief about itself beside its card, on one page.
 
@@ -2653,21 +2690,40 @@ def season(args) -> int:
         return dict(mean=round(m, 3), lo=round(m - 1.96 * se, 3), hi=round(m + 1.96 * se, 3))
 
     athletes, raw = [], {}
-    for i, (name, policy, learns, prior, sigma) in enumerate(FIELD):
-        per_bag = []
-        for bag in range(bags):
-            ath = Athlete(prior=prior, sigma_taught=sigma)
+    # **Round-outer, not athlete-outer**, since 2026-11-27. The card is read round by round — "over par, round 1"
+    # beside "over par, round 4" — and a season somebody can *watch* has to be able to say where it has got to after
+    # each round, so the loop has to reach the end of a round before it leaves it. Nothing about the arithmetic
+    # changes: each bag is still one athlete carried across all the rounds (that object is where learning lives, and
+    # it is created once and played through), and every draw is seeded by `(bag, round)` rather than by position in
+    # a loop. The same seed therefore gives the same season to the byte, which `tests.py` asserts against a stored
+    # card rather than against my memory of one.
+    plays = {name: [Athlete(prior=prior, sigma_taught=sigma) for _ in range(bags)]
+             for name, _p, _l, prior, sigma in FIELD}
+    for name, policy, _learns, _prior, _sigma in FIELD:
+        for ath in plays[name]:
             ath.policy = policy
-            rows = []
-            for r, course in enumerate(courses):
+    raw: dict[str, list[list[dict]]] = {name: [[{} for _ in range(rounds)] for _ in range(bags)]
+                                        for name, *_ in FIELD}
+    progress_path = Path(args.progress).resolve() if getattr(args, "progress", "") else None
+
+    for r, course in enumerate(courses):
+        for name, policy, learns, prior, sigma in FIELD:
+            for bag in range(bags):
+                ath = plays[name][bag]
                 res = play_round(course, ath, GolfPutter(), green, learn=learns, verbose=False,
                                  rng=random.Random(args.seed + 7919 * bag + r))
-                rows.append(dict(to_par=res["to_par"], strokes=res["strokes"],
-                                 putts=sum(row["putts"] for row in res["rows"]),
-                                 gir=sum(1 for row in res["rows"] if row["gir"]),
-                                 sigma=round(ath.sigma, 3), aim_bias=round(ath.aim_bias, 3),
-                                 nerr=round(res["nerr"], 4)))
-            per_bag.append(rows)
+                raw[name][bag][r] = dict(to_par=res["to_par"], strokes=res["strokes"],
+                                         putts=sum(row["putts"] for row in res["rows"]),
+                                         gir=sum(1 for row in res["rows"] if row["gir"]),
+                                         sigma=round(ath.sigma, 3), aim_bias=round(ath.aim_bias, 3),
+                                         nerr=round(res["nerr"], 4))
+        if progress_path:
+            # Written after a round is complete and never during one: a half-played round is not a fact about a
+            # golfer, and a page that showed one would be reporting strokes that did not happen.
+            write_progress(progress_path, FIELD, raw, r + 1, rounds, bags, par)
+
+    for i, (name, policy, learns, prior, sigma) in enumerate(FIELD):
+        per_bag = raw[name]
 
         def series(key: str) -> list[dict]:
             return [stat([b[r][key] for b in per_bag]) for r in range(rounds)]
@@ -2677,7 +2733,6 @@ def season(args) -> int:
             to_par=series("to_par"), sigma=series("sigma"), nerr=series("nerr"), putts=series("putts"),
             total=stat([sum(b[r]["strokes"] for r in range(rounds)) for b in per_bag]),
             bias=stat([b[rounds - 1]["aim_bias"] for b in per_bag])))
-        raw[name] = per_bag
 
     # The score panel is *paired to the frozen player*: every athlete meets the same course in the same round, so
     # what a round's weather did to one it did to all, and the difference cancels it. Plot the raw score and the
@@ -2693,9 +2748,13 @@ def season(args) -> int:
                 pin_range=args.pin_range, athletes=athletes,
                 course=[dict(label=h.label, yards=h.yards, par=h.par, pin=round(h.pin, 1), sand=h.sand)
                         for h in courses[0]])
-    out_dir = Path(__file__).resolve().parent.parent / "games" / "golf" / "renders"
+    out_dir = render_dir()
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "season.json").write_text(json.dumps(data, indent=1) + "\n")
+    # The card is final, so the running one goes: a file that says "round 2 of 4" left lying beside a finished
+    # season is the kind of record that gets read as current.
+    if progress_path and progress_path.exists():
+        progress_path.unlink()
 
     note = f"the band is ± the 95% spread across {bags} practice sessions"
     legend = "".join(
@@ -3194,6 +3253,8 @@ def main(argv=None) -> int:
                     help="write renders/start.html: the door, and the card with its bars, from season.json")
     ap.add_argument("--season", action="store_true",
                     help="six athletes over many rounds, with each one's belief about itself, as a page")
+    ap.add_argument("--progress", metavar="PATH", default="",
+                    help="write the card as it stands after each round here (watched while a season plays)")
     ap.add_argument("--render", metavar="SCENE", default=None,
                     help="write a film: 'lip' for the bunker face, a hole number (--render 7), or 'round', "
                          "'best', 'worst' for the athlete's own card played back")

@@ -339,8 +339,15 @@ const location = {hash: '', search: '', pathname: '/ait.html', href: 'http://loc
                   host: 'kythe.app', replace(to){ replaceCalls.push(to); },
                   replaceState(){}, assign(){}};
 
+// Every timer the page starts and stops. The golf press now watches a season while it plays, which means it holds
+// an interval across an await, and an interval that is registered and never cleared keeps reading somebody's
+// repository after the person has closed the tab — invisible except to a harness that counts them.
+const timers = {made: [], cleared: []};
+
 const sandbox = {
-  console, document, localStorage, location, fetch: null, setInterval, clearInterval,
+  console, document, localStorage, location, fetch: null,
+  setInterval: (fn, ms) => { const id = {id: timers.made.length + 1, ms}; timers.made.push(id); return id; },
+  clearInterval: (id) => { timers.cleared.push(id); },
   // The page waits three seconds between polls of the run list. A harness that waited would spend its life asleep,
   // and the wait is not what is being tested — the answer is.
   setTimeout: (fn) => setTimeout(fn, 0), clearTimeout,
@@ -450,7 +457,7 @@ function reset(){
   for (const id of ['mmsg', 'chaptsmsg', 'main', 'golf', 'dlg', 'modal', 'filmslot', 'filmsub',
                     'pbresult', 'pbtrend'])
     if (elements.has(id)) elements.delete(id);
-  benchFiles.clear(); authSeen.length = 0;
+  benchFiles.clear(); authSeen.length = 0; timers.made.length = 0; timers.cleared.length = 0;
 }
 
 // A view function that throws inside a click is a rejected promise nobody awaits, and Node would swallow it: the
@@ -3805,6 +3812,95 @@ async function main(){
     if (pbT4.err) return pbT4.err;
     const h = String(pbT4.trend || '');
     if (h.trim() !== '') return `it said something about seasons it does not have: "${h.slice(0, 300)}"`;
+    return '';
+  });
+
+  /* ---- a season you can watch (item 7, the half that was missing) -------------------------------------
+
+     The press used to be three minutes of nothing and then a card. The engine now writes the card it has after
+     each round and the workflow commits that file, so there are three separate things that can be wrong, and they
+     are checked apart: the running card must not claim to be the finished one, a file left behind by a run that
+     died must not be called a season being played, and the interval that reads it must be cleared however the
+     press ends. The last one is the kind of leak no screenshot can show. */
+
+  const progressRecord = (done, when) => ({
+    schema: 'golf-progress/1', when, rounds: 3, bags: 2, par: 35, done,
+    athletes: [
+      // Ordered by strokes so far, as the engine writes it — the lead changes hands, which is the whole reason to
+      // watch. The page must print the engine's order, not sort it again with a different rule.
+      {name: 'good start', policy: 'pin', learns: true, to_par: [4, 3], strokes: 74.2},
+      {name: 'never practises', policy: 'flag', learns: false, to_par: [11, 12], strokes: 82.5},
+      {name: 'practiser', policy: 'spread', learns: true, to_par: [13, 9], strokes: 84.0},
+    ],
+  });
+  const nowIso = () => new Date().toISOString().replace(/\.\d+Z$/, 'Z');
+  const minutesAgo = (m) => new Date(Date.now() - m * 60000).toISOString().replace(/\.\d+Z$/, 'Z');
+
+  // 20a — a season playing now is rounds, and it says so
+  reset();
+  seedCurrentGolf();
+  seed('games/golf/renders/season.json', JSON.stringify(golfRecord()));
+  seed('games/golf/renders/progress.json', JSON.stringify(progressRecord(2, nowIso())));
+  const watching = await tryRun(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
+    await loadGolf();
+    return {html: document.getElementById('golf').innerHTML};
+  })()`);
+  check('a season playing now is shown as rounds, and is not passed off as the card', () => {
+    if (watching.err) return watching.err;
+    const h = String(watching.html || '');
+    if (!/Round 2 of 3/.test(h)) return 'the running card does not say which round is in';
+    if (!/playing now/.test(h)) return 'it does not say the season is playing';
+    if (!/good start/.test(h) || !/never practises/.test(h)) return 'the athletes are not in the running table';
+    if (!/\+4 \+3/.test(h)) return 'the round-by-round column is not the engine\'s numbers';
+    if (!/85\.5|82\.5/.test(h)) return 'strokes so far are missing';
+    // And the finished card is still there, below it: the running one is an addition, never a replacement.
+    if (!/over par, round 1/.test(h)) return 'the recorded card was replaced by the running one';
+    return '';
+  });
+
+  // 20b — a file left behind by a run that died is not a season being played
+  reset();
+  seedCurrentGolf();
+  seed('games/golf/renders/season.json', JSON.stringify(golfRecord()));
+  seed('games/golf/renders/progress.json', JSON.stringify(progressRecord(1, minutesAgo(40))));
+  const leftBehind = await tryRun(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
+    await loadGolf();
+    return {html: document.getElementById('golf').innerHTML};
+  })()`);
+  check('a running card nobody has touched for forty minutes is called what it is: a season that stopped', () => {
+    if (leftBehind.err) return leftBehind.err;
+    const h = String(leftBehind.html || '');
+    if (/playing now/.test(h)) return 'a dead run is being reported as a season playing now';
+    if (!/stopped part way/.test(h)) return `the stale card does not say what happened: ${h.slice(0, 200)}`;
+    if (!/40 minutes ago/.test(h)) return 'it does not say how long ago the last round landed';
+    return '';
+  });
+
+  // 20c — the press paints the round it is on, and clears the interval it started
+  reset();
+  seedCurrentGolf();
+  seed('games/golf/renders/season.json', JSON.stringify(golfRecord()));
+  seed('games/golf/renders/progress.json', JSON.stringify(progressRecord(2, nowIso())));
+  actions.runs.push({id: 51300016, name: 'golf', event: 'workflow_dispatch', status: 'completed',
+    conclusion: 'success', html_url: 'https://github.com/someone/tribe/actions/runs/51300016',
+    created_at: new Date().toISOString()});
+  const pressed = await tryRun(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
+    await loadGolf();
+    const painted = await paintGolfRunning();
+    const box = document.getElementById('golfrun') ? document.getElementById('golfrun').innerHTML : '';
+    await playGolfSeason();
+    return {painted, box, said: document.getElementById('golfmsg') ? document.getElementById('golfmsg').textContent : ''};
+  })()`);
+  check('the press watches the rounds it is playing, and lets go of the timer when it is done', () => {
+    if (pressed.err) return pressed.err;
+    if (!pressed.painted) return 'the page could not paint the running card at all';
+    if (!/Round 2 of 3/.test(String(pressed.box))) return 'the running card did not reach the slot above the button';
+    if (!/51300016|played/.test(String(pressed.said))) return `the press said nothing about the run: "${pressed.said}"`;
+    if (!timers.made.length) return 'the press started no watcher, so nothing was read while the season played';
+    if (!timers.made.every(t => timers.cleared.includes(t))) return 'an interval the press started was never cleared';
     return '';
   });
 

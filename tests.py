@@ -9824,6 +9824,107 @@ class TheClockIsCountedRatherThanRemembered(unittest.TestCase):
                         "the slot the scheduler never delivers is a fact; §5 may not drop it silently")
 
 
+class ASeasonCanBeWatchedWhileItPlays(unittest.TestCase):
+    """Item 7's second half: *"a session you can watch while it happens ... a report at the end, not a running table."*
+
+    Until 2026-11-27 a golf season was one process that wrote `season.json` once, after the last putt, so the page had
+    three minutes of nothing to show and said so with a spinner. The engine now writes the card it has after each
+    round and the workflow commits that file between rounds, which makes three things true that are checked here
+    one at a time:
+
+      * the card is written **between** rounds and never during one — a half-played round is not a fact about a
+        golfer, and a page that showed one would be printing strokes that did not happen;
+      * watching a season does not change it: the same seed plays the same season to the byte, with and without
+        `--progress`. Turning the loops inside out to reach the end of a round first is exactly the kind of change
+        that quietly reorders a random stream, so it is pinned by a comparison rather than by my assurance;
+      * the finished season leaves no running card behind, because a file that still says "round 2 of 4" beside a
+        finished record is the kind of thing that gets read as current.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.golf = load(REPO / "lab" / "golf.py", "golf_watch_mod")
+
+    def setUp(self):
+        """The season this class plays is written into a temporary directory, never over the project's own card.
+
+        First written the other way, on 2026-11-27, and the run replaced the committed four-round record with a
+        two-round one. A suite that edits the record it is checking is worse than no suite, and this is the hook that
+        keeps it honest: `render_dir()` is the one place that decides where a season goes.
+        """
+        self._tmp = tempfile.TemporaryDirectory(prefix="golf-watch-")
+        self._real_dir = self.golf.render_dir
+        self.golf.render_dir = lambda: Path(self._tmp.name)
+
+    def tearDown(self):
+        self.golf.render_dir = self._real_dir
+        self._tmp.cleanup()
+
+    def _args(self, tmp, rounds=2, bags=2, seed=424242, progress=""):
+        import argparse as _ap
+        return _ap.Namespace(rounds=rounds, bags=bags, seed=seed, calm=True, pin_range=14.0,
+                             policy="spread", learn=1, draws=0, streams=4, progress=progress,
+                             start=False, render=None, floor=None, selftest=False)
+
+    def test_the_card_is_written_between_rounds_and_never_during_one(self):
+        """Reads the file the runner would commit, at every moment the engine writes one — so "after each round"
+        is measured rather than asserted from the loop's shape."""
+        seen = []
+        real = self.golf.write_progress
+
+        def spy(path, field, raw, done, rounds, bags, par):
+            real(path, field, raw, done, rounds, bags, par)
+            seen.append(json.loads(Path(path).read_text()))
+
+        self.golf.write_progress = spy
+        try:
+            with tempfile.TemporaryDirectory() as td:
+                self.golf.season(self._args(td, progress=str(Path(td) / "progress.json")))
+        finally:
+            self.golf.write_progress = real
+        self.assertEqual([s["done"] for s in seen], [1, 2], "the card is not written once per round, in order")
+        self.assertEqual({s["rounds"] for s in seen}, {2})
+        self.assertEqual({len(s["athletes"]) for s in seen}, {6}, "the six athletes are not all in the running card")
+        self.assertEqual([len(a["to_par"]) for s in seen for a in s["athletes"]], [1] * 6 + [2] * 6,
+                         "the running card carries a column for a round that has not been played")
+
+    def test_watching_a_season_does_not_change_it(self):
+        import hashlib
+
+        def play(with_progress: bool) -> tuple[str, Path, bool]:
+            with tempfile.TemporaryDirectory(prefix="golf-watch-") as td:
+                prog = Path(td) / "progress.json"
+                self.golf.render_dir = lambda: Path(td)
+                self.golf.season(self._args(td, progress=str(prog) if with_progress else ""))
+                card = (Path(td) / "season.json").read_bytes()
+                return hashlib.sha1(card).hexdigest(), prog, prog.exists()
+
+        plain, _, _ = play(False)
+        watched, prog, left = play(True)
+        self.assertEqual(plain, watched,
+                         "the season changed when it was watched: the round-outer loop reorders a random stream")
+        self.assertFalse(left, "a finished season left its running card behind, so the page would read a stale day")
+
+    def test_the_running_card_is_ordered_by_how_they_stand_now(self):
+        """A running table that keeps the entry order is a table half filled in. The point of watching is the lead
+        changing hands, so the engine sorts by strokes so far — and the page prints that order rather than its own."""
+        raw = {
+            "slow": [[{"to_par": 5, "strokes": 40}, {"to_par": 5, "strokes": 40}]],
+            "quick": [[{"to_par": 1, "strokes": 36}, {"to_par": 1, "strokes": 36}]],
+        }
+        field = [("slow", "spread", True, 1.0, 1.5), ("quick", "pin", False, 1.0, 1.5)]
+        with tempfile.TemporaryDirectory() as td:
+            p = Path(td) / "progress.json"
+            self.golf.write_progress(p, field, raw, 2, 4, 1, 35)
+            data = json.loads(p.read_text())
+        self.assertEqual([a["name"] for a in data["athletes"]], ["quick", "slow"],
+                         "the running card is not a leaderboard")
+        self.assertEqual(data["athletes"][0]["to_par"], [1, 1])
+        self.assertEqual(data["done"], 2)
+        self.assertEqual(data["schema"], "golf-progress/1",
+                         "the page reads a schema name; a file without one cannot be refused when it changes shape")
+
+
 class TheTemplateMustBeEnough(unittest.TestCase):
     """An installed tribe is a copy of a whitelist, so the whitelist has to be enough.
 
