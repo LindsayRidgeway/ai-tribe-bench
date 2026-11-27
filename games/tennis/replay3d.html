@@ -163,6 +163,28 @@ try {
   if (QS.has("debug")) console.log("debug cast", CASTS, JSON.stringify(FACES));
 } catch (e) { console.warn("no cast beside the page:", CASTS); }
 
+/* HOW FAR BEHIND THE LIVE SEASON THIS FILM IS (item 23, 2026-11-26). `watch.json` is the last session somebody
+   WATCHED, not the last one that was played — Dmitri's games run live and off-screen, and the clock may play five
+   overnight while the page shows the film from before them. The film carries the session it was played as
+   (`session: {n, of}`), and the book beside it (`practice.json`) says how far the season has got now, so the page
+   can say "session 3 of 6 — four since this film" rather than let a viewer assume it is live. A film with no
+   season block (a demo, a practice on a fork) says nothing extra, because it has no season to be behind. */
+let SEASONNOTE = "";
+if (D.session) {
+  SEASONNOTE = `session ${D.session.n}${D.session.of ? ` of ${D.session.of}` : ""}`;
+  try {
+    const bookUrl = REC.replace(/watch\.json.*$/, "practice.json");
+    if (bookUrl !== REC) {
+      const B = await (await fetch(bookUrl)).json();
+      const now = Math.max(0, ...Object.values(B.members || {}).map(m =>
+        (m.sessions || []).filter(s => s.mode !== "person").length));
+      const since = now - D.session.n;
+      SEASONNOTE += since > 0 ? ` — ${since} since this film` : " — this is the latest";
+    }
+  } catch (e) { console.warn("no book beside the record:", REC); }
+  if (QS.has("debug")) console.log("debug season", SEASONNOTE);
+}
+
 const C = D.court, LEN = C.length, WID = C.width, NX = C.net_x;
 /* The doubles alley. It is painted and never judged: every ball in this film is judged against the 27ft singles
    court, and the two extra sidelines 4.5ft outside it are the ones a doubles match would use. The founder,
@@ -1925,7 +1947,8 @@ function tick(now) {
   }
 
   // words
-  el("surface").textContent = `${D.surface} · wind ${D.wind.direction} ${D.wind.mph}mph`;
+  el("surface").textContent = `${D.surface} · wind ${D.wind.direction} ${D.wind.mph}mph`
+    + (SEASONNOTE ? ` · ${SEASONNOTE}` : "");
   el("rally").textContent = `rally ${sh.rally} of ${D.rallies.length} · shot ${sh.i}`;
   el("who").textContent = sh.player;
 

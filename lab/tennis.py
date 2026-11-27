@@ -2228,7 +2228,6 @@ def run_watch(args) -> int:
     d, _ = season_paths(args.season, args.season_dir)
     target = d / "watch.json"
     d.mkdir(parents=True, exist_ok=True)
-    target.write_text(json.dumps(data, indent=1), encoding="utf-8")
 
     # The session the film just played, written by the season's one writer. `results` is the film's own `in`
     # flag per shot and `lengths` its own rally lengths, so there is no second count that could disagree.
@@ -2240,6 +2239,14 @@ def run_watch(args) -> int:
                    lengths=lengths, competition=(args.mode == "compete"), by=args.by,
                    partners={a: [b] for a, b in ((names[0], names[1]), (names[1], names[0]))})
     f = save_season(book, args.season, args.season_dir)
+    # ITEM 23, 2026-11-26: THE FILM SAYS WHICH SESSION IT IS, AND IT IS WRITTEN AFTER THE SESSION IS IN THE BOOK SO
+    # THAT IT CAN. `watch.json` is the last session somebody WATCHED, not the last one that was PLAYED — the clock
+    # may play five overnight and leave the page showing the one from before them. The frontier is the most
+    # sessions any member of the season has played, which is the number the page can recompute from the book beside
+    # the film; `of` is the plan's length, and 0 when the season has no plan.
+    data["session"] = {"n": max(sessions_played(book).values(), default=0),
+                       "of": (plan_of(book) or {}).get("sessions") or 0}
+    target.write_text(json.dumps(data, indent=1), encoding="utf-8")
     try:
         shown = f.relative_to(ROOT)
     except ValueError:

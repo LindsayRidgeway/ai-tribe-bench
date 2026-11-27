@@ -6995,6 +6995,46 @@ class TestAChangeOfEndsIsInThePlan(unittest.TestCase):
                         "the swap no longer prefers the plan's own position to its hard-coded one")
 
 
+class TestTheFilmSaysHowFarBehindTheSeasonItIs(unittest.TestCase):
+    """Item 23, 2026-11-26. `watch.json` is the last session somebody WATCHED, not the last one that was played:
+    Dmitri's games run live and off-screen, and the clock can play five sessions overnight while the page still
+    shows the film from before them. A viewer has to be told which session they are looking at."""
+
+    def setUp(self):
+        self.page = (REPO / "games" / "tennis" / "replay3d.html").read_text(encoding="utf-8")
+        self.engine = (REPO / "lab" / "tennis.py").read_text(encoding="utf-8")
+        self.backlog = (REPO / "games" / "tennis" / "BACKLOG.md").read_text(encoding="utf-8")
+
+    def test_the_film_carries_the_session_it_played(self):
+        self.assertTrue('data["session"] = {"n": max(sessions_played(book).values(), default=0),' in self.engine,
+                        "the record does not say which session it is")
+        self.assertTrue("target.write_text(json.dumps(data, indent=1)" in self.engine,
+                        "the film is no longer written")
+        # The order matters: a film written before `record_session` cannot say what it played.
+        self.assertLess(self.engine.index("record_session(book, when=when"),
+                        self.engine.index('data["session"] = {"n": max(sessions_played(book)'),
+                        "the film is written before the session is in the book, so it cannot say which one it is")
+
+    def test_the_page_reads_it_and_the_book_beside_it(self):
+        self.assertTrue("let SEASONNOTE" in self.page, "the page does not build a session line")
+        self.assertTrue('REC.replace(/watch\\.json.*$/, "practice.json")' in self.page,
+                        "the page does not fetch the book beside the film")
+        self.assertTrue("since this film" in self.page and "this is the latest" in self.page,
+                        "the page cannot say whether the film is behind or current")
+        self.assertTrue('+ (SEASONNOTE ? ` · ${SEASONNOTE}` : "")' in self.page,
+                        "the session line is not printed")
+
+    def test_the_fixture_is_named_as_a_fixture(self):
+        book = json.loads((REPO / "games" / "tennis" / "records" / "item23-fixture" /
+                           "practice.json").read_text(encoding="utf-8"))
+        self.assertTrue(book.get("note", "").startswith("A FIXTURE"),
+                        "a typed book in records/ must say that it was typed, or it reads as a played season")
+        film = json.loads((REPO / "games" / "tennis" / "records" / "item23-fixture" /
+                           "watch.json").read_text(encoding="utf-8"))
+        self.assertIn("session", film, "the fixture film has no session block to demonstrate")
+        self.assertTrue("DONE 2026-11-26" in self.backlog, "item 23 is not marked done")
+
+
 class TestPickleball(unittest.TestCase):
     """The second sport: the rules that are not tennis's, and the ball that is not a tennis ball.
 
@@ -9683,6 +9723,31 @@ class TheTemplateMustBeEnough(unittest.TestCase):
             self.assertEqual(len(card["athletes"]), 6, "the card a circle gets is not the six-athlete card")
         finally:
             _sh.rmtree(tmp, ignore_errors=True)
+
+    def test_the_files_the_page_writes_into_an_old_circle_are_files_the_template_publishes(self):
+        """The press retrofits a circle made before golf, so the page now carries a list of four paths.
+
+        That is a second copy of a decision the template already makes, and a second copy is how this whitelist has
+        drifted before: a path the page would fetch from the template and write into somebody's repository, which
+        the template does not publish, turns the press into a 404 at the moment a person pressed a button. Held
+        against `make_template.FILES`, which is the list that builds a new circle, so the two cannot disagree.
+
+        Found-needed by the founder's turn of 2026-11-26: "ideally you would automatically retrofit the circle and
+        then proceed to play" — the alternative I had shipped was telling the person to run a command.
+        """
+        sys.path.insert(0, str(REPO / "lab"))
+        import make_template as mt
+        page = (REPO / "ait.html").read_text(encoding="utf-8")
+        m = re.search(r"const GOLF_NEEDS = \[([^\]]*)\]", page)
+        self.assertIsNotNone(m, "the page no longer says which files a circle needs for golf")
+        paths = re.findall(r"'([^']+)'", m.group(1))
+        self.assertEqual(len(paths), 4, f"golf needs four files, the page lists {paths}")
+        for must in (".github/workflows/golf.yml", "lab/golf.py", "lab/putt.py", "games/golf/replay3d.html"):
+            self.assertIn(must, paths, f"the retrofit list has lost {must}")
+        missing = [p for p in paths if p not in mt.FILES]
+        self.assertEqual(missing, [], "the page would fetch a file the template does not publish")
+        absent = [p for p in paths if not (REPO / p).is_file()]
+        self.assertEqual(absent, [], "the page would fetch a file that is not on this bench")
 
     def test_the_engine_a_circle_runs_accepts_the_flags_the_workflow_passes_it(self):
         """A workflow is the one piece of this repository that nobody runs before a stranger does.

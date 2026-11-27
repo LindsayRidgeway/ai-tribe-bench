@@ -1,0 +1,56 @@
+{
+ "members": {
+  "Colette": {
+   "balls": 9,
+   "sessions": [
+    {
+     "by": "a person",
+     "clock": 20261126,
+     "competition": false,
+     "control": 0.233,
+     "in_play": 4,
+     "longest": 5,
+     "mean_rally": 2.67,
+     "mode": "rally",
+     "of": 9,
+     "reach": 0.393,
+     "shots": 9,
+     "surface": "grass",
+     "when": "2026-11-27T02:37:41Z",
+     "with": [
+      "Gwen"
+     ]
+    }
+   ]
+  },
+  "Gwen": {
+   "balls": 7,
+   "sessions": [
+    {
+     "by": "a person",
+     "clock": 20261126,
+     "competition": false,
+     "control": 0.222,
+     "in_play": 4,
+     "longest": 5,
+     "mean_rally": 2.67,
+     "mode": "rally",
+     "of": 7,
+     "reach": 0.384,
+     "shots": 7,
+     "surface": "grass",
+     "when": "2026-11-27T02:37:41Z",
+     "with": [
+      "Colette"
+     ]
+    }
+   ]
+  }
+ },
+ "note": "A FIXTURE, not a played season. It exists so the page's session line (item 23) has a book to read beside a film: the film says 'session 1', the book is set one session further on, and the page says 'session 1 \u2014 3 since this film'. The numbers were typed, not played.",
+ "opened": "2026-11-27T02:37:41Z",
+ "season": "item23",
+ "plan": {
+  "sessions": 9
+ }
+}

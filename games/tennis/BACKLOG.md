@@ -1426,7 +1426,7 @@ got its renderer half back:
 **Still open: four portraits.** The two that exist are the founder's; the other four cannot be generated here and
 are in the REQUEST that goes to him when the code is as far as it goes without his eyes.
 
-## Item 23 — the live game keeps playing, and the film says how far behind it is (OPEN)
+## Item 23 — the live game keeps playing, and the film says how far behind it is (DONE 2026-11-26)
 
 The founder, same message: *"Dmitri's game still function for live but off-screen playing and during wakes."*
 That path is untouched and must stay untouched: `--rally` asks each member's engine for a shot line, plays it, and
@@ -1437,6 +1437,22 @@ What is now true and unmarked: `watch.json` is the last session somebody *watche
 no way for a viewer to know. *Done-test:* the film's record carries the season session it is (`clock`, and the
 number of sessions in the season at the time it was made); the page prints "session 3 of 7 — four since this
 film"; and a season whose last session has no film says exactly that.
+
+**Built 2026-11-26.** The film is written AFTER `record_session`, so it can say what it played: `session: {n, of}`
+where `n` is the season's frontier (the most sessions any member has played) and `of` is the plan's length. The page
+reads that and fetches `practice.json` beside the record to recompute the frontier now, and prints the result on the
+surface line:
+
+| the book beside the film | the page says |
+|---|---|
+| one session, the film's own | `grass · wind S 9mph · session 1 — this is the latest` |
+| four sessions, the film is the first | `session 1 — 3 since this film` |
+| no book (a demo, a fork) | nothing extra, because there is no season to be behind |
+
+Verified headless on `records/item23-fixture` (a typed book, and it says so in its own `note`) and logged as
+`debug season` under `?debug`. The season's own film will carry the block from the next time the clock writes one;
+until then `seasons/2026-11-19/watch.json` has no `session` key and the page says nothing about a session it cannot
+know, which is the same "sensible absence" every other field here has.
 
 ## Item 24 — the cast is six, and competition is same-sex (DONE 2026-11-19, less the scheduler)
 
