@@ -8261,6 +8261,64 @@ class TestWorkflows(unittest.TestCase):
                            f"missing {', '.join(missing)}")
         self.assertEqual(bad, [], "a workflow that forwards one engine's key must forward the rest; "
                                   "otherwise a member on the missing engine is told the key is not set")
+    def test_every_field_the_page_sends_a_workflow_is_a_field_that_workflow_declares(self):
+        """The founder pressed Play on his own circle on 2026-11-13 and GitHub answered
+        `422 · Unexpected inputs provided: ["person", "shot"]` — the page was newer than his repository, and the
+        form described his own form back to him. That failure is available to every button the page ever grows
+        and it is invisible here, where page and workflow are always the same commit: change one and not the
+        other and this repository is still consistent, while a circle installed last month is not.
+
+        So the two sides are read against each other, from the page's own `dispatch(...)` calls. The fields are
+        taken from the object literal the page sends — brace-matched, not regex-matched, because the values are
+        template strings with `${...}` in them and a lazy `\\}` stops inside the first one.
+        """
+        if yaml is None:
+            self.skipTest("PyYAML not installed")
+        page = (REPO / "ait.html").read_text(encoding="utf-8")
+        bad, seen = [], 0
+
+        def fields_of(body):
+            # `${...}` first: its braces and its colons belong to the value, not to the object.
+            flat, depth = "", 0
+            for i, ch in enumerate(body):
+                if body[i:i + 2] == "${":
+                    depth += 1
+                    continue
+                if depth and ch == "}":
+                    depth -= 1
+                    continue
+                if not depth:
+                    flat += ch
+            return set(re.findall(r"(?:^|[,{])\s*([A-Za-z_]\w*)\s*:", flat, re.M))
+
+        for m in re.finditer(r"dispatch\(\s*'([\w.-]+)'\s*,\s*\{", page):
+            seen += 1
+            wf = m.group(1)
+            i, depth = m.end(), 1
+            while i < len(page) and depth:
+                if page[i] == "{":
+                    depth += 1
+                elif page[i] == "}":
+                    depth -= 1
+                i += 1
+            sent = fields_of(page[m.end():i - 1])
+            path = self.WF / wf
+            if not path.is_file():
+                bad.append(f"{wf}: the page starts a workflow that is not in this repository")
+                continue
+            doc = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+            # `on:` is YAML 1.1's boolean true, so PyYAML hands back {True: {'workflow_dispatch': {...}}}. Reading
+            # `doc['workflow_dispatch']` found nothing and the first run of this check called all eight presses
+            # wrong — the same defect one level up: a check that reads the wrong key and reports the world broken.
+            spec = (doc.get(True) or doc.get("on") or {}).get("workflow_dispatch") or doc.get("workflow_dispatch") or {}
+            have = set((spec.get("inputs") or {}).keys())
+            missing = sorted(sent - have)
+            if missing:
+                bad.append(f"{wf}: the page sends {missing}, which the workflow does not declare "
+                           f"(it has {sorted(have)})")
+        self.assertGreater(seen, 0, "no dispatch(...) call was found, so this check read nothing")
+        self.assertEqual(bad, [], "a press the page offers would be refused by the circle's own workflow")
+
     def test_the_clock_asks_the_tool_which_keys_it_has(self):
         """The step that decides whose turn it is must not carry its own list of vendors.
 
@@ -9302,6 +9360,7 @@ class TheTemplateMustBeEnough(unittest.TestCase):
         missing = [p for p in mt.paths() if not (REPO / p).is_file()]
         self.assertEqual(missing, [], "whitelisted but not on disk")
         self.assertEqual(mt.unshipped(), {}, "a shipped workflow runs a script the template does not ship")
+        self.assertEqual(mt.unshipped_reads(), {}, "a shipped script reads a file the template does not ship")
 
     def test_every_workflow_the_page_starts_ships(self):
         """The button on the page is a promise; the workflow behind it is the machinery.
@@ -9333,6 +9392,113 @@ class TheTemplateMustBeEnough(unittest.TestCase):
         finally:
             mt.FILES = saved
         self.assertEqual(mt.unshipped_dispatches(), {}, "restoring FILES must restore the clean report")
+
+    def test_golf_ships_as_a_game_a_circle_can_play_rather_than_one_it_can_only_read(self):
+        """Golf reached the Play tab on 2026-11-23 as a *viewer*: the project's committed season, and six films.
+
+        The founder read that back in four questions — "is Kythe just capable of viewing status about games that
+        have already been played?" — and he was right. Tennis, the game that tab was built for, is not a file the
+        owner reads: the page dispatches `season.yml`, a runner plays with the members' own engines, and the record
+        comes back into the circle (`games/tennis/seasons/<season>/`). Golf had no workflow at all, so a circle
+        could look at the bench's numbers and never have any of its own.
+
+        Two things have to be true for the press to work in a circle somebody just made, and neither is visible
+        from here, because here both files exist: the workflow has to be on the template's whitelist, and so does
+        every local module `lab/golf.py` imports (`putt.py` — a game the template ships, which golf borrows).
+        """
+        sys.path.insert(0, str(REPO / "lab"))
+        import make_template as mt
+        saved = mt.FILES[:]
+        try:
+            mt.FILES = [f for f in saved if "golf" not in f]
+            self.assertIn("golf.yml", mt.unshipped_dispatches(),
+                          "the page offers a golf press whose workflow a new circle would not have")
+        finally:
+            mt.FILES = saved
+        try:
+            mt.FILES = [f for f in saved if f != "lab/putt.py"]
+            self.assertEqual(mt.unshipped_imports().get("lab/putt.py"), ["lab/golf.py"],
+                             "a circle with golf and no putt.py fails on its first press, at import")
+        finally:
+            mt.FILES = saved
+        # And the third direction, which is the one a scratch circle found: `--render` opens the player that draws a
+        # scene, and `games/` is not a folder a template has. Without this file the press plays a season and then
+        # dies on the sixth command with a traceback that names a path and nothing else.
+        try:
+            mt.FILES = [f for f in saved if f != "games/golf/replay3d.html"]
+            self.assertEqual(mt.unshipped_reads().get("games/golf/replay3d.html"), ["lab/golf.py"],
+                             "the player a scene is drawn by is not shipped, so --render dies in a new circle")
+        finally:
+            mt.FILES = saved
+        self.assertEqual(mt.unshipped_dispatches(), {}, "restoring FILES must restore the clean report")
+
+    def test_a_circle_with_no_games_folder_can_play_a_golf_season(self):
+        """The press, in a circle that has just been made — the only place the two halves are ever apart.
+
+        Everything else in this class is static, and static is what failed on 2026-11-26: golf.py, putt.py, golf.yml
+        and the whitelist were all consistent, and `--render` still died in a fresh circle because it opens
+        `games/golf/replay3d.html` and a circle has no `games/`. A traceback naming a path is not a press that works.
+        So a template is built in a temporary folder and the workflow's own first commands are run in it: the season,
+        the door, and one replay — one, because all six go through the same `read_text` of the same player.
+
+        Two rounds and two sessions, not four and four: this is a check that the machinery is present, not a
+        measurement, and the smaller season is four seconds instead of ninety.
+        """
+        import shutil as _sh
+        tmp = Path(tempfile.mkdtemp(prefix="circle-golf-"))
+        try:
+            r = subprocess.run([sys.executable, str(REPO / "lab" / "make_template.py"), "--out", str(tmp / "c")],
+                               cwd=REPO, capture_output=True, text=True, timeout=300)
+            self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+            circle = tmp / "c"
+            # A circle now *has* `games/golf/replay3d.html` (the player ships with the engine) and no rendered
+            # season at all. The player's presence is the point of the fixture, so this asserts the absent half.
+            self.assertTrue((circle / "games" / "golf" / "replay3d.html").is_file(),
+                            "the player does not ship, so --render cannot work in a new circle")
+            self.assertFalse((circle / "games" / "golf" / "renders").exists(),
+                             "the fixture is wrong: a new circle already has a rendered record")
+            for cmd in (["--season", "--rounds", "2", "--bags", "2", "--seed", "424242"],
+                        ["--start"], ["--render", "7"]):
+                r = subprocess.run([sys.executable, "lab/golf.py"] + cmd, cwd=circle,
+                                   capture_output=True, text=True, timeout=600)
+                self.assertEqual(r.returncode, 0,
+                                 f"a circle could not run golf.py {' '.join(cmd)}:\n{r.stdout}\n{r.stderr}")
+            made = {p.name for p in (circle / "games" / "golf" / "renders").iterdir()}
+            self.assertTrue({"season.json", "season.html", "start.html", "hole-7.html"} <= made,
+                            f"the season played but the pages are not there: {sorted(made)}")
+            card = json.loads((circle / "games" / "golf" / "renders" / "season.json").read_text())
+            self.assertEqual(len(card["athletes"]), 6, "the card a circle gets is not the six-athlete card")
+        finally:
+            _sh.rmtree(tmp, ignore_errors=True)
+
+    def test_the_engine_a_circle_runs_accepts_the_flags_the_workflow_passes_it(self):
+        """A workflow is the one piece of this repository that nobody runs before a stranger does.
+
+        `golf.yml` types `python3 lab/golf.py --season --rounds …`. If `--seed` were not an argument — and it was
+        not, until the press needed a season that differs each time — the run would fail after checkout, several
+        minutes in, on a circle, for the owner. argparse's own refusals are the oracle here, so the check asks the
+        engine rather than a list in a document that can drift.
+        """
+        wf = (REPO / ".github" / "workflows" / "golf.yml").read_text(encoding="utf-8")
+        # The flags are not on the `python3 lab/golf.py` line: they are in the bash array the line expands
+        # (`args=(--season …)` then `python3 lab/golf.py "${args[@]}"`). The first version of this test read the
+        # python3 line, found no flags at all, and passed with `--bogus-flag` planted in the array — a green check
+        # reading the wrong line, which is this repository's most repeated defect. Scanned by array now, and the
+        # array is required to be one golf would understand.
+        arrays = re.findall(r"args\+?=\(([^)]*)\)", wf)
+        self.assertTrue(arrays, "the workflow never builds an argument list for the engine")
+        self.assertTrue(any("--season" in a for a in arrays),
+                        "no argument list asks for a season, so this check is looking at the wrong thing again")
+        calls = arrays
+        # argparse's own list, printed by the engine itself: a test that keeps its own copy of the flags is a test
+        # that agrees with the document and not with the program.
+        r = subprocess.run([sys.executable, str(REPO / "lab" / "golf.py"), "--help"],
+                           cwd=REPO, capture_output=True, text=True, timeout=120)
+        self.assertEqual(r.returncode, 0, "the engine will not even print its own flags:\n" + r.stderr)
+        known = set(re.findall(r"--[a-z][a-z-]*", r.stdout))
+        for line in calls:
+            for flag in re.findall(r"--[a-z][a-z-]*", line):
+                self.assertIn(flag, known, f"golf.yml passes {flag}, which lab/golf.py does not accept")
 
     def test_the_updater_ships_and_can_never_touch_a_member(self):
         """An upgrade replaces machinery, and a member's diary is not machinery.

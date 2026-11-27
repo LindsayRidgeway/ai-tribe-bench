@@ -205,8 +205,8 @@
       <summary>What this page does not do yet</summary>
       <p class="small" style="margin:8px 0 0">A member cannot ask for a picture inside a conversation — that happens
       on its own page, and the chat is text in, text out. A tennis evening is reported at the end of the run, not
-      watched while it is played. Golf cannot be played here at all: its six athletes are a Python program, so the
-      Play tab shows the record and the films it wrote, and says whose numbers they are.</p>
+      watched while it is played. Nobody plays golf: its six athletes are a script, so the Play tab starts a run on
+      your circle's own machine and shows the card and the replays it wrote, and says whose numbers they are.</p>
     </details>
     <p class="small" style="margin:10px 0 0">early version<span id="build" hidden></span></p>
   </footer>
@@ -6317,8 +6317,8 @@ async function loadGolf(){
       hands miss by — and nothing else. Nobody plays it. The point is the thing underneath the card: a player that
       has measured itself plays better than one that has not, and you can watch the measuring happen.</p>
       <p class="small muted" style="margin:0 0 14px">${own
-        ? 'Read from this circle&#39;s own <code>games/golf/renders/</code>.'
-        : 'These are the <em>project&#39;s</em> numbers, not this circle&#39;s: golf is a simulation, the six athletes are fixed, and no member plays it. Read from the project&#39;s own record.'}
+        ? 'Read from this circle&#39;s own <code>games/golf/renders/</code> — its own nine holes, drawn from its own seed.'
+        : 'These are the <em>project&#39;s</em> numbers, not this circle&#39;s: golf is a simulation, the six athletes are fixed, and no member plays it. Read from the project&#39;s own record until yours has one.'}
         ${season.bags} practice sessions, ${R} rounds of nine, par ${season.par}, pins ±${season.pin_range.toFixed(0)} ft,
         ${season.calm ? 'still air' : 'wind drawn every round'}.</p>
       <div class="tblwrap"><table class="tbl">
@@ -6326,6 +6326,11 @@ async function loadGolf(){
         <th>against the frozen player</th><th>believes its hands</th><th>notebook error</th></tr>
         ${rows}
       </table></div>
+      <div class="row" style="margin:16px 0 0;align-items:center">
+        <button class="primary" id="golfplay" onclick="playGolfSeason()">Play a season in this circle</button>
+        <span class="small muted" id="golfmsg">about three minutes on this circle's own runner; it writes
+        <code>games/golf/renders/</code> and these become your circle's numbers, not the project's</span>
+      </div>
       <p class="small" style="margin:14px 0 0">${verdict}</p>
       <p class="small muted" style="margin:6px 0 0">Every number carries its error. Each row is one program trained
       ${season.bags} separate times on ${season.bags} practice sets and the same courses, so the bar is how much the
@@ -6334,6 +6339,39 @@ async function loadGolf(){
     </div>
     <h2>The films</h2>
     <div class="card">${doors}</div>`;
+}
+
+// The press that makes golf happen in the circle rather than on the project's bench. It sends a workflow and then
+// reads the record back — the same shape tennis uses (`season.yml`), and for the same reason: the engine is Python
+// and the app has no server behind it. What it does not do is pretend to play: the six athletes are still policies,
+// and a model chooses nothing here. The seed is drawn at the press and sent with the dispatch, so a season can be
+// played again exactly, and two presses are two seasons rather than one season twice.
+async function playGolfSeason(){
+  const b = $('golfplay'), msg = $('golfmsg');
+  if (!S.repo){ if (msg) msg.textContent = 'Which circle?'; return; }
+  if (b) b.disabled = true;
+  try {
+    const since = Date.now();
+    if (msg) msg.textContent = 'sent to this circle\'s runner…';
+    await dispatch('golf.yml', {rounds: '4', bags: '4', seed: String(Math.floor(Date.now() / 1000)), calm: 'wind'});
+    const run = await waitForRun('golf', since, t => { if (msg) msg.textContent = t; });
+    if (run.conclusion !== 'success'){
+      // A run that ended in a word, and the word is not an explanation. The run is named and linked; its log says
+      // why. (This is the same sentence tennis prints, and the reason it exists there applies here verbatim.)
+      const url = run.html_url || `https://github.com/${S.repo}/actions/runs/${run.id}`;
+      if (msg) msg.innerHTML = '<span class="err">' + esc('the run ended: ' + run.conclusion + '.') + '</span> '
+        + `<a href="${esc(url)}" target="_blank" rel="noopener">${esc(String(run.id))}</a>`
+        + '<span class="small muted"> — its log says why.</span>';
+      return;
+    }
+    if (msg) msg.textContent = 'played. reading this circle\'s record';
+    await loadGolf();          // which replaces this button, so nothing below may touch it
+  } catch(e){
+    if (msg) msg.innerHTML = '<span class="err">' + esc(e.message) + '</span>';
+  } finally {
+    const again = $('golfplay');       // present only if the read failed and the card is still on screen
+    if (again) again.disabled = false;
+  }
 }
 
 // A record that is present but not usable. The three failures worth separating, because they have three different

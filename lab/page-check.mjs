@@ -233,6 +233,24 @@ const MEMBER_ENTRY = '## 2026-11-12 19:05 UTC — attended session (the keeper p
 
 /* ---- the fake browser ------------------------------------------------------------------- */
 
+// A canvas is not a picture here, but it has to *be* one — and a select has to have options, because a real one
+// always does. Pickleball's court and its three seats (`pbInit()`, shipped 2026-11-26) ask for `getContext` and for
+// `select.options.length`, and this harness had neither, so every check that rendered the Play tab threw and three of
+// them read as page defects. This is the fifth and sixth gap of its kind in this file (a missing `insertBefore`, a
+// missing `getRandomValues`, `getAttribute` answering null, `classList` swallowing classes); the page was right every
+// time, and the lesson is that a fake browser is only as good as the parts of a real one it has been asked for.
+const CTX2D = new Proxy({}, {
+  get(_t, k){
+    if (k === 'canvas') return null;
+    if (typeof k === 'symbol') return undefined;
+    if (k === 'measureText') return () => ({width: 10});
+    if (k === 'createLinearGradient' || k === 'createRadialGradient') return () => ({addColorStop(){}});
+    if (k === 'getImageData') return () => ({data: new Uint8ClampedArray(4)});
+    return () => {};
+  },
+  set(){ return true; },
+});
+
 function el(id){
   const e = {
     id, hidden: false, textContent: '', innerHTML: '', value: '', className: '', checked: false, attrs: {},
@@ -252,7 +270,7 @@ function el(id){
     appendChild(c){ e.inserted.push(c); if (c) c.parentNode = e; return c; },
     insertBefore(c, before){ e.inserted.push(c); if (c) { c.parentNode = e; c.nextSibling = before || null; } return c; },
     removeChild(){}, remove(){}, click(){}, focus(){}, blur(){},
-    scrollIntoView(){},
+    scrollIntoView(){}, getContext(){ return CTX2D; }, options: [],
     // Attributes are recorded rather than dropped. `sandbox="allow-scripts"` on a film's frame is a security claim and
     // `srcdoc` is what carries the film, and a fake that answered `getAttribute` with null could not tell a sandboxed
     // frame from an unsandboxed one — the claim that a repository's HTML cannot reach this page's token would have been
@@ -3405,6 +3423,110 @@ async function main(){
     if (noFilm.inserted) return 'it put a frame up for a film it never read';
     if (!/games\/golf\/renders\/no-such-hole\.html/.test(noFilm.html)) return `the path is not named: "${noFilm.html}"`;
     if (!/blob\/main\/games\/golf/.test(noFilm.html)) return 'there is no link to the file so a person can see it is absent';
+    return '';
+  });
+
+
+  /* 17h — the press that makes golf happen in the circle. Until 2026-11-26 the Play tab could only *read* golf: the
+     card on the project's bench, or a record somebody had committed by hand. That is a status view, and it is not
+     what "golf is in Kythe" means — tennis, the game this tab was built for, dispatches a workflow and reads the
+     record back (`season.yml`), and golf had no such workflow at all. This is that press: `golf.yml`, the seed drawn
+     at the press, and the card re-read afterwards as the circle's own. */
+  reset();
+  // The circle starts with no golf of its own and the project's record on the bench — which is exactly the state a
+  // real circle is in before the first press. The runner then writes a season whose first athlete is named for the
+  // seed, so the "after" card can be shown to have been *read again* rather than re-used from the screen.
+  const pressedRecord = golfRecord();
+  pressedRecord.athletes[0].name = 'never practises (seed 51300)';
+  seedBench(GOLF_PATH, JSON.stringify(golfRecord()));
+  actions.onPoll = (fs) => fs.set(GOLF_PATH, {text: JSON.stringify(pressedRecord), sha: 'r1'});
+  actions.runs.push({id: 51300001, name: 'golf', event: 'workflow_dispatch', status: 'completed',
+    conclusion: 'success', html_url: 'https://github.com/someone/tribe/actions/runs/51300001',
+    created_at: new Date().toISOString()});
+  const press = await tryRun(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
+    await loadGolf();
+    const before = document.getElementById('golf').innerHTML;
+    await playGolfSeason();
+    return {before, after: document.getElementById('golf').innerHTML};
+  })()`);
+  check('the golf card offers a press, and says what the press costs and where it writes', () => {
+    if (press.err) return press.err;
+    const h = String(press.before || '');
+    if (!/id="golfplay"/.test(h)) return 'there is no button to run a season here';
+    if (!/Play a season in this circle/.test(h)) return 'the button does not say what it does';
+    if (!/games\/golf\/renders\//.test(h)) return 'it does not say where the season will be written';
+    return '';
+  });
+  check('the press sends golf.yml with a seed of its own, so two presses are two seasons', () => {
+    if (press.err) return press.err;
+    const d = dispatches.find(x => x.workflow === 'golf.yml');
+    if (!d) return 'nothing was dispatched: ' + JSON.stringify(dispatches.map(x => x.workflow));
+    for (const k of ['rounds', 'bags', 'seed']) if (!d.inputs[k]) return `the dispatch has no ${k}: ` + JSON.stringify(d.inputs);
+    if (!/^\d{9,}$/.test(String(d.inputs.seed))) return `the seed is not a drawn one: ${JSON.stringify(d.inputs.seed)}`;
+    if (Number(d.inputs.rounds) < 2) return 'fewer than two rounds is not a before and an after';
+    return '';
+  });
+  check('and after it plays, the card is re-read as the circle\'s own record', () => {
+    if (press.err) return press.err;
+    const before = String(press.before || ''), after = String(press.after || '');
+    if (!/project&#39;s<\/em> numbers/.test(before))
+      return 'the card did not start on the project\'s record, so this check proves nothing: ' + before.slice(0, 200);
+    if (!/this circle&#39;s own/.test(after))
+      return 'the card does not say the numbers are now the circle\'s: ' + after.slice(0, 240);
+    if (/project&#39;s<\/em> numbers/.test(after)) return 'it still says the numbers are the project\'s';
+    if (!/seed 51300/.test(after))
+      return 'the card was not read again after the run — the athlete the runner wrote is not on it';
+    if (!/id="golfplay"/.test(after)) return 'the press is gone, so a circle can only ever play one season';
+    return '';
+  });
+
+  // a run that ends in a word: the run is named, and the page does not say a season was played
+  reset();
+  seed(GOLF_PATH, JSON.stringify(golfRecord()));
+  actions.runs.push({id: 51300002, name: 'golf', event: 'workflow_dispatch', status: 'completed',
+    conclusion: 'failure', html_url: 'https://github.com/someone/tribe/actions/runs/51300002',
+    created_at: new Date().toISOString()});
+  const failedGolf = await tryRun(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
+    await loadGolf();
+    await playGolfSeason();
+    return {msg: document.getElementById('golfmsg').innerHTML || '', said: document.getElementById('golfmsg').textContent || ''};
+  })()`);
+  check('a golf run that failed names the run, and does not claim a season was played', () => {
+    if (failedGolf.err) return failedGolf.err;
+    if (!/51300002/.test(failedGolf.msg)) return `the run is not named: "${failedGolf.msg}"`;
+    if (!/actions\/runs\/51300002/.test(failedGolf.msg)) return 'the run number is not a link to the run';
+    if (/played/.test(String(failedGolf.said || '').replace(/the run ended[^.]*\./, '')))
+      return 'it says a season was played';
+    return '';
+  });
+
+  // an old circle, whose repository has no golf.yml: the page must say so rather than report a broken page
+  reset();
+  seed(GOLF_PATH, JSON.stringify(golfRecord()));
+  const oldCircle = await tryRun(ctx, `(async () => {
+    S.repo = 'someone/tribe'; S.token = 't'; S.branch = 'main';
+    await loadGolf();
+    const real = gh;
+    gh = async (path, opts, token) => {
+      // indexOf, not a regex: this code is written into a template literal above, and a template literal eats the
+      // backslashes a regex needs — the first version of this line failed with "Invalid regular expression flags".
+      // (The same trap ended a template literal early in this file an hour later: do not put a backtick in here.)
+      if (String(path).indexOf('golf.yml/dispatches') >= 0)
+        throw new Error('404 · Not Found');
+      return real(path, opts, token);
+    };
+    try { await playGolfSeason(); } catch(e){ /* the press reports into the card, it does not throw */ }
+    finally { gh = real; }
+    return {msg: document.getElementById('golfmsg').innerHTML || ''};
+  })()`);
+  check('a circle whose repository predates golf is told what to do, not given a 404', () => {
+    if (oldCircle.err) return oldCircle.err;
+    const h = String(oldCircle.msg || '');
+    if (!/golf\.yml is not in this circle/.test(h)) return `the workflow is not named as missing: "${h}"`;
+    if (!/Nothing was sent/.test(h)) return 'it does not say that nothing happened';
+    if (!/update_tribe/.test(h)) return 'it does not say how to bring the repository up to date';
     return '';
   });
 

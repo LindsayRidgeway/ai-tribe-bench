@@ -889,12 +889,28 @@ a canvas and a rAF loop, and it plays — and it cannot touch the page that hold
 from a repository; treating it as a stranger is the whole of the security argument, and `lab/page-check.mjs` asserts
 the absence of `allow-same-origin` so it stays an argument rather than a hope.
 
-**Whose numbers are these.** A tribe made from `lab/make_template.py` does not get `games/golf/` at all (the FILES
-whitelist ships tennis, putt, rps and paint), so for every circle the honest answer is that these numbers are the
-*project's*: the page falls back to the public bench — `LindsayRidgeway/ai-tribe-bench`, read with no credential at
-all — and says so in words. The fallback taught the page a defect of its own: `gh()` sent `Authorization: Bearer `
-with an empty token, and GitHub answers 401 to an empty credential, so a *public* repository could not be read
-without one. Six lines of `gh()` had been carrying that since it was written.
+**Whose numbers are these, and the press that makes them yours.** A circle is not given `games/golf/`, so before its
+first press the page falls back to the public bench — `LindsayRidgeway/ai-tribe-bench`, read with no credential at
+all — and says in words that these numbers are the *project's*. The fallback taught the page a defect of its own:
+`gh()` sent `Authorization: Bearer ` with an empty token, and GitHub answers 401 to an empty credential, so a *public*
+repository could not be read without one. Six lines of `gh()` had been carrying that since it was written.
+
+That is a viewer, and the founder said so on 2026-11-26 in four questions ("is Kythe just capable of viewing status
+about games that have already been played?"). Tennis, the game that tab was built for, is not a file its owner reads:
+the page dispatches `season.yml`, a runner plays, and the record lands in the circle. Golf got the same machinery in
+`golf.yml` — press **Play a season in this circle**, and `lab/golf.py --season --rounds 4 --bags 4 --seed <drawn>` runs
+on the circle's own runner, writes `renders/` and commits it. Three consequences worth stating:
+
+- **a new seed each press.** `--seed` was added for this and defaults to the bench's own, so the season committed in
+  this repository is still the season `--season` has always written, to the byte (checked by diffing it after the
+  change). Without it, every press would draw the same weather, play the same nine holes, and look broken;
+- **no key, no model.** The six athletes are policies. A press costs a few minutes of runner time and nothing that can
+  fail for an interesting reason — which is the difference between golf and tennis, and the honest shape of a game
+  whose subject is a program's own uncertainty rather than a model's judgment;
+- **it ships.** `lab/golf.py`, `lab/putt.py` (golf borrows the short game) and `golf.yml` are on the template's
+  whitelist; `make_template.unshipped_imports()` is what catches a circle that gets the engine without the module it
+  imports, and `unshipped_dispatches()` is what catches a page offering a button whose workflow a new circle has not
+  got.
 
 The bar rule crossed over too. `bar()` in the page is `_bar()` in this file, arithmetic for arithmetic (standard
 error is a 1.96th of half the interval), and it is the only thing on the page that formats a mean — which is how a

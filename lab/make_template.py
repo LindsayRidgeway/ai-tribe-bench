@@ -36,8 +36,10 @@ FILES = """
 .github/workflows/attic.yml
 .github/workflows/play.yml
 .github/workflows/season.yml
+.github/workflows/golf.yml
 .github/workflows/pickleball.yml
 .github/workflows/paint.yml
+games/golf/replay3d.html
 games/pickleball/replay3d.html
 .github/workflows/magazine.yml
 tribe.py
@@ -58,6 +60,8 @@ play/log.py
 lab/members.py
 lab/tennis.py
 lab/tennis_script.py
+lab/putt.py
+lab/golf.py
 lab/pickleball.py
 lab/rps.py
 lab/paint.py
@@ -186,6 +190,42 @@ def unshipped_dispatches() -> dict[str, list[str]]:
     return {k: v for k, v in dispatched().items() if f".github/workflows/{k}" not in FILES}
 
 
+def unshipped_reads() -> dict[str, list[str]]:
+    """Data files a shipped script reads out of the repository, that the template would not contain.
+
+    The third direction of the same failure, and the one nothing caught until 2026-11-26: `unshipped()` watches a
+    workflow calling a missing script, `unshipped_imports()` watches a script importing a missing module, and this
+    watches a script *opening* a missing file. `--render` had always read `games/golf/replay3d.html` — the player
+    that draws a scene — and `games/` is not part of the template, so the first circle to press "Play a season in
+    this circle" would have played its season and then died on the sixth command with a traceback naming a path.
+    Found by building a scratch circle and running the workflow's own commands in it, which is the only place the
+    two halves are ever apart.
+
+    A path only counts when the script builds it from the repository root (`Path(__file__)…parent.parent / "games"
+    / …`) and the file exists on this bench. A directory the script creates does not exist here as a file, and an
+    output it writes is not a read — both are excluded by that one condition rather than by a list.
+    """
+    out: dict[str, list[str]] = {}
+    root = ROOT
+    # No enclosing paren is required: `x = Path(__file__)… / "a" / "b"` and `(Path(__file__)… / "a").read()` are
+    # both shapes in use, and a pattern that demanded the second missed the first — which is how the first version
+    # of this function reported nothing on a bench that was missing the file. Tested by taking the file away.
+    build = re.compile(r'Path\(__file__\)\.resolve\(\)\.parent\.parent((?:\s*/\s*"[^"]*")+)')
+    for p in FILES:
+        path = root / p
+        if not p.endswith(".py") or not path.is_file():
+            continue
+        text = path.read_text(errors="replace")
+        for m in build.finditer(text):
+            parts = re.findall(r'"([^"]*)"', m.group(1))
+            target = "/".join(parts)
+            if not (root / target).is_file():
+                continue                      # a folder the script makes, or an output it writes
+            if target not in FILES:
+                out.setdefault(target, []).append(p)
+    return out
+
+
 def unshipped_imports() -> dict[str, list[str]]:
     """Local modules a shipped script imports and the template would not contain.
 
@@ -252,7 +292,10 @@ def main() -> int:
         no_mod = unshipped_imports()
         for mod, where in no_mod.items():
             print(f"{', '.join(where)} imports {mod}, which the template does not ship")
-        return 1 if (missing or bad or no_wf or no_mod) else 0
+        no_read = unshipped_reads()
+        for data, where in no_read.items():
+            print(f"{', '.join(where)} reads {data}, which the template does not ship")
+        return 1 if (missing or bad or no_wf or no_mod or no_read) else 0
 
     out = Path(a.out)
     if out.exists():

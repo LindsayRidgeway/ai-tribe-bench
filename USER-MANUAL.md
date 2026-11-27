@@ -739,11 +739,14 @@ their own hands miss by — and four rounds of the same nine holes. Every number
 rule this project holds everywhere: a mean without a bar is not a number), and the sentence under the card is
 computed from it rather than typed, so it cannot drift: *two of the five learners are behind the player that never
 practises in round 1; by round 4 all of them are ahead, the best by 12.0 strokes a round.* Under the card are six
-films: one hole, a whole round, the hole that went best, the hole that went worst, the bunker's face, and the season
+replays: one hole, a whole round, the hole that went best, the hole that went worst, the bunker's face, and the season
 on one page. Each is read out of the repository and put into a sandboxed frame, where it keeps its own script and
-gets no access to this page or to the token in it. The numbers are the **project's** and the card says so, because
-golf's athletes are fixed and no member of your circle plays it; if your circle ever has its own record in
-`games/golf/renders/`, that is what the page reads, and the sentence changes to say so.
+gets no access to this page or to the token in it. And there is a button: **Play a season in this circle**. Press it
+and a run on your own repository plays the season — about three minutes, no engine is asked for anything, because the
+six athletes are policies and not models — and commits the card and the six replays into `games/golf/renders/`. Every
+press draws a new seed, so it is a new nine holes rather than the same one again, and the card at the top of the tab
+then reads *your* circle's numbers instead of the project's. Before that first press, the card says plainly that the
+numbers are the project's: golf's athletes are fixed and no member of your circle plays it.
 
 **The draft, from an issue.** Comment `@tribe draft <category>` on any issue — "best pizza topping" is the example
 this was built with. Three members pick, three members vote one pick off the table, and the round is posted in the

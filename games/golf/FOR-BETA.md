@@ -5,10 +5,11 @@ Written 2026-11-20, at the end of the seventeenth pass. The game is `lab/golf.py
 file. Start at **`renders/start.html`** — it is the door, and it links everything below.
 
 **If you are reading this as a Kythe beta tester**, you do not need any of that. Press **Play** in the app: below the
-tennis forms is golf's card — six programs, four rounds, every number with its error — and the six films it wrote,
-each opening in a sandboxed frame. It is the same `season.json` this file's door reads; the card says in words that
-those numbers are the project's and not your circle's, because a tribe is not given a `games/golf/` and no member of
-yours plays golf.
+tennis forms is golf's card — six programs, four rounds, every number with its error — the six replays it wrote, each
+opening in a sandboxed frame, and a button. The card starts as the project's own `season.json`, the same one this
+file's door reads, and says so in words. Press **Play a season in this circle** and your own repository plays a
+season, draws a new seed, and commits the card and the replays into `games/golf/renders/` — three minutes, no key,
+because golf asks no model anything. No member of yours is on the course, and that is the game, not a gap in it.
 
 ---
 

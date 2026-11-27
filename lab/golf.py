@@ -2439,7 +2439,11 @@ def season(args) -> int:
     rounds = max(2, args.rounds)
     bags = args.bags if args.bags > 1 else 4   # one practice session has no band, and a page with no band is a page
     #                                            that shows six lines and calls them a difference
-    courses = [drawn_course(random.Random(5000 + k), args.pin_range, args.calm) for k in range(rounds)]
+    # `seed` shifts both draws and is `DEFAULT_SEED` unless somebody says otherwise, so the season committed in this
+    # repository is the season `--season` has always written, to the byte. Within a run the courses are shared by
+    # every athlete and every bag, which is what makes the band measure the athlete rather than the weather.
+    courses = [drawn_course(random.Random(5000 + k + (args.seed - DEFAULT_SEED)), args.pin_range, args.calm)
+               for k in range(rounds)]
     par = sum(h.par for h in courses[0])
 
     def stat(xs: list[float]) -> dict:
@@ -2456,7 +2460,7 @@ def season(args) -> int:
             rows = []
             for r, course in enumerate(courses):
                 res = play_round(course, ath, GolfPutter(), green, learn=learns, verbose=False,
-                                 rng=random.Random(DEFAULT_SEED + 7919 * bag + r))
+                                 rng=random.Random(args.seed + 7919 * bag + r))
                 rows.append(dict(to_par=res["to_par"], strokes=res["strokes"],
                                  putts=sum(row["putts"] for row in res["rows"]),
                                  gir=sum(1 for row in res["rows"] if row["gir"]),
@@ -2936,7 +2940,17 @@ def render(args) -> int:
                                label=f"down the hole from behind the tee: {hole.yards:.0f} yd, par {hole.par}"))
         name = f"hole-{hole.label}"
     (out_dir / f"{name}.json").write_text(json.dumps(scene, indent=1))
-    template = (Path(__file__).resolve().parent.parent / "games" / "golf" / "replay3d.html").read_text()
+    # The player is a file, not a string in this script (30 KB of WebGL is nicer to edit in its own editor), which
+    # means it can be *absent* — and on a circle built before `make_template.FILES` carried it, it was. The traceback
+    # that produced named a path and nothing else; this says which file, who owes it, and that the scene was written.
+    player = Path(__file__).resolve().parent.parent / "games" / "golf" / "replay3d.html"
+    try:
+        template = player.read_text()
+    except FileNotFoundError:
+        raise SystemExit(
+            f"the scene is written ({out_dir / f'{name}.json'}) but the player that would draw it is not here: "
+            f"{player}. It ships with the template as games/golf/replay3d.html; a repository made before the "
+            f"golf workflow existed does not have it. `python3 lab/update_tribe.py --write` puts it there.")
     page = template.replace("__SCENE__", json.dumps(scene))
     out = out_dir / f"{name}.html"
     out.write_text(page)
@@ -2952,6 +2966,11 @@ def main(argv=None) -> int:
     ap.add_argument("--policy", default="spread", choices=["flag", "centre", "spread"],
                     help="where it aims: at the pin, at the middle of the green, or where the putt is likeliest")
     ap.add_argument("--calm", action="store_true", help="the same course on a still day")
+    ap.add_argument("--seed", type=int, default=DEFAULT_SEED,
+                    help="what the weather and the practice are drawn from. Fixed by default, so the record in "
+                         "this repository is reproducible; a circle running its own season from the Play tab "
+                         "passes a different one each press (see `golf.yml`), or every season would be the same "
+                         "season and the button would look broken")
     ap.add_argument("--bags", type=int, default=1,
                     help="how many athletes to train on different practice sets; the error bar becomes the "
                          "spread across bags (the bag is a draw like the weather)")
