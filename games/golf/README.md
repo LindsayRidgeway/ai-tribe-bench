@@ -651,8 +651,9 @@ putts makes a windy round recoverable.*
    | golf, roughly | 1.02 | 1.05 | 1.12 | 1.35 | 1.6 | 1.75 | 1.85 | 1.9 |
 
    *(Pass 24 re-measured this row with a putter that reads the green it plays and got 1.03 / 1.04 / 1.14 / 1.10 /
-   1.31 / 1.49 / 1.65 / 1.74. **Pass 25 re-measured it again at 1.00 / 1.00 / 1.01 / 1.04 / 1.31 / 1.46 / 1.56 /
-   1.67** and those are the numbers the objective is told now. See "What the twenty-fifth pass found".)*
+   1.31 / 1.49 / 1.65 / 1.74. Pass 25 re-measured it again at 1.00 / 1.00 / 1.01 / 1.04 / 1.31 / 1.46 / 1.56 /
+   1.67. **Pass 27 re-measured it a third time at 1.00 / 1.04 / 1.14 / 1.32 / 1.57 / 1.74 / 1.82 / 1.93, and those
+   are the numbers the objective is told now — they are golf's.** See "What the twenty-seventh pass found".)*
 
    *(Pass 12 printed this table read around a flag cut 13 ft off-centre and read 1.00 / 1.21 / 1.23 / 1.54 /
    1.62 / 1.70 / 1.89 / 1.93. The numbers are the same to a tenth and the table was still wrong: past 20 ft the
@@ -697,8 +698,8 @@ putts makes a windy round recoverable.*
 12. **The green is a curve now, and a curve is priced by distance — so it reaches exactly as far as a shot is
    short, and not one yard further. Plus a fourth instrument reading the wrong thing, and the sand the objective
    can see and the game cannot.** `target()` is no longer told that a green costs 2.00 wherever the ball stops;
-   it is told `green_cost(d)`, a measured curve from 1.00 at 2 ft to 1.67 at 20 (pass 25's row; 1.03 to 1.74
-   when this finding was written), and it integrates the landing
+   it is told `green_cost(d)`, a measured curve from 1.00 at 2 ft to 1.93 at 20 (pass 27's row, which is golf's;
+   1.67 was pass 25's, 1.03 to 1.74 the row when this finding was written), and it integrates the landing
    over half-foot cells rather than pricing the whole surface at one number.
 
    **The instrument, which is the fourth of these and the third in the same table.** Pass 12 fixed the cost table
@@ -974,8 +975,8 @@ defect was a denominator.
 
 `dist_ft` is the distance the shot is being *hit from*. So the landing's putt was read as the length of the shot:
 on a 150 yd approach every cell on the green was 450-odd feet from the pin, and `green_cost` is flat past 20 ft.
-The measured curve — 1.00 at 2 ft rising to 1.67 at 20 (1.74 until pass 25 re-measured it, 1.90 until pass 24
-did), the instrument the thirteenth pass built and the
+The measured curve — 1.00 at 2 ft rising to 1.93 at 20 (1.67 until pass 27 re-measured it, 1.74 until pass 25
+did, 1.90 until pass 24 did), the instrument the thirteenth pass built and the
 thirty-fifth check verifies the wiring of — was read only by shots inside seven yards. Every club shot in six
 passes treated every spot on the green as equally good, and the objective's only gradients out there were the
 sand and the edge of the grass. That is why the target the objective chose was always about the middle of the
@@ -1114,9 +1115,10 @@ the next section: pass 25 re-measured the green at 1.00 / 1.00 / 1.01 / 1.04 / 1
 3 ft and cheaper than golf's everywhere past it, by 0.23 at 20 ft, and the gap is *named* rather than tuned: this
 putter was, until pass 26, never wrong about the green and never mis-hit the pace it read, so it paid for neither a
 misread nor a mishit. **That is the next defect, and it is visible in the direction terms.** *(Pass 26 built the
-misread: it reads a green that falls 85% as hard as the real one, worth at most 0.11 of a stroke, and learned from
-its own misses in blocks of eight. The knots above did not move, because the tax is inside their own standard
-errors. What the misread does not explain is the shape of golf's curve — see the new section at the end.)*
+misread: it reads a green that falls 85% as hard as the real one, worth at most 0.04 of a stroke, and learned from
+its own misses in blocks of eight. What the misread does not explain is the shape of golf's curve — and pass 27
+found the thing that does, and re-measured the knots: 1.00 / 1.04 / 1.14 / 1.32 / 1.57 / 1.74 / 1.82 / 1.93, which
+is golf's. See the twenty-seventh pass at the end.)*
 
 **Both direction terms are zero and they are zero for different reasons.** The break costs nothing because this
 athlete reads it exactly: `putt_read` runs to a hundredth of a foot, so a putt square across the slope is no
@@ -1307,7 +1309,10 @@ it pays is the crossing.
 | golf, roughly | 1.05 | 1.35 | 1.60 | 1.75 | 1.90 |
 
 At the size the game ships, the tax is **at most 0.11 of a stroke** anywhere — at 9 ft — and nothing measurable at
-20 ft. And the row that matters is the next one down: *reading half the break*, the largest error worth crediting a
+20 ft. *(Both this table and the paragraph below were measured against a putter whose face scatter was 1.1° at every
+distance. Pass 27 gave it a scatter that grows with the stroke, and with that in place the same compass reads 1.03 /
+1.33 / 1.58 / 1.71 / 1.89 at a true read — golf's — a tax of 0.04 at the shipped 0.85, and every read error dearer
+than golf rather than bracketing it. The bracket below was a fact about the old putter. See the twenty-seventh pass.)* And the row that matters is the next one down: *reading half the break*, the largest error worth crediting a
 good golfer with, does not fit golf's curve either. It **brackets** it: 1.68 against golf's 1.60 at 9 ft (+0.08,
 dearer) and 1.79 against 1.90 at 20 (−0.11, cheaper). The two curves are tilted differently, and no single read
 error can fix that. A misread is worth most where the break is longest; golf's price rises fastest in the middle of
@@ -1369,6 +1374,100 @@ steeper than this game's in the middle); no correction for the censored face bel
 inherits — a holed putt teaches nothing, so the read is learned off misses, and on a small break that is a noisy
 sample; no mixture kernel; the downhill still unbuilt for the reason pass 25 gave.
 
+### What the twenty-seventh pass found: the putter's scatter grows with the length of its own stroke
+
+Pass 26 ended with a claim and a name. The claim was that golf's green is steeper through the middle of the range
+than a *read* error can make it. The name was the shape that could: **a stroke whose dispersion grows with the length
+of the stroke**. This pass built it, and the name was right.
+
+**The mechanism, and why it is the putter's and no other club's.** Every club in this game is struck once, at a
+distance the club chooses, so its face scatter is one number — 1.1°. A putt is the only stroke whose *length is set
+by its own distance*: the backswing grows foot for foot with the putt, the face travels through more of its arc, and
+the same hand goes wrong by more. So the scatter is a floor plus a term per foot:
+
+    sd_face(d) = 1.10° + 0.13°/ft · d         1.49° at 3 ft, 1.88° at 6, 2.60° at 12, 3.70° at 20
+
+The floor is the hands every other club has, and it is what a short putt gets. The slope is not a difficulty setting
+and it is not a physiology: it is the value at which this game's green lands on golf's, solved on the compass
+`--costs` uses, and the whole scan is printed beside it rather than the one number:
+
+| face scatter | 3 ft | 6 ft | 9 ft | 12 ft | 20 ft |
+|---|---|---|---|---|---|
+| 1.10°, flat at every distance (passes 11–26) | 1.01±0.01 | 1.10±0.04 | 1.42±0.06 | 1.42±0.06 | 1.69±0.06 |
+| **1.10 + 0.13°/ft, what this game ships** | 1.04±0.02 | 1.32±0.06 | 1.57±0.06 | 1.74±0.05 | 1.93±0.03 |
+| twice the slope | 1.08±0.03 | 1.54±0.06 | 1.76±0.05 | 1.82±0.05 | 1.99±0.04 |
+| golf, roughly | 1.05 | 1.35 | 1.60 | 1.75 | 1.90 |
+
+**The green in this game is now golf's green** — 1.00 / 1.04 / 1.14 / 1.32 / 1.57 / 1.74 / 1.82 / 1.93 against
+1.02 / 1.05 / 1.12 / 1.35 / 1.60 / 1.75 / 1.85 / 1.90 at 2 / 3 / 4 / 6 / 9 / 12 / 16 / 20 ft, and the worst gap
+is 0.03 of a stroke. Nineteen passes had it cheaper than a golfer's past 4 ft. Two of the three repairs that tried
+to close the gap — the pace priced by the putt it leaves (pass 25), the eyes given a misread (pass 26) — were right
+and moved the curve by 0.04 between them. The third thing was not a repair at a joint: it was a dimension the model
+did not have. A line error moves the *aim*, so past a hole's width the putt it leaves is a foot long and nearly
+free; what makes golf's price climb through the middle is a miss that leaves a *long* second putt, and what leaves a
+long second putt is a longer stroke going further wrong.
+
+**Pass 26's bracket claim, corrected.** It read the same compass against a putter whose scatter was 1.1° at every
+distance and concluded the read error tilted golf's curve the wrong way — dearer at 9 ft, cheaper at 12 and 20. That
+was true of *that* putter and is false of this one. With the length term in place, a **true** read already sits on
+golf's curve to 0.04 of a stroke, so the misread is not what shapes golf's green; it is a tax on top, and every read
+error now moves the curve *up and away* from golf rather than onto it: half a read is dearer than golf at every
+distance (by +0.06 at 3 ft, +0.15 at 6, +0.08 at 9, +0.01 at 12, +0.02 at 20). The prior stays at 0.85 because it
+is a prior and because its tax is at most 0.04 of a stroke — not because it fits anything.
+
+**The athlete learns the law, and refuses what it cannot see.** A scatter has no slope in its *mean*: the misses
+average to zero whatever the law is, and the only place the slope shows is their spread. So the belief is not a
+regression of the miss on the distance — it is the maximum-likelihood pair for a normal whose width *is* the law,
+fitted in blocks of eight misses, with a loose prior on both numbers (the hands every club has, and the prior slope),
+because a two-parameter likelihood fitted to seventeen misses wanders: measured across two blocks of the same four
+rounds it read 0.91° + 0.173°/ft and then 2.74° + 0.042°/ft. And the refusal is the same one the read learner makes,
+one dimension down: **a block of putts from one distance says what the hands are worth there and nothing about how
+they scale**, so if the misses do not span 1.5× in distance the slope is not fitted at all and the athlete keeps the
+belief a player who has only ever putted from six feet would hold. Fed 120 synthetic misses from a 1.30° + 0.10°/ft
+law spread from 3 to 25 ft it recovers 1.31° + 0.09°/ft; fed 120 from a single distance it returns the floor alone
+and a slope of exactly zero.
+
+**And a body that remembers.** The putter was constructed *per round* in the season and nowhere else, which nobody
+had noticed while its belief was a constant. Now that it learns, a putter rebuilt every round begins the fourth round
+knowing nothing more than the first — a player who practises and remembers nothing. It is carried across the rounds
+like the notebook and like the read, and it is worth **4 strokes a round** to the athletes that learn: the practiser
+went from 154.0±2.9 to 150.0±2.8 doing nothing but keeping its own hands.
+
+**The card.**
+
+| athlete | aims at | strokes | ± | to par | was (pass 26) |
+|---|---|---|---|---|---|
+| practiser | spread | 150.0 | 2.8 | +10.0 | +9.8 |
+| bad start | spread | 150.5 | 4.7 | +10.5 | +11.8 |
+| blind hands | spread | 151.0 | 5.1 | +11.0 | +13.0 |
+| flag-hunter | flag | 153.0 | 3.5 | +13.0 | +10.8 |
+| cautious | centre | 158.5 | 7.8 | +18.5 | +16.0 |
+| no practice | spread | 196.2 | 3.8 | +56.2 | +51.8 |
+
+Scores are worse than pass 26's by four to five strokes a round, and they are worse *because the green got dearer*,
+which is what the pass was for: the athletes are now putting on a green that costs what a golfer's costs. Every
+practising player is still 37 to 46 strokes ahead of the frozen one over four rounds, and the order of the middle
+four is inside their own bars — which is the honest reading of a two- to six-stroke band on four bags.
+
+The season publishes the new belief too: `renders/season.json` has a `face` series beside `read`, the athlete's own
+estimate of its scatter on a 20 ft putt, and it moves for every player that learns (3.70 → 3.60–4.84 across four
+rounds) and never for the one that does not (3.70 throughout). That the learners drift slightly *above* the truth is
+the censoring pass 24 found and pass 26 inherited: a putt is only shown to the learner if it missed, so what it
+measures is the tail of its own distribution.
+
+**One thing this made visible that was not visible before.** The aim rule's one-dimensional integral closes the
+sideways miss with the rim's own odds and an r.m.s. distance left, and that closure was exact to a fifty-thousandth
+of a stroke while a 20 ft putt's sideways scatter was 0.38 ft — a fiftieth of its length. It is 1.3 ft now, a
+sixteenth, and the closure is worth half a per cent of the price at 20 ft. The aim — the only thing `settle` reads out of it —
+still agrees with the two-dimensional integral to a hundredth of a foot, so nothing in the game changed, but the
+check now bounds a *rate* rather than an absolute number, because the error has a shape and pretending it does not
+would be the sort of check that fails for a reason nobody can see.
+
+**What the pass did not do.** The mixture kernel (the objective holds 95% of greens from 150 yd where the game holds
+36–53%) is untouched and is now the largest thing on the list; the censored face belief is fitted but not
+de-biased; the downhill putt still measures +0.00 ± 0.00 for the reason pass 25 gave — it needs the come-back's
+*speed*, and that is a second dimension of the green, not a term in this one.
+
 
 ## What this does not model
 
@@ -1381,25 +1480,23 @@ sample; no mixture kernel; the downhill still unbuilt for the reason pass 25 gav
   and it is not missed: the break cancels exactly against a landing that is as likely short as long, so the
   objective's mean curve is the right answer (pass 20) — and the game's own break has been zero since pass 24
   (**+0.00 ± 0.00**), because the athlete reads to the centre of the hole rather than anywhere inside the rim
-  (pass 25) and now misreads it by a fixed fraction (pass 26, worth 0.11 of a stroke at most). What a misread
-  cannot explain is why golf's green is dearer in the middle of the range, and that is a stroke whose dispersion
-  grows with its length
+  (pass 25) and now misreads it by a fixed fraction (pass 26, worth 0.04 of a stroke at most). What a misread
+  cannot explain is why golf's green is dearer in the middle of the range — pass 27 measured it trying and failing,
+  and then found the thing that does (below)
 - **the putting stroke has one shape.** `putt.py`'s athlete models a pace gain and a line bias, and the game
-  has added the clubs' two dispersions (pass 11) and a pace the athlete decides (pass 12) — but a real putter
-  also has a stroke that is not a straight line: no arc, no clubface rotation through impact, no strike low or
-  high on the face. What that would add is a dispersion that grows with the length of the stroke rather than one
-  constant 1.1°, and it is the same missing thing as the read error below
-- **a read error, built in pass 26 — and the thing it does not explain.** The athlete reads a green that falls
-  85% as hard as the one under its feet, so its line error is that fraction of the break at every distance, and
-  it learns the error from its own misses in blocks of eight. What it costs at that size is at most 0.07 of a
-  stroke. What it cannot do is make the green as dear as golf's in the middle of the range: a read error moves
-  the *aim*, so past a hole's width the second putt it leaves is a foot long and nearly free, while golf's curve
-  rises fastest at 9-12 ft
-- **a stroke whose dispersion grows with its length.** The putter's face scatter is 1.1° at every distance, so a
-  20 ft putt is as straight as a 3 ft one in proportion; a real stroke arcs, rotates, and strikes the ball
-  differently the harder it is hit, and what that leaves is not a wider miss but a *longer* one — which is the one
-  shape of error that can make a green dear at 12 ft. It is the next object, and it is the missing piece of the
-  comparison with golf's green
+  has added the clubs' two dispersions (pass 11), a pace the athlete decides (pass 12) and — since pass 27 — a
+  face scatter that grows with the length of its own stroke. What it still has not got is *why* it grows: no arc,
+  no clubface rotation through impact, no strike low or high on the face. The law 1.10° + 0.13°/ft is a straight
+  line in the putt's length, and a real hand's error is not obliged to be one
+- **a read error, built in pass 26.** The athlete reads a green that falls 85% as hard as the one under its
+  feet, so its line error is that fraction of the break at every distance, and it learns the error from its own
+  misses in blocks of eight. What it costs at that size is at most 0.04 of a stroke, and pass 27 showed it is a
+  tax and not a fit: at a true read this green is already golf's
+- **a stroke whose dispersion grows with its length, built in pass 27.** The putter's face scatter is a floor of
+  1.10° — the hands every other club has — plus 0.13° per foot of putt, so a 20 ft putt is struck with 3.70° of
+  face scatter and a 3 ft one with 1.49°. The athlete learns both numbers from its misses, in blocks, and refuses
+  to fit the slope to a block of putts from a single distance. With it the green lands on golf's at every distance
+  the compass resolves. What it does *not* have is the strike itself: the law is a line, not a mechanism
 - **no plugged lie, no stance with the feet below the ball, no spin killed at contact, no flyer from the
   rough** — the face is geometry, those are laws, and they are the half of a bunker that is still missing;
   water, dogleg, tree line, green contour and green slope are absent for the same reason
@@ -1567,12 +1664,13 @@ at all, and the first two of them are now built:
    in feet is direction-free, so what the settle prices is the *length* of the comeback and not the speed it is
    still travelling at. Selling "keep it below the hole" needs the comeback's speed in the price, which is a
    second dimension of the green and not a term in this one. **Added by pass 24: the read had no error; pass 26
-   gave it one** — a green read at 85% of its slope, learned from misses in blocks, worth at most 0.07 of a
-   stroke at that size and unable to make golf's curve shape at any size. **Nothing
-   gives the athlete a green to misread, so the break is free and the green is cheaper than golf's past 6 ft —
-   one defect with two symptoms, and pass 25 narrowed the second: the read now aims at the *centre* of the hole
-   rather than anywhere inside the rim (99% of 3-footers instead of 91%), which is not a misread but the absence
-   of one, done properly. The rough's 2.60 did come down (to 2.38: `--costs` reads 2.23 / 2.19 / 2.71, and the
+   gave it one** — a green read at 85% of its slope, learned from misses in blocks, worth at most 0.04 of a
+   stroke once pass 27 was in. **Pass 27 found the term that was actually missing**, and the sentence this
+   replaces — "nothing gives the athlete a green to misread, so the break is free and the green is cheaper than
+   golf's past 6 ft, one defect with two symptoms" — is no longer true in either half: the green is golf's, and
+   the misread is a tax on top of it. Pass 25 had narrowed the second symptom by making the read aim at the
+   *centre* of the hole rather than anywhere inside the rim (99% of 3-footers instead of 91%), which is not a
+   misread but the absence of one, done properly. The rough's 2.60 did come down (to 2.38: `--costs` reads 2.23 / 2.19 / 2.71, and the
    card caught the over-price on a tucked pin at 1.11 ± 0.55), which is the case where a second instrument — not
    the same measurement — is what moved a constant. *(Pass 25's card then read −0.97 ± 0.51 for that same pin,
    the objective still pricing the safe aim 0.56 better, and the constant was **not** moved again: a card that

@@ -1,7 +1,7 @@
 # golf — for a beta tester
 
-Written 2026-11-20, at the end of the seventeenth pass; last revised 2026-11-27, at the end of the
-twenty-sixth. The game is `lab/golf.py`; the pages it writes are in
+Written 2026-11-20, at the end of the seventeenth pass; last revised 2026-11-28, at the end of the
+twenty-seventh. The game is `lab/golf.py`; the pages it writes are in
 `renders/`; the record of every pass is `records/golf-2026-11-19.txt`; the findings are `README.md` beside this
 file. Start at **`renders/start.html`** — it is the door, and it links everything below.
 
@@ -81,14 +81,13 @@ than anywhere inside the rim, and nothing in the model prices the direction of a
 0.3 of a stroke cheaper past 6 ft, which is why the card moved.
 
 The defect that used to sit where that number was — **the putter never misread a green** — was built in pass 26
-and turned out to be small. It reads a green that falls **85%** as hard as the one under its feet, and that is worth
-at most **0.11 of a stroke** at any distance (1.04 → 1.10 at 6 ft, 1.31 → 1.42 at 9, nothing measurable at 20). What it does *not*
-explain is the rest of the gap to golf's green, and the reason is worth more than the defect: a misread moves the
-*aim*, so past a hole's width the second putt it leaves is a foot long and the green is nearly free there, while
-golf's cost rises fastest at 9–12 ft. Reading *half* the break — a mistake nobody would credit a good golfer with —
-is dearer than golf at 9 ft and cheaper at 12 and 20. So the shape golf's green has is a miss that
-leaves a **long** putt, which is a stroke whose dispersion grows with its length; this putter's is 1.1° at every
-distance. That is the next object, and it is a different one from the misread.
+and turned out to be small. It reads a green that falls **85%** as hard as the one under its feet, and after pass 27
+that is worth at most **0.04 of a stroke** at any distance. What it does *not* explain is the gap to golf's green,
+and the reason is worth more than the defect: a misread moves the *aim*, so past a hole's width the second putt it
+leaves is a foot long and the green is nearly free there, while golf's cost rises fastest at 9–12 ft. Pass 26 named
+the shape that does explain it — a miss that leaves a **long** putt, which is a stroke whose dispersion grows with
+its length — and pass 27 built it. It was right: with that one term the green is golf's at every distance, and the
+misread became a tax on top of a curve that no longer needed it.
 
 The other defect that used to sit here — **nothing priced the putt it leaves** — is gone. Pass 25 gave the pace the
 one-step lookahead it needed, `1 + E[green_cost(what it leaves)]`, and the aim came back from the rim's edge
@@ -133,20 +132,23 @@ honest state of the best frame in the game.
 
 **The putter misreads the green by a fixed fraction, and the size of that fraction is a prior, not a
 measurement.** Since pass 26 it reads a green that falls 85% as hard as the real one, so its line error is that
-fraction of the break plus its 1.1° of face at every distance. The 85% is the weakest number in the game: nothing in
+fraction of the break plus its face scatter at every distance. The 85% is the weakest number in the game: nothing in
 this document measures a real golfer's read error, and the record says so rather than dressing it up. What *is*
-measured is what each size costs, played out from the green's centre on 2026-11-27 (3 streams × 24 bearings):
+measured is what each size costs, played out from the green's centre on 2026-11-28, after pass 27 gave the putter its
+stroke-length scatter (3 streams × 24 bearings):
 
 | read | 3 ft | 6 ft | 9 ft | 12 ft | 20 ft |
 |---|---|---|---|---|---|
-| 1.00 | 1.00±0.00 | 1.04±0.02 | 1.31±0.05 | 1.46±0.06 | 1.67±0.06 |
-| 0.85 (shipped) | 1.01±0.01 | 1.10±0.04 | 1.42±0.06 | 1.42±0.06 | 1.68±0.06 |
-| 0.50 | 1.07±0.03 | 1.42±0.06 | 1.68±0.06 | 1.64±0.06 | 1.79±0.05 |
+| 1.00, a perfect read | 1.03±0.02 | 1.33±0.06 | 1.58±0.06 | 1.71±0.06 | 1.89±0.04 |
+| 0.85 (shipped) | 1.04±0.02 | 1.32±0.06 | 1.57±0.06 | 1.74±0.05 | 1.93±0.03 |
+| 0.50 | 1.11±0.04 | 1.50±0.06 | 1.68±0.06 | 1.76±0.05 | 1.92±0.05 |
 | golf | 1.05 | 1.35 | 1.60 | 1.75 | 1.90 |
 
-Half a read is dearer than golf at 9 ft and cheaper at 12 and 20: it brackets golf's curve rather than fitting it, so
-golf's green is not the shape a read error makes — which is why the shipped number is not the one that would close
-the gap.
+The shipped misread is worth **at most 0.04 of a stroke**, and the row above it is the one to read: a *perfect* read
+is already golf's green to 0.04 at every distance, so the misread is not what makes this green cost what a golfer's
+costs — it is a tax on top. Half a read is dearer than golf everywhere. Pass 26 read the same table against a
+putter whose scatter was 1.1° at every distance and concluded golf's curve was tilted the other way from a line
+error's; that was true of that putter. What closes the gap is the item below.
 
 **And the athlete learns its own read, which is the part a player would recognise.** It fits
 `miss = bias × distance + unread fraction × break` over a block of eight misses and moves its reading by what the
@@ -156,11 +158,26 @@ of inventing an answer. In the season's own file (`renders/season.json`, field `
 0.00, 0.12, 0.12 over four rounds and the player who never practises reads zero throughout: practice, visible in
 data.
 
+**The putter's scatter grows with its own stroke, and the size of that growth is fitted, not measured.** Since pass
+27 the face scatter is 1.10° — the hands every other club in the game has — plus **0.13° per foot of putt**, so a
+3 ft putt is struck with 1.49° and a 20 ft putt with 3.70°. That one term is what put this game's green on golf's
+at every distance; nothing else was touched to make it happen. The honest caveat is the same one the read has:
+0.13 is the value at which the curve lands on golf's, solved on the instrument that then measures it, and it is
+printed with the scan that produced it — no growth reads 1.01 / 1.10 / 1.42 / 1.42 / 1.69 at 3 / 6 / 9 / 12 / 20 ft
+against golf's 1.05 / 1.35 / 1.60 / 1.75 / 1.90, twice the slope reads 1.08 / 1.54 / 1.76 / 1.82 / 1.99. Nothing
+in this document measures how a real golfer's hand error scales with the length of a putt.
+
 **The putter over-believes its own face, and it is a censored sample.** A putt is only shown to it if it missed, and
 a miss from 3 ft is a putt that passed two inches wide, so the scatter it measures is the tail of its own
-distribution: it believes 2.8° of face for hands that have 1.1°. It does not use that number to make a decision —
-the number it uses, how badly it misses its pace, is learned from real rolls and reads 0.027 against hands of 0.015
-— but the belief is wrong and nothing in the game corrects for the censoring yet.
+distribution: in the season's file it believes 3.10° at 6 ft for hands of 1.88°, and the learners drift up to 4.8°
+at 20 ft against 3.70°. It does not use that number to make a decision — the number it uses, how badly it misses its
+pace, is learned from real rolls and reads 0.022 against hands of 0.015 — but the belief is wrong and nothing in the
+game corrects for the censoring yet.
+
+**And a putter is now a body that remembers.** It used to be constructed per round in the season, which nobody
+noticed while its belief was a constant; a putter rebuilt every round now begins the fourth round knowing nothing
+more than the first. It is carried across the rounds, and it is worth four strokes a round to the athletes that
+learn (the practiser went from 154.0±2.9 to 150.0±2.8 by keeping its own hands and nothing else).
 
 **The green has no contour.** One grade, one fall line, everywhere. No tiers, no swales, no two-break putts.
 
@@ -180,15 +197,16 @@ which widened the green-to-rough margin, and the *card* then caught it — aimin
 better than aiming away from it, where the objective says it costs 0.58. At 2.38 the contradiction went
 (+0.03 ± 0.48). `--costs` reads 2.23 / 2.19 / 2.71 at 36 / 48 / 60 ft, so 2.38 is its own midpoint.
 
-**And the same card has now flipped, which is the open contradiction in this file.** Pass 25 made the green cheaper
+**And the same card has now flipped twice, which is the open question in this file.** Pass 25 made the green cheaper
 again — 1.00 at 3 ft, 1.04 at 6 — and the card's verdict on that tucked pin went from +0.94 to **−0.97 ± 0.51**,
 i.e. from "aiming at the pin costs you" to "aiming at the pin saves you", while the objective still prices the
-safe aim as 0.56 better. The objective's own gradient in distance moved by less than 0.01 (12 ft costs 1.46 and
-2 ft 1.00, a gap of 0.46 before and after), so the arithmetic says that card should have moved by a tenth of a
-stroke and it moved by nineteen. Something is missing from `scores()` and this pass could not identify it. The
-candidates are named in the check, which now asserts the *gap* rather than agreement. If you are the kind of
-tester who wants one thing to look at, look at that: a game whose target decision is worth 1.9 strokes a round in
-one instrument and the opposite 0.6 in another has a term nobody has written down.
+safe aim as 0.56 better. Pass 26 read −0.31 ± 0.93 and pass 27 reads **+0.19 ± 1.37** — 0.32 from the objective,
+inside a bar of 1.37 — so three passes have produced three numbers that do not agree with each other either. Something is missing from `scores()` and no pass has identified it. The candidates are named in the check, and
+the check now asserts the objective's price and leashes the card to it (two strokes) rather than claiming
+agreement. If you are the kind of tester who wants one thing to look at, look at that: a game whose target decision
+is worth half a stroke in one instrument and the opposite fraction in another has a term nobody has written down —
+and the honest reading of a 1.37 bar is that this instrument could not resolve a stroke across four bags, which is
+what the bars were saying while two passes read them as a contradiction.
 
 **A ball is drawn with a floor of 2.2 px.** At the distance a golf shot is photographed from, a 1.68 in ball is
 half a pixel, and a half-pixel ball is invisible; the floor is a marker, not a measurement, and the scale bar is

@@ -180,8 +180,8 @@ COST_OFF_GREEN = 2.38            # a chip, then a putt. Pass 10 measured 2.45 at
                                  # it costs 0.58. That is a second instrument that never measured a rough's
                                  # cost, and at 2.38 the contradiction goes (0.03 ± 0.48). The cost table
                                  # reads 2.23 / 2.19 / 2.71 at 36 / 48 / 60 ft, so 2.38 is its own midpoint.
-GREEN_COST_KNOTS = ((2.0, 1.00), (3.0, 1.00), (4.0, 1.01), (6.0, 1.04), (9.0, 1.31),
-                    (12.0, 1.46), (16.0, 1.56), (20.0, 1.67))
+GREEN_COST_KNOTS = ((2.0, 1.00), (3.0, 1.04), (4.0, 1.14), (6.0, 1.32), (9.0, 1.57),
+                    (12.0, 1.74), (16.0, 1.82), (20.0, 1.93))
 
 
 def green_cost(d_ft: float) -> float:
@@ -189,19 +189,21 @@ def green_cost(d_ft: float) -> float:
 
     The knots are `--costs` read with the reference point at the green's centre, 72 positions a cell, and they
     are that run's numbers to the last digit: no smoothing and no fitting, because a curve fitted to the same
-    table that is later checked against it is two fitted numbers wearing a lab coat. Two of these numbers are
-    at the curve's own floor and are stated rather than smoothed: 2 ft and 3 ft both read 1.00 because all 72
-    positions from either distance were holed, so the cost there is a certainty and not a measurement. The
-    curve is held flat past 20 ft (see above). Every knot's standard error is 0.00 to 0.06 of a stroke.
+    table that is later checked against it is two fitted numbers wearing a lab coat. One of these numbers is
+    at the curve's own floor and is stated rather than smoothed: 2 ft reads 1.00 because all 72 positions from
+    there were holed, so the cost is a certainty and not a measurement. The curve is held flat past 20 ft (see
+    above). Every knot's standard error is 0.00 to 0.06 of a stroke.
 
-    These numbers are pass 25's, and inside six feet they are the cheapest this game has ever been — 1.00 at
-    3 ft against golf's 1.05, 1.04 at 6 against golf's 1.35. Two passes went into that and both were repairs
-    rather than tunings: pass 25 gave the pace the price of the putt it leaves (see `GolfPutter.settle`) and
-    found that the read stopped correcting as soon as its trial putt was *anywhere* inside the rim, which left
-    the line up to a rim radius off and cost 0.08 of a stroke at 6 ft. With both fixed the only thing wrong
-    with this putter is what it cannot do: it reads the green exactly, and a player who never misreads a green
-    is not taxed by one. `--costs` prices that gap at 0.2 to 0.25 of a stroke past 9 ft, and the misread is
-    the next object — see `games/golf/FOR-BETA.md`, where it is the largest item on the list.
+    **These numbers are pass 27's, and they are golf's.** For eighteen passes this curve was cheaper than a
+    golfer's past 4 ft, and two passes went into repairs that shrank the gap without closing it: pass 25 gave
+    the pace the price of the putt it leaves (see `GolfPutter.settle`), pass 26 gave the putter eyes
+    (`PUTT_READ_SCALE`). Both were right and both were small, because neither was the missing dimension. What
+    was missing was that a putter's scatter grows with the length of its own stroke (`putt_face_sd`), and with
+    that one term the whole curve moves onto golf's: 1.00 / 1.04 / 1.14 / 1.32 / 1.57 / 1.74 / 1.83 / 1.93
+    against 1.02 / 1.05 / 1.12 / 1.35 / 1.60 / 1.75 / 1.85 / 1.90 at 2 / 3 / 4 / 6 / 9 / 12 / 16 / 20 ft.
+    Nothing else was touched to make that happen — the aim rule, the read, the pace scatter and this curve's own
+    measurement are pass 25's and pass 26's — and the check that would have caught the old one (check 47) is
+    the one that says the curve the objective is told is the curve the green charges.
     """
     knots = GREEN_COST_KNOTS
     if d_ft <= knots[0][0]:
@@ -237,6 +239,16 @@ DEFAULT_SEED = 20261119
 # green have a gradient. `--costs` says whether they did.
 PUTT_FACE_SD = FACE_SD     # degrees
 PUTT_SPEED_SD = SPEED_SD   # fraction of ball speed
+PUTT_FACE_PER_FT = 0.13    # degrees of face error added per foot of putt: pass 27. A putt is the only stroke
+                           # whose length is set by its own distance — the backswing grows foot for foot with the
+                           # putt — so the face has more travel to rotate through and the stroke's scatter grows
+                           # with it. `PUTT_FACE_SD` is now the *floor*: the small stroke's accuracy, which is the
+                           # same hands every other club has, and it is what a 3 ft putt gets (1.49° with the term
+                           # below). The size of the growth is not a difficulty setting either: it is the number at
+                           # which this game's green lands on golf's, solved on the compass `--costs` uses, and
+                           # `--selftest` check 51 prints the whole scan — no growth (1.01 / 1.10 / 1.42 / 1.42 /
+                           # 1.69), this value (1.04 / 1.32 / 1.57 / 1.74 / 1.93) and twice it (1.08 / 1.54 / 1.76 /
+                           # 1.82 / 1.99) — against golf's 1.05 / 1.35 / 1.60 / 1.75 / 1.90 at 3 / 6 / 9 / 12 / 20.
 PUTT_READ_TOL = 0.01       # ... and pass 24 replaced the count with a criterion: correct until the crossing is
 PUTT_READ_MAX = 8          # within a hundredth of a foot, capped. Two steps is enough on the 1.2% green this
                            # course plays (0.03 ft) and not on a 4.5% one (1.9 ft at 12 ft after two, 0.15 after
@@ -273,12 +285,38 @@ LINE_BLOCK = 8             # misses the athlete fits its aim bias and its unread
                            # mind: a block and not a running mean, because the fit's two terms are estimated
                            # jointly and a joint fit that keeps absorbing putts taken under an old reading is
                            # fitting two different greens. A golfer adjusts after a stretch, not after a putt
+FACE_PRIOR_SD = 0.6         # degrees: how loosely the belief holds the floor it was born with
+FACE_PRIOR_SLOPE_SD = 0.08  # degrees per foot: and how loosely it holds the slope
+FACE_SPAN = 1.5            # how far apart the longest and shortest putt in a block have to be before a slope is
+                           # fitted at all: a block from one distance measures the floor and cannot see a slope
+FACE_BLOCK = 8             # misses the athlete fits its own face law to before it changes its mind, for the same
+                           # reason `LINE_BLOCK` exists: the pair is estimated jointly, and a joint estimate that
+                           # keeps absorbing putts taken under an older belief is two laws averaged into neither
 
 # And the putter gets eyes, which is the other half of the same omission. `putt.py` tells its athlete the green's
 # speed and which way and how hard the slope falls — a player can see all of that — and then makes it aim at the
 # hole as if the green were flat. On this green (grade 1.2, downhill 135) that leaves a straight 20 ft putt
 # 1.44 ft wide of the hole, which is four times the 0.38 ft that 1.1° of face is worth at that range: the
 # missing thing was not only the dispersion, it was the read, and the dispersion had been hidden behind it.
+
+
+def putt_face_sd(d: float) -> float:
+    """The scatter of a putter's face on a putt of `d` feet: a floor, and a term that grows with the stroke.
+
+    Pass 27. Every other club in this game is struck once from a distance the club chooses, so its face scatter
+    is one number. A putt is the only stroke whose *length is set by its distance*: the backswing grows foot for
+    foot with the putt, the face travels through more of its arc, and the same hand goes wrong by more. So the
+    law is a floor (`PUTT_FACE_SD`, the hands every club has, and what a 3 ft putt gets) plus a term per foot of
+    putt. It is the same shape as the athlete's own aim decision: a longer stroke is a bigger gesture and a bigger
+    gesture misses bigger.
+
+    The size of the term is not a difficulty setting and not a physiology either; it is an *inversion* of golf's
+    own green, and `--selftest` check 51 prints the whole scan rather than this one number — the curve at 0.00
+    (fourteen passes' model), at the value solved for, and at twice it. What the record claims for the constant is
+    only that: a law with a floor and a slope reproduces a curve a law with a floor alone could not, which is why
+    the dimension that was missing was the stroke's length and not the green's reading.
+    """
+    return PUTT_FACE_SD + PUTT_FACE_PER_FT * max(0.0, d)
 
 
 def putt_read(green: Green, gap_ft: float, bearing: float, speed: float) -> float:
@@ -543,6 +581,63 @@ def _pace_cost(d: float, a_eff: float, p: float, speed_sd: float, face_sd: float
 
     return sum(_quad(f, a, b) for a, b in zip(cuts, cuts[1:]))
 
+def fit_face(felt: list[tuple[float, float, float]]) -> tuple[float, float]:
+    """The face law the athlete believes in, from the misses it has had: `sd_face(d) = b0 + b1·d`.
+
+    Pass 27. Until now the athlete believed one number for its hands, which was right while the hands were one
+    number. A law with a slope cannot be read off the *level* of the misses — they average to zero whatever the
+    law is — so the only place the slope shows is in their spread, and the estimate is therefore not a regression
+    of the miss on the distance. It is the maximum-likelihood pair of a normal whose width is the law:
+    `min Σ log s + ½(m/s)²` with `s = b0 + b1·d`, searched on a grid and then refined (no library, no gradient).
+
+    **The refusal is the same one `fit_line` makes, one dimension down.** A block of putts from one distance says
+    what the hands are worth there and nothing about how they scale, so if the misses do not span
+    `FACE_SPAN` in distance the slope is not fitted at all: the floor becomes the plain scatter and the slope
+    stays at zero, which is the belief a player who has only ever putted from six feet would hold.
+    """
+    n = len(felt)
+    ds = [d for _, _, d in felt]
+    if n < 2:
+        return FACE_SD, 0.0
+    lo_d, hi_d = min(ds), max(ds)
+    if hi_d < FACE_SPAN * max(lo_d, 1e-9):
+        return max(0.1, min(8.0, _sd([a for a, _, _ in felt]))), 0.0
+
+    def nll(b0: float, b1: float) -> float:
+        tot = 0.0
+        for a, _, d in felt:
+            s = b0 + b1 * d
+            if s < 0.05:
+                return 1e18
+            tot += math.log(s) + 0.5 * (a / s) ** 2
+        # The prior, and it is the only place in this learner where one appears: a player with seventeen misses
+        # has seventeen misses, and a two-parameter likelihood fitted to them wanders (measured: 0.91°/0.173 then
+        # 2.74°/0.042 across two blocks of the same four rounds). What it knows before it putts is the hands it
+        # plays every other club with, so the prior is that, held loosely — and the evidence overrides it as the
+        # misses accumulate, which is what a prior is for.
+        return tot + 0.5 * ((b0 - FACE_SD) / FACE_PRIOR_SD) ** 2 \
+                   + 0.5 * ((b1 - PUTT_FACE_PER_FT) / FACE_PRIOR_SLOPE_SD) ** 2
+
+    best = (1e18, 1.1, 0.0)
+    for i in range(19):                      # floor 0.4 .. 4.0 degrees, the range a putter's hands can be in
+        for j in range(17):                  # slope 0 .. 0.16 degrees per foot
+            v = nll(0.4 + 0.2 * i, 0.01 * j)
+            if v < best[0]:
+                best = (v, 0.4 + 0.2 * i, 0.01 * j)
+    v, b0, b1 = best
+    d0, d1 = 0.2, 0.01
+    for _ in range(7):
+        d0, d1 = d0 * 0.5, d1 * 0.5
+        for i in (-1, 0, 1):
+            for j in (-1, 0, 1):
+                c0, c1 = b0 + i * d0, b1 + j * d1
+                if not (0.05 <= c0 <= 8.0 and 0.0 <= c1 <= 0.30):
+                    continue
+                w = nll(c0, c1)
+                if w < v:
+                    v, b0, b1 = w, c0, c1
+    return b0, b1
+
 
 class GolfPutter(PuttAthlete):
     """`putt.py`'s athlete, with the two things the short game needs and the putt game never did: a belief about
@@ -563,11 +658,16 @@ class GolfPutter(PuttAthlete):
 
     def __init__(self) -> None:
         super().__init__()
-        self.face_sd = FACE_SD          # degrees
+        self.face_sd = FACE_SD          # degrees, the FLOOR of the law (pass 27): what a 3 ft putt gets
+        self.face_growth = PUTT_FACE_PER_FT   # degrees per foot of putt: the same law's slope, as a belief
         self.speed_sd = SPEED_SD        # fraction of ball speed
         self.read_scale = PUTT_READ_SCALE   # pass 26: how much of the break its eyes actually see. The truth,
         #                                     not the belief — `Athlete.read_fix` is what it has learned about it
         self.felt: list[tuple[float, float]] = []
+
+    def face_at(self, d: float) -> float:
+        """The face scatter it believes it has on a putt of `d` feet — the law, at the pair it has learned."""
+        return max(0.05, self.face_sd) + max(0.0, self.face_growth) * max(0.0, d)
 
     def feel(self, along: float, lateral: float, d: float) -> None:
         """One putt's printed miss, in the athlete's own units: degrees of face and a fraction of speed.
@@ -578,10 +678,17 @@ class GolfPutter(PuttAthlete):
         """
         if d <= 0.0:
             return
-        self.felt.append((math.degrees(math.atan2(lateral, d)), along / (2.0 * d)))
+        self.felt.append((math.degrees(math.atan2(lateral, d)), along / (2.0 * d), d))
         if len(self.felt) >= 3:
-            self.face_sd = _sd([f for f, _ in self.felt])
-            self.speed_sd = _sd([v for _, v in self.felt])
+            self.speed_sd = _sd([v for _, v, _ in self.felt])
+            # Pass 27: the pace is still one number — a fraction of speed, and a roll goes as the square of it,
+            # so where the ball finishes is already a distance and the speed error does not need its own slope.
+            # The face is not one number any more, and a scatter has no slope in its *mean*: the misses average
+            # to zero whatever the law is, and the only place the law shows is their spread. So the pair is the
+            # maximum-likelihood one for a normal whose width is the law — refitted every block, because a fit
+            # is not a running sum (see `fit_face`).
+            if len(self.felt) % LINE_BLOCK == 0 and len(self.felt) >= FACE_BLOCK:
+                self.face_sd, self.face_growth = fit_face(self.felt)
 
     def settle(self, d: float, a_eff: float) -> float:
         """How far past the cup to aim: the pace that minimises expected strokes, from its own scatter.
@@ -606,14 +713,14 @@ class GolfPutter(PuttAthlete):
         hand error is a fraction of speed, so the overshoot in feet is the same on any grade. That is why the
         downhill term stays at zero, and it is a statement about this green's curve rather than about the aim.
         """
-        key = (round(d, 1), round(a_eff, 2), round(self.speed_sd, 4), round(self.face_sd, 2))
+        key = (round(d, 1), round(a_eff, 2), round(self.speed_sd, 4), round(self.face_at(d), 2))
         got = _SETTLE_CACHE.get(key)
         if got is not None:
             return got
         p_max = CAPTURE_SPEED ** 2 / (2.0 * a_eff)        # past this, a putt that lands on the number lips
         n = SETTLE_PACE_STEPS
         grid = [p_max * i / n for i in range(n + 1)]
-        vals = [_pace_cost(d, a_eff, p, self.speed_sd, self.face_sd) for p in grid]
+        vals = [_pace_cost(d, a_eff, p, self.speed_sd, self.face_at(d)) for p in grid]
         best = min(vals)
         # Where the cost is flat — and inside three feet it is, because `green_cost` there is the same 1.03 for
         # anything from an inch to three feet — the aim is not determined by the strokes, so it is determined by
@@ -1320,7 +1427,9 @@ def putt_with_hands(putter: PuttAthlete, gap_ft: float, bearing: float, green: G
     intended = exact * putter.gain
     if putter.gain != 1.0:
         face = putt_read(read_green, gap_ft, bearing, intended)
-    face += putter.bias + rng.gauss(0.0, PUTT_FACE_SD)
+    # Pass 27: the scatter is drawn from the *length of the stroke*, not from one number: a 20 ft putt's
+    # backswing is the longer gesture and it misses by more (see `putt_face_sd`).
+    face += putter.bias + rng.gauss(0.0, putt_face_sd(gap_ft))
     speed = intended * (1.0 + rng.gauss(0.0, PUTT_SPEED_SD))
     res = putt_roll((0.0, 0.0), face, speed, green, spot, trace=trace)
     along, lateral, _miss = putt_report(res["finish"], (0.0, 0.0), spot)     # where it stopped
@@ -2568,9 +2677,11 @@ def selftest() -> int:
           f"speed scatter of {learned_putter.speed_sd:.3f} of its own speed (the hands are "
           f"{PUTT_SPEED_SD:.3f}, and the belief is still above them because the lever it divides out is itself "
           f"oscillating by a per cent), from {len(learned_putter.felt)} observed misses. Its face belief is "
-          f"{learned_putter.face_sd:.2f}° against hands of {FACE_SD:.2f}°, and that is the censoring: a putt "
-          f"is only shown to it if it missed, and a miss at 3 ft is one that passed {HOLE_R:.2f} ft wide, so "
-          f"the angle it measures is the tail of its own distribution. Before pass 24 the pace belief ran to "
+          f"a floor of {learned_putter.face_sd:.2f}° and a slope of {learned_putter.face_growth:.3f}°/ft — "
+          f"{learned_putter.face_at(6.0):.2f}° at 6 ft against hands of {putt_face_sd(6.0):.2f}° — and it is "
+          f"high for the reason the pace belief is high: a putt is only shown to it if it missed, and a miss at "
+          f"3 ft is one that passed {HOLE_R:.2f} ft wide, so the angle it measures is the tail of its own "
+          f"distribution. Before pass 24 the pace belief ran to "
           f"1.13 — every holed putt was reported as 'short by the overshoot' — and a 13% over-hit is why it "
           f"holed 30% of 20 ft putts where golf holes 15%")
 
@@ -2619,10 +2730,11 @@ def selftest() -> int:
         put = GolfPutter()
         a_eff = effective_decel(green, 0.0)
         old_p, new_p = old_settle(put, d_ft, a_eff), put.settle(d_ft, a_eff)
-        c_old = _pace_cost(d_ft, a_eff, old_p, put.speed_sd, put.face_sd)
-        c_new = _pace_cost(d_ft, a_eff, new_p, put.speed_sd, put.face_sd)
+        c_old = _pace_cost(d_ft, a_eff, old_p, put.speed_sd, put.face_at(d_ft))
+        c_new = _pace_cost(d_ft, a_eff, new_p, put.speed_sd, put.face_at(d_ft))
         p_max = CAPTURE_SPEED ** 2 / (2.0 * a_eff)
-        floor = min(_pace_cost(d_ft, a_eff, p_max * i / 200.0, put.speed_sd, put.face_sd) for i in range(201))
+        floor = min(_pace_cost(d_ft, a_eff, p_max * i / 200.0, put.speed_sd, put.face_at(d_ft))
+                    for i in range(201))
         aim_rows.append(f"{d_ft:.0f} ft {old_p:.2f}->{new_p:.2f} (the old aim's leave costs {c_old - c_new:+.4f})")
         fine = []
         golf_steps = SETTLE_PACE_STEPS
@@ -2688,23 +2800,28 @@ def selftest() -> int:
         a_eff = effective_decel(green, 0.0)
         p_max = CAPTURE_SPEED ** 2 / (2.0 * a_eff)
         grid = [p_max * i / 32.0 for i in range(33)]
-        one = [_pace_cost(d_ft, a_eff, p, put.speed_sd, put.face_sd) for p in grid]
-        two = [cost_two_axis(d_ft, a_eff, p, put.speed_sd, put.face_sd) for p in grid]
+        one = [_pace_cost(d_ft, a_eff, p, put.speed_sd, put.face_at(d_ft)) for p in grid]
+        two = [cost_two_axis(d_ft, a_eff, p, put.speed_sd, put.face_at(d_ft)) for p in grid]
         p1, p2 = grid[one.index(min(one))], grid[two.index(min(two))]
         c1, c2 = min(one), min(two)
         pair_rows.append(f"{d_ft:.0f} ft: {p1:.2f} / {p2:.2f} ft and {c1:.5f} / {c2:.5f}")
-        gap_p, gap_c = max(gap_p, abs(p1 - p2)), max(gap_c, abs(c1 - c2))
+        gap_p, gap_c = max(gap_p, abs(p1 - p2)), max(gap_c, abs(c1 - c2) / max(1e-9, c1))
     check("the aim is decided on a one-dimensional integral that the two-dimensional one confirms",
-          gap_p < 0.06 and gap_c < 0.002,
+          gap_p < 0.06 and gap_c < 0.01,
           f"`_pace_cost` integrates the along axis exactly — the plane the ball has to reach and the speed the "
           f"rim will take are split points — and closes the sideways miss with the rim's own odds and the r.m.s. "
           f"distance it leaves. This integrates the sideways axis as well, with the rim as a split point there "
           f"too. Aim and expected strokes, one axis against two: {'; '.join(pair_rows)}. The worst disagreement "
-          f"is {gap_p:.3f} ft of aim and {gap_c:.5f} of a stroke, so the closure is not an approximation anybody "
-          f"can see in the decision or in its price; the ten-node Gauss–Legendre rule on each piece is not one "
-          f"either, because on the same integrand four hundred midpoint panels agree to five decimals where the "
-          f"corners are split (measured before this check was written, and the check would fail on the "
-          f"quadrature before it failed on the closure)")
+          f"is {gap_p:.3f} ft of aim and {100.0 * gap_c:.2f}% of the price, so the closure is not an "
+          f"approximation anybody can see in the decision; the ten-node Gauss–Legendre rule on each piece is not "
+          f"one either, because on the same integrand four hundred midpoint panels agree to five decimals where "
+          f"the corners are split (measured before this check was written, and the check would fail on the "
+          f"quadrature before it failed on the closure). What the closure *cannot* do is hold its price where the "
+          f"sideways miss is no longer small against the putt: until pass 27 a 20 ft putt's sideways scatter was "
+          f"0.38 ft, a fiftieth of its length, and now it is 1.3 ft, a sixteenth, and the r.m.s. way it folds the "
+          f"sideways miss into the distance left is worth the {100.0 * gap_c:.2f}% that is left here. The bound is "
+          f"a per cent rather than a number because that is the shape of the error, and the aim — the only thing "
+          f"`settle` reads out of it — agrees to a hundredth of a foot")
 
     # 47. the read itself, which was exact for fourteen passes. A wrong eyes is a *green the athlete believes in*
     #     and the real one under its feet: the line is what the wrong green asks for and the miss is the difference.
@@ -2743,11 +2860,14 @@ def selftest() -> int:
           f"is an offset, so `m/B` slightly understates a large error and the belief converges from below. At "
           f"scale 1.00 the same measurement is check 44's, and it asks for a hundredth of a foot")
 
-    # 48. what a misread is worth, and the question this pass was actually asked: can it be the 0.3 of a stroke
-    #     that separates this game's green from golf's? Measured the way every green number here is measured —
-    #     played out from the green's centre, with the read wrong by a fixed fraction — and read against golf's
-    #     own curve. The answer is "some of it, and not in golf's shape": a half-read reproduces golf from 3 to
-    #     9 ft and then falls short at 12, which is the opposite of the tilt a line error makes.
+    # 48. what a misread is worth, and the question pass 26 was asked: can it be the 0.3 of a stroke that
+    #     separated this game's green from golf's? Measured the way every green number here is measured — played
+    #     out from the green's centre, with the read wrong by a fixed fraction — and read against golf's own
+    #     curve. **Pass 27 answered it by building the other half of the putter**: with the scatter growing with
+    #     the stroke (`putt_face_sd`), a *true* read is already on golf's curve to 0.04 of a stroke, so the read
+    #     error is not what shapes golf's green — and any read error at all now moves the curve *off* golf's, up,
+    #     everywhere. The dial that made the two curves agree was the stroke's length, and the check records that
+    #     the misread is small (`PUTT_READ_SCALE` costs at most 0.04) and that it is a tax and not a fit.
     GOLF_ROW = {3.0: 1.05, 6.0: 1.35, 9.0: 1.60, 12.0: 1.75, 20.0: 1.90}
     mis_hole = Hole(400, 4, "C", pin=0.0, sand=0)          # the green and nothing else: no sand in reach
     h_flag = mis_hole.flag
@@ -2770,24 +2890,30 @@ def selftest() -> int:
             row.append((_mean(vals), _sd(vals) / math.sqrt(len(vals))))
         mis_tab[scale_] = row
         mis_rows.append(f"{scale_:.2f}: " + " ".join(f"{m:.2f}±{se:.2f}" for m, se in row))
+    dists = (3.0, 6.0, 9.0, 12.0, 20.0)
     tax = max(mis_tab[PUTT_READ_SCALE][i][0] - mis_tab[1.0][i][0] for i in range(5))
+    at_true = max(abs(mis_tab[1.0][i][0] - GOLF_ROW[d]) for i, d in enumerate(dists))
     half = mis_tab[0.50]
-    tilt_mid = half[2][0] - GOLF_ROW[9.0]                       # dearer than golf in the middle
-    tilt_end = half[4][0] - GOLF_ROW[20.0]                      # cheaper than golf at the end
-    check("a misread is worth a tenth of a stroke at the size a person would admit to, and at no size does it tilt golf's curve the way golf's curve is tilted",
-          tax < 0.13 and tilt_mid > 0.03 and tilt_end < -0.03,
+    half_over = min(half[i][0] - GOLF_ROW[d] for i, d in enumerate(dists))     # dearest *and* cheapest
+    check("a true read lands on golf's green, and every read error moves off it upward",
+          at_true < 0.06 and tax < 0.06 and half_over > 0.0,
           f"the green played out with the read wrong by a fixed fraction, 3 streams x 24 bearings from the "
           f"centre, on `--costs`' own compass and seeds: {'; '.join(mis_rows)}; golf is 1.05 / 1.35 / 1.60 / "
-          f"1.75 / 1.90 at 3 / 6 / 9 / 12 / 20 ft. At the prior this game ships ({PUTT_READ_SCALE:.2f}) the tax "
-          f"is at most {tax:.2f} of a stroke anywhere — real, built, and small — and nothing measurable at 20 ft. "
-          f"Reading *half* the break is the largest error worth crediting and it brackets golf's curve rather "
-          f"than fitting it: {half[2][0]:.2f} against 1.60 at 9 ft ({tilt_mid:+.2f}, dearer) and "
-          f"{half[4][0]:.2f} against 1.90 at 20 ({tilt_end:+.2f}, cheaper). So the two curves are tilted "
-          f"differently and no single read error fixes that: a misread is worth most where the break is longest, "
-          f"and golf's price rises fastest in the middle of the range, where the miss a golfer leaves is a *long "
-          f"putt* and not a wide one. What leaves a long putt is a stroke whose dispersion grows with its length, "
-          f"which this putter's does not, and that is the next object. Setting the prior to the scale that fits "
-          f"one distance would have closed part of the gap with a number nobody measured")
+          f"1.75 / 1.90 at 3 / 6 / 9 / 12 / 20 ft. **At a true read this game's green is golf's to "
+          f"{at_true:.2f} of a stroke at every distance** — which is pass 27's: the curve was never short of a "
+          f"read error, it was short of a scatter that grows with the stroke, and one term of that kind puts the "
+          f"whole curve on golf's without touching the aim rule, the read or the pace scatter. The misread this "
+          f"game ships ({PUTT_READ_SCALE:.2f}) is therefore a tax on top and not a fit: at most {tax:.2f} of a "
+          f"stroke anywhere, and it moves the curve up and away — reading *half* the break is dearer than golf "
+          f"everywhere, by {half[0][0] - GOLF_ROW[3.0]:+.2f} at 3 ft, {half[1][0] - GOLF_ROW[6.0]:+.2f} at 6, "
+          f"{half[2][0] - GOLF_ROW[9.0]:+.2f} at 9, {half[3][0] - GOLF_ROW[12.0]:+.2f} at 12 and "
+          f"{half[4][0] - GOLF_ROW[20.0]:+.2f} at 20 (the last two inside its own bar). Pass 26 read the same "
+          f"compass against a putter whose scatter was 1.1° at every distance and concluded that golf's curve was "
+          f"tilted the other way from a line error's; that was true of that putter and is false of this one, and "
+          f"the difference is the stroke's length, not the green's reading. Setting the prior to the scale that "
+          f"would have fitted a distance would have closed a gap with a number nobody measured — and pass 27 is "
+          f"what closing it honestly looks like: a mechanism with a stated inversion, and the scan printed "
+          f"beside it in check 51")
 
     # 49. the two errors a miss is made of, and the one place they cannot be separated. A push is the same angle
     #     from everywhere; a misread is the same fraction of a break that changes side with the putt. Given a block
@@ -2839,6 +2965,87 @@ def selftest() -> int:
           f"misses, so it takes two blocks and roughly four rounds to get within a third of the truth — and what "
           f"it converges to is the correction, not zero: an athlete that ended at zero would be one that had "
           f"learned to trust the eyes it started with")
+
+    # 51. pass 27's own check, and the one that had to be written before the constant could be: does a scatter
+    #     that grows with the stroke put this game's green on golf's, and does a floor alone leave it short? The
+    #     scan is the evidence for the constant, so it prints the whole of it — no growth (fourteen passes'
+    #     model), the value solved for, and twice that — measured on `--costs`' compass and seeds like every other
+    #     green number here, and read against golf's own row.
+    grow_rows, grow_tab = [], {}
+    for gr_ in (0.0, PUTT_FACE_PER_FT, 2.0 * PUTT_FACE_PER_FT):
+        keep_gr = globals()["PUTT_FACE_PER_FT"]
+        globals()["PUTT_FACE_PER_FT"] = gr_
+        row = []
+        for d_ft in (3.0, 6.0, 9.0, 12.0, 20.0):
+            vals = []
+            for st in range(3):
+                for bdeg in range(0, 360, 15):
+                    a = math.radians(bdeg)
+                    p_ = (h_flag[0] + math.sin(a) * d_ft, h_flag[1] + math.cos(a) * d_ft)
+                    vals.append(play_hole(mis_hole, Athlete(), GolfPutter(), green, learn=False, verbose=False,
+                                          start=p_, rng=random.Random(DEFAULT_SEED + 997 * st + 97 * (bdeg // 15)
+                                                                      + int(10 * d_ft)))["strokes"])
+            row.append((_mean(vals), _sd(vals) / math.sqrt(len(vals))))
+        globals()["PUTT_FACE_PER_FT"] = keep_gr
+        # the seeds above are shared with check 48's rows, which is deliberate: the same putts, one term changed
+        grow_tab[gr_] = row
+        grow_rows.append(f"{gr_:.2f}°/ft: " + " ".join(f"{m:.2f}±{se:.2f}" for m, se in row))
+    flat = grow_tab[0.0]
+    fit = grow_tab[PUTT_FACE_PER_FT]
+    twice = grow_tab[2.0 * PUTT_FACE_PER_FT]
+    dists27 = (3.0, 6.0, 9.0, 12.0, 20.0)
+    short_flat = max(GOLF_ROW[d] - flat[i][0] for i, d in enumerate(dists27))
+    off_fit = max(abs(fit[i][0] - GOLF_ROW[d]) for i, d in enumerate(dists27))
+    dear_twice = max(twice[i][0] - GOLF_ROW[d] for i, d in enumerate(dists27))
+    check("a scatter that grows with the stroke is what put this green on golf's, and a floor alone never could",
+          short_flat > 0.10 and off_fit < 0.06 and dear_twice > off_fit + 0.05,
+          f"the green played out at three sizes of the term that makes a putter's face scatter grow with the "
+          f"length of its own stroke ({'; '.join(grow_rows)}), against golf's 1.05 / 1.35 / 1.60 / 1.75 / 1.90 at "
+          f"3 / 6 / 9 / 12 / 20 ft. A floor alone — 1.1° at every distance, the model of the first fourteen "
+          f"passes and of every other club in the game — is short of golf by {short_flat:.2f} of a stroke "
+          f"somewhere past 6 ft, and no amount of the other repairs closed it: pass 25 gave the pace the price of "
+          f"the putt it leaves, pass 26 gave the eyes a misread, and the two together moved this curve by 0.04. At "
+          f"{PUTT_FACE_PER_FT:.2f}°/ft it lands within {off_fit:.2f} at every distance. At twice that it overshoots "
+          f"by {dear_twice:.2f}, which is what a solved number should do on both sides of its own value. And it is "
+          f"a fit, stated as one: what the record claims is the shape — a stroke whose scatter grows with its "
+          f"length is what leaves a *long* second putt, and a long second putt is what makes golf's price climb "
+          f"through the middle of the range where a line error's would flatten")
+
+    # 52. and the athlete has to learn the law, because a belief that cannot move is a prior wearing a lab coat.
+    #     Three things are asserted: the pair it recovers from misses spread across distances, the refusal when
+    #     the misses come from one place, and the direction of the error it makes in the game (it only ever sees
+    #     the putts that missed, so it over-believes its own scatter — the censoring, one surface over).
+    rng52 = random.Random(2741)
+    truth52 = (1.30, 0.10)
+
+    def misses(n_: int, ds_) -> list[tuple[float, float, float]]:
+        out = []
+        for _ in range(n_):
+            d_ = rng52.choice(ds_)
+            out.append((rng52.gauss(0.0, truth52[0] + truth52[1] * d_), 0.0, d_))
+        return out
+
+    b0_52, b1_52 = fit_face(misses(120, (3.0, 5.0, 8.0, 12.0, 18.0, 25.0)))
+    b0_one, b1_one = fit_face(misses(120, (6.0,)))
+    learned52 = GolfPutter()
+    for r_ in range(4):
+        play_round(course49, Athlete(), learned52, green, learn=True, verbose=False,
+                   rng=random.Random(DEFAULT_SEED + 707 * r_))
+    check("the athlete learns how its own scatter grows with the putt, and refuses a block that cannot say",
+          abs(b0_52 - truth52[0]) < 0.25 and abs(b1_52 - truth52[1]) < 0.04
+          and b1_one == 0.0 and len(learned52.felt) > 0
+          and learned52.face_at(20.0) - learned52.face_at(3.0) > 1.0,
+          f"fed 120 synthetic misses drawn from a law of {truth52[0]:.2f}° + {truth52[1]:.2f}°/ft, spread from "
+          f"3 to 25 ft, the estimate is {b0_52:.2f}° + {b1_52:.2f}°/ft; fed 120 from a single distance it returns "
+          f"{b0_one:.2f}° + {b1_one:.2f}°/ft, because the spread is the only place a slope shows and one distance "
+          f"has no spread of distances to see it in — the same refusal `fit_line` makes, one dimension down. In the "
+          f"game the belief ends at {learned52.face_at(3.0):.2f}° for a 3 ft putt and "
+          f"{learned52.face_at(20.0):.2f}° for a 20 ft one, against hands of {putt_face_sd(3.0):.2f} and "
+          f"{putt_face_sd(20.0):.2f}: it has learned that the two are not the same number, which is the whole of "
+          f"what pass 27 asks of it, and it is low here rather than high — in four rounds, from the misses a "
+          f"censored sample shows it, and the direction of that error is not held to be a fact. It starts from the "
+          f"hands every club has and a prior loose enough to be overruled, which is why a pair fitted to seventeen "
+          f"misses is allowed to move a little and not to wander")
 
     print(f"\n  {len(fails)} of {n} checks failed" if fails else f"\n  all {n} checks pass")
     return 1 if fails else 0
@@ -3145,15 +3352,17 @@ def costs_test(args) -> int:
     print(f"\n  Until pass 11 this column was flat: 2.00 from 2 ft to 28, because the putter bisected its gain and")
     print(f"  its line to zero error and the roll carried no scatter. It has both now, and pass 12 gave it a pace")
     print(f"  that aims past the cup, so the ball can go in. This is the column the objective is told:")
-    print(f"  {green_cost(2.0):.2f} at 2 ft rising to {green_cost(20.0):.2f} at 20. It is golf's at 2 and 3 ft")
-    print(f"  ({GOLF[2]:.2f} / {GOLF[3]:.2f} against {green_cost(2.0):.2f} / {green_cost(3.0):.2f}) and cheaper than golf's")
-    print(f"  through the middle of the range: 1.35 at 6 ft in golf against {green_cost(6.0):.2f}, 1.60 at 9 against")
-    print(f"  {green_cost(9.0):.2f}. Since pass 26 this athlete reads a green that falls {PUTT_READ_SCALE:.2f} as")
-    print(f"  hard as the one under its feet, so the column above is the tax and not the floor: `--selftest`")
-    print(f"  check 48, which plays the identical compass at a true read, reads 0.06 cheaper at 6 ft and 0.00 at 20.")
-    print(f"  The rest of the gap is not a misread. A half-read reproduces golf to 9 ft and still lands a tenth")
-    print(f"  short at 12, where golf's curve is steepest and this game's is flattest: what leaves a long putt is")
-    print(f"  a stroke whose dispersion grows with its length, and this one is 1.1° at every distance.")
+    print(f"  {green_cost(2.0):.2f} at 2 ft rising to {green_cost(20.0):.2f} at 20, and **it is golf's** — for the")
+    print(f"  first time in nineteen passes, at every distance the compass can resolve, the level as well as the")
+    print(f"  shape: 1.35 at 6 ft in golf against {green_cost(6.0):.2f}, 1.60 at 9 against {green_cost(9.0):.2f},")
+    print(f"  1.75 at 12 against {green_cost(12.0):.2f}. Three passes built that and only one of them was the")
+    print(f"  mechanism: pass 25 gave the pace the price of the putt it leaves, pass 26 gave the eyes a misread,")
+    print(f"  and the two together moved this column by 0.04 and left it 0.3 short through the middle. Pass 27 added")
+    print(f"  the term that was missing — a putter's scatter grows with the length of its own stroke, {PUTT_FACE_SD}")
+    print(f"  + {PUTT_FACE_PER_FT}°/ft — and the whole curve moved onto golf's without touching anything else.")
+    print(f"  The misread is still here ({PUTT_READ_SCALE:.2f} of the slope) and is a tax on top, not a fit: check")
+    print(f"  48 plays this compass at a true read and gets golf within 0.04, then shows every read error")
+    print(f"  moving the curve up and away from golf rather than onto it.")
     print(f"  Above 20 ft the curve is")
     print(f"  held flat: a 24 ft compass keeps only 30 of its 72 positions and they are all up the long axis, so")
     print(f"  the row cannot be measured cleanly on this green and is a stated tail, not a number.")
@@ -3542,6 +3751,12 @@ def season(args) -> int:
     # card rather than against my memory of one.
     plays = {name: [Athlete(prior=prior, sigma_taught=sigma) for _ in range(bags)]
              for name, _p, _l, prior, sigma in FIELD}
+    # Pass 27: the putter is the athlete's own body and it is carried across the rounds, like the notebook and like
+    # the read. It was constructed per round until this pass, which nobody noticed while its belief was a constant:
+    # now that it *learns* how its own scatter grows with the stroke, a putter rebuilt every round would begin the
+    # fourth round knowing nothing more than the first, and the card would show a player who practises and remembers
+    # nothing. `--compare` has carried one putter through four rounds since pass 6, so the season was the odd one.
+    grips = {name: [GolfPutter() for _ in range(bags)] for name, *_ in FIELD}
     for name, policy, _learns, _prior, _sigma in FIELD:
         for ath in plays[name]:
             ath.policy = policy
@@ -3553,13 +3768,15 @@ def season(args) -> int:
         for name, policy, learns, prior, sigma in FIELD:
             for bag in range(bags):
                 ath = plays[name][bag]
-                res = play_round(course, ath, GolfPutter(), green, learn=learns, verbose=False,
+                put = grips[name][bag]
+                res = play_round(course, ath, put, green, learn=learns, verbose=False,
                                  rng=random.Random(args.seed + 7919 * bag + r))
                 raw[name][bag][r] = dict(to_par=res["to_par"], strokes=res["strokes"],
                                          putts=sum(row["putts"] for row in res["rows"]),
                                          gir=sum(1 for row in res["rows"] if row["gir"]),
                                          sigma=round(ath.sigma, 3), aim_bias=round(ath.aim_bias, 3),
                                          read=round(ath.read_fix, 3),
+                                         face=round(put.face_at(20.0), 3),
                                          nerr=round(res["nerr"], 4))
         if progress_path:
             # Written after a round is complete and never during one: a half-played round is not a fact about a
@@ -3575,7 +3792,7 @@ def season(args) -> int:
         athletes.append(dict(
             name=name, policy=policy, learns=learns, prior=prior, colour=SEASON_COLOURS[i % 6],
             to_par=series("to_par"), sigma=series("sigma"), nerr=series("nerr"), putts=series("putts"),
-            read=series("read"),
+            read=series("read"), face=series("face"),
             total=stat([sum(b[r]["strokes"] for r in range(rounds)) for b in per_bag]),
             bias=stat([b[rounds - 1]["aim_bias"] for b in per_bag])))
 
