@@ -11055,6 +11055,48 @@ class TestTheStepTowardTheBallIsWalkedAndNotPlaced(unittest.TestCase):
                       "there is no way to draw the pre-step build on the same film, so the change cannot be priced")
 
 
+class TestACarriedFrameIsPutAwayOnTheClock(unittest.TestCase):
+    """2026-11-27. The carried frame between points was the last boolean in the pose — `if (walking)`, run after both
+    branches — and it switched on the frame a walk began and off on the frame it ended, which is a segment boundary.
+    Measured across 107 shot boundaries of `records/item31-after`: the root moves at most 0.253ft there and the
+    RACQUET HEAD moves up to 6.314ft in one 0.01s frame (T=412.98, Gwen, y 0.72 -> 6.33)."""
+
+    def setUp(self):
+        self.page = (REPO / "games" / "tennis" / "replay3d.html").read_text(encoding="utf-8")
+
+    def test_the_pose_is_gated_on_the_walk_s_own_clock_and_not_on_the_boolean(self):
+        self.assertIn("if (walkK > 0.001) {", self.page)
+        self.assertNotIn("if (walking) {\n      // The racquet goes down by the thigh", self.page,
+                         "the carried pose is still switched by a boolean")
+        self.assertIn("const kIn = Math.min(1, Math.max(0, (rel - mine.t0) / WALK_IN));", self.page)
+
+    def test_the_end_of_the_break_is_the_next_segment_s_start_and_not_its_hold(self):
+        # `hold` ends 0.835s after the next segment claims the clock, because it carries that serve's stance lead.
+        # A fade phased on `hold` reached 0.020 of its travel and still cut at full weight.
+        self.assertIn("const drawEnd = nextSeg ? Math.max(seg.dur, nextSeg.start - seg.start) "
+                      ": seg.dur + seg.hold;", self.page)
+        self.assertIn("const drawEndRel = drawEnd - seg.dur;", self.page)
+        self.assertIn("const endRel = Math.min(mine.t1 + WALK_OUT, drawEndRel);", self.page)
+        self.assertIn("`seg.hold` is the wrong end of the break to phase a fade on", self.page)
+
+    def test_the_cross_fade_restores_both_ends_exactly(self):
+        # at walkK 1 the block must be the old block, at walkK 0 the branch's pose must come back untouched
+        self.assertIn("b.quaternion.copy(was[i]).slerp(target, walkK);", self.page)
+        self.assertIn("rig.racquet.position.copy(rac0.p).lerp(tp, walkK);", self.page)
+        self.assertIn("rig.racquet.quaternion.copy(rac0.q).slerp(tq, walkK);", self.page)
+
+    def test_the_two_windows_are_sweepable_and_the_old_switch_is_still_drawable(self):
+        self.assertIn('const WALK_IN = q.has("walkin")', self.page)
+        self.assertIn('const WALK_OUT = q.has("walkout")', self.page)
+        self.assertIn('const WALK_FADE = q.get("walkfade") !== "0";', self.page,
+                      "there is no way to draw the switch on the same film, so the change cannot be priced")
+        self.assertIn("if (!WALK_FADE) walkK = walking ? 1 : 0;", self.page)
+
+    def test_the_numbers_that_priced_it_are_next_to_the_code(self):
+        self.assertIn("up to 6.31ft", self.page)
+        self.assertIn("held to rel 29.65", self.page)
+
+
 if __name__ == "__main__":
     leftovers = debris()
     if leftovers:

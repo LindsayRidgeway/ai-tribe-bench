@@ -1391,6 +1391,64 @@ happens inside the shot: the peak one-frame toe move across the whole serve is *
 The whole film is unchanged where it must be: item 2b **0.25ft = 25.3ft/s**, the toe's worst frame **0.239 / 0.230ft**,
 the 108 contacts **median 0.01ft, worst 0.56**, feet to contact **1.88 / 3.59 / 3.63ft**.
 
+### a carry is put away on the clock — and the clock was the wrong one (DONE 2026-11-27)
+
+The carried frame between points was the last boolean in the pose: `if (walking) { stroll(); placeRacquet(by the
+thigh); }`, run after both branches, switched on the frame a walk began and off on the frame it ended — and that
+frame is a segment boundary. Measured across the 107 shot boundaries of `records/item31-after`: the root moves at
+most 0.253ft (median 0.107, p90 0.151) but the **racquet head moves up to 6.314ft in one 0.01s frame**, at
+T=412.98, Gwen, in the change of ends at the end of rally 30 — y 0.72 to 6.33, the frame going from down by the
+thigh to up in front of the shoulder. Every one of the worst ones is BETWEEN points; inside a rally the junction is
+continuous (max 2.964ft, and most of that is the body turning — see the last paragraph).
+
+So the carry is now entered and left on the walk's own clock, `mine.t0`/`mine.t1` from the record's settle, and
+the pose is cross-faded rather than replaced: the four arm bones are slerped from the pose the branch left toward
+`stroll`'s, and the frame's position and quaternion are lerped between the head that branch placed and the thigh
+point. At `walkK` 1 the block is the old block to the byte; at `walkK` 0 it leaves the frame exactly where the
+branch put it, so nothing outside a break can have changed — which is what the table below says.
+
+**The clock was wrong twice, and the first wrong clock produced an identical measurement.** Ending the fade 0.35s
+after the walk ended (`t1 + WALK_OUT`) changed the worst boundary by **0.000ft**: the file's whole output was
+byte-identical, which is not how a fix fails, it is how a *dormant* fix fails. Two reasons, both the record's:
+
+* the walk is not over when its own `t1` says — this change of ends walks to rel 28.902 and the segment's own
+  `hold` ends at 29.65, so at first glance there was room;
+* but **`hold` is not when the segment stops being drawn.** The next segment begins at rel 28.815, because a
+  serve's hold carries the NEXT shot's stance lead (0.835s here) and `shotAt` returns the segment that started
+  latest. The last 0.13s of a 28.9s walk is never drawn at all.
+
+`drawEndRel` — the next segment's start, in the settle's own clock — is the real end of the break, and the fade is
+phased on `min(t1 + WALK_OUT, drawEndRel)`. `?walkfade=0` draws the old switch, so the two columns below are one
+build and one instrument.
+
+| `records/item31-after`, 0.8:529, 0.01s grid, 78 player-boundaries between points | `?walkfade=0` | now |
+|---|---|---|
+| biggest one-frame racquet-head move, between points | 6.314ft (T=412.98, Gwen) | **4.290ft** |
+| p90 of the 78 | 5.949ft | **2.860ft** |
+| median | 1.800ft | 1.613ft |
+| over 1ft / over 0.5ft | 45 / 55 | **44 / 54** |
+| the frame's height across that cut, Gwen | 1.01 -> 6.62 in one frame | **6.38 -> 6.62** |
+| the same, Colette | 1.91 -> 6.80 | **6.42 -> 6.80** |
+| fastest frame of the lift itself | — | **0.14ft in 0.01s**, i.e. 5.4ft over 0.35s |
+| within a rally: max / p90 / over 1ft (136 player-boundaries) | 2.964 / 1.113 / 17 | **identical** |
+| the 108 contacts, at the contact: median / p90 / worst | 0.07 / 0.33 / 0.56ft | **identical** |
+| serves (65) and groundstrokes (43) | 0.00/0.18/0.23 and 0.19/0.46/0.56 | **identical** |
+| item 2b / the toe's worst frame | 0.25 / 0.239 / 0.230ft | **identical** |
+| item 12, the frame crossing the body's line | 75/95/73/107 crossings | **identical** |
+
+5.4ft in 0.35s is 15.4ft/s, which is a person lifting a racquet from their thigh, and it is slower than the foot
+at the worst frame of the film (0.239ft in 0.01s). The lift also now happens where a person's does: the fade-out
+runs *after* the walk has stopped, over the 0.75s the break already had.
+
+**What the residual 4.29ft is, and why it is not this item.** At the same instant the frame is up on both sides of
+the cut (6.38 -> 6.62). What is left is the **body turning**: yaw -1.571 -> -2.262 in one frame — 0.691 rad, 40
+degrees in 16ms, 43 rad/s. `rig.yaw += dy * 0.22` is a FRACTION PER FRAME, so its ceiling is exactly 0.22*pi =
+0.691 rad/frame, and across the film **137 frames turn the body 40 degrees or more in one 16ms frame** (19 of the 78
+between-point boundaries; 118 of 105,368 within-rally frames, worst 1.352 rad = 77 degrees at T=134.40). That is
+the same class of defect as the 0.5ft threshold calibrated for another grid — a per-frame constant is a per-second
+constant only at one tick rate — and it is the next item, not this one: the yaw feeds `reachTo`'s lateral axes and
+therefore every contact, so it cannot be moved without re-measuring all 108.
+
 ## Item 17 — there is no ground past the run-off (DONE 2026-11-19)
 
 Found while checking that Item 15's tail had not broken anything, which is the only reason it was found at all. Of

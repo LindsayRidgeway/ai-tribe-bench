@@ -1363,6 +1363,17 @@ const PUMP_IN = 0.06;       // seconds for the carry's swing to arrive — short
 const PUMP_OUT = 0.06;      // and seconds to leave it before the pose snaps back to the standing one
 const STRIDE_IN = 0.20;     // seconds for a run to grow out of the standing pose instead of switching into it
 const STRIDE_OUT = 0.20;    // and seconds for it to shrink back into it at the end of the run
+// CARRYING THE FRAME BETWEEN POINTS IS A POSE, NOT A BOOLEAN. The walk's arm-and-racquet pose used to be switched
+// on the frame the walk began and off on the frame it ended, and the two frames are a segment boundary: measured
+// across the 107 shot boundaries of `records/item31-after`, the root moves at most 0.25ft but the RACQUET HEAD
+// moves up to 6.31ft — 58 of 166 player-boundaries over 1ft, every one of them between points, where the frame
+// goes from down by the thigh (y 0.72) to up in front of the shoulder (y 6.33) in one hundredth of a second.
+// So: the frame goes down over the first WALK_IN of a walk and comes back up over the WALK_OUT after it ends —
+// after, because a person who has arrived lifts the frame once they have stopped, not on the way in. The break
+// has the room for it: `hold` is `settle.dur + max(0.75, the next serve's stance lead)`.
+const WALK_IN = q.has("walkin") ? Math.max(0.05, parseFloat(q.get("walkin")) || 0.30) : 0.30;
+const WALK_OUT = q.has("walkout") ? Math.max(0.05, parseFloat(q.get("walkout")) || 0.35) : 0.35;
+const WALK_FADE = q.get("walkfade") !== "0";   // ?walkfade=0 draws the carried frame as a switch, for a before/after
 // The gait's offset towards the near foot, signed BY MEASUREMENT rather than by reasoning about bone rolls:
 // `?near=-1` flips it, and the two runs are the evidence (item 4b). It is a quarter cycle and not a half because
 // half a cycle is the other leg, which is the same as no offset at all with the phase reversed.
@@ -1492,6 +1503,15 @@ function tick(now) {
   const tlRaw = T - seg.start;
   const tl = Math.min(tlRaw, seg.dur);
   const sh = seg.sh;
+  // WHEN THE FILM STOPS DRAWING THIS SEGMENT — which is not when its hold ends. The next segment begins BEFORE
+  // the hold is over, because the hold carries the next shot's own lead into its stance, and `shotAt` returns the
+  // segment that started latest: measured, a change of ends held to rel 29.65 while the serve that followed
+  // claimed the clock from rel 28.815. Everything the break wants to finish has to finish by then, or it is not
+  // drawn — which is how a carry that faded out over 0.35s after the walk ended still went to its cut at full
+  // weight. `seg.hold` is the wrong end of the break to phase a fade on; this is the right one.
+  const nextSeg = SEG[SEG.indexOf(seg) + 1];
+  const drawEnd = nextSeg ? Math.max(seg.dur, nextSeg.start - seg.start) : seg.dur + seg.hold;
+  const drawEndRel = drawEnd - seg.dur;      // the same clock the settle runs on: seconds into the break
   // Time since the CONTACT. A segment used to begin at the strike, so `tl` and "since the ball was struck" were the
   // same number. A serve's segment begins at the toss now, and everything that belongs to the stroke — the arm
   // arriving at the ball, the plant, the finish, the heel — is timed off the contact, not off the throw.
@@ -1566,11 +1586,26 @@ function tick(now) {
     const { pos, moving, travelled, dir, swapped, mStart, mLen, local, lastDir } = whereAt(pl.name, T);
     // Between points one of them may be walking rather than playing, and at a change of ends they walk past each
     // other. `seg.settle` is the record's account of that walk; nothing here invents a route or a time.
-    let walking = false, dpass = null, otherPos = null;
+    let walking = false, walkK = 0, dpass = null, otherPos = null;
     if (seg.settle) {
       const mine = seg.settle.players.find(w => w.name === pl.name);
       const rel = tlRaw - seg.dur;                          // seconds into the break
       if (mine && mine.legs.length && rel >= mine.legs[0].t0 - 0.02 && rel <= mine.t1 + 0.02) walking = true;
+      // How far into the carry the frame is, on the walk's OWN clock rather than on that boolean. `mine.t0`/`t1`
+      // are the record's account of when this player was walking — the whole walk, not one of its legs, because a
+      // cross-over at a change of ends is two legs and fading at the join would lift the frame mid-walk.
+      if (mine && mine.legs.length) {
+        const kIn = Math.min(1, Math.max(0, (rel - mine.t0) / WALK_IN));
+        // ...and the frame has to be up BY THE TIME THE FILM STOPS DRAWING THIS BREAK, not by the walk's own end.
+        // This film's change of ends walks to rel 28.902; the serve that follows claims the clock from rel 28.815,
+        // so the last tenth of the walk is never drawn at all. A fade that waited for `t1` — or for `seg.hold`,
+        // which ends 0.835s later still because the hold carries the next serve's stance lead — was mid-carry at
+        // the cut, i.e. the same 5.6ft in one frame with more code in front of it. `drawEndRel` is the real end.
+        const endRel = Math.min(mine.t1 + WALK_OUT, drawEndRel);
+        const kOut = Math.min(1, Math.max(0, (endRel - rel) / WALK_OUT));
+        walkK = Math.min(kIn, kOut);
+      }
+      if (!WALK_FADE) walkK = walking ? 1 : 0;
       if (seg.settle.pass) {
         dpass = rel - seg.settle.pass.t;
         const on = D.players.find(x => x.name !== pl.name);
@@ -2160,18 +2195,44 @@ function tick(now) {
         placeRacquet(rig, readyAim.clone().add(carryPoint.clone().sub(wait)), _face);
       }
     }
-    if (walking) {
+    if (walkK > 0.001) {
+      if (q.has("pumpdebug")) console.log("debug walkcarry", pl.name, T.toFixed(2), "walkK", walkK.toFixed(3),
+        "walking", walking ? 1 : 0, "rel", (tlRaw - seg.dur).toFixed(3), "hold", seg.hold.toFixed(2));
       // The racquet goes down by the thigh. Whoever struck the ball that ended the point has had the stroke branch
       // run on them this frame, and a follow-through is not a walk — measured, that arm was still up with the hand
       // at 5.8ft and the frame at 4.0ft — so the arms go back down before the frame is carried.
+      // AND IT IS REACHED AND LEFT BY FADE: `walkK` is the walk's own clock, so the pose this frame came in with
+      // is kept on one side and blended back out of on the other. At walkK 1 this block is byte for byte what it
+      // was; at walkK 0 it leaves the frame exactly where the branch above put it. The thing that used to jump
+      // 6.31ft is now the thing that moves for three tenths of a second.
       const fwd = new THREE.Vector3(Math.sin(rig.yaw), 0, Math.cos(rig.yaw));
+      const CARRY_ARMS = ["upperarm.R", "forearm.R", "upperarm.L", "forearm.L"];
+      const midway = walkK < 0.999;
+      const was = midway ? CARRY_ARMS.map(n => (rig.bones[n] ? rig.bones[n].quaternion.clone() : null)) : null;
+      const rac0 = (midway && rig.racquet)
+        ? { p: rig.racquet.position.clone(), q: rig.racquet.quaternion.clone() } : null;
       stroll(rig, new THREE.Vector3(at ? 1 : -1, 0, 0), phase);
       const hand = rig.bones["handR"];
       const hp = hand ? hand.getWorldPosition(new THREE.Vector3()) : rig.root.position.clone();
       placeRacquet(rig, hp.clone().addScaledVector(_up, -1.35).addScaledVector(fwd, 0.85), fwd);
+      if (was) {
+        CARRY_ARMS.forEach((n, i) => {
+          const b = rig.bones[n];
+          if (!was[i] || !b) return;
+          const target = b.quaternion.clone();
+          b.quaternion.copy(was[i]).slerp(target, walkK);
+        });
+        if (rac0) {
+          // The head travels with the hand at both ends of the fade, so the shaft neither stretches nor comes
+          // adrift by more than the two hands' own paths differ — which is the arm slerp above, not a number.
+          const tp = rig.racquet.position.clone(), tq = rig.racquet.quaternion.clone();
+          rig.racquet.position.copy(rac0.p).lerp(tp, walkK);
+          rig.racquet.quaternion.copy(rac0.q).slerp(tq, walkK);
+        }
+      }
       // The nod: two dips of the chin across three quarters of a second either side of the pass.
       let pitch = 0;
-      if (dpass !== null && dpass > -0.75 && dpass < 1.0) {
+      if (walking && dpass !== null && dpass > -0.75 && dpass < 1.0) {
         const u = (dpass + 0.75) / 1.75;
         pitch = 0.34 * Math.sin(Math.PI * u) * Math.abs(Math.sin(2 * Math.PI * u));
       }
