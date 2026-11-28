@@ -1,7 +1,7 @@
 # golf — for a beta tester
 
 Written 2026-11-20, at the end of the seventeenth pass; last revised 2026-11-27, at the end of the
-twenty-fifth. The game is `lab/golf.py`; the pages it writes are in
+twenty-sixth. The game is `lab/golf.py`; the pages it writes are in
 `renders/`; the record of every pass is `records/golf-2026-11-19.txt`; the findings are `README.md` beside this
 file. Start at **`renders/start.html`** — it is the door, and it links everything below.
 
@@ -80,11 +80,15 @@ a putt along it. Fixed, both direction terms are zero — pass 24 read break −
 than anywhere inside the rim, and nothing in the model prices the direction of a miss — and the green got 0.2 to
 0.3 of a stroke cheaper past 6 ft, which is why the card moved.
 
-One defect is left where that number used to be, and pass 25 made it bigger rather than smaller. **The putter
-never misreads a green** — its read is exact to a hundredth of a foot — so the break is a picture and not a price,
-and its green is now much cheaper than golf's. A player with 1.1° of face, 1.5% of pace and a perfect read holes
-90% of six-footers; golf holes about 70%. That is the largest single thing wrong with this game and the next
-object.
+The defect that used to sit where that number was — **the putter never misread a green** — was built in pass 26
+and turned out to be small. It reads a green that falls **85%** as hard as the one under its feet, and that is worth
+at most **0.11 of a stroke** at any distance (1.04 → 1.10 at 6 ft, 1.31 → 1.42 at 9, nothing measurable at 20). What it does *not*
+explain is the rest of the gap to golf's green, and the reason is worth more than the defect: a misread moves the
+*aim*, so past a hole's width the second putt it leaves is a foot long and the green is nearly free there, while
+golf's cost rises fastest at 9–12 ft. Reading *half* the break — a mistake nobody would credit a good golfer with —
+is dearer than golf at 9 ft and cheaper at 12 and 20. So the shape golf's green has is a miss that
+leaves a **long** putt, which is a stroke whose dispersion grows with its length; this putter's is 1.1° at every
+distance. That is the next object, and it is a different one from the misread.
 
 The other defect that used to sit here — **nothing priced the putt it leaves** — is gone. Pass 25 gave the pace the
 one-step lookahead it needed, `1 + E[green_cost(what it leaves)]`, and the aim came back from the rim's edge
@@ -127,16 +131,30 @@ a floor, and the ball falls the last four inches and fades. At the distance a pu
 eight pixels across, so **the wall is invisible**; what you see is a ball vanishing into a dark disc. That is the
 honest state of the best frame in the game.
 
-**The putter has no read error, and it is now the largest single thing wrong with the short game.** Its read of
-the break is exact to a hundredth of a foot (it runs the game's own roll and corrects until the ball crosses
-within 0.01 ft of the hole's *centre* — pass 25 fixed that; it used to stop anywhere inside the rim), so its line
-error is one constant 1.1° at every distance, where a real golfer misreads more the longer the putt. Consequences,
-all measured on 2026-11-27: the green costs **1.04 against golf's 1.35 at 6 ft and 1.67 against 1.90 at 20** — and
-1.00 at 2 and 3 ft, where every one of 72 positions was holed — and the break costs it nothing at all. A probe that
-halves the read puts the curve at 1.03 / 1.21 / 1.39 / 1.67 / 1.96 and the holed rates at 85 / 60 / 27 / 13% from
-2 / 4 / 6 / 12 / 20 ft, which is golf's green within a tenth everywhere except 20 ft. That is what the missing
-misread is worth. It is not built, and a scale factor I picked would be a fitted number: the mechanism has to be a
-player's *belief* about the slope, learnable from its own misses, or it is a difficulty setting.
+**The putter misreads the green by a fixed fraction, and the size of that fraction is a prior, not a
+measurement.** Since pass 26 it reads a green that falls 85% as hard as the real one, so its line error is that
+fraction of the break plus its 1.1° of face at every distance. The 85% is the weakest number in the game: nothing in
+this document measures a real golfer's read error, and the record says so rather than dressing it up. What *is*
+measured is what each size costs, played out from the green's centre on 2026-11-27 (3 streams × 24 bearings):
+
+| read | 3 ft | 6 ft | 9 ft | 12 ft | 20 ft |
+|---|---|---|---|---|---|
+| 1.00 | 1.00±0.00 | 1.04±0.02 | 1.31±0.05 | 1.46±0.06 | 1.67±0.06 |
+| 0.85 (shipped) | 1.01±0.01 | 1.10±0.04 | 1.42±0.06 | 1.42±0.06 | 1.68±0.06 |
+| 0.50 | 1.07±0.03 | 1.42±0.06 | 1.68±0.06 | 1.64±0.06 | 1.79±0.05 |
+| golf | 1.05 | 1.35 | 1.60 | 1.75 | 1.90 |
+
+Half a read is dearer than golf at 9 ft and cheaper at 12 and 20: it brackets golf's curve rather than fitting it, so
+golf's green is not the shape a read error makes — which is why the shipped number is not the one that would close
+the gap.
+
+**And the athlete learns its own read, which is the part a player would recognise.** It fits
+`miss = bias × distance + unread fraction × break` over a block of eight misses and moves its reading by what the
+second term says. A push is the same angle from everywhere and a misread changes side with the putt, so the two are
+separable — but not from putts at one place, and the fit refuses a block whose two regressors are collinear instead
+of inventing an answer. In the season's own file (`renders/season.json`, field `read`) the practiser reads 0.00,
+0.00, 0.12, 0.12 over four rounds and the player who never practises reads zero throughout: practice, visible in
+data.
 
 **The putter over-believes its own face, and it is a censored sample.** A putt is only shown to it if it missed, and
 a miss from 3 ft is a putt that passed two inches wide, so the scatter it measures is the tail of its own

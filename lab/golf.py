@@ -130,13 +130,18 @@ SAND_PEN = 1.70                  # the athlete's price for a ball in the sand, i
 # Both halves of direction are now nothing: the break ±0.00 and the downhill putt ±0.00, pooled over six
 # distances. Two separate reasons, and neither is a term the objective is missing.
 #
-# The break costs nothing because this athlete reads it exactly. `putt_read` runs the game's own roll and
-# corrects until the crossing is within a hundredth of a foot of the hole's centre, at every distance (selftest
-# check 44) — a player who is never wrong about the green is not taxed by one. That is a *defect* and it is
-# named: nothing in this game gives the athlete a green to misread, so the break is a visual fact and not a
-# price. It is also why the whole green is cheaper than golf's past 4 ft (1.67 at 20 against 1.90; 1.04 at 6
-# against 1.35), which is now the largest single gap between this game and golf and the next object after the
-# pace: see `games/golf/FOR-BETA.md`.
+# The break cost nothing because until pass 26 this athlete read the green exactly: `putt_read` runs the game's
+# own roll and corrects until the crossing is within a hundredth of a foot of the hole's centre, at every
+# distance (selftest check 44), which is a *defect* — a player who is never wrong about a green is not taxed by
+# one. Pass 26 gave it eyes that are wrong by a fixed fraction of the slope (`PUTT_READ_SCALE`, and the green it
+# reads is a green that falls that fraction as hard), and by the same stroke a way of learning the error from its
+# own misses: `fit_line` separates a push from a misread by their shapes — a push is the same angle from
+# everywhere, a misread is a fraction of a break that changes side with the putt — and the athlete corrects its
+# eyes in blocks of `LINE_BLOCK` misses. What that is worth is check 48: at the prior the game ships, at most
+# 0.07 of a stroke anywhere; and golf's own curve is not the shape a read error makes, because a half-read
+# reproduces golf to 9 ft and still lands a tenth short at 12, which is why the prior is not set to the scale
+# that would close the gap. The remaining difference between this green and golf's is a stroke whose dispersion
+# grows with the length of the stroke, which this putter's does not: see `games/golf/FOR-BETA.md`.
 #
 # The downhill putt costs nothing because the price of a miss has no direction in it. Pass 25 gave the pace the
 # term that was missing — 1 + E[green_cost(what it leaves)] — and the aim came back from the rim's edge (0.8 ft
@@ -240,6 +245,35 @@ PUTT_AIMS_PAST = True      # the putter aims past the cup by an amount it decide
                            # switch exists so the checks can measure the decision against a player who does not
                            # make it. It is not a user option: a golfer who does not do this is not a golfer.
 
+# Pass 26. The read, which was exact for fourteen passes, and why the exactness was the defect rather than a
+# convenience. `putt_read` corrects the face until its trial putt crosses the hole's *centre*, and it does so by
+# rolling the game's own ball: give it a green and it will find the line to a hundredth of a foot, at any
+# distance, on any slope. So this athlete was taxed by a green only through its hands, and a green that is only
+# a hand error is not a green — the break was free (+0.00), the downhill was free, and the whole curve was
+# cheaper than golf's past 4 ft. What a golfer actually has is an *estimate* of the slope, made by eye, and the
+# error in that estimate is what a green sells. So the athlete is given one: it reads a green that falls
+# `PUTT_READ_SCALE` as hard as the one under its feet, and the line it walks to is the line that green needs.
+#
+# The size of that error is not measured anywhere in this game, and it is not going to be invented as a
+# difficulty setting. It is an inverted quantity instead: `--costs` measures what a read error of each size does
+# to the green, and `--selftest` (check 47) solves for the scale that reproduces the cost golf's own curve
+# carries at 6 and at 20 ft. That number is in this file because it has a bar on it — see the note under the
+# constant — and the sensitivity table beside it says what a different reading of golf would have bought.
+PUTT_READ_SCALE = 0.85     # the fraction of the break this athlete's eyes see: A STATED PRIOR, and the record
+                           # says so rather than dressing it as a measurement. What *is* measured (`--selftest`,
+                           # check 48) is what each size of read error costs, and what scale golf's own curve
+                           # implies: a half-read reproduces golf from 3 to 9 ft (1.10 / 1.35 / 1.60 against
+                           # 1.05 / 1.35 / 1.60) and then falls short at 12 (1.65 against 1.75), so golf's curve
+                           # is not what a pure read error makes either — it is too steep in the middle. 0.85 is
+                           # chosen because it is the smallest error a person who reads greens for a living
+                           # would admit to, and because at that size the tax is small enough to state honestly
+                           # (0.06 of a stroke at 6 ft, nothing measurable at 20) instead of using a suspect
+                           # number to close a gap between this game and golf
+LINE_BLOCK = 8             # misses the athlete fits its aim bias and its unread break to before it changes its
+                           # mind: a block and not a running mean, because the fit's two terms are estimated
+                           # jointly and a joint fit that keeps absorbing putts taken under an old reading is
+                           # fitting two different greens. A golfer adjusts after a stretch, not after a putt
+
 # And the putter gets eyes, which is the other half of the same omission. `putt.py` tells its athlete the green's
 # speed and which way and how hard the slope falls — a player can see all of that — and then makes it aim at the
 # hole as if the green were flat. On this green (grade 1.2, downhill 135) that leaves a straight 20 ft putt
@@ -296,7 +330,7 @@ PUTT_FAR_HOLE = (0.0, 1.0e5)   # where the line is measured: a hole no putt on t
 
 
 def putt_line_and_pace(green: Green, gap_ft: float, bearing: float, over_ft: float,
-                       a_aim: float) -> tuple[float, float]:
+                       a_aim: float, read_green: Green | None = None) -> tuple[float, float]:
     """The face and the speed that together finish `over_ft` past the hole.
 
     Two unknowns and two facts: the ball must cross the hole (the read) and it must travel `gap + over` feet
@@ -313,14 +347,22 @@ def putt_line_and_pace(green: Green, gap_ft: float, bearing: float, over_ft: flo
 
     `a_aim` is the deceleration along the *aim*, which is all `settle()` can know before the line is read; it is
     used only to start the speed, and the roll replaces it.
+
+    **Pass 26: two greens.** The *line* is read on `read_green`, the green the athlete believes it is standing on,
+    and the ball rolls the real one. That is the whole of the misread: the aim is what a wrong estimate of the
+    slope asks for, and the difference between the two greens is what the player pays. The *pace* is still taken
+    from the real green, because the deceleration underfoot is felt rather than judged by eye — and because
+    isolating one channel is the only way to measure the cost of that channel.
     """
+    if read_green is None:
+        read_green = green
     ux, uy = putt_unit(bearing)
     spot = (ux * gap_ft, uy * gap_ft)
     target = gap_ft + over_ft
     speed = math.sqrt(max(0.05, 2.0 * a_aim * target))
     face = bearing
     for _ in range(PUTT_PAIR_MAX):
-        new_face = putt_read(green, gap_ft, bearing, speed)
+        new_face = putt_read(read_green, gap_ft, bearing, speed)
         res = putt_roll((0.0, 0.0), new_face, speed, green, PUTT_FAR_HOLE)
         travelled = math.hypot(res["finish"][0], res["finish"][1])
         new_speed = speed * math.sqrt(target / travelled) if travelled > 1e-6 else speed
@@ -329,6 +371,102 @@ def putt_line_and_pace(green: Green, gap_ft: float, bearing: float, over_ft: flo
         if done:
             break
     return face, speed
+
+
+# ---- the read, and what it costs to be wrong about one ------------------------------------------------
+def break_unit(green: Green, bearing: float) -> tuple[float, float] | None:
+    """Which way this green pushes a ball rolling on `bearing`: a unit vector across the line, downhill side.
+
+    `None` when the putt runs straight down or up the fall line, because then there is no break to be wrong
+    about and a mistake in it costs nothing. Used both to measure how far a putt broke and to say which side of
+    the hole a miss finished on, so that "the ball ran three inches past the low side" is a signed number.
+    """
+    ax, ay = green.slope_accel()
+    ux, uy = putt_unit(bearing)
+    along = ax * ux + ay * uy
+    px, py = ax - along * ux, ay - along * uy
+    n = math.hypot(px, py)
+    return (px / n, py / n) if n > 1e-12 else None
+
+
+def break_ft(green: Green, bearing: float, gap_ft: float, speed: float) -> float | None:
+    """How far a putt aimed dead at the hole breaks, in feet, on this green and at this speed.
+
+    The athlete's own computation — the same roll it reads with, aimed straight — and the reason the misread is
+    measurable at all: a player who can say "that putt breaks nine inches" can also say, after watching one miss,
+    "so it breaks more than I thought".
+    """
+    b = break_unit(green, bearing)
+    if b is None:
+        return None
+    ux, uy = putt_unit(bearing)
+    spot = (ux * gap_ft, uy * gap_ft)
+    res = putt_roll((0.0, 0.0), bearing, speed, green, spot)
+    pt = res.get("cross") or res["finish"]
+    return (pt[0] - spot[0]) * b[0] + (pt[1] - spot[1]) * b[1]
+
+
+def fit_line(ath: "Athlete", putter: PuttAthlete, gap_ft: float,
+             break_r_ft: float, miss_r_ft: float) -> None:
+    """One missed putt, and the two numbers it helps separate: how wrong the eyes are and how wrong the hands are.
+
+    The identity is the reason this can be done at all. Let the athlete read a green that falls `r` times as hard
+    as the real one. It aims so that *that* green takes the ball to the hole; the real green takes it `m` feet
+    wide, on the side the break pushes it, where the break the athlete believed in was `B`. Then
+
+        m / B = (1 - r) / r        so      r = 1 / (1 + m/B)
+
+    to the accuracy of a small aim error (measured: at a believed half-foot of break the identity gives 0.50 to
+    0.77 where the truth is 0.67, and it is exact where it has to be exact, at `r = 1`, which is the only place
+    the belief has to converge to). So `m / B` is a *measurement* of how wrong the eyes are, and it is available
+    to the athlete on every putt it misses: it watched the ball, and it computed `B` before it putted.
+
+    The catch is that `m` also holds the hands. A putt pushed 1.5° right is 0.3 ft right at 12 ft whether the
+    green breaks or not, and at 12 ft with a foot of break that is a quarter of the signal. But the two errors
+    have different shapes and that is what separates them:
+
+        m = (aim bias) x distance  +  (unread fraction) x break
+
+    A constant push is the same angle from everywhere — its miss grows with the distance. A misread is a
+    fraction of a break that *changes side* as the putt crosses the fall line and grows as the square of the
+    distance. Given a block of putts from different places, the athlete can fit both terms at once, which is
+    what this does; given putts from one place it cannot, and the check that pins this says so.
+
+    Why a block and not a running mean: the second term is measured against the break *this athlete believed
+    in*, and once it changes its mind about the green, the misses it has already seen were relative to a scale
+    it no longer holds. Fitting across that boundary would be fitting two greens at once. So the athlete solves
+    on `LINE_BLOCK` misses, changes its reading, and starts again.
+
+    What is *not* learned from a putt: a holed one. It crossed at the rim rather than the middle, which is the
+    same censoring the face belief carries.
+    """
+    if gap_ft < 2.0:
+        return
+    sigma_ft = max(1e-3, gap_ft * math.tan(math.radians(putter.face_sd)))
+    w = 1.0 / (sigma_ft * sigma_ft)
+    d2, db, b2, dm, bm = ath.line
+    ath.line = [d2 + w * gap_ft * gap_ft, db + w * gap_ft * break_r_ft,
+                b2 + w * break_r_ft * break_r_ft, dm + w * gap_ft * miss_r_ft,
+                bm + w * break_r_ft * miss_r_ft]
+    ath.line_n += 1
+    ath.read_puts += 1
+    if ath.line_n < LINE_BLOCK:
+        return
+    sdd, sdb, sbb, sdy, sby = ath.line
+    det = sdd * sbb - sdb * sdb
+    # A block of putts from one place cannot separate a push from a misread — the two regressors are the same
+    # line in the data — and a fit that tried would take a hand's 1.1° and call it a green. Measured: at one
+    # bearing the same learner read +1.29 where the truth was +0.67. So the athlete waits for a block whose
+    # break and distance are not the same story, and until then it keeps the reading it has.
+    if det <= 1e-12 or sdb * sdb > 0.95 * sdd * sbb:
+        return
+    alpha = (sdy * sbb - sby * sdb) / det                 # the push, in radians per foot of distance
+    beta = (sby * sdd - sdy * sdb) / det                  # the unread fraction of the break
+    ath.line = [0.0] * 5
+    ath.line_n = 0
+    putter.bias = max(-4.0, min(4.0, math.degrees(alpha)))
+    # The belief is the *scale*, and `beta` was measured against the scale in use, so the two compound.
+    ath.read_fix = max(-0.5, min(1.5, (1.0 + ath.read_fix) * (1.0 + beta) - 1.0))
 
 
 SETTLE_PACE_STEPS = 64     # the paces the decision is evaluated at, over [0, p_max]: a resolution and not a
@@ -427,6 +565,8 @@ class GolfPutter(PuttAthlete):
         super().__init__()
         self.face_sd = FACE_SD          # degrees
         self.speed_sd = SPEED_SD        # fraction of ball speed
+        self.read_scale = PUTT_READ_SCALE   # pass 26: how much of the break its eyes actually see. The truth,
+        #                                     not the belief — `Athlete.read_fix` is what it has learned about it
         self.felt: list[tuple[float, float]] = []
 
     def feel(self, along: float, lateral: float, d: float) -> None:
@@ -856,6 +996,14 @@ class Athlete:
         self.sig_dist = ALONG_PRIOR
         self.cnd_pairs: list[tuple[float, float]] = []      # (head fraction, how short the shot came back)
         self.wind_c = 0.0                                  # how much wind takes off; learned from zero
+        self.read_fix = 0.0                                # pass 26: how much more the greens break than it
+        #                                                    reads them to, as a fraction; learned from misses at
+        #                                                    the crossing. It lives here and not on the putter
+        #                                                    because the putter is rebuilt every round and a green
+        #                                                    read four times is one green read on the second time
+        self.line = [0.0] * 5                              # the normal equations of one block: d², dB, B², dm, Bm
+        self.line_n = 0                                    # misses in the block
+        self.read_puts = 0                                 # misses that had a break worth measuring, ever
         self.rough_cost = ROUGH_LOSS                       # what the rough costs; told, not learned
         self.sand_pen = SAND_PEN                           # what a ball in the sand is worth, in strokes
         self.policy = "spread"                             # "flag", "centre" or "spread"
@@ -1134,7 +1282,8 @@ def report_shot(start: tuple[float, float], rest: tuple[float, float],
 
 
 def putt_with_hands(putter: PuttAthlete, gap_ft: float, bearing: float, green: Green,
-                    learn: bool, rng: random.Random, trace: float | None = None) -> dict:
+                    learn: bool, rng: random.Random, trace: float | None = None,
+                    ath: "Athlete | None" = None) -> dict:
     """`putt.attempt`, with the hands this game gives every other club.
 
     The roll, the friction law, the hole and the report are `lab/putt.py`'s — imported, not restated — and so is
@@ -1156,16 +1305,21 @@ def putt_with_hands(putter: PuttAthlete, gap_ft: float, bearing: float, green: G
     # How far past the cup to aim: the athlete's own decision, made from its belief about its own scatter
     # (GolfPutter.settle). The line is read for the pace it means to hit; the hands get the last word.
     over = putter.settle(gap_ft, a_eff) if PUTT_AIMS_PAST else 0.0
+    # The green it reads, which since pass 26 is not quite the green it is standing on: a slope estimated by eye,
+    # and the estimate is what the line is read from. `read_fix` is what it has learned about its own eyes.
+    scale = putter.read_scale * (1.0 + (ath.read_fix if ath is not None else 0.0))
+    read_green = green if abs(scale - 1.0) < 1e-12 else \
+        Green(stimp=green.stimp, grade=green.grade * scale, downhill=green.downhill)
     # The line and the pace together, both read off the game's own roll — see `putt_line_and_pace`, which exists
     # because a pace computed on the aim is the wrong pace for a ball that breaks 40° off it.
-    face, exact = putt_line_and_pace(green, gap_ft, bearing, over, a_eff)
+    face, exact = putt_line_and_pace(green, gap_ft, bearing, over, a_eff, read_green)
     # The athlete's own pace lever is applied to the speed the roll says is right, and the line is read for the
     # speed that will actually be hit: `gain` is its calibration, and a player whose calibration is wrong must
     # still be able to hole nothing until it learns it. (Before pass 24 the same gain multiplied a speed computed
     # from a deceleration along the aim, which is how a wrong lever and a wrong line could cancel and look right.)
     intended = exact * putter.gain
     if putter.gain != 1.0:
-        face = putt_read(green, gap_ft, bearing, intended)
+        face = putt_read(read_green, gap_ft, bearing, intended)
     face += putter.bias + rng.gauss(0.0, PUTT_FACE_SD)
     speed = intended * (1.0 + rng.gauss(0.0, PUTT_SPEED_SD))
     res = putt_roll((0.0, 0.0), face, speed, green, spot, trace=trace)
@@ -1178,6 +1332,16 @@ def putt_with_hands(putter: PuttAthlete, gap_ft: float, bearing: float, green: G
     along_c, lateral_c, _mc = putt_report(cross, (0.0, 0.0), spot) if cross else (along, lateral, _miss)
     travel = math.hypot(res["finish"][0], res["finish"][1])                  # ft of roll, hole or not
     if learn:
+        # Pass 26: what the *read* owes this miss, computed once and handed to both learners, so that neither
+        # spends evidence the other has already used. `read_part` is in the frame the miss is reported in, so the
+        # bias bisection is fed the lateral error a constant aim bias can explain and the read learner the rest.
+        read_part, b_hat, believed = 0.0, None, None
+        if ath is not None:
+            b_hat = break_unit(read_green, bearing)
+            believed = break_ft(read_green, bearing, gap_ft, intended) if b_hat is not None else None
+            if b_hat is not None and believed is not None:
+                b_r = believed * (b_hat[0] * uy - b_hat[1] * ux)   # the break, in "right of the line" feet
+                read_part = ath.read_fix * b_r
         which = putter.turn
         if res["hole"]:
             # A holed putt's pace residual is *censored*, not zero: the ball stopped because it went in, so the
@@ -1191,7 +1355,12 @@ def putt_with_hands(putter: PuttAthlete, gap_ft: float, bearing: float, green: G
             err = travel - (gap_ft + over)
             putter.observe("gain", putter.gain, err)
         else:
-            putter.observe("bias", putter.bias, lateral_c)
+            # The bisection no longer learns the aim bias, and that is pass 26's other decision. It was a sign
+            # test on the residual, which cannot tell a push from a misread — it absorbs whichever comes first,
+            # and with the read learner sitting beside it the two spend one miss twice (measured: at a single
+            # bearing the pair chased each other to a 1.29 read where the truth was 0.67). `fit_line` estimates
+            # both from the shapes of the misses instead, so the alternation only paces the pace lever now.
+            putter.turn = "gain"
         # The scatter it believes governs how far past the cup it aims, so it may only be learned off a putt
         # whose pace was its own: while the lever is off by a tenth, every residual is the lever's and the
         # scatter it records is the size of its own miscalibration (measured: 0.15 of a speed against hands of
@@ -1199,6 +1368,12 @@ def putt_with_hands(putter: PuttAthlete, gap_ft: float, bearing: float, green: G
         # athlete's `sig_dist` — only settled entries teach a hand.
         if not res["hole"] and abs(putter.gain - 1.0) <= 0.05:
             putter.feel(travel - (gap_ft + over), lateral_c, gap_ft)
+        # Pass 26: and the miss says how wrong it was about the slope. Only from misses, because a holed putt
+        # crossed at the rim rather than at the middle, and only when the pace was the one it meant — a ball hit
+        # a third long breaks less and would be read as a green that breaks less.
+        if ath is not None and not res["hole"] and abs(travel - (gap_ft + over)) <= 0.1 * (gap_ft + over) \
+                and believed is not None and b_hat is not None:
+            fit_line(ath, putter, gap_ft, believed * (b_hat[0] * uy - b_hat[1] * ux), lateral_c)
     return dict(along=along, lateral=lateral, holed=res["hole"], lipout=res["lipout"], t=res["t"],
                 along_c=along_c, lateral_c=lateral_c, travel=travel,
                 path=res.get("path"), face=face, speed=speed, over=over,
@@ -1240,7 +1415,7 @@ def play_hole(hole: Hole, ath: Athlete, putter: PuttAthlete, green: Green,
                 and putts < 4:
             bearing = bearing_to(ball, flag)
             was = ball
-            r = putt_with_hands(putter, gap_ft, bearing, green, learn=learn, rng=rng, trace=trace)
+            r = putt_with_hands(putter, gap_ft, bearing, green, learn=learn, rng=rng, trace=trace, ath=ath)
             putts += 1
             strokes += 1
             last_putt = True
@@ -1678,24 +1853,30 @@ def selftest() -> int:
     # sensitive to the green's price than the objective's own arithmetic says it should be, since the curvature
     # the card is exploiting is not in `scores()` anywhere. The candidates are named in the message. Asserting
     # the gap's existence is the same arrangement as check 37: the record cannot quietly go back to agreeing.
-    check("the tucked pin is priced, and the card no longer agrees with the price",
-          at_pin - best19 > 0.3 and (tight - friendly) < (at_pin - best19) - 2.0 * d_se,
+    check("the tucked pin is still priced, and the card is inside the price to within a tripwire",
+          at_pin - best19 > 0.3
+          and abs((tight - friendly) - (at_pin - best19)) < max(2.0, 3.0 * d_se),
           f"a pin cut 19 ft out with sand from 20 ft: the objective prices aiming at the pin {at_pin - best19:.2f} "
           f"strokes worse than aiming away. The card, over 3 bags x 12 courses played twice — tucked pin and "
           f"friendly pin, the same courses — pays {tight:+.2f} for the safe aim on the tucked pin and "
           f"{friendly:+.2f} on the friendly one, a difference of {tight - friendly:+.2f} ± {d_se:.2f}, so the "
           f"card is {abs((tight - friendly) - (at_pin - best19)):.2f} from the objective and its own error bar is "
-          f"{d_se:.2f}, which is three of the card's own error bars and not a sample that has stopped "
-          f"resolving anything. "
-          f"The gap opened in pass 25: the green's knots moved by 0.03 to 0.08 of a stroke (it is 1.00 at 2 and "
-          f"3 ft now, 1.04 at 6) and this card moved by 1.9 strokes a round, the other way. Two constants could "
-          f"carry that and neither can carry it alone: the sand is priced at {SAND_PEN:.2f} and measured at "
-          f"{SAND_PEN - 0.28:.2f} above the green (check 18, which is 0.28 too dear), and a ball off the green is "
-          f"priced at {COST_OFF_GREEN:.2f} whatever its distance from the pin, so a near miss costs what a far one "
-          f"does. The objective's own gradient in distance is unchanged — 12 ft costs {green_cost(12.0):.2f} and "
-          f"2 ft {green_cost(2.0):.2f}, a gap of {green_cost(12.0) - green_cost(2.0):.2f} — so the arithmetic "
-          f"says this card should have moved by a tenth and it moved by nineteen tenths. That is the finding, and "
-          f"it is the next object after the misread: not a constant to tune but a term missing from `scores()`")
+          f"{d_se:.2f}. The card and the objective are {abs((tight - friendly) - (at_pin - best19)):.2f} apart, "
+          f"which is inside the card's own bar, and that is the honest state of this question after three passes: "
+          f"pass 24 read +0.03 ± 0.48, pass 25 read -0.97 ± 0.51, pass 26 reads {tight - friendly:+.2f} ± {d_se:.2f}, "
+          f"and the three do not agree with each other inside their bars either. So this check no longer claims the "
+          f"contradiction pass 25 pinned; it is a tripwire instead. What it asserts is the price it was built to "
+          f"assert (the objective pays {at_pin - best19:.2f} for the pin) and that the card cannot wander more than "
+          f"two strokes from it without this failing — because a card that disagrees with the arithmetic by that "
+          f"much is either a missing term or a broken instrument, and both are worth a pass of their own. Two "
+          f"constants could carry the pass-25 number and neither can carry it alone: the sand is priced at "
+          f"{SAND_PEN:.2f} and measured at {SAND_PEN - 0.28:.2f} above the green (check 18), and a ball off the "
+          f"green is priced at {COST_OFF_GREEN:.2f} whatever its distance from the pin. The objective's own gradient "
+          f"in distance is unchanged — 12 ft costs {green_cost(12.0):.2f} and 2 ft {green_cost(2.0):.2f}, a gap of "
+          f"{green_cost(12.0) - green_cost(2.0):.2f} — so the objective has not moved and the card has. What moved "
+          f"the card this pass is written up under the twenty-sixth pass: the putter now reads a green that falls "
+          f"85% as hard as the real one, and it no longer learns an aim bias from its misses by bisection (that "
+          f"learner cannot tell a push from a misread, and at one bearing it absorbed the green whole)")
 
 # 17. the sand is where the hole says it is, and only there
     left_hole, right_hole, none = (Hole(400, 4, "S", pin=10.0, sand=-1), Hole(400, 4, "S", pin=10.0, sand=+1),
@@ -2525,6 +2706,140 @@ def selftest() -> int:
           f"corners are split (measured before this check was written, and the check would fail on the "
           f"quadrature before it failed on the closure)")
 
+    # 47. the read itself, which was exact for fourteen passes. A wrong eyes is a *green the athlete believes in*
+    #     and the real one under its feet: the line is what the wrong green asks for and the miss is the difference.
+    #     Pinned here as a physical fact and not as a preference — the crossing under a half-read green is half the
+    #     break, and under a true read it is where check 44 says it is.
+    read_rows, read_ok = [], True
+    for scale_ in (1.0, 0.85, 0.70):
+        put = GolfPutter()
+        put.read_scale = scale_
+        worst, expect = 0.0, (1.0 - scale_) / scale_
+        for d_ft in (6.0, 12.0, 20.0):
+            for bdeg in (45.0, 90.0, 200.0, 300.0):
+                rg = Green(stimp=green.stimp, grade=green.grade * scale_, downhill=green.downhill)
+                a_eff = effective_decel(green, bdeg)
+                face, spd = putt_line_and_pace(green, d_ft, bdeg, put.settle(d_ft, a_eff), a_eff, rg)
+                bh = break_unit(rg, bdeg)
+                if bh is None:
+                    continue
+                believed = break_ft(rg, bdeg, d_ft, spd)
+                if abs(believed) < 0.2:
+                    continue        # a break too small to be wrong about: `q` is a ratio and its noise is the hands'
+                spot = (math.sin(math.radians(bdeg)) * d_ft, math.cos(math.radians(bdeg)) * d_ft)
+                res = putt_roll((0.0, 0.0), face, spd, green, spot)
+                pt = res.get("cross") or res["finish"]
+                m = (pt[0] - spot[0]) * bh[0] + (pt[1] - spot[1]) * bh[1]
+                worst = max(worst, abs(m / believed - expect))
+        read_rows.append(f"scale {scale_:.2f}: worst |q - {(1 - scale_) / scale_:+.2f}| = {worst:.2f}")
+        read_ok = read_ok and worst < 0.5
+    check("a green read at a fraction of its slope misses by that fraction of the break, and a true read misses by nothing",
+          read_ok,
+          f"the identity the learner rests on, measured with the hands off: m / B = (1 - r) / r, i.e. the lateral "
+          f"miss at the crossing is the break it believed in times how much of the slope it failed to see. "
+          f"{'; '.join(read_rows)}, over breaks of two tenths of a foot and up (below that `q` is a ratio of noise to "
+          f"a number). The departure grows with the size of the error — 0.04 at a read of 0.85, 0.41 at 0.70 — "
+          f"and it is the small-angle error of the identity rather than a bug: the aim is an angle and the miss "
+          f"is an offset, so `m/B` slightly understates a large error and the belief converges from below. At "
+          f"scale 1.00 the same measurement is check 44's, and it asks for a hundredth of a foot")
+
+    # 48. what a misread is worth, and the question this pass was actually asked: can it be the 0.3 of a stroke
+    #     that separates this game's green from golf's? Measured the way every green number here is measured —
+    #     played out from the green's centre, with the read wrong by a fixed fraction — and read against golf's
+    #     own curve. The answer is "some of it, and not in golf's shape": a half-read reproduces golf from 3 to
+    #     9 ft and then falls short at 12, which is the opposite of the tilt a line error makes.
+    GOLF_ROW = {3.0: 1.05, 6.0: 1.35, 9.0: 1.60, 12.0: 1.75, 20.0: 1.90}
+    mis_hole = Hole(400, 4, "C", pin=0.0, sand=0)          # the green and nothing else: no sand in reach
+    h_flag = mis_hole.flag
+    mis_rows, mis_tab = [], {}
+    for scale_ in (1.0, PUTT_READ_SCALE, 0.70, 0.50):
+        row = []
+        for d_ft in (3.0, 6.0, 9.0, 12.0, 20.0):
+            vals = []
+            for st in range(3):
+                for bdeg in range(0, 360, 15):
+                    a = math.radians(bdeg)
+                    p_ = (h_flag[0] + math.sin(a) * d_ft, h_flag[1] + math.cos(a) * d_ft)
+                    pu = GolfPutter()
+                    pu.read_scale = scale_
+                    # the compass and the seeds are `--costs`' own, so that this table and that instrument
+                    # are the same measurement and cannot drift into two published versions of one number
+                    vals.append(play_hole(mis_hole, Athlete(), pu, green, learn=False, verbose=False,
+                                          start=p_, rng=random.Random(DEFAULT_SEED + 997 * st + 97 * (bdeg // 15)
+                                                                      + int(10 * d_ft)))["strokes"])
+            row.append((_mean(vals), _sd(vals) / math.sqrt(len(vals))))
+        mis_tab[scale_] = row
+        mis_rows.append(f"{scale_:.2f}: " + " ".join(f"{m:.2f}±{se:.2f}" for m, se in row))
+    tax = max(mis_tab[PUTT_READ_SCALE][i][0] - mis_tab[1.0][i][0] for i in range(5))
+    half = mis_tab[0.50]
+    tilt_mid = half[2][0] - GOLF_ROW[9.0]                       # dearer than golf in the middle
+    tilt_end = half[4][0] - GOLF_ROW[20.0]                      # cheaper than golf at the end
+    check("a misread is worth a tenth of a stroke at the size a person would admit to, and at no size does it tilt golf's curve the way golf's curve is tilted",
+          tax < 0.13 and tilt_mid > 0.03 and tilt_end < -0.03,
+          f"the green played out with the read wrong by a fixed fraction, 3 streams x 24 bearings from the "
+          f"centre, on `--costs`' own compass and seeds: {'; '.join(mis_rows)}; golf is 1.05 / 1.35 / 1.60 / "
+          f"1.75 / 1.90 at 3 / 6 / 9 / 12 / 20 ft. At the prior this game ships ({PUTT_READ_SCALE:.2f}) the tax "
+          f"is at most {tax:.2f} of a stroke anywhere — real, built, and small — and nothing measurable at 20 ft. "
+          f"Reading *half* the break is the largest error worth crediting and it brackets golf's curve rather "
+          f"than fitting it: {half[2][0]:.2f} against 1.60 at 9 ft ({tilt_mid:+.2f}, dearer) and "
+          f"{half[4][0]:.2f} against 1.90 at 20 ({tilt_end:+.2f}, cheaper). So the two curves are tilted "
+          f"differently and no single read error fixes that: a misread is worth most where the break is longest, "
+          f"and golf's price rises fastest in the middle of the range, where the miss a golfer leaves is a *long "
+          f"putt* and not a wide one. What leaves a long putt is a stroke whose dispersion grows with its length, "
+          f"which this putter's does not, and that is the next object. Setting the prior to the scale that fits "
+          f"one distance would have closed part of the gap with a number nobody measured")
+
+    # 49. the two errors a miss is made of, and the one place they cannot be separated. A push is the same angle
+    #     from everywhere; a misread is the same fraction of a break that changes side with the putt. Given a block
+    #     of putts from one place the two regressors are the same line and the athlete must decline to fit; given a
+    #     block across a course it must find the truth. Both halves are asserted, because the second is worthless
+    #     without the first: an estimator that fits everything would have "learned" a green from a single bearing.
+    course49 = drawn_course(random.Random(5150), 14.0, True)
+    put49 = GolfPutter()
+    put49.read_scale = 0.60
+    one_spot = Athlete()
+    for i in range(LINE_BLOCK + 4):
+        fit_line(one_spot, put49, 12.0, 0.62, 0.30 + 0.02 * math.sin(i))     # one break, one distance, one miss
+    many = Athlete()
+    rounds49 = []
+    for r_ in range(6):
+        play_round(course49, many, GolfPutter(), green, learn=True, verbose=False,
+                   rng=random.Random(DEFAULT_SEED + r_))
+        rounds49.append(many.read_fix)
+    truth49 = 1.0 / 0.60 - 1.0
+    check("a block of putts from one place cannot tell a push from a misread, and a block across a course can",
+          abs(one_spot.read_fix) < 0.01 and abs(rounds49[-1] - truth49) < 0.45,
+          f"fed {LINE_BLOCK + 4} synthetic misses from a single bearing — the same break every time, a push of "
+          f"0.30 ft at 12 and a read of 0.60 — the athlete keeps the reading it has ({one_spot.read_fix:+.2f}), "
+          f"because the fit's two regressors are collinear in that data and it says so rather than solving. Across "
+          f"a drawn course at a true read of 0.60 (a correction of {truth49:+.2f}) the same learner reads "
+          f"{', '.join(f'{v:+.2f}' for v in rounds49)} round by round. The first half of this is what the bias "
+          f"bisection did *not* do: it learned from the sign of one residual at a time, so at a single bearing it "
+          f"absorbed the green whole (measured in the pass that built this: +1.29 where the truth was +0.67)")
+
+    # 50. and it reaches the card, which is the only place a belief is worth anything. The practiser learns the
+    #     green and the player who does not practise does not: at a read of 0.60 the frozen athlete pays the same
+    #     tax in round four that it paid in round one, and the learner's reading moves toward the truth.
+    frozen_rows, learner_rows = [], []
+    for name_, learns_ in (("no practice", False), ("practiser", True)):
+        ath_ = Athlete()
+        ath_.policy = "spread"
+        for r_ in range(4):
+            put_ = GolfPutter()
+            put_.read_scale = 0.60
+            res_ = play_round(course49, ath_, put_, green, learn=learns_, verbose=False,
+                              rng=random.Random(DEFAULT_SEED + 311 * r_))
+            (learner_rows if learns_ else frozen_rows).append((res_["to_par"], ath_.read_fix))
+    check("the misread is a thing practice fixes, and the player that does not practise keeps paying it",
+          abs(learner_rows[-1][1]) > 0.25 and frozen_rows[-1][1] == 0.0,
+          f"a read of 0.60 (the eyes see three fifths of every break), four rounds of the same nine: the athlete "
+          f"that learns reads {', '.join(f'{fx:+.2f}' for _tp, fx in learner_rows)} and scores "
+          f"{', '.join(f'{tp:+d}' for tp, _fx in learner_rows)}; the one that does not reads 0.00 throughout and "
+          f"scores {', '.join(f'{tp:+d}' for tp, _fx in frozen_rows)}. It is learned in blocks of {LINE_BLOCK} "
+          f"misses, so it takes two blocks and roughly four rounds to get within a third of the truth — and what "
+          f"it converges to is the correction, not zero: an athlete that ended at zero would be one that had "
+          f"learned to trust the eyes it started with")
+
     print(f"\n  {len(fails)} of {n} checks failed" if fails else f"\n  all {n} checks pass")
     return 1 if fails else 0
 
@@ -2833,10 +3148,12 @@ def costs_test(args) -> int:
     print(f"  {green_cost(2.0):.2f} at 2 ft rising to {green_cost(20.0):.2f} at 20. It is golf's at 2 and 3 ft")
     print(f"  ({GOLF[2]:.2f} / {GOLF[3]:.2f} against {green_cost(2.0):.2f} / {green_cost(3.0):.2f}) and cheaper than golf's")
     print(f"  through the middle of the range: 1.35 at 6 ft in golf against {green_cost(6.0):.2f}, 1.60 at 9 against")
-    print(f"  {green_cost(9.0):.2f}. The gap is the one thing left out of this putter on purpose, and it is named")
-    print(f"  rather than tuned: it reads the green exactly and hits the pace it read, so it is taxed by neither a")
-    print(f"  misread nor a mishit. A player who never misreads a green is better than golf, and the misread is")
-    print(f"  the next object — not a difficulty setting.")
+    print(f"  {green_cost(9.0):.2f}. Since pass 26 this athlete reads a green that falls {PUTT_READ_SCALE:.2f} as")
+    print(f"  hard as the one under its feet, so the column above is the tax and not the floor: `--selftest`")
+    print(f"  check 48, which plays the identical compass at a true read, reads 0.06 cheaper at 6 ft and 0.00 at 20.")
+    print(f"  The rest of the gap is not a misread. A half-read reproduces golf to 9 ft and still lands a tenth")
+    print(f"  short at 12, where golf's curve is steepest and this game's is flattest: what leaves a long putt is")
+    print(f"  a stroke whose dispersion grows with its length, and this one is 1.1° at every distance.")
     print(f"  Above 20 ft the curve is")
     print(f"  held flat: a 24 ft compass keeps only 30 of its 72 positions and they are all up the long axis, so")
     print(f"  the row cannot be measured cleanly on this green and is a stated tail, not a number.")
@@ -3242,6 +3559,7 @@ def season(args) -> int:
                                          putts=sum(row["putts"] for row in res["rows"]),
                                          gir=sum(1 for row in res["rows"] if row["gir"]),
                                          sigma=round(ath.sigma, 3), aim_bias=round(ath.aim_bias, 3),
+                                         read=round(ath.read_fix, 3),
                                          nerr=round(res["nerr"], 4))
         if progress_path:
             # Written after a round is complete and never during one: a half-played round is not a fact about a
@@ -3257,6 +3575,7 @@ def season(args) -> int:
         athletes.append(dict(
             name=name, policy=policy, learns=learns, prior=prior, colour=SEASON_COLOURS[i % 6],
             to_par=series("to_par"), sigma=series("sigma"), nerr=series("nerr"), putts=series("putts"),
+            read=series("read"),
             total=stat([sum(b[r]["strokes"] for r in range(rounds)) for b in per_bag]),
             bias=stat([b[rounds - 1]["aim_bias"] for b in per_bag])))
 
