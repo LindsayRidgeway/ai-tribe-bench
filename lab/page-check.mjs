@@ -4109,6 +4109,27 @@ async function main(){
     return '';
   });
 
+  /* 23 — the front door's first sentence. It said "a circle is a folder in your GitHub account", which defines the
+     storage and calls it the thing; it is the sentence a stranger reads before anything else, and it was true of an
+     older product and never true of this one. A circle is a gathering; the folder is where the gathering is kept, and
+     saying so is what lets a circle exist in a tab at all. Founder's correction, 2026-11-28. */
+  reset();
+  const front = await tryRun(ctx, `(async () => {
+    S.repo = ''; S.token = '';
+    location.hash = '#/';
+    await render();
+    return {html: document.getElementById('main').innerHTML};
+  })()`);
+
+  check('the first sentence of the product says what a circle is, and not where it is kept', () => {
+    if (front.err) return front.err;
+    const h = String(front.html || '');
+    if (!/A circle is a gathering/.test(h)) return 'the front page does not say what a circle is';
+    if (/A circle is a folder/.test(h)) return 'the front page still defines a circle as a folder';
+    if (!/folder in your GitHub account/.test(h)) return 'the folder is gone altogether, so nothing says where it is kept';
+    return '';
+  });
+
   /* 22 — the room's two questions, kept apart. Until 2026-11-27 a member of a room was answering or gone, so a
      silence had to be read as an exit. The levers are in the room's own file (`Muted:`, `Quiet:`), which is where a
      person can read them back tomorrow, and the chips are on the screen where the silence is, not behind a dialog.
